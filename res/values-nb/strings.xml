@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Medier"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokal lagring"</string>
-    <string name="app_label" msgid="9035307001052716210">"Medielagring"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Medier"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Medievelger"</string>
     <string name="artist_label" msgid="8105600993099120273">"Artist"</string>
     <string name="unknown" msgid="2059049215682829375">"Ukjent"</string>
     <string name="root_images" msgid="5861633549189045666">"Bilder"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Åpne skymedier fra"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ingen"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Kunne ikke endre skymedieappen akkurat nå."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Medievelger"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Medievelger"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Synkroniserer medieinnholdet …"</string>
     <string name="add" msgid="2894574044585549298">"Legg til"</string>
     <string name="deselect" msgid="4297825044827769490">"Fjern merking"</string>
     <string name="deselected" msgid="8488133193326208475">"Ikke valgt"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ingen album"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Vis valgte"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Bilder"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Album"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Forhåndsvisning"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Bytt til jobbprofilen"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}other{<xliff:g id="COUNT_1">^1</xliff:g> elementer}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Legg til (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Tillat (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Tillat ingen"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Nedlastinger"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favoritter"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Problem med avspilling av videoen"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Sjekk internettilkoblingen og prøv på nytt"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Prøv på nytt"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Skymedier er nå tilgjengelige fra <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"ikke valgt"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Klargjør det valgte medieinnholdet"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> av <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> er klare"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Avbryt"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Nå er sikkerhetskopierte bilder inkludert"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Du kan velge bilder fra <xliff:g id="APP_NAME">%1$s</xliff:g>-kontoen <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-kontoen er oppdatert"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Velg app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Velg konto"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Bytt konto"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Laster inn alle bildene dine"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne lydfilen?}other{Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> lydfiler?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Endrer lydfilen …}other{Endrer <xliff:g id="COUNT">^1</xliff:g> lydfiler …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vil du tillate at <xliff:g id="APP_NAME_0">^1</xliff:g> endrer denne videoen?}other{Vil du tillate at <xliff:g id="APP_NAME_1">^1</xliff:g> endrer <xliff:g id="COUNT">^2</xliff:g> videoer?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Beskyttelse"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Integrerte omkodingsvarsler"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Integrert omkodingsfremdrift"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Prøv på nytt senere. Bildene dine blir tilgjengelige når problemet er løst."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Noen bilder kan ikke lastes inn"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Greit"</string>
 </resources>

@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Abezind"</string>
     <string name="storage_description" msgid="4081716890357580107">"Isitoreji sasendaweni"</string>
-    <string name="app_label" msgid="9035307001052716210">"Isitoreji Semidiya"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Imidiya"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Isikhethi semidiya"</string>
     <string name="artist_label" msgid="8105600993099120273">"Umculi"</string>
     <string name="unknown" msgid="2059049215682829375">"Akwaziwa"</string>
     <string name="root_images" msgid="5861633549189045666">"Izithombe"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Finyelela imidiya yacloud ukusuka"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Lutho"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ayikwazanga ukushintsha i-app yemidiya ye-cloud manje."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Isikhethi semidiya"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Isikhethi semidiya"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Ivumelanisa imidiya…"</string>
     <string name="add" msgid="2894574044585549298">"Engeza"</string>
     <string name="deselect" msgid="4297825044827769490">"Susa ukukhetha"</string>
     <string name="deselected" msgid="8488133193326208475">"Okususwe ekukhethweni"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Awekho ama-albhamu"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Ukubuka kukhethiwe"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Izithombe"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Ama-albhamu"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Hlola kuqala"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Shintshela kokmsebenzi"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{into <xliff:g id="COUNT_0">^1</xliff:g>}one{izinto <xliff:g id="COUNT_1">^1</xliff:g>}other{izinto <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Engeza (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Vumela (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Ungavumeli lutho"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Ikhamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Okulandiwe"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Izintandokazi"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Inkinga yokudlala ividiyo"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Hlola ukuxhuma kwakho kwe-inthanethi uphinde uzame futhi"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Zama futhi"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Imidiya ye-cloud manje iyatholakala kusuka ku-<xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"akukhethiwe"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Ilungiselela imidiya yakho oyikhethile"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"U-<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> wokungu-<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ulungile"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Khansela"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Izithombe ezenziwe isipele sezifakiwe manje"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Ungakhetha izithombe ezivela ku-akhawunti ye-<xliff:g id="APP_NAME">%1$s</xliff:g> ethi <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"I-akhawunti ye-<xliff:g id="APP_NAME">%1$s</xliff:g> ibuyekeziwe"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Khetha i-app"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Khetha i-akhawunti"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Shintsha i-akhawunti"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Ithola zonke izithombe zakho"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Vumela i-<xliff:g id="APP_NAME_0">^1</xliff:g> ukuguqula leli fayela lomsindo?}one{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}other{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amafayela omsindo angu-<xliff:g id="COUNT">^2</xliff:g>?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Ilungisa ifayela lomsindo…}one{Ilungisa amafayela womsindo angu-<xliff:g id="COUNT">^1</xliff:g>…}other{Ilungisa amafayela womsindo angu-<xliff:g id="COUNT">^1</xliff:g>…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Vumela i-<xliff:g id="APP_NAME_0">^1</xliff:g> ukuguqula le vidiyo?}one{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amavidiyo angu-<xliff:g id="COUNT">^2</xliff:g>?}other{Vumela i-<xliff:g id="APP_NAME_1">^1</xliff:g> ukuguqula amavidiyo angu-<xliff:g id="COUNT">^2</xliff:g>?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Ukuvikeleka kokuphepha"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Izexwayiso Zokudlulisela Ikhodi Yomdabu"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Inqubekela-phambili Yokudlulisela Ikhodi Yomdabu"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Zama futhi emuva kwesikhathi. Izithombe zakho zizotholakala uma inkinga isixazululiwe."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Ayikwazi ukulayisha ezinye Izithombe"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Ngiyezwa"</string>
 </resources>

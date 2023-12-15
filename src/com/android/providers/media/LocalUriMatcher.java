@@ -78,6 +78,8 @@ class LocalUriMatcher {
     static final int PICKER_INTERNAL_ALBUMS_ALL = 904;
     static final int PICKER_INTERNAL_ALBUMS_LOCAL = 905;
 
+    public static final int MEDIA_GRANTS = 1000;
+
     // MediaProvider Command Line Interface
     static final int CLI = 100_000;
 
@@ -169,6 +171,7 @@ class LocalUriMatcher {
         mHidden.addURI(auth, "picker_internal/media/local", PICKER_INTERNAL_MEDIA_LOCAL);
         mHidden.addURI(auth, "picker_internal/albums/all", PICKER_INTERNAL_ALBUMS_ALL);
         mHidden.addURI(auth, "picker_internal/albums/local", PICKER_INTERNAL_ALBUMS_LOCAL);
+        mHidden.addURI(auth, "media_grants", MEDIA_GRANTS);
         mHidden.addURI(auth, "*", VOLUMES_ID);
         mHidden.addURI(auth, null, VOLUMES);
 

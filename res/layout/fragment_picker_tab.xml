@@ -20,34 +20,44 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- The nested scroll view holds the layout that is made visible when
+    the picker is empty. It has been wrapped in the scroll view to tackle
+    bugs where the "empty_text_view" gets rolled off the screen partially
+    or completely in small screen devices -->
+    <androidx.core.widget.NestedScrollView
         android:id="@android:id/empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
-        android:orientation="vertical"
         android:visibility="gone">
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_artwork_camera"
-            android:contentDescription="@null"/>
-
-        <TextView
-            android:id="@+id/empty_text_view"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/picker_empty_text_margin"
-            android:gravity="center_horizontal"
-            android:text="@string/picker_photos_empty_message"
-            android:textColor="?android:attr/textColorSecondary"
-            android:textSize="@dimen/picker_empty_text_size"
-            style="?android:attr/textAppearanceListItem"/>
+            android:orientation="vertical">
 
-    </LinearLayout>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_artwork_camera"
+                android:contentDescription="@null"/>
+
+            <TextView
+                android:id="@+id/empty_text_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/picker_empty_text_margin"
+                android:gravity="center_horizontal"
+                android:text="@string/picker_photos_empty_message"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="@dimen/picker_empty_text_size"
+                style="?android:attr/textAppearanceListItem"/>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
 
     <com.android.providers.media.photopicker.ui.AutoFitRecyclerView
         android:id="@+id/picker_tab_recyclerview"
@@ -56,5 +66,25 @@
         android:clipToPadding="false"
         android:drawSelectorOnTop="true"
         android:overScrollMode="never"/>
+
+    <TextView
+        android:id="@+id/loading_text_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:text="@string/picker_loading_photos_message"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="@dimen/picker_tab_loading_message_text_size"
+        style="?android:attr/textAppearanceListItem"
+        android:visibility="gone"/>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/picker_progress_bar_margin_top"
+        style="@style/android:Widget.Material.ProgressBar.Horizontal"
+        android:indeterminate="true"
+        android:visibility="gone"/>
 
 </FrameLayout>

@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Média"</string>
     <string name="storage_description" msgid="4081716890357580107">"Helyi tárhely"</string>
-    <string name="app_label" msgid="9035307001052716210">"Médiatároló"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Média"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Médiaválasztó"</string>
     <string name="artist_label" msgid="8105600993099120273">"Előadó"</string>
     <string name="unknown" msgid="2059049215682829375">"Ismeretlen"</string>
     <string name="root_images" msgid="5861633549189045666">"Képek"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Hozzáférés a következő szolgáltatásban tárolt felhőbeli médiatartalmakhoz:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nincs"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Most nem módosítható a felhőbeli médiaalkalmazás."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Médiaválasztó"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Médiaválasztó"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Médiatartalom szinkronizálása…"</string>
     <string name="add" msgid="2894574044585549298">"Hozzáadás"</string>
     <string name="deselect" msgid="4297825044827769490">"Jelölés törlése"</string>
     <string name="deselected" msgid="8488133193326208475">"Kijelölés megszüntetve"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nincsenek albumok"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Kijelöltek megnézése"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotók"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Albumok"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Előnézet"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Átváltás munkaprofilra"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elem}other{<xliff:g id="COUNT_1">^1</xliff:g> elem}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Hozzáadás (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Engedélyezés (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Egy se legyen engedélyezve"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Letöltések"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Kedvencek"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Probléma merült fel a videó lejátszásakor"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Ellenőrizze internetkapcsolatát, és próbálkozzon újra"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Újra"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"A felhőbeli médiatartalmak már hozzáférhetők a következőből: <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"nincs kiválasztva"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"A kiválasztott média előkészítése…"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>/<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kész"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Mégse"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Mostantól rendelkezésre állnak a fotók, amelyekről biztonsági másolat készült"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Kiválaszthat fotókat a(z) <xliff:g id="APP_NAME">%1$s</xliff:g> alkalmazásból (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>-fiók)"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g>-fiók frissítve"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Válasszon alkalmazást"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Fiók kiválasztása"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Másik fiók választása"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Folyamatban van az összes fotó lekérése"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a hangfájlnak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> hangfájl módosítását?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Az audiofájl módosítása folyamatban van…}other{<xliff:g id="COUNT">^1</xliff:g> audiofájl módosítása folyamatban van…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Engedélyezi a(z) <xliff:g id="APP_NAME_0">^1</xliff:g> számára ennek a videónak a módosítását?}other{Engedélyezi a(z) <xliff:g id="APP_NAME_1">^1</xliff:g> számára <xliff:g id="COUNT">^2</xliff:g> videó módosítását?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Biztonsági védelem"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Natív átkódolási értesítések"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Natív átkódolási folyamat"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Próbálkozzon újra később. Fotói hozzáférhetők lesznek a probléma elhárítását követően."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Egyes fotók nem tölthetők be"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Értem"</string>
 </resources>

@@ -1,0 +1,42 @@
+{
+  "mainline-presubmit": [
+    {
+      "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
+      "options": [
+        {
+          "exclude-annotation": "androidx.test.filters.LargeTest"
+        }
+      ]
+    },
+    {
+      "name": "MediaProviderTests[com.google.android.mediaprovider.apex]",
+      "options": [
+        {
+          // For changes in Photopicker tests we want to run all of the photopicker
+          // tests in the given package regardless of @RunOnlyOnPostsubmit annotation
+          "include-filter": "com.android.providers.media.photopicker"
+        }
+      ]
+    }
+  ],
+  "presubmit": [
+    {
+      "name": "CtsPhotoPickerTest",
+      "options": [
+        {
+          "exclude-annotation": "androidx.test.filters.LargeTest"
+        }
+      ]
+    },
+    {
+      "name": "MediaProviderTests",
+      "options": [
+        {
+          // For changes in Photopicker tests we want to run all of the photopicker
+          // tests in the given package regardless of @RunOnlyOnPostsubmit annotation
+          "include-filter": "com.android.providers.media.photopicker"
+        }
+      ]
+    }
+  ]
+}

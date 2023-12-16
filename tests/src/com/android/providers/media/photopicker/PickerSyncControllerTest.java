@@ -1411,7 +1411,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testResumableSyncOperation() {
+    public void testResumableIncrementalSyncOperation() {
         // First Page
         addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_1);
         addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_2);
@@ -1421,6 +1421,8 @@ public class PickerSyncControllerTest {
 
         // Complete a full sync since it hasn't synced before.
         setCloudProviderAndSyncAllMedia(FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        mController.syncAllMedia();
+        mController.syncAllMedia();
 
         try (Cursor cr = queryMedia()) {
             // Should only have the first page since the sync is flaky
@@ -1471,6 +1473,180 @@ public class PickerSyncControllerTest {
             assertCursor(cr, CLOUD_ID_3, FLAKY_CLOUD_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_2, FLAKY_CLOUD_PROVIDER_AUTHORITY);
             assertCursor(cr, CLOUD_ID_1, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testResumableFullSyncOperation() {
+        // First Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_5);
+        // Second Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_9);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_10);
+        // Third Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_11);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_12);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_13);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_14);
+
+        mController.setCloudProvider(FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        try (Cursor cr = queryMedia()) {
+            // Db should be empty since we haven't synced yet.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() before sync.")
+                    .that(cr.getCount()).isEqualTo(0);
+        }
+
+        // FlakyCloudMediaProvider will throw errors on 2 out of 3 requests, if we sync once, it
+        // should not be able to complete the sync.
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Assert that the sync is not complete.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia().")
+                    .that(cr.getCount()).isLessThan(14);
+        }
+
+        // Resume sync and complete it. It will take a few sync calls to complete the sync.
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Should have all pages now
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after adding 14 cloud-only media.")
+                    .that(cr.getCount()).isEqualTo(14);
+            assertCursor(cr, CLOUD_ID_14, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_13, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_12, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_11, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_10, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_9, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_8, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_7, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_6, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_5, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_4, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_3, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_2, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_1, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testFullSyncWithCollectionIdChange() {
+        mController.setCloudProvider(FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        mCloudFlakyMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        // First Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_5);
+        // Second Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_9);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_10);
+        // Third Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_11);
+
+        // FlakyCloudMediaProvider will throw errors on 2 out of 3 requests, if we sync once, it
+        // should not be able to complete the sync.
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Assert that the sync is not complete.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia().")
+                    .that(cr.getCount()).isLessThan(11);
+        }
+
+        // Reset data and change collection id.
+        mCloudFlakyMediaGenerator.resetAll();
+        mCloudFlakyMediaGenerator.setMediaCollectionId(COLLECTION_2);
+
+        // First Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_12);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_13);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_14);
+
+        // FlakyCloudMediaProvider will throw errors on 2 out of 3 requests. It will take a few
+        // tries to complete the sync.
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Db should be empty since we haven't synced yet.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after adding 3 cloud-only media.")
+                    .that(cr.getCount()).isEqualTo(3);
+            assertCursor(cr, CLOUD_ID_14, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_13, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_12, FLAKY_CLOUD_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testFullSyncWithCloudProviderChange() {
+        mController.setCloudProvider(FLAKY_CLOUD_PROVIDER_AUTHORITY);
+
+        // First Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_1);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_2);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_3);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_4);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_5);
+        // Second Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_6);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_7);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_8);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_9);
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_10);
+        // Third Page of data
+        addMedia(mCloudFlakyMediaGenerator, CLOUD_ONLY_11);
+
+        // FlakyCloudMediaProvider will throw errors on 2 out of 3 requests, if we sync once, it
+        // should not be able to complete the sync.
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Assert that the sync is not complete.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia().")
+                    .that(cr.getCount()).isLessThan(11);
+        }
+
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // First Page of data
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_12);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_13);
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_14);
+
+        mController.syncAllMedia();
+
+        try (Cursor cr = queryMedia()) {
+            // Db should be empty since we haven't synced yet.
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after adding 3 cloud-only media.")
+                    .that(cr.getCount()).isEqualTo(3);
+            assertCursor(cr, CLOUD_ID_14, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_13, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            assertCursor(cr, CLOUD_ID_12, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
     }
 
@@ -1537,6 +1713,29 @@ public class PickerSyncControllerTest {
         verify(callback).onNotificationReceived(any(), any());
 
         observer.unregister(mContext.getContentResolver());
+    }
+
+    @Test
+    public void testCollectionIdChangeResetsUi() throws InterruptedException {
+        final ContentResolver contentResolver = mContext.getContentResolver();
+        final TestContentObserver refreshUiNotificationObserver = new TestContentObserver(null);
+        try {
+            setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+            // Simulate a UI session begins listening.
+            contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
+                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+
+            mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
+
+            mController.syncAllMedia();
+
+            assertWithMessage("Refresh ui notification should have been received.")
+                    .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
+        } finally {
+            contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
+        }
     }
 
     @Test

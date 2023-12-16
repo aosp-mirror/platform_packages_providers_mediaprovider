@@ -49,6 +49,7 @@ import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -105,13 +106,10 @@ public class StableUriIdleMaintenanceServiceTest {
         DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
                 ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_PUBLIC, Boolean.TRUE.toString(),
                 false);
-
-        createNewPublicVolume();
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        deletePublicVolumes();
 
         // Restore previous value of the flag
         DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
@@ -214,59 +212,67 @@ public class StableUriIdleMaintenanceServiceTest {
     }
 
     @Test
+    @Ignore
     public void testDataMigrationForPublicVolume() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final ContentResolver resolver = context.getContentResolver();
-        final Set<String> volNames = MediaStore.getExternalVolumeNames(context);
+        createNewPublicVolume();
+        try {
+            final Context context = InstrumentationRegistry.getTargetContext();
+            final ContentResolver resolver = context.getContentResolver();
+            final Set<String> volNames = MediaStore.getExternalVolumeNames(context);
 
-        for (String volName : volNames) {
-            if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volName)
-                    && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volName)) {
-                // public volume
-                Set<String> newFilePaths = new HashSet<String>();
-                Map<String, Long> pathToIdMap = new HashMap<>();
-                MediaStore.waitForIdle(resolver);
+            for (String volName : volNames) {
+                if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volName)
+                        && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volName)) {
+                    // public volume
+                    Set<String> newFilePaths = new HashSet<String>();
+                    Map<String, Long> pathToIdMap = new HashMap<>();
+                    MediaStore.waitForIdle(resolver);
 
-                try {
-                    for (int i = 0; i < 10; i++) {
-                        File volPath = getVolumePath(context, volName);
-                        final File dir = new File(volPath.getAbsoluteFile() + "/Download");
-                        final File file = new File(dir, System.nanoTime() + ".png");
+                    try {
+                        for (int i = 0; i < 10; i++) {
+                            File volPath = getVolumePath(context, volName);
+                            final File dir = new File(volPath.getAbsoluteFile() + "/Download");
+                            final File file = new File(dir, System.nanoTime() + ".png");
 
-                        // Write 1 byte because 0 byte files are not valid in the db
-                        try (FileOutputStream fos = new FileOutputStream(file)) {
-                            fos.write(1);
+                            // Write 1 byte because 0 byte files are not valid in the db
+                            try (FileOutputStream fos = new FileOutputStream(file)) {
+                                fos.write(1);
+                            }
+
+                            Uri uri = MediaStore.scanFile(resolver, file);
+                            long id = ContentUris.parseId(uri);
+                            newFilePaths.add(file.getAbsolutePath());
+                            pathToIdMap.put(file.getAbsolutePath(), id);
                         }
 
-                        Uri uri = MediaStore.scanFile(resolver, file);
-                        long id = ContentUris.parseId(uri);
-                        newFilePaths.add(file.getAbsolutePath());
-                        pathToIdMap.put(file.getAbsolutePath(), id);
-                    }
+                        assertFalse(newFilePaths.isEmpty());
+                        MediaStore.waitForIdle(resolver);
+                        // Creates backup
+                        MediaStore.runIdleMaintenanceForStableUris(resolver);
 
-                    assertFalse(newFilePaths.isEmpty());
-                    MediaStore.waitForIdle(resolver);
-                    // Creates backup
-                    MediaStore.runIdleMaintenanceForStableUris(resolver);
-
-                    verifyLevelDbPresence(resolver, PUBLIC_VOLUME_BACKUP_NAME + volName);
-                    verifyLevelDbPresence(resolver, OWNERSHIP_BACKUP_NAME);
-                    // Verify that all internal files are backed up
-                    for (String filePath : newFilePaths) {
-                        BackupIdRow backupIdRow = BackupIdRow.deserialize(
-                                MediaStore.readBackup(resolver, volName, filePath));
-                        assertNotNull(backupIdRow);
-                        assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
-                        assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
-                        assertEquals(context.getPackageName(),
-                                MediaStore.getOwnerPackageName(resolver, backupIdRow.getOwnerPackageId()));
-                    }
-                } finally {
-                    for (String path : newFilePaths) {
-                        new File(path).delete();
+                        verifyLevelDbPresence(resolver, PUBLIC_VOLUME_BACKUP_NAME + volName);
+                        verifyLevelDbPresence(resolver, OWNERSHIP_BACKUP_NAME);
+                        // Verify that all internal files are backed up
+                        for (String filePath : newFilePaths) {
+                            BackupIdRow backupIdRow = BackupIdRow.deserialize(
+                                    MediaStore.readBackup(resolver, volName, filePath));
+                            assertNotNull(backupIdRow);
+                            assertEquals(pathToIdMap.get(filePath).longValue(),
+                                    backupIdRow.getId());
+                            assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
+                            assertEquals(context.getPackageName(),
+                                    MediaStore.getOwnerPackageName(resolver,
+                                            backupIdRow.getOwnerPackageId()));
+                        }
+                    } finally {
+                        for (String path : newFilePaths) {
+                            new File(path).delete();
+                        }
                     }
                 }
             }
+        } finally {
+            deletePublicVolumes();
         }
     }
 

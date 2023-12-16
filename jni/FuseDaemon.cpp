@@ -724,7 +724,7 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
     uint64_t mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
-                     FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
+                     FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS | FUSE_CAP_PARALLEL_DIROPS);
 
     bool disable_splice_write = false;
     if (fuse->passthrough) {

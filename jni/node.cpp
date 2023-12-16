@@ -115,6 +115,14 @@ void node::DeleteTree(node* tree) {
     std::lock_guard<std::recursive_mutex> guard(*tree->lock_);
 
     if (tree) {
+        // Guarantee this node not be released while deleting its children.
+        // pf_forget could be called for a parent node first not its children
+        // when evicting file system inodes by shrinker, so the parent node
+        // could exist without its own reference but having a children node.
+        // In this case, this node could be deleted during executing
+        // DeleteTree(child), and it causes double free for the node.
+        tree->Acquire();
+
         // Make a copy of the list of children because calling Delete tree
         // will modify the list of children, which will cause issues while
         // iterating over them.

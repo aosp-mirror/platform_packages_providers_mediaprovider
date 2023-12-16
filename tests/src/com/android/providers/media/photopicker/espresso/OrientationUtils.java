@@ -28,16 +28,18 @@ import static com.google.common.truth.Truth.assertThat;
 import androidx.test.core.app.ActivityScenario;
 
 class OrientationUtils {
-    public static void setLandscapeOrientation(ActivityScenario<PhotoPickerTestActivity> scenario) {
+    public static <T extends PhotoPickerTestActivity> void setLandscapeOrientation(
+            ActivityScenario<T> scenario) {
         changeOrientation(scenario, SCREEN_ORIENTATION_LANDSCAPE, ORIENTATION_LANDSCAPE);
     }
 
-    public static void setPortraitOrientation(ActivityScenario<PhotoPickerTestActivity> scenario) {
+    public static <T extends PhotoPickerTestActivity> void setPortraitOrientation(
+            ActivityScenario<T> scenario) {
         changeOrientation(scenario, SCREEN_ORIENTATION_PORTRAIT, ORIENTATION_PORTRAIT);
     }
 
-    private static void changeOrientation(
-            ActivityScenario<PhotoPickerTestActivity> scenario,
+    private static <T extends PhotoPickerTestActivity> void changeOrientation(
+            ActivityScenario<T> scenario,
             int screenOrientation,
             int configOrientation) {
         scenario.onActivity(

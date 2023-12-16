@@ -166,6 +166,7 @@ import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPat
 
 import android.Manifest;
 import android.annotation.IntDef;
+import android.app.ActivityOptions;
 import android.app.AppOpsManager;
 import android.app.AppOpsManager.OnOpActiveChangedListener;
 import android.app.AppOpsManager.OnOpChangedListener;
@@ -497,6 +498,12 @@ public class MediaProvider extends ContentProvider {
     private static final String DOWNLOADS_PROVIDER_AUTHORITY = "downloads";
 
     private static final String DEFAULT_FOLDER_CREATED_KEY_PREFIX = "created_default_folders_";
+
+    /**
+     * This value should match android.os.Trace.MAX_SECTION_NAME_LEN , not accessible from this
+     * class
+     */
+    private static final int MAX_SECTION_NAME_LEN = 127;
 
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
@@ -886,17 +893,33 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    protected void updateQuotaTypeForUri(@NonNull Uri uri, int mediaType,
-            @NonNull String volumeName) {
+    protected void updateQuotaTypeForUri(@NonNull FileRow row) {
+        final String volumeName = row.getVolumeName();
+        final String path = row.getPath();
+
         // Quota type is only updated for external primary volume
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
             return;
         }
 
+        int mediaType = row.getMediaType();
         Trace.beginSection("MP.updateQuotaTypeForUri");
         File file;
         try {
-            file = queryForDataFile(uri, null);
+            if (path != null) {
+                file = new File(path);
+            } else {
+                // This can happen in case of renames, where the path isn't
+                // part of the 'new' FileRow data. Fall back to querying
+                // the path directly.
+                final Uri uri = MediaStore.Files.getContentUri(row.getVolumeName(),
+                        row.getId());
+                if (uri == null) {
+                    // Row could have been deleted
+                    return;
+                }
+                file = queryForDataFile(uri, null);
+            }
             if (!file.exists()) {
                 // This can happen if an item is inserted in MediaStore before it is created
                 return;
@@ -912,7 +935,7 @@ public class MediaProvider extends ContentProvider {
             updateQuotaTypeForFileInternal(file, mediaType);
         } catch (FileNotFoundException | IllegalArgumentException e) {
             // Ignore
-            Log.w(TAG, "Failed to update quota for uri: " + uri, e);
+            Log.w(TAG, "Failed to update quota", e);
         } finally {
             Trace.endSection();
         }
@@ -968,8 +991,7 @@ public class MediaProvider extends ContentProvider {
                     // Update the quota type on the filesystem
                     Uri fileUri = MediaStore.Files.getContentUri(insertedRow.getVolumeName(),
                             insertedRow.getId());
-                    updateQuotaTypeForUri(fileUri, insertedRow.getMediaType(),
-                            insertedRow.getVolumeName());
+                    updateQuotaTypeForUri(insertedRow);
                 }
 
                 // Tell our SAF provider so it knows when views are no longer empty
@@ -978,7 +1000,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -1008,7 +1030,7 @@ public class MediaProvider extends ContentProvider {
             helper.postBackground(() -> {
                 if (helper.isExternal()) {
                     // Update the quota type on the filesystem
-                    updateQuotaTypeForUri(fileUri, newRow.getMediaType(), oldRow.getVolumeName());
+                    updateQuotaTypeForUri(newRow);
                 }
 
                 if (mExternalDbFacade.onFileUpdated(oldRow.getId(),
@@ -1017,7 +1039,7 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1077,7 +1099,7 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerDataLayer.handleMediaEventNotification();
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
@@ -1564,8 +1586,8 @@ public class MediaProvider extends ContentProvider {
 
             try {
                 MediaService.onScanVolume(getContext(), volume, REASON_IDLE);
-            } catch (IOException e) {
-                Log.w(TAG, e);
+            } catch (IOException | IllegalArgumentException e) {
+                Log.w(TAG, "Failure in " + volume.getName() + " volume scan", e);
             }
 
             // Ensure that our thumbnails are valid
@@ -2591,14 +2613,14 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri canonicalize(Uri uri) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
-
+    public Uri canonicalize(@NonNull Uri uri) {
         // Skip when we have nothing to canonicalize
         if ("1".equals(uri.getQueryParameter(CANONICAL))) {
             return uri;
         }
+
+        final boolean allowHidden = mCallingIdentity.get().hasPermission(PERMISSION_IS_SELF);
+        final int match = matchUri(uri, allowHidden);
 
         try (Cursor c = queryForSingleItem(uri, null, null, null, null)) {
             switch (match) {
@@ -2632,14 +2654,13 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri uncanonicalize(Uri uri) {
-        final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int match = matchUri(uri, allowHidden);
-
+    public Uri uncanonicalize(@NonNull Uri uri) {
         // Skip when we have nothing to uncanonicalize
         if (!"1".equals(uri.getQueryParameter(CANONICAL))) {
             return uri;
         }
+        final boolean allowHidden = mCallingIdentity.get().hasPermission(PERMISSION_IS_SELF);
+        final int match = matchUri(uri, allowHidden);
 
         // Extract values and then clear to avoid recursive lookups
         final String title = uri.getQueryParameter(AudioColumns.TITLE);
@@ -2701,6 +2722,14 @@ public class MediaProvider extends ContentProvider {
             return newUri;
         }
         return uri;
+    }
+
+    private static String safeTraceSectionNameWithUri(String operation, Uri uri) {
+        String sectionName = "MP." + operation + " [" + uri + "]";
+        if (sectionName.length() > MAX_SECTION_NAME_LEN) {
+            return sectionName.substring(0, MAX_SECTION_NAME_LEN);
+        }
+        return sectionName;
     }
 
     /**
@@ -3588,20 +3617,21 @@ public class MediaProvider extends ContentProvider {
     }
 
     @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
-            String sortOrder) {
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection,
+                        String[] selectionArgs, String sortOrder) {
         return query(uri, projection,
                 DatabaseUtils.createSqlQueryBundle(selection, selectionArgs, sortOrder), null);
     }
 
     @Override
-    public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal signal) {
+    public Cursor query(@NonNull Uri uri, String[] projection, Bundle queryArgs,
+                        CancellationSignal signal) {
         return query(uri, projection, queryArgs, signal, /* forSelf */ false);
     }
 
     private Cursor query(Uri uri, String[] projection, Bundle queryArgs,
             CancellationSignal signal, boolean forSelf) {
-        Trace.beginSection("MP.query [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("query", uri));
         try {
             return queryInternal(uri, projection, queryArgs, signal, forSelf);
         } catch (FallbackException e) {
@@ -5159,7 +5189,7 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("MP.insert [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("insert", uri));
         try {
             try {
                 return insertInternal(uri, values, extras);
@@ -5193,7 +5223,6 @@ public class MediaProvider extends ContentProvider {
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
 
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final String resolvedVolumeName = resolveVolumeName(uri);
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
@@ -6213,7 +6242,7 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable Bundle extras) {
-        Trace.beginSection("MP.delete [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("delete", uri));
         try {
             return deleteInternal(uri, extras);
         } catch (FallbackException e) {
@@ -6271,8 +6300,6 @@ public class MediaProvider extends ContentProvider {
         final String[] userWhereArgs = extras.getStringArray(QUERY_ARG_SQL_SELECTION_ARGS);
 
         int count = 0;
-
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
 
         // handle MEDIA_SCANNER before calling getDatabaseForUri()
         if (match == MEDIA_SCANNER) {
@@ -7096,7 +7123,7 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForNotifyCloudMediaChangedEvent(String arg) {
         final boolean notifyCloudEventResult;
         if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-            mPickerDataLayer.handleMediaEventNotification();
+            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false);
             notifyCloudEventResult = true;
         } else {
             notifyCloudEventResult = false;
@@ -7407,8 +7434,13 @@ public class MediaProvider extends ContentProvider {
         final Context context = getContext();
         final Intent intent = new Intent(method, null, context, PermissionActivity.class);
         intent.putExtras(extras);
+        final ActivityOptions options = ActivityOptions.makeBasic();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            options.setPendingIntentCreatorBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        }
         return PendingIntent.getActivity(context, PermissionActivity.REQUEST_CODE, intent,
-                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE);
+                FLAG_ONE_SHOT | FLAG_CANCEL_CURRENT | FLAG_IMMUTABLE, options.toBundle());
     }
 
     /**
@@ -7687,7 +7719,7 @@ public class MediaProvider extends ContentProvider {
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values,
             @Nullable Bundle extras) {
-        Trace.beginSection("MP.update [" + uri + ']');
+        Trace.beginSection(safeTraceSectionNameWithUri("update", uri));
         try {
             return updateInternal(uri, values, extras);
         } catch (FallbackException e) {
@@ -7737,7 +7769,6 @@ public class MediaProvider extends ContentProvider {
 
         int count;
 
-        final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
         final int match = matchUri(uri, allowHidden);
         final DatabaseHelper helper = getDatabaseForUri(uri);

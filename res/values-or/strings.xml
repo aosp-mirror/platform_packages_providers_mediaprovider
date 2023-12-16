@@ -100,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"ଚୟନ କରାଯାଇନାହିଁ"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"ଆପଣଙ୍କ ଚୟନିତ ମିଡିଆକୁ ପ୍ରସ୍ତୁତ କରାଯାଉଛି"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>ରୁ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ଟି ପ୍ରସ୍ତୁତ ଅଛି"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"ବାତିଲ କରନ୍ତୁ"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ବ୍ୟାକଅପ ନିଆଯାଇଥିବା ଫଟୋଗୁଡ଼ିକୁ ବର୍ତ୍ତମାନ ଅନ୍ତର୍ଭୁକ୍ତ କରାଯାଇଛି"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ଆପଣ <xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>ରୁ ଫଟୋଗୁଡ଼ିକୁ ଚୟନ କରିପାରିବେ"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ଆକାଉଣ୍ଟକୁ ଅପଡେଟ କରାଯାଇଛି"</string>

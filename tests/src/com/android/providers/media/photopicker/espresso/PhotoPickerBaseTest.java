@@ -57,6 +57,7 @@ import java.util.concurrent.TimeoutException;
 
 public class PhotoPickerBaseTest {
     protected static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
+    protected static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
     protected static final int TAB_LAYOUT_ID = R.id.tab_layout;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
     protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
@@ -137,7 +138,7 @@ public class PhotoPickerBaseTest {
         extras.putBoolean(MANAGED_SELECTION_ENABLED_EXTRA, true);
         sPickerChoiceManagedSelectionIntent.putExtras(extras);
     }
-    private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
+    public static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_DCIM + "/Camera"
                     + "/image_" + System.currentTimeMillis() + ".jpeg");
     private static final File IMAGE_2_FILE = new File(Environment.getExternalStorageDirectory(),

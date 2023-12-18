@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"ማህደረመረጃ"</string>
     <string name="storage_description" msgid="4081716890357580107">"አካባቢያዊ ማከማቻ"</string>
-    <string name="app_label" msgid="9035307001052716210">"ማህደረ መረጃ ማከማቻ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"ሚዲያ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"የሚዲያ መራጭ"</string>
     <string name="artist_label" msgid="8105600993099120273">"አርቲስት"</string>
     <string name="unknown" msgid="2059049215682829375">"የማይታወቅ"</string>
     <string name="root_images" msgid="5861633549189045666">"ምስሎች"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"የደመና ሚዲያን ይድረሱ ከ"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ምንም"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"በዚህ ጊዜ የደመና የሚዲያ መተግበሪያን መለወጥ አልተቻለም።"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"የሚዲያ መራጭ"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"የሚዲያ መራጭ"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"ሚዲያ በማስመር ላይ…"</string>
     <string name="add" msgid="2894574044585549298">"አክል"</string>
     <string name="deselect" msgid="4297825044827769490">"አትምረጥ"</string>
     <string name="deselected" msgid="8488133193326208475">"አልተመረጠም"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ምንም አልበሞች የሉም"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"የተመረጡትን አሳይ"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ፎቶዎች"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"አልበሞች"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ቅድመ-ዕይታ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ወደ የሥራ ቀይር"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ንጥል}one{<xliff:g id="COUNT_1">^1</xliff:g> ንጥል}other{<xliff:g id="COUNT_1">^1</xliff:g> ንጥሎች}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) አክል"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"ለ(<xliff:g id="COUNT">^1</xliff:g>) ፍቀድ"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"ምንም አትፍቀድ"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ካሜራ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ውርዶች"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"ተወዳጆች"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"ቪድዮን ማጫወት ላይ ችግር"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"የበይነመረብዎን ግንኙነት ይፈትሹ እና እንደገና ይሞክሩ"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"እንደገና ሞክር"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"የደመና ሚዲያ አሁን ከ<xliff:g id="PKG_NAME">%1$s</xliff:g> ይገኛል"</string>
     <string name="not_selected" msgid="2244008151669896758">"አልተመረጠም"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"የእርስዎን የተመረጠ ሚዲያ በማዘጋጀት ላይ"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ከ<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ዝግጁ"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"ይቅር"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ምትኬ የተቀመጠላቸው ፎቶዎች አሁን ተካትተዋል"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ፎቶዎችን መምረጥ ይችላሉ"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ተዘምኗል"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"መተግበሪያ ይምረጡ"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"መለያ ይምረጡ"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"መለያ ቀይር"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ሁሉንም ፎቶዎችዎን በማምጣት ላይ"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ኦዲዮ ፋይል እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይልን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ኦዲዮ ፋይሎችን እንዲቀይር ይፈቀድለት?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{የኦዲዮ ፋይልን በመቀየር ላይ…}one{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይልን በመቀየር ላይ…}other{<xliff:g id="COUNT">^1</xliff:g> የኦዲዮ ፋይሎችን በመቀየር ላይ…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> ይህን ቪዲዮ እንዲቀይር ይፈቀድለት?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮን እንዲቀይር ይፈቀድለት?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> <xliff:g id="COUNT">^2</xliff:g> ቪዲዮዎችን እንዲቀይር ይፈቀድለት?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"የደህንነት ጥበቃ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"የቤተኛ ትራንስኮድ ማንቂያዎች"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"የቤተኛ ትራንስኮድ ሂደት"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"ቆይተው እንደገና ይሞክሩ። የእርስዎ ፎቶዎች አንዴ ችግሩ ከተፈታ በኋላ ይገኛሉ።"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"አንዳንድ ፎቶዎችን መጫን አይቻለም"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"ገባኝ"</string>
 </resources>

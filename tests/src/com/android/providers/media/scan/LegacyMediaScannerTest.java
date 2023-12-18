@@ -19,16 +19,17 @@ package com.android.providers.media.scan;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
-import android.provider.MediaStore;
-
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4.class)
 public class LegacyMediaScannerTest {
     @Test

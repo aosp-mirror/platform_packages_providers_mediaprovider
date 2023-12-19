@@ -23,10 +23,12 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
+import static android.provider.MediaStore.MediaColumns.DATE_TAKEN;
 
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.COLUMN_OLD_ID;
 import static com.android.providers.media.photopicker.data.ExternalDbFacade.TABLE_DELETED_MEDIA;
@@ -81,10 +83,12 @@ public class ExternalDbFacadeTest {
     private static final long DATE_TAKEN_MS3 = 1624886050568L;
     private static final long DATE_TAKEN_MS4 = 1624886050569L;
     private static final long DATE_TAKEN_MS5 = 1624886050570L;
+    private static final long DATE_MODIFIED_MS1 = 1625000011L;
+    private static final long DATE_MODIFIED_MS2 = 1625000012L;
+    private static final long DATE_MODIFIED_MS3 = 1625000013L;
     private static final long GENERATION_MODIFIED1 = 1;
     private static final long GENERATION_MODIFIED2 = 2;
     private static final long GENERATION_MODIFIED3 = 3;
-    private static final long GENERATION_MODIFIED4 = 4;
     private static final long GENERATION_MODIFIED5 = 5;
     private static final long SIZE = 8000;
     private static final long HEIGHT = 500;
@@ -614,14 +618,17 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(GENERATION_MODIFIED1,
-                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 10)) {
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 10,
+                    /*pageToken */ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLE_FILES for (generation: "
                                 + "GENERATION_MODIFIED1, albumId: null, mimeType: null, pageSize:"
                                 + " 10) is")
                         .that(cursor.getCount())
                         .isEqualTo(1);
-                assertCursorExtras(cursor, EXTRA_SYNC_GENERATION, EXTRA_PAGE_SIZE);
+                //PAGE_TOKEN will also be set since pageSize is not -1.
+                assertCursorExtras(cursor, EXTRA_SYNC_GENERATION, EXTRA_PAGE_SIZE,
+                        EXTRA_PAGE_TOKEN);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID2, DATE_TAKEN_MS1);
@@ -663,7 +670,7 @@ public class ExternalDbFacadeTest {
             // Intentionally associate <dateModifiedSeconds2 with generation_modifed1>
             // and <dateModifiedSeconds1 with generation_modifed2> below.
             // This allows us verify that the sort order from queryMediaGeneration
-            // is based on date_taken and not generation_modified.
+            // is based on date_taken and _id and not generation_modified.
             ContentValues cv = getContentValues(DATE_TAKEN_MS2, GENERATION_MODIFIED1);
             cv.remove(MediaColumns.DATE_TAKEN);
             cv.put(MediaColumns.DATE_MODIFIED, dateModifiedSeconds2);
@@ -681,14 +688,15 @@ public class ExternalDbFacadeTest {
                         .isEqualTo(2);
 
                 cursor.moveToFirst();
-                assertMediaColumns(facade, cursor, ID1, dateModifiedSeconds2 * 1000);
+                assertMediaColumns(facade, cursor, ID2, dateModifiedSeconds2 * 1000);
 
                 cursor.moveToNext();
-                assertMediaColumns(facade, cursor, ID2, dateModifiedSeconds1 * 1000);
+                assertMediaColumns(facade, cursor, ID1, dateModifiedSeconds1 * 1000);
             }
 
             try (Cursor cursor = facade.queryMedia(GENERATION_MODIFIED1,
-                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ -1)) {
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ -1,
+                    /*pageToken */ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLE_FILES with modified date for "
                                 + "(generation: "
@@ -723,7 +731,8 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                    /* albumId */ null, VIDEO_MIME_TYPES_QUERY, /* pageSize*/ -1)) {
+                    /* albumId */ null, VIDEO_MIME_TYPES_QUERY, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with mime type VIDEO is")
                         .that(cursor.getCount())
@@ -731,7 +740,8 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                    /* albumId */ null, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1)) {
+                    /* albumId */ null, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with mime type IMAGE is")
                         .that(cursor.getCount())
@@ -758,19 +768,22 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ -1,
-                    ALBUM_ID_CAMERA, /* mimeType */ null, /* pageSize*/ 20)) {
+                    ALBUM_ID_CAMERA, /* mimeType */ null, /* pageSize*/ 20,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with ALBUM_ID_CAMERA is")
                         .that(cursor.getCount())
                         .isEqualTo(1);
-                assertCursorExtras(cursor, EXTRA_ALBUM_ID, EXTRA_PAGE_SIZE);
+                //PAGE_TOKEN will also be set since pageSize is not -1.
+                assertCursorExtras(cursor, EXTRA_ALBUM_ID, EXTRA_PAGE_SIZE, EXTRA_PAGE_TOKEN);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS1);
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ -1,
-                    ALBUM_ID_SCREENSHOTS, /* mimeType */ null, /* pageSize*/ -1)) {
+                    ALBUM_ID_SCREENSHOTS, /* mimeType */ null, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with "
                                 + "ALBUM_ID_SCREENSHOTS is")
@@ -783,13 +796,15 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ -1,
-                    ALBUM_ID_DOWNLOADS, /* mimeType */ null, /* pageSize*/ 10)) {
+                    ALBUM_ID_DOWNLOADS, /* mimeType */ null, /* pageSize*/ 10,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with "
                                 + "ALBUM_ID_DOWNLOADS is")
                         .that(cursor.getCount())
                         .isEqualTo(1);
-                assertCursorExtras(cursor, EXTRA_ALBUM_ID, EXTRA_PAGE_SIZE);
+                //PAGE_TOKEN will also be set since pageSize is not -1.
+                assertCursorExtras(cursor, EXTRA_ALBUM_ID, EXTRA_PAGE_SIZE, EXTRA_PAGE_TOKEN);
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID3, DATE_TAKEN_MS3);
@@ -818,7 +833,8 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                    ALBUM_ID_SCREENSHOTS, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1)) {
+                    ALBUM_ID_SCREENSHOTS, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with "
                                 + "ALBUM_ID_SCREENSHOTS and IMAGE_MIME_TYPES_QUERY is")
@@ -827,7 +843,8 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                    ALBUM_ID_CAMERA, VIDEO_MIME_TYPES_QUERY, /* pageSize*/ -1)) {
+                    ALBUM_ID_CAMERA, VIDEO_MIME_TYPES_QUERY, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with ALBUM_ID_CAMERA "
                                 + "and VIDEO_MIME_TYPES_QUERY is")
@@ -837,7 +854,8 @@ public class ExternalDbFacadeTest {
             }
 
             try (Cursor cursor = facade.queryMedia(/* generation */ 0,
-                    ALBUM_ID_CAMERA, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1)) {
+                    ALBUM_ID_CAMERA, IMAGE_MIME_TYPES_QUERY, /* pageSize*/ -1,
+                    /* pageToken*/ null)) {
                 assertWithMessage(
                         "Number of rows on querying TABLES_FILES for media with ALBUM_ID_CAMERA "
                                 + "and IMAGE_MIME_TYPES_QUERY is")
@@ -846,6 +864,128 @@ public class ExternalDbFacadeTest {
 
                 cursor.moveToFirst();
                 assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS1);
+            }
+        }
+    }
+
+    @Test
+    public void testQueryMedia_withPageSize_returnsCorrectSortOrder() throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper,
+                    mock(VolumeCache.class));
+
+            // Insert 5 images with date_taken non-null
+            ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_TAKEN, DATE_TAKEN_MS2);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_TAKEN, DATE_TAKEN_MS3);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_TAKEN, DATE_TAKEN_MS4);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_TAKEN, DATE_TAKEN_MS5);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            // Verify that media returned in descending order of date_taken, _id
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 2,
+                    /* pageToken*/ null)) {
+                assertThat(cursor.getCount()).isEqualTo(2);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, ID5, DATE_TAKEN_MS5);
+
+                cursor.moveToNext();
+                assertMediaColumns(facade, cursor, ID4, DATE_TAKEN_MS4);
+            }
+
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 3,
+                    /* pageToken*/ DATE_TAKEN_MS4 + "|" + ID4)) {
+                assertThat(cursor.getCount()).isEqualTo(3);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, ID3, DATE_TAKEN_MS3);
+
+                cursor.moveToNext();
+                assertMediaColumns(facade, cursor, ID2, DATE_TAKEN_MS2);
+
+                cursor.moveToNext();
+                assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS1);
+            }
+        }
+    }
+
+    @Test
+    public void testQueryMedia_withPageSizeMissingPageToken_returnsCorrectSortOrder()
+            throws Exception {
+        try (DatabaseHelper helper = new TestDatabaseHelper(sIsolatedContext)) {
+            ExternalDbFacade facade = new ExternalDbFacade(sIsolatedContext, helper,
+                    mock(VolumeCache.class));
+
+            // Insert 5 images, 2 with date_taken non-null and 3 with date_taken null
+            ContentValues cv = getContentValues(DATE_TAKEN_MS1, GENERATION_MODIFIED1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_TAKEN, DATE_TAKEN_MS2);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.remove(DATE_TAKEN);
+
+            cv.put(MediaColumns.DATE_MODIFIED, DATE_MODIFIED_MS1);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_MODIFIED, DATE_MODIFIED_MS2);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            cv.put(MediaColumns.DATE_MODIFIED, DATE_MODIFIED_MS3);
+            helper.runWithTransaction(db -> db.insert(TABLE_FILES, null, cv));
+
+            // Verify that media returned in descending order of date_taken, _id
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 2,
+                    /* pageToken*/ null)) {
+                assertThat(cursor.getCount()).isEqualTo(2);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, ID5, Long.valueOf(DATE_MODIFIED_MS3) * 1000);
+
+                cursor.moveToNext();
+                assertMediaColumns(facade, cursor, ID4, Long.valueOf(DATE_MODIFIED_MS2) * 1000);
+            }
+
+            String pageToken =  Long.valueOf(DATE_MODIFIED_MS2) * 1000 + "|" + ID4;
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 2,
+                    /* pageToken*/ pageToken)) {
+                assertThat(cursor.getCount()).isEqualTo(2);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, ID3, Long.valueOf(DATE_MODIFIED_MS1) * 1000);
+
+                cursor.moveToNext();
+                assertMediaColumns(facade, cursor, ID2, DATE_TAKEN_MS2);
+            }
+
+            pageToken =  DATE_TAKEN_MS2 + "|" + ID2;
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 2,
+                    /* pageToken*/ pageToken)) {
+                assertThat(cursor.getCount()).isEqualTo(1);
+
+                cursor.moveToFirst();
+                assertMediaColumns(facade, cursor, ID1, DATE_TAKEN_MS1);
+            }
+
+            pageToken = DATE_MODIFIED_MS1 + "|" + ID1;
+            try (Cursor cursor = facade.queryMedia(/* generation */ 0,
+                    /* albumId */ null, /* mimeType */ null, /* pageSize*/ 2,
+                    /* pageToken*/ pageToken)) {
+                assertThat(cursor.getCount()).isEqualTo(0);
             }
         }
     }
@@ -1166,7 +1306,7 @@ public class ExternalDbFacadeTest {
 
     private static Cursor queryAllMedia(ExternalDbFacade facade) {
         return facade.queryMedia(/* generation */ -1, /* albumId */ null,
-                /* mimeType */ null, /* pageSize*/ -1);
+                /* mimeType */ null, /* pageSize*/ -1, /* pageToken*/ null);
     }
 
     private static ContentValues getContentValues(long dateTakenMs, long generation) {

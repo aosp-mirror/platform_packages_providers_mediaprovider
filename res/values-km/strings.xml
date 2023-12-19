@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"គ្មាន​អាល់ប៊ុម​ទេ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"មើលអ្វីដែលបានជ្រើសរើស"</string>
     <string name="picker_photos" msgid="7415035516411087392">"រូបថត"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"អាល់ប៊ុម"</string>
     <string name="picker_preview" msgid="6257414886055861039">"មើល​សាកល្បង"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ការងារ"</string>
@@ -74,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{ធាតុ <xliff:g id="COUNT_0">^1</xliff:g>}other{ធាតុ <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"បញ្ចូល (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"អនុញ្ញាត (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"អនុញ្ញាត \"គ្មាន\""</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"កាមេរ៉ា"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ការទាញយក"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"សំណព្វ"</string>
@@ -97,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"មិនបានជ្រើសរើសទេ"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"កំពុងរៀបចំមេឌៀដែលអ្នកបានជ្រើសរើស"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> នៃ <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> រួចរាល់ហើយ"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"បោះបង់"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ឥឡូវនេះមានរួមបញ្ចូលរូបថតដែលបានបម្រុងទុក"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"អ្នកអាចជ្រើសរើសរូបថតពីគណនី <xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"បានធ្វើបច្ចុប្បន្នភាពគណនី <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

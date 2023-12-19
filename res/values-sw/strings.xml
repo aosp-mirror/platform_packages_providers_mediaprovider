@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Hakuna albamu"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Angalia ulizochagua"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Picha"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Albamu"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Onyesho la kukagua"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Badili utumie wasifu wa kazini"</string>
@@ -74,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{Kipengee <xliff:g id="COUNT_0">^1</xliff:g>}other{Vipengee <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Weka (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Ruhusu (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Usiruhusu yoyote"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Vipakuliwa"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Vipendwa"</string>
@@ -97,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"haijachaguliwa"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"Inaandaa maudhui yako uliyochagua"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> kati ya <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ziko tayari"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Ghairi"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Picha zilizohifadhiwa nakala zimejumuishwa sasa"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Unaweza kuchagua picha zilizotoka kwenye akaunti ya <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> katika programu ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Umesasisha akaunti ya <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

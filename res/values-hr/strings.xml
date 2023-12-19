@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nema albuma"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži odabrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Albumi"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Pregled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Prijeđite na poslovni"</string>
@@ -74,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Dopusti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Nemoj dopustiti prijenos"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Preuzimanja"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Omiljeno"</string>
@@ -97,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"nije odabrano"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"Priprema odabranih medija"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Spremno: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Odustani"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Sad su uključene sigurnosno kopirane fotografije"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Možete odabrati aplikacije s računa <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> za aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Ažuriran je račun za aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

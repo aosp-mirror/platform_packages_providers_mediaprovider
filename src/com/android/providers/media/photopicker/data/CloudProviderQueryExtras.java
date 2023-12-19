@@ -57,6 +57,8 @@ public class CloudProviderQueryExtras {
 
     private final List<Integer> mLocalIdSelection;
 
+    private String mPageToken;
+
     private CloudProviderQueryExtras() {
         mAlbumId = STRING_DEFAULT;
         mAlbumAuthority = STRING_DEFAULT;
@@ -71,12 +73,13 @@ public class CloudProviderQueryExtras {
         mDateTakenBeforeMs = Long.MIN_VALUE;
         mRowId = INT_DEFAULT;
         mLocalIdSelection = LIST_DEFAULT;
+        mPageToken = STRING_DEFAULT;
     }
 
     private CloudProviderQueryExtras(String albumId, String albumAuthority, String[] mimeTypes,
             long sizeBytes, long generation, int limit, boolean isFavorite, boolean isVideo,
             boolean isLocalOnly, int pageSize, long dateTakenBeforeMs, int rowId,
-            List<Integer> localIdSelection) {
+            List<Integer> localIdSelection, String pageToken) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
         mMimeTypes = mimeTypes;
@@ -90,6 +93,7 @@ public class CloudProviderQueryExtras {
         mDateTakenBeforeMs = dateTakenBeforeMs;
         mRowId = rowId;
         mLocalIdSelection = localIdSelection;
+        mPageToken = pageToken;
     }
 
     /**
@@ -118,10 +122,12 @@ public class CloudProviderQueryExtras {
         final long dateTakenBeforeMs = bundle.getLong(QUERY_DATE_TAKEN_BEFORE_MS, Long.MIN_VALUE);
         final int rowId = bundle.getInt(QUERY_ROW_ID, INT_DEFAULT);
         final List<Integer> localIdSelection = bundle.getIntegerArrayList(QUERY_LOCAL_ID_SELECTION);
+        final String pageToken = bundle.getString(
+                CloudMediaProviderContract.EXTRA_PAGE_TOKEN, STRING_DEFAULT);
 
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
                 generation, limit, isFavorite, isVideo, isLocalOnly, pageSize, dateTakenBeforeMs,
-                rowId, localIdSelection);
+                rowId, localIdSelection, pageToken);
     }
 
     public static CloudProviderQueryExtras fromCloudMediaBundle(Bundle bundle) {
@@ -148,9 +154,12 @@ public class CloudProviderQueryExtras {
 
         final int pageSize = bundle.getInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, INT_DEFAULT);
         final List<Integer> localIdSelection = bundle.getIntegerArrayList(QUERY_LOCAL_ID_SELECTION);
+        final String pageToken = bundle.getString(
+                CloudMediaProviderContract.EXTRA_PAGE_TOKEN, STRING_DEFAULT);
+
         return new CloudProviderQueryExtras(albumId, albumAuthority, mimeTypes, sizeBytes,
                 generation, limit, isFavorite, isVideo, isLocalOnly, pageSize, dateTakenBeforeMs,
-                rowId, localIdSelection);
+                rowId, localIdSelection, pageToken);
     }
 
     public PickerDbFacade.QueryFilter toQueryFilter() {
@@ -164,6 +173,8 @@ public class CloudProviderQueryExtras {
         qfb.setDateTakenBeforeMs(mDateTakenBeforeMs);
         qfb.setId(mRowId);
         qfb.setLocalIdSelection(mLocalIdSelection);
+        qfb.setPageSize(mPageSize);
+        qfb.setPageToken(mPageToken);
         return qfb.build();
     }
 
@@ -232,5 +243,9 @@ public class CloudProviderQueryExtras {
 
     public int getPageSize() {
         return mPageSize;
+    }
+
+    public String getPageToken() {
+        return mPageToken;
     }
 }

@@ -60,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ما مِن ألبومات"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"عرض ما تم اختياره"</string>
     <string name="picker_photos" msgid="7415035516411087392">"الصور"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"الألبومات"</string>
     <string name="picker_preview" msgid="6257414886055861039">"معاينة"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"التبديل إلى الملف الشخصي للعمل"</string>
@@ -74,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{صورة واحدة (<xliff:g id="COUNT_0">^1</xliff:g>)}zero{<xliff:g id="COUNT_1">^1</xliff:g> صورة}two{صورتان (<xliff:g id="COUNT_1">^1</xliff:g>)}few{<xliff:g id="COUNT_1">^1</xliff:g> صور}many{<xliff:g id="COUNT_1">^1</xliff:g> صورة}other{<xliff:g id="COUNT_1">^1</xliff:g> صورة}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"إضافة (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"السماح (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"لم يتم اختيار أي صورة"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"الكاميرا"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"العناصر التي تم تنزيلها"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"العناصر المفضّلة"</string>
@@ -97,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"غير محدّد"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"جارٍ تحضير الوسائط التي تم اختيارها"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> من إجمالي <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> صورة جاهزة"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"إلغاء"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"تم الآن تضمين الصور التي تم الاحتفاظ بنسخة احتياطية منها"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"يمكنك اختيار صور من حساب \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" للمستخدم <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"تم تعديل الحساب <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>

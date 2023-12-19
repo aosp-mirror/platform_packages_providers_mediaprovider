@@ -25,17 +25,27 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 
+import static org.mockito.Mockito.mock;
+
 import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.Configuration;
 import androidx.work.Data;
+import androidx.work.ForegroundUpdater;
+import androidx.work.ProgressUpdater;
+import androidx.work.WorkerFactory;
+import androidx.work.WorkerParameters;
+import androidx.work.impl.utils.taskexecutor.TaskExecutor;
 import androidx.work.testing.SynchronousExecutor;
 import androidx.work.testing.WorkManagerTestInitHelper;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.Executor;
 
 public class SyncWorkerTestUtils {
     public static void initializeTestWorkManager(@NonNull Context context) {
@@ -94,5 +104,25 @@ public class SyncWorkerTestUtils {
         Objects.requireNonNull(albumId);
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD,
                 SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+
+    /**
+     * All the values used in the construction of {@link WorkerParameters} here are default
+     * {@link NonNull} values except the {@link Data inputData} which is derived from
+     * {@link SyncWorkerTestUtils#getLocalAndCloudSyncInputData()}.
+     */
+    static WorkerParameters getLocalAndCloudSyncTestWorkParams() {
+        return new WorkerParameters(
+                UUID.randomUUID(),
+                getLocalAndCloudSyncInputData(),
+                /* tags= */ Collections.emptyList(),
+                new WorkerParameters.RuntimeExtras(),
+                /* runAttemptCount= */ 0,
+                /* generation= */ 0,
+                mock(Executor.class),
+                mock(TaskExecutor.class),
+                mock(WorkerFactory.class),
+                mock(ProgressUpdater.class),
+                mock(ForegroundUpdater.class));
     }
 }

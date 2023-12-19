@@ -261,6 +261,9 @@ public class IsoInterface {
             }
         } catch (ErrnoException e) {
             throw e.rethrowAsIOException();
+        } catch (OutOfMemoryError e) {
+            Log.e(TAG, "Too many boxes in file. This might imply a corrupted file.", e);
+            throw new IOException(e.getMessage());
         }
 
         // Also create a flattened structure to speed up searching
@@ -295,8 +298,8 @@ public class IsoInterface {
     public @NonNull long[] getBoxRanges(int type) {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
-            for (int i = 0; i < box.range.length; i += 2) {
-                if (box.type == type) {
+            if (box.type == type) {
+                for (int i = 0; i < box.range.length; i += 2) {
                     res.add(box.range[i] + box.headerSize);
                     res.add(box.range[i] + box.range[i + 1]);
                 }
@@ -308,8 +311,8 @@ public class IsoInterface {
     public @NonNull long[] getBoxRanges(@NonNull UUID uuid) {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
-            for (int i = 0; i < box.range.length; i += 2) {
-                if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+            if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+                for (int i = 0; i < box.range.length; i += 2) {
                     res.add(box.range[i] + box.headerSize);
                     res.add(box.range[i] + box.range[i + 1]);
                 }

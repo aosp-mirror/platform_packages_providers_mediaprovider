@@ -27,19 +27,15 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.hamcrest.Matchers.allOf;
 
-import android.content.Context;
 import android.support.test.uiautomator.UiDevice;
 import android.support.test.uiautomator.UiObject;
 import android.support.test.uiautomator.UiSelector;
 import android.text.format.DateUtils;
 
-import androidx.annotation.Nullable;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
-import com.android.providers.media.photopicker.data.ItemsProvider;
-import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.After;
 import org.junit.Before;
@@ -84,29 +80,6 @@ public class ProgressBarTest extends PhotoPickerBaseTest {
                 PhotoPickerBaseTest.getSingleSelectionIntent());
     }
 
-    private void setItemsProviderWithDelayInActivity() {
-        FakeItemsProvider itemsProvider = new FakeItemsProvider(getIsolatedContext());
-        itemsProvider.delaySync();
-        mScenario.onActivity(
-                (activity -> {
-                    activity.setItemsProvider(itemsProvider);
-                }));
-    }
-
-    private void assertProgressBarAndLoadingTextAppears() {
-        final UiSelector progressBar = new UiSelector().resourceId(
-                getIsolatedContext().getPackageName()
-                        + ":id/progress_bar");
-        assertWithMessage("Waiting for progressBar to appear on photos grid").that(
-                new UiObject(progressBar).waitForExists(DateUtils.SECOND_IN_MILLIS)).isTrue();
-
-        final UiSelector loadingText = new UiSelector().resourceId(
-                getIsolatedContext().getPackageName()
-                        + ":id/loading_text_view");
-        assertWithMessage("Waiting for progressBar to appear on photos grid").that(
-                new UiObject(loadingText).waitForExists(DateUtils.SECOND_IN_MILLIS)).isTrue();
-    }
-
     private void assertProgressBarAndLoadingTextDoesNotAppears() {
         final UiSelector progressBar = new UiSelector().resourceId(
                 getIsolatedContext().getPackageName()
@@ -125,35 +98,6 @@ public class ProgressBarTest extends PhotoPickerBaseTest {
     public void tearDown() {
         if (mScenario != null) {
             mScenario.close();
-        }
-    }
-
-    public static class FakeItemsProvider extends ItemsProvider {
-
-        private boolean mShouldDelaySync = false;
-
-        public FakeItemsProvider(Context context) {
-            super(context);
-        }
-
-        public void delaySync() {
-            mShouldDelaySync = true;
-        }
-
-        @Override
-        public void initPhotoPickerData(@Nullable String albumId,
-                @Nullable String albumAuthority,
-                boolean initLocalOnlyData,
-                @Nullable UserId userId) {
-            if (mShouldDelaySync) {
-                try {
-                    Thread.sleep(DateUtils.SECOND_IN_MILLIS);
-                } catch (Exception e) {
-                    // no-op
-                }
-            } else {
-                super.initPhotoPickerData(albumId, albumAuthority, initLocalOnlyData, userId);
-            }
         }
     }
 }

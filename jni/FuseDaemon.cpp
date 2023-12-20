@@ -1985,7 +1985,7 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
     struct fuse* fuse = get_fuse(req);
     char buf[READDIR_BUF];
     struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
-    size_t used = sizeof(*fro);
+    size_t used = 0;
     char* dirents_out = (char*)(fro + 1);
 
     ATRACE_CALL();
@@ -2004,7 +2004,7 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
 
     for (off_t in = 0; in < size_out;) {
         struct fuse_dirent* dirent_in = (struct fuse_dirent*)((char*)dirents_in + in);
-        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
+        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + used);
         struct stat stats;
         int err;
 
@@ -2020,11 +2020,10 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
              child_name == ".nomedia")) {
             *dirent_out = *dirent_in;
             strcpy(dirent_out->name, child_name.c_str());
-            fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+            used += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
         }
     }
-    used += fro->size;
-    fuse_reply_buf(req, buf, used);
+    fuse_reply_buf(req, buf, sizeof(*fro) + used);
 }
 
 static void pf_readdirplus(fuse_req_t req,

@@ -116,6 +116,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mFragmentContainerView;
     private View mDragBar;
     private View mProfileButton;
+    private View mProfileMenuButton;
     private TextView mPrivacyText;
     private TabLayout mTabLayout;
     private Toolbar mToolbar;
@@ -189,7 +190,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPrivacyText = findViewById(R.id.privacy_text);
         mBottomBar = findViewById(R.id.picker_bottom_bar);
         mProfileButton = findViewById(R.id.profile_button);
-
+        mProfileMenuButton = findViewById(R.id.profile_menu_button);
         mTabLayout = findViewById(R.id.tab_layout);
 
         mAccessibilityManager = getSystemService(AccessibilityManager.class);
@@ -444,7 +445,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
-            private boolean mIsHiddenDueToBottomSheetClosing = false;
+            private boolean mIsProfileButtonHiddenDueToBottomSheetClosing = false;
+            private boolean mIsProfileMenuButtonHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -463,23 +465,52 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 // slideOffset = 1 is when bottomsheet is in expanded mode
                 // We hide the Profile button if the bottomsheet is 50% in between collapsed state
                 // and hidden state.
-                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
-                        mProfileButton.getVisibility() == View.VISIBLE) {
+                onSlideProfileButton(slideOffset);
+                onSlideProfileMenuButton(slideOffset);
+
+            }
+
+            void onSlideProfileButton(float slideOffset) {
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mProfileButton.getVisibility() == View.VISIBLE) {
                     mProfileButton.setVisibility(View.GONE);
-                    mIsHiddenDueToBottomSheetClosing = true;
+                    mIsProfileButtonHiddenDueToBottomSheetClosing = true;
                     return;
                 }
 
                 // We need to handle this state if the user is swiping till the bottom of the
                 // screen but then swipes up bottom sheet suddenly
-                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
-                        mIsHiddenDueToBottomSheetClosing) {
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mIsProfileButtonHiddenDueToBottomSheetClosing) {
                     mProfileButton.setVisibility(View.VISIBLE);
-                    mIsHiddenDueToBottomSheetClosing = false;
+                    mIsProfileButtonHiddenDueToBottomSheetClosing = false;
+                }
+            }
+
+            void onSlideProfileMenuButton(float slideOffset) {
+                if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS())) {
+                    return;
+                }
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mProfileMenuButton.getVisibility() == View.VISIBLE) {
+                    mProfileMenuButton.setVisibility(View.GONE);
+                    mIsProfileMenuButtonHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mIsProfileMenuButtonHiddenDueToBottomSheetClosing) {
+                    mProfileMenuButton.setVisibility(View.VISIBLE);
+                    mIsProfileMenuButtonHiddenDueToBottomSheetClosing = false;
                 }
             }
         };
     }
+
 
     private void setRoundedCornersForBottomSheet() {
         final float cornerRadius =
@@ -759,6 +790,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mode.isPreview) {
             mBottomBar.setVisibility(View.GONE);
             mProfileButton.setVisibility(View.GONE);
+            mProfileMenuButton.setVisibility(View.GONE);
         }
     }
 
@@ -1119,7 +1151,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         private void handleProfileOff(UserId userId) {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 if (mUserManagerState.isUserSelectedAsCurrentUserProfile(userId)) {
-                    switchToStartUserProfileInitialLaunchState();
+                    switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.updateProfileOffValues();
                 return;
@@ -1138,7 +1170,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         private void handleProfileRemoved(UserId userId) {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 if (mUserManagerState.isUserSelectedAsCurrentUserProfile(userId)) {
-                    switchToStartUserProfileInitialLaunchState();
+                    switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
             }
@@ -1178,7 +1210,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
             resetToPersonalProfile();
         }
 
-        private  void switchToStartUserProfileInitialLaunchState() {
+        private  void switchToCurrentUserProfileInitialLaunchState() {
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in other Profile mode.
             resetToCurrentUserProfile();

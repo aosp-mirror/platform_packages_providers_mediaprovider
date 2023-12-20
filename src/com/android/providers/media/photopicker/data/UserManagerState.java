@@ -81,6 +81,13 @@ public interface UserManagerState {
     Map<UserId, Boolean> getCrossProfileAllowedStatusForAll();
 
     /**
+     * Get total number of profiles with {@link UserProperties.SHOW_IN_SHARING_SURFACES_SEPARATE}
+     * available on the device
+     */
+    int getProfileCount();
+
+    /**
+     *
      * A {@link MutableLiveData} to check if cross profile interaction allowed or not.
      */
     @NonNull
@@ -300,6 +307,11 @@ public interface UserManagerState {
         }
 
         @Override
+        public  int getProfileCount() {
+            return mUserProfileIds.size();
+        }
+
+        @Override
         public MutableLiveData<Map<UserId, Boolean>> getCrossProfileAllowed() {
             return mCrossProfileAllowedStatus;
         }
@@ -348,9 +360,11 @@ public interface UserManagerState {
         @Override
         public void setIntentAndCheckRestrictions(Intent intent) {
             assertMainThread();
-            if (isMultiUserProfiles()) {
-                updateCrossProfileValues(intent);
-            }
+            // The below method should be called even if only one profile is present on the device
+            // because we want to have current profile off value and blocked by admin values in the
+            // corresponding maps
+            updateCrossProfileValues(intent);
+
         }
 
         @Override

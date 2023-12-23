@@ -16,13 +16,16 @@
 
 package com.android.providers.media.util;
 
+import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
+import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.util.FileUtils.buildPath;
 import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractFileName;
 
-import androidx.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +40,6 @@ public final class SyntheticPathUtils {
     private static final String TRANSFORMS_DIR = ".transforms";
     private static final String SYNTHETIC_DIR = "synthetic";
     private static final String REDACTED_DIR = "redacted";
-    private static final String PICKER_DIR = "picker";
 
     public static final String REDACTED_URI_ID_PREFIX = "RUID";
     public static final int REDACTED_URI_ID_SIZE = 36;
@@ -48,8 +50,12 @@ public final class SyntheticPathUtils {
         return buildPath(/* base */ null, TRANSFORMS_DIR, SYNTHETIC_DIR, REDACTED_DIR).getPath();
     }
 
-    public static String getPickerRelativePath() {
-        return buildPath(/* base */ null, TRANSFORMS_DIR, SYNTHETIC_DIR, PICKER_DIR).getPath();
+    /**
+     * Returns picker synthetic path directory.
+     */
+    public static String getPickerRelativePath(String pickerSegmentType) {
+        return buildPath(/* base */ null, TRANSFORMS_DIR, SYNTHETIC_DIR,
+                pickerSegmentType).getPath();
     }
 
     public static boolean isRedactedPath(String path, int userId) {
@@ -66,10 +72,13 @@ public final class SyntheticPathUtils {
     }
 
     public static boolean isPickerPath(String path, int userId) {
-        final String pickerDir = buildPrimaryVolumeFile(userId, getPickerRelativePath())
-                .getAbsolutePath();
+        final String pickerDir = buildPrimaryVolumeFile(userId, getPickerRelativePath(
+                PICKER_SEGMENT)).getAbsolutePath();
+        final String pickerGetContentDir = buildPrimaryVolumeFile(userId,
+                getPickerRelativePath(PICKER_GET_CONTENT_SEGMENT)).getAbsolutePath();
 
-        return path != null && startsWith(path, pickerDir);
+        return path != null && (startsWith(path, pickerDir) || startsWith(path,
+                pickerGetContentDir));
     }
 
     public static boolean isSyntheticPath(String path, int userId) {

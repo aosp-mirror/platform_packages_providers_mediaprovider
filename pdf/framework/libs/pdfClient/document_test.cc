@@ -38,14 +38,13 @@
 #include "linux_fileops.h"
 // #include "image/base/rawimage.h"
 // #include "image/codec/pngencoder.h"
-#include "absl/strings/string_view.h"
 #include "fpdfview.h"
 
-using absl::string_view;
 using pdfClient::Document;
 using pdfClient::FileReader;
 using pdfClient::LinuxFileOps;
 using pdfClient::Page;
+using std::string_view;
 // using image_base::RawImage;
 
 namespace {

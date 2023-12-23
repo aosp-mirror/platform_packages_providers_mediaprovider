@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "rect.h"
 
 using std::vector;
@@ -90,7 +89,7 @@ std::string FormWidgetInfo::text_value() const {
     return text_value_;
 }
 
-void FormWidgetInfo::set_text_value(absl::string_view text_value) {
+void FormWidgetInfo::set_text_value(std::string_view text_value) {
     text_value_ = std::string(text_value);
 }
 
@@ -98,7 +97,7 @@ std::string FormWidgetInfo::accessibility_label() const {
     return accessibility_label_;
 }
 
-void FormWidgetInfo::set_accessibility_label(absl::string_view accessibility_label) {
+void FormWidgetInfo::set_accessibility_label(std::string_view accessibility_label) {
     accessibility_label_ = std::string(accessibility_label);
 }
 

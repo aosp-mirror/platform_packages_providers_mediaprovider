@@ -25,7 +25,6 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
@@ -171,7 +170,7 @@ void Page::GetAltTextUtf8(vector<std::string>* result) const {
     ::pdfClient_utils::GetAltText(page_.get(), result);
 }
 
-int Page::FindMatchesUtf8(absl::string_view utf8, vector<TextRange>* matches) {
+int Page::FindMatchesUtf8(std::string_view utf8, vector<TextRange>* matches) {
     std::u32string query(Utf8ToUtf32(utf8));
     // Normalize characters of string for searching - ignore case and accents.
     NormalizeStringForSearch(&query);
@@ -189,7 +188,7 @@ int Page::FindMatchesUtf8(absl::string_view utf8, vector<TextRange>* matches) {
     return num_matches;
 }
 
-int Page::BoundsOfMatchesUtf8(absl::string_view utf8, vector<Rectangle_i>* rects,
+int Page::BoundsOfMatchesUtf8(std::string_view utf8, vector<Rectangle_i>* rects,
                               vector<int>* match_to_rect, vector<int>* char_indexes) {
     vector<TextRange> matches;
     int num_matches = FindMatchesUtf8(utf8, &matches);
@@ -394,7 +393,7 @@ bool Page::ClickOnPoint(Point_i point) {
     Point_d page_point = UnapplyPageTransform(point);
     return form_filler_->ClickOnPoint(page_.get(), page_point);
 }
-bool Page::SetFormFieldText(int annotation_index, absl::string_view text) {
+bool Page::SetFormFieldText(int annotation_index, std::string_view text) {
     return form_filler_->SetText(page_.get(), annotation_index, text);
 }
 

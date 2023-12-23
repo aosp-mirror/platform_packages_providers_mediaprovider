@@ -69,7 +69,7 @@ std::string GetUtf8Result(const std::function<size_t(T*, size_t)>& f) {
 template std::string GetUtf8Result<void>(const std::function<size_t(void*, size_t)>& f);
 template std::string GetUtf8Result<FPDF_WCHAR>(const std::function<size_t(FPDF_WCHAR*, size_t)>& f);
 
-std::u16string Utf8ToUtf16Le(absl::string_view utf8) {
+std::u16string Utf8ToUtf16Le(std::string_view utf8) {
     std::u16string result;
     pdfClient::unchecked::utf8to16(utf8.begin(), utf8.end(), std::back_inserter(result));
 #ifdef IS_BIG_ENDIAN

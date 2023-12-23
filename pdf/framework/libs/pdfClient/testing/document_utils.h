@@ -10,7 +10,6 @@
 #include "../file.h"
 #include "../page.h"
 // #include "image/base/rawimage.h"
-#include "absl/strings/string_view.h"
 
 namespace pdfClient {
 namespace testing {
@@ -25,7 +24,7 @@ std::string CreateTestFilePath(const std::string file_name, const std::string re
 // std::unique_ptr<image_base::RawImage> RenderPage(const Page& page);
 
 // Loads and returns a Document.
-std::unique_ptr<pdfClient::Document> LoadDocument(absl::string_view path,
+std::unique_ptr<pdfClient::Document> LoadDocument(std::string_view path,
                                                   const char* password = nullptr);
 
 }  // namespace testing

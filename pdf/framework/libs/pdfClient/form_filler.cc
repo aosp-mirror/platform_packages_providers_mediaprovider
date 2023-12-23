@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "document.h"
@@ -233,7 +232,7 @@ bool FormFiller::ClickOnPoint(FPDF_PAGE page, const Point_d point) {
     return true;
 }
 
-bool FormFiller::SetText(FPDF_PAGE page, const int annotation_index, const absl::string_view text) {
+bool FormFiller::SetText(FPDF_PAGE page, const int annotation_index, const std::string_view text) {
     ScopedFPDFAnnotation annotation = GetFormAnnotation(page, annotation_index);
     if (!annotation) {
         return false;
@@ -418,7 +417,7 @@ std::string FormFiller::GetReadOnlyTextValue(int type, FPDF_ANNOTATION annotatio
     return pdfClient_utils::FPDFAnnot_GetStringValue(annotation, "V");
 }
 
-void FormFiller::SetFieldText(FPDF_PAGE page, absl::string_view text) {
+void FormFiller::SetFieldText(FPDF_PAGE page, std::string_view text) {
     SelectAllFieldText(page);
     ReplaceSelectedText(page, text);
 }
@@ -429,7 +428,7 @@ void FormFiller::SelectAllFieldText(FPDF_PAGE page) {
     FORM_OnKeyUp(form_handle_.get(), page, kPdfiumACharacterOffset, FWL_EVENTFLAG_ControlKey);
 }
 
-void FormFiller::ReplaceSelectedText(FPDF_PAGE page, absl::string_view replacement_text) {
+void FormFiller::ReplaceSelectedText(FPDF_PAGE page, std::string_view replacement_text) {
     std::u16string utf_sixteen_replacement_text = pdfClient_utils::Utf8ToUtf16Le(replacement_text);
     FPDF_WIDESTRING widestring_replacement_text =
             reinterpret_cast<FPDF_WIDESTRING>(utf_sixteen_replacement_text.c_str());

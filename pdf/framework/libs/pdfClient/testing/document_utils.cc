@@ -14,7 +14,6 @@
 // #include "file/base/path.h"
 #include "../linux_fileops.h"
 // #include "image/base/rawimage.h"
-#include "absl/strings/string_view.h"
 
 using pdfClient::LinuxFileOps;
 
@@ -52,7 +51,7 @@ std::string CreateTestFilePath(const std::string file_name, const std::string re
 //   return dest;
 // }
 
-std::unique_ptr<pdfClient::Document> LoadDocument(absl::string_view path, const char* password) {
+std::unique_ptr<pdfClient::Document> LoadDocument(std::string_view path, const char* password) {
     LinuxFileOps::FDCloser in(open(path.data(), O_RDONLY));
     CHECK_GT(in.get(), 0);
 

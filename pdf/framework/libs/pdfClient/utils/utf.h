@@ -20,8 +20,6 @@
 #include <functional>
 #include <string>
 
-#include "absl/strings/string_view.h"
-
 namespace pdfClient_utils {
 // Wrapper around a Pdfium function to make it easier to get a UTF-8-encoded
 // string.
@@ -41,7 +39,7 @@ template <class T>
 std::string GetUtf8Result(const std::function<size_t(T*, size_t)>& f);
 
 // Converts a UTF-8-encoded string into a UTF16LE u16string.
-std::u16string Utf8ToUtf16Le(absl::string_view utf8);
+std::u16string Utf8ToUtf16Le(std::string_view utf8);
 }  // namespace pdfClient_utils
 
 #endif  // MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_UTF_H_

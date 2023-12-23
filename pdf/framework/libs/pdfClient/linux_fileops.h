@@ -41,7 +41,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/cord.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
 
 #ifndef O_NOATIME
 #define O_NOATIME 01000000
@@ -119,12 +118,12 @@ class LinuxFileOps {
         return absl::OkStatus();
     }
 
-    static std::string FormatSyscallError(absl::string_view syscall, absl::string_view filename);
+    static std::string FormatSyscallError(std::string_view syscall, std::string_view filename);
 
-    static std::string FormatSyscallError(absl::string_view syscall, absl::string_view filename,
+    static std::string FormatSyscallError(std::string_view syscall, std::string_view filename,
                                           int error);
 
-    static absl::Status CanonicalError(absl::string_view message);
+    static absl::Status CanonicalError(std::string_view message);
 };
 
 }  // namespace pdfClient

@@ -19,8 +19,6 @@
 
 #include <string>
 
-#include "absl/strings/string_view.h"
-
 namespace std {
 // Typedef std::u16string and std::u32string in case they are missing.
 typedef std::basic_string<char16_t> u16string;
@@ -30,7 +28,7 @@ typedef std::basic_string<char32_t> u32string;
 namespace pdfClient {
 
 // Converts a string from UTF-8 to UTF-32.
-std::u32string Utf8ToUtf32(absl::string_view utf8);
+std::u32string Utf8ToUtf32(std::string_view utf8);
 
 // Converts a C-string from UTF-8 to UTF-32.
 std::u32string Utf8ToUtf32(const char* utf8);

@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "form_widget_info.h"
@@ -81,7 +80,7 @@ class FormFiller : public FPDF_FORMFILLINFO {
     // Set the value text of the widget at |annotation_index| on |page|. No-op if
     // no widget present or widget cannot be edited. Returns true if text was
     // set, false otherwise.
-    bool SetText(FPDF_PAGE page, const int annotation_index, const absl::string_view text);
+    bool SetText(FPDF_PAGE page, const int annotation_index, const std::string_view text);
 
     // Set the |selected_indices| for the choice widget at |annotation_index| as
     // selected and deselect all other indices. No-op if no widget present or
@@ -138,13 +137,13 @@ class FormFiller : public FPDF_FORMFILLINFO {
     // Perform a click action on the document in Pdfium.
     void PerformClick(FPDF_PAGE page, const Point_d point);
     // Set the text of the field that is currently focused (in Pdfium) to |text|.
-    void SetFieldText(FPDF_PAGE page, absl::string_view text);
+    void SetFieldText(FPDF_PAGE page, std::string_view text);
     // Set all the text of the field that is currently focused (in Pdfium) as
     // selected.
     void SelectAllFieldText(FPDF_PAGE page);
     // Replace the text that is currently selected in the focused field (in
     // Pdfium) with |replacement_text|.
-    void ReplaceSelectedText(FPDF_PAGE page, absl::string_view replacement_text);
+    void ReplaceSelectedText(FPDF_PAGE page, std::string_view replacement_text);
 
     // Set Pdfium's focus to the widget at |point|, if any.
     bool SetFormFocus(FPDF_PAGE page, const Point_d point);

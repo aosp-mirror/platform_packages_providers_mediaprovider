@@ -47,7 +47,6 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
 
 namespace pdfClient {
 
@@ -125,17 +124,17 @@ bool LinuxFileOps::CloseFD(int fd) {
     return true;
 }
 
-std::string LinuxFileOps::FormatSyscallError(absl::string_view syscall, absl::string_view filename) {
+std::string LinuxFileOps::FormatSyscallError(std::string_view syscall, std::string_view filename) {
     return FormatSyscallError(syscall, filename, errno);
 }
 
 // Format a system call error as name(file): error
-std::string LinuxFileOps::FormatSyscallError(absl::string_view syscall, absl::string_view filename,
+std::string LinuxFileOps::FormatSyscallError(std::string_view syscall, std::string_view filename,
                                              int error) {
     return absl::StrCat(syscall, "(", filename, "): ", absl::base_internal::StrError(error));
 }
 
-absl::Status LinuxFileOps::CanonicalError(absl::string_view message) {
+absl::Status LinuxFileOps::CanonicalError(std::string_view message) {
     return errno == 0 ? absl::UnknownError(message) : absl::ErrnoToStatus(errno, message);
 }
 

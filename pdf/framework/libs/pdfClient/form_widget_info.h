@@ -20,7 +20,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "rect.h"
 
 namespace pdfClient {
@@ -51,9 +50,9 @@ class FormWidgetInfo {
     bool read_only() const;
     void set_read_only(bool read_only);
     std::string text_value() const;
-    void set_text_value(absl::string_view text_value);
+    void set_text_value(std::string_view text_value);
     std::string accessibility_label() const;
-    void set_accessibility_label(absl::string_view accessibility_label);
+    void set_accessibility_label(std::string_view accessibility_label);
     bool editable_text() const;
     void set_editable_text(bool editable_text);
     bool multiselect() const;

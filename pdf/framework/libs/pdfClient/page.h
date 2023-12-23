@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
@@ -114,7 +113,7 @@ class Page {
     // matches. Ignores case and accents when searching.
     // If matches vector is not NULL, it is filled with the start and end indices
     // of each match - these are character indices according to FPDFText API.
-    int FindMatchesUtf8(absl::string_view utf8, std::vector<TextRange>* matches);
+    int FindMatchesUtf8(std::string_view utf8, std::vector<TextRange>* matches);
 
     // Same as above, but finds the bounding boxes of the matches. Returns the
     // number of matches and fills in the rects vector. Each match can take more
@@ -123,7 +122,7 @@ class Page {
     // Matches for which we cannot find a single bounding rectangle are discarded.
     // The char_indexes vector is filled with the char index that each match
     // starts at - the beginning of its TextRange.
-    int BoundsOfMatchesUtf8(absl::string_view utf8, std::vector<Rectangle_i>* rects,
+    int BoundsOfMatchesUtf8(std::string_view utf8, std::vector<Rectangle_i>* rects,
                             std::vector<int>* match_to_rect, std::vector<int>* char_indexes);
 
     // Appends 0 or more rectangles to the given vector that surround the text
@@ -180,7 +179,7 @@ class Page {
     // Set the value text of the widget at |annotation_index| on page. No-op if
     // no widget present or widget cannot be edited. Returns true if text was
     // set, false otherwise.
-    bool SetFormFieldText(int annotation_index, absl::string_view text);
+    bool SetFormFieldText(int annotation_index, std::string_view text);
 
     // Set the |selected_indices| for the choice widget at |annotation_index| as
     // selected and deselect all other indices. No-op if no widget present or

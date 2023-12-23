@@ -20,12 +20,11 @@
 #include <iterator>
 #include <string>
 
-#include "absl/strings/string_view.h"
 #include "unchecked.h"
 
 namespace pdfClient {
 
-std::u32string Utf8ToUtf32(absl::string_view utf8) {
+std::u32string Utf8ToUtf32(std::string_view utf8) {
     std::u32string result;
     unchecked::utf8to32(utf8.begin(), utf8.end(), std::back_inserter(result));
     return result;

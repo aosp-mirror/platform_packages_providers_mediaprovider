@@ -16,13 +16,12 @@
 
 #include "annot_hider.h"
 
-#include "absl/container/flat_hash_set.h"
 #include "annot.h"
 #include "fpdfview.h"
 
 namespace pdfClient_utils {
 
-AnnotHider::AnnotHider(FPDF_PAGE page, const absl::flat_hash_set<int>& types) {
+AnnotHider::AnnotHider(FPDF_PAGE page, const std::unordered_set<int>& types) {
     GetVisibleAnnotsOfType(page, types, &annots_);
     HideAnnots(annots_);
 }

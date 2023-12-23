@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "document.h"
@@ -27,7 +28,6 @@
 #include "testing/document_utils.h"
 // #include "testing/looks_like.h"
 //  #include "image/base/rawimage.h"
-#include "absl/container/flat_hash_set.h"
 #include "fpdf_formfill.h"
 #include "fpdfview.h"
 
@@ -205,7 +205,7 @@ TEST(Test, GetFormWidgetInfos) {
     std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
 
     std::vector<FormWidgetInfo> widget_infos;
-    absl::flat_hash_set<int> noop_type_filter;
+    std::unordered_set<int> noop_type_filter;
     page_zero->GetFormWidgetInfos(noop_type_filter, &widget_infos);
     EXPECT_EQ(3, widget_infos.size());
 
@@ -223,7 +223,7 @@ TEST(Test, GetFormWidgetInfos_Filtering) {
     std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
 
     std::vector<FormWidgetInfo> combo_widget_infos;
-    absl::flat_hash_set<int> combobox_filter = {FPDF_FORMFIELD_COMBOBOX};
+    std::unordered_set<int> combobox_filter = {FPDF_FORMFIELD_COMBOBOX};
     page_zero->GetFormWidgetInfos(combobox_filter, &combo_widget_infos);
     EXPECT_EQ(3, combo_widget_infos.size());
 
@@ -232,7 +232,7 @@ TEST(Test, GetFormWidgetInfos_Filtering) {
     }
 
     std::vector<FormWidgetInfo> widget_infos;
-    absl::flat_hash_set<int> listbox_filter = {FPDF_FORMFIELD_LISTBOX};
+    std::unordered_set<int> listbox_filter = {FPDF_FORMFIELD_LISTBOX};
     page_zero->GetFormWidgetInfos(listbox_filter, &widget_infos);
     EXPECT_EQ(0, widget_infos.size());
 }
@@ -246,7 +246,7 @@ TEST(Test, GetFormWidgetInfos_InvalidRects) {
     std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
 
     std::vector<FormWidgetInfo> widget_infos;
-    absl::flat_hash_set<int> noop_type_filter;
+    std::unordered_set<int> noop_type_filter;
     page_zero->GetFormWidgetInfos(noop_type_filter, &widget_infos);
     EXPECT_FALSE(page_zero->HasInvalidRect());
 }

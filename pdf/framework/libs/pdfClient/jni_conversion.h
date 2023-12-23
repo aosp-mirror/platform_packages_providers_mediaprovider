@@ -21,7 +21,6 @@
 
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "document.h"
 #include "file.h"
 #include "form_widget_info.h"
@@ -56,8 +55,8 @@ int ToNativeInteger(JNIEnv* env, jobject jInteger);
 // Convert a Java List<Integer> to C++ vector<int>.
 vector<int> ToNativeIntegerVector(JNIEnv* env, jobject jIntegerList);
 
-// Convert a Java Set<Integer> to C++ absl::flat_hash_set<int>.
-absl::flat_hash_set<int> ToNativeIntegerFlatHashSet(JNIEnv* env, jobject jIntegerSet);
+// Convert a Java Set<Integer> to C++ std::unordered_set<int>.
+std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jobject jIntegerSet);
 
 // Convert a pdfClient rectangle to an android.graphics.Rect.
 jobject ToJavaRect(JNIEnv* env, const Rectangle_i& r);

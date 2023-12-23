@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/bind_front.h"
 #include "absl/log/log.h"
 #include "cpp/fpdf_scopers.h"
@@ -67,7 +66,7 @@ void GetAltTextFromElement(const FPDF_STRUCTELEMENT elem, std::vector<std::strin
 // Extracts alt text from |elem| and puts it in the |result| map keyed by marked
 // content ID if non-empty. Skips duplicate IDs.
 void GetAltTextFromElement(const FPDF_STRUCTELEMENT elem,
-                           absl::flat_hash_map<int, std::string>* result) {
+                           std::unordered_map<int, std::string>* result) {
     std::string alt = FPDF_StructElement_GetAltText(elem);
     if (!alt.empty()) {
         int id = FPDF_StructElement_GetMarkedContentID(elem);
@@ -108,7 +107,7 @@ void GetAltText(const FPDF_PAGE page, std::vector<std::string>* result) {
     GetAltTextFromPage(page, result);
 }
 
-void GetAltText(const FPDF_PAGE page, absl::flat_hash_map<int, std::string>* result) {
+void GetAltText(const FPDF_PAGE page, std::unordered_map<int, std::string>* result) {
     GetAltTextFromPage(page, result);
 }
 

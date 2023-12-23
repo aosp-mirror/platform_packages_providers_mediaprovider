@@ -19,19 +19,18 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "fpdf_annot.h"
 
 namespace pdfClient_utils {
 
-void GetVisibleAnnotsOfType(FPDF_PAGE page, const absl::flat_hash_set<int>& types,
+void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types,
                             std::vector<ScopedFPDFAnnotation>* annots) {
     const int num_annots = FPDFPage_GetAnnotCount(page);
     for (int i = 0; i < num_annots; ++i) {
         ScopedFPDFAnnotation annot(FPDFPage_GetAnnot(page, i));
         const FPDF_ANNOTATION_SUBTYPE subtype = FPDFAnnot_GetSubtype(annot.get());
-        if (types.contains(subtype)) {
+        if (types.find(subtype) != types.end()) {
             const int annot_flags = FPDFAnnot_GetFlags(annot.get());
             // Only worry about annots that aren't already hidden.
             if ((annot_flags & FPDF_ANNOT_FLAG_HIDDEN) == FPDF_ANNOT_FLAG_NONE) {

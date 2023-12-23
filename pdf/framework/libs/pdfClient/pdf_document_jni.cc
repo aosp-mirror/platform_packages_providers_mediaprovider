@@ -24,15 +24,14 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 #include "document.h"
 #include "file.h"
 #include "form_widget_info.h"
 #include "logging.h"
 #include "page.h"
-// TODO(b/307870155)
-// #include "proto/goto_links.proto.h"
-#include "absl/container/flat_hash_set.h"
+// #include "proto/goto_links.proto.h" @Todo b/307870155
 #include "absl/synchronization/mutex.h"
 #include "fcntl.h"
 #include "jni_conversion.h"
@@ -344,7 +343,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
-    absl::flat_hash_set<int> type_ids = convert::ToNativeIntegerFlatHashSet(env, jTypeIds);
+    std::unordered_set<int> type_ids = convert::ToNativeIntegerUnorderedSet(env, jTypeIds);
 
     std::vector<FormWidgetInfo> widget_infos;
     page->GetFormWidgetInfos(type_ids, &widget_infos);

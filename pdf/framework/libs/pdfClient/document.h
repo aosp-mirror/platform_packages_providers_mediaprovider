@@ -20,9 +20,9 @@
 #define APPNAME "PdfViewerPdfClientLayer"
 
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
-#include "absl/container/flat_hash_map.h"
 #include "cpp/fpdf_scopers.h"
 #include "file.h"
 #include "form_filler.h"
@@ -128,11 +128,11 @@ class Document {
     // in this order for required resources to be available
     ScopedFPDFDocument document_;
     FormFiller form_filler_;
-    absl::flat_hash_map<int, std::shared_ptr<Page>> pages_;
+    std::unordered_map<int, std::shared_ptr<Page>> pages_;
 
     // Map relating FPDF_PAGE to Page index for lookup.
     // FPDF_PAGEs are not owned.
-    absl::flat_hash_map<void*, int> fpdf_page_index_lookup_;
+    std::unordered_map<void*, int> fpdf_page_index_lookup_;
 
     // Whether the PDF is password protected.
     bool is_password_protected_ = false;

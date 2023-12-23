@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "document.h"
@@ -192,7 +191,7 @@ FormWidgetInfo FormFiller::GetFormWidgetInfo(FPDF_PAGE page, FPDF_ANNOTATION ann
     return result;
 }
 
-void FormFiller::GetFormWidgetInfos(FPDF_PAGE page, const absl::flat_hash_set<int>& type_ids,
+void FormFiller::GetFormWidgetInfos(FPDF_PAGE page, const std::unordered_set<int>& type_ids,
                                     std::vector<FormWidgetInfo>* widget_infos) {
     std::vector<ScopedFPDFAnnotation> widget_annots;
     pdfClient_utils::GetVisibleAnnotsOfType(page, {FPDF_ANNOT_WIDGET}, &widget_annots);
@@ -203,7 +202,8 @@ void FormFiller::GetFormWidgetInfos(FPDF_PAGE page, const absl::flat_hash_set<in
 
     bool filter_by_type = !type_ids.empty();
     for (const auto& widget_annot : widget_annots) {
-        if (filter_by_type && !type_ids.contains(GetFormFieldType(page, widget_annot.get()))) {
+        if (filter_by_type &&
+            !(type_ids.find(GetFormFieldType(page, widget_annot.get())) != type_ids.end())) {
             continue;
         }
         FormWidgetInfo result = GetFormWidgetInfo(page, widget_annot.get());

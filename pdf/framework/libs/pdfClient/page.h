@@ -20,10 +20,10 @@
 #include <stdint.h>
 
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
@@ -167,7 +167,7 @@ class Page {
     // optionally restricting by |type_ids| and store in |widget_infos|. See
     // fpdf_formfill.h for type constants. If |type_ids| is empty all form
     // widgets on |page| will be added to |widget_infos|, if any.
-    void GetFormWidgetInfos(const absl::flat_hash_set<int>& type_ids,
+    void GetFormWidgetInfos(const std::unordered_set<int>& type_ids,
                             std::vector<FormWidgetInfo>* widget_infos);
 
     // Perform a click at |point| on the page. Any focus in the document

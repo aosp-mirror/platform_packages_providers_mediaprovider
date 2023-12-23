@@ -17,9 +17,9 @@
 #ifndef MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_ANNOT_H_
 #define MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_ANNOT_H_
 
+#include <unordered_set>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdfview.h"
@@ -28,7 +28,7 @@ namespace pdfClient_utils {
 
 // Gets all annotations of the types in |types| on |page| and stores them in
 // |annots|. See external/pdfium/public/fpdf_annot.h for type definitions.
-void GetVisibleAnnotsOfType(FPDF_PAGE page, const absl::flat_hash_set<int>& types,
+void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types,
                             std::vector<ScopedFPDFAnnotation>* annots);
 
 // Adds the hidden flag to each of the annotations in |annots|.

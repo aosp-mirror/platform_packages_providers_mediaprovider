@@ -24,7 +24,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
@@ -87,7 +86,7 @@ bool Page::RenderPage(int width, int height, bool hide_text_annots, Extractor* e
 
 bool Page::RenderTile(int page_width, int page_height, const Rectangle_i& tile,
                       bool hide_text_annots, Extractor* extractor) const {
-    absl::flat_hash_set<int> types;
+    std::unordered_set<int> types;
     if (hide_text_annots) {
         types = {FPDF_ANNOT_TEXT, FPDF_ANNOT_HIGHLIGHT};
     }
@@ -373,7 +372,7 @@ FormWidgetInfo Page::GetFormWidgetInfo(int annotation_index) {
     return result;
 }
 
-void Page::GetFormWidgetInfos(const absl::flat_hash_set<int>& type_ids,
+void Page::GetFormWidgetInfos(const std::unordered_set<int>& type_ids,
                               std::vector<FormWidgetInfo>* widget_infos) {
     form_filler_->GetFormWidgetInfos(page_.get(), type_ids, widget_infos);
     for (FormWidgetInfo& widget_info : *widget_infos) {

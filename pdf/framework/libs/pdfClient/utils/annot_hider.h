@@ -17,9 +17,9 @@
 #ifndef MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_HIDER_H_
 #define MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_HIDER_H_
 
+#include <unordered_set>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdfview.h"
 
@@ -28,7 +28,7 @@ namespace pdfClient_utils {
 // RAII wrapper for hiding annotations of the specified types.
 class AnnotHider {
   public:
-    AnnotHider(FPDF_PAGE page, const absl::flat_hash_set<int>& types);
+    AnnotHider(FPDF_PAGE page, const std::unordered_set<int>& types);
     ~AnnotHider();
 
   private:

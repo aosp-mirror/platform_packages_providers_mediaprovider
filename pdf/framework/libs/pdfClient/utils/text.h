@@ -19,9 +19,9 @@
 
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "fpdf_structtree.h"
 #include "fpdfview.h"
 
@@ -36,6 +36,6 @@ void GetAltText(const FPDF_PAGE page, std::vector<std::string>* result);
 
 // Extracts non-empty instances of alt text on |page| to put in |result|, keyed
 // by marked content ID. Does not preserve order and drops duplicate IDs.
-void GetAltText(const FPDF_PAGE page, absl::flat_hash_map<int, std::string>* result);
+void GetAltText(const FPDF_PAGE page, std::unordered_map<int, std::string>* result);
 }  // namespace pdfClient_utils
 #endif  // MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_TEXT_H_

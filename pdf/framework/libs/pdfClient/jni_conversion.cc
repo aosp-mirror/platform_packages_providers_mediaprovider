@@ -117,7 +117,7 @@ vector<T> ToNativeVector(JNIEnv* env, jobject jList,
 }
 
 template <class T>
-absl::flat_hash_set<T> ToNativeFlatHashSet(JNIEnv* env, jobject jSet,
+std::unordered_set<T> ToNativeUnorderedSet(JNIEnv* env, jobject jSet,
                                            T (*ToNativeObject)(JNIEnv* env, jobject jValue)) {
     static jclass set_class = GetPermClassRef(env, kSet);
     static jclass iterator_class = GetPermClassRef(env, kIterator);
@@ -128,7 +128,7 @@ absl::flat_hash_set<T> ToNativeFlatHashSet(JNIEnv* env, jobject jSet,
     static jmethodID iterator_next =
             env->GetMethodID(iterator_class, "next", funcsig(kObject).c_str());
 
-    absl::flat_hash_set<T> native_set;
+    std::unordered_set<T> native_set;
 
     jobject jIterator = env->CallObjectMethod(jSet, set_iterator);
     while (env->CallBooleanMethod(jIterator, iterator_has_next)) {
@@ -189,8 +189,8 @@ vector<int> ToNativeIntegerVector(JNIEnv* env, jobject jIntegerList) {
     return ToNativeVector(env, jIntegerList, &ToNativeInteger);
 }
 
-absl::flat_hash_set<int> ToNativeIntegerFlatHashSet(JNIEnv* env, jobject jIntegerSet) {
-    return ToNativeFlatHashSet(env, jIntegerSet, &ToNativeInteger);
+std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jobject jIntegerSet) {
+    return ToNativeUnorderedSet(env, jIntegerSet, &ToNativeInteger);
 }
 
 jobject ToJavaRect(JNIEnv* env, const Rectangle_i& r) {

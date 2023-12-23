@@ -22,7 +22,6 @@
 #include <memory>
 #include <utility>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "cpp/fpdf_scopers.h"
 #include "file.h"
@@ -120,7 +119,7 @@ bool Document::SaveAs(LinuxFileOps::FDCloser fd) {
 }
 
 std::shared_ptr<Page> Document::GetPage(int pageNum, bool retain) {
-    if (pages_.contains(pageNum)) {
+    if (pages_.find(pageNum) != pages_.end()) {
         return pages_.at(pageNum);
     }
 
@@ -139,14 +138,14 @@ std::shared_ptr<Page> Document::GetPage(int pageNum, bool retain) {
 void Document::NotifyInvalidRect(FPDF_PAGE page, Rectangle_i rect) {
     // invalid rects are only relevant to pages that are being retained
     // since pages save them until a caller asks for them
-    if (fpdf_page_index_lookup_.contains(page)) {
+    if (fpdf_page_index_lookup_.find(page) != fpdf_page_index_lookup_.end()) {
         int retained_page_index = fpdf_page_index_lookup_.at(page);
         pages_.at(retained_page_index)->NotifyInvalidRect(rect);
     }
 }
 
 void Document::ReleaseRetainedPage(int pageNum) {
-    if (pages_.contains(pageNum)) {
+    if (pages_.find(pageNum) != pages_.end()) {
         std::shared_ptr<pdfClient::Page> page = pages_.at(pageNum);
         page->TerminateFormFilling();
         pages_.erase(pageNum);

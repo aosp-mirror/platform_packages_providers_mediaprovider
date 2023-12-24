@@ -43,6 +43,15 @@ public class LocalUriMatcherTest {
                 LocalUriMatcher.PICKER_ID,
                 assembleTestUri(new String[] {"picker", "0", "anything", "media", "anything"}));
 
+        assertMatchesPublic(
+                LocalUriMatcher.PICKER_GET_CONTENT_ID,
+                assembleTestUri(new String[]{"picker_get_content", Integer.toString(1),
+                        Integer.toString(1)}));
+        assertMatchesPublic(
+                LocalUriMatcher.PICKER_GET_CONTENT_ID,
+                assembleTestUri(
+                        new String[]{"picker_get_content", "0", "anything", "media", "anything"}));
+
         assertMatchesPublic(LocalUriMatcher.CLI, assembleTestUri(new String[] {"cli"}));
 
         assertMatchesPublic(
@@ -203,6 +212,15 @@ public class LocalUriMatcherTest {
         assertMatchesHidden(
                 LocalUriMatcher.PICKER_ID,
                 assembleTestUri(new String[] {"picker", "0", "anything", "media", "anything"}));
+
+        assertMatchesHidden(
+                LocalUriMatcher.PICKER_GET_CONTENT_ID,
+                assembleTestUri(new String[]{"picker_get_content", Integer.toString(1),
+                        Integer.toString(1)}));
+        assertMatchesHidden(
+                LocalUriMatcher.PICKER_GET_CONTENT_ID,
+                assembleTestUri(
+                        new String[]{"picker_get_content", "0", "anything", "media", "anything"}));
 
         assertMatchesHidden(LocalUriMatcher.CLI, assembleTestUri(new String[] {"cli"}));
 

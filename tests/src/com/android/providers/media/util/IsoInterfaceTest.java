@@ -28,6 +28,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -100,7 +101,13 @@ public class IsoInterfaceTest {
         assertEquals("3F9DD7A46B26513A7C35272F0D623A06", xmp.getOriginalDocumentId());
     }
 
+
     @Test
+    @Ignore // This test creates a file that causes MediaProvider to OOM with our current
+    // IsoInterface implementation.
+    // While MediaProvider should now be resistant to that, we cannot leave this test safely enabled
+    // in a test suite as for b/316578793
+    // Leaving its implementation here to test further improvement to IsoInterface implementation.
     public void testFileWithTooManyBoxesDoesNotRunOutOfMemory() throws Exception {
         final File file = createFileWithLotsOfBoxes("too-many-boxes");
         assertThrows(IOException.class, () -> IsoInterface.fromFile(file));

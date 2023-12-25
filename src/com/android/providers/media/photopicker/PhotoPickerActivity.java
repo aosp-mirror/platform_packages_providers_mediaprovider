@@ -1153,7 +1153,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 if (mUserManagerState.isUserSelectedAsCurrentUserProfile(userId)) {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
-                mUserManagerState.updateProfileOffValues();
+                mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus();
                 return;
             }
             handleWorkProfileOff();

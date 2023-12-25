@@ -18,33 +18,8 @@
 #define MEDIAPROVIDER_PDF_JNI_EXTERNAL_FILE_UTIL_LINUX_FILEOPS_H__
 
 #include <dirent.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
-#include <cerrno>
-#include <cstdint>
-#include <functional>
-#include <iosfwd>
-#include <limits>
-#include <memory>
 #include <ostream>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <vector>
-
-#include "absl/base/attributes.h"
-#include "absl/base/macros.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/cord.h"
-#include "absl/strings/str_cat.h"
-
-#ifndef O_NOATIME
-#define O_NOATIME 01000000
-#endif
 
 namespace pdfClient {
 // Whether to resolve symbolic links.
@@ -92,7 +67,6 @@ class LinuxFileOps {
         int get() const;
         // Close the file descriptor.
         bool Close();
-        absl::Status CloseStatus();
 
         // Release ownership of the file descriptor and return it.
         int Release();
@@ -111,19 +85,6 @@ class LinuxFileOps {
     };
 
     static bool CloseFD(int fd);
-    static absl::Status CloseFDStatus(int fd) {
-        if (!CloseFD(fd)) {
-            return CanonicalError(FormatSyscallError("close", absl::StrCat(fd)));
-        }
-        return absl::OkStatus();
-    }
-
-    static std::string FormatSyscallError(std::string_view syscall, std::string_view filename);
-
-    static std::string FormatSyscallError(std::string_view syscall, std::string_view filename,
-                                          int error);
-
-    static absl::Status CanonicalError(std::string_view message);
 };
 
 }  // namespace pdfClient

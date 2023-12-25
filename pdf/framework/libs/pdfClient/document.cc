@@ -22,7 +22,6 @@
 #include <memory>
 #include <utility>
 
-#include "absl/memory/memory.h"
 #include "cpp/fpdf_scopers.h"
 #include "file.h"
 #include "fpdf_dataavail.h"
@@ -72,9 +71,9 @@ Status Document::Load(std::unique_ptr<FileReader> fileReader, const char* passwo
     if (fpdf_doc) {
         // Use WrapUnique instead of MakeUnique since this Document constructor is
         // private.
-        *result = absl::WrapUnique(new Document(std::move(fpdf_doc),
-                                                (password && password[0] != '\0'),
-                                                std::move(fileReader), is_linearized));
+        *result = std::unique_ptr<Document>(new Document(std::move(fpdf_doc),
+                                                         (password && password[0] != '\0'),
+                                                         std::move(fileReader), is_linearized));
         return LOADED;
     }
 

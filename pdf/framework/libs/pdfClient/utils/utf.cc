@@ -16,13 +16,14 @@
 
 #include "utf.h"
 
+#include <android-base/logging.h>
+
 #include <algorithm>
 #include <iterator>
 #include <string>
 #include <vector>
 
 #include "../unchecked.h"
-#include "absl/log/check.h"
 #include "byte_value.h"
 #include "fpdfview.h"
 

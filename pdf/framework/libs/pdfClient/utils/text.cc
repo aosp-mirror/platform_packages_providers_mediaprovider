@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "absl/functional/bind_front.h"
-#include "absl/log/log.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdf_annot.h"
 #include "fpdf_edit.h"

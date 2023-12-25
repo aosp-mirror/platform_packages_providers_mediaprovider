@@ -16,9 +16,10 @@
 
 #include "byte_value.h"
 
+#include <android-base/logging.h>
+
 #include <vector>
 
-#include "absl/log/check.h"
 #include "fpdfview.h"
 
 namespace pdfClient_utils {

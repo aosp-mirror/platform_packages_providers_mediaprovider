@@ -37,6 +37,7 @@ cc_library_shared {
 
     static_libs: [
         "libabsl",
+        "libbase_ndk",
     ],
 
     cflags: [

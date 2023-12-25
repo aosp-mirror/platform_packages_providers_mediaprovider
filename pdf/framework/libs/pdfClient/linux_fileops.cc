@@ -16,37 +16,9 @@
 
 #include "linux_fileops.h"
 
-#include <fcntl.h>
-#include <limits.h>
-#include <stdio.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <cerrno>
-#include <cstdint>
-#include <cstdio>
-#include <functional>
-#include <iosfwd>
-#include <limits>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "absl/base/internal/strerror.h"
-#include "absl/base/macros.h"
-#include "absl/flags/flag.h"
-#include "absl/functional/bind_front.h"
-#include "absl/log/check.h"
-#include "absl/status/status.h"
-#include "absl/strings/cord.h"
-#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_split.h"
 
 namespace pdfClient {
 
@@ -90,15 +62,6 @@ bool LinuxFileOps::FDCloser::Close() {
     return LinuxFileOps::CloseFD(fd);
 }
 
-absl::Status LinuxFileOps::FDCloser::CloseStatus() {
-    int fd = this->Release();
-    //  if (fd == kCanonicalInvalidFd) {
-    //    return ::util::FailedPreconditionErrorBuilder()
-    //           << "file descriptor has been released";
-    //  }
-    return LinuxFileOps::CloseFDStatus(fd);
-}
-
 int LinuxFileOps::FDCloser::Release() {
     int ret = fd_;
     fd_ = kCanonicalInvalidFd;
@@ -122,20 +85,6 @@ bool LinuxFileOps::CloseFD(int fd) {
     }
 
     return true;
-}
-
-std::string LinuxFileOps::FormatSyscallError(std::string_view syscall, std::string_view filename) {
-    return FormatSyscallError(syscall, filename, errno);
-}
-
-// Format a system call error as name(file): error
-std::string LinuxFileOps::FormatSyscallError(std::string_view syscall, std::string_view filename,
-                                             int error) {
-    return absl::StrCat(syscall, "(", filename, "): ", absl::base_internal::StrError(error));
-}
-
-absl::Status LinuxFileOps::CanonicalError(std::string_view message) {
-    return errno == 0 ? absl::UnknownError(message) : absl::ErrnoToStatus(errno, message);
 }
 
 }  // namespace pdfClient

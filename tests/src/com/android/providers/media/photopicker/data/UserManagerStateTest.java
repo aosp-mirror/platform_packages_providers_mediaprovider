@@ -128,7 +128,7 @@ public class UserManagerStateTest {
                 () -> mUserManagerState.getCrossProfileAllowedStatusForAll());
         assertThrows(IllegalStateException.class, () -> mUserManagerState.getAllUserProfileIds());
         assertThrows(IllegalStateException.class,
-                () -> mUserManagerState.updateProfileOffValues());
+                () -> mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus());
         assertThrows(IllegalStateException.class,
                 () -> mUserManagerState.waitForMediaProviderToBeAvailable(
                         UserId.of(mPersonalUser)));

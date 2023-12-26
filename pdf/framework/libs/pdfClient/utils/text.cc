@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/functional/bind_front.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdf_annot.h"
 #include "fpdf_edit.h"
@@ -30,27 +29,29 @@
 
 namespace pdfClient_utils {
 
-using ::absl::bind_front;
-
 namespace {
 // Maximum number of struct tree levels to recurse over.
 constexpr int kRecursionLimit = 100;
 }  // namespace
 
 std::string FPDF_StructElement_GetAltText(FPDF_STRUCTELEMENT elem) {
-    return GetUtf8Result<void>(bind_front(::FPDF_StructElement_GetAltText, elem));
+    return GetUtf8Result<void>(std::bind(::FPDF_StructElement_GetAltText, elem,
+                                         std::placeholders::_1, std::placeholders::_2));
 }
 
 std::string FPDFAnnot_GetStringValue(FPDF_ANNOTATION annot, FPDF_BYTESTRING key) {
-    return GetUtf8Result<FPDF_WCHAR>(bind_front(::FPDFAnnot_GetStringValue, annot, key));
+    return GetUtf8Result<FPDF_WCHAR>(std::bind(::FPDFAnnot_GetStringValue, annot, key,
+                                               std::placeholders::_1, std::placeholders::_2));
 }
 
 std::string FPDFAnnot_GetOptionLabel(FPDF_FORMHANDLE hHandle, FPDF_ANNOTATION annot, int index) {
-    return GetUtf8Result<FPDF_WCHAR>(bind_front(::FPDFAnnot_GetOptionLabel, hHandle, annot, index));
+    return GetUtf8Result<FPDF_WCHAR>(std::bind(::FPDFAnnot_GetOptionLabel, hHandle, annot, index,
+                                               std::placeholders::_1, std::placeholders::_2));
 }
 
 std::string FORM_GetFocusedText(FPDF_FORMHANDLE hHandle, FPDF_PAGE page) {
-    return GetUtf8Result<void>(bind_front(::FORM_GetFocusedText, hHandle, page));
+    return GetUtf8Result<void>(std::bind(::FORM_GetFocusedText, hHandle, page,
+                                         std::placeholders::_1, std::placeholders::_2));
 }
 
 // Extracts alt text from |elem| and puts it in the |result| vector if

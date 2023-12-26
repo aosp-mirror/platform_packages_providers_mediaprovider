@@ -17,7 +17,7 @@ apex_defaults {
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
     sh_binaries: [
         // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
-        "media_provider"
+        "media_provider",
     ],
     prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
@@ -57,7 +57,6 @@ bootclasspath_fragment {
         "framework-pdf",
     ],
     apex_available: ["com.android.mediaprovider"],
-
     // The bootclasspath_fragments that provide APIs on which this depends.
     fragments: [
         {
@@ -65,13 +64,11 @@ bootclasspath_fragment {
             module: "art-bootclasspath-fragment",
         },
     ],
-
     // Additional stubs libraries that this fragment's contents use which are
     // not provided by another bootclasspath_fragment.
     additional_stubs: [
         "android-non-updatable",
     ],
-
     // Additional hidden API flag files to override the defaults. This must only be
     // modified by the Soong or platform compat team.
     hidden_api: {
@@ -87,6 +84,35 @@ bootclasspath_fragment {
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
             "android.provider",
+            "android.graphics.pdf.common",
+            "android.graphics.pdf.concurrency",
+            "android.graphics.pdf.converters",
+            "android.graphics.pdf.internal.javax.annotation",
+            "android.graphics.pdf.internal.javax.annotation.concurrent",
+            "android.graphics.pdf.internal.javax.annotation.meta",
+            "android.graphics.pdf.internal.publicsuffix",
+            "android.graphics.pdf.internal.publicsuffix.annotations",
+            "android.graphics.pdf.internal.publicsuffix.base",
+            "android.graphics.pdf.internal.publicsuffix.base.internal",
+            "android.graphics.pdf.internal.publicsuffix.cache",
+            "android.graphics.pdf.internal.publicsuffix.collect",
+            "android.graphics.pdf.internal.publicsuffix.escape",
+            "android.graphics.pdf.internal.publicsuffix.eventbus",
+            "android.graphics.pdf.internal.publicsuffix.graph",
+            "android.graphics.pdf.internal.publicsuffix.hash",
+            "android.graphics.pdf.internal.publicsuffix.html",
+            "android.graphics.pdf.internal.publicsuffix.io",
+            "android.graphics.pdf.internal.publicsuffix.math",
+            "android.graphics.pdf.internal.publicsuffix.net",
+            "android.graphics.pdf.internal.publicsuffix.primitives",
+            "android.graphics.pdf.internal.publicsuffix.reflect",
+            "android.graphics.pdf.internal.publicsuffix.util.concurrent",
+            "android.graphics.pdf.internal.publicsuffix.util.concurrent.internal",
+            "android.graphics.pdf.internal.publicsuffix.xml",
+            "android.graphics.pdf.models",
+            "android.graphics.pdf.utils",
+            "android.graphics.pdf.content",
+            "android.graphics.pdf.models.jni",
         ],
     },
 }

@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -27,7 +28,6 @@
 #include "rect.h"
 // #include "file/base/path.h"
 // #include "testing/base/public/gmock.h"
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdfview.h"
 
@@ -60,7 +60,7 @@ int Area(const Rectangle_i& rect) {
     return rect.Width() * rect.Height();
 }
 
-int NumRectsForMatch(absl::Span<const Rectangle_i> rects, absl::Span<const int> match_to_rect,
+int NumRectsForMatch(std::span<const Rectangle_i> rects, std::span<const int> match_to_rect,
                      int match) {
     if (match < 0 || match >= match_to_rect.size()) {
         return 0;

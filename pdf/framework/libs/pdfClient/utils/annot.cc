@@ -16,10 +16,10 @@
 
 #include "annot.h"
 
+#include <span>
 #include <utility>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "fpdf_annot.h"
 
 namespace pdfClient_utils {
@@ -40,14 +40,14 @@ void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types
     }
 }
 
-void HideAnnots(absl::Span<const ScopedFPDFAnnotation> annots) {
+void HideAnnots(std::span<const ScopedFPDFAnnotation> annots) {
     for (const auto& annot : annots) {
         const int annot_flags = FPDFAnnot_GetFlags(annot.get());
         FPDFAnnot_SetFlags(annot.get(), annot_flags | FPDF_ANNOT_FLAG_HIDDEN);
     }
 }
 
-void UnhideAnnots(absl::Span<const ScopedFPDFAnnotation> annots) {
+void UnhideAnnots(std::span<const ScopedFPDFAnnotation> annots) {
     for (const auto& annot : annots) {
         const int annot_flags = FPDFAnnot_GetFlags(annot.get());
         FPDFAnnot_SetFlags(annot.get(), annot_flags & ~FPDF_ANNOT_FLAG_HIDDEN);

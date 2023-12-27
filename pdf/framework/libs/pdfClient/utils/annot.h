@@ -17,10 +17,10 @@
 #ifndef MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_ANNOT_H_
 #define MEDIAPROVIDER_PDF_JNI_PDFCLIENT_UTILS_ANNOT_H_
 
+#include <span>
 #include <unordered_set>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "fpdfview.h"
 
@@ -32,10 +32,10 @@ void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types
                             std::vector<ScopedFPDFAnnotation>* annots);
 
 // Adds the hidden flag to each of the annotations in |annots|.
-void HideAnnots(absl::Span<const ScopedFPDFAnnotation> annots);
+void HideAnnots(std::span<const ScopedFPDFAnnotation> annots);
 
 // Removes the hidden flag from each of the annotations in |annots|.
-void UnhideAnnots(absl::Span<const ScopedFPDFAnnotation> annots);
+void UnhideAnnots(std::span<const ScopedFPDFAnnotation> annots);
 
 }  // namespace pdfClient_utils
 

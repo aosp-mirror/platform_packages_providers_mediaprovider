@@ -19,12 +19,12 @@
 
 #include <stdint.h>
 
+#include <span>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
 #include "form_filler.h"
@@ -184,7 +184,7 @@ class Page {
     // Set the |selected_indices| for the choice widget at |annotation_index| as
     // selected and deselect all other indices. No-op if no widget present or
     // widget cannot be edited. Returns true if indices were set, false otherwise.
-    bool SetChoiceSelection(int annotation_index, absl::Span<const int> selected_indices);
+    bool SetChoiceSelection(int annotation_index, std::span<const int> selected_indices);
 
     // Informs the page that the |rect| of the page bitmap has been invalidated.
     // This takes place following form filling operations. |Rect| must be in page

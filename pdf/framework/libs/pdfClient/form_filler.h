@@ -17,11 +17,11 @@
 #ifndef MEDIAPROVIDER_PDF_JNI_PDFCLIENT_FORM_FILLER_H_
 #define MEDIAPROVIDER_PDF_JNI_PDFCLIENT_FORM_FILLER_H_
 
+#include <span>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "form_widget_info.h"
 #include "fpdf_formfill.h"
@@ -86,7 +86,7 @@ class FormFiller : public FPDF_FORMFILLINFO {
     // selected and deselect all other indices. No-op if no widget present or
     // widget cannot be edited. Returns true if indices were set, false otherwise.
     bool SetChoiceSelection(FPDF_PAGE page, const int annotation_index,
-                            absl::Span<const int> selected_indices);
+                            std::span<const int> selected_indices);
 
   private:
     // Returns true if the |annotation| is a widget.

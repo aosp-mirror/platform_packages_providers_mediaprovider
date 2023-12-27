@@ -19,11 +19,11 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "document.h"
 #include "form_widget_info.h"
@@ -257,7 +257,7 @@ bool FormFiller::SetText(FPDF_PAGE page, const int annotation_index, const std::
 }
 
 bool FormFiller::SetChoiceSelection(FPDF_PAGE page, const int annotation_index,
-                                    absl::Span<const int> selected_indices) {
+                                    std::span<const int> selected_indices) {
     ScopedFPDFAnnotation annotation = GetFormAnnotation(page, annotation_index);
     if (!annotation) {
         return false;
@@ -274,7 +274,7 @@ bool FormFiller::SetChoiceSelection(FPDF_PAGE page, const int annotation_index,
 
     // Confirm all requested indices valid.
     for (int i = 0; i < selected_indices.size(); i++) {
-        if (selected_indices.at(i) < 0 || selected_indices.at(i) >= option_count) {
+        if (selected_indices[i] < 0 || selected_indices[i] >= option_count) {
             return false;
         }
     }
@@ -293,7 +293,7 @@ bool FormFiller::SetChoiceSelection(FPDF_PAGE page, const int annotation_index,
     SetFormFocus(page, annotation.get());
 
     if (type == FPDF_FORMFIELD_COMBOBOX) {
-        FORM_SetIndexSelected(form_handle_.get(), page, selected_indices.at(0), true);
+        FORM_SetIndexSelected(form_handle_.get(), page, selected_indices[0], true);
     } else {
         // Deselect all indices.
         for (int i = 0; i < option_count; i++) {
@@ -302,7 +302,7 @@ bool FormFiller::SetChoiceSelection(FPDF_PAGE page, const int annotation_index,
 
         // Select the requested indices.
         for (int i = 0; i < selected_indices.size(); i++) {
-            FORM_SetIndexSelected(form_handle_.get(), page, selected_indices.at(i), true);
+            FORM_SetIndexSelected(form_handle_.get(), page, selected_indices[i], true);
         }
     }
     KillFormFocus();

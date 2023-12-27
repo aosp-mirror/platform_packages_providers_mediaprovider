@@ -21,10 +21,10 @@
 
 #include <algorithm>
 #include <limits>
+#include <span>
 #include <string>
 #include <vector>
 
-#include "absl/types/span.h"
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
 #include "features.h"
@@ -396,7 +396,7 @@ bool Page::SetFormFieldText(int annotation_index, std::string_view text) {
     return form_filler_->SetText(page_.get(), annotation_index, text);
 }
 
-bool Page::SetChoiceSelection(int annotation_index, absl::Span<const int> selected_indices) {
+bool Page::SetChoiceSelection(int annotation_index, std::span<const int> selected_indices) {
     return form_filler_->SetChoiceSelection(page_.get(), annotation_index, selected_indices);
 }
 void Page::NotifyInvalidRect(Rectangle_i rect) {

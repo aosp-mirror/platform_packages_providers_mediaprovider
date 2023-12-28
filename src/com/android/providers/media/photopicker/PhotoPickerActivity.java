@@ -547,7 +547,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
-                    mSelection.getSelectedItems());
+                    getIntent().getAction(), mSelection.getSelectedItems());
             mPickerViewModel.logPreloadingStarted(uris.size());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
@@ -576,7 +576,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
+        final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
+                mSelection.getSelectedItemsWithoutGrants());
         if (!uris.isEmpty()) {
             ForegroundThread.getExecutor().execute(() -> {
                 // Handle grants in another thread to not block the UI.
@@ -589,7 +590,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // deselected them.
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
@@ -603,9 +604,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void setResultForPickImagesOrGetContentAction() {
-        final Intent resultData = getPickerResponseIntent(
-                mSelection.canSelectMultiple(),
-                mSelection.getSelectedItems());
+        final Intent resultData = getPickerResponseIntent(getIntent().getAction(),
+                mSelection.canSelectMultiple(), mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);
     }
 

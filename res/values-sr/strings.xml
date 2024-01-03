@@ -100,6 +100,7 @@
     <string name="not_selected" msgid="2244008151669896758">"није изабрано"</string>
     <string name="preloading_dialog_title" msgid="4974348221848532887">"Припремају се одабрани медијски фајлови"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Спремно:<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Откажи"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Сада су уврштене резервне копије слика"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Можете да изаберете слике са налога <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> за <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Налог за <xliff:g id="APP_NAME">%1$s</xliff:g> је ажуриран"</string>

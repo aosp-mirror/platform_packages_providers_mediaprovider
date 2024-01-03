@@ -24,6 +24,7 @@ import android.content.res.Resources;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.app.NotificationCompat;
 import androidx.work.ForegroundInfo;
 
@@ -35,8 +36,10 @@ import com.android.providers.media.R;
  */
 public class PickerSyncNotificationHelper {
     private static final String TAG = "SyncNotifHelper";
-    private static final String NOTIFICATION_CHANNEL_ID = "PhotoPickerSyncChannel";
-    private static final int NOTIFICATION_ID = 0;
+    @VisibleForTesting
+    static final String NOTIFICATION_CHANNEL_ID = "PhotoPickerSyncChannel";
+    @VisibleForTesting
+    static final int NOTIFICATION_ID = 0;
     private static final int NOTIFICATION_TIMEOUT_MILLIS = 1000;
 
 

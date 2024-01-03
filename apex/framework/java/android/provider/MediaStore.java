@@ -1534,7 +1534,7 @@ public final class MediaStore {
          * expiration is typically 30 days.
          * <p>
          * Expired media items are automatically deleted once their expiration
-         * time has passed, typically during during the next device idle period.
+         * time has passed, typically during the next device idle period.
          */
         @CurrentTimeSecondsLong
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)

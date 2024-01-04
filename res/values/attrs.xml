@@ -78,4 +78,10 @@
     <!-- Photo Picker Banner button text color. -->
     <attr name="pickerBannerButtonTextColor" format="reference|color" />
 
+    <!-- Default thumbnail icon color for merged albums -->
+    <attr name="categoryDefaultThumbnailColor" format="reference|color"/>
+
+    <!-- Default thumbnail ellipse color for merged albums -->
+    <attr name="categoryDefaultThumbnailCircleColor" format="reference|color" />
+
 </resources>

@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Медіа-файли"</string>
     <string name="storage_description" msgid="4081716890357580107">"Локальна пам’ять"</string>
-    <string name="app_label" msgid="9035307001052716210">"Сховище медіа-файлів"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Медіа"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Інструмент вибору медіаносія"</string>
     <string name="artist_label" msgid="8105600993099120273">"Виконавець"</string>
     <string name="unknown" msgid="2059049215682829375">"Невідомо"</string>
     <string name="root_images" msgid="5861633549189045666">"Зображення"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Постачальник медіаконтенту з хмари"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Немає"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не вдалося змінити хмарний мультимедійний додаток."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Інструмент вибору медіаносія"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Інструмент вибору медіаносія"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Синхронізація медіаносіїв…"</string>
     <string name="add" msgid="2894574044585549298">"Додати"</string>
     <string name="deselect" msgid="4297825044827769490">"Не вибирати"</string>
     <string name="deselected" msgid="8488133193326208475">"Не вибрано"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Немає альбомів"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Переглянути вибране"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Фото"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Альбоми"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Попередній перегляд"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Перейти в робочий профіль"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> об’єкт}one{<xliff:g id="COUNT_1">^1</xliff:g> об’єкт}few{<xliff:g id="COUNT_1">^1</xliff:g> об’єкти}many{<xliff:g id="COUNT_1">^1</xliff:g> об’єктів}other{<xliff:g id="COUNT_1">^1</xliff:g> об’єкта}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Додати (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Дозволити (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Не дозволяти жодної фотографії"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Камера"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Завантаження"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Вибране"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Проблема з відтворенням відео"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Перевірте інтернет-з’єднання й повторіть спробу"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Повторити"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Тепер медіаконтент із хмари доступний у додатку <xliff:g id="PKG_NAME">%1$s</xliff:g>"</string>
     <string name="not_selected" msgid="2244008151669896758">"не вибрано"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Підготовка вибраних медіафайлів"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Готово: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> з <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Скасувати"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Резервні копії фотографій додано"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Ви можете вибрати фотографії з облікового запису <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> у додатку <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Обліковий запис у додатку <xliff:g id="APP_NAME">%1$s</xliff:g> оновлено"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Вибрати додаток"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Вибрати обліковий запис"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Змінити обліковий запис"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Завантажуються всі ваші фото"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити цей аудіофайл?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайл?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайли?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлів?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> аудіофайлу?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Змінення аудіофайлу…}one{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}few{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}many{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлів…}other{Змінення <xliff:g id="COUNT">^1</xliff:g> аудіофайлу…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Дозволити додатку <xliff:g id="APP_NAME_0">^1</xliff:g> змінити це відео?}one{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> відео?}few{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> відео?}many{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> відео?}other{Дозволити додатку <xliff:g id="APP_NAME_1">^1</xliff:g> змінити <xliff:g id="COUNT">^2</xliff:g> відео?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Захист"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Cповіщення про перекодування нативного коду"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Перебіг перекодування нативного коду"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Повторіть спробу пізніше. Ваші фотографії будуть доступні після вирішення проблеми."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Не вдається завантажити деякі фотографії"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
 </resources>

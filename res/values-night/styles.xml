@@ -14,7 +14,8 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Dialog.Alert">
@@ -35,7 +36,7 @@
         <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
     </style>
 
-    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#686868</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
@@ -59,6 +60,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
 </resources>

@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Predstavnost"</string>
     <string name="storage_description" msgid="4081716890357580107">"Lokalna shramba"</string>
-    <string name="app_label" msgid="9035307001052716210">"Shramba za predstavnost"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Predstavnost"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Orodje za izbiranje predstavnosti"</string>
     <string name="artist_label" msgid="8105600993099120273">"Izvajalec"</string>
     <string name="unknown" msgid="2059049215682829375">"Neznano"</string>
     <string name="root_images" msgid="5861633549189045666">"Slike"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Dostop do predstavnosti v oblaku v storitvi"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Brez"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Zamenjava aplikacije za predstavnost v oblaku trenutno ni mogoča."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Orodje za izbiranje predstavnosti"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Orodje za izbiranje predstavnosti"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sinhroniziranje predstavnosti …"</string>
     <string name="add" msgid="2894574044585549298">"Dodaj"</string>
     <string name="deselect" msgid="4297825044827769490">"Počisti izbiro"</string>
     <string name="deselected" msgid="8488133193326208475">"Izbor je preklican"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ni albumov."</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Prikaži izbrano"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Fotografije"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Albumi"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Predogled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Preklop na delovni profil"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}one{<xliff:g id="COUNT_1">^1</xliff:g> element}two{<xliff:g id="COUNT_1">^1</xliff:g> elementa}few{<xliff:g id="COUNT_1">^1</xliff:g> elementi}other{<xliff:g id="COUNT_1">^1</xliff:g> elementov}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Dodaj (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Dovoli (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Dovoli brez izbire"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Fotoaparat"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Prenosi"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Priljubljeno"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Težave pri predvajanju videoposnetka"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Preverite internetno povezavo in poskusite znova."</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Poskusi znova"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Predstavnost v oblaku je zdaj na voljo v aplikaciji <xliff:g id="PKG_NAME">%1$s</xliff:g>."</string>
     <string name="not_selected" msgid="2244008151669896758">"ni izbrano"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Pripravljanje izbranih predstavnostnih vsebin"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Pripravljenih: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Prekliči"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Varnostno kopirane fotografije so zdaj vključene"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Izberete lahko fotografije iz računa <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> za aplikacijo <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Račun za aplikacijo <xliff:g id="APP_NAME">%1$s</xliff:g> je posodobljen"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Izbira aplikacije"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Izbira računa"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Sprememba računa"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Pridobivanje vseh vaših fotografij"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni to zvočno datoteko?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočno datoteko?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočni datoteki?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočne datoteke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> zvočnih datotek?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Spreminjanje zvočne datoteke …}one{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočne datoteke …}two{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}few{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}other{Spreminjanje <xliff:g id="COUNT">^1</xliff:g> zvočnih datotek …}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_0">^1</xliff:g>, da spremeni ta videoposnetek?}one{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetek?}two{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetka?}few{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetke?}other{Želite dovoliti aplikaciji <xliff:g id="APP_NAME_1">^1</xliff:g>, da spremeni <xliff:g id="COUNT">^2</xliff:g> videoposnetkov?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Varnostna zaščita"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Opozorila o izvornem prekodiranju"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Napredek izvornega prekodiranja"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Poskusite znova pozneje. Fotografije bodo na voljo, ko bo težava odpravljena."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Nekaterih fotografij ni mogoče naložiti"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Razumem"</string>
 </resources>

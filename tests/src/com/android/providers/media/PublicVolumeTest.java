@@ -30,6 +30,7 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.tests.utils.PublicVolumeSetupHelper;
 import com.android.providers.media.util.FileUtils;
 
@@ -43,6 +44,7 @@ import java.io.File;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
+@RunOnlyOnPostsubmit
 public class PublicVolumeTest {
     static final int POLL_DELAY_MS = 500;
     static final int WAIT_FOR_DEFAULT_FOLDERS_MS = 30000;

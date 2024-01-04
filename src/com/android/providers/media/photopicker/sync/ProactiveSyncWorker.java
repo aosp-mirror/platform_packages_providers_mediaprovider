@@ -16,21 +16,27 @@
 
 package com.android.providers.media.photopicker.sync;
 
-
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getCloudSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.getLocalSyncTracker;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 
 import android.content.Context;
+import android.os.CancellationSignal;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
+import androidx.work.ForegroundInfo;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 
 /**
  * This is a {@link Worker} class responsible for proactively syncing media with the correct sync
@@ -38,6 +44,8 @@ import com.android.providers.media.photopicker.PickerSyncController;
  */
 public class ProactiveSyncWorker extends Worker {
     private static final String TAG = "PSyncWorker";
+    private final Context mContext;
+    private final CancellationSignal mCancellationSignal = new CancellationSignal();
 
     /**
      * Creates an instance of the {@link Worker}.
@@ -47,40 +55,89 @@ public class ProactiveSyncWorker extends Worker {
      */
     public ProactiveSyncWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
     }
 
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
-        int syncSource = getInputData()
-                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+        // Do not allow endless re-runs of this worker, if this isn't the original run,
+        // just succeed and wait until the next scheduled run.
+        if (getRunAttemptCount() > 0) {
+            Log.w(TAG, "Worker retry was detected, ending this run in failure.");
+            return ListenableWorker.Result.failure();
+        }
+        final int syncSource =
+                getInputData()
+                        .getInt(
+                                SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */
+                                SYNC_LOCAL_AND_CLOUD);
 
-        Log.i(TAG,
+        Log.i(
+                TAG,
                 String.format("Starting proactive picker sync from sync source: %s", syncSource));
 
         try {
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_LOCAL_ONLY) {
-                getPickerSyncController().syncAllMediaFromLocalProvider();
+                // Instantiate sync state tracker.
+                final SyncTracker localSyncTracker = getLocalSyncTracker();
+                localSyncTracker.createSyncFuture(getId());
+
+                // Complete sync and mark work tracker as finished.
+                checkIsWorkerStopped();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromLocalProvider(mCancellationSignal);
+                localSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from local provider.");
             }
             if (syncSource == SYNC_LOCAL_AND_CLOUD || syncSource == SYNC_CLOUD_ONLY) {
-                getPickerSyncController().syncAllMediaFromCloudProvider();
+                // Instantiate sync state tracker.
+                final SyncTracker cloudSyncTracker = getCloudSyncTracker();
+                cloudSyncTracker.createSyncFuture(getId());
+
+                // Complete sync and mark work tracker as finished.
+                checkIsWorkerStopped();
+                PickerSyncController.getInstanceOrThrow()
+                        .syncAllMediaFromCloudProvider(mCancellationSignal);
+                cloudSyncTracker.markSyncCompleted(getId());
                 Log.i(TAG, "Completed picker proactive sync complete from cloud provider.");
             }
             return ListenableWorker.Result.success();
-        } catch (Throwable t) {
-            Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, t);
+        } catch (IllegalStateException | RequestObsoleteException e) {
+            Log.e(TAG, "Could not complete proactive sync for sync source: " + syncSource, e);
+
+            // Mark all pending syncs as finished and set failure result.
+            markSyncAsComplete(syncSource, getId());
             return ListenableWorker.Result.failure();
         }
     }
 
-    @NonNull
-    private PickerSyncController getPickerSyncController() {
-        PickerSyncController pickerSyncController = PickerSyncController.getInstance();
-        if (pickerSyncController == null) {
-            throw new IllegalStateException("Something went wrong - "
-                    + "PickerSyncController was not initialised in MediaProvider.onCreate()");
+    private void checkIsWorkerStopped() throws RequestObsoleteException {
+        if (isStopped()) {
+            throw new RequestObsoleteException("Work is stopped " + getId());
         }
-        return pickerSyncController;
+    }
+
+    @Override
+    @NonNull
+    public ForegroundInfo getForegroundInfo() {
+        Log.e(TAG, "Proactive Sync Worker should not run as an expedited task");
+        return PickerSyncNotificationHelper.getForegroundInfo(mContext);
+    }
+
+    @Override
+    public void onStopped() {
+        Log.w(TAG, "Worker is stopped. Clearing all pending futures. It's possible that the sync "
+                + "still finishes running if it has started already.");
+        // Send CancellationSignal to any running tasks.
+        mCancellationSignal.cancel();
+        final int syncSource = getInputData()
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, /* defaultValue */ SYNC_LOCAL_AND_CLOUD);
+        markSyncAsComplete(syncSource, getId());
+    }
+
+    @VisibleForTesting
+    CancellationSignal getCancellationSignal() {
+        return mCancellationSignal;
     }
 }

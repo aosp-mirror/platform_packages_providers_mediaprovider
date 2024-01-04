@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"สื่อ"</string>
     <string name="storage_description" msgid="4081716890357580107">"พื้นที่เก็บข้อมูลในเครื่อง"</string>
-    <string name="app_label" msgid="9035307001052716210">"พื้นที่เก็บข้อมูลสื่อ"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"สื่อ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"เครื่องมือเลือกสื่อ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ศิลปิน"</string>
     <string name="unknown" msgid="2059049215682829375">"ไม่ทราบ"</string>
     <string name="root_images" msgid="5861633549189045666">"รูปภาพ"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"เข้าถึงสื่อในระบบคลาวด์จาก"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ไม่มี"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"เปลี่ยนแอปสื่อบนระบบคลาวด์ไม่ได้ในขณะนี้"</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"เครื่องมือเลือกสื่อ"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"เครื่องมือเลือกสื่อ"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"กำลังซิงค์สื่อ…"</string>
     <string name="add" msgid="2894574044585549298">"เพิ่ม"</string>
     <string name="deselect" msgid="4297825044827769490">"ยกเลิกการเลือก"</string>
     <string name="deselected" msgid="8488133193326208475">"ยกเลิกการเลือก"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ไม่มีอัลบั้ม"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ดูรายการที่เลือก"</string>
     <string name="picker_photos" msgid="7415035516411087392">"รูปภาพ"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"อัลบั้ม"</string>
     <string name="picker_preview" msgid="6257414886055861039">"ตัวอย่าง"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"เปลี่ยนไปใช้โปรไฟล์งาน"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> รายการ}other{<xliff:g id="COUNT_1">^1</xliff:g> รายการ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"เพิ่ม (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"อนุญาต (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"ไม่อนุญาต"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"กล้อง"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"การดาวน์โหลด"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"รายการโปรด"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"เกิดปัญหาขณะเล่นวิดีโอ"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองอีกครั้ง"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ลองใหม่"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ไฟล์สื่อจาก <xliff:g id="PKG_NAME">%1$s</xliff:g> ในระบบคลาวด์พร้อมให้ใช้งานแล้ว"</string>
     <string name="not_selected" msgid="2244008151669896758">"ไม่ได้เลือกไว้"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"กำลังเตรียมสื่อที่คุณเลือก"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"พร้อมแล้ว <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> จาก <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"ยกเลิก"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"รวมรูปภาพที่สำรองข้อมูลไว้แล้ว"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"คุณเลือกรูปภาพได้จากบัญชี <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ของ \"<xliff:g id="APP_NAME">%1$s</xliff:g>\""</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"อัปเดตบัญชี \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" แล้ว"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"เลือกแอป"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"เลือกบัญชี"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"เปลี่ยนบัญชี"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"กำลังโหลดรูปภาพทั้งหมด"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขไฟล์เสียงนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขไฟล์เสียง <xliff:g id="COUNT">^2</xliff:g> ไฟล์ไหม}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{กำลังแก้ไขไฟล์เสียง…}other{กำลังแก้ไขไฟล์เสียง <xliff:g id="COUNT">^1</xliff:g> ไฟล์…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{อนุญาตให้ <xliff:g id="APP_NAME_0">^1</xliff:g> แก้ไขวิดีโอนี้ไหม}other{อนุญาตให้ <xliff:g id="APP_NAME_1">^1</xliff:g> แก้ไขวิดีโอ <xliff:g id="COUNT">^2</xliff:g> รายการไหม}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"การปกป้องเพื่อความปลอดภัย"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"โปรดลองอีกครั้งในภายหลัง รูปภาพจะพร้อมใช้งานเมื่อปัญหาได้รับการแก้ไขแล้ว"</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"โหลดรูปภาพบางรูปไม่ได้"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"รับทราบ"</string>
 </resources>

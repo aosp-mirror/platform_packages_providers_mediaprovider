@@ -20,6 +20,8 @@ import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Point;
@@ -27,6 +29,9 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
+import android.util.Log;
+
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
@@ -41,24 +46,28 @@ import java.io.FileNotFoundException;
  * out of every three requests.
  */
 public class FlakyCloudProvider extends CloudMediaProvider {
+    private static final String TAG = "FlakyCloudProvider";
     public static final String AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_flaky";
+    public static final String ACCOUNT_NAME = "test_account@flakyCloudProvider";
+    private static final int INITIAL_REQUEST_COUNT = 0;
+    private static final int REQUEST_COUNT_FOR_NEXT_ONE_TO_FLAKE = 2;
 
     private final MediaGenerator mMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(AUTHORITY);
 
-    private int mRequestCount = 0;
+    private int mRequestCount = INITIAL_REQUEST_COUNT;
 
     /** Determines if the current request should flake. */
     private boolean shouldFlake() {
 
         // Always succeed on the first request.
-        if (++mRequestCount < 2) {
+        if (++mRequestCount < REQUEST_COUNT_FOR_NEXT_ONE_TO_FLAKE) {
             return false;
         }
 
-        if (mRequestCount >= 3) {
-            mRequestCount = 0;
+        if (mRequestCount > REQUEST_COUNT_FOR_NEXT_ONE_TO_FLAKE) {
+            mRequestCount = INITIAL_REQUEST_COUNT;
         }
 
         return true;
@@ -66,6 +75,7 @@ public class FlakyCloudProvider extends CloudMediaProvider {
 
     @Override
     public boolean onCreate() {
+        mMediaGenerator.setAccountInfo(ACCOUNT_NAME, /* configIntent= */ null);
         return true;
     }
 
@@ -137,6 +147,24 @@ public class FlakyCloudProvider extends CloudMediaProvider {
 
     @Override
     public Bundle onGetMediaCollectionInfo(Bundle extras) {
+        if (shouldFlake()) {
+            try {
+                MILLISECONDS.sleep(/* timeout= */ 200L);
+            } catch (InterruptedException e) {
+                Log.d(TAG, "Error while sleep when should flake on get media collection info.", e);
+            }
+        }
+
         return mMediaGenerator.getMediaCollectionInfo();
+    }
+
+    @VisibleForTesting
+    public void resetToNotFlakeInTheNextRequest() {
+        mRequestCount = INITIAL_REQUEST_COUNT;
+    }
+
+    @VisibleForTesting
+    public void setToFlakeInTheNextRequest() {
+        mRequestCount = REQUEST_COUNT_FOR_NEXT_ONE_TO_FLAKE;
     }
 }

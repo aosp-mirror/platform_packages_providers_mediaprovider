@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"මාධ්‍ය"</string>
     <string name="storage_description" msgid="4081716890357580107">"පෙදෙසි ආචයනය"</string>
-    <string name="app_label" msgid="9035307001052716210">"මාධ්‍ය ගබඩාව"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"මාධ්‍ය"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"මාධ්‍ය තෝරනය"</string>
     <string name="artist_label" msgid="8105600993099120273">"කලාකරු"</string>
     <string name="unknown" msgid="2059049215682829375">"නොදනී"</string>
     <string name="root_images" msgid="5861633549189045666">"රූප"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"මෙයින් ක්ලවුඩ් මාධ්‍ය වෙත ප්‍රවේශ වන්න"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"කිසිවක් නැත"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"මෙම අවස්ථාවේ ක්ලවුඩ් මාධ්‍ය යෙදුම වෙනස් කළ නොහැක."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"මාධ්‍ය තෝරනය"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"මාධ්‍ය තෝරනය"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"මාධ්‍ය සමමුහුර්ත කරමින්…"</string>
     <string name="add" msgid="2894574044585549298">"එක් කරන්න"</string>
     <string name="deselect" msgid="4297825044827769490">"නොතෝරන්න"</string>
     <string name="deselected" msgid="8488133193326208475">"නොතෝරන ලද"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ඇල්බම නැත"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"තෝරා ගත් දේවල් බලන්න"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ඡායාරූප"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"ඇල්බම"</string>
     <string name="picker_preview" msgid="6257414886055861039">"පෙරදසුන"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"කාර්යාලය වෙත මාරු වන්න"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{අයිතම <xliff:g id="COUNT_0">^1</xliff:g>}one{අයිතම <xliff:g id="COUNT_1">^1</xliff:g>}other{අයිතම <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"එක් කරන්න (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"ඉඩ දෙන්න (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"කිසිවකට ඉඩ නොදෙන්න"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"කැමරාව"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"බාගැනීම්"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"ප්‍රියතමයන්"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"වීඩියෝව වාදනය කිරීමේ ගැටලුවකි"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"ඔබේ අන්තර්ජාල සබැඳුම පරීක්ෂා කර නැවත උත්සාහ කරන්න"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"යළි උත්සාහ කරන්න"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ක්ලවුඩ් මාධ්‍ය දැන් <xliff:g id="PKG_NAME">%1$s</xliff:g> වෙතින් ලබා ගත හැකිය"</string>
     <string name="not_selected" msgid="2244008151669896758">"තෝරා නොමැත"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"ඔබ තෝරන ලද මාධ්‍ය සූදානම් කරමින්"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>කින් <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>ක් සූදානම්"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"අවලංගු කරන්න"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"උපස්ථ කළ ඡායාරූප දැන් ඇතුළත් කර ඇත"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ඔබට <xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුමෙන් <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ඡායාරූප තෝරා ගත හැක"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> ගිණුම යාවත්කාලීන විය"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"යෙදුම තෝරා ගන්න"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"ගිණුම තෝරා ගන්න"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"ගිණුම වෙනස් කරන්න"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"ඔබේ සියලු ඡායාරූප ලබා ගැනීම"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම ශ්‍රව්‍ය ගොනුව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ශ්‍රව්‍ය ගොනුව වෙනස් කරමින්…}one{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}other{ශ්‍රව්‍ය ගොනු <xliff:g id="COUNT">^1</xliff:g>ක් වෙනස් කරමින්…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{<xliff:g id="APP_NAME_0">^1</xliff:g> හට මෙම වීඩියෝව වෙනස් කිරීමට ඉඩ දෙන්නද?}one{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}other{<xliff:g id="APP_NAME_1">^1</xliff:g> හට වීඩියෝ <xliff:g id="COUNT">^2</xliff:g>ක් වෙනස් කිරීමට ඉඩ දෙන්නද?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"සුරක්ෂිතතා ආරක්ෂණය"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"සහජ ට්‍රාන්ස්කෝඩ් ඇඟවීම්"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"සහජ ට්‍රාන්ස්කෝඩ් ප්‍රගතිය"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"පසුව නැවත උත්සාහ කරන්න. ගැටලුව විසඳූ පසු ඔබේ ඡායාරූප ලබා ගත හැකි වනු ඇත."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"සමහර ඡායාරූප පූරණය කළ නොහැක"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"තේරුණා"</string>
 </resources>

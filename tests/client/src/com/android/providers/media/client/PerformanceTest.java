@@ -36,6 +36,7 @@ import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
 import androidx.test.uiautomator.UiDevice;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.tests.utils.Timer;
 
 import org.junit.Test;
@@ -62,6 +63,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
+@RunOnlyOnPostsubmit
 public class PerformanceTest {
     private static final String TAG = "PerformanceTest";
 

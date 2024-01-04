@@ -40,6 +40,8 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -49,6 +51,7 @@ import org.junit.runner.RunWith;
 import java.io.OutputStream;
 
 @RunWith(AndroidJUnit4.class)
+@RunOnlyOnPostsubmit
 public class PublicVolumePlaylistTest {
     @BeforeClass
     public static void setUp() throws Exception {

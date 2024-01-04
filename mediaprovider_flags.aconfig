@@ -6,3 +6,10 @@ flag {
     description: "This flag controls whether to enable ordered selection in photopicker"
     bug: "303784642"
 }
+
+flag {
+    name: "picker_default_tab"
+    namespace: "mediaprovider"
+    description: "This flag will enable launching the photopicker in the requested tab/activity"
+    bug: "303783867"
+}

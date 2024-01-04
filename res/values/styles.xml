@@ -148,6 +148,7 @@
 
     <style name="SelectedMediaPreloaderDialogTheme"
            parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
+        <item name="android:background">@color/picker_background_color</item>
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleStyle</item>
     </style>

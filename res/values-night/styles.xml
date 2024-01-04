@@ -36,7 +36,7 @@
         <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
     </style>
 
-    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#686868</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
@@ -60,8 +60,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
-        <item name="categoryDefaultThumbnailColor">?android:attr/colorAccent</item>
-        <item name="categoryDefaultThumbnailCircleColor">?androidprv:attr/materialColorSurfaceContainer</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
 </resources>

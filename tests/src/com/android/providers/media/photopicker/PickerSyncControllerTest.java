@@ -1716,6 +1716,29 @@ public class PickerSyncControllerTest {
     }
 
     @Test
+    public void testCollectionIdChangeResetsUi() throws InterruptedException {
+        final ContentResolver contentResolver = mContext.getContentResolver();
+        final TestContentObserver refreshUiNotificationObserver = new TestContentObserver(null);
+        try {
+            setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+            mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+            // Simulate a UI session begins listening.
+            contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
+                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+
+            mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
+
+            mController.syncAllMedia();
+
+            assertWithMessage("Refresh ui notification should have been received.")
+                    .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
+        } finally {
+            contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
+        }
+    }
+
+    @Test
     public void testRefreshUiNotifications() throws InterruptedException {
         final ContentResolver contentResolver = mContext.getContentResolver();
         final TestContentObserver refreshUiNotificationObserver = new TestContentObserver(null);

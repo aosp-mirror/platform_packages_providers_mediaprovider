@@ -138,7 +138,7 @@ public class PhotoPickerBaseTest {
         extras.putBoolean(MANAGED_SELECTION_ENABLED_EXTRA, true);
         sPickerChoiceManagedSelectionIntent.putExtras(extras);
     }
-    private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
+    public static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_DCIM + "/Camera"
                     + "/image_" + System.currentTimeMillis() + ".jpeg");
     private static final File IMAGE_2_FILE = new File(Environment.getExternalStorageDirectory(),

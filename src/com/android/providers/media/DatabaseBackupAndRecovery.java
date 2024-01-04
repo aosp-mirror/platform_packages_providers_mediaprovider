@@ -168,7 +168,7 @@ public class DatabaseBackupAndRecovery {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
                         || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
-                        /* defaultValue */ false);
+                        /* defaultValue */ true);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mConfigStore.isStableUrisForExternalVolumeEnabled()
                         || SystemProperties.getBoolean(
@@ -207,6 +207,7 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
+        final long startTime = SystemClock.elapsedRealtime();
         try {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
@@ -214,19 +215,25 @@ public class DatabaseBackupAndRecovery {
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
             Log.d(TAG, "Received db backup Fuse Daemon for: " + volumeName);
-            if (isStableUrisEnabled(volumeName)) {
-                if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-                    // Setup internal and external volumes
-                    fuseDaemon.setupVolumeDbBackup();
-                } else {
-                    // Setup public volume
-                    fuseDaemon.setupPublicVolumeDbBackup(volumeName);
-                }
+            if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName) && (
+                    isStableUrisEnabled(MediaStore.VOLUME_INTERNAL) || isStableUrisEnabled(
+                            MediaStore.VOLUME_EXTERNAL_PRIMARY))) {
+                // Setup internal and external volumes
+                fuseDaemon.setupVolumeDbBackup();
                 mSetupCompletePublicVolumes.add(volumeName);
+            } else if (isStableUrisEnabled(volumeName)) {
+                // Setup public volume
+                fuseDaemon.setupPublicVolumeDbBackup(volumeName);
+                mSetupCompletePublicVolumes.add(volumeName);
+            } else {
+                return;
             }
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
             return;
+        } finally {
+            Log.i(TAG, "Backup and recovery setup time taken in milliseconds:" + (
+                    SystemClock.elapsedRealtime() - startTime));
         }
         Log.i(TAG, "Successfully set up backup and recovery for volume: " + volumeName);
     }
@@ -237,7 +244,7 @@ public class DatabaseBackupAndRecovery {
     public void backupDatabases(DatabaseHelper internalDatabaseHelper,
             DatabaseHelper externalDatabaseHelper, CancellationSignal signal) {
         setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-          new File(EXTERNAL_PRIMARY_ROOT_PATH));
+                new File(EXTERNAL_PRIMARY_ROOT_PATH));
         Log.i(TAG, "Triggering database backup");
         backupInternalDatabase(internalDatabaseHelper, signal);
         backupExternalDatabase(externalDatabaseHelper, MediaStore.VOLUME_EXTERNAL_PRIMARY, signal);
@@ -279,6 +286,8 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mSetupCompletePublicVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            Log.w(TAG,
+                "Setup is not present for backup of internal and external primary volume.");
             return;
         }
 

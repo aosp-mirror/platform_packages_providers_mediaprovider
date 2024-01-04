@@ -18,13 +18,13 @@
 
 #include <string.h>
 
-#include "absl/strings/str_cat.h"
 #include "rect.h"
 
 using pdfClient::Document;
 using pdfClient::LinuxFileOps;
 using pdfClient::Rectangle_i;
 using pdfClient::SelectionBoundary;
+using std::string;
 using std::vector;
 
 namespace convert {
@@ -52,13 +52,29 @@ static const char* kIterator = "java/util/Iterator";
 
 // Helper methods to build up type signatures like "Ljava/lang/Object;" and
 // function signatures like "(I)Ljava/lang/Integer;":
-std::string sig(const char* raw) {
-    return (strlen(raw) == 1) ? raw : absl::StrCat("L", raw, ";");
+string sig(const char* raw) {
+    if (strlen(raw) == 1)
+        return raw;
+    else {
+        string res = "L";
+        res += raw;
+        res += ";";
+        return res;
+    }
 }
 
+// Function to build up type signatures like "Ljava/lang/Object;" and
+// function signatures like "(I)Ljava/lang/Integer;":
 template <typename... Args>
-std::string funcsig(const char* return_type, const Args... params) {
-    return absl::StrCat("(", sig(params)..., ")", sig(return_type));
+string funcsig(const char* return_type, const Args... params) {
+    vector<const char*> vec = {params...};
+    string res = "(";
+    for (const char* param : vec) {
+        res += sig(param);
+    }
+    res += ")";
+    res += sig(return_type);
+    return res;
 }
 
 // Classes can move around - if we want a long-lived pointer to one, we have

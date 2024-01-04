@@ -18,8 +18,6 @@
 
 #include <unistd.h>
 
-#include "absl/strings/str_cat.h"
-
 namespace pdfClient {
 
 namespace {

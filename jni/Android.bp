@@ -71,6 +71,9 @@ cc_library_shared {
     sdk_version: "current",
     stl: "c++_static",
     min_sdk_version: "30",
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }
 
 cc_test {

@@ -872,6 +872,41 @@ public final class MediaStore {
     }
 
     /**
+     * The name of an optional intent-extra used to allow apps to specify the tab the picker should
+     * open with. The extra can only be specified in {@link MediaStore#ACTION_PICK_IMAGES}.
+     * <p>
+     * The value of this intent-extra must be one of: {@link MediaStore#PICK_IMAGES_TAB_ALBUMS}
+     * for the albums tab and {@link MediaStore#PICK_IMAGES_TAB_IMAGES} for the photos tab.
+     * The system will decide which tab to open by default and in most cases,
+     * it is {@link MediaStore#PICK_IMAGES_TAB_IMAGES} i.e. the photos tab.
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_default_tab")
+    public static final String EXTRA_PICK_IMAGES_LAUNCH_TAB =
+            "android.provider.extra.PICK_IMAGES_LAUNCH_TAB";
+
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = { "PICK_IMAGES_TAB_" }, value = {
+            PICK_IMAGES_TAB_ALBUMS,
+            PICK_IMAGES_TAB_IMAGES
+    })
+    public @interface PickImagesTab { }
+
+    /**
+     * One of the permitted values for {@link MediaStore#EXTRA_PICK_IMAGES_LAUNCH_TAB} to open the
+     * picker with albums tab.
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_default_tab")
+    public static final int PICK_IMAGES_TAB_ALBUMS = 0;
+
+    /**
+     * One of the permitted values for {@link MediaStore#EXTRA_PICK_IMAGES_LAUNCH_TAB} to open the
+     * picker with photos tab.
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_default_tab")
+    public static final int PICK_IMAGES_TAB_IMAGES = 1;
+
+    /**
      * Specify that the caller wants to receive the original media format without transcoding.
      *
      * <b>Caution: using this flag can cause app

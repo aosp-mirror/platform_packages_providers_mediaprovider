@@ -105,7 +105,6 @@ public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
 
     private static final int RECENT_MINIMUM_COUNT = 12;
-
     private static final int INSTANCE_ID_MAX = 1 << 15;
     private static final int DELAY_MILLIS = 0;
 
@@ -122,6 +121,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     private final MuteStatus mMuteStatus;
     public boolean mEmptyPageDisplayed = false;
+    @MediaStore.PickImagesTab
+    private int mPickerLaunchTab = MediaStore.PICK_IMAGES_TAB_IMAGES;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     //  data set to reduce memories.
@@ -225,6 +226,14 @@ public class PickerViewModel extends AndroidViewModel {
                         new PaginationParameters(mItemsPageSize, -1, -1));
             });
         }
+    }
+
+    public int getPickerLaunchTab() {
+        return mPickerLaunchTab;
+    }
+
+    public void setPickerLaunchTab(int launchTab) {
+        mPickerLaunchTab = launchTab;
     }
 
     @VisibleForTesting
@@ -863,6 +872,23 @@ public class PickerViewModel extends AndroidViewModel {
      * Parse values from {@code intent} and set corresponding fields
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
+        final Bundle extras = intent.getExtras();
+        if (extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
+            if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
+                        + "ACTION_GET_CONTENT");
+            } else if (intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed as an "
+                        + "extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+            } else {
+                mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
+                    throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
+                            + " received for the intent extra: "
+                            + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                }
+            }
+        }
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
@@ -897,6 +923,11 @@ public class PickerViewModel extends AndroidViewModel {
         if (mBannerManager == null) {
             initBannerManager();
         }
+    }
+
+    private boolean checkPickerLaunchOptionValidity(int launchOption) {
+        return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
+                || launchOption == MediaStore.PICK_IMAGES_TAB_ALBUMS;
     }
 
     private void initBannerManager() {

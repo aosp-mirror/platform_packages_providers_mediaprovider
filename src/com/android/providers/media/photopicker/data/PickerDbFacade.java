@@ -33,6 +33,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.database.MergeCursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
@@ -47,6 +48,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
@@ -103,10 +105,7 @@ public class PickerDbFacade {
     private static final int FAIL = -1;
 
     private static final String TABLE_MEDIA = "media";
-    // Intentionally use /sdcard path so that the receiving app resolves it to it's per-user
-    // external storage path, e.g. /storage/emulated/<userid>. That way FUSE cross-user access is
-    // not required for picker paths sent across users
-    private static final String PICKER_PATH = "/sdcard/" + getPickerRelativePath();
+
     private static final String TABLE_ALBUM_MEDIA = "album_media";
 
     @VisibleForTesting
@@ -884,9 +883,13 @@ public class PickerDbFacade {
      * {@code limit}. They can also be filtered with {@code query}.
      */
     public Cursor queryMediaForUi(QueryFilter query) {
+        if (query.mIsLocalOnly && query.mLocalIdSelection != null
+                && !query.mLocalIdSelection.isEmpty()) {
+            return queryMediaForUiWithLocalIdSelection(query);
+        }
+
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
         final String[] selectionArgs = buildSelectionArgs(qb, query);
-
         if (query.mIsLocalOnly) {
             return queryMediaForUi(qb, selectionArgs, query.mLimit,  /* isLocalOnly*/true,
                     TABLE_MEDIA, /* cloudProvider*/ null);
@@ -899,6 +902,36 @@ public class PickerDbFacade {
 
         return queryMediaForUi(qb, selectionArgs, query.mLimit, query.mIsLocalOnly,
                 TABLE_MEDIA, cloudProvider);
+    }
+
+
+    private Cursor queryMediaForUiWithLocalIdSelection(QueryFilter query) {
+        // Since 'WHERE IN' clause has an upper limit of items that can be included in the sql
+        // statement and also there is an upper limit to the size of the sql statement.
+        // Splitting the query into multiple smaller ones.
+        // This query will now process 150 items in a batch.
+        List<List<Integer>> listOfSelectionArgsForLocalId = splitArrayList(
+                query.mLocalIdSelection,
+                /* number of ids per query */ 150);
+        List<Cursor> resultCursor = new ArrayList<>();
+
+        for (List<Integer> selectionArgForLocalIdSelection : listOfSelectionArgsForLocalId) {
+            final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+            query.mLocalIdSelection = selectionArgForLocalIdSelection;
+            final String[] selectionArgs = buildSelectionArgs(qb, query);
+            resultCursor.add(queryMediaForUi(qb, selectionArgs, query.mLimit, true,
+                    TABLE_MEDIA, /* cloud provider */null));
+        }
+
+        return new MergeCursor(resultCursor.toArray(new Cursor[resultCursor.size()]));
+    }
+
+    private static <T> List<List<T>> splitArrayList(List<T> list, int chunkSize) {
+        List<List<T>> subLists = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            subLists.add(list.subList(i, Math.min(i + chunkSize, list.size())));
+        }
+        return subLists;
     }
 
     /**
@@ -927,7 +960,7 @@ public class PickerDbFacade {
      * Returns a {@link Cursor} containing picker db media rows with columns as {@code projection},
      * a subset of {@link PickerMediaColumns}.
      */
-    public Cursor queryMediaIdForApps(String authority, String mediaId,
+    public Cursor queryMediaIdForApps(String pickerSegmentType, String authority, String mediaId,
             @NonNull String[] projection) {
         final String[] selectionArgs = new String[] { mediaId };
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
@@ -938,13 +971,13 @@ public class PickerDbFacade {
         }
 
         if (authority.equals(mLocalProvider)) {
-            return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
+            return queryMediaIdForAppsLocked(qb, projection, selectionArgs, pickerSegmentType);
         }
 
         try (CloseableReentrantLock ignored = mPickerSyncLockManager
                 .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             if (authority.equals(mCloudProvider)) {
-                return queryMediaIdForAppsLocked(qb, projection, selectionArgs);
+                return queryMediaIdForAppsLocked(qb, projection, selectionArgs, pickerSegmentType);
             }
         }
 
@@ -952,8 +985,9 @@ public class PickerDbFacade {
     }
 
     private Cursor queryMediaIdForAppsLocked(@NonNull SQLiteQueryBuilder qb,
-            @NonNull String[] projection, @NonNull String[] selectionArgs) {
-        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection),
+            @NonNull String[] projection, @NonNull String[] selectionArgs,
+            String pickerSegmentType) {
+        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection, pickerSegmentType),
                 /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
                 /* orderBy */ null, /* limitStr */ null);
     }
@@ -1092,7 +1126,7 @@ public class PickerDbFacade {
     private String[] getCloudMediaProjectionLocked() {
         return new String[] {
             getProjectionAuthorityLocked(),
-            getProjectionDataLocked(MediaColumns.DATA),
+            getProjectionDataLocked(MediaColumns.DATA, PickerUriResolver.PICKER_SEGMENT),
             getProjectionId(MediaColumns.ID),
             // The id in the picker.db table represents the row id. This is used in UI pagination.
             getProjectionSimple(KEY_ID, Item.ROW_ID),
@@ -1106,13 +1140,14 @@ public class PickerDbFacade {
         };
     }
 
-    private String[] getMediaStoreProjectionLocked(String[] columns) {
+    private String[] getMediaStoreProjectionLocked(String[] columns, String pickerSegmentType) {
         final String[] projection = new String[columns.length];
 
         for (int i = 0; i < projection.length; i++) {
             switch (columns[i]) {
                 case PickerMediaColumns.DATA:
-                    projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA);
+                    projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA,
+                            pickerSegmentType);
                     break;
                 case PickerMediaColumns.DISPLAY_NAME:
                     projection[i] =
@@ -1167,18 +1202,25 @@ public class PickerDbFacade {
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider, MediaColumns.AUTHORITY);
     }
 
-    private String getProjectionDataLocked(String asColumn) {
+    private String getProjectionDataLocked(String asColumn, String pickerSegmentType) {
         // _data format:
         // /sdcard/.transforms/synthetic/picker/<user-id>/<authority>/media/<display-name>
         // See PickerUriResolver#getMediaUri
         final String authority = String.format("CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 KEY_CLOUD_ID, mLocalProvider, mCloudProvider);
-        final String fullPath = "'" + PICKER_PATH + "/'"
+        final String fullPath = "'" + getPickerPath(pickerSegmentType) + "/'"
                 + "||" + "'" + MediaStore.MY_USER_ID + "/'"
                 + "||" + authority
                 + "||" + "'/" + CloudMediaProviderContract.URI_PATH_MEDIA + "/'"
                 + "||" + getDisplayNameSql();
         return String.format("%s AS %s", fullPath, asColumn);
+    }
+
+    private String getPickerPath(String pickerSegmentType) {
+        // Intentionally use /sdcard path so that the receiving app resolves it to its per-user
+        // external storage path, e.g. /storage/emulated/<userid>. That way FUSE cross-user
+        // access is not required for picker paths sent across users
+        return "/sdcard/" + getPickerRelativePath(pickerSegmentType);
     }
 
     private String getProjectionId(String asColumn) {

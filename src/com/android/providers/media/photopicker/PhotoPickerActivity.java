@@ -130,8 +130,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolBarIconColor;
 
     private int mToolbarHeight = 0;
-    private boolean mIsAccessibilityEnabled;
     private boolean mShouldLogCancelledResult = true;
+
+    private AccessibilityManager mAccessibilityManager;
+    private boolean mIsAccessibilityEnabled;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -186,9 +188,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.tab_layout);
 
-        final AccessibilityManager am = getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = am.isEnabled();
-        am.addAccessibilityStateChangeListener(enabled -> mIsAccessibilityEnabled = enabled);
+        mAccessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = mAccessibilityManager.isEnabled();
 
         initBottomSheetBehavior();
 
@@ -206,6 +207,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         observeRefreshUiNotificationLiveData();
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
+
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
@@ -489,7 +491,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void initStateForBottomSheet() {
-        if (!mIsAccessibilityEnabled && !mSelection.canSelectMultiple()
+        if (!isAccessibilityEnabled() && !mSelection.canSelectMultiple()
                 && !isOrientationLandscape()) {
             final int peekHeight = getBottomSheetPeekHeight(this);
             mBottomSheetBehavior.setPeekHeight(peekHeight);
@@ -498,6 +500,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             mBottomSheetBehavior.setSkipCollapsed(true);
         }
+    }
+
+    /**
+     * Warning: This method is visible for espresso tests, we are not customizing anything here.
+     * Allowing ourselves to control the accessibility state helps us mock it for these tests.
+     */
+    @VisibleForTesting
+    protected boolean isAccessibilityEnabled() {
+        return mIsAccessibilityEnabled;
     }
 
     private static int getBottomSheetPeekHeight(Context context) {
@@ -543,7 +554,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
-                    mSelection.getSelectedItems());
+                    getIntent().getAction(), mSelection.getSelectedItems());
+            mPickerViewModel.logPreloadingStarted(uris.size());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
             deSelectUnavailableMedia(mPreloaderInstanceHolder.preloader);
@@ -571,32 +583,36 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
-        ForegroundThread.getExecutor().execute(() -> {
-            // Handle grants in another thread to not block the UI.
-            grantMediaReadForPackage(getApplicationContext(), uid, uris);
-        });
+        final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
+                mSelection.getSelectedItemsWithoutGrants());
+        if (!uris.isEmpty()) {
+            ForegroundThread.getExecutor().execute(() -> {
+                // Handle grants in another thread to not block the UI.
+                grantMediaReadForPackage(getApplicationContext(), uid, uris);
+                mPickerViewModel.logPickerChoiceAddedGrantsCount(uris.size(), extras);
+            });
+        }
 
         // Revoke READ_GRANT for items that were pre-granted but now in the current session user has
         // deselected them.
-        if (isUserSelectImagesForAppAction()
-                && mPickerViewModel.getConfigStore().isPickerChoiceManagedSelectionEnabled()) {
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
                     MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid,
                             urisForItemsWhoseGrantsNeedsToBeRevoked);
+                    mPickerViewModel.logPickerChoiceRevokedGrantsCount(
+                            urisForItemsWhoseGrantsNeedsToBeRevoked.size(), extras);
                 });
             }
         }
     }
 
     private void setResultForPickImagesOrGetContentAction() {
-        final Intent resultData = getPickerResponseIntent(
-                mSelection.canSelectMultiple(),
-                mSelection.getSelectedItems());
+        final Intent resultData = getPickerResponseIntent(getIntent().getAction(),
+                mSelection.canSelectMultiple(), mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);
     }
 
@@ -633,6 +649,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 /* lifecycleOwner */ PhotoPickerActivity.this,
                 isFinished -> {
                     if (isFinished) {
+                        mPickerViewModel.logPreloadingFinished();
                         setResultAndFinishSelfInternal();
                     }
                 });
@@ -656,9 +673,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
                             DialogUtils.showDialog(this,
                                     getResources().getString(R.string.dialog_error_title),
                                     getResources().getString(R.string.dialog_error_message));
+                            mPickerViewModel.logPreloadingFailed(unavailableMediaIndexes.size());
                         } else {
                             unavailableMediaIndexes.remove(
                                     unavailableMediaIndexes.size() - 1);
+                            mPickerViewModel.logPreloadingCancelled(unavailableMediaIndexes.size());
                         }
                         List<Item> selectedItems = mSelection.getSelectedItems();
                         for (var mediaIndex : unavailableMediaIndexes) {

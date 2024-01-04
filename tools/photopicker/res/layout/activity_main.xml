@@ -100,12 +100,44 @@
             android:textSize="16sp" />
     </LinearLayout>
 
+
     <CheckBox
         android:id="@+id/cbx_ordered_selection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ORDERED SELECTION"
         android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <CheckBox
+            android:id="@+id/cbx_set_picker_launch_tab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/picker_launch_tab_option"
+            android:textSize="16sp" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <RadioButton android:id="@+id/rb_albums"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:text="Albums"
+                         android:enabled="false"/>
+            <RadioButton android:id="@+id/rb_photos"
+                         android:layout_width="wrap_content"
+                         android:layout_height="wrap_content"
+                         android:text="Photos"
+                         android:enabled="false"/>
+        </RadioGroup>
+
+    </LinearLayout>
+
 
     <Button
         android:id="@+id/launch_button"

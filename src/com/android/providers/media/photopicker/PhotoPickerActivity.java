@@ -132,6 +132,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolbarHeight = 0;
     private boolean mShouldLogCancelledResult = true;
 
+    private AccessibilityManager mAccessibilityManager;
+    private boolean mIsAccessibilityEnabled;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
@@ -185,6 +188,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.tab_layout);
 
+        mAccessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = mAccessibilityManager.isEnabled();
+
         initBottomSheetBehavior();
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
@@ -201,6 +207,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         observeRefreshUiNotificationLiveData();
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
+
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
@@ -501,7 +508,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     @VisibleForTesting
     protected boolean isAccessibilityEnabled() {
-        return getSystemService(AccessibilityManager.class).isEnabled();
+        return mIsAccessibilityEnabled;
     }
 
     private static int getBottomSheetPeekHeight(Context context) {

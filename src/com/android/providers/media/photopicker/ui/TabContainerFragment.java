@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.ui;
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -68,11 +69,17 @@ public class TabContainerFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mTabContainerAdapter = new TabContainerAdapter(/* fragment */ this);
         mViewPager = view.findViewById(R.id.picker_tab_viewpager);
-        mViewPager.setAdapter(mTabContainerAdapter);
         final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
+        mTabContainerAdapter = new TabContainerAdapter(/* fragment */ this);
+        mViewPager.setAdapter(mTabContainerAdapter);
+
+        // Launch in albums tab if the app requests so
+        if (mPickerViewModel.getPickerLaunchTab() == MediaStore.PICK_IMAGES_TAB_ALBUMS) {
+            // Launch the picker in Albums tab without any switch animation
+            mViewPager.setCurrentItem(ALBUMS_TAB_POSITION, /* smoothScroll */ false);
+        }
 
         // If the ViewPager2 has more than one page with BottomSheetBehavior, the scrolled view
         // (e.g. RecyclerView) on the second page can't be scrolled. The workaround is to update

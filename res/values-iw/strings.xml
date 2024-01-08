@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"מדיה"</string>
     <string name="storage_description" msgid="4081716890357580107">"אחסון מקומי"</string>
-    <string name="app_label" msgid="9035307001052716210">"אחסון מדיה"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"מדיה"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"הכלי לבחירת מדיה"</string>
     <string name="artist_label" msgid="8105600993099120273">"אומן"</string>
     <string name="unknown" msgid="2059049215682829375">"לא ידוע"</string>
     <string name="root_images" msgid="5861633549189045666">"תמונות"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"גישה למדיה בענן מתוך"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ללא"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"לא ניתן להחליף את אפליקציית המדיה בענן כרגע."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"הכלי לבחירת מדיה"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"הכלי לבחירת מדיה"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"המדיה בתהליך סנכרון…"</string>
     <string name="add" msgid="2894574044585549298">"הוספה"</string>
     <string name="deselect" msgid="4297825044827769490">"ביטול הבחירה"</string>
     <string name="deselected" msgid="8488133193326208475">"הבחירה בוטלה"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"אין אלבומים"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"הצגת הפריטים שנבחרו"</string>
     <string name="picker_photos" msgid="7415035516411087392">"תמונות"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"אלבומים"</string>
     <string name="picker_preview" msgid="6257414886055861039">"תצוגה מקדימה"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"לפרופיל העבודה"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>)}one{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}two{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}other{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"הוספה (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"אישור (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"לא להוסיף"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"מצלמה"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"הורדות"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"מועדפים"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"בעיות בהפעלת הסרטון"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"מומלץ לבדוק את החיבור לאינטרנט ולנסות שוב"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"ניסיון נוסף"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"מדיה בענן מתוך <xliff:g id="PKG_NAME">%1$s</xliff:g> זמינה עכשיו"</string>
     <string name="not_selected" msgid="2244008151669896758">"לא נבחר"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"המדיה שבחרת בתהליך הכנה"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> מתוך <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> מוכנים"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"ביטול"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"התמונות שעברו גיבוי נכללות עכשיו"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"ניתן לבחור תמונות מחשבון <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> באפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"החשבון באפליקציה <xliff:g id="APP_NAME">%1$s</xliff:g> עודכן"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"בחירת אפליקציה"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"בחירת חשבון"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"החלפת חשבון"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"איסוף התמונות מתבצע"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את קובץ האודיו הזה?}one{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> קובצי אודיו?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{מתבצע שינוי בקובץ האודיו…}one{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}two{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}other{מתבצע שינוי ב-<xliff:g id="COUNT">^1</xliff:g> קובצי אודיו…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{לאפשר לאפליקציה <xliff:g id="APP_NAME_0">^1</xliff:g> לשנות את הסרטון הזה?}one{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}two{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}other{לאפשר לאפליקציה <xliff:g id="APP_NAME_1">^1</xliff:g> לשנות <xliff:g id="COUNT">^2</xliff:g> סרטונים?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"הגנה על בטיחות"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"התראות של המרת קידוד מקורית"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"התקדמות של המרת קידוד מקורית"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"כדאי לנסות שוב אחר כך. התמונות שלך יהיו זמינות כשהבעיה תיפתר."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"יש תמונות שאי אפשר לטעון כרגע"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"הבנתי"</string>
 </resources>

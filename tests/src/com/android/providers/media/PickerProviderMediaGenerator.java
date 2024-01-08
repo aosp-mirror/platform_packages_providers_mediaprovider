@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 import static android.provider.CloudMediaProviderContract.MediaColumns;
@@ -97,8 +98,8 @@ public class PickerProviderMediaGenerator {
         private Integer mNextPageToken;
 
         public Cursor getMedia(
-                long generation, String albumId, String[] mimeTypes, long sizeBytes) {
-            return getMedia(generation, albumId, mimeTypes, sizeBytes, null);
+                long generation, String albumId, String[] mimeTypes, long sizeBytes, int pageSize) {
+            return getMedia(generation, albumId, mimeTypes, sizeBytes, null, pageSize);
         }
 
         public Cursor getMedia(
@@ -106,7 +107,8 @@ public class PickerProviderMediaGenerator {
                 String albumId,
                 String[] mimeTypes,
                 long sizeBytes,
-                String pageToken) {
+                String pageToken,
+                int pageSize) {
             final Cursor cursor =
                     getCursor(
                             mMedia,
@@ -122,7 +124,8 @@ public class PickerProviderMediaGenerator {
             } else {
                 cursor.setExtras(
                         buildCursorExtras(
-                                mCollectionId, generation > 0, albumId != null, mNextPageToken));
+                                mCollectionId, generation > 0, albumId != null, mNextPageToken,
+                                pageSize > -1));
                 mNextPageToken = null;
             }
 
@@ -143,7 +146,8 @@ public class PickerProviderMediaGenerator {
             if (mCursorExtra != null) {
                 cursor.setExtras(mCursorExtra);
             } else {
-                cursor.setExtras(buildCursorExtras(mCollectionId, false, false, mNextPageToken));
+                cursor.setExtras(buildCursorExtras(mCollectionId, false, false, mNextPageToken,
+                        false));
                 mNextPageToken = null;
             }
 
@@ -165,7 +169,8 @@ public class PickerProviderMediaGenerator {
                 cursor.setExtras(mCursorExtra);
             } else {
                 cursor.setExtras(
-                        buildCursorExtras(mCollectionId, generation > 0, false, mNextPageToken));
+                        buildCursorExtras(mCollectionId, generation > 0, false, mNextPageToken,
+                                false));
                 mNextPageToken = null;
             }
 
@@ -196,27 +201,33 @@ public class PickerProviderMediaGenerator {
         }
 
         public void setNextCursorExtras(int queryCount, String mediaCollectionId,
-                boolean honoredSyncGeneration, boolean honoredAlbumId) {
+                boolean honoredSyncGeneration, boolean honoredAlbumId, boolean honouredPageSize) {
             mCursorExtraQueryCount = queryCount;
             mCursorExtra =
                     buildCursorExtras(
                             mediaCollectionId,
                             honoredSyncGeneration,
                             honoredAlbumId,
-                            mNextPageToken);
+                            mNextPageToken,
+                            honouredPageSize);
         }
 
         public Bundle buildCursorExtras(
                 String mediaCollectionId,
                 boolean honoredSyncGeneration,
                 boolean honoredAlbumdId,
-                Integer pageToken) {
+                Integer pageToken,
+                boolean honouredPageSize) {
             final ArrayList<String> honoredArgs = new ArrayList<>();
             if (honoredSyncGeneration) {
                 honoredArgs.add(EXTRA_SYNC_GENERATION);
             }
             if (honoredAlbumdId) {
                 honoredArgs.add(EXTRA_ALBUM_ID);
+            }
+
+            if (honouredPageSize) {
+                honoredArgs.add(EXTRA_PAGE_SIZE);
             }
 
             final Bundle bundle = new Bundle();

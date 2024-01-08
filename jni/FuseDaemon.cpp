@@ -103,7 +103,9 @@ const bool IS_OS_DEBUGABLE = android::base::GetIntProperty("ro.debuggable", 0);
 // Stolen from: android_filesystem_config.h
 #define AID_APP_START 10000
 
-constexpr size_t MAX_READ_SIZE = 128 * 1024;
+#define FUSE_MAX_MAX_PAGES 256
+
+const size_t MAX_READ_SIZE = FUSE_MAX_MAX_PAGES * getpagesize();
 // Stolen from: UserHandle#getUserId
 constexpr int PER_USER_RANGE = 100000;
 
@@ -1652,6 +1654,9 @@ static void pf_read(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
                     struct fuse_file_info* fi) {
     ATRACE_CALL();
     handle* h = reinterpret_cast<handle*>(fi->fh);
+    if (h == nullptr) {
+        return;
+    }
     const bool direct_io = !h->cached;
     struct fuse* fuse = get_fuse(req);
 
@@ -1979,7 +1984,9 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
         struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
         struct stat stats;
         int err;
-        std::string child_path = path + "/" + dirent_in->name;
+
+        std::string child_name(dirent_in->name, dirent_in->namelen);
+        std::string child_path = path + "/" + child_name;
 
         in += sizeof(*dirent_in) + round_up(dirent_in->namelen, sizeof(uint64_t));
         err = stat(child_path.c_str(), &stats);
@@ -1987,9 +1994,9 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
             ((stats.st_mode & 0001) || ((stats.st_mode & 0010) && req->ctx.gid == stats.st_gid) ||
              ((stats.st_mode & 0100) && req->ctx.uid == stats.st_uid) ||
              fuse->mp->isUidAllowedAccessToDataOrObbPath(req->ctx.uid, child_path) ||
-             strcmp(dirent_in->name, ".nomedia") == 0)) {
+             child_name == ".nomedia")) {
             *dirent_out = *dirent_in;
-            strcpy(dirent_out->name, dirent_in->name);
+            strcpy(dirent_out->name, child_name.c_str());
             fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
         }
     }
@@ -2574,6 +2581,16 @@ void FuseDaemon::SetupLevelDbInstances() {
     }
 }
 
+void FuseDaemon::SetupPublicVolumeLevelDbInstance(const std::string& volume_name) {
+    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
+        // Setup leveldb instance for both external primary and internal volume.
+        fuse->level_db_mutex.lock();
+        // Create level db instance for public volume
+        SetupLevelDbConnection(volume_name);
+        fuse->level_db_mutex.unlock();
+    }
+}
+
 std::string deriveVolumeName(const std::string& path) {
     std::string volume_name;
     if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
@@ -2581,8 +2598,10 @@ std::string deriveVolumeName(const std::string& path) {
     } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
         volume_name = VOLUME_EXTERNAL_PRIMARY;
     } else {
-        size_t size = sizeof(STORAGE_PREFIX) / sizeof(STORAGE_PREFIX[0]);
-        volume_name = volume_name.substr(size);
+        // Return "C58E-1702" from the path like "/storage/C58E-1702/Download/1935694997673.png"
+        volume_name = path.substr(9, 9);
+        // Convert to lowercase
+        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
     }
     return volume_name;
 }
@@ -2590,7 +2609,7 @@ std::string deriveVolumeName(const std::string& path) {
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     std::string volume_name = deriveVolumeName(key);
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb delete in volume:" << volume_name << " for key:" << key;
+        LOG(ERROR) << "DeleteFromLevelDb: Missing leveldb connection.";
         return;
     }
 
@@ -2602,10 +2621,10 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     }
 }
 
-void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& value) {
-    std::string volume_name = deriveVolumeName(key);
+void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::string& key,
+                                 const std::string& value) {
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb insert in volume:" << volume_name << " for key:" << key;
+        LOG(ERROR) << "InsertInLevelDb: Missing leveldb connection.";
         return;
     }
 
@@ -2613,6 +2632,7 @@ void FuseDaemon::InsertInLevelDb(const std::string& key, const std::string& valu
     status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
     if (!status.ok()) {
         LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
+        LOG(ERROR) << status.ToString();
     }
 }
 
@@ -2623,7 +2643,7 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb file paths read for volume:" << volume_name;
+        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection.";
         return file_paths;
     }
 
@@ -2648,16 +2668,16 @@ std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath)
     std::string data = "";
     std::string volume_name = deriveVolumeName(filePath);
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "Failure in leveldb data read for key:" << filePath;
+        LOG(ERROR) << "ReadBackedUpDataFromLevelDb: Missing leveldb connection.";
         return data;
     }
 
     leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
                                                                              filePath, &data);
-    if (!status.ok()) {
-        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << status.ToString();
-    } else {
-        LOG(DEBUG) << "Read successful for key: " << filePath;
+    if (status.IsNotFound()) {
+        LOG(VERBOSE) << "Key is not found in leveldb: " << filePath << " " << status.ToString();
+    } else if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " " << status.ToString();
     }
     return data;
 }
@@ -2665,22 +2685,26 @@ std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath)
 std::string FuseDaemon::ReadOwnership(const std::string& key) {
     // Return empty string if key not found
     std::string data = "";
-    if (CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
-                leveldb::ReadOptions(), key, &data);
-        if (!status.ok()) {
-            LOG(WARNING) << "Failure in leveldb read for key: " << key << status.ToString();
-        } else {
-            LOG(DEBUG) << "Read successful for key: " << key;
-        }
+    if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        LOG(ERROR) << "ReadOwnership: Missing leveldb connection.";
+        return data;
     }
+
+    leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
+            leveldb::ReadOptions(), key, &data);
+    if (status.IsNotFound()) {
+        LOG(VERBOSE) << "Key is not found in leveldb: " << key << " " << status.ToString();
+    } else if (!status.ok()) {
+        LOG(WARNING) << "Failure in leveldb read for key: " << key << " " << status.ToString();
+    }
+
     return data;
 }
 
 void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb insert for ownership relation.";
+        LOG(ERROR) << "CreateOwnerIdRelation: Missing leveldb connection.";
         return;
     }
 
@@ -2703,7 +2727,7 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
 void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb delete for ownership relation.";
+        LOG(ERROR) << "RemoveOwnerIdRelation: Missing leveldb connection.";
         return;
     }
 
@@ -2729,7 +2753,7 @@ void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
 std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
     std::map<std::string, std::string> resultMap;
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
-        LOG(ERROR) << "Failure in leveldb read for ownership relation.";
+        LOG(ERROR) << "GetOwnerRelationship: Missing leveldb connection.";
         return resultMap;
     }
 
@@ -2747,7 +2771,7 @@ std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
 
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
     if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
-        LOG(ERROR) << "Leveldb setup is missing for :" << instance_name;
+        LOG(ERROR) << "Leveldb setup is missing for: " << instance_name;
         return false;
     }
     return true;

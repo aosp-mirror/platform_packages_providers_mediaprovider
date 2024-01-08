@@ -16,18 +16,30 @@
 
 package com.android.providers.media.photopicker.viewmodel;
 
-import static android.os.Process.myUserHandle;
+import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.getCurrentCloudProvider;
 
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.persistSelectedProvider;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.os.RemoteException;
 
+import androidx.annotation.Nullable;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import com.android.providers.media.IsolatedContext;
+import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.cloudproviders.FlakyCloudProvider;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,34 +47,32 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class BannerControllerTest {
-    private BannerController mBannerController;
+    private static final Context sTargetContext = getInstrumentation().getTargetContext();
+    private static final String TEST_PACKAGE_NAME = "com.android.providers.media.tests";
     private static final String CMP_AUTHORITY = "authority";
     private static final String CMP_ACCOUNT_NAME = "account_name";
 
+    private IsolatedContext mIsolatedContext;
+    private ContentResolver mContentResolver;
+    private BannerController mBannerController;
+
     @Before
-    public void setUp() {
-        final Context context = getInstrumentation().getTargetContext();
+    public void setUp() throws RemoteException {
+        final TestConfigStore configStore = new TestConfigStore();
+        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(TEST_PACKAGE_NAME);
 
-        mBannerController = new BannerController(context, myUserHandle()) {
-            @Override
-            void updateCloudProviderDataFile() {
-                // No-op
-            }
+        mIsolatedContext = new IsolatedContext(sTargetContext, /* tag= */ "databases",
+                /* asFuseThread= */ false, sTargetContext.getUser(), configStore);
+        mContentResolver = mIsolatedContext.getContentResolver();
 
-            @Override
-            boolean areCloudProviderOptionsAvailable() {
-                return true;
-            }
-        };
+        setCloudProvider(/* authority= */ null);
+
+        mBannerController = BannerTestUtils.getTestBannerController(
+                mIsolatedContext, mIsolatedContext.getUser(), configStore);
 
         assertNull(mBannerController.getCloudMediaProviderAuthority());
         assertNull(mBannerController.getCloudMediaProviderLabel());
         assertNull(mBannerController.getCloudMediaProviderAccountName());
-
-        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
-        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
-        assertFalse(mBannerController.shouldShowChooseAccountBanner());
-        assertFalse(mBannerController.shouldShowChooseAppBanner());
     }
 
     @Test
@@ -145,5 +155,52 @@ public class BannerControllerTest {
         assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
         assertFalse(mBannerController.shouldShowChooseAccountBanner());
         assertFalse(mBannerController.shouldShowChooseAppBanner());
+    }
+
+    @Test
+    public void testCloudProviderSlowQueryFallback() throws RemoteException {
+        setCloudProvider(FlakyCloudProvider.AUTHORITY);
+
+        // Test for fast query
+        mIsolatedContext.resetFlakyCloudProviderToNotFlakeInTheNextRequest();
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority */ null, /* cmpAccountName */ null);
+        mBannerController.reset();
+
+        assertEquals(FlakyCloudProvider.AUTHORITY,
+                mBannerController.getCloudMediaProviderAuthority());
+        assertEquals(FlakyCloudProvider.ACCOUNT_NAME,
+                mBannerController.getCloudMediaProviderAccountName());
+
+        assertTrue(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+
+        // Test for slow query
+        mIsolatedContext.setFlakyCloudProviderToFlakeInTheNextRequest();
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority */ null, /* cmpAccountName */ null);
+        mBannerController.reset();
+
+        assertEquals(FlakyCloudProvider.AUTHORITY,
+                mBannerController.getCloudMediaProviderAuthority());
+        assertNull(mBannerController.getCloudMediaProviderAccountName());
+
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+    }
+
+    private void setCloudProvider(@Nullable String authority) throws RemoteException {
+        final ContentProviderClient client =
+                mContentResolver.acquireContentProviderClient(AUTHORITY);
+        assertNotNull(client);
+
+        persistSelectedProvider(client, authority);
+
+        final String actualAuthority = getCurrentCloudProvider(mContentResolver);
+        assertEquals(authority, actualAuthority);
     }
 }

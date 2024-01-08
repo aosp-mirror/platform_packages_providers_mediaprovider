@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"മീഡിയ"</string>
     <string name="storage_description" msgid="4081716890357580107">"ലോക്കൽ സ്റ്റോറേജ്"</string>
-    <string name="app_label" msgid="9035307001052716210">"മീഡിയ സ്റ്റോറേജ്"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"മീഡിയ"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"മീഡിയ പിക്കർ"</string>
     <string name="artist_label" msgid="8105600993099120273">"ആർട്ടിസ്‌റ്റ്"</string>
     <string name="unknown" msgid="2059049215682829375">"അജ്ഞാതം"</string>
     <string name="root_images" msgid="5861633549189045666">"ചിത്രങ്ങൾ"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ക്ലൗഡ് മീഡിയ ആപ്പിൽ നിന്ന്"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ഒന്നുമില്ല"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ക്ലൗഡ് മീഡിയ ആപ്പ് ഇപ്പോൾ മാറ്റാനാകുന്നില്ല."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"മീഡിയാ പിക്കർ"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"മീഡിയാ പിക്കർ"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"മീഡിയാ സമന്വയിപ്പിക്കുന്നു…"</string>
     <string name="add" msgid="2894574044585549298">"ചേർക്കുക"</string>
     <string name="deselect" msgid="4297825044827769490">"തിരഞ്ഞെടുത്തത് മാറ്റുക"</string>
     <string name="deselected" msgid="8488133193326208475">"തിരഞ്ഞെടുത്തത് മാറ്റി"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"ആൽബങ്ങളൊന്നുമില്ല"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"തിരഞ്ഞെടുത്തത് കാണുക"</string>
     <string name="picker_photos" msgid="7415035516411087392">"ഫോട്ടോകൾ"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"ആൽബങ്ങൾ"</string>
     <string name="picker_preview" msgid="6257414886055861039">"പ്രിവ്യു"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ഔദ്യോഗിക പ്രൊഫൈലിലേക്ക് മാറുക"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ഇനം}other{<xliff:g id="COUNT_1">^1</xliff:g> ഇനങ്ങൾ}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>) ചേർക്കുക"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"(<xliff:g id="COUNT">^1</xliff:g>) എണ്ണത്തെ അനുവദിക്കുക"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"ഒന്നും അനുവദിക്കരുത്"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"ക്യാമറ"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"ഡൗൺലോഡുകൾ"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"പ്രിയപ്പെട്ടവ"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"വീഡിയോ പ്ലേ ചെയ്യുന്നതിൽ പ്രശ്നം"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"നിങ്ങളുടെ ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"വീണ്ടും ശ്രമിക്കുക"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"ഇപ്പോൾ <xliff:g id="PKG_NAME">%1$s</xliff:g> എന്നതിൽ നിന്ന് ക്ലൗഡ് മീഡിയ ലഭ്യമാണ്"</string>
     <string name="not_selected" msgid="2244008151669896758">"തിരഞ്ഞെടുത്തിട്ടില്ല"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"നിങ്ങൾ തിരഞ്ഞെടുത്ത മീഡിയ തയ്യാറാക്കുന്നു"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>-ൽ <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> എണ്ണം തയ്യാറാണ്"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"റദ്ദാക്കുക"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"ബാക്കപ്പ് ചെയ്ത ഫോട്ടോകൾ ഇപ്പോൾ ഉൾപ്പെടുത്തിയിരിക്കുന്നു"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"നിങ്ങൾക്ക് <xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ടിൽ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> നിന്ന് ഫോട്ടോകൾ തിരഞ്ഞെടുക്കാം"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> അക്കൗണ്ട് അപ്ഡേറ്റ് ചെയ്തു"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"ആപ്പ് തിരഞ്ഞെടുക്കുക"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"അക്കൗണ്ട് മാറ്റുക"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"നിങ്ങളുടെ ഫോട്ടോകളെല്ലാം ലഭ്യമാക്കുന്നു"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{ഈ ഓഡിയോ ഫയൽ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{ഓഡിയോ ഫയൽ പരിഷ്‌ക്കരിക്കുന്നു…}other{<xliff:g id="COUNT">^1</xliff:g> ഓഡിയോ ഫയലുകൾ പരിഷ്‌ക്കരിക്കുന്നു…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{ഈ വീഡിയോ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_0">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}other{<xliff:g id="COUNT">^2</xliff:g> വീഡിയോകൾ പരിഷ്ക്കരിക്കാൻ <xliff:g id="APP_NAME_1">^1</xliff:g> എന്നതിനെ അനുവദിക്കണോ?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"സുരക്ഷാ പരിരക്ഷ"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"നേറ്റീവ് ട്രാൻസ്കോഡ് മുന്നറിയിപ്പുകൾ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"നേറ്റീവ് ട്രാൻസ്കോഡ് പുരോഗതി"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"പിന്നീട് വീണ്ടും ശ്രമിക്കുക. പ്രശ്‌നം പരിഹരിച്ച് കഴിഞ്ഞ് നിങ്ങളുടെ ഫോട്ടോകൾ ലഭ്യമാകും."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"ചില ഫോട്ടോകൾ ലോഡ് ചെയ്യാനാകുന്നില്ല"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"മനസ്സിലായി"</string>
 </resources>

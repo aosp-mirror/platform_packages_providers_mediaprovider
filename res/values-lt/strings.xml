@@ -18,8 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="uid_label" msgid="8421971615411294156">"Medija"</string>
     <string name="storage_description" msgid="4081716890357580107">"Vietinė saugykla"</string>
-    <string name="app_label" msgid="9035307001052716210">"Medijos saugykla"</string>
-    <string name="picker_app_label" msgid="4254039089502164761">"Medija"</string>
+    <string name="picker_app_label" msgid="1195424381053599122">"Medijos pasirinkimo priemonė"</string>
     <string name="artist_label" msgid="8105600993099120273">"Atlikėjas"</string>
     <string name="unknown" msgid="2059049215682829375">"Nežinoma"</string>
     <string name="root_images" msgid="5861633549189045666">"Vaizdai"</string>
@@ -46,6 +45,9 @@
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pasiekti mediją debesyje iš"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nėra"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Šiuo metu nepavyko pakeisti debesies medijos programos."</string>
+    <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Medijos pasirinkimo priemonė"</string>
+    <string name="picker_sync_notification_title" msgid="1122713382122055246">"Medijos pasirinkimo priemonė"</string>
+    <string name="picker_sync_notification_text" msgid="8204423917712309382">"Sinchronizuojama medija…"</string>
     <string name="add" msgid="2894574044585549298">"Pridėti"</string>
     <string name="deselect" msgid="4297825044827769490">"Panaikinti pasirinkimą"</string>
     <string name="deselected" msgid="8488133193326208475">"Pasirinkimas panaikintas"</string>
@@ -58,6 +60,8 @@
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Nėra jokių albumų"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Žiūrėti pasirinktus"</string>
     <string name="picker_photos" msgid="7415035516411087392">"Nuotraukos"</string>
+    <!-- no translation found for picker_videos (2886971435439047097) -->
+    <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Albumai"</string>
     <string name="picker_preview" msgid="6257414886055861039">"Peržiūra"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Perjungti į darbo profilį"</string>
@@ -72,6 +76,7 @@
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elementas}one{<xliff:g id="COUNT_1">^1</xliff:g> elementas}few{<xliff:g id="COUNT_1">^1</xliff:g> elementai}many{<xliff:g id="COUNT_1">^1</xliff:g> elemento}other{<xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Pridėti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Leisti (<xliff:g id="COUNT">^1</xliff:g>)"</string>
+    <string name="picker_add_button_allow_none_option" msgid="9183772732922241035">"Niekas neleidžiama"</string>
     <string name="picker_category_camera" msgid="4857367052026843664">"Vaizdo kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Atsisiuntimai"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Mėgstamiausi"</string>
@@ -92,9 +97,10 @@
     <string name="picker_error_dialog_title" msgid="4540095603788920965">"Paleidžiant vaizdo įrašą kilo problema"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Patikrinkite interneto ryšį ir bandykite dar kartą"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Bandyti dar kartą"</string>
-    <string name="picker_cloud_sync" msgid="997251377538536319">"Debesyje esanti medija dabar pasiekiama iš „<xliff:g id="PKG_NAME">%1$s</xliff:g>“"</string>
     <string name="not_selected" msgid="2244008151669896758">"nepasirinkta"</string>
+    <string name="preloading_dialog_title" msgid="4974348221848532887">"Ruošiami pasirinkti medijos failai"</string>
     <string name="preloading_progress_message" msgid="4741327138031980582">"Paruošta: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> iš <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="preloading_cancel_button" msgid="824053521307342209">"Atšaukti"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Dabar įtraukiamos atsarginės nuotraukų kopijos"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Galite pasirinkti nuotraukas iš „<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyros <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"„<xliff:g id="APP_NAME">%1$s</xliff:g>“ paskyra atnaujinta"</string>
@@ -107,6 +113,7 @@
     <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Pasirinkti programą"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Pasirinkti paskyrą"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Pakeisti paskyrą"</string>
+    <string name="picker_loading_photos_message" msgid="6449180084857178949">"Gaunamos visos nuotraukos"</string>
     <string name="permission_write_audio" msgid="8819694245323580601">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį garso failą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> garso failų?}}"</string>
     <string name="permission_progress_write_audio" msgid="6029375427984180097">"{count,plural, =1{Keičiamas garso failas…}one{Keičiamas <xliff:g id="COUNT">^1</xliff:g> garso failas…}few{Keičiami <xliff:g id="COUNT">^1</xliff:g> garso failai…}many{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failo…}other{Keičiama <xliff:g id="COUNT">^1</xliff:g> garso failų…}}"</string>
     <string name="permission_write_video" msgid="103902551603700525">"{count,plural, =1{Leisti programai „<xliff:g id="APP_NAME_0">^1</xliff:g>“ keisti šį vaizdo įrašą?}one{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašą?}few{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašus?}many{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašo?}other{Leisti programai „<xliff:g id="APP_NAME_1">^1</xliff:g>“ keisti <xliff:g id="COUNT">^2</xliff:g> vaizdo įrašų?}}"</string>
@@ -150,4 +157,7 @@
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Apsauga"</string>
     <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
+    <string name="dialog_error_message" msgid="5120432204743681606">"Vėliau bandykite dar kartą. Nuotraukos bus pasiekiamos išsprendus problemą."</string>
+    <string name="dialog_error_title" msgid="636349284077820636">"Nepavyko įkelti kai kurių nuotraukų"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Supratau"</string>
 </resources>

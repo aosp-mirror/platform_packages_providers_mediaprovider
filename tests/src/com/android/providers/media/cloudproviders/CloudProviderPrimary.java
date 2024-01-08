@@ -57,7 +57,8 @@ public class CloudProviderPrimary extends CloudMediaProvider {
         String pageToken = extras.getString(EXTRA_PAGE_TOKEN, null);
 
         return mMediaGenerator.getMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes(), queryExtras.getSizeBytes(), pageToken);
+                queryExtras.getMimeTypes(), queryExtras.getSizeBytes(), pageToken,
+                queryExtras.getPageSize());
     }
 
     @Override

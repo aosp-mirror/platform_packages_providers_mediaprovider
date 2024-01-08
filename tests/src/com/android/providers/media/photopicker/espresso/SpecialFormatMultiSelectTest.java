@@ -32,11 +32,12 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+@RunOnlyOnPostsubmit
 public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
     @Rule
@@ -124,12 +125,10 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_navigation() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);

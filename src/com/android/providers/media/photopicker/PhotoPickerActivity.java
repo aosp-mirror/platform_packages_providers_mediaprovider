@@ -931,14 +931,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
      */
-    private void resetInCurrentProfile() {
+    private void resetInCurrentProfile(boolean shouldSendInitRequest) {
         // Clear all the fragments in the FragmentManager
         final FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.popBackStackImmediate(/* name */ null,
                 FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
         // Reset all content in the current profile
-        mPickerViewModel.resetAllContentInCurrentProfile();
+        mPickerViewModel.resetAllContentInCurrentProfile(shouldSendInitRequest);
 
         // Set up the fragments same as the initial launch state
         setupInitialLaunchState();
@@ -1092,10 +1092,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * refresh the UI.
      */
     private void observeRefreshUiNotificationLiveData() {
-        mPickerViewModel.shouldRefreshUiLiveData()
-                .observe(this, shouldRefresh -> {
-                    if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
-                        resetInCurrentProfile();
+        mPickerViewModel.refreshUiLiveData()
+                .observe(this, refreshRequest -> {
+                    if (refreshRequest.shouldRefreshPicker()
+                            && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+                        resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
     }

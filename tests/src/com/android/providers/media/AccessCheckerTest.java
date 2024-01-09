@@ -29,6 +29,7 @@ import static com.android.providers.media.AccessChecker.getWhereForUserIdMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
+import static com.android.providers.media.AccessChecker.isRedactionNeededForPickerUri;
 import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.DOWNLOADS;
 import static com.android.providers.media.LocalUriMatcher.DOWNLOADS_ID;
@@ -45,7 +46,9 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import android.os.Bundle;
 import android.system.Os;
@@ -395,6 +398,28 @@ public class AccessCheckerTest {
                 .that(getWhereForConstrainedAccess(hasReadPerms, FILES, true, Bundle.EMPTY))
                 .isEqualTo(getWhereForOwnerPackageMatch(hasReadPerms) + " OR "
                         + getFilesAccessSql());
+    }
+
+    @Test
+    public void testIsRedactionNeededForPickerUri_returnsFalse_withNoRedactPerms() {
+        LocalCallingIdentity callingIdentityWithRedactionNotNeededPermission =
+                LocalCallingIdentity.forTest(
+                        InstrumentationRegistry.getTargetContext(), Os.getuid(),
+                        ~LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED);
+
+        assertFalse("App with write perms should get non redacted data",
+                isRedactionNeededForPickerUri(callingIdentityWithRedactionNotNeededPermission));
+    }
+
+    @Test
+    public void testIsRedactionNeededForPickerUri_returnsTrue_withRedactPerms() {
+        LocalCallingIdentity callingIdentityWithRedactionNeededPermission =
+                LocalCallingIdentity.forTest(
+                        InstrumentationRegistry.getTargetContext(), Os.getuid(),
+                        LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED);
+
+        assertTrue("App with no perms should get redacted data",
+                isRedactionNeededForPickerUri(callingIdentityWithRedactionNeededPermission));
     }
 
     @Test

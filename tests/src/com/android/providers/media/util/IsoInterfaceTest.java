@@ -18,6 +18,7 @@ package com.android.providers.media.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -27,11 +28,14 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.R;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -97,6 +101,18 @@ public class IsoInterfaceTest {
         assertEquals("3F9DD7A46B26513A7C35272F0D623A06", xmp.getOriginalDocumentId());
     }
 
+
+    @Test
+    @Ignore // This test creates a file that causes MediaProvider to OOM with our current
+    // IsoInterface implementation.
+    // While MediaProvider should now be resistant to that, we cannot leave this test safely enabled
+    // in a test suite as for b/316578793
+    // Leaving its implementation here to test further improvement to IsoInterface implementation.
+    public void testFileWithTooManyBoxesDoesNotRunOutOfMemory() throws Exception {
+        final File file = createFileWithLotsOfBoxes("too-many-boxes");
+        assertThrows(IOException.class, () -> IsoInterface.fromFile(file));
+    }
+
     @Test
     public void testIsoMeta() throws Exception {
         final IsoInterface isoMeta = IsoInterface.fromFile(stageFile(R.raw.test_video_xmp));
@@ -125,6 +141,21 @@ public class IsoInterfaceTest {
         try (InputStream in = context.getResources().openRawResource(resId);
                 OutputStream out = new FileOutputStream(file)) {
             FileUtils.copy(in, out);
+        }
+        return file;
+    }
+
+    private static File createFileWithLotsOfBoxes(String filename) throws Exception {
+        File file = File.createTempFile(filename, ".mp4");
+        try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            byte[] sizeHeader = new byte[]{0x00, 0x00, 0x00, 0x08};
+            out.write(sizeHeader);
+            out.write("ftyp".getBytes());
+            byte[] freeBlock = "free".getBytes();
+            for (int i = 0; i < 5000000; i++) {
+                out.write(sizeHeader);
+                out.write(freeBlock);
+            }
         }
         return file;
     }

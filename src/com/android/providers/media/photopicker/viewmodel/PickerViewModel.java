@@ -24,6 +24,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
@@ -81,6 +82,7 @@ import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
@@ -103,9 +105,6 @@ import java.util.stream.Collectors;
  */
 public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
-
-    private static final int RECENT_MINIMUM_COUNT = 12;
-
     private static final int INSTANCE_ID_MAX = 1 << 15;
     private static final int DELAY_MILLIS = 0;
 
@@ -122,6 +121,8 @@ public class PickerViewModel extends AndroidViewModel {
 
     private final MuteStatus mMuteStatus;
     public boolean mEmptyPageDisplayed = false;
+    @MediaStore.PickImagesTab
+    private int mPickerLaunchTab = MediaStore.PICK_IMAGES_TAB_IMAGES;
 
     // TODO(b/193857982): We keep these four data sets now, we may need to find a way to reduce the
     //  data set to reduce memories.
@@ -138,11 +139,13 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Category>> mCategoryList;
 
     private MutableLiveData<Boolean> mIsAllPreGrantedMediaLoaded = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> mShouldRefreshUiLiveData = new MutableLiveData<>(false);
+    private final MutableLiveData<RefreshRequest> mRefreshUiLiveData =
+            new MutableLiveData<>(RefreshRequest.DEFAULT);
     private final ContentObserver mRefreshUiNotificationObserver = new ContentObserver(null) {
         @Override
-        public void onChange(boolean selfChange) {
-            mShouldRefreshUiLiveData.postValue(true);
+        public void onChange(boolean selfChange, Uri uri) {
+            boolean shouldInit = uri.getLastPathSegment().equals(INIT_PATH);
+            mRefreshUiLiveData.postValue(new RefreshRequest(true, shouldInit));
         }
     };
 
@@ -225,6 +228,14 @@ public class PickerViewModel extends AndroidViewModel {
                         new PaginationParameters(mItemsPageSize, -1, -1));
             });
         }
+    }
+
+    public int getPickerLaunchTab() {
+        return mPickerLaunchTab;
+    }
+
+    public void setPickerLaunchTab(int launchTab) {
+        mPickerLaunchTab = launchTab;
     }
 
     @VisibleForTesting
@@ -363,22 +374,24 @@ public class PickerViewModel extends AndroidViewModel {
     @UiThread
     public void onSwitchedProfile() {
         resetRefreshUiNotificationObserver();
-        resetAllContentInCurrentProfile();
+        resetAllContentInCurrentProfile(/* shouldSendInitRequest */ true);
     }
 
     /**
      * Reset all the content (items, categories & banners) in the current profile.
      */
     @UiThread
-    public void resetAllContentInCurrentProfile() {
+    public void resetAllContentInCurrentProfile(boolean shouldSendInitRequest) {
         Log.d(TAG, "Reset all content in current profile");
 
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
-        mShouldRefreshUiLiveData.postValue(false);
+        mRefreshUiLiveData.postValue(RefreshRequest.DEFAULT);
 
         clearQueuedTasksInDataLoaderThread();
 
-        initPhotoPickerData();
+        if (shouldSendInitRequest) {
+            initPhotoPickerData();
+        }
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
@@ -863,6 +876,23 @@ public class PickerViewModel extends AndroidViewModel {
      * Parse values from {@code intent} and set corresponding fields
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
+        final Bundle extras = intent.getExtras();
+        if (extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
+            if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
+                        + "ACTION_GET_CONTENT");
+            } else if (intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed as an "
+                        + "extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+            } else {
+                mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
+                    throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
+                            + " received for the intent extra: "
+                            + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                }
+            }
+        }
         mUserIdManager.setIntentAndCheckRestrictions(intent);
 
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
@@ -897,6 +927,11 @@ public class PickerViewModel extends AndroidViewModel {
         if (mBannerManager == null) {
             initBannerManager();
         }
+    }
+
+    private boolean checkPickerLaunchOptionValidity(int launchOption) {
+        return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
+                || launchOption == MediaStore.PICK_IMAGES_TAB_ALBUMS;
     }
 
     private void initBannerManager() {
@@ -1398,14 +1433,14 @@ public class PickerViewModel extends AndroidViewModel {
      * @return a {@link LiveData} that posts Should Refresh Picker UI as {@code true} when notified.
      */
     @NonNull
-    public LiveData<Boolean> shouldRefreshUiLiveData() {
-        return mShouldRefreshUiLiveData;
+    public LiveData<RefreshRequest> refreshUiLiveData() {
+        return mRefreshUiLiveData;
     }
 
     private void registerRefreshUiNotificationObserver() {
         mContentResolver = getContentResolverForSelectedUser();
         mContentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                /* notifyForDescendants */ false, mRefreshUiNotificationObserver);
+                /* notifyForDescendants */ true, mRefreshUiNotificationObserver);
     }
 
     private void unregisterRefreshUiNotificationObserver() {

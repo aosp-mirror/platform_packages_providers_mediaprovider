@@ -155,6 +155,21 @@ public class DatabaseBackupAndRecovery {
 
     private static Map<String, String> sOwnerIdRelationMap;
 
+    public static final String STABLE_URI_INTERNAL_PROPERTY =
+            "persist.sys.fuse.backup.internal_db_backup";
+
+    private static boolean STABLE_URI_INTERNAL_PROPERTY_VALUE = true;
+
+    public static final String STABLE_URI_EXTERNAL_PROPERTY =
+            "persist.sys.fuse.backup.external_volume_backup";
+
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
+
+    public static final String STABLE_URI_PUBLIC_PROPERTY =
+            "persist.sys.fuse.backup.public_db_backup";
+
+    private static boolean STABLE_URI_PUBLIC_PROPERTY_VALUE = false;
+
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
         mVolumeCache = volumeCache;
@@ -167,19 +182,18 @@ public class DatabaseBackupAndRecovery {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
-                        || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
-                        /* defaultValue */ false);
+                        || SystemProperties.getBoolean(STABLE_URI_INTERNAL_PROPERTY,
+                        /* defaultValue */ STABLE_URI_INTERNAL_PROPERTY_VALUE);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mConfigStore.isStableUrisForExternalVolumeEnabled()
-                        || SystemProperties.getBoolean(
-                        "persist.sys.fuse.backup.external_volume_backup",
-                        /* defaultValue */ false);
+                        || SystemProperties.getBoolean(STABLE_URI_EXTERNAL_PROPERTY,
+                        /* defaultValue */ STABLE_URI_EXTERNAL_PROPERTY_VALUE);
             default:
                 // public volume
                 return isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                         && mConfigStore.isStableUrisForPublicVolumeEnabled()
-                        || SystemProperties.getBoolean("persist.sys.fuse.backup.public_db_backup",
-                        /* defaultValue */ false);
+                        || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
+                        /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
         }
     }
 
@@ -215,15 +229,18 @@ public class DatabaseBackupAndRecovery {
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
             Log.d(TAG, "Received db backup Fuse Daemon for: " + volumeName);
-            if (isStableUrisEnabled(volumeName)) {
-                if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-                    // Setup internal and external volumes
-                    fuseDaemon.setupVolumeDbBackup();
-                } else {
-                    // Setup public volume
-                    fuseDaemon.setupPublicVolumeDbBackup(volumeName);
-                }
+            if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName) && (
+                    isStableUrisEnabled(MediaStore.VOLUME_INTERNAL) || isStableUrisEnabled(
+                            MediaStore.VOLUME_EXTERNAL_PRIMARY))) {
+                // Setup internal and external volumes
+                fuseDaemon.setupVolumeDbBackup();
                 mSetupCompletePublicVolumes.add(volumeName);
+            } else if (isStableUrisEnabled(volumeName)) {
+                // Setup public volume
+                fuseDaemon.setupPublicVolumeDbBackup(volumeName);
+                mSetupCompletePublicVolumes.add(volumeName);
+            } else {
+                return;
             }
         } catch (IOException e) {
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
@@ -241,7 +258,7 @@ public class DatabaseBackupAndRecovery {
     public void backupDatabases(DatabaseHelper internalDatabaseHelper,
             DatabaseHelper externalDatabaseHelper, CancellationSignal signal) {
         setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
-          new File(EXTERNAL_PRIMARY_ROOT_PATH));
+                new File(EXTERNAL_PRIMARY_ROOT_PATH));
         Log.i(TAG, "Triggering database backup");
         backupInternalDatabase(internalDatabaseHelper, signal);
         backupExternalDatabase(externalDatabaseHelper, MediaStore.VOLUME_EXTERNAL_PRIMARY, signal);
@@ -283,6 +300,8 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mSetupCompletePublicVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+            Log.w(TAG,
+                "Setup is not present for backup of internal and external primary volume.");
             return;
         }
 

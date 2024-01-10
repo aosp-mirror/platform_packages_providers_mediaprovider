@@ -18,6 +18,7 @@ package com.android.providers.media.stableuris.job;
 
 import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.createNewPublicVolume;
 import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.deletePublicVolumes;
+import static com.android.providers.media.tests.utils.PublicVolumeSetupHelper.executeShellCommand;
 import static com.android.providers.media.util.FileUtils.getVolumePath;
 
 import static org.junit.Assert.assertEquals;
@@ -33,6 +34,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
@@ -45,6 +47,7 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.DatabaseBackupAndRecovery;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import org.junit.AfterClass;
@@ -63,7 +66,6 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = 31, codeName = "S")
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
@@ -86,6 +88,9 @@ public class StableUriIdleMaintenanceServiceTest {
     @BeforeClass
     public static void setUpClass() throws Exception {
         adoptShellPermission();
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+            return;
+        }
 
         // Read existing value of the flag
         sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
@@ -110,6 +115,10 @@ public class StableUriIdleMaintenanceServiceTest {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+            dropShellPermission();
+            return;
+        }
 
         // Restore previous value of the flag
         DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
@@ -126,6 +135,7 @@ public class StableUriIdleMaintenanceServiceTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = 31, codeName = "S")
     public void testDataMigrationForInternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
@@ -163,6 +173,11 @@ public class StableUriIdleMaintenanceServiceTest {
     public void testDataMigrationForExternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
+        // Enable feature for Android R
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+            executeShellCommand(
+                    "setprop " + DatabaseBackupAndRecovery.STABLE_URI_EXTERNAL_PROPERTY + " true");
+        }
         Set<String> newFilePaths = new HashSet<String>();
         Map<String, Long> pathToIdMap = new HashMap<>();
         MediaStore.waitForIdle(resolver);
@@ -207,6 +222,12 @@ public class StableUriIdleMaintenanceServiceTest {
         } finally {
             for (String path : newFilePaths) {
                 new File(path).delete();
+            }
+
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+                executeShellCommand(
+                        "setprop " + DatabaseBackupAndRecovery.STABLE_URI_EXTERNAL_PROPERTY
+                          + " false");
             }
         }
     }

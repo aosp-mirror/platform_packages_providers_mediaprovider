@@ -132,6 +132,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private int mToolbarHeight = 0;
     private boolean mShouldLogCancelledResult = true;
 
+    private AccessibilityManager mAccessibilityManager;
+    private boolean mIsAccessibilityEnabled;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // This is required as GET_CONTENT with type "*/*" is also received by PhotoPicker due
@@ -185,6 +188,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mTabLayout = findViewById(R.id.tab_layout);
 
+        mAccessibilityManager = getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = mAccessibilityManager.isEnabled();
+
         initBottomSheetBehavior();
 
         // Save the fragment container layout so that we can adjust the padding based on preview or
@@ -201,6 +207,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         observeRefreshUiNotificationLiveData();
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
+
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
@@ -501,7 +508,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     @VisibleForTesting
     protected boolean isAccessibilityEnabled() {
-        return getSystemService(AccessibilityManager.class).isEnabled();
+        return mIsAccessibilityEnabled;
     }
 
     private static int getBottomSheetPeekHeight(Context context) {
@@ -547,7 +554,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         logPickerSelectionConfirmed(mSelection.getSelectedItems().size());
         if (shouldPreloadSelectedItems()) {
             final var uris = PickerResult.getPickerUrisForItems(
-                    mSelection.getSelectedItems());
+                    getIntent().getAction(), mSelection.getSelectedItems());
             mPickerViewModel.logPreloadingStarted(uris.size());
             mPreloaderInstanceHolder.preloader =
                     SelectedMediaPreloader.preload(/* activity */ this, uris);
@@ -576,7 +583,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // The permission controller will pass the requesting package's UID here
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
-        final List<Uri> uris = getPickerUrisForItems(mSelection.getSelectedItemsWithoutGrants());
+        final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
+                mSelection.getSelectedItemsWithoutGrants());
         if (!uris.isEmpty()) {
             ForegroundThread.getExecutor().execute(() -> {
                 // Handle grants in another thread to not block the UI.
@@ -589,7 +597,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // deselected them.
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
@@ -603,9 +611,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private void setResultForPickImagesOrGetContentAction() {
-        final Intent resultData = getPickerResponseIntent(
-                mSelection.canSelectMultiple(),
-                mSelection.getSelectedItems());
+        final Intent resultData = getPickerResponseIntent(getIntent().getAction(),
+                mSelection.canSelectMultiple(), mSelection.getSelectedItems());
         setResult(RESULT_OK, resultData);
     }
 
@@ -924,14 +931,14 @@ public class PhotoPickerActivity extends AppCompatActivity {
     /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
      */
-    private void resetInCurrentProfile() {
+    private void resetInCurrentProfile(boolean shouldSendInitRequest) {
         // Clear all the fragments in the FragmentManager
         final FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.popBackStackImmediate(/* name */ null,
                 FragmentManager.POP_BACK_STACK_INCLUSIVE);
 
         // Reset all content in the current profile
-        mPickerViewModel.resetAllContentInCurrentProfile();
+        mPickerViewModel.resetAllContentInCurrentProfile(shouldSendInitRequest);
 
         // Set up the fragments same as the initial launch state
         setupInitialLaunchState();
@@ -1085,10 +1092,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
      * refresh the UI.
      */
     private void observeRefreshUiNotificationLiveData() {
-        mPickerViewModel.shouldRefreshUiLiveData()
-                .observe(this, shouldRefresh -> {
-                    if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
-                        resetInCurrentProfile();
+        mPickerViewModel.refreshUiLiveData()
+                .observe(this, refreshRequest -> {
+                    if (refreshRequest.shouldRefreshPicker()
+                            && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+                        resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
     }

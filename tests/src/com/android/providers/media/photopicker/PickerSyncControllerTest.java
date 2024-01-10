@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
 
@@ -36,6 +37,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Process;
 import android.os.storage.StorageManager;
@@ -1725,7 +1727,7 @@ public class PickerSyncControllerTest {
 
             // Simulate a UI session begins listening.
             contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+                    /* notifyForDescendants */ true, refreshUiNotificationObserver);
 
             mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
 
@@ -1733,6 +1735,11 @@ public class PickerSyncControllerTest {
 
             assertWithMessage("Refresh ui notification should have been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
+
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isFalse();
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
@@ -1744,7 +1751,7 @@ public class PickerSyncControllerTest {
         final TestContentObserver refreshUiNotificationObserver = new TestContentObserver(null);
         try {
             contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+                    /* notifyForDescendants */ true, refreshUiNotificationObserver);
 
             assertWithMessage("Refresh ui notification should have not been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isFalse();
@@ -1760,7 +1767,12 @@ public class PickerSyncControllerTest {
                     "Failed to receive refresh ui notification on change in cloud provider.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
-            refreshUiNotificationObserver.mNotificationReceived = false;
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isTrue();
+
+            refreshUiNotificationObserver.clear();
 
             // The SET_CLOUD_PROVIDER is called using a different cloud provider from before
             mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
@@ -1769,7 +1781,12 @@ public class PickerSyncControllerTest {
                     "Failed to receive refresh ui notification on change in cloud provider.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
-            refreshUiNotificationObserver.mNotificationReceived = false;
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isTrue();
+
+            refreshUiNotificationObserver.clear();
 
             // The cloud provider remains unchanged on PickerSyncController construction
             mController = PickerSyncController
@@ -1879,14 +1896,21 @@ public class PickerSyncControllerTest {
 
     private static class TestContentObserver extends ContentObserver {
         boolean mNotificationReceived;
+        Uri mNotificationUri;
 
         TestContentObserver(Handler handler) {
             super(handler);
         }
 
         @Override
-        public void onChange(boolean selfChange) {
+        public void onChange(boolean selfChange, Uri uri) {
             mNotificationReceived = true;
+            mNotificationUri = uri;
+        }
+
+        public void clear() {
+            mNotificationReceived = false;
+            mNotificationUri = null;
         }
     }
 }

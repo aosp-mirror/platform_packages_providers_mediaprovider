@@ -26,6 +26,7 @@ import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LA
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.MEDIA_COLLECTION_ID;
 import static android.provider.MediaStore.MY_UID;
 
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.PickerUriResolver.getDeletedMediaUri;
@@ -723,7 +724,7 @@ public class PickerSyncController {
 
                     // Send UI refresh notification for any active picker sessions, as the
                     // UI data might be stale if a full sync needs to be run.
-                    sendPickerUiRefreshNotification();
+                    sendPickerUiRefreshNotification(/* isInitPending */ false);
 
                     final Bundle fullSyncQueryArgs = new Bundle();
                     if (enablePagedSync) {
@@ -1050,14 +1051,27 @@ public class PickerSyncController {
                 Log.wtf(TAG, "CLOUD_PROVIDER_LOCK is already held by this thread.");
             }
 
-            sendPickerUiRefreshNotification();
+            sendPickerUiRefreshNotification(/* isInitPending */ true);
         }
     }
 
-    private void sendPickerUiRefreshNotification() {
-        ContentResolver contentResolver = mContext.getContentResolver();
+    /**
+     * Send Picker UI content observers a notification that a refresh is required.
+     * @param isInitPending when true, appends the URI path segment
+     *  {@link com.android.providers.media.PickerUriResolver.INIT_PATH} to the notification URI
+     *  to indicate that the UI that the cached picker data might be stale.
+     *  When a request notification is being sent from the sync path, set isInitPending as false to
+     *  prevent sending refresh notification in a loop.
+     */
+    private void sendPickerUiRefreshNotification(boolean isInitPending) {
+        final ContentResolver contentResolver = mContext.getContentResolver();
         if (contentResolver != null) {
-            contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
+            final Uri.Builder builder = REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI.buildUpon();
+            if (isInitPending) {
+                builder.appendPath(INIT_PATH);
+            }
+            final Uri refreshUri = builder.build();
+            contentResolver.notifyChange(refreshUri, null);
         } else {
             Log.d(TAG, "Couldn't notify the Picker UI to refresh");
         }

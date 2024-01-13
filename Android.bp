@@ -98,6 +98,7 @@ android_app {
     lint: {
         strict_updatability_linting: true,
         baseline_filename: "lint-baseline.xml",
+
     },
 
     apex_available: [
@@ -143,7 +144,7 @@ java_library {
         "framework-mediaprovider",
     ],
     lint: {
-        baseline_filename: "lint-baseline.xml",
+        baseline_filename: "lint-baseline2.xml",
     },
 }
 

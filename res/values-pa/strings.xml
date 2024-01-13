@@ -155,7 +155,7 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"ਰੱਦ ਕਰੋ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"ਉਡੀਕ ਕਰੋ"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"ਸੁਰੱਖਿਆ ਬਚਾਅ"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਸੁਚੇਤਨਾਵਾਂ"</string>
+    <string name="transcode_alert_channel" msgid="997332371757680478">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਅਲਰਟ"</string>
     <string name="transcode_progress_channel" msgid="6905136787933058387">"ਨੇਟਿਵ ਟ੍ਰਾਂਸਕੋਡ ਪ੍ਰਗਤੀ"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"ਬਾਅਦ ਵਿੱਚ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ। ਸਮੱਸਿਆ ਹੱਲ ਹੋਣ ਤੋਂ ਬਾਅਦ ਤੁਹਾਡੀਆਂ ਫ਼ੋਟੋਆਂ ਉਪਲਬਧ ਹੋ ਜਾਣਗੀਆਂ।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ਕੁਝ ਫ਼ੋਟੋਆਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ"</string>

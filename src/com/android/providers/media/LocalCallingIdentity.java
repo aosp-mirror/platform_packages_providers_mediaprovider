@@ -54,6 +54,7 @@ import android.os.Process;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -81,7 +82,7 @@ public class LocalCallingIdentity {
     private final Object lock = new Object();
 
     @GuardedBy("lock")
-    private int mDeletedFileCountBypassingDatabase = 0;
+    private int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -605,15 +606,42 @@ public class LocalCallingIdentity {
         }
     }
 
-    protected void incrementDeletedFileCountBypassingDatabase() {
+    protected void incrementDeletedFileCountBypassingDatabase(int mediaType) {
         synchronized (lock) {
-            mDeletedFileCountBypassingDatabase++;
+            mDeletedFileCountsBypassingDatabase[mediaType]++;
         }
     }
 
-    protected int getDeletedFileCountBypassingDatabase() {
+    private void clearDeletedFileCountsBypassingDatabase() {
         synchronized (lock) {
-            return mDeletedFileCountBypassingDatabase;
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                mDeletedFileCountsBypassingDatabase[i] = 0;
+            }
+        }
+    }
+
+    protected int getDeletedFileTotalCountBypassingDatabase() {
+        synchronized (lock) {
+            int totalCount = 0;
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                totalCount += mDeletedFileCountsBypassingDatabase[i];
+            }
+            return totalCount;
+        }
+    }
+
+    protected boolean hasDeletedFileCount() {
+        synchronized (lock) {
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                if (mDeletedFileCountsBypassingDatabase[i] > 0) return true;
+            }
+            return false;
+        }
+    }
+
+    protected int[] getDeletedFileCountsBypassingDatabase() {
+        synchronized (lock) {
+            return mDeletedFileCountsBypassingDatabase;
         }
     }
 
@@ -695,26 +723,39 @@ public class LocalCallingIdentity {
     }
 
     protected void dump(PrintWriter writer) {
-        if (getDeletedFileCountBypassingDatabase() <= 0) {
+        if (!hasDeletedFileCount()) {
             return;
         }
 
-        writer.println(getDeletedFileCountLogMessage(uid, getPackageName(),
-                getDeletedFileCountBypassingDatabase()));
+        writer.println(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                getDeletedFileCountsBypassingDatabase()));
     }
 
     protected void dump(String reason) {
         Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
                 + ". Reason: " + reason);
-        if (this.getDeletedFileCountBypassingDatabase() > 0) {
-            Logging.logPersistent(getDeletedFileCountLogMessage(uid, getPackageName(),
-                    getDeletedFileCountBypassingDatabase()));
+        if (hasDeletedFileCount()) {
+            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                    getDeletedFileCountsBypassingDatabase()));
         }
     }
 
-    private static String getDeletedFileCountLogMessage(int uid, String packageName,
-            int deletedFilesCountBypassingDatabase) {
-        return "uid=" + uid + " packageName=" + packageName + " deletedFilesCountBypassingDatabase="
-                + deletedFilesCountBypassingDatabase;
+    protected void dump() {
+        if (hasDeletedFileCount()) {
+            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                    getDeletedFileCountsBypassingDatabase()));
+            clearDeletedFileCountsBypassingDatabase();
+        }
+    }
+
+    private static String getDeletedFileCountsLogMessage(int uid, String packageName,
+            int[] deletedFileCountsBypassingDatabase) {
+        final StringBuilder builder = new StringBuilder("uid=" + uid
+                + " packageName=" + packageName
+                + " deletedFilesCountsBypassingDatabase=");
+        for (int count: deletedFileCountsBypassingDatabase) {
+            builder.append(count).append(' ');
+        }
+        return builder.toString();
     }
 }

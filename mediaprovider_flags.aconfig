@@ -13,3 +13,10 @@ flag {
     description: "This flag will enable launching the photopicker in the requested tab/activity"
     bug: "303783867"
 }
+
+flag {
+    name: "access_media_owner_package_name_permission"
+    namespace: "mediaprovider"
+    description: "Controls exposure of the ACCESS_MEDIA_OWNER_PACKAGE_NAME permission name"
+    bug: "309920631"
+}

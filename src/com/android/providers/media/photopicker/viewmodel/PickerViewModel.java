@@ -24,6 +24,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
@@ -81,6 +82,7 @@ import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
@@ -103,8 +105,6 @@ import java.util.stream.Collectors;
  */
 public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
-
-    private static final int RECENT_MINIMUM_COUNT = 12;
     private static final int INSTANCE_ID_MAX = 1 << 15;
     private static final int DELAY_MILLIS = 0;
 
@@ -139,11 +139,13 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Category>> mCategoryList;
 
     private MutableLiveData<Boolean> mIsAllPreGrantedMediaLoaded = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> mShouldRefreshUiLiveData = new MutableLiveData<>(false);
+    private final MutableLiveData<RefreshRequest> mRefreshUiLiveData =
+            new MutableLiveData<>(RefreshRequest.DEFAULT);
     private final ContentObserver mRefreshUiNotificationObserver = new ContentObserver(null) {
         @Override
-        public void onChange(boolean selfChange) {
-            mShouldRefreshUiLiveData.postValue(true);
+        public void onChange(boolean selfChange, Uri uri) {
+            boolean shouldInit = uri.getLastPathSegment().equals(INIT_PATH);
+            mRefreshUiLiveData.postValue(new RefreshRequest(true, shouldInit));
         }
     };
 
@@ -372,22 +374,24 @@ public class PickerViewModel extends AndroidViewModel {
     @UiThread
     public void onSwitchedProfile() {
         resetRefreshUiNotificationObserver();
-        resetAllContentInCurrentProfile();
+        resetAllContentInCurrentProfile(/* shouldSendInitRequest */ true);
     }
 
     /**
      * Reset all the content (items, categories & banners) in the current profile.
      */
     @UiThread
-    public void resetAllContentInCurrentProfile() {
+    public void resetAllContentInCurrentProfile(boolean shouldSendInitRequest) {
         Log.d(TAG, "Reset all content in current profile");
 
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
-        mShouldRefreshUiLiveData.postValue(false);
+        mRefreshUiLiveData.postValue(RefreshRequest.DEFAULT);
 
         clearQueuedTasksInDataLoaderThread();
 
-        initPhotoPickerData();
+        if (shouldSendInitRequest) {
+            initPhotoPickerData();
+        }
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
@@ -1429,14 +1433,14 @@ public class PickerViewModel extends AndroidViewModel {
      * @return a {@link LiveData} that posts Should Refresh Picker UI as {@code true} when notified.
      */
     @NonNull
-    public LiveData<Boolean> shouldRefreshUiLiveData() {
-        return mShouldRefreshUiLiveData;
+    public LiveData<RefreshRequest> refreshUiLiveData() {
+        return mRefreshUiLiveData;
     }
 
     private void registerRefreshUiNotificationObserver() {
         mContentResolver = getContentResolverForSelectedUser();
         mContentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                /* notifyForDescendants */ false, mRefreshUiNotificationObserver);
+                /* notifyForDescendants */ true, mRefreshUiNotificationObserver);
     }
 
     private void unregisterRefreshUiNotificationObserver() {

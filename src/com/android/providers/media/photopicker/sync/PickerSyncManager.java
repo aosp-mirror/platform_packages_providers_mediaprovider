@@ -92,13 +92,14 @@ public class PickerSyncManager {
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
     private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
 
-    private static final String PERIODIC_SYNC_WORK_NAME;
+    public static final String PERIODIC_SYNC_WORK_NAME;
     private static final String PROACTIVE_LOCAL_SYNC_WORK_NAME;
     private static final String PROACTIVE_SYNC_WORK_NAME;
     public static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
     private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
     public static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
-    private static final String PERIODIC_ALBUM_RESET_WORK_NAME;
+    public static final String PERIODIC_ALBUM_RESET_WORK_NAME;
+    private static final String ENDLESS_WORK_NAME;
 
     static {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
@@ -115,6 +116,7 @@ public class PickerSyncManager {
         IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
         IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
+        ENDLESS_WORK_NAME = "ENDLESS_WORK";
     }
 
     private final WorkManager mWorkManager;
@@ -128,6 +130,8 @@ public class PickerSyncManager {
         mWorkManager = requireNonNull(workManager);
         mConfigStore = requireNonNull(configStore);
         mContext = requireNonNull(context);
+
+        setUpEndlessWork();
 
         if (shouldSchedulePeriodicSyncs) {
             setUpPeriodicWork();
@@ -154,6 +158,27 @@ public class PickerSyncManager {
             mWorkManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME);
             mWorkManager.cancelUniqueWork(PERIODIC_ALBUM_RESET_WORK_NAME);
         }
+    }
+
+    /**
+     * Will register a new {@link Worker} for 1 year in the future. This is to prevent the {@link
+     * androidx.work.impl.background.systemalarm.RescheduleReceiver} from being disabled by WM
+     * internals, which triggers PACKAGE_CHANGED broadcasts every time a new worker is scheduled. As
+     * a work around to prevent these broadcasts, we enqueue a worker here very far in the future to
+     * prevent the component from being disabled by work manager.
+     *
+     * <p>{@see b/314863434 for additional context.}
+     */
+    private void setUpEndlessWork() {
+
+        OneTimeWorkRequest request =
+                new OneTimeWorkRequest.Builder(EndlessWorker.class)
+                        .setInitialDelay(365, TimeUnit.DAYS)
+                        .build();
+
+        mWorkManager.enqueueUniqueWork(
+                ENDLESS_WORK_NAME, ExistingWorkPolicy.KEEP, request);
+        Log.d(TAG, "EndlessWorker has been enqueued");
     }
 
     /**

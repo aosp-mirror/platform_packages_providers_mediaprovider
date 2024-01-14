@@ -162,6 +162,8 @@
     <string name="picker_work_profile">Switch to work</string>
     <!-- The text of the switching work/personal profile in PhotoPicker. [CHAR LIMIT=80] -->
     <string name="picker_personal_profile">Switch to personal</string>
+    <!-- personal profile label in PhotoPicker -->
+    <string name="picker_personal_profile_label">Personal</string>
     <!-- The title for error dialog in PhotoPicker when the admin blocks cross user interaction for
     the intent. [CHAR LIMIT=100] -->
     <string name="picker_profile_admin_title">Blocked by your admin</string>

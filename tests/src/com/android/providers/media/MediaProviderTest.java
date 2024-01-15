@@ -1643,7 +1643,7 @@ public class MediaProviderTest {
     }
 
     private static boolean isGreylistMatch(String raw) {
-        for (Pattern p : MediaProvider.sGreylist) {
+        for (Pattern p : MediaProvider.sAllowlist) {
             if (p.matcher(raw).matches()) {
                 return true;
             }

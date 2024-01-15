@@ -603,6 +603,13 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
+
+            MediaProviderStatsLog.write(
+                    MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED, isInternal()
+                            ?
+                            MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__INTERNAL
+                            :
+                                    MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__EXTERNAL);
             Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
             // Delete old data and create new schema.
             recreateLatestSchema(db);

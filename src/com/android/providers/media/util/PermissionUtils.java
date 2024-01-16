@@ -96,6 +96,14 @@ public class PermissionUtils {
     }
 
     /**
+     * @return {@code true} if the given {@code uid} is {@link android.os.Process#SYSTEM_UID},
+     *         {@code false} otherwise.
+     */
+    public static boolean checkPermissionSystem(int uid) {
+        return UserHandle.getAppId(uid) == android.os.Process.SYSTEM_UID;
+    }
+
+    /**
      * Check if the given package has been granted the "file manager" role on
      * the device, which should grant them certain broader access.
      */

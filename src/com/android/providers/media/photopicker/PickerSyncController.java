@@ -63,6 +63,7 @@ import com.android.internal.logging.InstanceId;
 import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
@@ -559,6 +560,22 @@ public class PickerSyncController {
     @NonNull
     public String getLocalProvider() {
         return mLocalProvider;
+    }
+
+    /**
+     * @return current cloud provider app localized label. This operation acquires a lock
+     *         internally with a timeout.
+     * @throws UnableToAcquireLockException if the lock was not acquired within the given timeout.
+     */
+    public String getCurrentCloudProviderLocalizedLabel() throws UnableToAcquireLockException {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            if (mCloudProviderInfo.isEmpty()) {
+                return mContext.getResources().getString(R.string.picker_settings_no_provider);
+            }
+            return CloudProviderUtils.getProviderLabel(
+                    mContext.getPackageManager(), mCloudProviderInfo.authority);
+        }
     }
 
     public boolean isProviderEnabled(String authority) {

@@ -1079,4 +1079,30 @@ public class DatabaseBackupAndRecovery {
         throw new RuntimeException("Timed out while waiting for ExternalStorageState "
                 + "to be MEDIA_MOUNTED");
     }
+
+    public void onDetachVolume(MediaVolume volume) {
+        String volumeName = volume.getName();
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
+            // Connection is removed as part of external_primary volume detach
+            return;
+        } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL) && !isStableUrisEnabled(
+                    MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+                return;
+            }
+        } else if (!isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        FuseDaemon fuseDaemon;
+        try {
+            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            fuseDaemon.removeLevelDbConnections(volumeName);
+            mSetupCompletePublicVolumes.remove(volumeName);
+            Log.i(TAG, "Successfully removed leveldb connections for volume:" + volumeName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in removeLevelDbConnections execution.", e);
+            return;
+        }
+    }
 }

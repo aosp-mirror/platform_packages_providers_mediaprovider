@@ -11099,6 +11099,7 @@ public class MediaProvider extends ContentProvider {
                     "Deleting the internal volume is not allowed");
         }
 
+        mDatabaseBackupAndRecovery.onDetachVolume(volume);
         // Signal any scanning to shut down
         mMediaScanner.onDetachVolume(volume);
 

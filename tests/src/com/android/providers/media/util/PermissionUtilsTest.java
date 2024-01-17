@@ -165,7 +165,7 @@ public class PermissionUtilsTest {
             assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();
@@ -199,8 +199,8 @@ public class PermissionUtilsTest {
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(checkPermissionShell(testAppUid)).isFalse();
-            assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName, null))
-                    .isFalse();
+            assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
+                        null,  /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(checkPermissionInstallPackages(
                         getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
             assertThat(checkPermissionAccessMtp(
@@ -242,7 +242,7 @@ public class PermissionUtilsTest {
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                         packageName, null)).isFalse();
@@ -291,7 +291,7 @@ public class PermissionUtilsTest {
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isTrue();
+                            null, /* isTargetSdkAtLeastR */ false)).isTrue();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();

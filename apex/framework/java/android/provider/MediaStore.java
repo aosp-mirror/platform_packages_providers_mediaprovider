@@ -261,6 +261,8 @@ public final class MediaStore {
     /** {@hide} */
     public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_LABEL_CALL = "get_cloud_provider_label";
+    /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_RESULT = "set_cloud_provider_result";
     /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_CALL = "set_cloud_provider";

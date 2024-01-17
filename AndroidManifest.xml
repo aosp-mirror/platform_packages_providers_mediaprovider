@@ -231,6 +231,9 @@
                 android:name="com.android.settings.title"
                 android:resource="@string/picker_settings_system_settings_menu_title"/>
             <meta-data
+                android:name="com.android.settings.summary_uri"
+                android:value="content://media/get_cloud_provider_label"/>
+            <meta-data
                 android:name="com.android.settings.profile"
                 android:value="primary_profile_only"/>
             <!-- ============== END BEGIN SYSTEM SETTINGS MENU ITEM SECTION ============== -->

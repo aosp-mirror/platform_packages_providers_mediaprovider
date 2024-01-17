@@ -158,6 +158,7 @@ import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
 import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
@@ -294,6 +295,7 @@ import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -507,6 +509,12 @@ public class MediaProvider extends ContentProvider {
      * class
      */
     private static final int MAX_SECTION_NAME_LEN = 127;
+
+    /**
+     * This string is a copy of
+     * {@link com.android.settingslib.drawer.TileUtils.META_DATA_PREFERENCE_SUMMARY}
+     */
+    private static final String META_DATA_PREFERENCE_SUMMARY = "com.android.settings.summary";
 
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
@@ -6720,6 +6728,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 return getResultForGetCloudProvider();
             }
+            case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
+                return getResultForGetCloudProviderLabel();
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
             }
@@ -7135,6 +7146,23 @@ public class MediaProvider extends ContentProvider {
         bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
                 mPickerSyncController.getCloudProvider());
         return bundle;
+    }
+
+    @NotNull
+    private Bundle getResultForGetCloudProviderLabel() {
+        if (!checkPermissionSystem(Binder.getCallingUid())) {
+            throw new SecurityException(getSecurityExceptionMessage("Get cloud provider label"));
+        }
+        final Bundle res = new Bundle();
+        String cloudProviderLabel = null;
+        try {
+            cloudProviderLabel = mPickerSyncController.getCurrentCloudProviderLocalizedLabel();
+        } catch (UnableToAcquireLockException e) {
+            Log.d(TAG, "Timed out while attempting to acquire the cloud provider lock when getting "
+                    + "the cloud provider label.", e);
+        }
+        res.putString(META_DATA_PREFERENCE_SUMMARY, cloudProviderLabel);
+        return res;
     }
 
     @NotNull

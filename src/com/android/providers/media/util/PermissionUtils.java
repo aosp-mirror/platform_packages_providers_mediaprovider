@@ -197,8 +197,8 @@ public class PermissionUtils {
     }
 
     public static boolean checkIsLegacyStorageGranted(@NonNull Context context, int uid,
-            String packageName, @Nullable String attributionTag) {
-        if (context.getSystemService(AppOpsManager.class)
+            String packageName, @Nullable String attributionTag, boolean isTargetSdkAtLeastR) {
+        if (!isTargetSdkAtLeastR && context.getSystemService(AppOpsManager.class)
                 .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED) {
             return true;
         }

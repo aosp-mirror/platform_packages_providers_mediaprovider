@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.photopicker.extensions
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import android.content.Context
+import androidx.core.content.getSystemService
 
 /**
- * This is the top of the Compose UI node tree. This is called from the MainActivity and is the
- * top-most [@Composable] in the application. This should not be called except inside an Activity's
- * [setContent] block.
+ * Extension that removes nullability of getSystemService
+ *
+ * @param T The Type of the SystemService
+ * @return A non null System service.
+ * @throws [IllegalStateException] if the returned service is null.
  */
-@Composable
-fun PhotopickerApp() {
-    Surface(modifier = Modifier.fillMaxSize()) { Text("Hello World from Photopicker!") }
+inline fun <reified T> Context.requireSystemService(): T {
+    return checkNotNull(getSystemService()) { "A required System Service was null" }
 }

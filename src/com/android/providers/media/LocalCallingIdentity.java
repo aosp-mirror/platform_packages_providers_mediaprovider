@@ -445,7 +445,9 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag);
+        boolean targetSdkIsAtLeastR = getTargetSdkVersion() >= Build.VERSION_CODES.R;
+        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag,
+                    targetSdkIsAtLeastR);
     }
 
     private volatile boolean shouldBypass;

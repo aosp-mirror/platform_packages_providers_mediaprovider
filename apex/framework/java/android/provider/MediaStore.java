@@ -1090,6 +1090,14 @@ public final class MediaStore {
     @Match
     public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
 
+    /**
+     * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
+     * of every accessible media file.
+     */
+    @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission")
+    public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
             MATCH_DEFAULT,

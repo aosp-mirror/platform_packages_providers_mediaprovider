@@ -21,10 +21,12 @@ import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaOwnerPackageName;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionQueryAllPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
@@ -347,6 +349,9 @@ public class LocalCallingIdentity {
 
     public static final int PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED = 1 << 27;
 
+    public static final int PERMISSION_QUERY_ALL_PACKAGES = 1 << 28;
+    public static final int PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME = 1 << 29;
+
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
 
@@ -425,6 +430,12 @@ public class LocalCallingIdentity {
             case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
                 return checkPermissionReadVisualUserSelected(context, pid, uid, getPackageName(),
                         attributionTag, targetSdkIsAtLeastT);
+            case PERMISSION_QUERY_ALL_PACKAGES:
+                return checkPermissionQueryAllPackages(
+                        context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME:
+                return checkPermissionAccessMediaOwnerPackageName(
+                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }
@@ -698,6 +709,15 @@ public class LocalCallingIdentity {
             // write permission should be enough for reading as well
             return hasPermission(PERMISSION_READ_IMAGES) || hasPermission(PERMISSION_WRITE_IMAGES);
         }
+    }
+
+    /**
+     * Returns {@code true} if this package has permissions
+     * to access owner_package_name of any accessible file.
+     */
+    public boolean checkCallingPermissionsOwnerPackageName() {
+        return hasPermission(PERMISSION_QUERY_ALL_PACKAGES)
+                || hasPermission(PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME);
     }
 
     /**

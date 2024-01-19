@@ -50,6 +50,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
@@ -79,6 +80,7 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_SECONDARY_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_secondary";
     private static final String PACKAGE_NAME = "com.android.providers.media.tests";
+    private static final String APP_LABEL = "MediaProvider Tests";
 
     private final MediaGenerator mLocalMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(LOCAL_PROVIDER_AUTHORITY);
@@ -745,7 +747,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSetCloudProvider() {
+    public void testSetCloudProvider() throws UnableToAcquireLockException {
         //1. Get local provider assertion out of the way
         assertWithMessage("Unexpected local provider.")
                 .that(mController.getLocalProvider()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
@@ -759,6 +761,8 @@ public class PickerSyncControllerTest {
                 .that(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertWithMessage("Unexpected cloud provider.")
                 .that(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel()).isEqualTo(APP_LABEL);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade
@@ -773,6 +777,11 @@ public class PickerSyncControllerTest {
                 .that(setCloudProviderAndSyncAllMedia(null)).isTrue();
         assertWithMessage("Cloud provider should have been null.")
                 .that(mController.getCloudProvider()).isNull();
+        final String noProviderLabel = mContext.getResources()
+                .getString(R.string.picker_settings_no_provider);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel())
+                .isEqualTo(noProviderLabel);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade
@@ -787,6 +796,8 @@ public class PickerSyncControllerTest {
                 .that(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertWithMessage("Unexpected cloud provider.")
                 .that(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel()).isEqualTo(APP_LABEL);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade

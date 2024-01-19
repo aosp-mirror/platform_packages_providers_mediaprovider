@@ -17,7 +17,6 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
@@ -27,7 +26,6 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
@@ -158,6 +156,7 @@ import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
 import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
@@ -295,6 +294,7 @@ import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -508,6 +508,12 @@ public class MediaProvider extends ContentProvider {
      * class
      */
     private static final int MAX_SECTION_NAME_LEN = 127;
+
+    /**
+     * This string is a copy of
+     * {@link com.android.settingslib.drawer.TileUtils.META_DATA_PREFERENCE_SUMMARY}
+     */
+    private static final String META_DATA_PREFERENCE_SUMMARY = "com.android.settings.summary";
 
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
@@ -3819,7 +3825,7 @@ public class MediaProvider extends ContentProvider {
         Cursor c;
 
         if (shouldFilterOwnerPackageNameFlag()
-                && isApplicableForOwnerPackageNameFiltering(qb, projection)) {
+                && shouldFilterOwnerPackageNameInProjection(qb, projection)) {
             Log.i(TAG, String.format("Filtering owner package name for %s, projection: %s",
                     mCallingIdentity.get().getPackageName(), Arrays.toString(projection)));
 
@@ -3985,13 +3991,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private boolean isApplicableForOwnerPackageNameFiltering(SQLiteQueryBuilder qb,
+    private boolean shouldFilterOwnerPackageNameInProjection(SQLiteQueryBuilder qb,
             String[] projection) {
+        return projectionNeedsOwnerPackageFiltering(projection, qb)
+            && isApplicableForOwnerPackageNameFiltering();
+    }
+
+    private boolean isApplicableForOwnerPackageNameFiltering() {
         return SdkLevel.isAtLeastU()
                 && getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && projectionNeedsOwnerPackageFiltering(projection, qb)
-                && getContext().checkPermission(QUERY_ALL_PACKAGES,
-                mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
+                && !mCallingIdentity.get().checkCallingPermissionsOwnerPackageName();
     }
 
     private boolean projectionNeedsOwnerPackageFiltering(String[] proj, SQLiteQueryBuilder qb) {
@@ -6194,7 +6203,8 @@ public class MediaProvider extends ContentProvider {
 
         // Starting U, if owner package name is used in query arguments,
         // we are restricting result set to only self-owned packages.
-        if (shouldFilterOwnerPackageNameFlag() && shouldFilterByOwnerPackageName(extras, type)) {
+        if (shouldFilterOwnerPackageNameFlag()
+                && shouldFilterOwnerPackageNameInSelection(extras, type)) {
             Log.d(TAG, "Restricting result set to only packages owned by calling package: "
                     + mCallingIdentity.get().getSharedPackagesAsString());
             final String ownerPackageMatchClause = getWhereForOwnerPackageMatch(
@@ -6205,12 +6215,9 @@ public class MediaProvider extends ContentProvider {
         return qb;
     }
 
-    private boolean shouldFilterByOwnerPackageName(Bundle queryArgs, int type) {
-        return type == TYPE_QUERY && SdkLevel.isAtLeastU()
-                && getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
-                && containsOwnerPackageName(queryArgs)
-                && getContext().checkPermission(QUERY_ALL_PACKAGES, mCallingIdentity.get().pid,
-                mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    private boolean shouldFilterOwnerPackageNameInSelection(Bundle queryArgs, int type) {
+        return type == TYPE_QUERY && containsOwnerPackageName(queryArgs)
+                && isApplicableForOwnerPackageNameFiltering();
     }
 
     private boolean containsOwnerPackageName(Bundle queryArgs) {
@@ -6736,6 +6743,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 return getResultForGetCloudProvider();
             }
+            case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
+                return getResultForGetCloudProviderLabel();
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
             }
@@ -7151,6 +7161,23 @@ public class MediaProvider extends ContentProvider {
         bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
                 mPickerSyncController.getCloudProvider());
         return bundle;
+    }
+
+    @NotNull
+    private Bundle getResultForGetCloudProviderLabel() {
+        if (!checkPermissionSystem(Binder.getCallingUid())) {
+            throw new SecurityException(getSecurityExceptionMessage("Get cloud provider label"));
+        }
+        final Bundle res = new Bundle();
+        String cloudProviderLabel = null;
+        try {
+            cloudProviderLabel = mPickerSyncController.getCurrentCloudProviderLocalizedLabel();
+        } catch (UnableToAcquireLockException e) {
+            Log.d(TAG, "Timed out while attempting to acquire the cloud provider lock when getting "
+                    + "the cloud provider label.", e);
+        }
+        res.putString(META_DATA_PREFERENCE_SUMMARY, cloudProviderLabel);
+        return res;
     }
 
     @NotNull

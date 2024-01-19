@@ -1,0 +1,71 @@
+<!--
+  Copyright 2024 The Android Open Source Project
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.android.photopicker">
+
+  <!--
+    This permission identifies Photopicker to MediaProvider and allows access
+    to private system APIs.
+
+    Declared by MediaProvider and requires the 'media' certificate to obtain.
+  -->
+  <uses-permission
+    android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"/>
+
+  <application
+          android:name="com.android.photopicker.PhotopickerApplication"
+          android:label="@string/photopicker_application_label"
+          android:allowBackup="false"
+          android:supportsRtl="true">
+
+    <activity
+      android:name="com.android.photopicker.MainActivity"
+      android:exported="true"
+      android:theme="@style/Theme.Photopicker"
+      android:label="@string/photopicker_application_label"
+      android:excludeFromRecents="true">
+
+      <intent-filter android:priority="105" >
+                <action android:name="android.provider.action.PICK_IMAGES"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+      </intent-filter>
+      <intent-filter android:priority="105" >
+                <action android:name="android.provider.action.PICK_IMAGES"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerGetContentActivity"
+        android:targetActivity="com.android.photopicker.MainActivity"
+        android:exported="true"
+        android:excludeFromRecents="true"
+        android:enabled="true">
+        <intent-filter android:priority="105" >
+            <action android:name="android.intent.action.GET_CONTENT"/>
+            <category android:name="android.intent.category.OPENABLE"/>
+            <category android:name="android.intent.category.DEFAULT"/>
+            <data android:mimeType="image/*"/>
+            <data android:mimeType="video/*"/>
+        </intent-filter>
+    </activity-alias>
+
+  </application>
+</manifest>

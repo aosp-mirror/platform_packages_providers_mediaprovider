@@ -17,7 +17,6 @@
 package com.android.providers.media;
 
 import static android.Manifest.permission.ACCESS_MEDIA_LOCATION;
-import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.app.AppOpsManager.permissionToOp;
 import static android.app.PendingIntent.FLAG_CANCEL_CURRENT;
 import static android.app.PendingIntent.FLAG_IMMUTABLE;
@@ -27,7 +26,6 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS;
 import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
-import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
@@ -158,6 +156,7 @@ import static com.android.providers.media.util.Logging.LOGV;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
 import static com.android.providers.media.util.StringUtils.componentStateToString;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_PREFIX;
 import static com.android.providers.media.util.SyntheticPathUtils.REDACTED_URI_ID_SIZE;
@@ -271,6 +270,7 @@ import android.util.Size;
 import android.util.SparseArray;
 import android.webkit.MimeTypeMap;
 
+import androidx.annotation.ChecksSdkIntAtLeast;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -293,6 +293,7 @@ import com.android.providers.media.photopicker.data.ExternalDbFacade;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -316,7 +317,6 @@ import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 import com.android.providers.media.util.XmpInterface;
 
-import com.google.common.base.Strings;
 import com.google.common.hash.Hashing;
 
 import org.jetbrains.annotations.NotNull;
@@ -507,6 +507,12 @@ public class MediaProvider extends ContentProvider {
      * class
      */
     private static final int MAX_SECTION_NAME_LEN = 127;
+
+    /**
+     * This string is a copy of
+     * {@link com.android.settingslib.drawer.TileUtils.META_DATA_PREFERENCE_SUMMARY}
+     */
+    private static final String META_DATA_PREFERENCE_SUMMARY = "com.android.settings.summary";
 
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
@@ -3800,21 +3806,27 @@ public class MediaProvider extends ContentProvider {
             onLocaleChanged(false);
         }
 
-        Cursor c = qb.query(helper, projection, queryArgs, signal);
+        Cursor c;
 
-        // Starting U, we are filtering owner package names for apps without visibility
-        // on other packages. Apps with QUERY_ALL_PACKAGES permission are not affected.
-        if (shouldFilterOwnerPackageNameFlag() && isApplicableForOwnerPackageNameFiltering(c)) {
-            final long startTime = SystemClock.elapsedRealtime();
-            final String[] resultOwnerPackageNames = getOwnerPackageNames(c);
-            if (resultOwnerPackageNames.length != 0) {
-                final Set<String> queryablePackages = getQueryablePackages(resultOwnerPackageNames);
-                if (resultOwnerPackageNames.length != queryablePackages.size()) {
-                    c = filterOwnerPackageNames(c, queryablePackages);
-                }
-            }
-            final long durationMillis = SystemClock.elapsedRealtime() - startTime;
-            Log.d(TAG, "Filtering owner package names took " + durationMillis + " ms");
+        if (shouldFilterOwnerPackageNameFlag()
+                && shouldFilterOwnerPackageNameInProjection(qb, projection)) {
+            Log.i(TAG, String.format("Filtering owner package name for %s, projection: %s",
+                    mCallingIdentity.get().getPackageName(), Arrays.toString(projection)));
+
+            // Get a list of all owner_package_names in the result
+            final String[] ownerPackageNamesArr = getAllOwnerPackageNames(qb, helper,
+                    queryArgs, signal);
+
+            // Get a list of queryable owner_package_names out of all
+            final Set<String> queryablePackages = getQueryablePackages(ownerPackageNamesArr);
+
+            // Substitute owner_package_name column with following:
+            // CASE WHEN owner_package_name IN ('queryablePackageA','queryablePackageB')
+            // THEN owner_package_name ELSE NULL END AS owner_package_name
+            final String[] newProjection = prepareSubstitution(qb, projection, queryablePackages);
+            c = qb.query(helper, newProjection, queryArgs, signal);
+        } else {
+            c = qb.query(helper, projection, queryArgs, signal);
         }
 
         if (c != null && !forSelf) {
@@ -3843,6 +3855,100 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
+    /**
+     * Constructs the following projection string:
+     *     CASE WHEN owner_package_name IN ("queryablePackageA","queryablePackageB")
+     *     THEN owner_package_name ELSE NULL END AS owner_package_name
+     */
+    private String constructOwnerPackageNameProjection(Set<String> queryablePackages) {
+        final String packageNames = String.join(",", queryablePackages
+                .stream()
+                .map(name -> ("'" + name + "'"))
+                .collect(Collectors.toList()));
+
+        final StringBuilder newProjection = new StringBuilder()
+                .append("CASE WHEN ")
+                .append(OWNER_PACKAGE_NAME)
+                .append(" IN (")
+                .append(packageNames)
+                .append(") THEN ")
+                .append(OWNER_PACKAGE_NAME)
+                .append(" ELSE NULL END AS ")
+                .append(OWNER_PACKAGE_NAME);
+
+        Log.d(TAG, "Constructed owner_package_name substitution: " + newProjection);
+        return newProjection.toString();
+    }
+
+    private String[] getAllOwnerPackageNames(SQLiteQueryBuilder qb, DatabaseHelper helper,
+            Bundle queryArgs, CancellationSignal signal) {
+        final SQLiteQueryBuilder qbCopy = new SQLiteQueryBuilder(qb);
+        qbCopy.setDistinct(true);
+        qbCopy.appendWhereStandalone(OWNER_PACKAGE_NAME + " <> '' AND "
+                + OWNER_PACKAGE_NAME + " <> 'null' AND " + OWNER_PACKAGE_NAME + " IS NOT NULL");
+        final Cursor ownerPackageNames = qbCopy.query(helper, new String[]{OWNER_PACKAGE_NAME},
+                queryArgs, signal);
+
+        final String[] ownerPackageNamesArr = new String[ownerPackageNames.getCount()];
+        int i = 0;
+        while (ownerPackageNames.moveToNext()) {
+            ownerPackageNamesArr[i++] = ownerPackageNames.getString(0);
+        }
+        return ownerPackageNamesArr;
+    }
+
+    private String[] prepareSubstitution(SQLiteQueryBuilder qb,
+            String[] projection, Set<String> queryablePackages) {
+        projection = maybeReplaceNullProjection(projection, qb);
+        if (qb.getProjectionAllowlist() == null) {
+            qb.setProjectionAllowlist(new ArrayList<>());
+        }
+        final String[] newProjection = new String[projection.length];
+        for (int i = 0; i < projection.length; i++) {
+            if (!OWNER_PACKAGE_NAME.equalsIgnoreCase(projection[i])) {
+                newProjection[i] = projection[i];
+            } else {
+                newProjection[i] = constructOwnerPackageNameProjection(queryablePackages);
+                // Allow constructed owner_package_name column in projection
+                final String escapedColumnCase = Pattern.quote(newProjection[i]);
+                qb.getProjectionAllowlist().add(Pattern.compile(escapedColumnCase));
+            }
+        }
+        return newProjection;
+    }
+
+    private String[] maybeReplaceNullProjection(String[] projection, SQLiteQueryBuilder qb) {
+        // List all columns instead of placing "*" in the SQL query
+        // to be able to substitute owner_package_name column
+        if (projection == null) {
+            projection = qb.getAllColumnsFromProjectionMap();
+            // Allow all columns from the projection map
+            qb.setStrictColumns(false);
+        }
+        return projection;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private Set<String> getQueryablePackages(String[] packageNames) {
+        final boolean[] canBeQueriedInfo;
+        try {
+            canBeQueriedInfo = mPackageManager.canPackageQuery(
+                    mCallingIdentity.get().getPackageName(), packageNames);
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, "Invalid package name", e);
+            // If package manager throws an error, only assume calling package as queryable package
+            return new HashSet<>(Arrays.asList(mCallingIdentity.get().getPackageName()));
+        }
+
+        final Set<String> queryablePackages = new HashSet<>();
+        for (int i = 0; i < packageNames.length; i++) {
+            if (canBeQueriedInfo[i]) {
+                queryablePackages.add(packageNames[i]);
+            }
+        }
+        return queryablePackages;
+    }
+
     @NotNull
     private Cursor getReadGrantedMediaForPackage(Bundle extras) {
         final int caller = Binder.getCallingUid();
@@ -3868,67 +3974,23 @@ public class MediaProvider extends ContentProvider {
                 availableVolumes);
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private Set<String> getQueryablePackages(String[] packageNames) {
-        final boolean[] canPackageBeQueried;
-        try {
-            canPackageBeQueried = mPackageManager.canPackageQuery(
-                    mCallingIdentity.get().getPackageName(), packageNames);
-        } catch (NameNotFoundException e) {
-            Log.e(TAG, "Invalid package name", e);
-            // If package manager throws an error, only assume calling package as queryable package
-            return new HashSet<>(Arrays.asList(mCallingIdentity.get().getPackageName()));
-        }
-
-        final Set<String> queryablePackages = new HashSet<>();
-        for (int i = 0; i < packageNames.length; i++) {
-            if (canPackageBeQueried[i]) {
-                queryablePackages.add(packageNames[i]);
-            }
-        }
-        return queryablePackages;
+    @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private boolean shouldFilterOwnerPackageNameInProjection(SQLiteQueryBuilder qb,
+            String[] projection) {
+        return projectionNeedsOwnerPackageFiltering(projection, qb)
+            && isApplicableForOwnerPackageNameFiltering();
     }
 
-    private String[] getOwnerPackageNames(Cursor c) {
-        final Set<String> ownerPackageNames = new HashSet<>();
-        final int ownerPackageNameColIndex = c.getColumnIndex(MediaColumns.OWNER_PACKAGE_NAME);
-
-        while (c.moveToNext()) {
-            final String ownerPackageName = c.getString(ownerPackageNameColIndex);
-            if (!Strings.isNullOrEmpty(ownerPackageName)) {
-                ownerPackageNames.add(ownerPackageName);
-            }
-        }
-        c.moveToPosition(-1);
-
-        return ownerPackageNames.toArray(new String[0]);
+    private boolean isApplicableForOwnerPackageNameFiltering() {
+        return SdkLevel.isAtLeastU()
+                && getCallingPackageTargetSdkVersion() >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && !mCallingIdentity.get().checkCallingPermissionsOwnerPackageName();
     }
 
-    private Cursor filterOwnerPackageNames(@NonNull Cursor c,
-            @NonNull Set<String> queryablePackages) {
-        final MatrixCursor filteredCursor = new MatrixCursor(c.getColumnNames(), c.getCount());
-
-        while (c.moveToNext()) {
-            final MatrixCursor.RowBuilder row = filteredCursor.newRow();
-            for (int colIndex = 0; colIndex < c.getColumnCount(); colIndex++) {
-                if (OWNER_PACKAGE_NAME.equals(c.getColumnName(colIndex))
-                        && !queryablePackages.contains(c.getString(colIndex))) {
-                    row.add(null);
-                } else if (c.getType(colIndex) == FIELD_TYPE_BLOB) {
-                    row.add(c.getBlob(colIndex));
-                } else {
-                    row.add(c.getString(colIndex));
-                }
-            }
-        }
-        return filteredCursor;
-    }
-
-    private boolean isApplicableForOwnerPackageNameFiltering(Cursor c) {
-        return SdkLevel.isAtLeastU() && c != null
-                && Arrays.asList(c.getColumnNames()).contains(MediaColumns.OWNER_PACKAGE_NAME)
-                && getContext().checkPermission(QUERY_ALL_PACKAGES,
-                mCallingIdentity.get().pid, mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    private boolean projectionNeedsOwnerPackageFiltering(String[] proj, SQLiteQueryBuilder qb) {
+        return (proj != null && Arrays.asList(proj).contains(MediaColumns.OWNER_PACKAGE_NAME))
+                || (proj == null && qb.getProjectionMap() != null
+                    && qb.getProjectionMap().containsKey(OWNER_PACKAGE_NAME));
     }
 
     private boolean shouldFilterOwnerPackageNameFlag() {
@@ -6118,14 +6180,15 @@ public class MediaProvider extends ContentProvider {
         }
 
         // If caller is an older app, we're willing to let through a
-        // greylist of technically invalid columns
+        // allowlist of technically invalid columns
         if (getCallingPackageTargetSdkVersion() < Build.VERSION_CODES.Q) {
-            qb.setProjectionGreylist(sGreylist);
+            qb.setProjectionAllowlist(sAllowlist);
         }
 
         // Starting U, if owner package name is used in query arguments,
         // we are restricting result set to only self-owned packages.
-        if (shouldFilterOwnerPackageNameFlag() && shouldFilterByOwnerPackageName(extras, type)) {
+        if (shouldFilterOwnerPackageNameFlag()
+                && shouldFilterOwnerPackageNameInSelection(extras, type)) {
             Log.d(TAG, "Restricting result set to only packages owned by calling package: "
                     + mCallingIdentity.get().getSharedPackagesAsString());
             final String ownerPackageMatchClause = getWhereForOwnerPackageMatch(
@@ -6136,10 +6199,9 @@ public class MediaProvider extends ContentProvider {
         return qb;
     }
 
-    private boolean shouldFilterByOwnerPackageName(Bundle queryArgs, int type) {
-        return type == TYPE_QUERY && SdkLevel.isAtLeastU() && containsOwnerPackageName(queryArgs)
-                && getContext().checkPermission(QUERY_ALL_PACKAGES, mCallingIdentity.get().pid,
-                mCallingIdentity.get().uid) == PERMISSION_DENIED;
+    private boolean shouldFilterOwnerPackageNameInSelection(Bundle queryArgs, int type) {
+        return type == TYPE_QUERY && containsOwnerPackageName(queryArgs)
+                && isApplicableForOwnerPackageNameFiltering();
     }
 
     private boolean containsOwnerPackageName(Bundle queryArgs) {
@@ -6665,6 +6727,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 return getResultForGetCloudProvider();
             }
+            case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
+                return getResultForGetCloudProviderLabel();
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
             }
@@ -7080,6 +7145,23 @@ public class MediaProvider extends ContentProvider {
         bundle.putString(MediaStore.GET_CLOUD_PROVIDER_RESULT,
                 mPickerSyncController.getCloudProvider());
         return bundle;
+    }
+
+    @NotNull
+    private Bundle getResultForGetCloudProviderLabel() {
+        if (!checkPermissionSystem(Binder.getCallingUid())) {
+            throw new SecurityException(getSecurityExceptionMessage("Get cloud provider label"));
+        }
+        final Bundle res = new Bundle();
+        String cloudProviderLabel = null;
+        try {
+            cloudProviderLabel = mPickerSyncController.getCurrentCloudProviderLocalizedLabel();
+        } catch (UnableToAcquireLockException e) {
+            Log.d(TAG, "Timed out while attempting to acquire the cloud provider lock when getting "
+                    + "the cloud provider label.", e);
+        }
+        res.putString(META_DATA_PREFERENCE_SUMMARY, cloudProviderLabel);
+        return res;
     }
 
     @NotNull
@@ -11156,6 +11238,7 @@ public class MediaProvider extends ContentProvider {
                     "Deleting the internal volume is not allowed");
         }
 
+        mDatabaseBackupAndRecovery.onDetachVolume(volume);
         // Signal any scanning to shut down
         mMediaScanner.onDetachVolume(volume);
 
@@ -11275,24 +11358,24 @@ public class MediaProvider extends ContentProvider {
 
     /**
      * List of abusive custom columns that we're willing to allow via
-     * {@link SQLiteQueryBuilder#setProjectionGreylist(List)}.
+     * {@link SQLiteQueryBuilder#setProjectionAllowlist(Collection)}.
      */
-    static final ArrayList<Pattern> sGreylist = new ArrayList<>();
+    static final ArrayList<Pattern> sAllowlist = new ArrayList<>();
 
-    private static void addGreylistPattern(String pattern) {
-        sGreylist.add(Pattern.compile(" *" + pattern + " *"));
+    private static void addAllowlistPattern(String pattern) {
+        sAllowlist.add(Pattern.compile(" *" + pattern + " *"));
     }
 
     static {
         final String maybeAs = "( (as )?[_a-z0-9]+)?";
-        addGreylistPattern("(?i)[_a-z0-9]+" + maybeAs);
-        addGreylistPattern("audio\\._id AS _id");
-        addGreylistPattern(
+        addAllowlistPattern("(?i)[_a-z0-9]+" + maybeAs);
+        addAllowlistPattern("audio\\._id AS _id");
+        addAllowlistPattern(
                 "(?i)(min|max|sum|avg|total|count|cast)\\(([_a-z0-9]+"
                         + maybeAs
                         + "|\\*)\\)"
                         + maybeAs);
-        addGreylistPattern(
+        addAllowlistPattern(
                 "case when case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added"
                     + " \\* \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then"
                     + " date_added when \\(date_added >= \\d+ and date_added < \\d+\\) then"
@@ -11308,27 +11391,27 @@ public class MediaProvider extends ContentProvider {
                     + " \\d+ when \\(date_modified >= \\d+ and date_modified < \\d+\\) then"
                     + " date_modified when \\(date_modified >= \\d+ and date_modified < \\d+\\)"
                     + " then date_modified / \\d+ else \\d+ end end as corrected_added_modified");
-        addGreylistPattern(
+        addAllowlistPattern(
                 "MAX\\(case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\*"
                     + " \\d+ when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when"
                     + " \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else"
                     + " \\d+ end\\)");
-        addGreylistPattern(
+        addAllowlistPattern(
                 "MAX\\(case when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added \\*"
                     + " \\d+ when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added"
                     + " when \\(date_added >= \\d+ and date_added < \\d+\\) then date_added / \\d+"
                     + " else \\d+ end\\)");
-        addGreylistPattern(
+        addAllowlistPattern(
                 "MAX\\(case when \\(date_modified >= \\d+ and date_modified < \\d+\\) then"
                     + " date_modified \\* \\d+ when \\(date_modified >= \\d+ and date_modified <"
                     + " \\d+\\) then date_modified when \\(date_modified >= \\d+ and date_modified"
                     + " < \\d+\\) then date_modified / \\d+ else \\d+ end\\)");
-        addGreylistPattern("\"content://media/[a-z]+/audio/media\"");
-        addGreylistPattern(
+        addAllowlistPattern("\"content://media/[a-z]+/audio/media\"");
+        addAllowlistPattern(
                 "substr\\(_data, length\\(_data\\)-length\\(_display_name\\), 1\\) as"
                     + " filename_prevchar");
-        addGreylistPattern("\\*" + maybeAs);
-        addGreylistPattern(
+        addAllowlistPattern("\\*" + maybeAs);
+        addAllowlistPattern(
                 "case when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken \\* \\d+"
                     + " when \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken when"
                     + " \\(datetaken >= \\d+ and datetaken < \\d+\\) then datetaken / \\d+ else"

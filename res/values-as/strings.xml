@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"পূৰ্বদৰ্শন কৰক"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"কৰ্মস্থানৰ প্ৰ’ফাইললৈ সলনি কৰক"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ব্যক্তিগত প্ৰ’ফাইললৈ সলনি কৰক"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ব্যক্তিগত"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"আপোনাৰ প্ৰশাসকে অৱৰোধ কৰিছে"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ব্যক্তিগত এপৰ পৰা কৰ্মস্থানৰ ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"কাম সম্পর্কীয় এপৰ পৰা ব্যক্তিগত ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"পাছত পুনৰ চেষ্টা কৰক। সমস্যাটো সমাধান হোৱাৰ পাছত আপোনাৰ ফট’সমূহ উপলব্ধ হ’ব।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"কিছুমান ফট’ ল’ড কৰিব নোৱাৰি"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"বুজি পালোঁ"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

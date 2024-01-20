@@ -66,6 +66,8 @@
     <string name="picker_preview" msgid="6257414886055861039">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ಉದ್ಯೋಗ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ವೈಯಕ್ತಿಕ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
+    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
+    <skip />
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ವೈಯಕ್ತಿಕ ಆ್ಯಪ್‌ನಿಂದ ಉದ್ಯೋಗದ ಡೇಟಾವನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಆ್ಯಪ್ ಮೂಲಕ ಅಧಿಕೃತ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
@@ -160,4 +162,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ. ಸಮಸ್ಯೆ ಬಗೆಹರಿದ ನಂತರ ನಿಮ್ಮ ಫೋಟೋಗಳು ಲಭ್ಯವಿರುತ್ತವೆ."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ಕೆಲವು ಫೋಟೋಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ಅರ್ಥವಾಯಿತು"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

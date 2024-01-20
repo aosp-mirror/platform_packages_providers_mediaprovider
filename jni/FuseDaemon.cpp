@@ -2770,6 +2770,33 @@ std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
     return resultMap;
 }
 
+void FuseDaemon::RemoveLevelDbConnections(const std::string& volume_name) {
+    std::map<std::string, std::string> resultMap;
+    if (!CheckLevelDbConnection(volume_name)) {
+        LOG(ERROR) << "Skipping connection removal, as level db connection is missing.";
+        return;
+    }
+
+    RemoveConnectionForInstance(volume_name);
+    if (android::base::EqualsIgnoreCase(volume_name, VOLUME_EXTERNAL_PRIMARY)) {
+        RemoveConnectionForInstance(VOLUME_INTERNAL);
+        RemoveConnectionForInstance(OWNERSHIP_RELATION);
+    }
+}
+
+void FuseDaemon::RemoveConnectionForInstance(const std::string& instance_name) {
+    if (!CheckLevelDbConnection(instance_name)) {
+        LOG(ERROR) << "Skipping connection removal, as level db connection is missing.";
+        return;
+    }
+
+    fuse->level_db_mutex.lock();
+    leveldb::DB* db = fuse->level_db_connection_map[instance_name];
+    delete db;
+    fuse->level_db_connection_map.erase(instance_name);
+    fuse->level_db_mutex.unlock();
+}
+
 bool FuseDaemon::CheckLevelDbConnection(const std::string& instance_name) {
     if (fuse->level_db_connection_map.find(instance_name) == fuse->level_db_connection_map.end()) {
         LOG(ERROR) << "Leveldb setup is missing for: " << instance_name;

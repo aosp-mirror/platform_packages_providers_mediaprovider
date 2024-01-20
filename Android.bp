@@ -96,9 +96,7 @@ android_app {
     required: ["preinstalled-packages-com.android.providers.media.module.xml"],
 
     lint: {
-        strict_updatability_linting: true,
         baseline_filename: "lint-baseline.xml",
-
     },
 
     apex_available: [

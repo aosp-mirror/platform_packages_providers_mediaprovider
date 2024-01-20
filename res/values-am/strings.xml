@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ቅድመ-ዕይታ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ወደ የሥራ ቀይር"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ወደ የግል ቀይር"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"የግል"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"በእርስዎ አስተዳዳሪ ታግዷል"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"የስራ ውሂብን ከግል መተግበሪያ መድረስ አይፈቀድም"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"የግል ውሂብን ከሥራ መተግበሪያ መድረስ አይፈቀድም"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"ቆይተው እንደገና ይሞክሩ። የእርስዎ ፎቶዎች አንዴ ችግሩ ከተፈታ በኋላ ይገኛሉ።"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"አንዳንድ ፎቶዎችን መጫን አይቻለም"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ገባኝ"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

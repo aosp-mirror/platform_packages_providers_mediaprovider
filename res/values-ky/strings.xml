@@ -66,6 +66,8 @@
     <string name="picker_preview" msgid="6257414886055861039">"Алдын ала көрүү"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Жумуш профилине которулуу"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Жеке профилге которулуу"</string>
+    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
+    <skip />
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Администраторуңуз бөгөттөп койгон"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Жумушка байланыштуу маалыматка жеке колдонмодон кирүүгө тыюу салынат"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке маалыматка жумуш колдонмосунан кирүүгө тыюу салынат"</string>
@@ -160,4 +162,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Бир аздан кийин кайталап көрүңүз. Сүрөттөрүңүздү маселе чечилгенден кийин көрө аласыз."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Айрым сүрөттөр жүктөлбөй жатат"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Түшүндүм"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

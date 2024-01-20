@@ -84,6 +84,7 @@ bootclasspath_fragment {
         // API.
         split_packages: [
             "android.graphics.pdf",
+            "android.graphics.pdf.flags",
             "android.provider",
         ],
     },

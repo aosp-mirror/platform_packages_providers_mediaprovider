@@ -1,4 +1,4 @@
-// Copyright (C) 2019 The Android Open Source Project
+// Copyright (C) 2024 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@ java_sdk_library {
     permitted_packages: [
         "android.graphics.pdf",
     ],
+    static_libs: [
+        "pdf_viewer_flags_java_lib",
+    ],
     apex_available: [
         "com.android.mediaprovider",
     ],
@@ -51,4 +54,26 @@ java_api_contribution {
     visibility: [
         "//build/orchestrator/apis",
     ],
+}
+
+aconfig_declarations {
+    name: "pdf_viewer_flags",
+    package: "android.graphics.pdf.flags",
+    srcs: [
+        "pdf_viewer_flags.aconfig",
+    ],
+}
+
+java_aconfig_library {
+    name: "pdf_viewer_flags_java_lib",
+    aconfig_declarations: "pdf_viewer_flags",
+    visibility: [
+        "//packages/provider/MediaProvider/pdf:__subpackages__",
+    ],
+    min_sdk_version: "30",
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
+    defaults: ["framework-minus-apex-aconfig-java-defaults"],
+
 }

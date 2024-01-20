@@ -1,0 +1,11 @@
+package: "android.graphics.pdf.flags"
+
+# All the flags that we are adding into Android V release have to be fixed read only.
+
+flag {
+    name: "enable_pdf_viewer"
+    namespace: "pdf_viewer"
+    description: "This flag controls whether to enable pdf viewer APIs."
+    bug: "319561098"
+    is_fixed_read_only: true
+}

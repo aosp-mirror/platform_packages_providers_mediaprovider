@@ -66,6 +66,8 @@
     <string name="picker_preview" msgid="6257414886055861039">"மாதிரிக்காட்சி"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"பணிச் சுயவிவரத்திற்கு மாறு"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"தனிப்பட்ட சுயவிவரத்திற்கு மாறு"</string>
+    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
+    <skip />
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"உங்கள் நிர்வாகி தடைசெய்துள்ளார்"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"தனிப்பட்ட ஆப்ஸிலிருந்து பணித் தரவை அணுக அனுமதியில்லை"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"பணி ஆப்ஸிலிருந்து தனிப்பட்ட தரவை அணுக அனுமதியில்லை"</string>
@@ -160,4 +162,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"பிறகு மீண்டும் முயலவும். சிக்கல் சரியானதும் உங்கள் படங்கள் கிடைக்கும்."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"சில படங்களை ஏற்ற முடியவில்லை"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"சரி"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

@@ -47,6 +47,7 @@ import com.android.providers.media.DatabaseHelper;
 
 import com.google.common.base.Strings;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -86,7 +87,7 @@ public class SQLiteQueryBuilder {
             "(?i)custom_[a-zA-Z]+");
 
     private Map<String, String> mProjectionMap = null;
-    private Collection<Pattern> mProjectionGreylist = null;
+    private Collection<Pattern> mProjectionAllowlist = null;
 
     private String mTables = "";
     private StringBuilder mWhereClause = null;  // lazily created
@@ -118,6 +119,34 @@ public class SQLiteQueryBuilder {
 
     public SQLiteQueryBuilder() {
         mDistinct = false;
+    }
+
+    /**
+     * Constructs a new SQLiteQueryBuilder instance as a copy of existing one.
+     *
+     * @param qb an instance to copy.
+     */
+    public SQLiteQueryBuilder(SQLiteQueryBuilder qb) {
+        if (qb != null) {
+            if (qb.mProjectionMap != null) {
+                final ArrayMap<String, String> projectionMapCopy = new ArrayMap<>();
+                projectionMapCopy.putAll(qb.mProjectionMap);
+                this.mProjectionMap = projectionMapCopy;
+            }
+
+            if (qb.mProjectionAllowlist != null) {
+                this.mProjectionAllowlist = new ArrayList<>(qb.mProjectionAllowlist);
+            }
+
+            if (qb.mWhereClause != null) {
+                this.mWhereClause = new StringBuilder(qb.mWhereClause);
+            }
+
+            this.mTables = qb.mTables;
+            this.mDistinct = qb.mDistinct;
+            this.mStrictFlags = qb.mStrictFlags;
+            this.mTargetSdkVersion = qb.mTargetSdkVersion;
+        }
     }
 
     /**
@@ -251,20 +280,20 @@ public class SQLiteQueryBuilder {
     }
 
     /**
-     * Sets a projection greylist of columns that will be allowed through, even
+     * Sets a projection allowlist of columns that will be allowed through, even
      * when {@link #setStrict(boolean)} is enabled. This provides a way for
      * abusive custom columns like {@code COUNT(*)} to continue working.
      */
-    public void setProjectionGreylist(@Nullable Collection<Pattern> projectionGreylist) {
-        mProjectionGreylist = projectionGreylist;
+    public void setProjectionAllowlist(@Nullable Collection<Pattern> projectionAllowlist) {
+        mProjectionAllowlist = projectionAllowlist;
     }
 
     /**
-     * Gets the projection greylist for the query, as last configured by
-     * {@link #setProjectionGreylist}.
+     * Gets the projection allowlist for the query, as last configured by
+     * {@link #setProjectionAllowlist}.
      */
-    public @Nullable Collection<Pattern> getProjectionGreylist() {
-        return mProjectionGreylist;
+    public @Nullable Collection<Pattern> getProjectionAllowlist() {
+        return mProjectionAllowlist;
     }
 
     /**
@@ -1023,8 +1052,14 @@ public class SQLiteQueryBuilder {
                 projectionOut[i] = computeSingleProjectionOrThrow(projectionIn[i]);
             }
             return projectionOut;
-        } else if (mProjectionMap != null) {
-            // Return all columns in projection map.
+        } else {
+            return getAllColumnsFromProjectionMap();
+        }
+    }
+
+    /** {@hide} */
+    public String[] getAllColumnsFromProjectionMap() {
+        if (mProjectionMap != null) {
             Set<Entry<String, String>> entrySet = mProjectionMap.entrySet();
             String[] projection = new String[entrySet.size()];
             Iterator<Entry<String, String>> entryIter = entrySet.iterator();
@@ -1085,11 +1120,11 @@ public class SQLiteQueryBuilder {
             return maybeWithOperator(operator, userColumn);
         }
 
-        // If greylist is configured, we might be willing to let
+        // If allowlist is configured, we might be willing to let
         // this custom column bypass our strict checks.
-        if (mProjectionGreylist != null) {
+        if (mProjectionAllowlist != null) {
             boolean match = false;
-            for (Pattern p : mProjectionGreylist) {
+            for (Pattern p : mProjectionAllowlist) {
                 if (p.matcher(userColumn).matches()) {
                     match = true;
                     break;

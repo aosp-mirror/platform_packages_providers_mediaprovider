@@ -126,6 +126,7 @@ package android.provider {
     method public static void notifyCloudMediaChangedEvent(@NonNull android.content.ContentResolver, @NonNull String, @NonNull String) throws java.lang.SecurityException;
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
+    field @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission") public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION = "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
     field public static final String ACTION_IMAGE_CAPTURE_SECURE = "android.media.action.IMAGE_CAPTURE_SECURE";
     field public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";

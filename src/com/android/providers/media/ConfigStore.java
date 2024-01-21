@@ -69,6 +69,7 @@ public interface ConfigStore {
     boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
     boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
+    boolean DEFAULT_PICKER_PRIVATE_SPACE_ENABLED = false;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -76,6 +77,13 @@ public interface ConfigStore {
      */
     default boolean isCloudMediaInPhotoPickerEnabled() {
         return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
+    }
+
+    /**
+     * @return if the Private-Space-in-Photo-Picker enabled
+     */
+    default boolean isPrivateSpaceInPhotoPickerEnabled() {
+        return DEFAULT_PICKER_PRIVATE_SPACE_ENABLED;
     }
 
     /**

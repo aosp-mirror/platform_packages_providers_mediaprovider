@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"پیش‌نما"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"رفتن به نمایه کاری"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"رفتن به نمایه شخصی"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"شخصی"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"سرپرست آن را مسدود کرده است"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"دسترسی به داده‌های کاری ازطریق برنامه شخصی مجاز نیست"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"دسترسی به داده‌های شخصی ازطریق برنامه کاری مجاز نیست"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"بعداً دوباره امتحان کنید. عکس‌هایتان پس‌از رفع مشکل دردسترس خواهد بود."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"برخی‌از عکس‌ها را نمی‌توان بار کرد"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"متوجه‌ام"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

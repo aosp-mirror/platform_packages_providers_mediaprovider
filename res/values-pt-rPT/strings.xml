@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Pré-visualizar"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Mudar para trabalho"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Mudar para pessoal"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Pessoal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqueado pelo administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"O acesso aos dados de trabalho a partir de uma app pessoal não é permitido"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"O acesso aos dados pessoais a partir de uma app de trabalho não é permitido"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Tente mais tarde. As suas fotos vão estar disponíveis quando o problema estiver resolvido."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Não é possível carregar algumas fotos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

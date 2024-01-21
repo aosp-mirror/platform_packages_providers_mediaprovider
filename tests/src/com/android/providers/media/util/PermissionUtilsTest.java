@@ -50,6 +50,7 @@ import static com.android.providers.media.util.PermissionUtils.checkPermissionRe
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadVisualUserSelected;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionSelf;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionShell;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionSystem;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionWriteStorage;
@@ -66,6 +67,7 @@ import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Process;
 import android.os.SystemClock;
 
 import androidx.test.filters.SdkSuppress;
@@ -165,7 +167,7 @@ public class PermissionUtilsTest {
             assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();
@@ -199,8 +201,8 @@ public class PermissionUtilsTest {
         try {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(checkPermissionShell(testAppUid)).isFalse();
-            assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName, null))
-                    .isFalse();
+            assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
+                        null,  /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(checkPermissionInstallPackages(
                         getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
             assertThat(checkPermissionAccessMtp(
@@ -242,7 +244,7 @@ public class PermissionUtilsTest {
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* isTargetSdkAtLeastR */ true)).isFalse();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                         packageName, null)).isFalse();
@@ -291,7 +293,7 @@ public class PermissionUtilsTest {
 
             assertThat(
                     checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                            null)).isTrue();
+                            null, /* isTargetSdkAtLeastR */ false)).isTrue();
             assertThat(
                     checkPermissionInstallPackages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null)).isFalse();
@@ -634,6 +636,15 @@ public class PermissionUtilsTest {
         } finally {
             dropShellPermission();
         }
+    }
+
+    @Test
+    public void testSystemPermission() {
+        // false cases
+        assertThat(checkPermissionSystem(Process.ROOT_UID)).isFalse();
+        assertThat(checkPermissionSystem(Process.SHELL_UID)).isFalse();
+        // true cases
+        assertThat(checkPermissionSystem(Process.SYSTEM_UID)).isTrue();
     }
 
     static private void modifyAppOp(int uid, String op, int mode) {

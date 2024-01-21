@@ -66,6 +66,8 @@
     <string name="picker_preview" msgid="6257414886055861039">"पूर्वावलोकन"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ऑफिसवर स्विच करा"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"वैयक्तिकवर स्विच करा"</string>
+    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
+    <skip />
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"तुमच्या ॲडमिनने ब्लॉक केले"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"वैयक्तिक ॲपवरून कामाशी संबंधित डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामाशी संबंधित ॲपवरून वैयक्तिक डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
@@ -160,4 +162,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"नंतर पुन्हा प्रयत्न करा. समस्येचे निराकरण झाल्यावर तुमचे फोटो उपलब्ध होतील."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"काही फोटो लोड करू शकत नाही"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"समजले"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

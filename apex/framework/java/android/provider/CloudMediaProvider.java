@@ -491,6 +491,9 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @Override
     public final Cursor query(@NonNull Uri uri, @Nullable String[] projection,
             @Nullable Bundle queryArgs, @Nullable CancellationSignal cancellationSignal) {
+        if (queryArgs == null) {
+            queryArgs = new Bundle();
+        }
         switch (mMatcher.match(uri)) {
             case MATCH_MEDIAS:
                 return onQueryMedia(queryArgs);

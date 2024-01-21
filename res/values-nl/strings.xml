@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Voorbeeld"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Overschakelen naar werkprofiel"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Overschakelen naar persoonlijk profiel"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Persoonlijk"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Geblokkeerd door je beheerder"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Het is niet toegestaan om werkgegevens te openen via een persoonlijke app"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Het is niet toegestaan om persoonsgegevens te openen via een werk-app"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Probeer het later opnieuw. Je foto\'s komen beschikbaar nadat het probleem is opgelost."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Kan bepaalde foto\'s niet laden"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

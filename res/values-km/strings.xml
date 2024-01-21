@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"មើល​សាកល្បង"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ការងារ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ប្ដូរទៅ​កម្រងព័ត៌មាន​ផ្ទាល់ខ្លួន"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ផ្ទាល់ខ្លួន"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"បានទប់ស្កាត់ដោយអ្នកគ្រប់គ្រងរបស់អ្នក"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ការចូលប្រើទិន្នន័យការងារពីកម្មវិធី​ផ្ទាល់ខ្លួនមិនត្រូវបានអនុញ្ញាតទេ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ការចូលប្រើទិន្នន័យផ្ទាល់ខ្លួនពីកម្មវិធី​ការងារមិនត្រូវបានអនុញ្ញាតទេ"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។ រូបថត​របស់អ្នក​នឹងអាចប្រើបាន បន្ទាប់ពី​ដោះស្រាយ​បញ្ហា។"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"មិនអាចផ្ទុករូបថតមួយចំនួនបានទេ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"យល់ហើយ"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

@@ -66,6 +66,8 @@
     <string name="picker_preview" msgid="6257414886055861039">"Урьдчилан үзэх"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Ажлын профайл руу сэлгэх"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Хувийн профайл руу сэлгэх"</string>
+    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
+    <skip />
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Танай админ блоклосон"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Хувийн аппаас ажлын өгөгдөлд хандахыг зөвшөөрдөггүй"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ажлын аппаас хувийн өгөгдөлд хандахыг зөвшөөрдөггүй"</string>
@@ -160,4 +162,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Дараа дахин оролдоно уу. Асуудлыг шийдвэрлэсний дараа таны зургууд боломжтой болно."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Зарим зургийг ачаалах боломжгүй"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ойлголоо"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

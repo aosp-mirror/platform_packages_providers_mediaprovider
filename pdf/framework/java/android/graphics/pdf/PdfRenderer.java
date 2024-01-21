@@ -32,10 +32,9 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.CloseGuard;
+import android.util.Log;
 
 import com.android.internal.util.Preconditions;
-
-import libcore.io.IoUtils;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
@@ -118,6 +117,7 @@ public final class PdfRenderer implements AutoCloseable {
         System.loadLibrary("pdf");
     }
 
+    private static final String TAG = PdfRenderer.class.getSimpleName();
     private final CloseGuard mCloseGuard = new CloseGuard();
 
     private final Point mTempPoint = new Point();
@@ -186,7 +186,7 @@ public final class PdfRenderer implements AutoCloseable {
     private static native boolean nativeScaleForPrinting(long documentPtr);
 
     private static native void nativeRenderPage(long documentPtr, long pagePtr, Bitmap bitmap,
-            int clipLeft, int clipTop, int clipRight, int clipBottom, long transformPtr,
+            int clipLeft, int clipTop, int clipRight, int clipBottom, float[] transform,
             int renderMode);
 
     private static native long nativeOpenPageAndGetSize(long documentPtr, int pageIndex,
@@ -279,10 +279,20 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         if (mInput != null) {
-            IoUtils.closeQuietly(mInput);
+            closeQuietly(mInput);
             mInput = null;
         }
         mCloseGuard.close();
+    }
+
+    private void closeQuietly(@NonNull AutoCloseable closeable) {
+        try {
+            closeable.close();
+        } catch (RuntimeException rethrown) {
+            throw rethrown;
+        } catch (Exception ignored) {
+            Log.w(TAG, "close operation failed.");
+        }
     }
 
     private void throwIfClosed() {
@@ -460,13 +470,12 @@ public final class PdfRenderer implements AutoCloseable {
                 transform.postTranslate(contentLeft, contentTop);
             }
 
-            // FIXME: This code is planned to be outside the UI rendering module, so it should not
-            // be able to access native instances from Bitmap, Matrix, etc.
-            final long transformPtr = transform.ni();
+            float[] transformArr = new float[9];
+            transform.getValues(transformArr);
 
             synchronized (sPdfiumLock) {
                 nativeRenderPage(mNativeDocument, mNativePage, destination, contentLeft,
-                        contentTop, contentRight, contentBottom, transformPtr, renderMode);
+                        contentTop, contentRight, contentBottom, transformArr, renderMode);
             }
         }
 

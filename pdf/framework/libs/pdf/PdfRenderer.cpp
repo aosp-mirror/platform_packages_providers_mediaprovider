@@ -22,8 +22,23 @@
 #include <vector>
 
 #include "PdfUtils.h"
-#include "SkMatrix.h"
 #include "fpdfview.h"
+
+namespace {
+/**
+ * Matrix organizes its values in row-major order. These constants correspond to each
+ * value in Matrix.
+ */
+constexpr int kMScaleX = 0;  // horizontal scale factor
+constexpr int kMSkewX = 1;   // horizontal skew factor
+constexpr int kMTransX = 2;  // horizontal translation
+constexpr int kMSkewY = 3;   // vertical skew factor
+constexpr int kMScaleY = 4;  // vertical scale factor
+constexpr int kMTransY = 5;  // vertical translation
+constexpr int kMPersp0 = 6;  // input x perspective factor
+constexpr int kMPersp1 = 7;  // input y perspective factor
+constexpr int kMPersp2 = 8;  // perspective bias
+}  // namespace
 
 namespace android {
 
@@ -67,7 +82,7 @@ static void nativeClosePage(JNIEnv* env, jclass thiz, jlong pagePtr) {
 
 static void nativeRenderPage(JNIEnv* env, jclass thiz, jlong documentPtr, jlong pagePtr,
                              jobject jbitmap, jint clipLeft, jint clipTop, jint clipRight,
-                             jint clipBottom, jlong transformPtr, jint renderMode) {
+                             jint clipBottom, jfloatArray jtransform, jint renderMode) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
 
     void* bitmap_pixels;
@@ -92,22 +107,22 @@ static void nativeRenderPage(JNIEnv* env, jclass thiz, jlong documentPtr, jlong 
         renderFlags |= FPDF_PRINTING;
     }
 
-    SkMatrix matrix = *reinterpret_cast<SkMatrix*>(transformPtr);
-    SkScalar transformValues[6];
-    if (!matrix.asAffine(transformValues)) {
+    float transform[9];
+    env->GetFloatArrayRegion(jtransform, 0, 9, transform);
+    // Transforms with perspective are unsupported by pdfium, and are documented to be unsupported
+    // by the API.
+    if (transform[kMPersp0] != 0 || transform[kMPersp1] != 0 || transform[kMPersp2] != 1) {
         jniThrowException(env, "java/lang/IllegalArgumentException",
-                          "transform matrix has perspective. Only affine matrices are allowed.");
+                          "Non-affine transform provided.");
         AndroidBitmap_unlockPixels(env, jbitmap);
         return;
     }
 
-    FS_MATRIX transform = {
-            transformValues[SkMatrix::kAScaleX], transformValues[SkMatrix::kASkewY],
-            transformValues[SkMatrix::kASkewX],  transformValues[SkMatrix::kAScaleY],
-            transformValues[SkMatrix::kATransX], transformValues[SkMatrix::kATransY]};
+    FS_MATRIX pdfTransform = {transform[kMScaleX], transform[kMSkewY],  transform[kMSkewX],
+                              transform[kMScaleY], transform[kMTransX], transform[kMTransY]};
 
     FS_RECTF clip = {(float)clipLeft, (float)clipTop, (float)clipRight, (float)clipBottom};
-    FPDF_RenderPageBitmapWithMatrix(bitmap, page, &transform, &clip, renderFlags);
+    FPDF_RenderPageBitmapWithMatrix(bitmap, page, &pdfTransform, &clip, renderFlags);
 
     if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
         jniThrowException(env, "java/lang/IllegalStateException", "Could not unlock Bitmap pixels.");
@@ -120,7 +135,7 @@ static const JNINativeMethod gPdfRenderer_Methods[] = {
         {"nativeClose", "(J)V", (void*)nativeClose},
         {"nativeGetPageCount", "(J)I", (void*)nativeGetPageCount},
         {"nativeScaleForPrinting", "(J)Z", (void*)nativeScaleForPrinting},
-        {"nativeRenderPage", "(JJLandroid/graphics/Bitmap;IIIIJI)V", (void*)nativeRenderPage},
+        {"nativeRenderPage", "(JJLandroid/graphics/Bitmap;IIII[FI)V", (void*)nativeRenderPage},
         {"nativeOpenPageAndGetSize", "(JILandroid/graphics/Point;)J",
          (void*)nativeOpenPageAndGetSize},
         {"nativeClosePage", "(J)V", (void*)nativeClosePage}};

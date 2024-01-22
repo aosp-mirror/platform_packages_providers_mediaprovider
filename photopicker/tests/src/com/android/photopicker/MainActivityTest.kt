@@ -24,7 +24,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** This test class will run Photopicker's actual MainActivity. */
+/**
+ * This test class will run Photopicker's actual MainActivity.
+ */
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
     @get:Rule

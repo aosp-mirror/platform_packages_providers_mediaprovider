@@ -4,37 +4,50 @@ package {
 }
 
 android_library {
-  name: "PhotopickerLib",
-  manifest: "AndroidManifest.xml",
-  srcs: [ "src/**/*.kt"],
-  resource_dirs: ["res"],
-  sdk_version: "module_current",
-  min_sdk_version: "30",
-  static_libs: [
+    name: "PhotopickerLib",
+    manifest: "AndroidManifest.xml",
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    sdk_version: "module_current",
+    min_sdk_version: "30",
+    libs: [
+        "framework-connectivity.stubs.module_lib",
+    ],
+    static_libs: [
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui",
         "androidx.core_core-ktx",
-  ],
-  apex_available: ["//apex_available:platform", "com.android.mediaprovider"],
+        "androidx.lifecycle_lifecycle-runtime-compose",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "hilt_android",
+        "kotlin-stdlib",
+        "kotlinx-coroutines-android",
+        "kotlinx_coroutines",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.mediaprovider",
+    ],
 }
 
 android_app {
-  name: "Photopicker",
-  manifest: "AndroidManifest.xml",
-  static_libs: [
+    name: "Photopicker",
+    manifest: "AndroidManifest.xml",
+    static_libs: [
         "PhotopickerLib",
-  ],
-  plugins: [],
-  kotlincflags: ["-Xjvm-default=all"],
-  libs: [ ],
-  certificate: "media",
-  privileged: true,
-  sdk_version: "module_current",
-  min_sdk_version: "30",
-  apex_available: ["//apex_available:platform", "com.android.mediaprovider"],
+    ],
+    plugins: [],
+    kotlincflags: ["-Xjvm-default=all"],
+    certificate: "media",
+    privileged: true,
+    sdk_version: "module_current",
+    min_sdk_version: "30",
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.mediaprovider",
+    ],
 
 }
-

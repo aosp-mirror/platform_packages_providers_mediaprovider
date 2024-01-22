@@ -22,12 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-/**
- * This is the top of the Compose UI node tree. This is called from the MainActivity and is the
- * top-most [@Composable] in the application. This should not be called except inside an Activity's
- * [setContent] block.
- */
 @Composable
-fun PhotopickerApp() {
-    Surface(modifier = Modifier.fillMaxSize()) { Text("Hello World from Photopicker!") }
+fun PhotopickerApp()  {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Text("Hello World from Photopicker!")
+    }
 }

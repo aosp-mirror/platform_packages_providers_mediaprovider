@@ -20,7 +20,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.android.photopicker.core.PhotopickerApp
-import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * This is the main entrypoint into the Android Photopicker.
@@ -28,15 +27,15 @@ import dagger.hilt.android.AndroidEntryPoint
  * This class is responsible for bootstrapping the launched activity, session related dependencies,
  * and providing the compose ui entrypoint in [[PhotopickerApp]] with everything it needs.
  */
-@AndroidEntryPoint(ComponentActivity::class)
-class MainActivity : Hilt_MainActivity() {
+class MainActivity : ComponentActivity() {
     companion object {
         val TAG: String = "Photopicker"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        setContent { PhotopickerApp() }
+        setContent {
+            PhotopickerApp()
+        }
     }
 }

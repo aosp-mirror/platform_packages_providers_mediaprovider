@@ -20,28 +20,21 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Unit tests for the main PhotopickerApp composable.
- */
+/** Unit tests for the main PhotopickerApp composable. */
 @RunWith(AndroidJUnit4::class)
 class PhotopickerAppTest {
 
-  @get:Rule
-  val composeTestRule = createComposeRule()
+    @get:Rule val composeTestRule = createComposeRule()
 
-  @Test
-  fun testPhotopickerApp(){
+    @Test
+    fun testPhotopickerApp() {
 
-    composeTestRule.setContent{
-      PhotopickerApp()
+        composeTestRule.setContent { PhotopickerApp() }
+
+        composeTestRule.onNodeWithText("Hello World from Photopicker!").assertIsDisplayed()
     }
-
-    composeTestRule.onNodeWithText("Hello World from Photopicker!").assertIsDisplayed()
-  }
-
 }

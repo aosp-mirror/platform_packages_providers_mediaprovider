@@ -1,26 +1,29 @@
-
 android_test {
 
-  name: "PhotopickerTests",
-  test_suites: ["general-tests"],
-  manifest: "AndroidManifest.xml",
-  srcs: ["src/**/*.kt"],
-  compile_multilib: "both",
-  certificate: "media",
-  sdk_version: "module_current",
-  min_sdk_version: "30",
-  static_libs: [
-    // sources
-    "PhotopickerLib",
+    name: "PhotopickerTests",
+    test_suites: ["general-tests"],
+    manifest: "AndroidManifest.xml",
+    srcs: ["src/**/*.kt"],
+    compile_multilib: "both",
+    certificate: "media",
+    sdk_version: "module_current",
+    min_sdk_version: "30",
+    libs: [
+        "framework-connectivity.stubs.module_lib",
+    ],
+    static_libs: [
+        // sources
+        "PhotopickerLib", // test dependencies
 
-    // test dependencies
-    "androidx.test.core",
-    "androidx.test.rules",
-    "androidx.compose.runtime_runtime",
-    "androidx.compose.ui_ui-test-junit4",
-    "androidx.compose.ui_ui-test-manifest",
-  ],
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.ui_ui-test-junit4",
+        "androidx.compose.ui_ui-test-manifest",
+        "androidx.test.core",
+        "androidx.test.rules",
+        "mockito-target",
+        "truth",
+    ],
 
-  aaptflags: ["--custom-package com.android.photopicker"],
+    aaptflags: ["--custom-package com.android.photopicker"],
 
 }

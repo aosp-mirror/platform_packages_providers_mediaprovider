@@ -26,6 +26,7 @@ android_library {
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_coroutines",
+        "modules-utils-build",
     ],
     apex_available: [
         "//apex_available:platform",

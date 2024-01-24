@@ -185,7 +185,7 @@ public final class PdfRenderer implements AutoCloseable {
 
     private static native boolean nativeScaleForPrinting(long documentPtr);
 
-    private static native void nativeRenderPage(long documentPtr, long pagePtr, long bitmapHandle,
+    private static native void nativeRenderPage(long documentPtr, long pagePtr, Bitmap bitmap,
             int clipLeft, int clipTop, int clipRight, int clipBottom, long transformPtr,
             int renderMode);
 
@@ -465,9 +465,8 @@ public final class PdfRenderer implements AutoCloseable {
             final long transformPtr = transform.ni();
 
             synchronized (sPdfiumLock) {
-                nativeRenderPage(mNativeDocument, mNativePage, destination.getNativeInstance(),
-                        contentLeft, contentTop, contentRight, contentBottom, transformPtr,
-                        renderMode);
+                nativeRenderPage(mNativeDocument, mNativePage, destination, contentLeft,
+                        contentTop, contentRight, contentBottom, transformPtr, renderMode);
             }
         }
 

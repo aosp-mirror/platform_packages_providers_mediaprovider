@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+#include <android/bitmap.h>
+#include <nativehelper/JNIHelp.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <vector>
 
 #include "PdfUtils.h"
-#include "SkBitmap.h"
 #include "SkMatrix.h"
 #include "fpdfview.h"
 
@@ -65,17 +66,24 @@ static void nativeClosePage(JNIEnv* env, jclass thiz, jlong pagePtr) {
 }
 
 static void nativeRenderPage(JNIEnv* env, jclass thiz, jlong documentPtr, jlong pagePtr,
-                             jlong bitmapPtr, jint clipLeft, jint clipTop, jint clipRight,
+                             jobject jbitmap, jint clipLeft, jint clipTop, jint clipRight,
                              jint clipBottom, jlong transformPtr, jint renderMode) {
     FPDF_PAGE page = reinterpret_cast<FPDF_PAGE>(pagePtr);
 
-    SkBitmap skBitmap;
-    bitmap::toBitmap(bitmapPtr).getSkBitmap(&skBitmap);
+    void* bitmap_pixels;
+    if (AndroidBitmap_lockPixels(env, jbitmap, &bitmap_pixels) < 0) {
+        jniThrowException(env, "java/lang/IllegalStateException",
+                          "Could not extract pixel address from bitmap.");
+        return;
+    }
 
-    const int stride = skBitmap.width() * 4;
+    AndroidBitmapInfo info;
+    AndroidBitmap_getInfo(env, jbitmap, &info);
 
-    FPDF_BITMAP bitmap = FPDFBitmap_CreateEx(skBitmap.width(), skBitmap.height(), FPDFBitmap_BGRA,
-                                             skBitmap.getPixels(), stride);
+    const int stride = info.width * 4;
+
+    FPDF_BITMAP bitmap =
+            FPDFBitmap_CreateEx(info.width, info.height, FPDFBitmap_BGRA, bitmap_pixels, stride);
 
     int renderFlags = FPDF_REVERSE_BYTE_ORDER;
     if (renderMode == RENDER_MODE_FOR_DISPLAY) {
@@ -89,6 +97,7 @@ static void nativeRenderPage(JNIEnv* env, jclass thiz, jlong documentPtr, jlong 
     if (!matrix.asAffine(transformValues)) {
         jniThrowException(env, "java/lang/IllegalArgumentException",
                           "transform matrix has perspective. Only affine matrices are allowed.");
+        AndroidBitmap_unlockPixels(env, jbitmap);
         return;
     }
 
@@ -98,10 +107,12 @@ static void nativeRenderPage(JNIEnv* env, jclass thiz, jlong documentPtr, jlong 
             transformValues[SkMatrix::kATransX], transformValues[SkMatrix::kATransY]};
 
     FS_RECTF clip = {(float)clipLeft, (float)clipTop, (float)clipRight, (float)clipBottom};
-
     FPDF_RenderPageBitmapWithMatrix(bitmap, page, &transform, &clip, renderFlags);
 
-    skBitmap.notifyPixelsChanged();
+    if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
+        jniThrowException(env, "java/lang/IllegalStateException", "Could not unlock Bitmap pixels.");
+        return;
+    }
 }
 
 static const JNINativeMethod gPdfRenderer_Methods[] = {
@@ -109,7 +120,7 @@ static const JNINativeMethod gPdfRenderer_Methods[] = {
         {"nativeClose", "(J)V", (void*)nativeClose},
         {"nativeGetPageCount", "(J)I", (void*)nativeGetPageCount},
         {"nativeScaleForPrinting", "(J)Z", (void*)nativeScaleForPrinting},
-        {"nativeRenderPage", "(JJJIIIIJI)V", (void*)nativeRenderPage},
+        {"nativeRenderPage", "(JJLandroid/graphics/Bitmap;IIIIJI)V", (void*)nativeRenderPage},
         {"nativeOpenPageAndGetSize", "(JILandroid/graphics/Point;)J",
          (void*)nativeOpenPageAndGetSize},
         {"nativeClosePage", "(J)V", (void*)nativeClosePage}};

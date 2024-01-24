@@ -17,8 +17,10 @@
 package com.android.photopicker
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 
-class PhotopickerApplication : Application() {
+@HiltAndroidApp(Application::class)
+class PhotopickerApplication : Hilt_PhotopickerApplication() {
     override fun onCreate() {
         super.onCreate()
     }

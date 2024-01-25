@@ -66,7 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Pregled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Prebacite se na radni profil"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Prebacite se na lični profil profil"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Osobno"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Lično"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokirao je administrator"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Pristupanje poslovnim podacima iz lične aplikacije nije dozvoljeno"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Pristupanje ličnim podacima iz poslovne aplikacije nije dozvoljeno"</string>

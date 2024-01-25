@@ -26,6 +26,7 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
@@ -501,6 +502,22 @@ public final class PdfRendererPreV implements AutoCloseable {
             throwIfDocumentOrPageClosed();
             return mPdfProcessor.getPageLinkContents(mIndex);
         }
+
+        /**
+         * Gets bookmarks and goto links present on the page of a pdf document. Goto Links
+         * are the internal navigation links which directs the user to different location
+         * within the same document.
+         *
+         * @return list of all goto links {@link PdfPageGotoLinkContent} on a page in the order
+         * they are present on the page
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @NonNull
+        public List<PdfPageGotoLinkContent> getGotoLinks() {
+            throwIfDocumentOrPageClosed();
+            return mPdfProcessor.getPageGotoLinks(mIndex);
+        }
+
 
         /**
          * Returns information about all form widgets on the page, or an empty list if there are no

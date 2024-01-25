@@ -38,6 +38,7 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
     method public int getHeight();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
     method public int getIndex();
@@ -78,6 +79,7 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
     method public int getHeight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
     method public int getIndex();
@@ -106,6 +108,20 @@ package android.graphics.pdf {
 }
 
 package android.graphics.pdf.content {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public class PdfPageGotoLinkContent {
+    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
+    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
+  }
+
+  public static class PdfPageGotoLinkContent.Destination {
+    ctor public PdfPageGotoLinkContent.Destination(int, float, float, float);
+    method public int getPageNumber();
+    method public float getXCoordinate();
+    method public float getYCoordinate();
+    method public float getZoom();
+  }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageImageContent {
     ctor public PdfPageImageContent(@NonNull String);

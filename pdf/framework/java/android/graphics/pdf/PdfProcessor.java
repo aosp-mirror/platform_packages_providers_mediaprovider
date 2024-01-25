@@ -26,6 +26,7 @@ import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
@@ -264,6 +265,12 @@ public class PdfProcessor {
     public List<PdfPageLinkContent> getPageLinkContents(int pageNum) {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         return mPdfDocument.getPageLinks(pageNum).unflattenToList();
+    }
+
+    /** Returns bookmarks and other goto links (within the current document) on a page */
+    public List<PdfPageGotoLinkContent> getPageGotoLinks(int pageNum) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.getPageGotoLinks(pageNum);
     }
 
     /** Retains object in memory related to a page when that page becomes visible. */

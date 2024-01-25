@@ -18,6 +18,7 @@ package android.graphics.pdf;
 
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.jni.LinkRects;
 import android.graphics.pdf.models.jni.LoadPdfResult;
@@ -190,6 +191,9 @@ public class PdfDocumentProxy {
 
     /** Get the bounds and URLs of all the links on the given page. */
     public native LinkRects getPageLinks(int pageNum);
+
+    /** Returns bookmarks and other goto links (within the current document) on a page */
+    public native List<PdfPageGotoLinkContent> getPageGotoLinks(int pageNum);
 
     /** Loads a page object and retains it in memory when a page becomes visible. */
     public native void retainPage(int pageNum);

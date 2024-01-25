@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ପ୍ରିଭ୍ୟୁ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସୁଇଚ କରନ୍ତୁ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସୁଇଚ କରନ୍ତୁ"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ବ୍ୟକ୍ତିଗତ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ କରାଯାଇଛି"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"କୌଣସି ବ୍ୟକ୍ତିଗତ ଆପରୁ ୱାର୍କ ଡାଟାକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"କୌଣସି ୱାର୍କ ଆପରୁ ବ୍ୟକ୍ତିଗତ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>

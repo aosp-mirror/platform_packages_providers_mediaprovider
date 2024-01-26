@@ -152,6 +152,9 @@ public class DatabaseBackupAndRecovery {
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
     private Set<String> mSetupCompletePublicVolumes = ConcurrentHashMap.newKeySet();
+    private boolean mIsStableUriEnabledForInternal = false;
+    private boolean mIsStableUriEnabledForExternal = false;
+    private boolean mIsStableUrisEnabledForPublic = false;
 
     private static Map<String, String> sOwnerIdRelationMap;
 
@@ -181,16 +184,19 @@ public class DatabaseBackupAndRecovery {
     protected boolean isStableUrisEnabled(String volumeName) {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
-                return mConfigStore.isStableUrisForInternalVolumeEnabled()
+                return mIsStableUriEnabledForInternal
+                        || mConfigStore.isStableUrisForInternalVolumeEnabled()
                         || SystemProperties.getBoolean(STABLE_URI_INTERNAL_PROPERTY,
                         /* defaultValue */ STABLE_URI_INTERNAL_PROPERTY_VALUE);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
-                return mConfigStore.isStableUrisForExternalVolumeEnabled()
+                return mIsStableUriEnabledForExternal
+                        || mConfigStore.isStableUrisForExternalVolumeEnabled()
                         || SystemProperties.getBoolean(STABLE_URI_EXTERNAL_PROPERTY,
                         /* defaultValue */ STABLE_URI_EXTERNAL_PROPERTY_VALUE);
             default:
                 // public volume
-                return isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                return mIsStableUrisEnabledForPublic
+                        || isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                         && mConfigStore.isStableUrisForPublicVolumeEnabled()
                         || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
                         /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
@@ -935,6 +941,16 @@ public class DatabaseBackupAndRecovery {
         pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
                 WAIT_TIME_10_SECONDS_IN_MILLIS);
+    }
+
+    protected void setStableUrisGlobalFlag(String volumeName, boolean isEnabled) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
+            mIsStableUriEnabledForInternal = isEnabled;
+        } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            mIsStableUriEnabledForExternal = isEnabled;
+        } else {
+            mIsStableUrisEnabledForPublic = isEnabled;
+        }
     }
 
     private int getVolumeNameForStatsLog(String volumeName) {

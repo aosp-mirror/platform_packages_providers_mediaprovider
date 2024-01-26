@@ -33,18 +33,33 @@ import java.io.IOException;
  * A utility class to assist creating files for tests
  */
 public class FileCreationUtils {
+
     /**
      * Helper method to insert a test image/png into given {@code contentResolver}
      *
-     * @param  contentResolver ContentResolver to which file is inserted
-     * @param name file name
+     * @param contentResolver ContentResolver to which file is inserted
+     * @param name            file name
      * @return {@link Long} the files table {@link MediaStore.MediaColumns.ID}
      */
     public static Long insertFileInResolver(ContentResolver contentResolver, String name)
             throws IOException {
+        return insertFileInResolver(contentResolver, name, "png");
+    }
+
+    /**
+     * Helper method to insert a test item into given {@code contentResolver} with the provided
+     * mimeType.
+     *
+     * @param contentResolver ContentResolver to which file is inserted
+     * @param name            file name
+     * @return {@link Long} the files table {@link MediaStore.MediaColumns.ID}
+     */
+    public static Long insertFileInResolver(ContentResolver contentResolver, String name,
+            String mimeType)
+            throws IOException {
         final File dir =
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        final File file = new File(dir, name + System.nanoTime() + ".png");
+        final File file = new File(dir, name + System.nanoTime() + "." + mimeType);
 
         // Write 1 byte because 0 byte files are not valid in the db
         try (FileOutputStream fos = new FileOutputStream(file)) {

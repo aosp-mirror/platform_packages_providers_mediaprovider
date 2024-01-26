@@ -66,6 +66,7 @@ import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.SystemClock;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
@@ -460,6 +461,8 @@ public class PermissionUtilsTest {
             assertThat(checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid,
                     packageName, null, isAtLeastT)).isFalse();
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VIDEO, AppOpsManager.MODE_ALLOWED);
+            // Adding sleep before appops check to allow appops change to propagate
+            SystemClock.sleep(200);
             assertThat(checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid,
                 packageName, null, isAtLeastT)).isTrue();
         } finally {
@@ -518,6 +521,8 @@ public class PermissionUtilsTest {
                         packageName, null, isAtLeastT)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_AUDIO, AppOpsManager.MODE_ALLOWED);
+            // Adding sleep before appops check to allow appops change to propagate
+            SystemClock.sleep(200);
             assertThat(checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid,
                         packageName, null, isAtLeastT)).isTrue();
         } finally {
@@ -550,6 +555,8 @@ public class PermissionUtilsTest {
                             packageName, null, isAtLeastT)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_IMAGES, AppOpsManager.MODE_ALLOWED);
+            // Adding sleep before appops check to allow appops change to propagate
+            SystemClock.sleep(200);
             assertThat(checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid,
                             packageName, null, isAtLeastT)).isTrue();
         } finally {

@@ -20,17 +20,16 @@ import static com.bumptech.glide.load.resource.bitmap.Downsampler.PREFERRED_COLO
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
-import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.photopicker.data.glide.GlideLoadable;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 
@@ -41,6 +40,8 @@ import com.bumptech.glide.load.PreferredColorSpace;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
+
+import java.util.Optional;
 
 /**
  * A class to assist with loading and managing the Images (i.e. thumbnails and preview) associated
@@ -55,6 +56,7 @@ public class ImageLoader {
             RequestOptions.option(THUMBNAIL_REQUEST, /* enableThumbnail */ true);
     private final Context mContext;
     private final PreferredColorSpace mPreferredColorSpace;
+    private static final String PREVIEW_PREFIX = "preview_";
 
     public ImageLoader(Context context) {
         mContext = context;
@@ -71,12 +73,24 @@ public class ImageLoader {
      * @param category  the album
      * @param imageView the imageView shows the thumbnail
      */
-    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView) {
+    public void loadAlbumThumbnail(@NonNull Category category, @NonNull ImageView imageView,
+            int defaultThumbnailRes, @NonNull ImageView defaultIcon) {
         // Always show all thumbnails as bitmap images instead of drawables
         // This is to ensure that we do not animate any thumbnail (for eg GIF)
         // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
-        loadWithGlide(getBitmapRequestBuilder(category.getCoverUri()), THUMBNAIL_OPTION,
-                /* signature */ null, imageView);
+        if (category.getCoverUri() != null || defaultThumbnailRes == -1) {
+            defaultIcon.setVisibility(View.GONE);
+            imageView.setVisibility(View.VISIBLE);
+
+            loadWithGlide(getBitmapRequestBuilder(category.toGlideLoadable()), THUMBNAIL_OPTION,
+                    /* signature */ null, imageView);
+        } else {
+            imageView.setVisibility(View.INVISIBLE);
+            defaultIcon.setVisibility(View.VISIBLE);
+
+            loadWithGlide(getDrawableRequestBuilder(mContext.getDrawable(defaultThumbnailRes)),
+                    THUMBNAIL_OPTION,  /* signature */ null, defaultIcon);
+        }
     }
 
     /**
@@ -86,11 +100,12 @@ public class ImageLoader {
      * @param imageView the imageView shows the thumbnail
      */
     public void loadPhotoThumbnail(@NonNull Item item, @NonNull ImageView imageView) {
+        final GlideLoadable loadable = item.toGlideLoadable();
         // Always show all thumbnails as bitmap images instead of drawables
         // This is to ensure that we do not animate any thumbnail (for eg GIF)
         // TODO(b/194285082): Use drawable instead of bitmap, as it saves memory.
-        loadWithGlide(getBitmapRequestBuilder(item.getContentUri()), THUMBNAIL_OPTION,
-                getGlideSignature(item, /* prefix */ ""), imageView);
+        loadWithGlide(getBitmapRequestBuilder(loadable), THUMBNAIL_OPTION,
+                getGlideSignature(loadable, /* prefix */ null), imageView);
     }
 
     /**
@@ -100,65 +115,63 @@ public class ImageLoader {
      * @param imageView the imageView shows the image
      */
     public void loadImagePreview(@NonNull Item item, @NonNull ImageView imageView)  {
+        final GlideLoadable loadable = item.toGlideLoadable();
         if (item.isGif()) {
-            loadWithGlide(getGifRequestBuilder(item.getContentUri()), /* requestOptions */ null,
-                    getGlideSignature(item, /* prefix */ ""), imageView);
+            loadWithGlide(
+                    getGifRequestBuilder(loadable),
+                    /* requestOptions */ null,
+                    getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
+                    imageView);
             return;
         }
 
         if (item.isAnimatedWebp()) {
-            loadAnimatedWebpPreview(item, imageView);
+            loadWithGlide(
+                    getDrawableRequestBuilder(loadable),
+                    /* requestOptions */ null,
+                    getGlideSignature(loadable, PREVIEW_PREFIX),
+                    imageView);
             return;
         }
 
         // Preview as bitmap image for all other image types
-        loadWithGlide(getBitmapRequestBuilder(item.getContentUri()), /* requestOptions */ null,
-                getGlideSignature(item, /* prefix */ ""), imageView);
-    }
-
-    private void loadAnimatedWebpPreview(@NonNull Item item, @NonNull ImageView imageView) {
-        final Uri uri = item.getContentUri();
-        final ImageDecoder.Source source = ImageDecoder.createSource(mContext.getContentResolver(),
-                uri);
-        Drawable drawable = null;
-        try {
-            drawable = ImageDecoder.decodeDrawable(source);
-        } catch (Exception e) {
-            Log.d(TAG, "Failed to decode drawable for uri: " + uri, e);
-        }
-
-        // If we failed to decode drawable for a source using ImageDecoder, then try using uri
-        // directly. Glide will show static image for an animated webp. That is okay as we tried our
-        // best to load animated webp but couldn't, and we anyway show the GIF badge in preview.
-        loadWithGlide(getDrawableRequestBuilder(drawable == null ? uri : drawable),
-                /* requestOptions */ null, getGlideSignature(item, /* prefix */ ""), imageView);
+        loadWithGlide(
+                getBitmapRequestBuilder(loadable),
+                /* requestOptions */ null,
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
+                imageView);
     }
 
     /**
      * Loads the image from first frame of the given video item
      */
     public void loadImageFromVideoForPreview(@NonNull Item item, @NonNull ImageView imageView) {
-        loadWithGlide(getBitmapRequestBuilder(item.getContentUri()),
-                new RequestOptions().frame(1000), getGlideSignature(item, "Preview"), imageView);
+        final GlideLoadable loadable = item.toGlideLoadable();
+        loadWithGlide(
+                getBitmapRequestBuilder(loadable),
+                new RequestOptions().frame(1000),
+                getGlideSignature(loadable, /* prefix= */ PREVIEW_PREFIX),
+                imageView);
     }
 
-    private ObjectKey getGlideSignature(Item item, String prefix) {
-        // TODO(b/224725723): Remove media store version from key once MP ids are stable.
-        return new ObjectKey(
-                MediaStore.getVersion(mContext) + prefix + item.getContentUri().toString() +
-                        item.getGenerationModified());
+    private ObjectKey getGlideSignature(GlideLoadable loadable, @Nullable String prefix) {
+        // TODO(b/224725723): Remove media store version from key once MP ids are
+        // stable.
+        return loadable.getLoadableSignature(
+                /* prefix= */ MediaStore.getVersion(mContext)
+                        + Optional.ofNullable(prefix).orElse(""));
     }
 
-    private RequestBuilder<Bitmap> getBitmapRequestBuilder(Uri uri) {
+    private RequestBuilder<Bitmap> getBitmapRequestBuilder(GlideLoadable loadable) {
         return Glide.with(mContext)
                 .asBitmap()
-                .load(uri);
+                .load(loadable);
     }
 
-    private RequestBuilder<GifDrawable> getGifRequestBuilder(Uri uri) {
+    private RequestBuilder<GifDrawable> getGifRequestBuilder(GlideLoadable loadable) {
         return Glide.with(mContext)
                 .asGif()
-                .load(uri);
+                .load(loadable);
     }
 
     private RequestBuilder<Drawable> getDrawableRequestBuilder(Object model) {

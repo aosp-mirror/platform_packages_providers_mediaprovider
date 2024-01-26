@@ -33,6 +33,8 @@ import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabAdapter.DateHeader;
 
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -176,8 +178,8 @@ public class PhotosTabAdapterTest {
 
     private static PhotosTabAdapter createAdapter(boolean shouldShowRecentSection) {
         return new PhotosTabAdapter(/* showRecentSection */ shouldShowRecentSection,
-                mock(Selection.class), mock(ImageLoader.class), mock(View.OnClickListener.class),
-                mock(View.OnLongClickListener.class), mock(LifecycleOwner.class),
+                mock(Selection.class), mock(ImageLoader.class),
+                mock(PhotosTabAdapter.OnMediaItemClickListener.class), mock(LifecycleOwner.class),
                 /* cloudMediaProviderAppTitle */ mock(LiveData.class),
                 /* cloudMediaAccountName */ mock(LiveData.class),
                 /* shouldShowChooseAppBanner */ mock(LiveData.class),
@@ -190,7 +192,9 @@ public class PhotosTabAdapterTest {
                 /* onAccountUpdatedBannerEventListener */
                 mock(TabAdapter.OnBannerEventListener.class),
                 /* onChooseAccountBannerEventListener */
-                mock(TabAdapter.OnBannerEventListener.class));
+                mock(TabAdapter.OnBannerEventListener.class),
+                /* onHoverListener */ mock(View.OnHoverListener.class),
+                /* mPreloadSizeProvider */ mock(ViewPreloadSizeProvider.class));
     }
 
     private static Item generateFakeImageItem(String id) {

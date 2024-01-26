@@ -56,6 +56,7 @@ package android.provider {
     field public static final String EXTRA_ALBUM_ID = "android.provider.extra.ALBUM_ID";
     field public static final String EXTRA_LOOPING_PLAYBACK_ENABLED = "android.provider.extra.LOOPING_PLAYBACK_ENABLED";
     field public static final String EXTRA_MEDIA_COLLECTION_ID = "android.provider.extra.MEDIA_COLLECTION_ID";
+    field public static final String EXTRA_PAGE_SIZE = "android.provider.extra.PAGE_SIZE";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
@@ -149,6 +150,7 @@ package android.provider {
     field public static final String EXTRA_MEDIA_RADIO_CHANNEL = "android.intent.extra.radio_channel";
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
+    field @FlaggedApi("com.android.providers.media.flags.pick_ordered_images") public static final String EXTRA_PICK_IMAGES_IN_ORDER = "android.provider.extra.PICK_IMAGES_IN_ORDER";
     field public static final String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
     field public static final String EXTRA_SCREEN_ORIENTATION = "android.intent.extra.screenOrientation";
     field public static final String EXTRA_SHOW_ACTION_ICONS = "android.intent.extra.showActionIcons";

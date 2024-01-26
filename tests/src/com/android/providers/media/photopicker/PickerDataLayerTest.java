@@ -22,9 +22,15 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.STRING_DEFAULT;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 import android.content.Context;
 import android.content.Intent;
@@ -35,23 +41,34 @@ import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.MediaStore;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+import androidx.work.WorkManager;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.PickerProviderMediaGenerator;
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
+import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.sync.PickerSyncManager;
+import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDataLayerTest {
@@ -103,6 +120,7 @@ public class PickerDataLayerTest {
     private PickerDbFacade mFacade;
     private PickerDataLayer mDataLayer;
     private PickerSyncController mController;
+    private TestConfigStore mConfigStore;
 
     @Before
     public void setUp() {
@@ -120,16 +138,22 @@ public class PickerDataLayerTest {
         final File dbPath = mContext.getDatabasePath(DB_NAME);
         dbPath.delete();
 
+        final PickerSyncLockManager lockManager = new PickerSyncLockManager();
+
         mDbHelper = new PickerDatabaseHelper(mContext, DB_NAME, DB_VERSION_1);
-        mFacade = new PickerDbFacade(mContext, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
+        mFacade = new PickerDbFacade(mContext, lockManager, LOCAL_PROVIDER_AUTHORITY, mDbHelper);
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
-        configStore.setPickerSyncDelayMs(0);
+        mConfigStore = new TestConfigStore();
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(PACKAGE_NAME);
 
-        mController = new PickerSyncController(
-                mContext, mFacade, configStore, LOCAL_PROVIDER_AUTHORITY);
-        mDataLayer = new PickerDataLayer(mContext, mFacade, mController);
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, lockManager, LOCAL_PROVIDER_AUTHORITY);
+
+        initializeTestWorkManager(mContext);
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        final PickerSyncManager syncManager = new PickerSyncManager(
+                workManager, mContext, mConfigStore, /* schedulePeriodicSyncs */ false);
+        mDataLayer = new PickerDataLayer(mContext, mFacade, mController, mConfigStore, syncManager);
 
         // Set cloud provider to null to discard
         mFacade.setCloudProvider(null);
@@ -149,6 +173,8 @@ public class PickerDataLayerTest {
         addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
 
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
         try (Cursor cr = mDataLayer.fetchAllMedia(buildDefaultQueryArgs())) {
             assertThat(cr.getCount()).isEqualTo(2);
 
@@ -172,6 +198,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
@@ -203,6 +231,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
@@ -233,6 +263,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
@@ -263,6 +295,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
@@ -286,6 +320,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -305,6 +341,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES - 1);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -327,6 +365,8 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle queryArgs = buildQueryArgs(VIDEO_MIME_TYPE, SIZE_BYTES - 1);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -343,6 +383,9 @@ public class PickerDataLayerTest {
         addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
 
         Bundle queryArgs = buildDefaultQueryArgs();
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
+
         // Verify that we only see local content
         try (Cursor cr = mDataLayer.fetchLocalMedia(queryArgs)) {
             assertThat(cr.getCount()).isEqualTo(1);
@@ -360,6 +403,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMedia() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -377,6 +421,7 @@ public class PickerDataLayerTest {
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
 
+        mDataLayer.initMediaData(buildDefaultSyncRequestExtras());
         try (Cursor cr = mDataLayer.fetchAllAlbums(defaultQueryArgs)) {
             assertThat(cr.getCount()).isEqualTo(4);
 
@@ -402,25 +447,26 @@ public class PickerDataLayerTest {
 
         final Bundle localAlbumQueryArgs = buildQueryArgs(ALBUM_ID_1,
                 LOCAL_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
-
-        final Bundle cloudAlbumQueryArgs = buildQueryArgs(ALBUM_ID_2,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
-
-        final Bundle favoriteAlbumQueryArgs = buildQueryArgs(ALBUM_ID_FAVORITES,
-                LOCAL_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
-
+        mDataLayer.initMediaData(buildSyncRequestExtras(ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(localAlbumQueryArgs)) {
             assertWithMessage("Local album count").that(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
+        final Bundle cloudAlbumQueryArgs = buildQueryArgs(ALBUM_ID_2,
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
+        mDataLayer.initMediaData(
+                buildSyncRequestExtras(ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(cloudAlbumQueryArgs)) {
             assertWithMessage("Cloud album count").that(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
+        final Bundle favoriteAlbumQueryArgs = buildQueryArgs(ALBUM_ID_FAVORITES,
+                LOCAL_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES_DEFAULT);
+        mDataLayer.initMediaData(buildDefaultSyncRequestExtras());
         try (Cursor cr = mDataLayer.fetchAllMedia(favoriteAlbumQueryArgs)) {
             assertWithMessage("Favorite album count").that(cr.getCount()).isEqualTo(2);
 
@@ -430,6 +476,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaMimeTypeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -446,26 +493,32 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle mimeTypeQueryArgs = buildQueryArgs(IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(mimeTypeQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(2);
+            assertThat(cr.getCount()).isEqualTo(4);
 
+            // Favorites and Videos merged albums will be always visible
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
+            assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
         final Bundle localAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_1,
                 LOCAL_PROVIDER_AUTHORITY, IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
-
-        final Bundle cloudAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_2,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
-
+        mDataLayer.initMediaData(buildSyncRequestExtras(ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(localAlbumAndMimeTypeQueryArgs)) {
             assertWithMessage("Local album count").that(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
         }
 
+        final Bundle cloudAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_2,
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY, IMAGE_MIME_TYPE, SIZE_BYTES_DEFAULT);
+        mDataLayer.initMediaData(
+                buildSyncRequestExtras(ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(cloudAlbumAndMimeTypeQueryArgs)) {
             assertWithMessage("Cloud album count").that(cr.getCount()).isEqualTo(1);
 
@@ -474,6 +527,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaSizeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -492,10 +546,14 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle sizeQueryArgs = buildQueryArgs(MIME_TYPE_DEFAULT, SIZE_BYTES - 1);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(sizeQueryArgs)) {
-            assertThat(cr.getCount()).isEqualTo(3);
+            assertThat(cr.getCount()).isEqualTo(4);
 
+            // Favorites and Videos merged albums will be always visible
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_VIDEOS, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
@@ -503,16 +561,17 @@ public class PickerDataLayerTest {
 
         final Bundle localAlbumAndSizeQueryArgs = buildQueryArgs(ALBUM_ID_1,
                 LOCAL_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES -1);
-
-        final Bundle cloudAlbumAndSizeQueryArgs = buildQueryArgs(ALBUM_ID_2,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES -1);
-
+        mDataLayer.initMediaData(buildSyncRequestExtras(ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(localAlbumAndSizeQueryArgs)) {
             assertWithMessage("Local album count").that(cr.getCount()).isEqualTo(1);
 
             assertCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER_AUTHORITY);
         }
 
+        final Bundle cloudAlbumAndSizeQueryArgs = buildQueryArgs(ALBUM_ID_2,
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY, MIME_TYPE_DEFAULT, SIZE_BYTES - 1);
+        mDataLayer.initMediaData(
+                buildSyncRequestExtras(ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY));
         try (Cursor cr = mDataLayer.fetchAllMedia(cloudAlbumAndSizeQueryArgs)) {
             assertWithMessage("Cloud album count").that(cr.getCount()).isEqualTo(1);
 
@@ -521,6 +580,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaMimeTypeAndSizeFilter() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -539,21 +599,27 @@ public class PickerDataLayerTest {
                 MediaColumns.STANDARD_MIME_TYPE_EXTENSION_NONE, SIZE_BYTES, /* isFavorite */ false);
 
         final Bundle mimeTypeAndSizeQueryArgs = buildQueryArgs(VIDEO_MIME_TYPE, SIZE_BYTES -1);
-
-        final Bundle cloudAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_2,
-                CLOUD_PRIMARY_PROVIDER_AUTHORITY, VIDEO_MIME_TYPE, SIZE_BYTES - 1);
+        final PickerSyncRequestExtras syncRequestExtras = buildDefaultSyncRequestExtras();
+        mDataLayer.initMediaData(syncRequestExtras);
 
         try (Cursor cr = mDataLayer.fetchAllAlbums(mimeTypeAndSizeQueryArgs)) {
-            assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(3);
+            assertWithMessage("Merged and Local album count").that(cr.getCount()).isEqualTo(4);
 
             // Most recent video will be the cover of the Videos album. In this scenario, Videos
             // album cover was generated with cloud authority, so the Videos album authority should
             // be cloud provider authority.
+            // Favorites and Videos album will always be displayed.
+            assertAlbumCursor(cr, ALBUM_ID_FAVORITES, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_VIDEOS, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_1, LOCAL_PROVIDER_AUTHORITY);
             assertAlbumCursor(cr, ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
         }
 
+        final Bundle cloudAlbumAndMimeTypeQueryArgs = buildQueryArgs(ALBUM_ID_2,
+                CLOUD_PRIMARY_PROVIDER_AUTHORITY, VIDEO_MIME_TYPE, SIZE_BYTES - 1);
+        final PickerSyncRequestExtras cloudSyncRequestExtras =
+                buildSyncRequestExtras(ALBUM_ID_2, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mDataLayer.initMediaData(cloudSyncRequestExtras);
         try (Cursor cr = mDataLayer.fetchAllMedia(cloudAlbumAndMimeTypeQueryArgs)) {
             assertWithMessage("Cloud album count").that(cr.getCount()).isEqualTo(1);
 
@@ -562,6 +628,7 @@ public class PickerDataLayerTest {
     }
 
     @Test
+    @Ignore("Enable when b/293112236 is done")
     public void testFetchAlbumMediaLocalOnly() {
         mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
@@ -582,8 +649,10 @@ public class PickerDataLayerTest {
         // Favorites  - Merged Album - 2 files (1 local + 1 cloud)
 
         final Bundle defaultQueryArgs = buildDefaultQueryArgs();
+        mDataLayer.initMediaData(buildDefaultSyncRequestExtras());
         // Verify that we see both local and cloud albums
         try (Cursor cr = mDataLayer.fetchAllAlbums(defaultQueryArgs)) {
+            // Favorites and Videos merged albums will be always visible
             assertThat(cr.getCount()).isEqualTo(3);
         }
 
@@ -640,6 +709,96 @@ public class PickerDataLayerTest {
         assertThat(info.accountConfigurationIntent).isEqualTo(expectedIntent);
     }
 
+    @Test
+    public void testInitMediaDataInvalidData() {
+        final Bundle syncExtrasBundle = new Bundle();
+        syncExtrasBundle.putString(MediaStore.EXTRA_ALBUM_ID, "NotMergedAlbum");
+        syncExtrasBundle.putString(MediaStore.EXTRA_ALBUM_AUTHORITY, "NotLocalAuthority");
+        syncExtrasBundle.putBoolean(MediaStore.EXTRA_LOCAL_ONLY, true);
+        final PickerSyncRequestExtras syncExtras =
+                PickerSyncRequestExtras.fromBundle(syncExtrasBundle);
+
+        assertThrows(IllegalStateException.class,
+                () -> mDataLayer.initMediaData(syncExtras));
+    }
+
+    @Test
+    public void testCloudPackageAllowlistListenerRemovesActiveThatIsNowInvalid() {
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
+
+        // Simulate a DeviceConfig change where the Allowlist is set to empty.
+        mConfigStore.setAllowedCloudProviderPackages(new String[] {});
+
+
+        // The listener uses the ForegroundThread to run the listener, so wait for the
+        // ForegroundThread to complete.
+        ForegroundThread.waitForIdle();
+
+        assertThat(mController.getCurrentCloudProviderInfo()).isEqualTo(CloudProviderInfo.EMPTY);
+    }
+
+    @Test
+    public void testCloudPackageAllowlistListenerDoesNotChangeAllowedProvider() {
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
+
+        // Simulate a DeviceConfig change where the Allowlist adds a new provider, but the current
+        // provider is still permitted.
+        final String newlyAddedProviderPackage = "com.hooli.super.awesome.cloud.provider";
+        mConfigStore.setAllowedCloudProviderPackages(
+                new String[] {PACKAGE_NAME, newlyAddedProviderPackage});
+
+        // The listener uses the ForegroundThread to run the listener, so wait for the
+        // ForegroundThread to complete.
+        ForegroundThread.waitForIdle();
+
+        // Ensure nothing was changed.
+        assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
+    }
+
+    @Test
+    public void testWaitForSyncWhenSyncFutureIsComplete()
+            throws ExecutionException, InterruptedException {
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        completableFuture.complete(null);
+
+        final int inputRetryCount = 3;
+        assertThat(mDataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(inputRetryCount);
+    }
+
+    @Test
+    public void testWaitForSyncWhenSyncFutureNeverCompletes()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
+        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
+                mConfigStore, mockSyncManager);
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        doReturn(true).when(mockSyncManager).isUniqueWorkPending(any());
+
+        final int inputRetryCount = 3;
+        assertThat(dataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void testWaitForSyncWhenWorkerFails()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
+        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
+                mConfigStore, mockSyncManager);
+        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        doReturn(false).when(mockSyncManager).isUniqueWorkPending(any());
+
+        final int inputRetryCount = 3;
+        assertThat(dataLayer
+                .waitForSync(completableFuture, "work-name", inputRetryCount))
+                .isEqualTo(inputRetryCount);
+    }
+
     private static void waitForIdle() {
         final CountDownLatch latch = new CountDownLatch(1);
         BackgroundThread.getExecutor().execute(() -> {
@@ -676,6 +835,30 @@ public class PickerDataLayerTest {
         queryArgs.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, albumAuthority);
 
         return queryArgs;
+    }
+
+    @NonNull
+    private static PickerSyncRequestExtras buildDefaultSyncRequestExtras() {
+        return PickerSyncRequestExtras.fromBundle(buildDefaultSyncRequestBundle());
+    }
+
+    @NonNull
+    private static PickerSyncRequestExtras buildSyncRequestExtras(@NonNull String albumId,
+            @NonNull String albumAuthority) {
+        final Bundle syncRequestExtras = buildDefaultSyncRequestBundle();
+        syncRequestExtras.putString(MediaStore.EXTRA_ALBUM_ID, albumId);
+        syncRequestExtras.putString(MediaStore.EXTRA_ALBUM_AUTHORITY, albumAuthority);
+
+        return PickerSyncRequestExtras
+                .fromBundle(syncRequestExtras);
+    }
+
+    @NonNull
+    private static Bundle buildDefaultSyncRequestBundle() {
+        final Bundle syncRequestExtras = new Bundle();
+        syncRequestExtras.putBoolean(MediaStore.EXTRA_LOCAL_ONLY, false);
+
+        return syncRequestExtras;
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {

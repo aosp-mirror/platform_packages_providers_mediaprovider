@@ -47,15 +47,6 @@ filegroup {
     path: "java",
 }
 
-java_api_contribution {
-    name: "framework-pdf-public-stubs",
-    api_surface: "public",
-    api_file: "api/current.txt",
-    visibility: [
-        "//build/orchestrator/apis",
-    ],
-}
-
 aconfig_declarations {
     name: "pdf_viewer_flags",
     package: "android.graphics.pdf.flags",

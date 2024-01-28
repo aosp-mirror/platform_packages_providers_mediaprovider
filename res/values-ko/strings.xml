@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"미리보기"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"직장 프로필로 전환"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"개인 프로필로 전환"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"개인"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"관리자가 차단함"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"개인 앱에서는 업무 데이터에 액세스할 수 없습니다."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"직장 앱에서는 개인 데이터에 액세스할 수 없습니다."</string>

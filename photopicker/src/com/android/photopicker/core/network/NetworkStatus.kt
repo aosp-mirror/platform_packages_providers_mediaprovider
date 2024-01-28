@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.photopicker.core.network
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+/** Simplified representation of the network environment from the ConnectivityManager. */
+sealed class NetworkStatus {
+    object Available : NetworkStatus()
 
-/**
- * This is the top of the Compose UI node tree. This is called from the MainActivity and is the
- * top-most [@Composable] in the application. This should not be called except inside an Activity's
- * [setContent] block.
- */
-@Composable
-fun PhotopickerApp() {
-    Surface(modifier = Modifier.fillMaxSize()) { Text("Hello World from Photopicker!") }
+    object Unavailable : NetworkStatus()
 }

@@ -15,7 +15,7 @@
   -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.photopicker">
+    package="com.android.photopicker.tests">
 
   <application android:debuggable="true">
     <uses-library android:name="android.test.runner"/>
@@ -23,6 +23,6 @@
 
   <instrumentation
     android:name="androidx.test.runner.AndroidJUnitRunner"
-    android:targetPackage="com.android.photopicker"
+    android:targetPackage="com.android.photopicker.tests"
     android:label="Tests for Android Photopicker"/>
 </manifest>

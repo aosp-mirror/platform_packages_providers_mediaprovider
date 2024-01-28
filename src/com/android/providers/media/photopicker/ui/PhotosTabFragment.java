@@ -45,6 +45,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.glide.PickerPreloadModelProvider;
@@ -356,20 +357,25 @@ public class PhotosTabFragment extends TabFragment {
         super.onResume();
         final String title;
         final LayoutModeUtils.Mode layoutMode;
-        final boolean shouldHideProfileButton;
+        final boolean hideProfileButtonOrProfileMenuButton;
 
         if (mCategory.isDefault()) {
             title = "";
             layoutMode = MODE_PHOTOS_TAB;
-            shouldHideProfileButton = false;
+            hideProfileButtonOrProfileMenuButton = false;
         } else {
             title = mCategory.getDisplayName(requireContext());
             layoutMode = MODE_ALBUM_PHOTOS_TAB;
-            shouldHideProfileButton = true;
+            hideProfileButtonOrProfileMenuButton = true;
         }
         requirePickerActivity().updateCommonLayouts(layoutMode, title);
 
-        hideProfileButton(shouldHideProfileButton);
+        if (mPickerViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
+                && SdkLevel.isAtLeastS()) {
+            hideProfileButtonAndProfileMenuButton(hideProfileButtonOrProfileMenuButton);
+        } else {
+            hideProfileButton(hideProfileButtonOrProfileMenuButton);
+        }
 
         if (mIsCloudMediaInPhotoPickerEnabled
                 && mCategory == Category.DEFAULT

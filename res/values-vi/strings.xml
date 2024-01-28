@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Xem trước"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Chuyển sang hồ sơ công việc"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Chuyển sang hồ sơ cá nhân"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Cá nhân"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Quản trị viên của bạn đã chặn thao tác này"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Bạn không được phép truy cập dữ liệu công việc từ một ứng dụng cá nhân"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>

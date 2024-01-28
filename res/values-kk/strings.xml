@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Алғы көрініс"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Жұмыс профиліне ауысу"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Жеке профильге ауысу"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Жеке"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Әкімшіңіз бөгеген"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Жұмыс дерегіне жеке қолданбадан кіруге рұқсат жоқ."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке дерекке жұмыс қолданбасынан кіруге рұқсат жоқ."</string>

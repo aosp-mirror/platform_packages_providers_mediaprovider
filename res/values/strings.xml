@@ -173,13 +173,23 @@
     <!-- The message for error dialog in PhotoPicker when the admin blocks cross user interaction
     for the intent. [CHAR LIMIT=NONE] -->
     <string name="picker_profile_admin_msg_from_work">Accessing personal data from a work app is not permitted</string>
+    <!-- The message for error dialog in PhotoPicker when the admin of any user profile blocks cross
+     user interaction for the intent. [CHAR LIMIT=NONE] -->
+    <string name="picker_profile_admin_msg">Accessing <xliff:g id="profile1" example="work">%1$s</xliff:g> data from a <xliff:g id="profile2" example="personal">%2$s</xliff:g> app is not permitted</string>
+    <!-- The text of the switching profile in PhotoPicker. [CHAR LIMIT=80] -->
+    <string name="picker_profile_switch_message">Switch to <xliff:g id="profile" example="personal">%s</xliff:g></string>
     <!-- The title of the error dialog in PhotoPicker when the user tries to switch to work content,
      but work profile is off. [CHAR LIMIT=80] -->
     <string name="picker_profile_work_paused_title">Work apps are paused</string>
+    <!-- The title of the error dialog in PhotoPicker when the user tries to switch to other profile
+     content, but the other profile is off. [CHAR LIMIT=80] -->
+    <string name="picker_profile_paused_title"><xliff:g id="profile" example="work">%s</xliff:g> apps are paused</string>
     <!-- The message of the error dialog in PhotoPicker when the user tries to switch to work
     content, but work profile is off. [CHAR LIMIT=NONE] -->
     <string name="picker_profile_work_paused_msg">To open work photos, turn on your work apps then try again</string>
-
+    <!-- The message of the error dialog in PhotoPicker when the user tries to switch to other
+    profile content, but the other profile is off. [CHAR LIMIT=NONE] -->
+    <string name="picker_profile_paused_msg">To open <xliff:g id="profile1" example="work">%1$s</xliff:g> photos, turn on your <xliff:g id="profile2" example="work">%2$s</xliff:g> apps then try again</string>
     <!-- PhotoPicker privacy message. [CHAR LIMIT=80] -->
     <string name="picker_privacy_message">This app can only access the photos you select</string>
     <!-- PhotoPicker header message in permission select mode -->

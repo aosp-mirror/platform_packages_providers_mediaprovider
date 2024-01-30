@@ -75,6 +75,11 @@ public final class RenderParams {
     }
 
     /** @hide */
+    public boolean areAnnotationsDisabled() {
+        return (mRenderFlags & RENDER_FLAGS_MASK) == 0;
+    }
+
+    /** @hide */
     @IntDef({
             PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY,
             PdfRenderer.Page.RENDER_MODE_FOR_PRINT

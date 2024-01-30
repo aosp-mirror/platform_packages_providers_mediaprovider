@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
  */
 
 package android.graphics.pdf;
+
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEARIZED;
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
 
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
@@ -186,7 +189,14 @@ public final class PdfRendererPreV implements AutoCloseable {
     @PdfDocumentLinearizationType
     public int getDocumentLinearizationType() {
         throwIfDocumentClosed();
-        return mPdfProcessor.getDocumentLinearizationType();
+        if (mPdfProcessor.getDocumentLinearizationType() == PDF_DOCUMENT_TYPE_LINEARIZED) {
+            return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
+        } else if (mPdfProcessor.getDocumentLinearizationType()
+                == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
+            return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
+        } else {
+            return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
+        }
     }
 
     /**
@@ -200,6 +210,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      */
     @NonNull
     public Page openPage(int pageNum) {
+        throwIfDocumentClosed();
         return new Page(pageNum);
     }
 

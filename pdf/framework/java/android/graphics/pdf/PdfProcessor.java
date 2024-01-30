@@ -16,6 +16,10 @@
 
 package android.graphics.pdf;
 
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEARIZED;
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
+
+import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -23,15 +27,24 @@ import android.graphics.Rect;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
+import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.models.BitmapParcel;
 import android.graphics.pdf.models.PageMatchBounds;
+import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
 import android.os.ParcelFileDescriptor;
+import android.system.ErrnoException;
+import android.system.Os;
+import android.system.OsConstants;
+import android.util.Log;
 
 import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
  * Represents a PDF document processing class.
@@ -40,7 +53,12 @@ import java.util.List;
  */
 public class PdfProcessor {
 
+    private static String TAG = "PdfProcessor";
+
+    private PdfDocumentProxy mPdfDocument;
+
     public PdfProcessor() {
+        PdfDocumentProxy.loadLibPdf();
     }
 
     /**
@@ -54,14 +72,34 @@ public class PdfProcessor {
      * @throws IOException       if an error occurred during the processing of the PDF document.
      * @throws SecurityException if the password is incorrect.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public void create(ParcelFileDescriptor fileDescriptor, @Nullable LoadParams params)
             throws IOException {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(fileDescriptor, "Input FD cannot be null");
+        ensurePdfDestroyed();
+        try {
+            Os.lseek(fileDescriptor.getFileDescriptor(), 0, OsConstants.SEEK_SET);
+        } catch (ErrnoException ee) {
+            throw new IllegalArgumentException("File descriptor not seekable");
+        }
+
+        String password = (params != null) ? params.getPassword() : null;
+        LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(),
+                password);
+        switch (result.status) {
+            case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR -> throw new IOException(
+                    "Unable to load the document!");
+            case REQUIRES_PASSWORD -> throw new SecurityException(
+                    "Password required to access document");
+            case LOADED -> this.mPdfDocument = result.pdfDocument;
+            default -> throw new RuntimeException("Unexpected error has occurred!");
+        }
     }
 
     /** Returns the number of pages in the PDF document */
     public int getNumPages() {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.getNumPages();
     }
 
     /**
@@ -72,8 +110,11 @@ public class PdfProcessor {
      * @param pageNum page number of the document
      * @return list of the textual content encountered on the page.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageTextContent> getPageTextContents(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        PdfPageTextContent content = new PdfPageTextContent(mPdfDocument.getPageText(pageNum));
+        return List.of(content);
     }
 
     /**
@@ -84,8 +125,13 @@ public class PdfProcessor {
      * @param pageNum page number of the document
      * @return list of the alt text for each image on the page.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageImageContent> getPageImageContents(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        // Use {@link java.util.Stream#collect()} instead of {@link java.util.Stream#toList)} as
+        // it is available from Android SDK 34.
+        return mPdfDocument.getPageAltText(pageNum).stream().map(
+                PdfPageImageContent::new).collect(Collectors.toList());
     }
 
     /**
@@ -93,7 +139,8 @@ public class PdfProcessor {
      * pages of the document will have the same dimensions
      */
     public int getPageWidth(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.getPageWidth(pageNum);
     }
 
     /**
@@ -101,7 +148,8 @@ public class PdfProcessor {
      * pages of the document will have the same dimensions
      */
     public int getPageHeight(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.getPageHeight(pageNum);
     }
 
     /**
@@ -117,13 +165,48 @@ public class PdfProcessor {
      * {@link BitmapParcel}. Should be invoked on the {@link android.annotation.WorkerThread} as it
      * is long-running task.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public void renderPage(int pageNum, Bitmap bitmap,
             Rect destClip,
             Matrix transform,
             RenderParams params) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(bitmap, "Destination bitmap cannot be null");
         Preconditions.checkNotNull(params, "RenderParams cannot be null");
-        throw new UnsupportedOperationException();
+
+        int renderMode = params.getRenderMode();
+        Preconditions.checkArgument(renderMode == PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                        || renderMode == PdfRenderer.Page.RENDER_MODE_FOR_PRINT,
+                "Unsupported render mode");
+
+        try (BitmapParcel bitmapParcel = new BitmapParcel(bitmap)) {
+            ParcelFileDescriptor parcelFileDescriptor = bitmapParcel.openOutputFd();
+            if (parcelFileDescriptor != null) {
+                if (destClip == null) {
+                    // If {@code destClip} is not specified then the x-axis and y-axis position
+                    // of the zoomed in/out wouldn't be required and the {@code Bitmap}
+                    // dimensions
+                    // will be page dimensions.
+                    mPdfDocument.renderPageFd(pageNum, bitmap.getWidth(),
+                            bitmap.getHeight(), params.areAnnotationsDisabled(),
+                            parcelFileDescriptor.detachFd());
+                } else {
+                    // TODO(b/324894900): Cache the dimensions of the page so that we can avoid
+                    //  extra JNI call.
+                    int pageWidth = getPageWidth(pageNum);
+                    int pageHeight = getPageHeight(pageNum);
+
+                    Preconditions.checkArgument(clipInBitmap(destClip, bitmap),
+                            "destClip not in bounds");
+
+                    mPdfDocument.renderTileFd(pageNum, pageWidth, pageHeight, destClip.left,
+                            destClip.top, bitmap.getWidth(), bitmap.getHeight(),
+                            params.areAnnotationsDisabled(), parcelFileDescriptor.detachFd());
+                }
+            }
+        } catch (InterruptedException | TimeoutException e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
     }
 
     /**
@@ -136,9 +219,11 @@ public class PdfProcessor {
      * multiple
      * lines as well.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PageMatchBounds> searchPageText(int pageNum, String query) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(query, "Search query cannot be null");
-        throw new UnsupportedOperationException();
+        return mPdfDocument.searchPageText(pageNum, query).unflattenToList();
     }
 
     /**
@@ -148,33 +233,57 @@ public class PdfProcessor {
      * exactly defined with both indexes and points.If the start and stop boundary are both
      * the same point, selects the word at that point.
      */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public PageSelection selectPageText(int pageNum,
             SelectionBoundary start, SelectionBoundary stop, boolean isRtl) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(start, "Start selection boundary cannot be null");
         Preconditions.checkNotNull(stop, "Stop selection boundary cannot be null");
-        throw new UnsupportedOperationException();
+        android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
+                mPdfDocument.selectPageText(
+                        pageNum,
+                        android.graphics.pdf.models.jni.SelectionBoundary.convert(start, isRtl),
+                        android.graphics.pdf.models.jni.SelectionBoundary.convert(stop, isRtl));
+        if (legacyPageSelection != null) {
+            return legacyPageSelection.convert(isRtl);
+        }
+        return null;
     }
 
     /** Get the bounds and URLs of all the links on the given page. */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageLinkContent> getPageLinkContents(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.getPageLinks(pageNum).unflattenToList();
     }
 
     /** Releases object in memory related to a page when that page is no longer visible. */
     public void releasePage(int pageNum) {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        mPdfDocument.releasePage(pageNum);
     }
 
     /**
      * Returns the linearization flag on the PDF document.
      */
+    @PdfLinearizationTypes.PdfLinearizationType
     public int getDocumentLinearizationType() {
-        throw new UnsupportedOperationException();
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.isPdfLinearized()
+                ? PDF_DOCUMENT_TYPE_LINEARIZED
+                : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
     }
 
     /** Ensures that any previous {@link PdfDocumentProxy} instance is closed. */
     public void ensurePdfDestroyed() {
-        throw new UnsupportedOperationException();
+        if (mPdfDocument != null) {
+            try {
+                mPdfDocument.destroy();
+            } catch (Throwable t) {
+                Log.e(this.getClass().getSimpleName(), "Error closing PdfDocumentProxy", t);
+            }
+        }
+        mPdfDocument = null;
     }
 
     /**
@@ -182,6 +291,7 @@ public class PdfProcessor {
      * ParcelFileDescriptor.
      */
     public void write(ParcelFileDescriptor destination, boolean removePasswordProtection) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(destination, "Destination FD cannot be null");
         if (removePasswordProtection) {
             cloneWithoutSecurity(destination);
@@ -197,7 +307,7 @@ public class PdfProcessor {
      * @param destination points to where pdfclient should make a copy of the pdf without security.
      */
     private void cloneWithoutSecurity(ParcelFileDescriptor destination) {
-        throw new UnsupportedOperationException();
+        mPdfDocument.cloneWithoutSecurity(destination);
     }
 
     /**
@@ -206,10 +316,15 @@ public class PdfProcessor {
      * @param destination where the currently open PDF should be written.
      */
     private void saveAs(ParcelFileDescriptor destination) {
-        throw new UnsupportedOperationException();
+        mPdfDocument.saveAs(destination);
     }
 
-    private void throwIfDocumentClosed() {
-        throw new UnsupportedOperationException();
+    private boolean clipInBitmap(@Nullable Rect clip, Bitmap destination) {
+        if (clip == null) {
+            return true;
+        }
+        return clip.left >= 0 && clip.top >= 0
+                && clip.right <= destination.getWidth()
+                && clip.bottom <= destination.getHeight();
     }
 }

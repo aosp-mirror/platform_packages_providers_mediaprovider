@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Попередній перегляд"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Перейти в робочий профіль"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Перейти в особистий профіль"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Особистий"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Заблоковано адміністратором"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Доступ до робочих даних з особистого додатка заблокований"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Доступ до персональних даних із робочого додатка заблокований"</string>

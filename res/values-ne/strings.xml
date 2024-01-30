@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"प्रिभ्यू"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"कार्य प्रोफाइल प्रयोग गर्नुहोस्"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"व्यक्तिगत प्रोफाइल प्रयोग गर्नुहोस्"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"व्यक्तिगत"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"तपाईंका एड्मिनले ब्लक गरेका छन्"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"व्यक्तिगत एपमार्फत कामसम्बन्धी डेटा हेर्ने वा प्रयोग गर्ने अनुमति दिइएको छैन"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामसम्बन्धी एपमार्फत व्यक्तिगत जानकारी हेर्ने वा प्रयोग गर्ने अनुमति दिइएको छैन।"</string>

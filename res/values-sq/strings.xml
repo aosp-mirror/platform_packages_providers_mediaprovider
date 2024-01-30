@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Pamja paraprake"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Kalo te profili i punës"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Kalo te profili personal"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Personal"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bllokuar nga administratori yt"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Qasja e të dhënave të punës nga një aplikacion personal nuk lejohet"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Qasja e të dhënave personale nga një aplikacion pune nuk lejohet"</string>

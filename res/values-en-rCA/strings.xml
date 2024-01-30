@@ -161,8 +161,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Try again later. Your photos will be available once the issue is resolved."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Can\'t load some Photos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Got it"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Access media owner package name"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Allows the app to access owner package names of all accessible media files."</string>
 </resources>

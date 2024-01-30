@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"အစမ်းကြည့်ရှုခြင်း"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"အလုပ်သို့ ပြောင်းပါ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ပုဂ္ဂိုလ်ရေးသီးသန့်အဖြစ် ပြောင်းပါ"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ကိုယ်ပိုင်"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"သင့်စီမံခန့်ခွဲသူက ပိတ်ထားသည်"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ကိုယ်ရေးသုံးအက်ပ်ဖြင့် အလုပ်ဒေတာများ သုံးခွင့်မရှိပါ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"အလုပ်သုံးအက်ပ်ဖြင့် ကိုယ်ပိုင်ဒေတာများ သုံးခွင့်မရှိပါ"</string>

@@ -66,8 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Aurrebista"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Aldatu laneko profilera"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Aldatu profil pertsonalera"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Pertsonala"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Administratzaileak blokeatu du"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Laneko datuak ezin dira aplikazio pertsonalen bidez atzitu"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Datu pertsonalak ezin dira laneko aplikazioen bidez atzitu"</string>

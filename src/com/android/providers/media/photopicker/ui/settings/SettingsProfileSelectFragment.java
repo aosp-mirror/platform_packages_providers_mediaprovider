@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.ui.settings.SettingsCloudM
 
 import android.annotation.NonNull;
 import android.annotation.UserIdInt;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
@@ -27,7 +28,8 @@ import android.view.View;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.settingslib.widget.ProfileSelectFragment;
 import com.android.settingslib.widget.profileselector.R;
 
@@ -120,15 +122,29 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
         return fragment;
     }
 
+    private int getManagedUser() {
+        if (mSettingsViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
+                && SdkLevel.isAtLeastS()) {
+            for (UserId userId : mSettingsViewModel.getUserManagerState().getAllUserProfileIds()) {
+                if (mSettingsViewModel.getUserManagerState().isManagedUserProfile(userId)) {
+                    return userId.getIdentifier();
+                }
+            }
+        } else {
+            return mSettingsViewModel.getUserIdManager().getManagedUserId().getIdentifier();
+        }
+        return -1;
+    }
+
     @UserIdInt
     private int getTabUserId(int tabPosition) {
-        final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
-
+        int personalUser = ActivityManager.getCurrentUser();
+        int managedUser = getManagedUser();
         switch (tabPosition) {
             case ProfileSelectFragment.PERSONAL_TAB:
-                return userIdManager.getPersonalUserId().getIdentifier();
+                return personalUser;
             case ProfileSelectFragment.WORK_TAB:
-                return userIdManager.getManagedUserId().getIdentifier();
+                return managedUser;
             default:
                 // tabPosition should match one of the cases above.
                 throw new IllegalArgumentException("Unidentified tab id " + tabPosition);

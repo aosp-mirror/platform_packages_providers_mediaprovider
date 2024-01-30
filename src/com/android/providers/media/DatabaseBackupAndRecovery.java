@@ -155,6 +155,21 @@ public class DatabaseBackupAndRecovery {
 
     private static Map<String, String> sOwnerIdRelationMap;
 
+    public static final String STABLE_URI_INTERNAL_PROPERTY =
+            "persist.sys.fuse.backup.internal_db_backup";
+
+    private static boolean STABLE_URI_INTERNAL_PROPERTY_VALUE = true;
+
+    public static final String STABLE_URI_EXTERNAL_PROPERTY =
+            "persist.sys.fuse.backup.external_volume_backup";
+
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
+
+    public static final String STABLE_URI_PUBLIC_PROPERTY =
+            "persist.sys.fuse.backup.public_db_backup";
+
+    private static boolean STABLE_URI_PUBLIC_PROPERTY_VALUE = false;
+
     protected DatabaseBackupAndRecovery(ConfigStore configStore, VolumeCache volumeCache) {
         mConfigStore = configStore;
         mVolumeCache = volumeCache;
@@ -167,19 +182,18 @@ public class DatabaseBackupAndRecovery {
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mConfigStore.isStableUrisForInternalVolumeEnabled()
-                        || SystemProperties.getBoolean("persist.sys.fuse.backup.internal_db_backup",
-                        /* defaultValue */ true);
+                        || SystemProperties.getBoolean(STABLE_URI_INTERNAL_PROPERTY,
+                        /* defaultValue */ STABLE_URI_INTERNAL_PROPERTY_VALUE);
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mConfigStore.isStableUrisForExternalVolumeEnabled()
-                        || SystemProperties.getBoolean(
-                        "persist.sys.fuse.backup.external_volume_backup",
-                        /* defaultValue */ false);
+                        || SystemProperties.getBoolean(STABLE_URI_EXTERNAL_PROPERTY,
+                        /* defaultValue */ STABLE_URI_EXTERNAL_PROPERTY_VALUE);
             default:
                 // public volume
                 return isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
                         && mConfigStore.isStableUrisForPublicVolumeEnabled()
-                        || SystemProperties.getBoolean("persist.sys.fuse.backup.public_db_backup",
-                        /* defaultValue */ false);
+                        || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
+                        /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
         }
     }
 
@@ -208,6 +222,9 @@ public class DatabaseBackupAndRecovery {
         }
 
         final long startTime = SystemClock.elapsedRealtime();
+        int vol = MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                ? MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY
+                : MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
         try {
             if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
                 new File(RECOVERY_DIRECTORY_PATH).mkdirs();
@@ -219,16 +236,31 @@ public class DatabaseBackupAndRecovery {
                     isStableUrisEnabled(MediaStore.VOLUME_INTERNAL) || isStableUrisEnabled(
                             MediaStore.VOLUME_EXTERNAL_PRIMARY))) {
                 // Setup internal and external volumes
+                MediaProviderStatsLog.write(
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
                 fuseDaemon.setupVolumeDbBackup();
                 mSetupCompletePublicVolumes.add(volumeName);
+                MediaProviderStatsLog.write(
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__SUCCESS, vol);
             } else if (isStableUrisEnabled(volumeName)) {
                 // Setup public volume
+                MediaProviderStatsLog.write(
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
                 fuseDaemon.setupPublicVolumeDbBackup(volumeName);
                 mSetupCompletePublicVolumes.add(volumeName);
+                MediaProviderStatsLog.write(
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
+                        MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__SUCCESS, vol);
             } else {
                 return;
             }
         } catch (IOException e) {
+            MediaProviderStatsLog.write(
+                    MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
+                    MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__FAILURE, vol);
             Log.e(TAG, "Failure in setting up backup and recovery for volume: " + volumeName, e);
             return;
         } finally {
@@ -1046,5 +1078,31 @@ public class DatabaseBackupAndRecovery {
         }
         throw new RuntimeException("Timed out while waiting for ExternalStorageState "
                 + "to be MEDIA_MOUNTED");
+    }
+
+    public void onDetachVolume(MediaVolume volume) {
+        String volumeName = volume.getName();
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
+            // Connection is removed as part of external_primary volume detach
+            return;
+        } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL) && !isStableUrisEnabled(
+                    MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+                return;
+            }
+        } else if (!isStableUrisEnabled(volumeName)) {
+            return;
+        }
+
+        FuseDaemon fuseDaemon;
+        try {
+            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            fuseDaemon.removeLevelDbConnections(volumeName);
+            mSetupCompletePublicVolumes.remove(volumeName);
+            Log.i(TAG, "Successfully removed leveldb connections for volume:" + volumeName);
+        } catch (Exception e) {
+            Log.e(TAG, "Failure in removeLevelDbConnections execution.", e);
+            return;
+        }
     }
 }

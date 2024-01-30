@@ -76,6 +76,7 @@ import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ModelTestUtils;
+import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
@@ -665,17 +666,17 @@ public class PickerViewModelTest {
 
     @Test
     public void testRefreshUiNotifications() throws InterruptedException {
-        final LiveData<Boolean> shouldRefreshUi = mPickerViewModel.shouldRefreshUiLiveData();
-        assertFalse(shouldRefreshUi.getValue());
+        final LiveData<RefreshRequest> shouldRefreshUi = mPickerViewModel.refreshUiLiveData();
+        assertFalse(shouldRefreshUi.getValue().shouldRefreshPicker());
 
         final ContentResolver contentResolver = sTargetContext.getContentResolver();
         contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
 
         TimeUnit.MILLISECONDS.sleep(100);
-        assertTrue(shouldRefreshUi.getValue());
+        assertTrue(shouldRefreshUi.getValue().shouldRefreshPicker());
 
-        mPickerViewModel.resetAllContentInCurrentProfile();
-        assertFalse(shouldRefreshUi.getValue());
+        mPickerViewModel.resetAllContentInCurrentProfile(false);
+        assertFalse(shouldRefreshUi.getValue().shouldRefreshPicker());
     }
 
     @Test

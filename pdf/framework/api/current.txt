@@ -26,6 +26,10 @@ package android.graphics.pdf {
 
   public final class PdfRenderer.Page implements java.lang.AutoCloseable {
     method public void close();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
     method public int getHeight();
     method public int getIndex();
     method public int getWidth();
@@ -54,6 +58,10 @@ package android.graphics.pdf {
 
   public final class PdfRendererPreV.Page implements java.lang.AutoCloseable {
     method public void close();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
     method public int getHeight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();

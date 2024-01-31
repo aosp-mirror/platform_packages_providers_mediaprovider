@@ -28,6 +28,7 @@ import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.models.FormWidgetInfo;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
@@ -41,6 +42,9 @@ import com.android.internal.util.Preconditions;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -513,6 +517,57 @@ public final class PdfRenderer implements AutoCloseable {
                 nativeRenderPage(mNativeDocument, mNativePage, destination, contentLeft,
                         contentTop, contentRight, contentBottom, transformArr, renderMode);
             }
+        }
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         */
+        @androidx.annotation.NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos() {
+            return getFormWidgetInfos(new HashSet<>());
+        }
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         *
+         * @param types the types of form widgets to return
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos(
+                @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Returns information about the widget with {@code widgetIndex}.
+         *
+         * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
+         *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
+         *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
+         *     FormWidgetInfo#getWidgetIndex()}.
+         * @throws IllegalArgumentException if there is no form widget at the provided index.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtIndex(int widgetIndex) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Returns information about the widget at the given point.
+         *
+         * @param x the x position of the widget on the page, in points
+         * @param y the y position of the widget on the page, in points
+         * @throws IllegalArgumentException if there is no form widget at the provided position.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
+            throw new UnsupportedOperationException();
         }
 
         /**

@@ -30,6 +30,7 @@ import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.models.FormEditRecord;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.selection.PageSelection;
@@ -527,6 +528,48 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Applies a {@link FormEditRecord} to the PDF.
+         *
+         * @param editRecord the {@link FormEditRecord} to be applied
+         * @return Rectangular areas of the page bitmap that have been invalidated by this action.
+         *     Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
+         *     bitmaps for the corresponding areas of the page.
+         *     <p>For click type {@link FormEditRecord}s, performs a click on {@link
+         *     FormEditRecord#getClickPoint()}
+         *     <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+         *     <p>For set indices type {@link FormEditRecord}s, sets the {@link
+         *     FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+         *     form widget indicated by the record.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
+         *     to the widget indicated by the index (e.g. a set indices type record contains an
+         *     index that corresponds to push button widget, or if the index does not correspond to
+         *     a form widget on the page).
+         */
+        @android.annotation.NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Applies the {@link FormEditRecord}s to the page, in order.
+         *
+         * @param formEditRecords the {@link FormEditRecord}s to be applied
+         * @return the records that could not be applied, or an empty list if all were applied
+         *     <p>Re-rendering the page via {@link #render} is required after calling this method.
+         *     Applying edits to form widgets will change the appearance of the page.
+         *     <p>If any record cannot be applied, it will be returned and no further records will
+         *     be applied. Records already applied will not be reverted. To restore the page to its
+         *     state before any records were applied, re-load the page via {@link #close} and {@link
+         *     #openPage(int)}.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
             throw new UnsupportedOperationException();
         }
 

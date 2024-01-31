@@ -92,6 +92,78 @@ package android.graphics.pdf.content {
 
 package android.graphics.pdf.models {
 
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class ChoiceOption implements android.os.Parcelable {
+    ctor public ChoiceOption(@NonNull String, boolean);
+    method public int describeContents();
+    method @NonNull public String getLabel();
+    method public boolean isSelected();
+    method public void setLabel(@NonNull String);
+    method public void setSelected(boolean);
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.ChoiceOption> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormEditRecord implements android.os.Parcelable {
+    method public int describeContents();
+    method @Nullable public android.graphics.Point getClickPoint();
+    method public int getPageNumber();
+    method @NonNull public java.util.Set<java.lang.Integer> getSelectedIndices();
+    method @Nullable public String getText();
+    method public int getType();
+    method public int getWidgetIndex();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.FormEditRecord> CREATOR;
+    field public static final int EDIT_TYPE_CLICK = 0; // 0x0
+    field public static final int EDIT_TYPE_SET_INDICES = 1; // 0x1
+    field public static final int EDIT_TYPE_SET_TEXT = 2; // 0x2
+  }
+
+  public static final class FormEditRecord.Builder {
+    ctor public FormEditRecord.Builder(int, int, int);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord build();
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setClickPoint(@Nullable android.graphics.Point);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setSelectedIndices(@Nullable java.util.Set<java.lang.Integer>);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setText(@Nullable String);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormWidgetInfo implements android.os.Parcelable {
+    method public int describeContents();
+    method @Nullable public String getAccessibilityLabel();
+    method @NonNull public java.util.List<android.graphics.pdf.models.ChoiceOption> getChoiceOptions();
+    method public float getFontSize();
+    method public int getMaxLength();
+    method @Nullable public String getTextValue();
+    method public int getWidgetIndex();
+    method @NonNull public android.graphics.Rect getWidgetRect();
+    method public int getWidgetType();
+    method public boolean isEditableText();
+    method public boolean isMultiLineText();
+    method public boolean isMultiSelect();
+    method public boolean isReadOnly();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.FormWidgetInfo> CREATOR;
+    field public static final int WIDGET_TYPE_CHECKBOX = 2; // 0x2
+    field public static final int WIDGET_TYPE_COMBOBOX = 4; // 0x4
+    field public static final int WIDGET_TYPE_LISTBOX = 5; // 0x5
+    field public static final int WIDGET_TYPE_PUSHBUTTON = 1; // 0x1
+    field public static final int WIDGET_TYPE_RADIOBUTTON = 3; // 0x3
+    field public static final int WIDGET_TYPE_SIGNATURE = 7; // 0x7
+    field public static final int WIDGET_TYPE_TEXTFIELD = 6; // 0x6
+    field public static final int WIDGET_TYPE_UNKNOWN = 0; // 0x0
+  }
+
+  public static final class FormWidgetInfo.Builder {
+    ctor public FormWidgetInfo.Builder(int, int, @NonNull android.graphics.Rect, @NonNull String, @NonNull String);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo build();
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setChoiceOptions(@NonNull java.util.List<android.graphics.pdf.models.ChoiceOption>);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setEditableText(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setFontSize(float);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMaxLength(int);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiLineText(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiSelect(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setReadOnly(boolean);
+  }
+
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds {
     ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.Rect>, int);
     method @NonNull public java.util.List<android.graphics.Rect> getBounds();

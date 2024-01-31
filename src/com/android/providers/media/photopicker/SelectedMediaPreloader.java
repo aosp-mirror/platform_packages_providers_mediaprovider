@@ -47,13 +47,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -262,23 +258,14 @@ class SelectedMediaPreloader {
 
         Trace.beginSection("Preloader.openFd");
 
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            try {
-                mContentResolver.openAssetFileDescriptor(uri, "r").close();
-            } catch (FileNotFoundException e) {
-                isOpenedSuccessfully.set(false);
-                Log.w(TAG, "Could not open FileDescriptor for " + uri, e);
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to preload media file ", e);
-            }
-        });
-
         try {
-            future.get(TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            return isOpenedSuccessfully.get();
-        } catch (InterruptedException | ExecutionException e) {
-            Log.w(TAG, "Could not preload the media item ", e);
+            mContentResolver.openAssetFileDescriptor(uri, "r").close();
+        } catch (FileNotFoundException e) {
+            isOpenedSuccessfully.set(false);
+            Log.w(TAG, "Could not open FileDescriptor for " + uri, e);
+        } catch (IOException e) {
+            isOpenedSuccessfully.set(false);
+            Log.w(TAG, "Failed to preload media file ", e);
         } finally {
             Trace.endSection();
 

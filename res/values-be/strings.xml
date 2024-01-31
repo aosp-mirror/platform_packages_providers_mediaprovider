@@ -66,6 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"Перадпрагляд"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Пераключыцца на працоўны"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Пераключыцца на асабісты"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Асабісты"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Заблакіравана вашым адміністратарам"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Доступ да працоўных даных з асабістай праграмы забаронены"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Доступ да асабістых даных з працоўнай праграмы забаронены"</string>
@@ -160,4 +161,8 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Паўтарыце спробу пазней. Калі праблема будзе вырашана, вашы фота стануць даступнымі."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Некаторыя фота не ўдалося загрузіць"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
+    <skip />
+    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
+    <skip />
 </resources>

@@ -320,6 +320,14 @@ void com_android_providers_media_FuseDaemon_remove_owner_id_relation(JNIEnv* env
                                   utf_chars_owner_pkg_identifier.c_str());
 }
 
+void com_android_providers_media_FuseDaemon_remove_leveldb_connections(JNIEnv* env, jobject self,
+                                                                       jlong java_daemon,
+                                                                       jstring volume_name) {
+    fuse::FuseDaemon* const daemon = reinterpret_cast<fuse::FuseDaemon*>(java_daemon);
+    ScopedUtfChars utf_chars_volume_name(env, volume_name);
+    daemon->RemoveLevelDbConnections(utf_chars_volume_name.c_str());
+}
+
 const JNINativeMethod methods[] = {
         {"native_new", "(Lcom/android/providers/media/MediaProvider;)J",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_new)},
@@ -362,7 +370,10 @@ const JNINativeMethod methods[] = {
         {"native_read_owner_relations", "(J)Ljava/util/HashMap;",
          reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_read_owner_relations)},
         {"native_remove_owner_id_relation", "(JLjava/lang/String;Ljava/lang/String;)V",
-         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_remove_owner_id_relation)}};
+         reinterpret_cast<void*>(com_android_providers_media_FuseDaemon_remove_owner_id_relation)},
+         {"native_remove_leveldb_connections", "(JLjava/lang/String;)V",
+            reinterpret_cast<void*>(
+                    com_android_providers_media_FuseDaemon_remove_leveldb_connections)}};
 }  // namespace
 
 void register_android_providers_media_FuseDaemon(JavaVM* vm, JNIEnv* env) {

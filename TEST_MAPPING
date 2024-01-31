@@ -114,6 +114,14 @@
                     "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
+        },
+        {
+            "name": "CtsOsTestCases",
+            "options": [
+                {
+                    "include-filter": "android.os.storage.cts.StorageManagerTest"
+                }
+            ]
         }
     ],
     "mainline-postsubmit": [

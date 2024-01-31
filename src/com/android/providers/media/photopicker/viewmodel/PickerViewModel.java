@@ -24,6 +24,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.DataLoaderThread.TOKEN;
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
@@ -79,8 +80,10 @@ import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
@@ -103,8 +106,6 @@ import java.util.stream.Collectors;
  */
 public class PickerViewModel extends AndroidViewModel {
     public static final String TAG = "PhotoPicker";
-
-    private static final int RECENT_MINIMUM_COUNT = 12;
     private static final int INSTANCE_ID_MAX = 1 << 15;
     private static final int DELAY_MILLIS = 0;
 
@@ -139,11 +140,13 @@ public class PickerViewModel extends AndroidViewModel {
     private MutableLiveData<List<Category>> mCategoryList;
 
     private MutableLiveData<Boolean> mIsAllPreGrantedMediaLoaded = new MutableLiveData<>(false);
-    private final MutableLiveData<Boolean> mShouldRefreshUiLiveData = new MutableLiveData<>(false);
+    private final MutableLiveData<RefreshRequest> mRefreshUiLiveData =
+            new MutableLiveData<>(RefreshRequest.DEFAULT);
     private final ContentObserver mRefreshUiNotificationObserver = new ContentObserver(null) {
         @Override
-        public void onChange(boolean selfChange) {
-            mShouldRefreshUiLiveData.postValue(true);
+        public void onChange(boolean selfChange, Uri uri) {
+            boolean shouldInit = uri.getLastPathSegment().equals(INIT_PATH);
+            mRefreshUiLiveData.postValue(new RefreshRequest(true, shouldInit));
         }
     };
 
@@ -151,6 +154,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
+    private  UserManagerState mUserManagerState;
     private BannerManager mBannerManager;
 
     private InstanceId mInstanceId;
@@ -179,7 +183,6 @@ public class PickerViewModel extends AndroidViewModel {
         mAppContext = application.getApplicationContext();
         mItemsProvider = new ItemsProvider(mAppContext);
         mSelection = new Selection();
-        mUserIdManager = UserIdManager.create(mAppContext);
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
@@ -188,6 +191,13 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = false;
 
         initConfigStore();
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mUserManagerState = UserManagerState.create(mAppContext);
+            mUserIdManager = null;
+        } else {
+            mUserIdManager = UserIdManager.create(mAppContext);
+            mUserManagerState = null;
+        }
 
         // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
         // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
@@ -248,7 +258,21 @@ public class PickerViewModel extends AndroidViewModel {
 
     @VisibleForTesting
     public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        if (userIdManager == null) {
+            throw new IllegalArgumentException("Given UserIdManager object can not be null");
+        }
         mUserIdManager = userIdManager;
+    }
+
+    /**
+     * Injects given {@link UserManagerState} object into {@link #mUserManagerState}
+     */
+    @VisibleForTesting
+    public void setUserManagerState(@NonNull UserManagerState userManagerState) {
+        if (userManagerState == null) {
+            throw new IllegalArgumentException("Given UserManagerState object can not be null");
+        }
+        mUserManagerState = userManagerState;
     }
 
     @VisibleForTesting
@@ -287,6 +311,13 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public UserIdManager getUserIdManager() {
         return mUserIdManager;
+    }
+
+    /**
+     * @return {@link UserManagerState} for this context.
+     */
+    public UserManagerState getUserManagerState() {
+        return mUserManagerState;
     }
 
     /**
@@ -367,27 +398,52 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Reset to a given profile
+     * @param userId : the profile where photopicker want switch to
+     */
+    @UiThread
+    public void resetToGivenUserProfile(@NonNull UserId userId) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            if (userId == null) {
+                throw new IllegalArgumentException("Given userId can not be null");
+            }
+            mUserManagerState.setUserAsCurrentUserProfile(userId);
+            onSwitchedProfile();
+        }
+    }
+
+    /**
+     * Reset to a user profile that starts photopicker activity
+     */
+    @UiThread
+    public void resetToCurrentUserProfile() {
+        resetToGivenUserProfile(UserId.CURRENT_USER);
+    }
+
+    /**
      * Reset the content observer & all the content on profile switched.
      */
     @UiThread
     public void onSwitchedProfile() {
         resetRefreshUiNotificationObserver();
-        resetAllContentInCurrentProfile();
+        resetAllContentInCurrentProfile(/* shouldSendInitRequest */ true);
     }
 
     /**
      * Reset all the content (items, categories & banners) in the current profile.
      */
     @UiThread
-    public void resetAllContentInCurrentProfile() {
+    public void resetAllContentInCurrentProfile(boolean shouldSendInitRequest) {
         Log.d(TAG, "Reset all content in current profile");
 
         // Post 'should refresh UI live data' value as false to avoid unnecessary repetitive resets
-        mShouldRefreshUiLiveData.postValue(false);
+        mRefreshUiLiveData.postValue(RefreshRequest.DEFAULT);
 
         clearQueuedTasksInDataLoaderThread();
 
-        initPhotoPickerData();
+        if (shouldSendInitRequest) {
+            initPhotoPickerData();
+        }
 
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
@@ -500,6 +556,13 @@ public class PickerViewModel extends AndroidViewModel {
         loadItemsAsync(pagingParameters, /* isReset */ isReset, action);
     }
 
+    private UserId getCurrentUserProfileId() {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return mUserManagerState.getCurrentUserProfileId();
+        }
+        return mUserIdManager.getCurrentUserProfileId();
+    }
+
     /**
      * Loads required items and sets it to the {@link PickerViewModel#mItemsResult} while
      * considering the isReset value.
@@ -511,8 +574,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     private void loadItemsAsync(@NonNull PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
-
+        final UserId userId = getCurrentUserProfileId();
         DataLoaderThread.getHandler().postDelayed(() -> {
             // Load the items as per the pagination parameters passed as params to this method.
             List<Item> newPageItemList = loadItems(Category.DEFAULT, userId, pagingParameters);
@@ -611,7 +673,7 @@ public class PickerViewModel extends AndroidViewModel {
         idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
 
         if (!idsForItemsToBeFetched.isEmpty()) {
-            final UserId userId = mUserIdManager.getCurrentUserProfileId();
+            UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 loadItemsWithLocalIdSelection(Category.DEFAULT, userId,
                         idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
@@ -738,7 +800,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     private void loadCategoryItemsAsync(PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final UserId userId = getCurrentUserProfileId();
         final Category category = mCurrentCategory;
 
         DataLoaderThread.getHandler().postDelayed(() -> {
@@ -835,7 +897,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoriesAsync() {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final UserId userId = getCurrentUserProfileId();
         DataLoaderThread.getHandler().postDelayed(() -> {
             mCategoryList.postValue(loadCategories(userId));
         }, TOKEN, DELAY_MILLIS);
@@ -889,8 +951,11 @@ public class PickerViewModel extends AndroidViewModel {
                 }
             }
         }
-        mUserIdManager.setIntentAndCheckRestrictions(intent);
-
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mUserManagerState.setIntentAndCheckRestrictions(intent);
+        } else {
+            mUserIdManager.setIntentAndCheckRestrictions(intent);
+        }
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
@@ -925,15 +990,24 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+
     private boolean checkPickerLaunchOptionValidity(int launchOption) {
         return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
                 || launchOption == MediaStore.PICK_IMAGES_TAB_ALBUMS;
     }
 
     private void initBannerManager() {
-        mBannerManager = shouldShowOnlyLocalFeatures()
-                ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
-                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager, mConfigStore);
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mBannerManager = shouldShowOnlyLocalFeatures()
+                    ? new BannerManager(mAppContext, mUserManagerState, mConfigStore)
+                    : new BannerManager.CloudBannerManager(
+                            mAppContext, mUserManagerState, mConfigStore);
+        } else {
+            mBannerManager = shouldShowOnlyLocalFeatures()
+                    ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
+                    : new BannerManager.CloudBannerManager(
+                            mAppContext, mUserIdManager, mConfigStore);
+        }
     }
 
     /**
@@ -954,6 +1028,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log picker opened metrics
      */
     public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1045,6 +1123,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log metrics to notify that the user has confirmed selection
      */
     public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
                     countOfItemsConfirmed);
@@ -1058,6 +1140,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log metrics to notify that the user has exited Picker without any selection
      */
     public void logPickerCancel(int callingUid, String callingPackage) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1429,14 +1515,14 @@ public class PickerViewModel extends AndroidViewModel {
      * @return a {@link LiveData} that posts Should Refresh Picker UI as {@code true} when notified.
      */
     @NonNull
-    public LiveData<Boolean> shouldRefreshUiLiveData() {
-        return mShouldRefreshUiLiveData;
+    public LiveData<RefreshRequest> refreshUiLiveData() {
+        return mRefreshUiLiveData;
     }
 
     private void registerRefreshUiNotificationObserver() {
         mContentResolver = getContentResolverForSelectedUser();
         mContentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                /* notifyForDescendants */ false, mRefreshUiNotificationObserver);
+                /* notifyForDescendants */ true, mRefreshUiNotificationObserver);
     }
 
     private void unregisterRefreshUiNotificationObserver() {
@@ -1452,7 +1538,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private ContentResolver getContentResolverForSelectedUser() {
-        final UserId selectedUserId = mUserIdManager.getCurrentUserProfileId();
+        final UserId selectedUserId = getCurrentUserProfileId();
         if (selectedUserId == null) {
             Log.d(TAG, "Selected user id is NULL; returning the default content resolver.");
             return mAppContext.getContentResolver();
@@ -1508,7 +1594,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void initPhotoPickerData(@NonNull Category category) {
         if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
-            UserId userId = mUserIdManager.getCurrentUserProfileId();
+            final UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 if (category == Category.DEFAULT) {
                     mIsSyncInProgress.postValue(true);

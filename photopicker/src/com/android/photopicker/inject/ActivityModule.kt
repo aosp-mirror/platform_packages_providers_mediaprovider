@@ -16,31 +16,61 @@
 
 package com.android.photopicker.core
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.android.photopicker.core.network.NetworkMonitor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
+import dagger.hilt.android.components.ActivityComponent
+import dagger.hilt.android.qualifiers.ActivityContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
+/**
+ * Injection Module that provides access to objects bound to the [Activity]'s [Lifecycle].
+ *
+ * These can be injected by requesting the type with the [@ActivityOwned] qualifier.
+ *
+ * The module obtains a reference to the activity by installing in ActivityComponent (thus binding
+ * the scope of this module to an individual Activity instance).
+ *
+ * Note: Jobs that are launched in the [CoroutineScope] provided by this module will be
+ * automatically cancelled when the Activity's lifecycle is ended.
+ */
 @Module
-@InstallIn(SingletonComponent::class)
-class NetworkMonitorModule {
+@InstallIn(ActivityComponent::class)
+class ActivityModule {
+
     // Avoid initialization until it's actually needed.
     private lateinit var networkMonitor: NetworkMonitor
+
+    @Provides
+    @ActivityOwned
+    fun lifecycle(activity: Activity): Lifecycle {
+        check(activity is LifecycleOwner) { "activity must implement LifecycleOwner" }
+        return activity.lifecycle
+    }
+
+    @Provides
+    @ActivityOwned
+    fun activityScope(activity: Activity): CoroutineScope {
+        check(activity is LifecycleOwner) { "activity must implement LifecycleOwner" }
+        return activity.lifecycleScope
+    }
 
     /**
      * Provider for the [NetworkMonitor]. This is lazily initialized only when requested to save on
      * initialization costs of this module.
      */
     @Provides
+    @ActivityOwned
     fun provideNetworkMonitor(
-        @ApplicationContext context: Context,
+        @ActivityContext context: Context,
+        @ActivityOwned scope: CoroutineScope,
     ): NetworkMonitor {
         if (::networkMonitor.isInitialized) {
             return networkMonitor
@@ -49,8 +79,6 @@ class NetworkMonitorModule {
                 NetworkMonitor.TAG,
                 "NetworkMonitor requested, but not yet initialized. Initializing NetworkMonitor."
             )
-            // Build a CoroutineScope that is off the Main thread for NetworkStatus updates.
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             networkMonitor = NetworkMonitor(context, scope)
             return networkMonitor
         }

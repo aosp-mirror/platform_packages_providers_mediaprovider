@@ -21,10 +21,12 @@ import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.util.PermissionUtils.checkAppOpRequestInstallPackagesForSharedUid;
 import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStorageGranted;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaOwnerPackageName;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionQueryAllPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadAudio;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadImages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionReadStorage;
@@ -54,6 +56,7 @@ import android.os.Process;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.MediaStore.Files.FileColumns;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -81,7 +84,7 @@ public class LocalCallingIdentity {
     private final Object lock = new Object();
 
     @GuardedBy("lock")
-    private int mDeletedFileCountBypassingDatabase = 0;
+    private int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -346,6 +349,9 @@ public class LocalCallingIdentity {
 
     public static final int PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED = 1 << 27;
 
+    public static final int PERMISSION_QUERY_ALL_PACKAGES = 1 << 28;
+    public static final int PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME = 1 << 29;
+
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
 
@@ -424,6 +430,12 @@ public class LocalCallingIdentity {
             case PERMISSION_READ_MEDIA_VISUAL_USER_SELECTED:
                 return checkPermissionReadVisualUserSelected(context, pid, uid, getPackageName(),
                         attributionTag, targetSdkIsAtLeastT);
+            case PERMISSION_QUERY_ALL_PACKAGES:
+                return checkPermissionQueryAllPackages(
+                        context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME:
+                return checkPermissionAccessMediaOwnerPackageName(
+                        context, pid, uid, getPackageName(), attributionTag);
             default:
                 return false;
         }
@@ -444,7 +456,9 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag);
+        boolean targetSdkIsAtLeastR = getTargetSdkVersion() >= Build.VERSION_CODES.R;
+        return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag,
+                    targetSdkIsAtLeastR);
     }
 
     private volatile boolean shouldBypass;
@@ -605,15 +619,42 @@ public class LocalCallingIdentity {
         }
     }
 
-    protected void incrementDeletedFileCountBypassingDatabase() {
+    protected void incrementDeletedFileCountBypassingDatabase(int mediaType) {
         synchronized (lock) {
-            mDeletedFileCountBypassingDatabase++;
+            mDeletedFileCountsBypassingDatabase[mediaType]++;
         }
     }
 
-    protected int getDeletedFileCountBypassingDatabase() {
+    private void clearDeletedFileCountsBypassingDatabase() {
         synchronized (lock) {
-            return mDeletedFileCountBypassingDatabase;
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                mDeletedFileCountsBypassingDatabase[i] = 0;
+            }
+        }
+    }
+
+    protected int getDeletedFileTotalCountBypassingDatabase() {
+        synchronized (lock) {
+            int totalCount = 0;
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                totalCount += mDeletedFileCountsBypassingDatabase[i];
+            }
+            return totalCount;
+        }
+    }
+
+    protected boolean hasDeletedFileCount() {
+        synchronized (lock) {
+            for (int i = 0; i < FileColumns.MEDIA_TYPE_COUNT; i++) {
+                if (mDeletedFileCountsBypassingDatabase[i] > 0) return true;
+            }
+            return false;
+        }
+    }
+
+    protected int[] getDeletedFileCountsBypassingDatabase() {
+        synchronized (lock) {
+            return mDeletedFileCountsBypassingDatabase;
         }
     }
 
@@ -671,6 +712,15 @@ public class LocalCallingIdentity {
     }
 
     /**
+     * Returns {@code true} if this package has permissions
+     * to access owner_package_name of any accessible file.
+     */
+    public boolean checkCallingPermissionsOwnerPackageName() {
+        return hasPermission(PERMISSION_QUERY_ALL_PACKAGES)
+                || hasPermission(PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME);
+    }
+
+    /**
      * Returns {@code true} if this package is a legacy app and has read permission
      */
     public boolean isCallingPackageLegacyRead() {
@@ -695,26 +745,39 @@ public class LocalCallingIdentity {
     }
 
     protected void dump(PrintWriter writer) {
-        if (getDeletedFileCountBypassingDatabase() <= 0) {
+        if (!hasDeletedFileCount()) {
             return;
         }
 
-        writer.println(getDeletedFileCountLogMessage(uid, getPackageName(),
-                getDeletedFileCountBypassingDatabase()));
+        writer.println(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                getDeletedFileCountsBypassingDatabase()));
     }
 
     protected void dump(String reason) {
         Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
                 + ". Reason: " + reason);
-        if (this.getDeletedFileCountBypassingDatabase() > 0) {
-            Logging.logPersistent(getDeletedFileCountLogMessage(uid, getPackageName(),
-                    getDeletedFileCountBypassingDatabase()));
+        if (hasDeletedFileCount()) {
+            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                    getDeletedFileCountsBypassingDatabase()));
         }
     }
 
-    private static String getDeletedFileCountLogMessage(int uid, String packageName,
-            int deletedFilesCountBypassingDatabase) {
-        return "uid=" + uid + " packageName=" + packageName + " deletedFilesCountBypassingDatabase="
-                + deletedFilesCountBypassingDatabase;
+    protected void dump() {
+        if (hasDeletedFileCount()) {
+            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
+                    getDeletedFileCountsBypassingDatabase()));
+            clearDeletedFileCountsBypassingDatabase();
+        }
+    }
+
+    private static String getDeletedFileCountsLogMessage(int uid, String packageName,
+            int[] deletedFileCountsBypassingDatabase) {
+        final StringBuilder builder = new StringBuilder("uid=" + uid
+                + " packageName=" + packageName
+                + " deletedFilesCountsBypassingDatabase=");
+        for (int count: deletedFileCountsBypassingDatabase) {
+            builder.append(count).append(' ');
+        }
+        return builder.toString();
     }
 }

@@ -16,6 +16,7 @@
 
 package android.graphics.pdf;
 
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -26,6 +27,7 @@ import android.graphics.Bitmap.Config;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.pdf.flags.Flags;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
@@ -118,6 +120,33 @@ public final class PdfRenderer implements AutoCloseable {
     }
 
     private static final String TAG = PdfRenderer.class.getSimpleName();
+
+    /** Represents a PDF without form fields */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_NONE = 0;
+
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
+
+    /** @hide */
+    @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
+
     private final CloseGuard mCloseGuard = new CloseGuard();
 
     private final Point mTempPoint = new Point();
@@ -248,6 +277,13 @@ public final class PdfRenderer implements AutoCloseable {
         throwIfPageNotInDocument(index);
         mCurrentPage = new Page(index);
         return mCurrentPage;
+    }
+
+    /** Returns the form type of the loaded PDF */
+    @PdfFormType
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public int getPdfFormType() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

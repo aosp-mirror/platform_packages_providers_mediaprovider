@@ -92,6 +92,33 @@ public final class PdfRendererPreV implements AutoCloseable {
     public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1;
     /** Represents a linearized PDF document. */
     public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2;
+
+    /** Represents a PDF without form fields */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_NONE = 0;
+
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
+
+    /** @hide */
+    @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
+
     private final int mPageCount;
     private PdfProcessor mPdfProcessor;
 
@@ -212,6 +239,13 @@ public final class PdfRendererPreV implements AutoCloseable {
     public Page openPage(int pageNum) {
         throwIfDocumentClosed();
         return new Page(pageNum);
+    }
+
+    /** Returns the form type of the loaded PDF */
+    @PdfFormType
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public int getPdfFormType() {
+        throw new UnsupportedOperationException();
     }
 
     /**

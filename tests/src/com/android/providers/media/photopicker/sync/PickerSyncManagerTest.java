@@ -319,7 +319,8 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                /* isLocal= */ true);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),
@@ -357,7 +358,7 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", "com.hooli.cloudpicker");
+                "Not_null", "com.hooli.cloudpicker", /* isLocal= */ false);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),

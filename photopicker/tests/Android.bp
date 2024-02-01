@@ -17,6 +17,7 @@ android_test {
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui-test-junit4",
         "androidx.compose.ui_ui-test-manifest",
+        "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
         "mockito-target",

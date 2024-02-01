@@ -71,11 +71,13 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
@@ -114,10 +116,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private View mFragmentContainerView;
     private View mDragBar;
     private View mProfileButton;
+    private View mProfileMenuButton;
     private TextView mPrivacyText;
     private TabLayout mTabLayout;
     private Toolbar mToolbar;
     private CrossProfileListeners mCrossProfileListeners;
+    private ConfigStore mConfigStore;
 
     @NonNull
     private final MutableLiveData<Boolean> mIsItemPhotoGridViewChanged =
@@ -171,6 +175,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mViewModelProvider = new ViewModelProvider(this);
         mPickerViewModel = getOrCreateViewModel();
+        mConfigStore = mPickerViewModel.getConfigStore();
 
         final Intent intent = getIntent();
         try {
@@ -185,7 +190,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         mPrivacyText = findViewById(R.id.privacy_text);
         mBottomBar = findViewById(R.id.picker_bottom_bar);
         mProfileButton = findViewById(R.id.profile_button);
-
+        mProfileMenuButton = findViewById(R.id.profile_menu_button);
         mTabLayout = findViewById(R.id.tab_layout);
 
         mAccessibilityManager = getSystemService(AccessibilityManager.class);
@@ -440,7 +445,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private BottomSheetCallback createBottomSheetCallBack() {
         return new BottomSheetCallback() {
-            private boolean mIsHiddenDueToBottomSheetClosing = false;
+            private boolean mIsProfileButtonHiddenDueToBottomSheetClosing = false;
+            private boolean mIsProfileMenuButtonHiddenDueToBottomSheetClosing = false;
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN) {
@@ -459,23 +465,52 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 // slideOffset = 1 is when bottomsheet is in expanded mode
                 // We hide the Profile button if the bottomsheet is 50% in between collapsed state
                 // and hidden state.
-                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD &&
-                        mProfileButton.getVisibility() == View.VISIBLE) {
+                onSlideProfileButton(slideOffset);
+                onSlideProfileMenuButton(slideOffset);
+
+            }
+
+            void onSlideProfileButton(float slideOffset) {
+                // We hide the Profile button if the bottomsheet is 50% in between collapsed state
+                // and hidden state.
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mProfileButton.getVisibility() == View.VISIBLE) {
                     mProfileButton.setVisibility(View.GONE);
-                    mIsHiddenDueToBottomSheetClosing = true;
+                    mIsProfileButtonHiddenDueToBottomSheetClosing = true;
                     return;
                 }
 
                 // We need to handle this state if the user is swiping till the bottom of the
                 // screen but then swipes up bottom sheet suddenly
-                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD &&
-                        mIsHiddenDueToBottomSheetClosing) {
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mIsProfileButtonHiddenDueToBottomSheetClosing) {
                     mProfileButton.setVisibility(View.VISIBLE);
-                    mIsHiddenDueToBottomSheetClosing = false;
+                    mIsProfileButtonHiddenDueToBottomSheetClosing = false;
+                }
+            }
+
+            void onSlideProfileMenuButton(float slideOffset) {
+                if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS())) {
+                    return;
+                }
+                if (slideOffset < HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mProfileMenuButton.getVisibility() == View.VISIBLE) {
+                    mProfileMenuButton.setVisibility(View.GONE);
+                    mIsProfileMenuButtonHiddenDueToBottomSheetClosing = true;
+                    return;
+                }
+
+                // We need to handle this state if the user is swiping till the bottom of the
+                // screen but then swipes up bottom sheet suddenly
+                if (slideOffset > HIDE_PROFILE_BUTTON_THRESHOLD
+                        && mIsProfileMenuButtonHiddenDueToBottomSheetClosing) {
+                    mProfileMenuButton.setVisibility(View.VISIBLE);
+                    mIsProfileMenuButtonHiddenDueToBottomSheetClosing = false;
                 }
             }
         };
     }
+
 
     private void setRoundedCornersForBottomSheet() {
         final float cornerRadius =
@@ -728,8 +763,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     @UserIdInt
     private int getCurrentUserId() {
-        final UserIdManager userIdManager = mPickerViewModel.getUserIdManager();
-        return userIdManager.getCurrentUserProfileId().getIdentifier();
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return mPickerViewModel.getUserManagerState().getCurrentUserProfileId().getIdentifier();
+        }
+        return mPickerViewModel.getUserIdManager().getCurrentUserProfileId().getIdentifier();
     }
 
     /**
@@ -753,6 +790,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         if (mode.isPreview) {
             mBottomBar.setVisibility(View.GONE);
             mProfileButton.setVisibility(View.GONE);
+            mProfileMenuButton.setVisibility(View.GONE);
         }
     }
 
@@ -913,13 +951,20 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
+     * Clear all the fragments in the FragmentManager
+     */
+    void clearFragments() {
+        final FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.popBackStackImmediate(/* name */ null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);
+    }
+
+    /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in personal profile mode.
      */
     private void resetToPersonalProfile() {
         // Clear all the fragments in the FragmentManager
-        final FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.popBackStackImmediate(/* name */ null,
-                FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        clearFragments();
 
         // Reset all content to the personal profile
         mPickerViewModel.resetToPersonalProfile();
@@ -929,16 +974,29 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
+     * Reset to Photo Picker initial launch state (Photos grid tab) in user profile mode that
+     * started the photopicker.
+     */
+    private void resetToCurrentUserProfile() {
+        // Clear all the fragments in the FragmentManager
+        clearFragments();
+
+        // Reset all content to the start user profile
+        mPickerViewModel.resetToCurrentUserProfile();
+
+        // Set up the fragments same as the initial launch state
+        setupInitialLaunchState();
+    }
+
+    /**
      * Reset to Photo Picker initial launch state (Photos grid tab) in the current profile mode.
      */
-    private void resetInCurrentProfile() {
+    private void resetInCurrentProfile(boolean shouldSendInitRequest) {
         // Clear all the fragments in the FragmentManager
-        final FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.popBackStackImmediate(/* name */ null,
-                FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        clearFragments();
 
         // Reset all content in the current profile
-        mPickerViewModel.resetAllContentInCurrentProfile();
+        mPickerViewModel.resetAllContentInCurrentProfile(shouldSendInitRequest);
 
         // Set up the fragments same as the initial launch state
         setupInitialLaunchState();
@@ -981,8 +1039,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     private class CrossProfileListeners {
-
-        private final List<String> MANAGED_PROFILE_FILTER_ACTIONS = Lists.newArrayList(
+        private final List<String> mProfileFilterActions = Lists.newArrayList(
                 Intent.ACTION_MANAGED_PROFILE_ADDED, // add profile button switch
                 Intent.ACTION_MANAGED_PROFILE_REMOVED, // remove profile button switch
                 Intent.ACTION_MANAGED_PROFILE_UNLOCKED, // activate profile button switch
@@ -990,8 +1047,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         );
 
         private final UserIdManager mUserIdManager;
+        private final UserManagerState mUserManagerState;
 
         public CrossProfileListeners() {
+            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV()) {
+                mProfileFilterActions.add(Intent.ACTION_PROFILE_ADDED);
+                mProfileFilterActions.add(Intent.ACTION_PROFILE_REMOVED);
+                mProfileFilterActions.add(Intent.ACTION_PROFILE_UNAVAILABLE);
+                mProfileFilterActions.add(Intent.ACTION_PROFILE_AVAILABLE);
+            }
+
+            mUserManagerState = mPickerViewModel.getUserManagerState();
             mUserIdManager = mPickerViewModel.getUserIdManager();
 
             registerBroadcastReceivers();
@@ -1012,23 +1078,55 @@ public class PhotoPickerActivity extends AppCompatActivity {
                 // We only need to refresh the layout when the received profile user is the
                 // managed user corresponding to the current profile or a new work profile is added
                 // for the current user.
-                if (!userId.equals(mUserIdManager.getManagedUserId()) &&
-                        !action.equals(Intent.ACTION_MANAGED_PROFILE_ADDED)) {
+                if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS())
+                        && !userId.equals(mUserIdManager.getManagedUserId())
+                        && !action.equals(Intent.ACTION_MANAGED_PROFILE_ADDED)) {
                     return;
+                }
+
+                if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV()) {
+                    switch (action) {
+                        case Intent.ACTION_PROFILE_ADDED:
+                            handleProfileAdded();
+                            break;
+                        case Intent.ACTION_PROFILE_REMOVED:
+                            handleProfileRemoved(userId);
+                            break;
+                        case Intent.ACTION_PROFILE_UNAVAILABLE:
+                            handleProfileOff(userId);
+                            break;
+                        case Intent.ACTION_PROFILE_AVAILABLE:
+                            handleProfileOn(userId);
+                            break;
+                        default:
+                            // do nothing
+                    }
                 }
 
                 switch (action) {
                     case Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE:
-                        handleWorkProfileOff();
+                        handleProfileOff(userId);
                         break;
                     case Intent.ACTION_MANAGED_PROFILE_REMOVED:
-                        handleWorkProfileRemoved();
+                        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                                && !SdkLevel.isAtLeastV() && SdkLevel.isAtLeastS()) {
+                            handleProfileRemoved(userId);
+                        } else if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                                && SdkLevel.isAtLeastS())) {
+                            handleWorkProfileRemoved();
+                        }
                         break;
                     case Intent.ACTION_MANAGED_PROFILE_UNLOCKED:
-                        handleWorkProfileOn();
+                        handleProfileOn(userId);
                         break;
                     case Intent.ACTION_MANAGED_PROFILE_ADDED:
-                        handleWorkProfileAdded();
+                        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                                && !SdkLevel.isAtLeastV() && SdkLevel.isAtLeastS()) {
+                            handleProfileAdded();
+                        } else if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                                && SdkLevel.isAtLeastS())) {
+                            handleWorkProfileAdded();
+                        }
                         break;
                     default:
                         // do nothing
@@ -1037,11 +1135,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         };
 
         private void registerBroadcastReceivers() {
-            final IntentFilter managedProfileFilter = new IntentFilter();
-            for (String managedProfileAction : MANAGED_PROFILE_FILTER_ACTIONS) {
-                managedProfileFilter.addAction(managedProfileAction);
+            final IntentFilter profileFilter = new IntentFilter();
+            for (String profileAction : mProfileFilterActions) {
+                profileFilter.addAction(profileAction);
             }
-            registerReceiver(mReceiver, managedProfileFilter);
+            registerReceiver(mReceiver, profileFilter);
         }
 
         private void handleWorkProfileOff() {
@@ -1050,6 +1148,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
             }
             mUserIdManager.updateWorkProfileOffValue();
         }
+        private void handleProfileOff(UserId userId) {
+            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+                if (mUserManagerState.isUserSelectedAsCurrentUserProfile(userId)) {
+                    switchToCurrentUserProfileInitialLaunchState();
+                }
+                mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus();
+                return;
+            }
+            handleWorkProfileOff();
+        }
+
 
         private void handleWorkProfileRemoved() {
             if (mUserIdManager.isManagedUserSelected()) {
@@ -1058,8 +1167,23 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mUserIdManager.resetUserIds();
         }
 
+        private void handleProfileRemoved(UserId userId) {
+            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+                if (mUserManagerState.isUserSelectedAsCurrentUserProfile(userId)) {
+                    switchToCurrentUserProfileInitialLaunchState();
+                }
+                mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+            }
+        }
+
         private void handleWorkProfileAdded() {
             mUserIdManager.resetUserIds();
+        }
+
+        private void handleProfileAdded() {
+            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+                mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+            }
         }
 
         private void handleWorkProfileOn() {
@@ -1069,10 +1193,27 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mUserIdManager.waitForMediaProviderToBeAvailable();
         }
 
+        private void handleProfileOn(UserId userId) {
+            // Update UI for switch to profile button
+            // When the managed profile becomes available, the provider may not be available
+            // immediately, we need to check if it is ready before we reload the content.
+            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+                mUserManagerState.waitForMediaProviderToBeAvailable(userId);
+                return;
+            }
+            handleWorkProfileOn();
+        }
+
         private void switchToPersonalProfileInitialLaunchState() {
             // We reset the state of the PhotoPicker as we do not want to make any
             // assumptions on the state of the PhotoPicker when it was in Work Profile mode.
             resetToPersonalProfile();
+        }
+
+        private  void switchToCurrentUserProfileInitialLaunchState() {
+            // We reset the state of the PhotoPicker as we do not want to make any
+            // assumptions on the state of the PhotoPicker when it was in other Profile mode.
+            resetToCurrentUserProfile();
         }
     }
 
@@ -1088,14 +1229,15 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Reset the Picker view model content when launched with cloud features and notified to
+     * Reset the picker view model content when launched with cloud features and notified to
      * refresh the UI.
      */
     private void observeRefreshUiNotificationLiveData() {
-        mPickerViewModel.shouldRefreshUiLiveData()
-                .observe(this, shouldRefresh -> {
-                    if (shouldRefresh && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
-                        resetInCurrentProfile();
+        mPickerViewModel.refreshUiLiveData()
+                .observe(this, refreshRequest -> {
+                    if (refreshRequest.shouldRefreshPicker()
+                            && !mPickerViewModel.shouldShowOnlyLocalFeatures()) {
+                        resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
     }

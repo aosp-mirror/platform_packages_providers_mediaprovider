@@ -81,6 +81,13 @@ public interface UserManagerState {
     Map<UserId, Boolean> getCrossProfileAllowedStatusForAll();
 
     /**
+     * Get total number of profiles with {@link UserProperties.SHOW_IN_SHARING_SURFACES_SEPARATE}
+     * available on the device
+     */
+    int getProfileCount();
+
+    /**
+     *
      * A {@link MutableLiveData} to check if cross profile interaction allowed or not.
      */
     @NonNull
@@ -94,7 +101,12 @@ public interface UserManagerState {
     List<UserId> getAllUserProfileIds();
 
     /**
-     * Updates on/off values of all the user profiles other than current user profile
+     * Updates on/off values of all the user profiles and post cross profile status of all profiles
+     */
+    void updateProfileOffValuesAndPostCrossProfileStatus();
+
+    /**
+     * Updates on/off values of all the user profiles
      */
     void updateProfileOffValues();
 
@@ -300,6 +312,11 @@ public interface UserManagerState {
         }
 
         @Override
+        public  int getProfileCount() {
+            return mUserProfileIds.size();
+        }
+
+        @Override
         public MutableLiveData<Map<UserId, Boolean>> getCrossProfileAllowed() {
             return mCrossProfileAllowedStatus;
         }
@@ -348,9 +365,11 @@ public interface UserManagerState {
         @Override
         public void setIntentAndCheckRestrictions(Intent intent) {
             assertMainThread();
-            if (isMultiUserProfiles()) {
-                updateCrossProfileValues(intent);
-            }
+            // The below method should be called even if only one profile is present on the device
+            // because we want to have current profile off value and blocked by admin values in the
+            // corresponding maps
+            updateCrossProfileValues(intent);
+
         }
 
         @Override
@@ -403,7 +422,7 @@ public interface UserManagerState {
             setBlockedByAdminValue(intent);
 
             // 2. Check if work profile is off
-            updateProfileOffValues();
+            updateProfileOffValuesAndPostCrossProfileStatus();
 
             // 3. For first initial setup, wait for MediaProvider to be on.
             // (This is not blocking)
@@ -465,13 +484,18 @@ public interface UserManagerState {
         }
 
         @Override
+        public void updateProfileOffValuesAndPostCrossProfileStatus() {
+            updateProfileOffValues();
+            updateAndPostCrossProfileStatus();
+        }
+
+        @Override
         public void updateProfileOffValues() {
             assertMainThread();
             mProfileOffStatus.clear();
             for (UserId userId : mUserProfileIds) {
                 mProfileOffStatus.put(userId, isProfileOffInternal(userId));
             }
-            updateAndPostCrossProfileStatus();
         }
 
         private void updateAndPostCrossProfileStatus() {

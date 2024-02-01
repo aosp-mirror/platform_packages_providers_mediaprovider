@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,17 +112,6 @@ public final class PdfRendererPreV implements AutoCloseable {
     /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
-
-    /** @hide */
-    @IntDef({
-        PDF_FORM_TYPE_NONE,
-        PDF_FORM_TYPE_ACRO_FORM,
-        PDF_FORM_TYPE_XFA_FULL,
-        PDF_FORM_TYPE_XFA_FOREGROUND
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface PdfFormType {}
-
     private final int mPageCount;
     private PdfProcessor mPdfProcessor;
 
@@ -245,11 +234,17 @@ public final class PdfRendererPreV implements AutoCloseable {
         return new Page(pageNum);
     }
 
-    /** Returns the form type of the loaded PDF */
+    /**
+     * Returns the form type of the loaded PDF
+     *
+     * @throws IllegalStateException if the renderer is closed
+     * @throws IllegalArgumentException if an unexpected PDF form type is returned
+     */
     @PdfFormType
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public int getPdfFormType() {
-        throw new UnsupportedOperationException();
+        throwIfDocumentClosed();
+        return mPdfProcessor.getPdfFormType();
     }
 
     /**
@@ -314,6 +309,16 @@ public final class PdfRendererPreV implements AutoCloseable {
             throw new IllegalArgumentException("Invalid page index");
         }
     }
+
+    /** @hide */
+    @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
 
     /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -483,6 +488,9 @@ public final class PdfRendererPreV implements AutoCloseable {
         /**
          * Returns information about all form widgets on the page, or an empty list if there are no
          * form widgets on the page.
+         *
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -495,27 +503,35 @@ public final class PdfRendererPreV implements AutoCloseable {
          * form widgets on the page.
          *
          * @param types the types of form widgets to return
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<FormWidgetInfo> getFormWidgetInfos(
                 @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
-            throw new UnsupportedOperationException();
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfos(mPageNum, types);
         }
 
         /**
-         * Returns information about the widget with {@code widgetIndex}.
+         * Returns information about the widget with {@code annotationIndex}.
          *
-         * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
+         * @param annotationIndex the index of the widget within the page's "Annot" array in the PDF
          *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
          *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
          *     FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-        public FormWidgetInfo getFormWidgetInfoAtIndex(int widgetIndex) {
-            throw new UnsupportedOperationException();
+        public FormWidgetInfo getFormWidgetInfoAtIndex(int annotationIndex) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfoAtIndex(mPageNum, annotationIndex);
         }
 
         /**
@@ -524,59 +540,78 @@ public final class PdfRendererPreV implements AutoCloseable {
          * @param x the x position of the widget on the page, in points
          * @param y the y position of the widget on the page, in points
          * @throws IllegalArgumentException if there is no form widget at the provided position.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
-            throw new UnsupportedOperationException();
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfoAtPosition(mPageNum, x, y);
         }
 
         /**
          * Applies a {@link FormEditRecord} to the PDF.
          *
+         * <p>Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
+         * bitmaps for the corresponding areas of the page.
+         *
+         * <p>For click type {@link FormEditRecord}s, performs a click on {@link
+         * FormEditRecord#getClickPoint()}
+         *
+         * <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+         *
+         * <p>For set indices type {@link FormEditRecord}s, sets the {@link
+         * FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+         * form widget indicated by the record.
+         *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         *     Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
-         *     bitmaps for the corresponding areas of the page.
-         *     <p>For click type {@link FormEditRecord}s, performs a click on {@link
-         *     FormEditRecord#getClickPoint()}
-         *     <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
-         *     <p>For set indices type {@link FormEditRecord}s, sets the {@link
-         *     FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
-         *     form widget indicated by the record.
          * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
          *     to the widget indicated by the index (e.g. a set indices type record contains an
          *     index that corresponds to push button widget, or if the index does not correspond to
          *     a form widget on the page).
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @android.annotation.NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
-            throw new UnsupportedOperationException();
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.applyEdit(mPageNum, editRecord);
         }
 
         /**
          * Applies the {@link FormEditRecord}s to the page, in order.
          *
+         * <p><strong>Note: </strong>Re-rendering the page via {@link #render(Bitmap, Rect, Matrix,
+         * RenderParams)} is required after calling this method. Applying edits to form widgets will
+         * change the appearance of the page.
+         *
+         * <p>If any record cannot be applied, it will be returned and no further records will be
+         * applied. Records already applied will not be reverted. To restore the page to its state
+         * before any records were applied, re-load the page via {@link #close()} and {@link
+         * #openPage(int)}.
+         *
          * @param formEditRecords the {@link FormEditRecord}s to be applied
          * @return the records that could not be applied, or an empty list if all were applied
-         *     <p>Re-rendering the page via {@link #render} is required after calling this method.
-         *     Applying edits to form widgets will change the appearance of the page.
-         *     <p>If any record cannot be applied, it will be returned and no further records will
-         *     be applied. Records already applied will not be reverted. To restore the page to its
-         *     state before any records were applied, re-load the page via {@link #close} and {@link
-         *     #openPage(int)}.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
-            throw new UnsupportedOperationException();
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.applyEdits(mPageNum, formEditRecords);
         }
 
         /**
          * Closes this page.
          *
-         * @see android.graphics.pdf.PdfRendererPreV#openPage(int)
+         * @see android.graphics.pdf.PdfRenderer#openPage(int)
          */
         @Override
         public void close() {

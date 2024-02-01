@@ -17,6 +17,7 @@
 package android.graphics.pdf;
 
 import android.graphics.Rect;
+import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.jni.LinkRects;
 import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.jni.MatchRects;
@@ -26,6 +27,7 @@ import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * This class accesses the PdfClient tools to manipulate and render a PDF document. One instance of
@@ -242,9 +244,47 @@ public class PdfDocumentProxy {
     public native boolean isPdfLinearized();
 
     /**
+     * Returns an int representing the form type contained in the PDF, e.g. Acro vs XFA (if any).
+     */
+    public native int getFormType();
+
+    /** Obtains information about the widget at point ({@code x}, {@code y}), if any. */
+    public native FormWidgetInfo getFormWidgetInfo(int pageNum, int x, int y);
+
+    /**
+     * Obtains information about the widget with ({@code annotationIndex} on page {@code pageNum}),
+     * if any.
+     */
+    public native FormWidgetInfo getFormWidgetInfo(int pageNum, int annotationIndex);
+
+    /**
+     * Obtains information about all form widgets on page ({@code pageNum}, if any.
+     *
+     * <p>Optionally restricts by {@code typeIds}. If {@code typeIds} is empty, all form widgets on
+     * the page will be returned.
+     */
+    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, Set<Integer> typeIds);
+
+    /**
      * Executes an interactive click on the page at the given point ({@code x}, {@code y}).
      *
      * @return rectangular areas of the page bitmap that have been invalidated by this action
      */
     public native List<Rect> clickOnPage(int pageNum, int x, int y);
+
+    /**
+     * Sets the text of the widget at {@code annotationIndex}, if applicable.
+     *
+     * @return rectangular areas of the page bitmap that have been invalidated by this action
+     */
+    public native List<Rect> setFormFieldText(int pageNum, int annotIndex, String text);
+
+    /**
+     * Selects the {@code selectedIndices} and unselects all others for the widget at {@code
+     * annotationIndex}, if applicable.
+     *
+     * @return Rectangular areas of the page bitmap that have been invalidated by this action
+     */
+    public native List<Rect> setFormFieldSelectedIndices(
+            int pageNum, int annotIndex, List<Integer> selectedIndices);
 }

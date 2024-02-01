@@ -114,51 +114,36 @@ import java.util.Set;
 @SuppressLint("UnflaggedApi")
 public final class PdfRenderer implements AutoCloseable {
 
+    /** Represents a PDF without form fields */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_NONE = 0;
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
+
     /**
      * Any call the native pdfium code has to be single threaded as the library does not support
      * parallel use.
      */
     static final Object sPdfiumLock = new Object();
 
+    private static final String TAG = PdfRenderer.class.getSimpleName();
+
     static {
         System.loadLibrary("pdf");
     }
 
-    private static final String TAG = PdfRenderer.class.getSimpleName();
-
-    /** Represents a PDF without form fields */
-    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-    public static final int PDF_FORM_TYPE_NONE = 0;
-
-    /** Represents a PDF with form fields specified using the AcroForm spec */
-    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
-
-    /** Represents a PDF with form fields specified using the entire XFA spec */
-    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
-
-    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
-    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
-
-    /** @hide */
-    @IntDef({
-        PDF_FORM_TYPE_NONE,
-        PDF_FORM_TYPE_ACRO_FORM,
-        PDF_FORM_TYPE_XFA_FULL,
-        PDF_FORM_TYPE_XFA_FOREGROUND
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface PdfFormType {}
-
     private final CloseGuard mCloseGuard = new CloseGuard();
-
     private final Point mTempPoint = new Point();
     private final int mPageCount;
     private long mNativeDocument;
     private ParcelFileDescriptor mInput;
-
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
     private Page mCurrentPage;
 
@@ -353,6 +338,16 @@ public final class PdfRenderer implements AutoCloseable {
             throw new IllegalArgumentException("Invalid page index");
         }
     }
+
+    /** @hide */
+    @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
 
     /** @hide */
     @IntDef({
@@ -574,20 +569,26 @@ public final class PdfRenderer implements AutoCloseable {
         /**
          * Applies a {@link FormEditRecord} to the PDF.
          *
+         * <p>Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
+         * bitmaps for the corresponding areas of the page.
+         *
+         * <p>For click type {@link FormEditRecord}s, performs a click on {@link
+         * FormEditRecord#getClickPoint()}
+         *
+         * <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+         *
+         * <p>For set indices type {@link FormEditRecord}s, sets the {@link
+         * FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+         * form widget indicated by the record.
+         *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         *     Apps must call {@link #render(Bitmap, Rect, Matrix, int)} to render new bitmaps for
-         *     the corresponding areas of the page.
-         *     <p>For click type {@link FormEditRecord}s, performs a click on {@link
-         *     FormEditRecord#getClickPoint()}
-         *     <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
-         *     <p>For set indices type {@link FormEditRecord}s, sets the {@link
-         *     FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
-         *     form widget indicated by the record.
          * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
          *     to the widget indicated by the index (e.g. a set indices type record contains an
          *     index that corresponds to push button widget, or if the index does not correspond to
          *     a form widget on the page).
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -598,14 +599,19 @@ public final class PdfRenderer implements AutoCloseable {
         /**
          * Applies the {@link FormEditRecord}s to the page, in order.
          *
+         * <p><strong>Note: </strong>Re-rendering the page via {@link #render(Bitmap, Rect, Matrix,
+         * RenderParams)} is required after calling this method. Applying edits to form widgets will
+         * change the appearance of the page.
+         *
+         * <p>If any record cannot be applied, it will be returned and no further records will be
+         * applied. Records already applied will not be reverted. To restore the page to its state
+         * before any records were applied, re-load the page via {@link #close()} and {@link
+         * #openPage(int)}.
+         *
          * @param formEditRecords the {@link FormEditRecord}s to be applied
          * @return the records that could not be applied, or an empty list if all were applied
-         *     <p>Re-rendering the page via {@link #render} is required after calling this method.
-         *     Applying edits to form widgets will change the appearance of the page.
-         *     <p>If any record cannot be applied, it will be returned and no further records will
-         *     be applied. Records already applied will not be reverted. To restore the page to its
-         *     state before any records were applied, re-load the page via {@link #close} and {@link
-         *     #openPage(int)}.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)

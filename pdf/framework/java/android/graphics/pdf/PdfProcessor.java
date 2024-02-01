@@ -20,15 +20,19 @@ import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEA
 import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
 
 import android.annotation.FlaggedApi;
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.models.BitmapParcel;
+import android.graphics.pdf.models.FormEditRecord;
+import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.selection.PageSelection;
@@ -42,7 +46,9 @@ import android.util.Log;
 import com.google.common.base.Preconditions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -272,6 +278,102 @@ public class PdfProcessor {
         return mPdfDocument.isPdfLinearized()
                 ? PDF_DOCUMENT_TYPE_LINEARIZED
                 : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
+    }
+
+    /**
+     * Returns the form type of the loaded PDF
+     *
+     * @throws IllegalArgumentException if an unrecognized PDF form type is returned
+     */
+    public int getPdfFormType() {
+        return validateFormType(mPdfDocument.getFormType());
+    }
+
+    private static int validateFormType(int pdfFormType) {
+        switch (pdfFormType) {
+            case PdfRenderer.PDF_FORM_TYPE_NONE:
+            case PdfRenderer.PDF_FORM_TYPE_ACRO_FORM:
+            case PdfRenderer.PDF_FORM_TYPE_XFA_FULL:
+            case PdfRenderer.PDF_FORM_TYPE_XFA_FOREGROUND:
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected PDF form type");
+        }
+        return pdfFormType;
+    }
+
+    /**
+     * Returns information about all form widgets on the page, or an empty list if there are no form
+     * widgets on the page.
+     *
+     * <p>Optionally restricted by {@code types}. If {@code types} is empty, all form widgets on the
+     * page will be returned.
+     */
+    @NonNull
+    public List<FormWidgetInfo> getFormWidgetInfos(
+            int pageNum, @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+        return mPdfDocument.getFormWidgetInfos(pageNum, types);
+    }
+
+    /**
+     * Returns information about the widget with {@code annotationIndex}.
+     *
+     * <p>{@code annotationIndex} refers to the index of the annotation within the page's "Annot"
+     * array in the PDF document. This info is available on results of previous calls via {@link
+     * FormWidgetInfo#getWidgetIndex()}.
+     */
+    @NonNull
+    FormWidgetInfo getFormWidgetInfoAtIndex(int pageNum, int annotationIndex) {
+        return mPdfDocument.getFormWidgetInfo(pageNum, annotationIndex);
+    }
+
+    /** Returns information about the widget at the given point. */
+    @NonNull
+    public FormWidgetInfo getFormWidgetInfoAtPosition(int pageNum, int x, int y) {
+        return mPdfDocument.getFormWidgetInfo(pageNum, x, y);
+    }
+
+    /**
+     * Applies a {@link FormEditRecord} to the PDF.
+     *
+     * @return a list of rectangular areas invalidated by form widget operation
+     *     <p>For click type {@link FormEditRecord}s, performs a click on {@link
+     *     FormEditRecord#getClickPoint()}
+     *     <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+     *     <p>For set indices type {@link FormEditRecord}s, sets the {@link
+     *     FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+     *     form widget indicated by the record.
+     */
+    @NonNull
+    public List<Rect> applyEdit(int pageNum, @NonNull FormEditRecord editRecord) {
+        Preconditions.checkNotNull(editRecord);
+        Preconditions.checkArgument(pageNum >= 0, "Invalid page number");
+        if (editRecord.getType() == FormEditRecord.EDIT_TYPE_CLICK) {
+            Preconditions.checkNotNull(
+                    editRecord.getClickPoint(), "Can't apply click edit record without point");
+            Point clickPoint = editRecord.getClickPoint();
+            return mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
+        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_INDICES) {
+            Set<Integer> selectedIndices = editRecord.getSelectedIndices();
+            return mPdfDocument.setFormFieldSelectedIndices(
+                    pageNum, editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
+        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_TEXT) {
+            Preconditions.checkNotNull(
+                    editRecord.getText(), "Can't apply set text record without text");
+            String text = editRecord.getText();
+            return mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
+        }
+        return new ArrayList<>();
+    }
+
+    /** Executes the {@link FormEditRecord}s on the page, in order. */
+    @NonNull
+    public List<FormEditRecord> applyEdits(
+            int pageNum, @NonNull List<FormEditRecord> formEditRecords) {
+        for (FormEditRecord record : formEditRecords) {
+            applyEdit(pageNum, record);
+        }
+        return new ArrayList<>();
     }
 
     /** Ensures that any previous {@link PdfDocumentProxy} instance is closed. */

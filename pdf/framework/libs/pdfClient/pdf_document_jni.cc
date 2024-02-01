@@ -63,7 +63,6 @@ std::mutex mutex_;
 
 bool RenderTileFd(JNIEnv* env, jobject jPdfDocument, int pageNum, int pageWidth, int pageHeight,
                   const Rectangle_i& tile, jboolean hideTextAnnots, jboolean retainPage, int fd);
-
 }  // namespace
 
 // Serializes the proto message into jbyteArray. Originally from
@@ -293,11 +292,25 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageLink
 //     return output_bytes.release();
 // } @Todo b/307870155
 
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_retainPage(JNIEnv* env,
+                                                                             jobject jPdfDocument,
+                                                                             jint pageNum) {
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    doc->GetPage(pageNum, true);
+}
+
 JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_releasePage(JNIEnv* env,
                                                                               jobject jPdfDocument,
                                                                               jint pageNum) {
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     doc->ReleaseRetainedPage(pageNum);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_android_graphics_pdf_PdfDocumentProxy_scaleForPrinting(JNIEnv* env, jobject jPdfDocument) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    return doc->ShouldScaleForPrinting();
 }
 
 JNIEXPORT jboolean JNICALL

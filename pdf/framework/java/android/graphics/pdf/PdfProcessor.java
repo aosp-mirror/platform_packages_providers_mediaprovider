@@ -263,6 +263,12 @@ public class PdfProcessor {
         return mPdfDocument.getPageLinks(pageNum).unflattenToList();
     }
 
+    /** Retains object in memory related to a page when that page becomes visible. */
+    public void retainPage(int pageNum) {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        mPdfDocument.retainPage(pageNum);
+    }
+
     /** Releases object in memory related to a page when that page is no longer visible. */
     public void releasePage(int pageNum) {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
@@ -300,6 +306,12 @@ public class PdfProcessor {
                 throw new IllegalArgumentException("Unexpected PDF form type");
         }
         return pdfFormType;
+    }
+
+    /** Returns true if this PDF prefers to be scaled for printing. */
+    public boolean scaleForPrinting() {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+        return mPdfDocument.scaleForPrinting();
     }
 
     /**

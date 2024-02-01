@@ -82,12 +82,19 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageLink
 //                          Java_android_graphics_pdf_PdfDocumentProxy_getPageGotoLinksByteArray(
 //         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_retainPage(JNIEnv* env,
+                                                                             jobject jPdfDocument,
+                                                                             jint pageNum);
+
 JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_releasePage(JNIEnv* env,
                                                                               jobject jPdfDocument,
                                                                               jint pageNum);
 
 JNIEXPORT jboolean JNICALL
 Java_android_graphics_pdf_PdfDocumentProxy_isPdfLinearized(JNIEnv* env, jobject jPdfDocument);
+
+JNIEXPORT jboolean JNICALL
+Java_android_graphics_pdf_PdfDocumentProxy_scaleForPrinting(JNIEnv* env, jobject jPdfDocument);
 
 JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormType(JNIEnv* env,
                                                                               jobject jPdfDocument);

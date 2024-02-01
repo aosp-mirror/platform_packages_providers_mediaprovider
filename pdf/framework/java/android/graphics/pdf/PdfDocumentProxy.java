@@ -237,11 +237,17 @@ public class PdfDocumentProxy {
     /** Get the bounds and URLs of all the links on the given page. */
     public native LinkRects getPageLinks(int pageNum);
 
+    /** Loads a page object and retains it in memory when a page becomes visible. */
+    public native void retainPage(int pageNum);
+
     /** Cleans up objects in memory related to a page after it is no longer visible. */
     public native void releasePage(int pageNum);
 
     /** Returns true if the PDF is linearized. (May give false negatives for <1KB PDFs). */
     public native boolean isPdfLinearized();
+
+    /** Returns true if the document prefers to be scaled for printing. */
+    public native boolean scaleForPrinting();
 
     /**
      * Returns an int representing the form type contained in the PDF, e.g. Acro vs XFA (if any).

@@ -35,6 +35,7 @@ import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.provider.MediaStore;
+import android.util.ArrayMap;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -46,11 +47,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Pattern;
 
 @RunWith(AndroidJUnit4.class)
 public class SQLiteQueryBuilderTest {
@@ -84,6 +88,40 @@ public class SQLiteQueryBuilderTest {
     @Test
     public void testConstructor() {
         new SQLiteQueryBuilder();
+    }
+
+    @Test
+    public void testCopyConstructor() {
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+
+        ArrayMap<String, String> projectionMap = new ArrayMap<>();
+        projectionMap.put("EmployeeName", "name");
+        qb.setProjectionMap(projectionMap);
+
+        List<Pattern> projectionAllowList = new ArrayList<>();
+        projectionAllowList.add(Pattern.compile("abc"));
+        qb.setProjectionAllowlist(projectionAllowList);
+
+        qb.setStrictColumns(true);
+        qb.setStrict(true);
+        qb.setStrictGrammar(true);
+        qb.setTables(TEST_TABLE_NAME);
+        qb.setDistinct(true);
+
+        SQLiteQueryBuilder copy = new SQLiteQueryBuilder(qb);
+
+        assertThat(copy).isNotNull();
+        assertThat(copy).isNotSameInstanceAs(qb);
+        assertThat(copy.getProjectionMap()).isNotSameInstanceAs(qb.getProjectionMap());
+        assertThat(copy.getProjectionMap()).containsExactlyEntriesIn(qb.getProjectionMap());
+        assertThat(copy.getProjectionAllowlist()).isNotSameInstanceAs(qb.getProjectionAllowlist());
+        assertThat(copy.getProjectionAllowlist()).containsExactlyElementsIn(
+                qb.getProjectionAllowlist());
+        assertThat(copy.isStrictColumns()).isEqualTo(qb.isStrictColumns());
+        assertThat(copy.isStrict()).isEqualTo(qb.isStrict());
+        assertThat(copy.isStrictGrammar()).isEqualTo(qb.isStrictGrammar());
+        assertThat(copy.getTables()).isEqualTo(qb.getTables());
+        assertThat(copy.isDistinct()).isEqualTo(qb.isDistinct());
     }
 
     @Test

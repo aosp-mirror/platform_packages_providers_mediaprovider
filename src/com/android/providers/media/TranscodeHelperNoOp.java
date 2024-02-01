@@ -18,49 +18,61 @@ package com.android.providers.media;
 
 import android.net.Uri;
 import android.os.Bundle;
-import java.io.PrintWriter;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * No-op transcode helper to avoid loading MediaTranscodeManager classes in Android R
  */
-public class TranscodeHelperNoOp implements TranscodeHelper {
+public final class TranscodeHelperNoOp implements TranscodeHelper {
+
+    @Override
     public void freeCache(long bytes) {}
 
+    @Override
     public void onAnrDelayStarted(String packageName, int uid, int tid, int reason) {}
 
+    @Override
     public boolean transcode(String src, String dst, int uid, int reason) {
         return false;
     }
 
+    @Override
     public String prepareIoPath(String path, int uid) {
         return null;
     }
 
+    @Override
     public int shouldTranscode(String path, int uid, Bundle bundle) {
         return 0;
     }
-
+    @Override
     public boolean supportsTranscode(String path) {
         return false;
     }
 
+    @Override
     public void onUriPublished(Uri uri) {}
 
+    @Override
     public void onFileOpen(String path, String ioPath, int uid, int transformsReason) {}
 
+    @Override
     public boolean isTranscodeFileCached(String path, String transcodePath) {
         return false;
     }
 
+    @Override
     public boolean deleteCachedTranscodeFile(long rowId) {
         return false;
     }
 
+    @Override
     public void dump(PrintWriter writer) {}
 
+    @Override
     public List<String> getSupportedRelativePaths() {
         return new ArrayList<String>();
     }

@@ -36,18 +36,18 @@ import kotlinx.coroutines.flow.shareIn
  * Provides a long-living [kotlinx.coroutines.flow.SharedFlow] that represents the device's current
  * network status given the defined required capabilities.
  *
- * This is provided in Core and will be lazily initialized to prevent it from being created
- * before it is needed, but will live as a singleton for the life of the app once initialized.
+ * This is provided in the Activity and will be lazily initialized to prevent it from being created
+ * before it is needed, but will live as a singleton for the life of the activity once initialized.
  *
  * Will emit a value immediately of the current network status, and then re-emit on every network
  * condition change. Will replay the most recent value for new subscribers. Will stop emitting when
  * all subscribers have unsubscribed.
  *
- * @property context This expects to receive the ApplicationContext for the current Photopicker
+ * @property context This expects to receive the ActivityContext for the current Photopicker
  *   session.
  * @property scope The [CoroutineScope] that the [NetworkStatus] flow will share in.
  */
-class NetworkMonitor(private val context: Context, private val scope: CoroutineScope) {
+class NetworkMonitor(context: Context, private val scope: CoroutineScope) {
     companion object {
         val TAG = "PhotopickerNetworkMonitor"
     }
@@ -93,7 +93,10 @@ class NetworkMonitor(private val context: Context, private val scope: CoroutineS
 
                 connectivityManager.registerNetworkCallback(request, networkStatusCallback)
 
-                awaitClose { connectivityManager.unregisterNetworkCallback(networkStatusCallback) }
+                awaitClose {
+                    Log.d(TAG, """NetworkCallback was closed, unregistering.""")
+                    connectivityManager.unregisterNetworkCallback(networkStatusCallback)
+                }
             }
             .distinctUntilChanged()
             .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)

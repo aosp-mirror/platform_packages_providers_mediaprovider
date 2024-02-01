@@ -521,7 +521,8 @@ public class PickerDataLayer {
             if (!syncRequestExtras.shouldSyncMergedAlbum()) {
                 mSyncManager.syncAlbumMediaForProviderImmediately(
                         syncRequestExtras.getAlbumId(),
-                        syncRequestExtras.getAlbumAuthority());
+                        syncRequestExtras.getAlbumAuthority(),
+                        isLocal(syncRequestExtras.getAlbumAuthority()));
             }
         }
     }

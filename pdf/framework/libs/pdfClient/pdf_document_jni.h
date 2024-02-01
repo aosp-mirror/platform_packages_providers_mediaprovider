@@ -50,14 +50,10 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
                                                                                jobject jPdfDocument,
                                                                                jint pageNum);
 
-JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderPageFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint w, jint h, jboolean hideTextAnnots,
-        jboolean retainPage, jint fd);
-
-JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderTileFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint pageWidth, jint pageHeight, jint left,
-        jint top, jint tileWidth, jint tileHeight, jboolean hideTextAnnots, jboolean retainPage,
-        jint fd);
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
+        jint clipTop, jint clipRight, int clipBottom, jfloatArray jTransform, jint renderMode,
+        jboolean hideTextAnnots);
 
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
         JNIEnv* env, jobject jPdfDocument, jint destination);

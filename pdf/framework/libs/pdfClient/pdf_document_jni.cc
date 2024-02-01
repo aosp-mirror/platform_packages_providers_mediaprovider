@@ -61,8 +61,18 @@ using pdfClient::LinuxFileOps;
 namespace {
 std::mutex mutex_;
 
-bool RenderTileFd(JNIEnv* env, jobject jPdfDocument, int pageNum, int pageWidth, int pageHeight,
-                  const Rectangle_i& tile, jboolean hideTextAnnots, jboolean retainPage, int fd);
+/** Matrix organizes its values in row-major order. These constants correspond to each
+ * value in Matrix.
+ */
+constexpr int kMScaleX = 0;  // horizontal scale factor
+constexpr int kMSkewX = 1;   // horizontal skew factor
+constexpr int kMTransX = 2;  // horizontal translation
+constexpr int kMSkewY = 3;   // vertical skew factor
+constexpr int kMScaleY = 4;  // vertical scale factor
+constexpr int kMTransY = 5;  // vertical translation
+constexpr int kMPersp0 = 6;  // input x perspective factor
+constexpr int kMPersp1 = 7;  // input y perspective factor
+constexpr int kMPersp2 = 8;  // perspective bias
 }  // namespace
 
 // Serializes the proto message into jbyteArray. Originally from
@@ -159,33 +169,45 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
     return page->Height();
 }
 
-JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderPageFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint w, jint h, jboolean hideTextAnnots,
-        jboolean retainPage, jint fd) {
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
+        jint clipTop, jint clipRight, jint clipBottom, jfloatArray jTransform, jint renderMode,
+        jboolean hideTextAnnots) {
     std::unique_lock<std::mutex> lock(mutex_);
-    Rectangle_i tile = pdfClient::IntRect(0, 0, w, h);
-    LOGD("Start renderPageFd: Page %d at (%d x %d)", pageNum, w, h);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
 
-    bool ret = RenderTileFd(env, jPdfDocument, pageNum, w, h, tile, hideTextAnnots, retainPage, fd);
+    // android.graphics.Bitmap -> FPDF_Bitmap
+    void* bitmap_pixels;
+    if (AndroidBitmap_lockPixels(env, jbitmap, &bitmap_pixels) < 0) {
+        LOGE("Couldn't get bitmap pixel address");
+        return false;
+    }
+    AndroidBitmapInfo info;
+    AndroidBitmap_getInfo(env, jbitmap, &info);
+    const int stride = info.width * 4;
+    FPDF_BITMAP bitmap =
+            FPDFBitmap_CreateEx(info.width, info.height, FPDFBitmap_BGRA, bitmap_pixels, stride);
 
-    LOGD("Finish renderPageFd");
-    return ret;
-}
+    // android.graphics.Matrix (SkMatrix) -> FS_Matrix
+    float transform[9];
+    env->GetFloatArrayRegion(jTransform, 0, 9, transform);
+    if (transform[kMPersp0] != 0 || transform[kMPersp1] != 0 || transform[kMPersp2] != 1) {
+        LOGE("Non-affine transform provided");
+        return false;
+    }
 
-JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderTileFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint pageWidth, jint pageHeight, jint left,
-        jint top, jint tileWidth, jint tileHeight, jboolean hideTextAnnots, jboolean retainPage,
-        jint fd) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    Rectangle_i tile = pdfClient::IntRectWithSize(left, top, tileWidth, tileHeight);
-    LOGD("Start renderTileFd: Page %d at (%d x %d), Tile (%d, %d)", pageNum, pageWidth, pageHeight,
-         tile.Width(), tile.Height());
+    FS_MATRIX pdfiumTransform = {transform[kMScaleX], transform[kMSkewY],  transform[kMSkewX],
+                                 transform[kMScaleY], transform[kMTransX], transform[kMTransY]};
 
-    bool ret = RenderTileFd(env, jPdfDocument, pageNum, pageWidth, pageHeight, tile, hideTextAnnots,
-                            retainPage, fd);
-
-    LOGD("Finish renderTileFd");
-    return ret;
+    // Actually render via Page
+    std::shared_ptr<Page> page = doc->GetPage(pageNum);
+    page->Render(bitmap, pdfiumTransform, clipLeft, clipTop, clipRight, clipBottom, renderMode,
+                 hideTextAnnots);
+    if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
+        LOGE("Couldn't unlock bitmap pixel address");
+        return false;
+    }
+    return true;
 }
 
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
@@ -422,16 +444,3 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaRects(env, invalid_rects);
 }
-
-namespace {
-
-bool RenderTileFd(JNIEnv* env, jobject jPdfDocument, jint pageNum, int pageWidth, int pageHeight,
-                  const Rectangle_i& tile, jboolean hideTextAnnots, jboolean retainPage, int fd) {
-    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-    std::shared_ptr<Page> page = doc->GetPage(pageNum, retainPage);
-
-    FdWriter fd_writer(fd);
-    return page->RenderTile(pageWidth, pageHeight, tile, hideTextAnnots, &fd_writer);
-}
-
-}  // namespace

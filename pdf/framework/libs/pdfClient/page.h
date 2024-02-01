@@ -70,20 +70,10 @@ class Page {
     // see features.h for the different features and their values.
     int32_t GetFeatures() const;
 
-    // Render a page into the Extractor - each pixel is in ARGB_8888 format, and
-    // therefore output_pixels should be width * height * sizeof(ARGB_8888) bytes.
-    // Returns true if the bytes were successfully extracted.
-    bool RenderPage(int width, int height, bool hide_text_annots, Extractor* extractor) const;
-
-    // Render a tile of a page into the Extractor - the original page is scaled
-    // to match the given (page_width x page_height), then the tile located at
-    // the given position (tile) is extracted (in ARGB_8888 format) into
-    // output_pixels. tile is the position of the tile relative to the top-left
-    // corner of the page (and therefore will likely have positive values).
-    // output_pixels should be tile.width * tile.height * sizeof(ARGB_8888) bytes.
-    // Returns true if the bytes were successfully extracted.
-    bool RenderTile(int page_width, int page_height, const Rectangle_i& tile, bool hide_text_annots,
-                    Extractor* extractor) const;
+    // Render the page to the output bitmap, applying the appropriate transform, clip, and
+    // render mode as specified.
+    void Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
+                int clip_right, int clip_bottom, int render_mode, int hide_text_annots);
 
     // The page has a transform that must be applied to all characters and objects
     // on the page. This transforms from the page's internal co-ordinate system

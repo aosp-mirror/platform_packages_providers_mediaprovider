@@ -30,7 +30,6 @@ import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
-import android.graphics.pdf.models.BitmapParcel;
 import android.graphics.pdf.models.FormEditRecord;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
@@ -49,7 +48,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -59,7 +57,17 @@ import java.util.stream.Collectors;
  */
 public class PdfProcessor {
 
-    private static String TAG = "PdfProcessor";
+    /** Represents a PDF without form fields */
+    public static final int PDF_FORM_TYPE_NONE = 0;
+
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
 
     private PdfDocumentProxy mPdfDocument;
 
@@ -159,60 +167,55 @@ public class PdfProcessor {
     }
 
     /**
-     * Renders a page to a bitmap for the specified page number. The {@link Rect} parameter
-     * represents the offset from top and left for tile generation purposes. If the `destClip` is
-     * not {@code null} then the {@link PdfDocumentProxy#renderPageFd(int, int, int, boolean, int)}
-     * is invoked else
-     * {@link PdfDocumentProxy#renderTileFd(int, int, int, int, int, int, int, boolean, int)} is
-     * invoked. In case of default zoom, the page dimensions will be equal to the bitmap
-     * dimensions.
-     * In case of zoom, the tile dimensions will be equal to the bitmap dimensions.
-     * The method will take care of closing the bitmap fd to which pdfium writes to using
-     * {@link BitmapParcel}. Should be invoked on the {@link android.annotation.WorkerThread} as it
-     * is long-running task.
+     * Renders a page to a bitmap for the specified page number.
+     *
+     * <p>Should be invoked on the {@link android.annotation.WorkerThread} as it is a long-running
+     * task.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public void renderPage(int pageNum, Bitmap bitmap,
-            Rect destClip,
-            Matrix transform,
-            RenderParams params) {
+    public void renderPage(
+            int pageNum, Bitmap bitmap, Rect destClip, Matrix transform, RenderParams params) {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(bitmap, "Destination bitmap cannot be null");
         Preconditions.checkNotNull(params, "RenderParams cannot be null");
-
+        Preconditions.checkArgument(
+                bitmap.getConfig() == Bitmap.Config.ARGB_8888, "Unsupported pixel format");
+        Preconditions.checkArgument(
+                transform == null || transform.isAffine(), "Transform not affine");
         int renderMode = params.getRenderMode();
         Preconditions.checkArgument(renderMode == PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
                         || renderMode == PdfRenderer.Page.RENDER_MODE_FOR_PRINT,
                 "Unsupported render mode");
+        Preconditions.checkArgument(clipInBitmap(destClip, bitmap), "destClip not in bounds");
+        final int contentLeft = (destClip != null) ? destClip.left : 0;
+        final int contentTop = (destClip != null) ? destClip.top : 0;
+        final int contentRight = (destClip != null) ? destClip.right : bitmap.getWidth();
+        final int contentBottom = (destClip != null) ? destClip.bottom : bitmap.getHeight();
 
-        try (BitmapParcel bitmapParcel = new BitmapParcel(bitmap)) {
-            ParcelFileDescriptor parcelFileDescriptor = bitmapParcel.openOutputFd();
-            if (parcelFileDescriptor != null) {
-                if (destClip == null) {
-                    // If {@code destClip} is not specified then the x-axis and y-axis position
-                    // of the zoomed in/out wouldn't be required and the {@code Bitmap}
-                    // dimensions
-                    // will be page dimensions.
-                    mPdfDocument.renderPageFd(pageNum, bitmap.getWidth(),
-                            bitmap.getHeight(), params.areAnnotationsDisabled(),
-                            parcelFileDescriptor.detachFd());
-                } else {
-                    // TODO(b/324894900): Cache the dimensions of the page so that we can avoid
-                    //  extra JNI call.
-                    int pageWidth = getPageWidth(pageNum);
-                    int pageHeight = getPageHeight(pageNum);
-
-                    Preconditions.checkArgument(clipInBitmap(destClip, bitmap),
-                            "destClip not in bounds");
-
-                    mPdfDocument.renderTileFd(pageNum, pageWidth, pageHeight, destClip.left,
-                            destClip.top, bitmap.getWidth(), bitmap.getHeight(),
-                            params.areAnnotationsDisabled(), parcelFileDescriptor.detachFd());
-                }
-            }
-        } catch (InterruptedException | TimeoutException e) {
-            Log.e(TAG, e.getMessage(), e);
+        // If transform is not set, stretch page to whole clipped area
+        if (transform == null) {
+            int clipWidth = contentRight - contentLeft;
+            int clipHeight = contentBottom - contentTop;
+            transform = new Matrix();
+            transform.postScale(
+                    (float) clipWidth / getPageWidth(pageNum),
+                    (float) clipHeight / getPageHeight(pageNum));
+            transform.postTranslate(contentLeft, contentTop);
         }
+
+        float[] transformArr = new float[9];
+        transform.getValues(transformArr);
+
+        mPdfDocument.render(
+                pageNum,
+                bitmap,
+                contentLeft,
+                contentTop,
+                contentRight,
+                contentBottom,
+                transformArr,
+                renderMode,
+                params.areAnnotationsDisabled());
     }
 
     /**
@@ -292,20 +295,12 @@ public class PdfProcessor {
      * @throws IllegalArgumentException if an unrecognized PDF form type is returned
      */
     public int getPdfFormType() {
-        return validateFormType(mPdfDocument.getFormType());
-    }
-
-    private static int validateFormType(int pdfFormType) {
-        switch (pdfFormType) {
-            case PdfRenderer.PDF_FORM_TYPE_NONE:
-            case PdfRenderer.PDF_FORM_TYPE_ACRO_FORM:
-            case PdfRenderer.PDF_FORM_TYPE_XFA_FULL:
-            case PdfRenderer.PDF_FORM_TYPE_XFA_FOREGROUND:
-                break;
-            default:
-                throw new IllegalArgumentException("Unexpected PDF form type");
-        }
-        return pdfFormType;
+        int pdfFormType = mPdfDocument.getFormType();
+        return switch (pdfFormType) {
+            case PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL, PDF_FORM_TYPE_XFA_FOREGROUND ->
+                    pdfFormType;
+            default -> PDF_FORM_TYPE_NONE;
+        };
     }
 
     /** Returns true if this PDF prefers to be scaled for printing. */

@@ -244,7 +244,16 @@ public final class PdfRendererPreV implements AutoCloseable {
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public int getPdfFormType() {
         throwIfDocumentClosed();
-        return mPdfProcessor.getPdfFormType();
+        int pdfFormType = mPdfProcessor.getPdfFormType();
+        if (pdfFormType == PDF_FORM_TYPE_ACRO_FORM) {
+            return PDF_FORM_TYPE_ACRO_FORM;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FULL) {
+            return PDF_FORM_TYPE_XFA_FULL;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FOREGROUND) {
+            return PDF_FORM_TYPE_XFA_FOREGROUND;
+        } else {
+            return PDF_FORM_TYPE_NONE;
+        }
     }
 
     /**

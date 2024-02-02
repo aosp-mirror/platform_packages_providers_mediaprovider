@@ -24,6 +24,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
@@ -118,6 +119,10 @@ public class AlbumsTabTest extends PhotoPickerBaseTest {
                 .atPositionOnView(position, R.id.album_name))
                 .check(matches(withText(albumNameResId)))
                 .perform(click());
+
+        // Verify album opened
+        onView(allOf(withText(albumNameResId), withParent(withId(R.id.toolbar))))
+                .check(matches(isDisplayed()));
 
         // Verify album click UI event
         UiEventLoggerTestUtils.verifyLogWithInstanceId(mRule, getUiEventForAlbumId(albumNameResId));

@@ -70,8 +70,16 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Na-block ng iyong admin"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Hindi pinapahintulutan ang pag-access ng data ng trabaho mula sa isang personal na app"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Hindi pinapahintulutan ang pag-access ng personal na data mula sa isang app para sa trabaho"</string>
+    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
+    <skip />
+    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
+    <skip />
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Naka-pause ang mga app para sa trabaho"</string>
+    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
+    <skip />
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Para buksan ang mga larawan sa trabaho, i-on ang iyong mga app sa trabaho at subukan ulit"</string>
+    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
+    <skip />
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ang mga larawang pipiliin mo lang ang maa-access ng app na ito"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Pumili ng mga larawan at video na papayagan mong ma-access ng app na ito"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}one{<xliff:g id="COUNT_1">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> na item}}"</string>
@@ -161,8 +169,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Subukan ulit sa ibang pagkakataon. Magiging available ang iyong mga larawan kapag nalutas na ang isyu."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Hindi ma-load ang ilang Larawan"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"I-access ang pangalan ng package ng may-ari ng media"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Pinapayagan ang app na i-access ang mga pangalan ng package ng may-ari ng lahat ng naa-access na file ng media."</string>
 </resources>

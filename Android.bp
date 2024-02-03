@@ -93,7 +93,12 @@ android_app {
 
     lint: {
         strict_updatability_linting: true,
+        baseline_filename: "lint-baseline.xml",
     },
+
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -134,6 +139,9 @@ java_library {
         "framework-annotations-lib",
         "framework-mediaprovider",
     ],
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 platform_compat_config {

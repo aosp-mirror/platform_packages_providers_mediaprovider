@@ -239,6 +239,8 @@ public final class MediaStore {
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
     /** {@hide} */
     public static final String EXTRA_LOCAL_PROVIDER = "local_provider";
+    /** {@hide} */
+    public static final String EXTRA_IS_STABLE_URIS_ENABLED = "is_stable_uris_enabled";
 
     /** {@hide} */
     public static final String IS_SYSTEM_GALLERY_CALL = "is_system_gallery";
@@ -293,6 +295,14 @@ public final class MediaStore {
     public static final String EXTRA_ALBUM_ID = "album_id";
     /** {@hide} */
     public static final String EXTRA_ALBUM_AUTHORITY = "album_authority";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String SET_STABLE_URIS_FLAG =
+            "set_stable_uris_flag";
 
     /**
      * Only used for testing.
@@ -4797,6 +4807,14 @@ public final class MediaStore {
     /** {@hide} */
     public static void runIdleMaintenance(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_CALL, null, null);
+    }
+
+    /** {@hide} */
+    public static void setStableUrisFlag(@NonNull ContentResolver resolver,
+            @NonNull String volumeName, boolean isEnabled) {
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.EXTRA_IS_STABLE_URIS_ENABLED, isEnabled);
+        resolver.call(AUTHORITY, SET_STABLE_URIS_FLAG, volumeName, extras);
     }
 
     /**

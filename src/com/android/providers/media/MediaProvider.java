@@ -30,6 +30,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
+import static android.provider.MediaStore.EXTRA_IS_STABLE_URIS_ENABLED;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
@@ -6693,6 +6694,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.RESOLVE_PLAYLIST_MEMBERS_CALL: {
                 return getResultForResolvePlaylistMembers(extras);
             }
+            case MediaStore.SET_STABLE_URIS_FLAG: {
+                return getResultForSetStableUrisFlag(arg, extras);
+            }
             case MediaStore.RUN_IDLE_MAINTENANCE_CALL: {
                 return getResultForRunIdleMaintenance();
             }
@@ -6836,6 +6840,22 @@ public class MediaProvider extends ContentProvider {
         try {
             final Uri playlistUri = extras.getParcelable(MediaStore.EXTRA_URI);
             resolvePlaylistMembers(playlistUri);
+        } finally {
+            restoreCallingIdentity(providerToken);
+            restoreLocalCallingIdentity(token);
+        }
+        return null;
+    }
+
+    @Nullable
+    private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        final CallingIdentity providerToken = clearCallingIdentity();
+        try {
+            final boolean isEnabled = extras.getBoolean(EXTRA_IS_STABLE_URIS_ENABLED);
+            mDatabaseBackupAndRecovery.setStableUrisGlobalFlag(volumeName, isEnabled);
         } finally {
             restoreCallingIdentity(providerToken);
             restoreLocalCallingIdentity(token);

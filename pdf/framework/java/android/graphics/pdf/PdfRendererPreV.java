@@ -154,7 +154,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      * <p>
      * <strong>Note:</strong> The provided file descriptor must be <strong>seekable</strong>,
      * i.e. its data being randomly accessed, e.g. pointing to a file. If the password passed in
-     * {@link android.graphics.pdf.models.LoadParams} is incorrect, the
+     * {@link android.graphics.pdf.LoadParams} is incorrect, the
      * {@link android.graphics.pdf.PdfRendererPreV} will throw a {@link SecurityException}.
      * <p>
      * <strong>Note:</strong> This class takes ownership of the passed in file descriptor
@@ -209,10 +209,10 @@ public final class PdfRendererPreV implements AutoCloseable {
     @PdfDocumentLinearizationType
     public int getDocumentLinearizationType() {
         throwIfDocumentClosed();
-        if (mPdfProcessor.getDocumentLinearizationType() == PDF_DOCUMENT_TYPE_LINEARIZED) {
+        int documentType = mPdfProcessor.getDocumentLinearizationType();
+        if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
             return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
-        } else if (mPdfProcessor.getDocumentLinearizationType()
-                == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
+        } else if (documentType == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
             return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
         } else {
             return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
@@ -222,16 +222,17 @@ public final class PdfRendererPreV implements AutoCloseable {
     /**
      * Opens a {@link Page} for rendering.
      *
-     * @param pageNum The page number to open, starting from index 0.
+     * @param index The page index to open, starting from index 0.
      * @return A page that can be rendered.
      * @throws IllegalStateException    If {@link #close()} is called before invoking this.
      * @throws IllegalArgumentException If the page number is less than 0 or greater than or equal
      *                                  to the total page count.
      */
     @NonNull
-    public Page openPage(int pageNum) {
+    public Page openPage(int index) {
         throwIfDocumentClosed();
-        return new Page(pageNum);
+        throwIfPageNotInDocument(index);
+        return new Page(index);
     }
 
     /**
@@ -344,14 +345,21 @@ public final class PdfRendererPreV implements AutoCloseable {
     public final class Page implements AutoCloseable {
         private final int mWidth;
         private final int mHeight;
-        private int mPageNum;
+        private int mIndex;
 
-        private Page(int pageNum) {
-            throwIfDocumentClosed();
-            throwIfPageNotInDocument(pageNum);
-            this.mPageNum = pageNum;
-            mWidth = mPdfProcessor.getPageWidth(pageNum);
-            mHeight = mPdfProcessor.getPageHeight(pageNum);
+        private Page(int index) {
+            this.mIndex = index;
+            mWidth = mPdfProcessor.getPageWidth(index);
+            mHeight = mPdfProcessor.getPageHeight(index);
+        }
+
+        /**
+         * Gets the page index.
+         *
+         * @return The index.
+         */
+        public int getIndex() {
+            return mIndex;
         }
 
         /**
@@ -378,7 +386,7 @@ public final class PdfRendererPreV implements AutoCloseable {
                 @Nullable Matrix transform,
                 @NonNull RenderParams params) {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.renderPage(mPageNum, destination, destClip, transform, params);
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
         }
 
         /**
@@ -392,7 +400,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageTextContent> getTextContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageTextContents(mPageNum);
+            return mPdfProcessor.getPageTextContents(mIndex);
         }
 
         /**
@@ -406,7 +414,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageImageContent> getImageContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageImageContents(mPageNum);
+            return mPdfProcessor.getPageImageContents(mIndex);
         }
 
         /**
@@ -452,7 +460,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PageMatchBounds> searchText(@NonNull String query) {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.searchPageText(mPageNum, query);
+            return mPdfProcessor.searchPageText(mIndex, query);
         }
 
         /**
@@ -478,7 +486,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public PageSelection selectContent(@NonNull SelectionBoundary left,
                 @NonNull SelectionBoundary right, boolean isRtl) {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.selectPageText(mPageNum, left, right, isRtl);
+            return mPdfProcessor.selectPageText(mIndex, left, right, isRtl);
         }
 
 
@@ -491,7 +499,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageLinkContent> getLinkContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageLinkContents(mPageNum);
+            return mPdfProcessor.getPageLinkContents(mIndex);
         }
 
         /**
@@ -521,7 +529,7 @@ public final class PdfRendererPreV implements AutoCloseable {
                 @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
             throwIfDocumentClosed();
             throwIfPageClosed();
-            return mPdfProcessor.getFormWidgetInfos(mPageNum, types);
+            return mPdfProcessor.getFormWidgetInfos(mIndex, types);
         }
 
         /**
@@ -540,7 +548,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public FormWidgetInfo getFormWidgetInfoAtIndex(int annotationIndex) {
             throwIfDocumentClosed();
             throwIfPageClosed();
-            return mPdfProcessor.getFormWidgetInfoAtIndex(mPageNum, annotationIndex);
+            return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, annotationIndex);
         }
 
         /**
@@ -557,7 +565,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
             throwIfDocumentClosed();
             throwIfPageClosed();
-            return mPdfProcessor.getFormWidgetInfoAtPosition(mPageNum, x, y);
+            return mPdfProcessor.getFormWidgetInfoAtPosition(mIndex, x, y);
         }
 
         /**
@@ -589,7 +597,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
             throwIfDocumentClosed();
             throwIfPageClosed();
-            return mPdfProcessor.applyEdit(mPageNum, editRecord);
+            return mPdfProcessor.applyEdit(mIndex, editRecord);
         }
 
         /**
@@ -614,7 +622,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
             throwIfDocumentClosed();
             throwIfPageClosed();
-            return mPdfProcessor.applyEdits(mPageNum, formEditRecords);
+            return mPdfProcessor.applyEdits(mIndex, formEditRecords);
         }
 
         /**
@@ -641,12 +649,12 @@ public final class PdfRendererPreV implements AutoCloseable {
 
         private void doClose() {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.releasePage(mPageNum);
-            mPageNum = -1;
+            mPdfProcessor.releasePage(mIndex);
+            mIndex = -1;
         }
 
         private void throwIfPageClosed() {
-            if (mPageNum == -1) {
+            if (mIndex == -1) {
                 throw new IllegalStateException("Page already closed!");
             }
         }

@@ -13,11 +13,17 @@ package android.graphics.pdf {
 
   public final class PdfRenderer implements java.lang.AutoCloseable {
     ctor public PdfRenderer(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
+    ctor @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public PdfRenderer(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
     method public void close();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public int getDocumentLinearizationType();
     method public int getPageCount();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
     method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
     method public boolean shouldScaleForPrinting();
+    method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
+    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
+    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
+    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_ACRO_FORM = 1; // 0x1
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_NONE = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3; // 0x3
@@ -33,9 +39,15 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
     method public int getHeight();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
     method public int getIndex();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
     method public int getWidth();
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, boolean);
     field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
     field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
   }
@@ -68,6 +80,7 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
     method public int getHeight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
+    method public int getIndex();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
     method public int getWidth();

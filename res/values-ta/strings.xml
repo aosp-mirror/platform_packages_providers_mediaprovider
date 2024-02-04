@@ -66,13 +66,20 @@
     <string name="picker_preview" msgid="6257414886055861039">"மாதிரிக்காட்சி"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"பணிச் சுயவிவரத்திற்கு மாறு"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"தனிப்பட்ட சுயவிவரத்திற்கு மாறு"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"தனிப்பட்டவை"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"உங்கள் நிர்வாகி தடைசெய்துள்ளார்"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"தனிப்பட்ட ஆப்ஸிலிருந்து பணித் தரவை அணுக அனுமதியில்லை"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"பணி ஆப்ஸிலிருந்து தனிப்பட்ட தரவை அணுக அனுமதியில்லை"</string>
+    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
+    <skip />
+    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
+    <skip />
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"பணி ஆப்ஸ் இடைநிறுத்தப்பட்டுள்ளன"</string>
+    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
+    <skip />
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"பணிப் படங்களைத் திறக்க, பணி ஆப்ஸை ஆன் செய்துவிட்டு முயலவும்"</string>
+    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
+    <skip />
     <string name="picker_privacy_message" msgid="9132700451027116817">"நீங்கள் தேர்ந்தெடுக்கும் படங்களை மட்டுமே இந்த ஆப்ஸ் அணுக முடியும்"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"இந்த ஆப்ஸ் அணுகுவதற்கு நீங்கள் அனுமதிக்கும் படங்களையும் வீடியோக்களையும் தேர்ந்தெடுங்கள்"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ஆவணம்}other{<xliff:g id="COUNT_1">^1</xliff:g> ஆவணங்கள்}}"</string>

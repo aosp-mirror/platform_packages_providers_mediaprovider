@@ -66,13 +66,20 @@
     <string name="picker_preview" msgid="6257414886055861039">"미리보기"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"직장 프로필로 전환"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"개인 프로필로 전환"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"개인"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"관리자가 차단함"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"개인 앱에서는 업무 데이터에 액세스할 수 없습니다."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"직장 앱에서는 개인 데이터에 액세스할 수 없습니다."</string>
+    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
+    <skip />
+    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
+    <skip />
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"직장 앱이 일시중지됨"</string>
+    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
+    <skip />
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"직장 사진을 열려면 직장 앱을 사용 설정한 후 다시 시도하세요."</string>
+    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
+    <skip />
     <string name="picker_privacy_message" msgid="9132700451027116817">"앱은 사용자가 선택한 사진에만 액세스할 수 있습니다."</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"이 앱에서 액세스할 수 있도록 허용할 사진과 동영상을 선택하세요"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{항목 <xliff:g id="COUNT_0">^1</xliff:g>개}other{항목 <xliff:g id="COUNT_1">^1</xliff:g>개}}"</string>

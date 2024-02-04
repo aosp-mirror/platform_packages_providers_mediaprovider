@@ -66,12 +66,20 @@
     <string name="picker_preview" msgid="6257414886055861039">"Pregled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Prebacite se na radni profil"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Prebacite se na lični profil profil"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Osobno"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Lično"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokirao je administrator"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Pristupanje poslovnim podacima iz lične aplikacije nije dozvoljeno"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Pristupanje ličnim podacima iz poslovne aplikacije nije dozvoljeno"</string>
+    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
+    <skip />
+    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
+    <skip />
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Poslovne aplikacije su pauzirane"</string>
+    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
+    <skip />
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Da otvorite poslovne fotografije, uključite poslovne aplikacije i pokušajte ponovo"</string>
+    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
+    <skip />
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ova aplikacija može pristupiti samo fotografijama koje odaberete"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Odaberite fotografije i videozapise kojima će aplikacija moći pristupiti"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> stavka}one{<xliff:g id="COUNT_1">^1</xliff:g> stavka}few{<xliff:g id="COUNT_1">^1</xliff:g> stavke}other{<xliff:g id="COUNT_1">^1</xliff:g> stavki}}"</string>

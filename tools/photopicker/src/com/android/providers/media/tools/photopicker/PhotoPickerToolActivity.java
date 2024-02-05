@@ -48,6 +48,9 @@ public class PhotoPickerToolActivity extends Activity {
 
     private static final String TAG = "PhotoPickerToolActivity";
     private static final String EXTRA_PICK_IMAGES_MAX = "android.provider.extra.PICK_IMAGES_MAX";
+    public static final String EXTRA_PICK_IMAGES_ACCENT_COLOR =
+            "android.provider.extra.PICK_IMAGES_ACCENT_COLOR";
+
     private static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
     private static final String EXTRA_PICK_IMAGES_LAUNCH_TAB =
             "android.provider.extra.PICK_IMAGES_LAUNCH_TAB";
@@ -70,9 +73,11 @@ public class PhotoPickerToolActivity extends Activity {
     private CheckBox mOrderedSelectionCheckBox;
 
     private CheckBox mPickerLaunchTabCheckBox;
+    private CheckBox mPickerAccentColorCheckBox;
 
     private EditText mMaxCountText;
     private EditText mMimeTypeText;
+    private EditText mAccentColorText;
 
     private RadioButton mAlbumsRadioButton;
     private RadioButton mPhotosRadioButton;
@@ -95,6 +100,8 @@ public class PhotoPickerToolActivity extends Activity {
         mPickerLaunchTabCheckBox = findViewById(R.id.cbx_set_picker_launch_tab);
         mAlbumsRadioButton = findViewById(R.id.rb_albums);
         mPhotosRadioButton = findViewById(R.id.rb_photos);
+        mPickerAccentColorCheckBox = findViewById(R.id.cbx_set_accent_color);
+        mAccentColorText = findViewById(R.id.edittext_accent_color);
 
         mSetImageOnlyCheckBox.setOnCheckedChangeListener(this::onShowImageOnlyCheckedChanged);
         mSetVideoOnlyCheckBox.setOnCheckedChangeListener(this::onShowVideoOnlyCheckedChanged);
@@ -103,6 +110,8 @@ public class PhotoPickerToolActivity extends Activity {
                 this::onSetSelectionCountCheckedChanged);
         mPickerLaunchTabCheckBox.setOnCheckedChangeListener(
                 this::onSetPickerLaunchTabCheckedChanged);
+        mPickerAccentColorCheckBox.setOnCheckedChangeListener(
+                this::onSetPickerAccentColorCheckedChanged);
 
         mMaxCountText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -177,6 +186,10 @@ public class PhotoPickerToolActivity extends Activity {
         mPhotosRadioButton.setEnabled(isChecked);
     }
 
+    private void onSetPickerAccentColorCheckedChanged(View view, boolean isChecked) {
+        mAccentColorText.setEnabled(isChecked);
+    }
+
     private void onLaunchButtonClicked(View view) {
         final Intent intent;
         if (mGetContentCheckBox.isChecked()) {
@@ -184,6 +197,7 @@ public class PhotoPickerToolActivity extends Activity {
             intent.setType("*/*");
         } else {
             intent = new Intent(ACTION_PICK_IMAGES);
+
             // This extra is not permitted in GET_CONTENT
             if (mPickerLaunchTabCheckBox.isChecked()) {
                 int launchTab;
@@ -193,6 +207,11 @@ public class PhotoPickerToolActivity extends Activity {
                     launchTab = 1;
                 }
                 intent.putExtra(EXTRA_PICK_IMAGES_LAUNCH_TAB, launchTab);
+            }
+
+            if (mPickerAccentColorCheckBox.isChecked()) {
+                String accentColor = mAccentColorText.getText().toString();
+                intent.putExtra(EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
             }
         }
 
@@ -205,6 +224,7 @@ public class PhotoPickerToolActivity extends Activity {
                 if (mOrderedSelectionCheckBox.isChecked()) {
                     intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
                 }
+
             }
         }
 

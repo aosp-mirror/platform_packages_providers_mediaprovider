@@ -239,6 +239,8 @@ public final class MediaStore {
     public static final String EXTRA_FILE_DESCRIPTOR = "file_descriptor";
     /** {@hide} */
     public static final String EXTRA_LOCAL_PROVIDER = "local_provider";
+    /** {@hide} */
+    public static final String EXTRA_IS_STABLE_URIS_ENABLED = "is_stable_uris_enabled";
 
     /** {@hide} */
     public static final String IS_SYSTEM_GALLERY_CALL = "is_system_gallery";
@@ -260,6 +262,8 @@ public final class MediaStore {
     public static final String GET_CLOUD_PROVIDER_CALL = "get_cloud_provider";
     /** {@hide} */
     public static final String GET_CLOUD_PROVIDER_RESULT = "get_cloud_provider_result";
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_LABEL_CALL = "get_cloud_provider_label";
     /** {@hide} */
     public static final String SET_CLOUD_PROVIDER_RESULT = "set_cloud_provider_result";
     /** {@hide} */
@@ -291,6 +295,14 @@ public final class MediaStore {
     public static final String EXTRA_ALBUM_ID = "album_id";
     /** {@hide} */
     public static final String EXTRA_ALBUM_AUTHORITY = "album_authority";
+
+    /**
+     * Only used for testing.
+     * {@hide}
+     */
+    @VisibleForTesting
+    public static final String SET_STABLE_URIS_FLAG =
+            "set_stable_uris_flag";
 
     /**
      * Only used for testing.
@@ -872,6 +884,28 @@ public final class MediaStore {
     }
 
     /**
+     * The name of an optional intent-extra used to allow apps to specify the picker accent color.
+     * The extra can only be specified in {@link MediaStore#ACTION_PICK_IMAGES}.
+     * The accent color will be used for various primary elements in the PhotoPicker view.
+     * All other colors will be set based on android material guidelines.
+     * <p>
+     * The value of this intent-extra must be a string specifying the hex code of the accent color
+     * that is to be used within the picker. Only colors with luminance(can also be understood as
+     * brightness) greater than 0.05 and less than 0.9 are permitted.
+     * Luminance of a color is determined using:
+     * luminance = Color.luminance(color)
+     *       where color is the input accent color to be set.
+     * Check {@link Color} docs for more details on the same.
+     * In case the luminance of the input color is unacceptable, picker colors will be set
+     * based on the colors of the device android theme.
+     * In case of an invalid input color code i.e. the input color code cannot be parsed,
+     * {@code IllegalArgumentException} is thrown.
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_accent_color")
+    public static final String EXTRA_PICK_IMAGES_ACCENT_COLOR =
+            "android.provider.extra.PICK_IMAGES_ACCENT_COLOR";
+
+    /**
      * The name of an optional intent-extra used to allow apps to specify the tab the picker should
      * open with. The extra can only be specified in {@link MediaStore#ACTION_PICK_IMAGES}.
      * <p>
@@ -1087,6 +1121,14 @@ public final class MediaStore {
      */
     @Match
     public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
+
+    /**
+     * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
+     * of every accessible media file.
+     */
+    @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission")
+    public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
 
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
@@ -4787,6 +4829,14 @@ public final class MediaStore {
     /** {@hide} */
     public static void runIdleMaintenance(@NonNull ContentResolver resolver) {
         resolver.call(AUTHORITY, RUN_IDLE_MAINTENANCE_CALL, null, null);
+    }
+
+    /** {@hide} */
+    public static void setStableUrisFlag(@NonNull ContentResolver resolver,
+            @NonNull String volumeName, boolean isEnabled) {
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.EXTRA_IS_STABLE_URIS_ENABLED, isEnabled);
+        resolver.call(AUTHORITY, SET_STABLE_URIS_FLAG, volumeName, extras);
     }
 
     /**

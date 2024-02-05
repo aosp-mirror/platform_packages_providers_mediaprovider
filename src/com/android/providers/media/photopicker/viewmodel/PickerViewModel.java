@@ -46,8 +46,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
+import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -80,6 +82,7 @@ import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.RefreshRequest;
@@ -153,6 +156,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     private ItemsProvider mItemsProvider;
     private UserIdManager mUserIdManager;
+    private  UserManagerState mUserManagerState;
     private BannerManager mBannerManager;
 
     private InstanceId mInstanceId;
@@ -174,6 +178,11 @@ public class PickerViewModel extends AndroidViewModel {
     private boolean mIsLocalOnly;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
+    private static boolean sSetCustomPickerColors = false;
+    private static int sPickerAccentColor = -1;
+    private static boolean sIsNightModeEnabled;
+    private static final double BRIGHT_ACCENT_COLOR_VALUE = 120;
+    private static int sAccentColorBrightness;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
 
     public PickerViewModel(@NonNull Application application) {
@@ -181,7 +190,6 @@ public class PickerViewModel extends AndroidViewModel {
         mAppContext = application.getApplicationContext();
         mItemsProvider = new ItemsProvider(mAppContext);
         mSelection = new Selection();
-        mUserIdManager = UserIdManager.create(mAppContext);
         mMuteStatus = new MuteStatus();
         mInstanceId = new InstanceIdSequence(INSTANCE_ID_MAX).newInstanceId();
         mLogger = new PhotoPickerUiEventLogger();
@@ -190,6 +198,17 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = false;
 
         initConfigStore();
+
+        setNightModeFlag(application);
+
+
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mUserManagerState = UserManagerState.create(mAppContext);
+            mUserIdManager = null;
+        } else {
+            mUserIdManager = UserIdManager.create(mAppContext);
+            mUserManagerState = null;
+        }
 
         // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
         // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
@@ -238,6 +257,26 @@ public class PickerViewModel extends AndroidViewModel {
         mPickerLaunchTab = launchTab;
     }
 
+    public static boolean isCustomPickerColorSet() {
+        return sSetCustomPickerColors;
+    }
+
+    private void setNightModeFlag(Application application) {
+        int nightModeFlag =
+                application.getApplicationContext().getResources().getConfiguration().uiMode
+                        & Configuration.UI_MODE_NIGHT_MASK;
+        sIsNightModeEnabled = nightModeFlag == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+
+    /**
+     * Get dark color if the night mode is enabled
+     */
+    public static int getThemeBasedColor(String lightThemeVariant, String darkThemeVariant) {
+        return sIsNightModeEnabled
+                ? Color.parseColor(darkThemeVariant) : Color.parseColor(lightThemeVariant);
+    }
+
     @VisibleForTesting
     protected void initConfigStore() {
         mConfigStore = MediaApplication.getConfigStore();
@@ -250,7 +289,21 @@ public class PickerViewModel extends AndroidViewModel {
 
     @VisibleForTesting
     public void setUserIdManager(@NonNull UserIdManager userIdManager) {
+        if (userIdManager == null) {
+            throw new IllegalArgumentException("Given UserIdManager object can not be null");
+        }
         mUserIdManager = userIdManager;
+    }
+
+    /**
+     * Injects given {@link UserManagerState} object into {@link #mUserManagerState}
+     */
+    @VisibleForTesting
+    public void setUserManagerState(@NonNull UserManagerState userManagerState) {
+        if (userManagerState == null) {
+            throw new IllegalArgumentException("Given UserManagerState object can not be null");
+        }
+        mUserManagerState = userManagerState;
     }
 
     @VisibleForTesting
@@ -289,6 +342,13 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public UserIdManager getUserIdManager() {
         return mUserIdManager;
+    }
+
+    /**
+     * @return {@link UserManagerState} for this context.
+     */
+    public UserManagerState getUserManagerState() {
+        return mUserManagerState;
     }
 
     /**
@@ -366,6 +426,29 @@ public class PickerViewModel extends AndroidViewModel {
     public void resetToPersonalProfile() {
         mUserIdManager.setPersonalAsCurrentUserProfile();
         onSwitchedProfile();
+    }
+
+    /**
+     * Reset to a given profile
+     * @param userId : the profile where photopicker want switch to
+     */
+    @UiThread
+    public void resetToGivenUserProfile(@NonNull UserId userId) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            if (userId == null) {
+                throw new IllegalArgumentException("Given userId can not be null");
+            }
+            mUserManagerState.setUserAsCurrentUserProfile(userId);
+            onSwitchedProfile();
+        }
+    }
+
+    /**
+     * Reset to a user profile that starts photopicker activity
+     */
+    @UiThread
+    public void resetToCurrentUserProfile() {
+        resetToGivenUserProfile(UserId.CURRENT_USER);
     }
 
     /**
@@ -504,6 +587,13 @@ public class PickerViewModel extends AndroidViewModel {
         loadItemsAsync(pagingParameters, /* isReset */ isReset, action);
     }
 
+    private UserId getCurrentUserProfileId() {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return mUserManagerState.getCurrentUserProfileId();
+        }
+        return mUserIdManager.getCurrentUserProfileId();
+    }
+
     /**
      * Loads required items and sets it to the {@link PickerViewModel#mItemsResult} while
      * considering the isReset value.
@@ -515,8 +605,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     private void loadItemsAsync(@NonNull PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
-
+        final UserId userId = getCurrentUserProfileId();
         DataLoaderThread.getHandler().postDelayed(() -> {
             // Load the items as per the pagination parameters passed as params to this method.
             List<Item> newPageItemList = loadItems(Category.DEFAULT, userId, pagingParameters);
@@ -615,7 +704,7 @@ public class PickerViewModel extends AndroidViewModel {
         idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
 
         if (!idsForItemsToBeFetched.isEmpty()) {
-            final UserId userId = mUserIdManager.getCurrentUserProfileId();
+            UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 loadItemsWithLocalIdSelection(Category.DEFAULT, userId,
                         idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
@@ -742,7 +831,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     private void loadCategoryItemsAsync(PaginationParameters pagingParameters, boolean isReset,
             @ItemsAction.Type int action) {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final UserId userId = getCurrentUserProfileId();
         final Category category = mCurrentCategory;
 
         DataLoaderThread.getHandler().postDelayed(() -> {
@@ -839,7 +928,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private void loadCategoriesAsync() {
-        final UserId userId = mUserIdManager.getCurrentUserProfileId();
+        final UserId userId = getCurrentUserProfileId();
         DataLoaderThread.getHandler().postDelayed(() -> {
             mCategoryList.postValue(loadCategories(userId));
         }, TOKEN, DELAY_MILLIS);
@@ -877,23 +966,49 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         final Bundle extras = intent.getExtras();
-        if (extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
-            if (intent.getAction().equals(ACTION_GET_CONTENT)) {
-                Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
-                        + "ACTION_GET_CONTENT");
-            } else if (intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
-                throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed as an "
-                        + "extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
-            } else {
-                mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
-                if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
-                    throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
-                            + " received for the intent extra: "
-                            + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+        if (extras != null) {
+            // Get the tab with which the picker needs to be launched
+            if (extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
+                if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                    Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
+                            + "ACTION_GET_CONTENT");
+                } else if (intent.getAction().equals(
+                        MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                    throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed "
+                            + "as an extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+                } else {
+                    mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                    if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
+                        throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
+                                + " received for the intent extra: "
+                                + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                    }
+                }
+            }
+            // Get the picker accent color
+            if (extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR)) {
+                if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                    Log.w(TAG, "EXTRA_PICK_IMAGES_ACCENT_COLOR cannot be passed as an "
+                            + "extra in ACTION_GET_CONTENT");
+                } else if (intent.getAction().equals(
+                        MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                    throw new IllegalArgumentException(
+                            "EXTRA_PICK_IMAGES_ACCENT_COLOR cannot be passed "
+                                    + "as an extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+                } else if (intent.getAction().equals(MediaStore.ACTION_PICK_IMAGES)) {
+                    String inputColor = extras.getString(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
+                    if (checkColorValidity(inputColor)) {
+                        sPickerAccentColor = Color.parseColor(inputColor);
+                        sSetCustomPickerColors = true;
+                    }
                 }
             }
         }
-        mUserIdManager.setIntentAndCheckRestrictions(intent);
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mUserManagerState.setIntentAndCheckRestrictions(intent);
+        } else {
+            mUserIdManager.setIntentAndCheckRestrictions(intent);
+        }
 
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
@@ -929,15 +1044,79 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+
     private boolean checkPickerLaunchOptionValidity(int launchOption) {
         return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
                 || launchOption == MediaStore.PICK_IMAGES_TAB_ALBUMS;
     }
 
+    /**
+     * Colors with brightness value less than BRIGHT_ACCENT_COLOR_VALUE are considered to be
+     * dull and do not provide a good user experience.
+     */
+    public static boolean isAccentColorBright() {
+        return sAccentColorBrightness >= BRIGHT_ACCENT_COLOR_VALUE;
+    }
+
+    private void resetAccentColorParameters() {
+        sPickerAccentColor = -1;
+        sSetCustomPickerColors = false;
+    }
+
+    public static int getPickerAccentColor() {
+        return sPickerAccentColor;
+    }
+
+    /**
+     * Makes sure the input accent color string is valid.
+     */
+    boolean checkColorValidity(String colorValue) throws IllegalArgumentException {
+
+        try {
+            int color = Color.parseColor(colorValue);
+            if (!isColorFeasibleForBothBackgrounds(color)) {
+                // Fall back to the android theme
+                Log.w(TAG, "Value set for " + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
+                        + " is not within the permitted brightness range. Please refer to the "
+                        + "docs for more details. Setting android theme on the picker.");
+                resetAccentColorParameters();
+                return false;
+            }
+            return true;
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("The Accent colour provided in "
+                    + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
+                    + " fails validation. Please refer to javadocs on what is acceptable.");
+        }
+    }
+
+    /*
+     Checks if the input color is suitable to work on both white background for light mode and
+     black background for dark mode
+     */
+    private boolean isColorFeasibleForBothBackgrounds(int color) {
+
+        // Returns the luminance(can also be thought of brightness)
+        // Returned value ranges from 0(black) to 1(white)
+        float luminance = Color.luminance(color);
+
+        // Colors within this range will work both on light and dark background. Range set by
+        // testing with different colors.
+        return luminance >= 0.05 && luminance < 0.9;
+    }
+
     private void initBannerManager() {
-        mBannerManager = shouldShowOnlyLocalFeatures()
-                ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
-                : new BannerManager.CloudBannerManager(mAppContext, mUserIdManager, mConfigStore);
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mBannerManager = shouldShowOnlyLocalFeatures()
+                    ? new BannerManager(mAppContext, mUserManagerState, mConfigStore)
+                    : new BannerManager.CloudBannerManager(
+                            mAppContext, mUserManagerState, mConfigStore);
+        } else {
+            mBannerManager = shouldShowOnlyLocalFeatures()
+                    ? new BannerManager(mAppContext, mUserIdManager, mConfigStore)
+                    : new BannerManager.CloudBannerManager(
+                            mAppContext, mUserIdManager, mConfigStore);
+        }
     }
 
     /**
@@ -958,6 +1137,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log picker opened metrics
      */
     public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1049,6 +1232,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log metrics to notify that the user has confirmed selection
      */
     public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
                     countOfItemsConfirmed);
@@ -1062,6 +1249,10 @@ public class PickerViewModel extends AndroidViewModel {
      * Log metrics to notify that the user has exited Picker without any selection
      */
     public void logPickerCancel(int callingUid, String callingPackage) {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return;
+        }
+        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1456,7 +1647,7 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     private ContentResolver getContentResolverForSelectedUser() {
-        final UserId selectedUserId = mUserIdManager.getCurrentUserProfileId();
+        final UserId selectedUserId = getCurrentUserProfileId();
         if (selectedUserId == null) {
             Log.d(TAG, "Selected user id is NULL; returning the default content resolver.");
             return mAppContext.getContentResolver();
@@ -1512,7 +1703,7 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void initPhotoPickerData(@NonNull Category category) {
         if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
-            UserId userId = mUserIdManager.getCurrentUserProfileId();
+            final UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 if (category == Category.DEFAULT) {
                     mIsSyncInProgress.postValue(true);

@@ -45,11 +45,13 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.glide.PickerPreloadModelProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -272,6 +274,15 @@ public class PhotosTabFragment extends TabFragment {
         if (mIsCloudMediaInPhotoPickerEnabled) {
             mLoadingTextView = view.findViewById(R.id.loading_text_view);
             mProgressBar = view.findViewById(R.id.progress_bar);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                setProgressBarColors(mLoadingTextView, mProgressBar,
+                        PickerViewModel.getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                                AccentColorResources.ON_SURFACE_VARIANT_DARK),
+                        PickerViewModel.getThemeBasedColor(
+                                AccentColorResources.SURFACE_TINT_LIGHT,
+                                AccentColorResources.SURFACE_TINT_DARK));
+            }
             mRecyclerViewTopPadding = getResources().getDimensionPixelSize(
                     R.dimen.picker_recycler_view_top_padding);
             if (mCategory == Category.DEFAULT) {
@@ -285,6 +296,13 @@ public class PhotosTabFragment extends TabFragment {
             }
         }
     }
+
+    private void setProgressBarColors(
+            TextView textView, ProgressBar progressBar, int textColor, int progressBarColor) {
+        textView.setTextColor(textColor);
+        progressBar.getIndeterminateDrawable().setTint(progressBarColor);
+    }
+
     private void setOnScrollListenerForRecyclerView() {
         mRecyclerView.addOnScrollListener(
                 new RecyclerView.OnScrollListener() {
@@ -356,20 +374,25 @@ public class PhotosTabFragment extends TabFragment {
         super.onResume();
         final String title;
         final LayoutModeUtils.Mode layoutMode;
-        final boolean shouldHideProfileButton;
+        final boolean hideProfileButtonOrProfileMenuButton;
 
         if (mCategory.isDefault()) {
             title = "";
             layoutMode = MODE_PHOTOS_TAB;
-            shouldHideProfileButton = false;
+            hideProfileButtonOrProfileMenuButton = false;
         } else {
             title = mCategory.getDisplayName(requireContext());
             layoutMode = MODE_ALBUM_PHOTOS_TAB;
-            shouldHideProfileButton = true;
+            hideProfileButtonOrProfileMenuButton = true;
         }
         requirePickerActivity().updateCommonLayouts(layoutMode, title);
 
-        hideProfileButton(shouldHideProfileButton);
+        if (mPickerViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
+                && SdkLevel.isAtLeastS()) {
+            hideProfileButtonAndProfileMenuButton(hideProfileButtonOrProfileMenuButton);
+        } else {
+            hideProfileButton(hideProfileButtonOrProfileMenuButton);
+        }
 
         if (mIsCloudMediaInPhotoPickerEnabled
                 && mCategory == Category.DEFAULT

@@ -85,6 +85,14 @@
         },
         {
             "name": "fuse_node_test"
+        },
+        {
+            "name": "CtsOsTestCases",
+            "options": [
+                {
+                    "include-filter": "android.os.storage.cts.StorageManagerTest"
+                }
+            ]
         }
     ],
     "postsubmit": [
@@ -112,14 +120,6 @@
                 {
                     // Only execute the tests with @RunOnlyOnPostsubmit annotation
                     "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
-                }
-            ]
-        },
-        {
-            "name": "CtsOsTestCases",
-            "options": [
-                {
-                    "include-filter": "android.os.storage.cts.StorageManagerTest"
                 }
             ]
         }

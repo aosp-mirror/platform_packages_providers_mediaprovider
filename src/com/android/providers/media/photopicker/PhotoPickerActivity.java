@@ -41,6 +41,7 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
@@ -57,6 +58,7 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
@@ -81,6 +83,7 @@ import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -180,6 +183,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                mDefaultBackgroundColor = PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                        AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+                );
+                mToolBarIconColor = PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                );
+            }
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
@@ -441,6 +454,23 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mBottomSheetBehavior.addBottomSheetCallback(createBottomSheetCallBack());
         setRoundedCornersForBottomSheet();
+        if (PickerViewModel.isCustomPickerColorSet()) {
+            setCustomPickerColorsInBottomSheet(
+                    PickerViewModel.getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_DARK),
+                    PickerViewModel.getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK)
+            );
+        }
+    }
+
+    private void setCustomPickerColorsInBottomSheet(int backgroundColor, int dragBarColor) {
+        mBottomSheetView.setBackgroundColor(backgroundColor);
+        ImageView dragBarImageView = findViewById(R.id.drag_bar);
+        GradientDrawable dragBarDrawable = (GradientDrawable) dragBarImageView.getDrawable();
+        dragBarDrawable.setColor(dragBarColor);
     }
 
     private BottomSheetCallback createBottomSheetCallBack() {
@@ -828,6 +858,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Drawable icon;
         if (shouldShowTabLayout) {
             icon = getDrawable(R.drawable.ic_close);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                icon.setTint(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                ));
+            }
         } else {
             icon = getDrawable(R.drawable.ic_arrow_back);
             // Preview mode has dark background, hence icons will be WHITE in color
@@ -945,6 +981,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mPrivacyText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimension(R.dimen.picker_privacy_text_size));
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                mPrivacyText.setTextColor(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                        AccentColorResources.ON_SURFACE_VARIANT_DARK
+                ));
+            }
         }
 
         mPrivacyText.setVisibility(View.VISIBLE);

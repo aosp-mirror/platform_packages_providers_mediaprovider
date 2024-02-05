@@ -31,7 +31,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.bumptech.glide.util.ViewPreloadSizeProvider;
 
@@ -201,6 +203,11 @@ public class PhotosTabAdapter extends TabAdapter {
         DateHeaderViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.date_header_title);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                title.setTextColor(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                        AccentColorResources.ON_SURFACE_COLOR_DARK));
+            }
         }
 
         void bind(@NonNull DateHeader dateHeader) {

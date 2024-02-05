@@ -40,6 +40,7 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEA
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -56,6 +57,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.graphics.Color;
 import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
@@ -664,6 +666,32 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testParseValuesFromPickImagesIntent_validAccentColor() {
+        String accentColor = "#FF0000";
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(PickerViewModel.getPickerAccentColor()).isEqualTo(Color.parseColor(accentColor));
+        assertThat(PickerViewModel.isCustomPickerColorSet()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_invalidAccentColor() {
+        String accentColor = "brown";
+
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+    }
+
+    @Test
     public void testParseValuesFromGetContentIntent_extraPickerLaunchTab() {
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_ALBUMS);
@@ -673,6 +701,44 @@ public class PickerViewModelTest {
         // GET_CONTENT doesn't support this option. Launch tab will always default to photos
         assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
                 MediaStore.PICK_IMAGES_TAB_IMAGES);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_accentColorsWithUnacceptedBrightness() {
+        // Accent color brightness is less than the accepted brightness
+        String[] accentColors = new String[] {
+                "#000000", // black
+                "#FFFFFF", // white
+                "#FFFFF0"  // variant of white
+        };
+
+        for (String accentColor: accentColors) {
+            final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+            mPickerViewModel.parseValuesFromIntent(intent);
+
+            // Fall back to the android theme
+            assertWithMessage("Input accent color " + accentColor
+                    + " does not fall within accepted luminance range.")
+                    .that(PickerViewModel.getPickerAccentColor()).isEqualTo(-1);
+            assertWithMessage("Custom picker color flag for input color "
+                    + accentColor + " should be false but was true.")
+                    .that(PickerViewModel.isCustomPickerColorSet()).isFalse();
+        }
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_accentColor() {
+        String accentColor = "#FF0000";
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // GET_CONTENT doesn't support this option. Accent color will be an empty string
+        assertThat(PickerViewModel.getPickerAccentColor()).isEqualTo(-1);
+        assertThat(PickerViewModel.isCustomPickerColorSet()).isFalse();
     }
 
     @Test

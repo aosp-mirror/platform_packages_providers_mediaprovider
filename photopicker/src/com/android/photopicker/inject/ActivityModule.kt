@@ -24,6 +24,7 @@ import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.network.NetworkMonitor
 import com.android.photopicker.core.user.UserMonitor
 import dagger.Module
@@ -50,6 +51,7 @@ import kotlinx.coroutines.CoroutineScope
 class ActivityModule {
 
     // Avoid initialization until it's actually needed.
+    private lateinit var featureManager: FeatureManager
     private lateinit var networkMonitor: NetworkMonitor
     private lateinit var userMonitor: UserMonitor
 
@@ -71,6 +73,31 @@ class ActivityModule {
     @ActivityOwned
     fun userHandle(): UserHandle {
         return Process.myUserHandle()
+    }
+
+    @Provides
+    @ActivityOwned
+    fun provideFeatureManager(
+        activity: Activity,
+        @ActivityOwned scope: CoroutineScope
+    ): FeatureManager {
+
+        if (::featureManager.isInitialized) {
+            return featureManager
+        } else {
+            Log.d(
+                FeatureManager.TAG,
+                "FeatureManager requested but not yet initialized. Initializing FeatureManager."
+            )
+            featureManager =
+                // Do not pass a set of FeatureRegistrations here to use the standard set of
+                // enabled features.
+                FeatureManager(
+                    PhotopickerConfiguration(action = activity.getIntent()?.getAction() ?: ""),
+                    scope
+                )
+            return featureManager
+        }
     }
 
     /**

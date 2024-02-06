@@ -291,6 +291,10 @@ public interface ConfigStore {
                 "picker_pick_images_respect_preload_selected_arg";
 
         private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+
+        @VisibleForTesting
+        public static final String KEY_PRIVATE_SPACE_FEATURE_ENABLED =
+                "private_space_feature_enabled";
         private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
                 "picker_choice_managed_selection_enabled";
         private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
@@ -321,6 +325,14 @@ public interface ConfigStore {
             // Only consider the feature enabled when the enabled flag is on AND when the allowlist
             // of permitted cloud media providers is not empty.
             return isEnabled && !allowList.isEmpty();
+        }
+
+        @Override
+        public boolean isPrivateSpaceInPhotoPickerEnabled() {
+            return getBooleanDeviceConfig(
+                    NAMESPACE_MEDIAPROVIDER,
+                    KEY_PRIVATE_SPACE_FEATURE_ENABLED,
+                    DEFAULT_PICKER_PRIVATE_SPACE_ENABLED);
         }
 
         @Override
@@ -397,7 +409,8 @@ public interface ConfigStore {
 
         @Override
         public boolean isGetContentTakeOverEnabled() {
-            return getBooleanDeviceConfig(KEY_TAKE_OVER_GET_CONTENT, DEFAULT_TAKE_OVER_GET_CONTENT);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_TAKE_OVER_GET_CONTENT,
+                    DEFAULT_TAKE_OVER_GET_CONTENT);
         }
 
         @Override

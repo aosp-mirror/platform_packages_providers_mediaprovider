@@ -42,7 +42,6 @@ import androidx.work.Worker;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
-import com.android.providers.media.photopicker.PickerSyncController;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -320,10 +319,10 @@ public class PickerSyncManager {
      *
      * @param albumId is the id of the album that needs to be synced.
      * @param authority The authority of the album media.
+     * @param isLocal is {@code true} iff the album authority is of the local provider.
      */
     public void syncAlbumMediaForProviderImmediately(
-            @NonNull String albumId, @NonNull String authority) {
-        boolean isLocal = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority);
+            @NonNull String albumId, @NonNull String authority, boolean isLocal) {
         syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal), authority);
     }
 

@@ -126,7 +126,7 @@
                 android:elevation="@dimen/picker_bottom_bar_elevation"
                 android:visibility="gone">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_view_selected"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -177,5 +177,20 @@
         app:borderWidth="0dp"
         app:elevation="3dp"
         app:icon="@drawable/ic_work_outline"/>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/profile_menu_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/picker_profile_button_margin_bottom"
+        android:layout_gravity="bottom|center"
+        android:textAppearance="@style/PickerButtonTextAppearance"
+        android:textColor="?attr/pickerProfileButtonTextColor"
+        android:visibility="gone"
+        android:accessibilityTraversalAfter="@+id/toolbar"
+        android:accessibilityTraversalBefore="@+id/fragment_container"
+        app:backgroundTint="?attr/pickerProfileButtonColor"
+        app:borderWidth="0dp"
+        app:elevation="3dp"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

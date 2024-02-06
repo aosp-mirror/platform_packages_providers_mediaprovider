@@ -66,13 +66,20 @@
     <string name="picker_preview" msgid="6257414886055861039">"Peržiūra"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Perjungti į darbo profilį"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Perjungti į asmeninį profilį"</string>
-    <!-- no translation found for picker_personal_profile_label (6189198163209597344) -->
-    <skip />
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Asmeninis"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Užblokavo jūsų administratorius"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Neleidžiama pasiekti darbo duomenų iš asmeninės programos"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Neleidžiama pasiekti asmens duomenų iš darbo programos"</string>
+    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
+    <skip />
+    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
+    <skip />
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Darbo programos pristabdytos"</string>
+    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
+    <skip />
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Norėdami atidaryti darbo nuotraukas, įjunkite darbo programas ir bandykite dar kartą"</string>
+    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
+    <skip />
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ši programa gali pasiekti tik jūsų pasirinktas nuotraukas"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Pasirinkite nuotraukas ir vaizdo įrašus, kuriuos leisite pasiekti šiai programai"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> elementas}one{<xliff:g id="COUNT_1">^1</xliff:g> elementas}few{<xliff:g id="COUNT_1">^1</xliff:g> elementai}many{<xliff:g id="COUNT_1">^1</xliff:g> elemento}other{<xliff:g id="COUNT_1">^1</xliff:g> elementų}}"</string>

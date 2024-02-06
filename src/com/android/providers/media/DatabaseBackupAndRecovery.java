@@ -71,22 +71,24 @@ import java.util.stream.Collectors;
  */
 public class DatabaseBackupAndRecovery {
 
-    private static final String RECOVERY_DIRECTORY_PATH =
+    private static final String UPPER_FS_RECOVERY_DIRECTORY_PATH =
+            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
+
+    private static final String LOWER_FS_RECOVERY_DIRECTORY_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery";
 
     /**
      * Path for storing owner id to owner package identifier relation and vice versa.
      * Lower file system path is used as upper file system does not support xattrs.
      */
-    private static final String OWNER_RELATION_BACKUP_PATH =
+    private static final String OWNER_RELATION_LOWER_FS_BACKUP_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery/leveldb-ownership";
 
-    private static final String INTERNAL_VOLUME_BACKUP_PATH =
-            "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery/leveldb-internal";
+    private static final String INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH =
+            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-internal";
 
-    private static final String EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH =
-            "/data/media/" + UserHandle.myUserId()
-                    + "/.transforms/recovery/leveldb-external_primary";
+    private static final String EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH =
+            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-external_primary";
 
     /**
      * Every LevelDB table name starts with this prefix.
@@ -239,9 +241,9 @@ public class DatabaseBackupAndRecovery {
                 ? MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY
                 : MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
         try {
-            if (!new File(RECOVERY_DIRECTORY_PATH).exists()) {
-                new File(RECOVERY_DIRECTORY_PATH).mkdirs();
-                Log.v(TAG, "Created recovery directory:" + RECOVERY_DIRECTORY_PATH);
+            if (!new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).exists()) {
+                new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
+                Log.v(TAG, "Created recovery directory:" + UPPER_FS_RECOVERY_DIRECTORY_PATH);
             }
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
@@ -385,7 +387,8 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        final String backupPath = RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX + volumeName;
+        final String backupPath =
+                LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX + volumeName;
         long lastBackedGenerationNumber = getLastBackedGenerationNumber(backupPath);
 
         final String generationClause = MediaStore.Files.FileColumns.GENERATION_MODIFIED + " >= "
@@ -442,7 +445,8 @@ public class DatabaseBackupAndRecovery {
 
     protected void deleteBackupForVolume(String volumeName) {
         File dbFilePath = new File(
-                String.format(Locale.ROOT, "%s/%s.db", RECOVERY_DIRECTORY_PATH, volumeName));
+                String.format(Locale.ROOT, "%s/%s.db", UPPER_FS_RECOVERY_DIRECTORY_PATH,
+                        volumeName));
         if (dbFilePath.exists()) {
             dbFilePath.delete();
         }
@@ -602,7 +606,7 @@ public class DatabaseBackupAndRecovery {
         // In synchronized block to avoid use of same owner id for multiple owner package relations
         if (mNextOwnerId == null) {
             Optional<Integer> nextOwnerIdOptional = getXattrOfIntegerValue(
-                    OWNER_RELATION_BACKUP_PATH,
+                    OWNER_RELATION_LOWER_FS_BACKUP_PATH,
                     NEXT_OWNER_ID_XATTR_KEY);
             mNextOwnerId = nextOwnerIdOptional.map(AtomicInteger::new).orElseGet(
                     () -> new AtomicInteger(NEXT_OWNER_ID_DEFAULT_VALUE));
@@ -619,14 +623,14 @@ public class DatabaseBackupAndRecovery {
     }
 
     private void updateNextOwnerId(int val) {
-        setXattr(OWNER_RELATION_BACKUP_PATH, NEXT_OWNER_ID_XATTR_KEY, String.valueOf(val));
+        setXattr(OWNER_RELATION_LOWER_FS_BACKUP_PATH, NEXT_OWNER_ID_XATTR_KEY, String.valueOf(val));
         Log.d(TAG, "Updated next owner id to: " + val);
     }
 
     protected void removeOwnerIdToPackageRelation(String packageName, int userId) {
         if (Strings.isNullOrEmpty(packageName) || packageName.equalsIgnoreCase("null")
                 || !isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                || !new File(OWNER_RELATION_BACKUP_PATH).exists()) {
+                || !new File(OWNER_RELATION_LOWER_FS_BACKUP_PATH).exists()) {
             return;
         }
 
@@ -931,7 +935,7 @@ public class DatabaseBackupAndRecovery {
                 volumeName));
         if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
             // Resetting generation number
-            setXattr(RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX
+            setXattr(LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX
                             + MediaStore.VOLUME_EXTERNAL_PRIMARY,
                     LAST_BACKEDUP_GENERATION_XATTR_KEY, String.valueOf(0));
         }
@@ -940,9 +944,9 @@ public class DatabaseBackupAndRecovery {
 
     protected boolean isBackupPresent(String volumeName) {
         if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
-            return new File(INTERNAL_VOLUME_BACKUP_PATH).exists();
+            return new File(INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH).exists();
         } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            return new File(EXTERNAL_PRIMARY_VOLUME_BACKUP_PATH).exists();
+            return new File(EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH).exists();
         }
 
         return false;
@@ -989,7 +993,7 @@ public class DatabaseBackupAndRecovery {
      * Returns list of backed up files from external storage.
      */
     protected List<File> getBackupFiles() {
-        return Arrays.asList(new File(RECOVERY_DIRECTORY_PATH).listFiles());
+        return Arrays.asList(new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).listFiles());
     }
 
     /**

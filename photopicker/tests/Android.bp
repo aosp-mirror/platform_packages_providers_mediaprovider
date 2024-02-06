@@ -14,13 +14,13 @@ android_test {
     static_libs: [
         // sources
         "PhotopickerLib", // test dependencies
-
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui-test-junit4",
         "androidx.compose.ui_ui-test-manifest",
         "androidx.test.core",
         "androidx.test.rules",
         "mockito-target",
+        "modules-utils-build",
         "truth",
     ],
 

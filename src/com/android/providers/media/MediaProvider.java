@@ -11241,8 +11241,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (Environment.MEDIA_MOUNTED.equalsIgnoreCase(volumeState)) {
-            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                    volume.getPath());
+            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName());
         }
 
         return uri;
@@ -11264,6 +11263,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void detachVolume(MediaVolume volume) {
+        Log.v(TAG, "detachVolume() received for " + volume.getName());
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -11279,7 +11279,7 @@ public class MediaProvider extends ContentProvider {
                     "Deleting the internal volume is not allowed");
         }
 
-        mDatabaseBackupAndRecovery.onDetachVolume(volume);
+        mDatabaseBackupAndRecovery.onDetachVolume(volumeName);
         // Signal any scanning to shut down
         mMediaScanner.onDetachVolume(volume);
 

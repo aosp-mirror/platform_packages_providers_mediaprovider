@@ -138,16 +138,6 @@ class FuseDaemon final {
      */
     bool CheckLevelDbConnection(const std::string& instance_name);
 
-    /**
-     * Removes level db connection for detached volume.
-     */
-    void RemoveLevelDbConnections(const std::string& volume_name);
-
-    /**
-     * Removes level db connection for detached volume.
-     */
-    void RemoveConnectionForInstance(const std::string& instance_name);
-
   private:
     FuseDaemon(const FuseDaemon&) = delete;
     void operator=(const FuseDaemon&) = delete;

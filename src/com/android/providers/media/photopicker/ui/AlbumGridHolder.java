@@ -27,6 +27,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.util.AccentColorResources;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.StringUtils;
 
 import java.text.NumberFormat;
@@ -74,6 +76,12 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
         }
         mImageLoader.loadAlbumThumbnail(category, mIconThumb, defaultResId, mIconDefaultThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
+        if (PickerViewModel.isCustomPickerColorSet()) {
+            mAlbumName.setTextColor(PickerViewModel.getThemeBasedColor(
+                    AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                    AccentColorResources.ON_SURFACE_COLOR_DARK
+            ));
+        }
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,
         // show the item count and update the count.
         if (mItemCount.getVisibility() == View.VISIBLE) {

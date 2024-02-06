@@ -329,19 +329,6 @@ public final class FuseDaemon extends Thread {
         }
     }
 
-    /**
-     * Removes leveldb connection for given volume name.
-     */
-    public void removeLevelDbConnections(String volumeName) throws IOException {
-        synchronized (mLock) {
-            if (mPtr == 0) {
-                throw new IOException("FUSE daemon unavailable");
-            }
-            native_remove_leveldb_connections(mPtr, volumeName);
-        }
-    }
-
-
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -371,6 +358,5 @@ public final class FuseDaemon extends Thread {
     private native void native_remove_owner_id_relation(long daemon, String ownerId,
             String ownerPackageIdentifier);
     private native HashMap<String, String> native_read_owner_relations(long daemon);
-    private native void native_remove_leveldb_connections(long daemon, String volumeName);
     public static native boolean native_is_fuse_thread();
 }

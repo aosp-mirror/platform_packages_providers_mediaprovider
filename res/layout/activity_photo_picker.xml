@@ -126,7 +126,7 @@
                 android:elevation="@dimen/picker_bottom_bar_elevation"
                 android:visibility="gone">
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_view_selected"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

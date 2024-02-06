@@ -884,6 +884,28 @@ public final class MediaStore {
     }
 
     /**
+     * The name of an optional intent-extra used to allow apps to specify the picker accent color.
+     * The extra can only be specified in {@link MediaStore#ACTION_PICK_IMAGES}.
+     * The accent color will be used for various primary elements in the PhotoPicker view.
+     * All other colors will be set based on android material guidelines.
+     * <p>
+     * The value of this intent-extra must be a string specifying the hex code of the accent color
+     * that is to be used within the picker. Only colors with luminance(can also be understood as
+     * brightness) greater than 0.05 and less than 0.9 are permitted.
+     * Luminance of a color is determined using:
+     * luminance = Color.luminance(color)
+     *       where color is the input accent color to be set.
+     * Check {@link Color} docs for more details on the same.
+     * In case the luminance of the input color is unacceptable, picker colors will be set
+     * based on the colors of the device android theme.
+     * In case of an invalid input color code i.e. the input color code cannot be parsed,
+     * {@code IllegalArgumentException} is thrown.
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_accent_color")
+    public static final String EXTRA_PICK_IMAGES_ACCENT_COLOR =
+            "android.provider.extra.PICK_IMAGES_ACCENT_COLOR";
+
+    /**
      * The name of an optional intent-extra used to allow apps to specify the tab the picker should
      * open with. The extra can only be specified in {@link MediaStore#ACTION_PICK_IMAGES}.
      * <p>

@@ -2575,8 +2575,8 @@ void FuseDaemon::SetupLevelDbConnection(const std::string& instance_name) {
         return;
     }
 
-    std::string leveldbPath =
-            "/data/media/" + MY_USER_ID_STRING + "/.transforms/recovery/leveldb-" + instance_name;
+    std::string leveldbPath = "/storage/emulated/" + MY_USER_ID_STRING +
+                              "/.transforms/recovery/leveldb-" + instance_name;
     leveldb::Options options;
     options.create_if_missing = true;
     leveldb::DB* leveldb;

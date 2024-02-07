@@ -22,6 +22,7 @@ import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
@@ -681,9 +682,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
         setResult(RESULT_OK, resultData);
     }
 
+    /**
+     * Inspects the current selection list to see if any items in the selection have an authority
+     * that does not match the {@link MediaStore.AUTHORITY}
+     *
+     * <p>If all items have the MediaStore authority, it is presumed that the selection only
+     * contains local items.
+     *
+     * @return Whether the selection includes only local items
+     */
+    private boolean isSelectionOnlyLocalItems() {
+
+        for (Item item : mSelection.getSelectedItems()) {
+            if (!item.getContentUri().getAuthority().equals(LOCAL_PICKER_PROVIDER_AUTHORITY)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private boolean shouldPreloadSelectedItems() {
         // Only preload if the cloud media may be shown in the PhotoPicker.
-        if (!isCloudMediaAvailable()) {
+        if (isSelectionOnlyLocalItems()) {
             return false;
         }
 

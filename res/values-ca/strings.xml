@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloquejat per l\'administrador"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"No està permès accedir a les dades de treball des d\'una aplicació personal"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"No està permès accedir a les dades personals des d\'una aplicació de treball"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Accedir a les dades de <xliff:g id="PROFILE1">%1$s</xliff:g> des de l\'aplicació <xliff:g id="PROFILE2">%2$s</xliff:g> no està permès"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Canvia a <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Les aplicacions de treball estan en pausa"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les aplicacions de <xliff:g id="PROFILE">%s</xliff:g> s\'han posat en pausa"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Per obrir les fotos de treball, activa les aplicacions de treball i torna-ho a provar"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Per obrir les fotos de <xliff:g id="PROFILE1">%1$s</xliff:g>, activa les aplicacions de <xliff:g id="PROFILE2">%2$s</xliff:g> i torna-ho a provar"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Aquesta aplicació només pot accedir a les fotos que seleccionis"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Selecciona a quines fotos i vídeos permets que accedeixi aquesta aplicació"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}many{<xliff:g id="COUNT_1">^1</xliff:g> elements}other{<xliff:g id="COUNT_1">^1</xliff:g> elements}}"</string>

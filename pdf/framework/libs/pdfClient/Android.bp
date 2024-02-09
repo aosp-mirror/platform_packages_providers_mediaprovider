@@ -21,13 +21,67 @@ package {
 
 cc_library_shared {
     name: "libpdfclient",
+    srcs: [
+        "*.cc",
+        "utils/*.cc",
+    ],
+
+    exclude_srcs: [
+        "*_test.cc",
+    ],
 
     shared_libs: [
-        "libpdfium"
+        "libpdfium",
+        "liblog",
+    ],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    cflags: [
+        "-Werror",
+        "-Wno-unused-parameter",
     ],
 
     sdk_version: "current",
     min_sdk_version: "apex_inherit",
     apex_available: ["com.android.mediaprovider"],
     stl: "c++_static",
+    header_libs: ["jni_headers"],
+}
+
+cc_test {
+    name: "pdfClient_test",
+
+    srcs: [
+        "*.cc",
+        "utils/*.cc",
+        "testing/*.cc",
+    ],
+
+    data: [
+        "testdata/**/*.pdf",
+    ],
+
+    test_suites: ["device-tests"],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    shared_libs: [
+        "libpdfium",
+        "liblog",
+    ],
+
+    cflags: [
+        "-Werror",
+        "-Wno-unused-parameter",
+        "-Wmacro-redefined",
+    ],
+
+    sdk_version: "current",
+    stl: "c++_static",
+    header_libs: ["jni_headers"],
 }

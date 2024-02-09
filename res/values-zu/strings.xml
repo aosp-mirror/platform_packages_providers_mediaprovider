@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Kuvinjwe ngumphathi wakho"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Ukufinyelela idatha evela ku-app yomuntu siqu akuvunyelwe"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Ukufinyelela idatha yomuntu siqu evela ku-app yomsebenzi akuvunyelwe"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Ukufinyelela idatha ye-<xliff:g id="PROFILE1">%1$s</xliff:g> ukusuka ku-app ye-<xliff:g id="PROFILE2">%2$s</xliff:g> akuvunyelwe"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Shintshela ku-<xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ama-app okusebenza amisiwe"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Ama-app e-<xliff:g id="PROFILE">%s</xliff:g> amisiwe"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ukuze uvule izithombe zomsebenzi, vula ama-app wakho womsebenzi bese uzama futhi"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Ukuze uvule izithombe ze-<xliff:g id="PROFILE1">%1$s</xliff:g>, vula ama-app wakho e-<xliff:g id="PROFILE2">%2$s</xliff:g> bese uzama futhi"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Le app ingafinyelela izithombe ozikhethayo kuphela"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Khetha izithombe namavidiyo ovumela le app ukuthi iwafinyelele"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{into <xliff:g id="COUNT_0">^1</xliff:g>}one{izinto <xliff:g id="COUNT_1">^1</xliff:g>}other{izinto <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Zama futhi emuva kwesikhathi. Izithombe zakho zizotholakala uma inkinga isixazululiwe."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Ayikwazi ukulayisha ezinye Izithombe"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ngiyezwa"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Finyelela igama lephakheji lomnikazi wemidiya"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Ivumela i-app ukuthi ifinyelele kumagama amaphakheji omnikazi awo wonke amafayela emidiya afinyelelekayo."</string>
 </resources>

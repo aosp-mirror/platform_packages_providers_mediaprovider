@@ -56,7 +56,6 @@ import java.util.stream.Collectors;
  * @hide
  */
 public class PdfProcessor {
-
     /** Represents a PDF without form fields */
     public static final int PDF_FORM_TYPE_NONE = 0;
 
@@ -69,6 +68,7 @@ public class PdfProcessor {
     /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
     public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
 
+    private static final String TAG = "PdfProcessor";
     private PdfDocumentProxy mPdfDocument;
 
     public PdfProcessor() {
@@ -331,13 +331,21 @@ public class PdfProcessor {
      */
     @NonNull
     FormWidgetInfo getFormWidgetInfoAtIndex(int pageNum, int annotationIndex) {
-        return mPdfDocument.getFormWidgetInfo(pageNum, annotationIndex);
+        FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, annotationIndex);
+        if (result == null) {
+            throw new IllegalArgumentException("No widget found at this index.");
+        }
+        return result;
     }
 
     /** Returns information about the widget at the given point. */
     @NonNull
     public FormWidgetInfo getFormWidgetInfoAtPosition(int pageNum, int x, int y) {
-        return mPdfDocument.getFormWidgetInfo(pageNum, x, y);
+        FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, x, y);
+        if (result == null) {
+            throw new IllegalArgumentException("No widget found at point.");
+        }
+        return result;
     }
 
     /**
@@ -356,29 +364,67 @@ public class PdfProcessor {
         Preconditions.checkNotNull(editRecord);
         Preconditions.checkArgument(pageNum >= 0, "Invalid page number");
         if (editRecord.getType() == FormEditRecord.EDIT_TYPE_CLICK) {
-            Preconditions.checkNotNull(
-                    editRecord.getClickPoint(), "Can't apply click edit record without point");
-            Point clickPoint = editRecord.getClickPoint();
-            return mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
+            return applyEditTypeClick(pageNum, editRecord);
         } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_INDICES) {
-            Set<Integer> selectedIndices = editRecord.getSelectedIndices();
-            return mPdfDocument.setFormFieldSelectedIndices(
-                    pageNum, editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
+            return applyEditTypeSetIndices(pageNum, editRecord);
         } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_TEXT) {
-            Preconditions.checkNotNull(
-                    editRecord.getText(), "Can't apply set text record without text");
-            String text = editRecord.getText();
-            return mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
+            return applyEditSetText(pageNum, editRecord);
         }
         return new ArrayList<>();
     }
 
+    private List<Rect> applyEditTypeClick(int pageNum, @NonNull FormEditRecord editRecord) {
+        Preconditions.checkNotNull(
+                editRecord.getClickPoint(), "Can't apply click edit record without point");
+        Point clickPoint = editRecord.getClickPoint();
+        List<Rect> results = mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
+        if (results == null) {
+            throw new IllegalArgumentException("Cannot click on this widget.");
+        }
+        return results;
+    }
+
+    private List<Rect> applyEditTypeSetIndices(int pageNum, @NonNull FormEditRecord editRecord) {
+        Set<Integer> selectedIndices = editRecord.getSelectedIndices();
+        List<Rect> results =
+                mPdfDocument.setFormFieldSelectedIndices(
+                        pageNum, editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
+        if (results == null) {
+            throw new IllegalArgumentException("Cannot set selected indices on this widget.");
+        }
+        return results;
+    }
+
+    private List<Rect> applyEditSetText(int pageNum, @NonNull FormEditRecord editRecord) {
+        Preconditions.checkNotNull(
+                editRecord.getText(), "Can't apply set text record without text");
+        String text = editRecord.getText();
+        List<Rect> results =
+                mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
+        if (results == null) {
+            throw new IllegalArgumentException("Cannot set form field text on this widget.");
+        }
+        return results;
+    }
+
+    /**
+     * Executes the {@link FormEditRecord}s on the page, in order.
+     *
+     * <p>If any record cannot be applied, it will be returned and no further records will be
+     * applied. Records already applied will not be reverted. To restore the page to its state
+     * before any records were applied, re-load the page by closing and re-opening the page.
+     */
     /** Executes the {@link FormEditRecord}s on the page, in order. */
     @NonNull
     public List<FormEditRecord> applyEdits(
             int pageNum, @NonNull List<FormEditRecord> formEditRecords) {
-        for (FormEditRecord record : formEditRecords) {
-            applyEdit(pageNum, record);
+        for (int i = 0; i < formEditRecords.size(); i++) {
+            try {
+                applyEdit(pageNum, formEditRecords.get(i));
+            } catch (IllegalArgumentException ex) {
+                Log.e(TAG, String.format("Can't apply record %d", i), ex);
+                return formEditRecords.subList(i, formEditRecords.size());
+            }
         }
         return new ArrayList<>();
     }

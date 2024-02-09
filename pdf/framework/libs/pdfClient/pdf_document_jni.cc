@@ -357,6 +357,11 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidg
 
     Point_i point{x, y};
     FormWidgetInfo result = page->GetFormWidgetInfo(point);
+    if (!result.FoundWidget()) {
+        LOGE("No widget found at point x = %d, y = %d", x, y);
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaFormWidgetInfo(env, result);
@@ -369,6 +374,11 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidg
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     FormWidgetInfo result = page->GetFormWidgetInfo(index);
+    if (!result.FoundWidget()) {
+        LOGE("No widget found at this index %d", index);
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaFormWidgetInfo(env, result);
@@ -396,7 +406,12 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_clickOnPage
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     Point_i point{x, y};
-    page->ClickOnPoint(point);
+    bool clicked = page->ClickOnPoint(point);
+    if (!clicked) {
+        LOGE("Cannot click on this widget");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     vector<Rectangle_i> invalid_rects;
     if (page->HasInvalidRect()) {
@@ -413,7 +428,12 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     const char* text = jText == nullptr ? "" : env->GetStringUTFChars(jText, nullptr);
-    page->SetFormFieldText(annotationIndex, text);
+    bool set = page->SetFormFieldText(annotationIndex, text);
+    if (!set) {
+        LOGE("Cannot set form field text on this widget.");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     if (jText) {
         env->ReleaseStringUTFChars(jText, text);
@@ -435,7 +455,12 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     vector<int> selected_indices = convert::ToNativeIntegerVector(env, jSelectedIndices);
-    page->SetChoiceSelection(annotationIndex, selected_indices);
+    bool set = page->SetChoiceSelection(annotationIndex, selected_indices);
+    if (!set) {
+        LOGE("Cannot set selected indices on this widget.");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     vector<Rectangle_i> invalid_rects;
     if (page->HasInvalidRect()) {

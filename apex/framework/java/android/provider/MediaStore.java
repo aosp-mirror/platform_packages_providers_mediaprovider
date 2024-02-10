@@ -1123,6 +1123,31 @@ public final class MediaStore {
     public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
 
     /**
+     * Flag that indicates if only the latest selection in the photoPicker for
+     * the calling app should be returned. If set to true, all items that were
+     * granted to the calling app in the last selection are returned.
+     *
+     * <p>Selection in this scenario refers to when the user selects items in
+     * <b> the permission prompt photo picker</b>. The access for these items
+     * is granted to the calling app and these grants are persisted unless the
+     * user deselects a granted item explicitly.</p>
+     *
+     * <p>The result excludes items owned by the calling app unless they are
+     * explicitly selected by the user.</p>
+     *
+     * <p>Note: If there has been no user selections after the introduction of
+     * this feature then all the granted items will be returned.</p>
+     *
+     * <p>This key can be placed in a {@link Bundle} of extras and passed to
+     * {@link ContentResolver#query}.</p>
+     *
+     * @see android.Manifest.permission#READ_MEDIA_VISUAL_USER_SELECTED
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_recent_selection")
+    public static final String QUERY_ARG_LATEST_SELECTION_ONLY =
+            "android:query-arg-latest-selection-only";
+
+    /**
      * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
      * of every accessible media file.
      */

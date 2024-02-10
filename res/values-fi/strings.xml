@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Järjestelmänvalvojasi estämä"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Työdataan pääsy ei ole sallittu henkilökohtaisen sovelluksen kautta"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Henkilökohtaiseen dataan pääsy ei ole sallittu työsovelluksen kautta"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Dataan (<xliff:g id="PROFILE1">%1$s</xliff:g>) pääsy ei ole sallittu tämän sovelluksen kautta: <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Vaihda tähän: <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Työsovellukset on keskeytetty"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Sovellukset on keskeytetty: <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Jos haluat avata työkuvasi, laita työsovellukset päälle ja yritä uudelleen"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Jos haluat avata kuvia (<xliff:g id="PROFILE1">%1$s</xliff:g>), laita sovellukset (<xliff:g id="PROFILE2">%2$s</xliff:g>) päälle ja yritä uudelleen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Sovelluksella on pääsy vain valitsemiisi kuviin"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Valitse kuvat ja videot, joihin sovellus saa pääsyn"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> kohde}other{<xliff:g id="COUNT_1">^1</xliff:g> kohdetta}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Yritä myöhemmin uudelleen. Kuvat ovat saatavilla, kun ongelma on korjattu."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Joitain kuvia ei voi ladata"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Pääsy median omistajan paketin nimeen"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Sallii sovellukselle pääsyn omistajan paketin nimiin kaikissa saatavilla olevissa mediatiedostoissa."</string>
 </resources>

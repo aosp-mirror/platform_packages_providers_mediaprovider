@@ -95,6 +95,7 @@ public class StableUriIdleMaintenanceServiceTest {
             Set<String> internalFilePaths = new HashSet<>();
             Map<String, Long> pathToIdMap = new HashMap<>();
             MediaStore.waitForIdle(resolver);
+            MediaStore.scanVolume(resolver, MediaStore.VOLUME_INTERNAL);
             try (Cursor c = resolver.query(
                     MediaStore.Files.getContentUri(MediaStore.VOLUME_INTERNAL),
                     new String[]{MediaStore.Files.FileColumns.DATA,
@@ -134,7 +135,7 @@ public class StableUriIdleMaintenanceServiceTest {
         Set<String> newFilePaths = new HashSet<>();
         Map<String, Long> pathToIdMap = new HashMap<>();
         MediaStore.waitForIdle(resolver);
-
+        MediaStore.scanVolume(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
         try {
             MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, true);
             MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, true);

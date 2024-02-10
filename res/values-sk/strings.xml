@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokované vaším správcom"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Prístup k pracovným údajom z osobnej aplikácie nie je povolený"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Prístup k osobným údajom z pracovnej aplikácie nie je povolený"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Prístup k údajom profilu <xliff:g id="PROFILE1">%1$s</xliff:g> v aplikácii profilu <xliff:g id="PROFILE2">%2$s</xliff:g> nie je povolený"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Prepnúť na <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Pracovné aplikácie sú pozastavené"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplikácie profilu <xliff:g id="PROFILE">%s</xliff:g> sú pozastavené"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ak chcete otvoriť pracovné fotky, zapnite pracovné aplikácie a skúste to znova"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Ak chcete otvoriť fotky profilu <xliff:g id="PROFILE1">%1$s</xliff:g>, vypnite aplikácie profilu <xliff:g id="PROFILE2">%2$s</xliff:g> a skúste to znova"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Táto aplikácia má prístup iba k fotkám, ktoré vyberiete"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Vyberte fotky a videá, ku ktorým má mať táto aplikácia prístup"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> položka}few{<xliff:g id="COUNT_1">^1</xliff:g> položky}many{<xliff:g id="COUNT_1">^1</xliff:g> items}other{<xliff:g id="COUNT_1">^1</xliff:g> položiek}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Skúste to neskôr. Po vyriešení problému budú vaše fotky k dispozícii."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Niektoré fotky sa nedajú načítať"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Dobre"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Prístup k názvu balíka médií vlastníka"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Umožní aplikácii prístup k názvom balíkov všetkých dostupných súborov médií vlastníka."</string>
 </resources>

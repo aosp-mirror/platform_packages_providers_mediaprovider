@@ -22,6 +22,7 @@ import static android.provider.MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP;
 import static android.provider.MediaStore.grantMediaReadForPackage;
 
 import static com.android.providers.media.photopicker.PhotoPickerSettingsActivity.EXTRA_CURRENT_USER_ID;
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerResponseIntent;
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
@@ -41,6 +42,7 @@ import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
@@ -57,6 +59,7 @@ import android.view.ViewOutlineProvider;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
@@ -81,6 +84,7 @@ import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.TabContainerFragment;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -180,6 +184,16 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                mDefaultBackgroundColor = PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                        AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+                );
+                mToolBarIconColor = PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                );
+            }
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Finish activity due to an exception while parsing extras", e);
             finishWithoutLoggingCancelledResult();
@@ -441,6 +455,23 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mBottomSheetBehavior.addBottomSheetCallback(createBottomSheetCallBack());
         setRoundedCornersForBottomSheet();
+        if (PickerViewModel.isCustomPickerColorSet()) {
+            setCustomPickerColorsInBottomSheet(
+                    PickerViewModel.getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_DARK),
+                    PickerViewModel.getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK)
+            );
+        }
+    }
+
+    private void setCustomPickerColorsInBottomSheet(int backgroundColor, int dragBarColor) {
+        mBottomSheetView.setBackgroundColor(backgroundColor);
+        ImageView dragBarImageView = findViewById(R.id.drag_bar);
+        GradientDrawable dragBarDrawable = (GradientDrawable) dragBarImageView.getDrawable();
+        dragBarDrawable.setColor(dragBarColor);
     }
 
     private BottomSheetCallback createBottomSheetCallBack() {
@@ -651,9 +682,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
         setResult(RESULT_OK, resultData);
     }
 
+    /**
+     * Inspects the current selection list to see if any items in the selection have an authority
+     * that does not match the {@link MediaStore.AUTHORITY}
+     *
+     * <p>If all items have the MediaStore authority, it is presumed that the selection only
+     * contains local items.
+     *
+     * @return Whether the selection includes only local items
+     */
+    private boolean isSelectionOnlyLocalItems() {
+
+        for (Item item : mSelection.getSelectedItems()) {
+            if (!item.getContentUri().getAuthority().equals(LOCAL_PICKER_PROVIDER_AUTHORITY)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private boolean shouldPreloadSelectedItems() {
         // Only preload if the cloud media may be shown in the PhotoPicker.
-        if (!isCloudMediaAvailable()) {
+        if (isSelectionOnlyLocalItems()) {
             return false;
         }
 
@@ -828,6 +878,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Drawable icon;
         if (shouldShowTabLayout) {
             icon = getDrawable(R.drawable.ic_close);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                icon.setTint(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                ));
+            }
         } else {
             icon = getDrawable(R.drawable.ic_arrow_back);
             // Preview mode has dark background, hence icons will be WHITE in color
@@ -945,6 +1001,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mPrivacyText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimension(R.dimen.picker_privacy_text_size));
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                mPrivacyText.setTextColor(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                        AccentColorResources.ON_SURFACE_VARIANT_DARK
+                ));
+            }
         }
 
         mPrivacyText.setVisibility(View.VISIBLE);

@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Geblokkeerd door je beheerder"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Het is niet toegestaan om werkgegevens te openen via een persoonlijke app"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Het is niet toegestaan om persoonsgegevens te openen via een werk-app"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Je kunt geen toegang krijgen tot gegevens voor je <xliff:g id="PROFILE1">%1$s</xliff:g>-profiel vanuit een app voor je <xliff:g id="PROFILE2">%2$s</xliff:g>-profiel"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Overschakelen naar <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Werk-apps zijn onderbroken"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Apps in je <xliff:g id="PROFILE">%s</xliff:g>-profiel zijn onderbroken"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Als je werkfoto\'s wilt openen, zet je je werk-apps aan en probeer je het opnieuw"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Als je foto\'s uit je <xliff:g id="PROFILE1">%1$s</xliff:g>-profiel wilt openen, zet je de apps voor je <xliff:g id="PROFILE2">%2$s</xliff:g>-profiel aan en probeer je het opnieuw"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Deze app heeft alleen toegang tot de foto\'s die je selecteert"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Selecteer foto\'s en video\'s waartoe je deze app toegang geeft"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> items}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Probeer het later opnieuw. Je foto\'s komen beschikbaar nadat het probleem is opgelost."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Kan bepaalde foto\'s niet laden"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Toegang tot pakketnaam van media-eigenaar"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Hiermee krijgt de app toegang tot de pakketnamen van de eigenaren van alle toegankelijke mediabestanden."</string>
 </resources>

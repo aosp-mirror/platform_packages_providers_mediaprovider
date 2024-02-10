@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"നിങ്ങളുടെ അഡ്‌മിൻ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"വ്യക്തിപര ആപ്പിലൂടെ ഔദ്യോഗിക ഡാറ്റ ആക്‌സസ് ചെയ്യുന്നത് അനുവദനീയമല്ല"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ഔദ്യോഗിക ആപ്പിലൂടെ വ്യക്തിപരമായ ഡാറ്റ ആക്‌സസ് ചെയ്യുന്നത് അനുവദനീയമല്ല"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> ആപ്പിൽ നിന്ന് <xliff:g id="PROFILE1">%1$s</xliff:g> ഡാറ്റ ആക്‌സസ് ചെയ്യുന്നത് അനുവദനീയമല്ല"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> എന്നതിലേക്ക് മാറുക"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ഔദ്യോഗിക ആപ്പുകൾ തൽക്കാലികമായി നിർത്തിയിരിക്കുന്നു"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> ആപ്പുകൾ താൽക്കാലികമായി നിർത്തി"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ഔദ്യോഗിക ഫോട്ടോകൾ തുറക്കാൻ, നിങ്ങളുടെ ഔദ്യോഗിക ആപ്പുകൾ ഓണാക്കി വീണ്ടും ശ്രമിക്കുക"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> ഫോട്ടോകൾ തുറക്കാൻ, നിങ്ങളുടെ <xliff:g id="PROFILE2">%2$s</xliff:g> ആപ്പുകൾ ഓണാക്കിയ ശേഷം വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"നിങ്ങൾ തിരഞ്ഞെടുത്ത ഫോട്ടോകൾ മാത്രമേ ഈ ആപ്പിന് ആക്‌സസ് ചെയ്യാനാകൂ"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"നിങ്ങൾ ഈ ആപ്പിന് ആക്‌സസ് ചെയ്യാൻ അനുമതി നൽകുന്ന ഫോട്ടോകളും വീഡിയോകളും തിരഞ്ഞെടുക്കുക"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> ഇനം}other{<xliff:g id="COUNT_1">^1</xliff:g> ഇനങ്ങൾ}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"പിന്നീട് വീണ്ടും ശ്രമിക്കുക. പ്രശ്‌നം പരിഹരിച്ച് കഴിഞ്ഞ് നിങ്ങളുടെ ഫോട്ടോകൾ ലഭ്യമാകും."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ചില ഫോട്ടോകൾ ലോഡ് ചെയ്യാനാകുന്നില്ല"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"മനസ്സിലായി"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"മീഡിയാ ഉടമയുടെ പാക്കേജ് പേര് ആക്സസ് ചെയ്യുക"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"ആക്‌സസ് ചെയ്യാവുന്ന എല്ലാ മീഡിയാ ഫയലുകളുടെയും ഉടമയുടെ പാക്കേജ് പേരുകൾ ആക്‌സസ് ചെയ്യാൻ ആപ്പിനെ അനുവദിക്കുന്നു."</string>
 </resources>

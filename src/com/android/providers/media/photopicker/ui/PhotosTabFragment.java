@@ -51,6 +51,7 @@ import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.glide.PickerPreloadModelProvider;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
@@ -273,6 +274,15 @@ public class PhotosTabFragment extends TabFragment {
         if (mIsCloudMediaInPhotoPickerEnabled) {
             mLoadingTextView = view.findViewById(R.id.loading_text_view);
             mProgressBar = view.findViewById(R.id.progress_bar);
+            if (PickerViewModel.isCustomPickerColorSet()) {
+                setProgressBarColors(mLoadingTextView, mProgressBar,
+                        PickerViewModel.getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                                AccentColorResources.ON_SURFACE_VARIANT_DARK),
+                        PickerViewModel.getThemeBasedColor(
+                                AccentColorResources.SURFACE_TINT_LIGHT,
+                                AccentColorResources.SURFACE_TINT_DARK));
+            }
             mRecyclerViewTopPadding = getResources().getDimensionPixelSize(
                     R.dimen.picker_recycler_view_top_padding);
             if (mCategory == Category.DEFAULT) {
@@ -286,6 +296,13 @@ public class PhotosTabFragment extends TabFragment {
             }
         }
     }
+
+    private void setProgressBarColors(
+            TextView textView, ProgressBar progressBar, int textColor, int progressBarColor) {
+        textView.setTextColor(textColor);
+        progressBar.getIndeterminateDrawable().setTint(progressBarColor);
+    }
+
     private void setOnScrollListenerForRecyclerView() {
         mRecyclerView.addOnScrollListener(
                 new RecyclerView.OnScrollListener() {

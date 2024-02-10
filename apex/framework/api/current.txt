@@ -178,6 +178,7 @@ package android.provider {
     field @FlaggedApi("com.android.providers.media.flags.picker_default_tab") public static final int PICK_IMAGES_TAB_ALBUMS = 0; // 0x0
     field @FlaggedApi("com.android.providers.media.flags.picker_default_tab") public static final int PICK_IMAGES_TAB_IMAGES = 1; // 0x1
     field public static final String QUERY_ARG_INCLUDE_RECENTLY_UNMOUNTED_VOLUMES = "android:query-arg-recently-unmounted-volumes";
+    field @FlaggedApi("com.android.providers.media.flags.picker_recent_selection") public static final String QUERY_ARG_LATEST_SELECTION_ONLY = "android:query-arg-latest-selection-only";
     field public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
     field public static final String QUERY_ARG_MATCH_PENDING = "android:query-arg-match-pending";
     field public static final String QUERY_ARG_MATCH_TRASHED = "android:query-arg-match-trashed";

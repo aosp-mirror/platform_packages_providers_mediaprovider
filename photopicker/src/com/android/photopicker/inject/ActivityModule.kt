@@ -18,16 +18,21 @@ package com.android.photopicker.core
 
 import android.app.Activity
 import android.content.Context
+import android.os.Process
+import android.os.UserHandle
 import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.network.NetworkMonitor
+import com.android.photopicker.core.user.UserMonitor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityComponent
 import dagger.hilt.android.qualifiers.ActivityContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -46,7 +51,9 @@ import kotlinx.coroutines.CoroutineScope
 class ActivityModule {
 
     // Avoid initialization until it's actually needed.
+    private lateinit var featureManager: FeatureManager
     private lateinit var networkMonitor: NetworkMonitor
+    private lateinit var userMonitor: UserMonitor
 
     @Provides
     @ActivityOwned
@@ -60,6 +67,37 @@ class ActivityModule {
     fun activityScope(activity: Activity): CoroutineScope {
         check(activity is LifecycleOwner) { "activity must implement LifecycleOwner" }
         return activity.lifecycleScope
+    }
+
+    @Provides
+    @ActivityOwned
+    fun userHandle(): UserHandle {
+        return Process.myUserHandle()
+    }
+
+    @Provides
+    @ActivityOwned
+    fun provideFeatureManager(
+        activity: Activity,
+        @ActivityOwned scope: CoroutineScope
+    ): FeatureManager {
+
+        if (::featureManager.isInitialized) {
+            return featureManager
+        } else {
+            Log.d(
+                FeatureManager.TAG,
+                "FeatureManager requested but not yet initialized. Initializing FeatureManager."
+            )
+            featureManager =
+                // Do not pass a set of FeatureRegistrations here to use the standard set of
+                // enabled features.
+                FeatureManager(
+                    PhotopickerConfiguration(action = activity.getIntent()?.getAction() ?: ""),
+                    scope
+                )
+            return featureManager
+        }
     }
 
     /**
@@ -81,6 +119,27 @@ class ActivityModule {
             )
             networkMonitor = NetworkMonitor(context, scope)
             return networkMonitor
+        }
+    }
+
+    @Provides
+    @ActivityOwned
+    fun provideUserMonitor(
+        activity: Activity,
+        @ActivityContext context: Context,
+        @ActivityOwned scope: CoroutineScope,
+        @Background dispatcher: CoroutineDispatcher,
+        @ActivityOwned handle: UserHandle,
+    ): UserMonitor {
+        if (::userMonitor.isInitialized) {
+            return userMonitor
+        } else {
+            Log.d(
+                UserMonitor.TAG,
+                "UserMonitor requested but not yet initialized. Initializing UserMonitor."
+            )
+            userMonitor = UserMonitor(context, scope, dispatcher, activity.getIntent(), handle)
+            return userMonitor
         }
     }
 }

@@ -138,6 +138,29 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <CheckBox
+            android:id="@+id/cbx_set_accent_color"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SET ACCENT COLOR"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/edittext_accent_color"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:enabled="false"
+            android:hint="Color hex code(for ex: #000000)"
+            android:textSize="16sp" />
+    </LinearLayout>
+
 
     <Button
         android:id="@+id/launch_button"

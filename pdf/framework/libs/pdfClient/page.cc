@@ -262,58 +262,58 @@ int Page::GetLinksUtf8(vector<Rectangle_i>* rects, vector<int>* link_to_rect,
            GetInferredLinksUtf8(rects, link_to_rect, urls);
 }
 
-// GotoLinkList Page::GetGotoLinks() const {
-//     GotoLinkList links;
-//
-//     FPDF_LINK link = nullptr;
-//     int pos = 0;
-//     while (FPDFLink_Enumerate(page_.get(), &pos, &link)) {
-//         if (!IsGotoLink(link)) {
-//             continue;
-//         }
-//         auto* goto_link = links.add_goto_links();
-//         auto* coordinates = new Coordinates();
-//         auto* dest = new Dest();
-//         goto_link->set_allocated_coordinates(coordinates);
-//         goto_link->set_allocated_dest(dest);
-//         // Get the bounds of the actual link
-//         Rectangle_i rect = GetRect(link);
-//         coordinates->set_left(rect.left);
-//         coordinates->set_top(rect.top);
-//         coordinates->set_right(rect.right);
-//         coordinates->set_bottom(rect.bottom);
-//         // Get and parse the destination
-//         FPDF_DEST fpdf_dest = FPDFLink_GetDest(document_, link);
-//         dest->set_page_number(FPDFDest_GetDestPageIndex(document_, fpdf_dest));
-//
-//         FPDF_BOOL has_x_coord;
-//         FPDF_BOOL has_y_coord;
-//         FPDF_BOOL has_zoom;
-//         FS_FLOAT x;
-//         FS_FLOAT y;
-//         FS_FLOAT zoom;
-//         FPDF_BOOL success = FPDFDest_GetLocationInPage(fpdf_dest, &has_x_coord, &has_y_coord,
-//                                                        &has_zoom, &x, &y, &zoom);
-//
-//         if (!success) {
-//             continue;
-//         }
-//         if (has_x_coord) {
-//             auto point = DoublePoint(x, 0);
-//             auto tPoint = ApplyPageTransform(point);
-//             dest->set_x(tPoint.x);
-//         }
-//         if (has_y_coord) {
-//             auto point = DoublePoint(0, y);
-//             auto tPoint = ApplyPageTransform(point);
-//             dest->set_y(tPoint.y);
-//         }
-//         if (has_zoom) {
-//             dest->set_zoom(zoom);
-//         }
-//     }
-//     return links;
-// }
+vector<GotoLink> Page::GetGotoLinks() const {
+    vector<GotoLink> links;
+
+    FPDF_LINK link = nullptr;
+    int pos = 0;
+    while (FPDFLink_Enumerate(page_.get(), &pos, &link)) {
+        if (!IsGotoLink(link)) {
+            continue;
+        }
+        // Get the bounds of the actual link
+        vector<Rectangle_i> goto_link_rects;
+        Rectangle_i rect = GetRect(link);
+        goto_link_rects.push_back(rect);
+
+        GotoLinkDest* goto_link_dest = new GotoLinkDest();
+
+        // Get and parse the destination
+        FPDF_DEST fpdf_dest = FPDFLink_GetDest(document_, link);
+        goto_link_dest->set_page_number(FPDFDest_GetDestPageIndex(document_, fpdf_dest));
+
+        FPDF_BOOL has_x_coord;
+        FPDF_BOOL has_y_coord;
+        FPDF_BOOL has_zoom;
+        FS_FLOAT x;
+        FS_FLOAT y;
+        FS_FLOAT zoom;
+        FPDF_BOOL success = FPDFDest_GetLocationInPage(fpdf_dest, &has_x_coord, &has_y_coord,
+                                                       &has_zoom, &x, &y, &zoom);
+
+        if (!success) {
+            continue;
+        }
+        if (has_x_coord) {
+            auto point = DoublePoint(x, 0);
+            auto tPoint = ApplyPageTransform(point);
+            goto_link_dest->set_x(tPoint.x);
+        }
+        if (has_y_coord) {
+            auto point = DoublePoint(0, y);
+            auto tPoint = ApplyPageTransform(point);
+            goto_link_dest->set_y(tPoint.y);
+        }
+        if (has_zoom) {
+            goto_link_dest->set_zoom(zoom);
+        }
+
+        GotoLink goto_link = GotoLink{goto_link_rects, *goto_link_dest};
+
+        links.push_back(goto_link);
+    }
+    return links;
+}
 
 void Page::InitializeFormFilling() {
     form_filler_->NotifyAfterPageLoad(page_.get());

@@ -21,6 +21,7 @@
 #include <jni.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include <memory>
 #include <mutex>
@@ -28,25 +29,21 @@
 #include <unordered_set>
 
 #include "document.h"
+#include "fcntl.h"
 #include "file.h"
 #include "form_widget_info.h"
+#include "jni_conversion.h"
 #include "logging.h"
 #include "page.h"
-// #include "proto/goto_links.proto.h" @Todo b/307870155
-#include "fcntl.h"
-#include "jni_conversion.h"
 #include "rect.h"
 // #include "util/java/scoped_local_ref.h"
 #include <unistd.h>
 
 #define LOG_TAG "pdf_document_jni"
 
-// using util::java::ScopedLocalRef;
-
 using pdfClient::Document;
 using pdfClient::FileReader;
-// using pdfClient::GotoLink;
-// using pdfClient::GotoLinkList;
+using pdfClient::GotoLink;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -74,23 +71,6 @@ constexpr int kMPersp0 = 6;  // input x perspective factor
 constexpr int kMPersp1 = 7;  // input y perspective factor
 constexpr int kMPersp2 = 8;  // perspective bias
 }  // namespace
-
-// Serializes the proto message into jbyteArray. Originally from
-// google3/gws/framework/java/proto_util.cc?rcl=234527948&l=69-94.
-// ScopedLocalRef<jbyteArray> CppProtoToBytes(JNIEnv* env, const proto2::MessageLite& proto) {
-//    const int byte_size = proto.ByteSizeLong();
-//    ScopedLocalRef<jbyteArray> array(env->NewByteArray(byte_size), env);
-//    if (!array) {
-//        return ScopedLocalRef<jbyteArray>(nullptr, env);
-//    }
-//    void* ptr = env->GetPrimitiveArrayCritical(array.get(), nullptr);
-//    if (!ptr) {
-//        return ScopedLocalRef<jbyteArray>(nullptr, env);
-//    }
-//    proto.SerializeWithCachedSizesToArray(reinterpret_cast<uint8*>(ptr));
-//    env->ReleasePrimitiveArrayCritical(array.get(), ptr, 0);
-//    return array;
-//} @Todo b/307870155
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -302,17 +282,15 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageLink
     return convert::ToJavaLinkRects(env, rects, link_to_rect, urls);
 }
 
-// TODO(b/307870155): Resolve GoToLinks proto issue and clean up
-// Java_android_graphics_pdf_PdfDocumentProxy_getPageGotoLinksByteArray(
-//         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
-//     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-//     std::shared_ptr<Page> page = doc->GetPage(pageNum);
-//
-//     GotoLinkList links = page->GetGotoLinks();
-//
-//     ScopedLocalRef<jbyteArray> output_bytes = CppProtoToBytes(env, links);
-//     return output_bytes.release();
-// } @Todo b/307870155
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageGotoLinks(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum) {
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum);
+
+    vector<GotoLink> links = page->GetGotoLinks();
+
+    return convert::ToJavaGotoLinks(env, links);
+}
 
 JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_retainPage(JNIEnv* env,
                                                                              jobject jPdfDocument,

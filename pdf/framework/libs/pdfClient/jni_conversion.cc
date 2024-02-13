@@ -39,6 +39,9 @@ static const char* kSelection = "android/graphics/pdf/models/jni/PageSelection";
 static const char* kBoundary = "android/graphics/pdf/models/jni/SelectionBoundary";
 static const char* kFormWidgetInfo = "android/graphics/pdf/models/FormWidgetInfo";
 static const char* kChoiceOption = "android/graphics/pdf/models/ChoiceOption";
+static const char* kGotoLinkDestination =
+        "android/graphics/pdf/content/PdfPageGotoLinkContent$Destination";
+static const char* kGotoLink = "android/graphics/pdf/content/PdfPageGotoLinkContent";
 
 static const char* kRect = "android/graphics/Rect";
 static const char* kInteger = "java/lang/Integer";
@@ -48,6 +51,7 @@ static const char* kArrayList = "java/util/ArrayList";
 static const char* kList = "java/util/List";
 static const char* kSet = "java/util/Set";
 static const char* kIterator = "java/util/Iterator";
+static const char* kFloat = "java/lang/Float";
 
 // Helper methods to build up type signatures like "Ljava/lang/Object;" and
 // function signatures like "(I)Ljava/lang/Integer;":
@@ -317,6 +321,29 @@ jobject ToJavaFormWidgetInfo(JNIEnv* env, const FormWidgetInfo& form_action_resu
 
 jobject ToJavaFormWidgetInfos(JNIEnv* env, const std::vector<FormWidgetInfo>& widget_infos) {
     return ToJavaList(env, widget_infos, &ToJavaFormWidgetInfo);
+}
+
+jobject ToJavaDestination(JNIEnv* env, const GotoLinkDest dest) {
+    static jclass goto_link_dest_class = GetPermClassRef(env, kGotoLinkDestination);
+    static jmethodID init = env->GetMethodID(goto_link_dest_class, "<init>",
+                                             funcsig("V", "I", "F", "F", "F").c_str());
+
+    return env->NewObject(goto_link_dest_class, init, dest.page_number, dest.x, dest.y, dest.zoom);
+}
+
+jobject ToJavaGotoLink(JNIEnv* env, const GotoLink& link) {
+    static jclass goto_link_class = GetPermClassRef(env, kGotoLink);
+    static jmethodID init = env->GetMethodID(goto_link_class, "<init>",
+                                             funcsig("V", kList, kGotoLinkDestination).c_str());
+
+    jobject java_rects = ToJavaList(env, link.rect, &ToJavaRect);
+    jobject goto_link_dest = ToJavaDestination(env, link.dest);
+
+    return env->NewObject(goto_link_class, init, java_rects, goto_link_dest);
+}
+
+jobject ToJavaGotoLinks(JNIEnv* env, const vector<GotoLink>& links) {
+    return ToJavaList(env, links, &ToJavaGotoLink);
 }
 
 }  // namespace convert

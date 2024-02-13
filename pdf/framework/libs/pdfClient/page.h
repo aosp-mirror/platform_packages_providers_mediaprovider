@@ -49,6 +49,26 @@ struct SelectionBoundary {
     SelectionBoundary(int i, int x, int y, bool r) : index(i), is_rtl(r) { point = IntPoint(x, y); }
 };
 
+struct GotoLinkDest {
+    int page_number = 0;
+    float x = 0;
+    float y = 0;
+    float zoom = 1;
+
+    void set_page_number(int page_number) { this->page_number = page_number; }
+
+    void set_x(float x) { this->x = x; }
+
+    void set_y(float y) { this->y = y; }
+
+    void set_zoom(float zoom) { this->zoom = zoom; }
+};
+
+struct GotoLink {
+    std::vector<Rectangle_i> rect;
+    GotoLinkDest dest;
+};
+
 // Wrapper on a FPDF_PAGE that adds rendering functionality.
 class Page {
   public:
@@ -136,8 +156,8 @@ class Page {
     int GetLinksUtf8(std::vector<Rectangle_i>* rects, std::vector<int>* link_to_rect,
                      std::vector<std::string>* urls) const;
 
-    // Returns the GotoLinkList for all GotoLinks on the page.
-    // GotoLinkList GetGotoLinks() const; @Todo b/307870155
+    // Returns the list of GotoLink for all GotoLinks on the page.
+    std::vector<GotoLink> GetGotoLinks() const;
 
     // Perform any operations required to prepare this page for form filling.
     void InitializeFormFilling();

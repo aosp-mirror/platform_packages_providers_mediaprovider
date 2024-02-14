@@ -103,8 +103,6 @@ import java.util.regex.Matcher;
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @VisibleForTesting
-    static final String TEST_RECOMPUTE_DB = "test_recompute";
-    @VisibleForTesting
     static final String TEST_UPGRADE_DB = "test_upgrade";
     @VisibleForTesting
     static final String TEST_DOWNGRADE_DB = "test_downgrade";
@@ -2012,14 +2010,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    static final int VERSION_J = 509;
-    static final int VERSION_K = 700;
-    static final int VERSION_L = 700;
-    static final int VERSION_M = 800;
-    static final int VERSION_N = 800;
-    static final int VERSION_O = 800;
-    static final int VERSION_P = 900;
-    static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
     static final int VERSION_T = 1308;
@@ -2400,8 +2390,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Matches test dbs as external
         switch (mName) {
             case EXTERNAL_DATABASE_NAME:
-                return true;
-            case TEST_RECOMPUTE_DB:
                 return true;
             case TEST_UPGRADE_DB:
                 return true;

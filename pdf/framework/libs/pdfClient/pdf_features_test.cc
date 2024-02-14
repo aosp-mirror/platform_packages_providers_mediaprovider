@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "features.h"
+#include "pdf_features.h"
 
 #include <android-base/file.h>
 #include <gtest/gtest.h>

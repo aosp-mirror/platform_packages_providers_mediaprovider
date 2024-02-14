@@ -67,7 +67,7 @@ class Page {
     Rectangle_i Dimensions() const;
 
     // Returns the bit-wise or of all of the features found on this page -
-    // see features.h for the different features and their values.
+    // see pdf_features.h for the different features and their values.
     int32_t GetFeatures() const;
 
     // Render a page into the Extractor - each pixel is in ARGB_8888 format, and

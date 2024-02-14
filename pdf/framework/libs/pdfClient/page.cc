@@ -27,7 +27,6 @@
 
 #include "cpp/fpdf_scopers.h"
 #include "extractors.h"
-#include "features.h"
 #include "form_filler.h"
 #include "form_widget_info.h"
 #include "fpdf_annot.h"
@@ -35,6 +34,7 @@
 #include "fpdf_text.h"
 #include "fpdfview.h"
 #include "normalize.h"
+#include "pdf_features.h"
 #include "rect.h"
 #include "utf.h"
 #include "utils/annot_hider.h"

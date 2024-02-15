@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.ui;
 import android.content.Context;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.viewpager2.widget.CompositePageTransformer;
 import androidx.viewpager2.widget.MarginPageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
@@ -42,12 +43,15 @@ class ViewPager2Wrapper {
     private final PreviewAdapter mAdapter;
     private final List<ViewPager2.OnPageChangeCallback> mOnPageChangeCallbacks = new ArrayList<>();
 
-    ViewPager2Wrapper(ViewPager2 viewPager, List<Item> selectedItems, MuteStatus muteStatus) {
+    ViewPager2Wrapper(ViewPager2 viewPager, List<Item> selectedItems, MuteStatus muteStatus,
+            @NonNull PreviewAdapter.OnCreateSurfaceController onCreateSurfaceController,
+            @NonNull PreviewAdapter.OnVideoPreviewClickListener onVideoPreviewClickListener) {
         mViewPager = viewPager;
 
         final Context context = mViewPager.getContext();
 
-        mAdapter = new PreviewAdapter(context, muteStatus);
+        mAdapter = new PreviewAdapter(context, muteStatus, onCreateSurfaceController,
+                onVideoPreviewClickListener);
         mAdapter.updateItemList(selectedItems);
         mViewPager.setAdapter(mAdapter);
 
@@ -56,6 +60,10 @@ class ViewPager2Wrapper {
                 context.getResources().getDimensionPixelSize(R.dimen.preview_viewpager_margin)));
         compositePageTransformer.addTransformer(new PlayerPageTransformer());
         mViewPager.setPageTransformer(compositePageTransformer);
+    }
+
+    void updateList(List<Item> selectedItems) {
+        mAdapter.updateItemList(selectedItems);
     }
 
     /**

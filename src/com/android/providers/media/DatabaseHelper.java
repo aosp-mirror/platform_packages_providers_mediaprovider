@@ -103,8 +103,6 @@ import java.util.regex.Matcher;
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @VisibleForTesting
-    static final String TEST_RECOMPUTE_DB = "test_recompute";
-    @VisibleForTesting
     static final String TEST_UPGRADE_DB = "test_upgrade";
     @VisibleForTesting
     static final String TEST_DOWNGRADE_DB = "test_downgrade";
@@ -112,28 +110,52 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     public static final String TEST_CLEAN_DB = "test_clean";
 
     /**
+     * Prefix of key name of xattr used to set next row id for internal DB.
+     */
+    static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX = "user.intdbnextrowid";
+
+    /**
      * Key name of xattr used to set next row id for internal DB.
      */
-    private static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.intdbnextrowid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY =
+            INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set next row id for external DB.
+     */
+    static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX = "user.extdbnextrowid";
 
     /**
      * Key name of xattr used to set next row id for external DB.
      */
-    private static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY = "user.extdbnextrowid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY =
+            EXTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set session id for internal DB.
+     */
+    static final String INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX = "user.intdbsessionid";
 
     /**
      * Key name of xattr used to set session id for internal DB.
      */
-    private static final String INTERNAL_DB_SESSION_ID_XATTR_KEY = "user.intdbsessionid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String INTERNAL_DB_SESSION_ID_XATTR_KEY =
+            INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
+
+    /**
+     * Prefix of key name of xattr used to set session id for external DB.
+     */
+    static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX = "user.extdbsessionid";
 
     /**
      * Key name of xattr used to set session id for external DB.
      */
-    private static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY = "user.extdbsessionid".concat(
-            String.valueOf(UserHandle.myUserId()));
+    static final String EXTERNAL_DB_SESSION_ID_XATTR_KEY =
+            EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX.concat(
+                    String.valueOf(UserHandle.myUserId()));
 
     /** Indicates a billion value used when next row id is not present in respective xattr. */
     private static final Long NEXT_ROW_ID_DEFAULT_BILLION_VALUE = Double.valueOf(
@@ -148,7 +170,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
      * For devices with adoptable storage support, opting for adoptable storage will not delete
      * /data/media/0 directory.
      */
-    private static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
+    static final String DATA_MEDIA_XATTR_DIRECTORY_PATH = "/data/media/0";
 
     static final String INTERNAL_DATABASE_NAME = "internal.db";
     static final String EXTERNAL_DATABASE_NAME = "external.db";
@@ -314,8 +336,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Recreate all views to apply this filter
         final SQLiteDatabase db = super.getWritableDatabase();
         mSchemaLock.writeLock().lock();
+        db.beginTransaction();
         try {
-            db.beginTransaction();
             createLatestViews(db);
             db.setTransactionSuccessful();
         } finally {
@@ -562,13 +584,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     getExternalStorageDbXattrPath(), getSessionIdXattrKeyForDatabase());
             if (!lastUsedSessionIdFromExternalStoragePathXattr.isPresent()) {
                 // First time scenario will have no session id at /data/media/0.
-                // Trigger database backup to external storage because
-                // StableUrisIdleMaintenanceService will be attempted to run only once in 7days.
-                // Any rollback before that will not recover DB rows.
-                if (isInternal()) {
-                    BackgroundThread.getExecutor().execute(
-                            () -> mDatabaseBackupAndRecovery.backupInternalDatabase(this, null));
-                }
                 // Set next row id in External Storage to handle rollback in future.
                 backupNextRowId(NEXT_ROW_ID_DEFAULT_BILLION_VALUE);
                 updateSessionIdInDatabaseAndExternalStorage(db);
@@ -586,16 +601,28 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
+
+            MediaProviderStatsLog.write(
+                    MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED, isInternal()
+                            ?
+                            MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__INTERNAL
+                            :
+                                    MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__EXTERNAL);
             Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
             // Delete old data and create new schema.
             recreateLatestSchema(db);
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
-            mDatabaseBackupAndRecovery.recoverData(db, volumeName);
-            updateNextRowIdInDatabaseAndExternalStorage(db);
-            mIsRecovering.set(false);
-            updateSessionIdInDatabaseAndExternalStorage(db);
+            try {
+                mDatabaseBackupAndRecovery.recoverData(db, volumeName);
+            } catch (Exception exception) {
+                Log.e(TAG, "Error in recovering data", exception);
+            } finally {
+                updateNextRowIdInDatabaseAndExternalStorage(db);
+                mIsRecovering.set(false);
+                updateSessionIdInDatabaseAndExternalStorage(db);
+            }
         }
     }
 
@@ -644,10 +671,23 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     "%s database inconsistent: isLastUsedDatabaseSession:%b, "
                             + "nextRowIdOptionalPresent:%b", mName, isLastUsedDatabaseSession,
                     nextRowIdFromXattrOptional.isPresent()));
+
+            // This could be a rollback, clear all media grants
+            clearMediaGrantsTable(db);
+
             // TODO(b/222313219): Add an assert to ensure that next row id xattr is always
             // present when DB session id matches across sequential open calls.
             updateNextRowIdInDatabaseAndExternalStorage(db);
             updateSessionIdInDatabaseAndExternalStorage(db);
+        }
+    }
+
+    private void clearMediaGrantsTable(SQLiteDatabase db) {
+        mSchemaLock.writeLock().lock();
+        try {
+            updateAddMediaGrantsTable(db);
+        } finally {
+            mSchemaLock.writeLock().unlock();
         }
     }
 
@@ -700,7 +740,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Temporarily drop indexes to improve migration performance
                 makePristineIndexes(db);
                 migrateFromLegacy(db);
-                createLatestIndexes(db);
+                createAllLatestIndexes(db);
             } finally {
                 mSchemaLock.writeLock().unlock();
                 // Clear flag, since we should only attempt once
@@ -1115,7 +1155,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         createLatestViews(db);
         createLatestTriggers(db);
-        createLatestIndexes(db);
+        createAllLatestIndexes(db);
 
         // Since this code is used by both the legacy and modern providers, we
         // only want to migrate when we're running as the modern provider
@@ -1126,6 +1166,37 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 Log.e(TAG, "Failed to create a migration file: ." + mVolumeName, e);
             }
         }
+    }
+
+    private void createAllLatestIndexes(SQLiteDatabase db) {
+        createLatestIndexes(db);
+        if (isExternal()) {
+            createMediaGrantsIndex(db);
+        }
+    }
+
+    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL("DROP INDEX IF EXISTS media_grants.generation_granted");
+        db.execSQL("DROP TABLE IF EXISTS media_grants");
+        db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "package_user_id INTEGER,"
+                            + "generation_granted INTEGER DEFAULT 0,"
+                            + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                            + "  ON CONFLICT IGNORE "
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
+        createMediaGrantsIndex(db);
+    }
+
+    private static void createMediaGrantsIndex(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE INDEX generation_granted_index ON media_grants"
+                        + "(generation_granted)");
     }
 
     /**
@@ -1872,19 +1943,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
     }
 
-    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
-        db.execSQL("DROP TABLE IF EXISTS media_grants");
-        db.execSQL(
-                "CREATE TABLE media_grants ("
-                        + "owner_package_name TEXT,"
-                        + "file_id INTEGER,"
-                        + "package_user_id INTEGER,"
-                        + "UNIQUE(owner_package_name, file_id, package_user_id)"
-                        + "  ON CONFLICT IGNORE "
-                        + "FOREIGN KEY (file_id)"
-                        + "  REFERENCES files(_id)"
-                        + "  ON DELETE CASCADE"
-                        + ")");
+    /**
+     * Alters existing database media_grants table to have an additional column to store
+     * generation_granted.
+     */
+    private static void updateAddGenerationGranted(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE media_grants ADD COLUMN " + MediaGrants.GENERATION_GRANTED
+                + " INTEGER DEFAULT 0");
+        createMediaGrantsIndex(db);
     }
 
     private void updateUserId(SQLiteDatabase db) {
@@ -1944,20 +2010,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    static final int VERSION_J = 509;
-    static final int VERSION_K = 700;
-    static final int VERSION_L = 700;
-    static final int VERSION_M = 800;
-    static final int VERSION_N = 800;
-    static final int VERSION_O = 800;
-    static final int VERSION_P = 900;
-    static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1407;
+    static final int VERSION_U = 1408;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2168,9 +2226,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Empty version bump to ensure triggers are recreated
             }
 
-            if (fromVersion < 1407) {
+            if (fromVersion < 1408) {
                 if (isExternal()) {
-                    updateAddMediaGrantsTable(db);
+                    if (fromVersion == 1407) {
+                        // media_grants table was added as part of version 1407, hence when
+                        // the fromVersion is 1407 the existing table needs to be altered to
+                        // introduce the new column and index.
+                        updateAddGenerationGranted(db);
+                    } else {
+                        // The media_grants table needs to be created with the latest schema
+                        // and index as it does not exist for fromVersion below 1407.
+                        updateAddMediaGrantsTable(db);
+                    }
                 }
             }
 
@@ -2323,8 +2390,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Matches test dbs as external
         switch (mName) {
             case EXTERNAL_DATABASE_NAME:
-                return true;
-            case TEST_RECOMPUTE_DB:
                 return true;
             case TEST_UPGRADE_DB:
                 return true;

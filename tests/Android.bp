@@ -169,6 +169,7 @@ android_test {
         "android.test.runner",
         "unsupportedappusage",
         "framework-mediaprovider.impl",
+        "keepanno-annotations",
     ],
 
     static_libs: [
@@ -179,7 +180,7 @@ android_test {
         "guava",
         "mockito-target",
         "modules-utils-build",
-        "truth-prebuilt",
+        "truth",
         "com.google.android.material_material",
         "cts-install-lib",
         "androidx.test.espresso.core",
@@ -190,9 +191,12 @@ android_test {
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
         "glide-annotation-and-compiler-prebuilt",
+        "glide-integration-recyclerview-prebuilt",
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "androidx.work_work-runtime",
+        "androidx.work_work-testing",
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
@@ -210,12 +214,13 @@ android_test {
     },
 
     data: [
-        ":MediaProviderTestAppWithStoragePerms",
-        ":MediaProviderTestAppWithMediaPerms",
-        ":MediaProviderTestAppWithoutPerms",
+        ":LegacyMediaProviderTestApp",
         ":MediaProviderTestAppForPermissionActivity",
         ":MediaProviderTestAppForPermissionActivity33",
-        ":LegacyMediaProviderTestApp",
+        ":MediaProviderTestAppWithMediaPerms",
+        ":MediaProviderTestAppWithStoragePerms",
+        ":MediaProviderTestAppWithoutPerms",
+        ":MediaProviderTestAppWithUserSelectedPerms",
     ],
     per_testcase_directory: true,
 
@@ -225,4 +230,11 @@ android_test {
 filegroup {
     name: "mediaprovider-testutils",
     srcs: ["utils/**/*.java"],
+}
+
+filegroup {
+    name: "mediaprovider-library",
+    srcs: [
+        "src/com/android/providers/media/library/RunOnlyOnPostsubmit.java",
+    ],
 }

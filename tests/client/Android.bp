@@ -16,6 +16,7 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":mediaprovider-testutils",
+        ":mediaprovider-library",
     ],
 
     libs: [
@@ -28,7 +29,7 @@ android_test {
         "androidx.test.rules",
         "collector-device-lib-platform",
         "mockito-target",
-        "truth-prebuilt",
+        "truth",
     ],
 
     certificate: "media",

@@ -874,7 +874,7 @@ public class FileUtilsTest {
 
     @Test
     public void testShouldFileBeHidden() throws Exception {
-        File dir = getNewDirInDownload("testDirectory2");
+        File dir = getNewDirInDownload("testVisibleDirectory");
 
         // We don't create the files since shouldFileBeHidden needs to work even if the file has
         // not been created yet.
@@ -1006,6 +1006,10 @@ public class FileUtilsTest {
         // Marking as dirty with a .nomedia file works
         FileUtils.setDirectoryDirty(dirInDownload, true);
         assertTrue(FileUtils.isDirectoryDirty(dirInDownload));
+
+        // Test case-insensitivity
+        File dirInDownloadDifferentCase = new File(mTestDownloadDir, "TeStDirEctoRYdirTy");
+        assertTrue(FileUtils.isDirectoryDirty(dirInDownloadDifferentCase));
     }
 
     @Test

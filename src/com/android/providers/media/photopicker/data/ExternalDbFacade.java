@@ -23,9 +23,12 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
+import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo;
 
+import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.INT_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.QueryFilterBuilder.LONG_DEFAULT;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.addMimeTypesToQueryBuilderAndSelectionArgs;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
@@ -116,6 +119,13 @@ public class ExternalDbFacade {
             MediaColumns.GENERATION_MODIFIED + " > ?";
     private static final String WHERE_RELATIVE_PATH = MediaStore.MediaColumns.RELATIVE_PATH
             + " LIKE ?";
+
+    private static final String WHERE_DATE_TAKEN_MILLIS_BEFORE =
+            String.format("(%s < CAST(? AS INT) OR (%s = CAST(? AS INT) AND %s < CAST(? AS INT)))",
+                    CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS,
+                    CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS,
+                    MediaColumns._ID);
+
 
     /* Include any directory named exactly {@link Environment.DIRECTORY_SCREENSHOTS}
      * and its child directories. */
@@ -275,7 +285,8 @@ public class ExternalDbFacade {
                     /* having */ null, /* orderBy */ null);
          });
 
-        cursor.setExtras(getCursorExtras(generation, /* albumId */ null));
+        cursor.setExtras(getCursorExtras(generation, /* albumId */ null, /*pageSize*/ -1,
+                /*pageToken*/ null));
         return cursor;
     }
 
@@ -283,27 +294,85 @@ public class ExternalDbFacade {
      * Returns all items from the files table where {@link MediaColumns#GENERATION_MODIFIED}
      * is greater than {@code generation}.
      */
-    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes) {
+    public Cursor queryMedia(long generation, String albumId, String[] mimeTypes, int pageSize,
+            String pageToken) {
         final List<String> selectionArgs = new ArrayList<>();
-        final String orderBy = CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC";
+        final String orderBy = getOrderByClause();
+
+        Log.d(TAG, "Token received for queryMedia = " + pageToken);
 
         final Cursor cursor = mDatabaseHelper.runWithTransaction(db -> {
-                SQLiteQueryBuilder qb = createMediaQueryBuilder();
-                qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
-                selectionArgs.add(String.valueOf(generation));
+            SQLiteQueryBuilder qb = createMediaQueryBuilder();
+            qb.appendWhereStandalone(WHERE_GREATER_GENERATION);
+            selectionArgs.add(String.valueOf(generation));
 
-                selectionArgs.addAll(appendWhere(qb, albumId, mimeTypes));
+            if (pageToken != null) {
+                String[] lastMedia = parsePageToken(pageToken);
+                if (lastMedia != null) {
+                    qb.appendWhereStandalone(getDateTakenWhereClause());
+                    addSelectionArgsForWhereClause(lastMedia, selectionArgs);
+                }
+            }
 
-                return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null,
-                        selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
-                        /* having */ null, orderBy);
-            });
+            selectionArgs.addAll(appendWhere(qb, albumId, mimeTypes));
 
-        cursor.setExtras(getCursorExtras(generation, albumId));
+            return qb.query(db, PROJECTION_MEDIA_COLUMNS, /* select */ null,
+                    selectionArgs.toArray(new String[selectionArgs.size()]), /* groupBy */ null,
+                    /* having */ null, orderBy, String.valueOf(pageSize));
+        });
+
+        String nextPageToken = null;
+        if (cursor.getCount() > 0 && pageSize != INT_DEFAULT) {
+            nextPageToken = setPageToken(cursor);
+
+        }
+        cursor.setExtras(getCursorExtras(generation, albumId, pageSize, nextPageToken));
         return cursor;
     }
 
-    private Bundle getCursorExtras(long generation, String albumId) {
+    private static void addSelectionArgsForWhereClause(String[] lastMedia,
+            List<String> selectionArgs) {
+        selectionArgs.add(lastMedia[0]);
+        selectionArgs.add(lastMedia[0]);
+        selectionArgs.add(lastMedia[1]);
+    }
+
+    private static String[] parsePageToken(String pageToken) {
+        String[] lastMedia = pageToken.split("\\|");
+
+        if (lastMedia.length != 2) {
+            Log.w(TAG, "Error parsing token in queryMedia.");
+            return null;
+        }
+        return lastMedia;
+    }
+
+    private static String getDateTakenWhereClause() {
+        return CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " IS NOT NULL AND "
+                + WHERE_DATE_TAKEN_MILLIS_BEFORE;
+    }
+
+    private static String getOrderByClause() {
+        return CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS + " DESC,"
+                + CloudMediaProviderContract.MediaColumns.ID + " DESC";
+    }
+
+
+    private String setPageToken(Cursor mediaList) {
+        String token = null;
+        if (mediaList.moveToLast()) {
+            String timeTakenMillis = getCursorString(mediaList,
+                    CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS);
+            String lastItemRowId = getCursorString(mediaList,
+                    CloudMediaProviderContract.MediaColumns.ID);
+            token = timeTakenMillis + "|" + lastItemRowId;
+            mediaList.moveToFirst();
+        }
+        return token;
+    }
+
+    private Bundle getCursorExtras(long generation, String albumId, int pageSize,
+            String pageToken) {
         final Bundle bundle = new Bundle();
         final ArrayList<String> honoredArgs = new ArrayList<>();
 
@@ -314,7 +383,18 @@ public class ExternalDbFacade {
             honoredArgs.add(EXTRA_ALBUM_ID);
         }
 
+        if (pageSize > INT_DEFAULT) {
+            honoredArgs.add(EXTRA_PAGE_SIZE);
+        }
+
+        if (pageToken != null) {
+            honoredArgs.add(EXTRA_PAGE_TOKEN);
+        }
+
         bundle.putString(EXTRA_MEDIA_COLLECTION_ID, getMediaCollectionId());
+        if (pageToken != null) {
+            bundle.putString(EXTRA_PAGE_TOKEN, pageToken);
+        }
         bundle.putStringArrayList(EXTRA_HONORED_ARGS, honoredArgs);
 
         return bundle;
@@ -472,12 +552,21 @@ public class ExternalDbFacade {
         qb.appendWhereStandalone(WHERE_NOT_TRASHED);
         qb.appendWhereStandalone(WHERE_NOT_PENDING);
 
+        // the file is corrupted if both datetaken and takenmodified are null.
+        // hence exclude those files.
+        qb.appendWhereStandalone(getDateTakenOrDateModifiedNonNull());
+
         String[] volumes = getVolumeList();
         if (volumes.length > 0) {
             qb.appendWhereStandalone(buildWhereVolumeIn(volumes));
         }
 
         return qb;
+    }
+
+    private CharSequence getDateTakenOrDateModifiedNonNull() {
+        return MediaColumns.DATE_TAKEN + " IS NOT NULL OR "
+                + MediaColumns.DATE_MODIFIED + " IS NOT NULL";
     }
 
     private String buildWhereVolumeIn(String[] volumes) {

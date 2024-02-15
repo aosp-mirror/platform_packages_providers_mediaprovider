@@ -53,17 +53,19 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     private static final int VIDEO_PREVIEW_THUMBNAIL_ID = R.id.preview_video_image;
@@ -80,8 +82,16 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
 
         // Select two items and Navigate to preview
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID, IMAGE_1_POSITION);
+
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_MAIN_GRID, IMAGE_2_POSITION);
+
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(mRule,
+                PhotoPickerEvent.PHOTO_PICKER_PREVIEW_ALL_SELECTED, /* selectedItemCount */ 2);
 
         try (ViewPager2IdlingResource idlingResource =
                 ViewPager2IdlingResource.register(mRule.getScenario(), PREVIEW_VIEW_PAGER_ID)) {
@@ -170,12 +180,10 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_navigation() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, VIDEO_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_2_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         // Navigate to preview
@@ -186,9 +194,7 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             // Preview Order
             // 1 - Image
             // 2 - Image
-            // 3 - Video
-            // Navigate from Image -> Image -> Video -> Image -> Image -> Image and verify the
-            // layout matches
+            // Navigate from Image -> Image -> Image -> Image and verify the layout matches
 
             // 1. Image
             assertMultiSelectPreviewCommonLayoutDisplayed();
@@ -198,25 +204,6 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
             assertSpecialFormatBadgeDoesNotExist();
 
             swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 2. Image
-            assertMultiSelectPreviewCommonLayoutDisplayed();
-            onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
-                    .check(matches(isDisplayed()));
-            // Verify no special format icon is previewed
-            assertSpecialFormatBadgeDoesNotExist();
-
-            swipeLeftAndWait(PREVIEW_VIEW_PAGER_ID);
-            // 3. Video item
-            assertMultiSelectPreviewCommonLayoutDisplayed();
-            // TODO(b/197083539): We don't check the video image to be visible or not because its
-            // visibility is time sensitive. Try waiting till player is ready and assert that video
-            // image is no more visible.
-            onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, VIDEO_PREVIEW_THUMBNAIL_ID))
-                    .check(matches(isDisplayed()));
-            // Verify no special format icon is previewed
-            assertSpecialFormatBadgeDoesNotExist();
-
-            swipeRightAndWait(PREVIEW_VIEW_PAGER_ID);
             // 2. Image
             assertMultiSelectPreviewCommonLayoutDisplayed();
             onView(ViewPagerMatcher(PREVIEW_VIEW_PAGER_ID, PREVIEW_IMAGE_VIEW_ID))
@@ -352,6 +339,9 @@ public class PreviewMultiSelectTest extends PhotoPickerBaseTest {
         // Select image item from Camera category
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, 1, ICON_THUMBNAIL_ID);
         assertItemSelected(PICKER_TAB_RECYCLERVIEW_ID, /* position */ 1, ICON_THUMBNAIL_ID);
+
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_SELECTED_ITEM_ALBUM, /* position= */ 1);
 
         // Navigate to preview
         onView(withId(VIEW_SELECTED_BUTTON_ID)).perform(click());

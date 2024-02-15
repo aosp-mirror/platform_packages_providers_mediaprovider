@@ -33,6 +33,7 @@ cc_library_shared {
     shared_libs: [
         "libpdfium",
         "liblog",
+        "libjnigraphics",
     ],
 
     static_libs: [
@@ -53,6 +54,15 @@ cc_library_shared {
 
 cc_test {
     name: "pdfClient_test",
+    compile_multilib: "both",
+    multilib: {
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
+    },
 
     srcs: [
         "*.cc",

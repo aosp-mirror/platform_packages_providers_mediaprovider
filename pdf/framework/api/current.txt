@@ -11,6 +11,24 @@ package android.graphics.pdf {
     method @NonNull public android.graphics.pdf.LoadParams.Builder setPassword(@Nullable String);
   }
 
+  public final class PdfRenderer implements java.lang.AutoCloseable {
+    ctor public PdfRenderer(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
+    method public void close();
+    method public int getPageCount();
+    method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
+    method public boolean shouldScaleForPrinting();
+  }
+
+  public final class PdfRenderer.Page implements java.lang.AutoCloseable {
+    method public void close();
+    method public int getHeight();
+    method public int getIndex();
+    method public int getWidth();
+    method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
+    field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
+    field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
+  }
+
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfRendererPreV implements java.lang.AutoCloseable {
     ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
     ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;

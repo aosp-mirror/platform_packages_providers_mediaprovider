@@ -25,7 +25,10 @@ apex {
     manifest: "apex_manifest.json",
     apps: ["MediaProvider"],
     compat_configs: ["media-provider-platform-compat-config"],
-    jni_libs: ["libpdfclient"],
+    jni_libs: [
+        "libpdfclient",
+        "libpdf",
+    ],
 }
 
 apex_defaults {

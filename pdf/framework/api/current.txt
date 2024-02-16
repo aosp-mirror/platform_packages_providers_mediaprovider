@@ -1,1 +1,129 @@
 // Signature format: 2.0
+package android.graphics.pdf {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class LoadParams {
+    method @Nullable public String getPassword();
+  }
+
+  public static final class LoadParams.Builder {
+    ctor public LoadParams.Builder();
+    method @NonNull public android.graphics.pdf.LoadParams build();
+    method @NonNull public android.graphics.pdf.LoadParams.Builder setPassword(@Nullable String);
+  }
+
+  public final class PdfRenderer implements java.lang.AutoCloseable {
+    ctor public PdfRenderer(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
+    method public void close();
+    method public int getPageCount();
+    method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
+    method public boolean shouldScaleForPrinting();
+  }
+
+  public final class PdfRenderer.Page implements java.lang.AutoCloseable {
+    method public void close();
+    method public int getHeight();
+    method public int getIndex();
+    method public int getWidth();
+    method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
+    field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
+    field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfRendererPreV implements java.lang.AutoCloseable {
+    ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
+    ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
+    method public void close();
+    method public int getDocumentLinearizationType();
+    method public int getPageCount();
+    method @NonNull public android.graphics.pdf.PdfRendererPreV.Page openPage(int);
+    method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
+    field public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
+    field public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
+    field public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0
+  }
+
+  public final class PdfRendererPreV.Page implements java.lang.AutoCloseable {
+    method public void close();
+    method public int getHeight();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
+    method public int getWidth();
+    method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
+    method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
+    method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, boolean);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class RenderParams {
+    method public int getRenderFlags();
+    method public int getRenderMode();
+    field public static final int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 4; // 0x4
+    field public static final int FLAG_RENDER_TEXT_ANNOTATIONS = 2; // 0x2
+  }
+
+  public static final class RenderParams.Builder {
+    ctor public RenderParams.Builder(int);
+    method @NonNull public android.graphics.pdf.RenderParams build();
+    method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int);
+    method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int, int);
+  }
+
+}
+
+package android.graphics.pdf.content {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageImageContent {
+    ctor public PdfPageImageContent(@NonNull String);
+    method @NonNull public String getAltText();
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageLinkContent {
+    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.net.Uri);
+    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    method @NonNull public android.net.Uri getUri();
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageTextContent {
+    ctor public PdfPageTextContent(@NonNull String);
+    method @NonNull public String getText();
+  }
+
+}
+
+package android.graphics.pdf.models {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds {
+    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.Rect>, int);
+    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    method public int getTextStartIndex();
+  }
+
+}
+
+package android.graphics.pdf.models.selection {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageSelection {
+    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.models.selection.TextSelection>);
+    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.models.selection.TextSelection>, boolean);
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getLeft();
+    method public int getPage();
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getRight();
+    method @NonNull public java.util.List<android.graphics.pdf.models.selection.TextSelection> getTextSelections();
+    method public boolean isRtl();
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public class SelectionBoundary {
+    ctor public SelectionBoundary(int);
+    ctor public SelectionBoundary(@NonNull android.graphics.Point);
+    method public int getIndex();
+    method @Nullable public android.graphics.Point getPoint();
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class TextSelection {
+    ctor public TextSelection(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageTextContent);
+    method @NonNull public android.graphics.pdf.content.PdfPageTextContent getSelectedTextContents();
+    method @NonNull public java.util.List<android.graphics.Rect> getSelectionBounds();
+  }
+
+}
+

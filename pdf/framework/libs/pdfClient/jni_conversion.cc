@@ -30,16 +30,16 @@ using std::vector;
 namespace convert {
 
 namespace {
-static const char* kDimensions = "android/graphics/pdf/common/Dimensions";
-static const char* kPdfDocument = "com/android/graphics/pdf/PdfDocument";
-static const char* kLoadPdfResult = "com/android/graphics/pdf/LoadPdfResult";
-static const char* kLinkRects = "android/graphics/pdf/common/LinkRects";
-static const char* kMatchRects = "android/graphics/pdf/common/MatchRects";
-static const char* kSelection = "android/graphics/pdf/common/PageSelection";
-static const char* kBoundary = "android/graphics/pdf/common/SelectionBoundary";
-static const char* kFormWidgetInfo = "android/graphics/pdf/common/FormWidgetInfo";
-static const char* kChoiceOption = "android/graphics/pdf/common/ChoiceOption";
-static const char* kWidgetType = "android/graphics/pdf/common/WidgetType";
+static const char* kDimensions = "android/graphics/pdf/models/Dimensions";
+static const char* kPdfDocument = "android/graphics/pdf/PdfDocumentProxy";
+static const char* kLoadPdfResult = "android/graphics/pdf/models/jni/LoadPdfResult";
+static const char* kLinkRects = "android/graphics/pdf/models/jni/LinkRects";
+static const char* kMatchRects = "android/graphics/pdf/models/jni/MatchRects";
+static const char* kSelection = "android/graphics/pdf/models/jni/PageSelection";
+static const char* kBoundary = "android/graphics/pdf/models/jni/SelectionBoundary";
+static const char* kFormWidgetInfo = "android/graphics/pdf/FormWidgetInfo";
+static const char* kChoiceOption = "android/graphics/pdf/ChoiceOption";
+static const char* kWidgetType = "android/graphics/pdf/WidgetType";
 
 static const char* kRect = "android/graphics/Rect";
 static const char* kInteger = "java/lang/Integer";
@@ -178,17 +178,17 @@ jobject ToJavaLoadPdfResult(JNIEnv* env, const Status status, std::unique_ptr<Do
 
 Document* GetPdfDocPtr(JNIEnv* env, jobject jPdfDocument) {
     static jfieldID pdp_field =
-            env->GetFieldID(GetPermClassRef(env, kPdfDocument), "pdfDocPtr", "J");
+            env->GetFieldID(GetPermClassRef(env, kPdfDocument), "mPdfDocPtr", "J");
     jlong pdf_doc_ptr = env->GetLongField(jPdfDocument, pdp_field);
     return reinterpret_cast<Document*>(pdf_doc_ptr);
 }
 
 SelectionBoundary ToNativeBoundary(JNIEnv* env, jobject jBoundary) {
     static jclass boundary_class = GetPermClassRef(env, kBoundary);
-    static jfieldID index_field = env->GetFieldID(boundary_class, "index", "I");
-    static jfieldID x_field = env->GetFieldID(boundary_class, "x", "I");
-    static jfieldID y_field = env->GetFieldID(boundary_class, "y", "I");
-    static jfieldID rtl_field = env->GetFieldID(boundary_class, "isRtl", "Z");
+    static jfieldID index_field = env->GetFieldID(boundary_class, "mIndex", "I");
+    static jfieldID x_field = env->GetFieldID(boundary_class, "mX", "I");
+    static jfieldID y_field = env->GetFieldID(boundary_class, "mY", "I");
+    static jfieldID rtl_field = env->GetFieldID(boundary_class, "mIsRtl", "Z");
 
     return SelectionBoundary(
             env->GetIntField(jBoundary, index_field), env->GetIntField(jBoundary, x_field),

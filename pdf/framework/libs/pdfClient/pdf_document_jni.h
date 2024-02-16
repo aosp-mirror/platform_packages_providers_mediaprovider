@@ -26,89 +26,88 @@ extern "C" {
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_createFromFd(
-        JNIEnv* env, jclass, jint jfd, jstring jpassword);
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromFd(
+        JNIEnv* env, jobject obj, jint jfd, jstring jpassword);
 
 // NOTE: All of these functions have an extra parameter called jobject
 // jPdfDocument because for non-static methods, Java includes a hidden
 // parameter that refers to this instance of the object.
-JNIEXPORT void JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_destroy(JNIEnv* env, jobject jPdfDocument);
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_destroy(JNIEnv* env,
+                                                                          jobject jPdfDocument);
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_saveToFd(
-        JNIEnv* env, jobject jPdfDocument, jint jfd);
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_saveToFd(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint jfd);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageDimensions(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum);
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getNumAvailablePages(
+        JNIEnv* env, jobject jPdfDocument, jobject jDoubleEndedFile, jint start, jint end);
 
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageFeatures(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum);
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageWidth(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint pageNum);
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_renderPageFd(
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint pageNum);
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderPageFd(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint w, jint h, jboolean hideTextAnnots,
         jboolean retainPage, jint fd);
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_renderTileFd(
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_renderTileFd(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint pageWidth, jint pageHeight, jint left,
         jint top, jint tileWidth, jint tileHeight, jboolean hideTextAnnots, jboolean retainPage,
         jint fd);
 
-JNIEXPORT jboolean JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_cloneWithoutSecurity(JNIEnv* env,
-                                                                            jobject jPdfDocument,
-                                                                            jint destination);
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
+        JNIEnv* env, jobject jPdfDocument, jint destination);
 
-JNIEXPORT jstring JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageText(
+JNIEXPORT jstring JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageAltText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageAltText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_searchPageText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_searchPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jstring query);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_selectPageText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_selectPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject start, jobject stop);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageLinks(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageLinks(
         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 
-JNIEXPORT jbyteArray JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageGotoLinksByteArray(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum);
+// TODO(b/307870155): Resolve GoToLinks proto issue and clean up
+// JNIEXPORT jbyteArray JNICALL
+//                          Java_android_graphics_pdf_PdfDocumentProxy_getPageGotoLinksByteArray(
+//         JNIEnv* env, jobject jPdfDocument, jint pageNum);
 
-JNIEXPORT void JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_releasePage(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum);
-
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_isPdfLinearized(
-        JNIEnv* env, jobject jPdfDocument);
-
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormType(
-        JNIEnv* env, jobject jPdfDocument);
-
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfo__III(JNIEnv* env,
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_releasePage(JNIEnv* env,
                                                                               jobject jPdfDocument,
-                                                                              jint pageNum, jint x,
-                                                                              jint y);
+                                                                              jint pageNum);
 
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfo__II(JNIEnv* env,
-                                                                             jobject jPdfDocument,
-                                                                             jint pageNum,
-                                                                             jint index);
+JNIEXPORT jboolean JNICALL
+Java_android_graphics_pdf_PdfDocumentProxy_isPdfLinearized(JNIEnv* env, jobject jPdfDocument);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfos(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds);
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormType(JNIEnv* env,
+                                                                              jobject jPdfDocument);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_clickOnPage(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfo__III(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint x, jint y);
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfo__II(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index);
+
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfos(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds);
+
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_clickOnPage(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint x, jint y);
+
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex, jstring jText);
 
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldSelectedIndices(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldSelectedIndices(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
         jobject jSelectedIndices);
 

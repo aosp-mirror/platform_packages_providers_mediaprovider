@@ -46,10 +46,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
-import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -77,6 +75,7 @@ import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.NotificationContentObserver;
+import com.android.providers.media.photopicker.PickerAccentColorParameters;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -178,12 +177,10 @@ public class PickerViewModel extends AndroidViewModel {
     private boolean mIsLocalOnly;
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
-    private static boolean sSetCustomPickerColors = false;
-    private static int sPickerAccentColor = -1;
-    private static boolean sIsNightModeEnabled;
-    private static final double BRIGHT_ACCENT_COLOR_VALUE = 120;
-    private static int sAccentColorBrightness;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
+    private Application mApplication;
+    private PickerAccentColorParameters mPickerAccentColorParameters =
+            new PickerAccentColorParameters();
 
     // This boolean remembers that the data has been initialized so that if Picker Activity gets
     // re-created, we don't re-send a data initialization request.
@@ -191,6 +188,7 @@ public class PickerViewModel extends AndroidViewModel {
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
+        mApplication = application;
         mAppContext = application.getApplicationContext();
         mItemsProvider = new ItemsProvider(mAppContext);
         mSelection = new Selection();
@@ -202,9 +200,6 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = false;
 
         initConfigStore();
-
-        setNightModeFlag(application);
-
 
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
             mUserManagerState = UserManagerState.create(mAppContext);
@@ -254,26 +249,6 @@ public class PickerViewModel extends AndroidViewModel {
 
     public void setPickerLaunchTab(int launchTab) {
         mPickerLaunchTab = launchTab;
-    }
-
-    public static boolean isCustomPickerColorSet() {
-        return sSetCustomPickerColors;
-    }
-
-    private void setNightModeFlag(Application application) {
-        int nightModeFlag =
-                application.getApplicationContext().getResources().getConfiguration().uiMode
-                        & Configuration.UI_MODE_NIGHT_MASK;
-        sIsNightModeEnabled = nightModeFlag == Configuration.UI_MODE_NIGHT_YES;
-    }
-
-
-    /**
-     * Get dark color if the night mode is enabled
-     */
-    public static int getThemeBasedColor(String lightThemeVariant, String darkThemeVariant) {
-        return sIsNightModeEnabled
-                ? Color.parseColor(darkThemeVariant) : Color.parseColor(lightThemeVariant);
     }
 
     @VisibleForTesting
@@ -995,10 +970,17 @@ public class PickerViewModel extends AndroidViewModel {
                             "EXTRA_PICK_IMAGES_ACCENT_COLOR cannot be passed "
                                     + "as an extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
                 } else if (intent.getAction().equals(MediaStore.ACTION_PICK_IMAGES)) {
-                    String inputColor = extras.getString(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
-                    if (checkColorValidity(inputColor)) {
-                        sPickerAccentColor = Color.parseColor(inputColor);
-                        sSetCustomPickerColors = true;
+                    try {
+                        long inputColor = extras.getLong(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
+                        if (mPickerAccentColorParameters.checkColorValidity(inputColor)) {
+                            mPickerAccentColorParameters = new PickerAccentColorParameters(
+                                    inputColor, mApplication);
+                        }
+                    } catch (Exception exception) {
+                        throw new IllegalArgumentException("The Accent colour provided in "
+                                + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
+                                + " fails validation. Please refer to the javadocs on what "
+                                + "is acceptable.");
                     }
                 }
             }
@@ -1043,65 +1025,16 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Returns the PickerAccentColorParameters object to access accent color parameters
+     */
+    public PickerAccentColorParameters getPickerAccentColorParameters() {
+        return mPickerAccentColorParameters;
+    }
 
     private boolean checkPickerLaunchOptionValidity(int launchOption) {
         return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
                 || launchOption == MediaStore.PICK_IMAGES_TAB_ALBUMS;
-    }
-
-    /**
-     * Colors with brightness value less than BRIGHT_ACCENT_COLOR_VALUE are considered to be
-     * dull and do not provide a good user experience.
-     */
-    public static boolean isAccentColorBright() {
-        return sAccentColorBrightness >= BRIGHT_ACCENT_COLOR_VALUE;
-    }
-
-    private void resetAccentColorParameters() {
-        sPickerAccentColor = -1;
-        sSetCustomPickerColors = false;
-    }
-
-    public static int getPickerAccentColor() {
-        return sPickerAccentColor;
-    }
-
-    /**
-     * Makes sure the input accent color string is valid.
-     */
-    boolean checkColorValidity(String colorValue) throws IllegalArgumentException {
-
-        try {
-            int color = Color.parseColor(colorValue);
-            if (!isColorFeasibleForBothBackgrounds(color)) {
-                // Fall back to the android theme
-                Log.w(TAG, "Value set for " + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
-                        + " is not within the permitted brightness range. Please refer to the "
-                        + "docs for more details. Setting android theme on the picker.");
-                resetAccentColorParameters();
-                return false;
-            }
-            return true;
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("The Accent colour provided in "
-                    + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
-                    + " fails validation. Please refer to javadocs on what is acceptable.");
-        }
-    }
-
-    /*
-     Checks if the input color is suitable to work on both white background for light mode and
-     black background for dark mode
-     */
-    private boolean isColorFeasibleForBothBackgrounds(int color) {
-
-        // Returns the luminance(can also be thought of brightness)
-        // Returned value ranges from 0(black) to 1(white)
-        float luminance = Color.luminance(color);
-
-        // Colors within this range will work both on light and dark background. Range set by
-        // testing with different colors.
-        return luminance >= 0.05 && luminance < 0.9;
     }
 
     private void initBannerManager() {

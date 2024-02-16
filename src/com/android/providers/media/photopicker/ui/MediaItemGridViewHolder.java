@@ -60,6 +60,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
 
     private final View.OnHoverListener mOnMediaItemHoverListener;
     private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener;
+    private final PickerViewModel mPickerViewModel;
 
     MediaItemGridViewHolder(
             @NonNull LifecycleOwner lifecycleOwner,
@@ -67,6 +68,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
             @NonNull ImageLoader imageLoader,
             @NonNull PhotosTabAdapter.OnMediaItemClickListener onMediaItemClickListener,
             View.OnHoverListener onMediaItemHoverListener,
+            PickerViewModel pickerViewModel,
             boolean canSelectMultiple,
             boolean isOrderedSelection) {
         super(itemView);
@@ -82,6 +84,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         mCanSelectMultiple = canSelectMultiple;
         mShowOrderedSelectionLabel = isOrderedSelection;
         mOnMediaItemHoverListener = onMediaItemHoverListener;
+        mPickerViewModel = pickerViewModel;
         mSelectedOrderText = itemView.findViewById(R.id.selected_order);
         mCheckIcon = itemView.findViewById(R.id.icon_check);
         mCheckIcon.setVisibility(
@@ -89,9 +92,10 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         mSelectedOrderText.setVisibility(
                 (mCanSelectMultiple && mShowOrderedSelectionLabel) ? VISIBLE : GONE);
 
-        if (PickerViewModel.isCustomPickerColorSet()) {
-            setCustomSelectedMediaIconColors(PickerViewModel.getPickerAccentColor(),
-                    PickerViewModel.getThemeBasedColor(
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            setCustomSelectedMediaIconColors(
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor(),
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                             AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                             AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
                     ));
@@ -183,8 +187,10 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
                 (VectorDrawable) drawableOrderedSelection.getStateDrawable(1);
         orderedSelectionSelectedItem.setTint(uncheckedIconColor);
         mSelectedOrderText.setBackground(drawableOrderedSelection);
-        mSelectedOrderText.setTextColor(Color.parseColor(PickerViewModel.isAccentColorBright()
-                ? AccentColorResources.DARK_TEXT_COLOR : AccentColorResources.LIGHT_TEXT_COLOR));
+        mSelectedOrderText.setTextColor(Color.parseColor(
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR));
     }
 
     @NonNull

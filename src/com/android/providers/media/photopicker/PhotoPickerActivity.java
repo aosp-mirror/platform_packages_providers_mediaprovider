@@ -142,6 +142,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private AccessibilityManager mAccessibilityManager;
     private boolean mIsAccessibilityEnabled;
+    private boolean mIsCustomPickerColorSet = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -184,18 +185,22 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
+            mIsCustomPickerColorSet =
+                    mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet();
 
             // This needs to happen after we have parsed values from Intent.
             mPickerViewModel.maybeInitPhotoPickerData();
 
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                mDefaultBackgroundColor = PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
-                        AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+            if (mIsCustomPickerColorSet) {
+                mDefaultBackgroundColor =
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
                 );
-                mToolBarIconColor = PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
-                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                mToolBarIconColor =
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                                AccentColorResources.ON_SURFACE_COLOR_DARK
                 );
             }
         } catch (IllegalArgumentException e) {
@@ -459,12 +464,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mBottomSheetBehavior.addBottomSheetCallback(createBottomSheetCallBack());
         setRoundedCornersForBottomSheet();
-        if (PickerViewModel.isCustomPickerColorSet()) {
+        if (mIsCustomPickerColorSet) {
             setCustomPickerColorsInBottomSheet(
-                    PickerViewModel.getThemeBasedColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                             AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                             AccentColorResources.SURFACE_CONTAINER_COLOR_DARK),
-                    PickerViewModel.getThemeBasedColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                             AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
                             AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK)
             );
@@ -882,8 +887,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Drawable icon;
         if (shouldShowTabLayout) {
             icon = getDrawable(R.drawable.ic_close);
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                icon.setTint(PickerViewModel.getThemeBasedColor(
+            if (mIsCustomPickerColorSet) {
+                icon.setTint(mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                         AccentColorResources.ON_SURFACE_COLOR_LIGHT,
                         AccentColorResources.ON_SURFACE_COLOR_DARK
                 ));
@@ -1005,11 +1010,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mPrivacyText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimension(R.dimen.picker_privacy_text_size));
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                mPrivacyText.setTextColor(PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
-                        AccentColorResources.ON_SURFACE_VARIANT_DARK
-                ));
+            if (mIsCustomPickerColorSet) {
+                mPrivacyText.setTextColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                                AccentColorResources.ON_SURFACE_VARIANT_DARK
+                        ));
             }
         }
 

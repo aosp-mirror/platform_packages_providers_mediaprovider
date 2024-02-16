@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package {
     // See: http://go/android-license-faq
     default_applicable_licenses: ["Android-Apache-2.0"],
@@ -9,7 +25,10 @@ apex {
     manifest: "apex_manifest.json",
     apps: ["MediaProvider"],
     compat_configs: ["media-provider-platform-compat-config"],
-    jni_libs: ["libpdfclient"],
+    jni_libs: [
+        "libpdfclient",
+        "libpdf",
+    ],
 }
 
 apex_defaults {
@@ -17,7 +36,7 @@ apex_defaults {
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
     sh_binaries: [
         // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
-        "media_provider"
+        "media_provider",
     ],
     prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
@@ -57,7 +76,6 @@ bootclasspath_fragment {
         "framework-pdf",
     ],
     apex_available: ["com.android.mediaprovider"],
-
     // The bootclasspath_fragments that provide APIs on which this depends.
     fragments: [
         {
@@ -65,13 +83,11 @@ bootclasspath_fragment {
             module: "art-bootclasspath-fragment",
         },
     ],
-
     // Additional stubs libraries that this fragment's contents use which are
     // not provided by another bootclasspath_fragment.
     additional_stubs: [
         "android-non-updatable",
     ],
-
     // Additional hidden API flag files to override the defaults. This must only be
     // modified by the Soong or platform compat team.
     hidden_api: {
@@ -87,6 +103,36 @@ bootclasspath_fragment {
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
             "android.provider",
+            "android.graphics.pdf.common",
+            "android.graphics.pdf.concurrency",
+            "android.graphics.pdf.converters",
+            "android.graphics.pdf.internal.javax.annotation",
+            "android.graphics.pdf.internal.javax.annotation.concurrent",
+            "android.graphics.pdf.internal.javax.annotation.meta",
+            "android.graphics.pdf.internal.publicsuffix",
+            "android.graphics.pdf.internal.publicsuffix.annotations",
+            "android.graphics.pdf.internal.publicsuffix.base",
+            "android.graphics.pdf.internal.publicsuffix.base.internal",
+            "android.graphics.pdf.internal.publicsuffix.cache",
+            "android.graphics.pdf.internal.publicsuffix.collect",
+            "android.graphics.pdf.internal.publicsuffix.escape",
+            "android.graphics.pdf.internal.publicsuffix.eventbus",
+            "android.graphics.pdf.internal.publicsuffix.graph",
+            "android.graphics.pdf.internal.publicsuffix.hash",
+            "android.graphics.pdf.internal.publicsuffix.html",
+            "android.graphics.pdf.internal.publicsuffix.io",
+            "android.graphics.pdf.internal.publicsuffix.math",
+            "android.graphics.pdf.internal.publicsuffix.net",
+            "android.graphics.pdf.internal.publicsuffix.primitives",
+            "android.graphics.pdf.internal.publicsuffix.reflect",
+            "android.graphics.pdf.internal.publicsuffix.util.concurrent",
+            "android.graphics.pdf.internal.publicsuffix.util.concurrent.internal",
+            "android.graphics.pdf.internal.publicsuffix.xml",
+            "android.graphics.pdf.models",
+            "android.graphics.pdf.utils",
+            "android.graphics.pdf.content",
+            "android.graphics.pdf.models.jni",
+            "android.graphics.pdf.models.selection",
         ],
     },
 }

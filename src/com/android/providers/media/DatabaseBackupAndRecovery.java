@@ -259,7 +259,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
                     new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
 
@@ -299,7 +299,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         if (!mIsBackupSetupComplete.get()) {
-            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL,
+            setupVolumeDbBackupAndRecovery(MediaStore.VOLUME_EXTERNAL_PRIMARY,
                     new File(EXTERNAL_PRIMARY_ROOT_PATH));
         }
 

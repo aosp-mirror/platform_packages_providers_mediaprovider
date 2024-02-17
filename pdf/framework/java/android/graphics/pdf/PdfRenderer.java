@@ -16,6 +16,10 @@
 
 package android.graphics.pdf;
 
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEARIZED;
+import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
+
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -24,36 +28,44 @@ import android.compat.annotation.UnsupportedAppUsage;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Matrix;
-import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
+import android.graphics.pdf.content.PdfPageImageContent;
+import android.graphics.pdf.content.PdfPageLinkContent;
+import android.graphics.pdf.content.PdfPageTextContent;
+import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.models.FormEditRecord;
+import android.graphics.pdf.models.FormWidgetInfo;
+import android.graphics.pdf.models.PageMatchBounds;
+import android.graphics.pdf.models.selection.PageSelection;
+import android.graphics.pdf.models.selection.SelectionBoundary;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
-import android.system.ErrnoException;
-import android.system.Os;
-import android.system.OsConstants;
 import android.util.CloseGuard;
 import android.util.Log;
 
-import com.android.internal.util.Preconditions;
+import androidx.annotation.RestrictTo;
+
+import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
  * This class enables rendering a PDF document. This class is not thread safe.
- * </p>
  * <p>
  * If you want to render a PDF, you create a renderer and for every page you want
  * to render, you open the page, render it, and close the page. After you are done
  * with rendering, you close the renderer. After the renderer is closed it should not
  * be used anymore. Note that the pages are rendered one by one, i.e. you can have
  * only a single page opened at any given time.
- * </p>
  * <p>
  * A typical use of the APIs to render a PDF looks like this:
- * </p>
  * <pre>
  * // create a new renderer
  * PdfRenderer renderer = new PdfRenderer(getSeekableFileDescriptor());
@@ -82,7 +94,6 @@ import java.lang.annotation.RetentionPolicy;
  * preview, it is recommended that you respect the following contract in order
  * to provide a consistent user experience when seeing a preview and printing,
  * i.e. the user sees a preview that is the same as the printout.
- * </p>
  * <ul>
  * <li>
  * Respect the property whether the document would like to be scaled for printing
@@ -106,6 +117,30 @@ import java.lang.annotation.RetentionPolicy;
  */
 @SuppressLint("UnflaggedApi")
 public final class PdfRenderer implements AutoCloseable {
+    /** Represents that the linearization of the PDF document cannot be determined. */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+    public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0;
+
+    /** Represents a non-linearized PDF document. */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+    public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1;
+
+    /** Represents a linearized PDF document. */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+    public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2;
+
+    /** Represents a PDF without form fields */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_NONE = 0;
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
 
     /**
      * Any call the native pdfium code has to be single threaded as the library does not support
@@ -113,90 +148,113 @@ public final class PdfRenderer implements AutoCloseable {
      */
     static final Object sPdfiumLock = new Object();
 
-    static {
-        System.loadLibrary("pdf");
-    }
-
     private static final String TAG = PdfRenderer.class.getSimpleName();
     private final CloseGuard mCloseGuard = new CloseGuard();
-
-    private final Point mTempPoint = new Point();
     private final int mPageCount;
-    private long mNativeDocument;
     private ParcelFileDescriptor mInput;
 
+    private PdfProcessor mPdfProcessor;
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
     private Page mCurrentPage;
 
     /**
      * Creates a new instance.
-     * <p>
-     * <strong>Note:</strong> The provided file descriptor must be <strong>seekable</strong>,
+     *
+     * <p><strong>Note:</strong> The provided file descriptor must be <strong>seekable</strong>,
      * i.e. its data being randomly accessed, e.g. pointing to a file.
-     * </p>
      * <p>
      * <strong>Note:</strong> This class takes ownership of the passed in file descriptor
      * and is responsible for closing it when the renderer is closed.
-     * </p>
      * <p>
      * If the file is from an untrusted source it is recommended to run the renderer in a separate,
      * isolated process with minimal permissions to limit the impact of security exploits.
-     * </p>
+     * <strong>Note:</strong> The constructor should be instantiated on the
+     * {@link android.annotation.WorkerThread} as it can be long-running while loading the
+     * document.
      *
-     * @param input Seekable file descriptor to read from.
+     * @param fileDescriptor Seekable file descriptor to read from.
      * @throws java.io.IOException         If an error occurs while reading the file.
      * @throws java.lang.SecurityException If the file requires a password or
      *                                     the security scheme is not supported.
+     * @throws IllegalArgumentException    If the {@link ParcelFileDescriptor} is not seekable.
+     * @throws NullPointerException        If the file descriptor is null.
      */
     @SuppressLint("UnflaggedApi")
-    public PdfRenderer(@NonNull ParcelFileDescriptor input) throws IOException {
-        if (input == null) {
-            throw new NullPointerException("input cannot be null");
-        }
-
-        final long size;
-        try {
-            Os.lseek(input.getFileDescriptor(), 0, OsConstants.SEEK_SET);
-            size = Os.fstat(input.getFileDescriptor()).st_size;
-        } catch (ErrnoException ee) {
-            throw new IllegalArgumentException("file descriptor not seekable");
-        }
-        mInput = input;
+    public PdfRenderer(@NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
+        Preconditions.checkNotNull(fileDescriptor, "File descriptor cannot be null!");
+        mInput = fileDescriptor;
 
         synchronized (sPdfiumLock) {
-            mNativeDocument = nativeCreate(mInput.getFd(), size);
             try {
-                mPageCount = nativeGetPageCount(mNativeDocument);
+                mPdfProcessor = new PdfProcessor();
+                mPdfProcessor.create(mInput, null);
+                mPageCount = mPdfProcessor.getNumPages();
             } catch (Throwable t) {
-                nativeClose(mNativeDocument);
-                mNativeDocument = 0;
+                doClose();
                 throw t;
             }
+
         }
 
         mCloseGuard.open("close");
     }
 
-    private static native long nativeCreate(int fd, long size);
+    /**
+     * Creates a new instance of PdfRenderer class.
+     * <p>
+     * <strong>Note:</strong> The provided file descriptor must be <strong>seekable</strong>,
+     * i.e. its data being randomly accessed, e.g. pointing to a file. If the password passed in
+     * {@link android.graphics.pdf.LoadParams} is incorrect, the
+     * {@link android.graphics.pdf.PdfRenderer} will throw a {@link SecurityException}.
+     * <p>
+     * <strong>Note:</strong> This class takes ownership of the passed in file descriptor
+     * and is responsible for closing it when the renderer is closed.
+     * <p>
+     * If the file is from an untrusted source it is recommended to run the renderer in a separate,
+     * isolated process with minimal permissions to limit the impact of security exploits.
+     * <strong>Note:</strong> The constructor should be instantiated on the
+     * {@link android.annotation.WorkerThread} as it can be long-running while loading the document.
+     *
+     * @param fileDescriptor Seekable file descriptor to read from.
+     * @param params         Instance of {@link LoadParams} specifying params for loading PDF
+     *                       document.
+     * @throws java.io.IOException         If an error occurs while reading the file.
+     * @throws java.lang.SecurityException If the file requires a password or
+     *                                     the security scheme is not supported by the renderer.
+     * @throws IllegalArgumentException    If the {@link ParcelFileDescriptor} is not seekable.
+     * @throws NullPointerException        If the file descriptor or load params is null.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+    public PdfRenderer(@NonNull ParcelFileDescriptor fileDescriptor,
+            @NonNull LoadParams params)
+            throws
+            IOException {
+        Preconditions.checkNotNull(fileDescriptor, "input cannot be null");
+        Preconditions.checkNotNull(params, "Load params cannot be null");
+        mInput = fileDescriptor;
 
-    private static native void nativeClose(long documentPtr);
+        synchronized (sPdfiumLock) {
+            try {
+                mPdfProcessor = new PdfProcessor();
+                mPdfProcessor.create(mInput, params);
+                mPageCount = mPdfProcessor.getNumPages();
+            } catch (Throwable t) {
+                doClose();
+                throw t;
+            }
 
-    private static native int nativeGetPageCount(long documentPtr);
+        }
 
-    private static native boolean nativeScaleForPrinting(long documentPtr);
-
-    private static native void nativeRenderPage(long documentPtr, long pagePtr, Bitmap bitmap,
-            int clipLeft, int clipTop, int clipRight, int clipBottom, float[] transform,
-            int renderMode);
-
-    private static native long nativeOpenPageAndGetSize(long documentPtr, int pageIndex,
-            Point outSize);
-
-    private static native void nativeClosePage(long pagePtr);
+        mCloseGuard.open("close");
+    }
 
     /**
      * Closes this renderer. You should not use this instance
      * after this method is called.
+     *
+     * @throws IllegalStateException If {@link #close()} is called before invoking this or if any
+     *                               page is opened and not closed
+     * @see Page#close()
      */
     @SuppressLint("UnflaggedApi")
     public void close() {
@@ -209,6 +267,7 @@ public final class PdfRenderer implements AutoCloseable {
      * Gets the number of pages in the document.
      *
      * @return The page count.
+     * @throws IllegalStateException If {@link #close()} is called before invoking this.
      */
     @SuppressLint("UnflaggedApi")
     public int getPageCount() {
@@ -223,22 +282,48 @@ public final class PdfRenderer implements AutoCloseable {
      * size.
      *
      * @return If to scale the document.
+     * @throws IllegalStateException If {@link #close()} is called before invoking this.
      */
     @SuppressLint("UnflaggedApi")
     public boolean shouldScaleForPrinting() {
         throwIfClosed();
 
         synchronized (sPdfiumLock) {
-            return nativeScaleForPrinting(mNativeDocument);
+            return mPdfProcessor.scaleForPrinting();
+        }
+    }
+
+    /**
+     * Gets the type of the PDF document.
+     *
+     * @return The PDF document type.
+     * @throws IllegalStateException If {@link #close()} is called before invoking this.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+    @PdfDocumentLinearizationType
+    public int getDocumentLinearizationType() {
+        throwIfClosed();
+        synchronized (sPdfiumLock) {
+            int documentType = mPdfProcessor.getDocumentLinearizationType();
+            if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
+                return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
+            } else if (documentType == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
+                return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
+            } else {
+                return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
+            }
         }
     }
 
     /**
      * Opens a page for rendering.
      *
-     * @param index The page index.
+     * @param index The page index to open, starting from index 0.
      * @return A page that can be rendered.
-     * @see android.graphics.pdf.PdfRenderer.Page#close() PdfRenderer.Page.close()
+     * @throws IllegalStateException    If {@link #close()} is called before invoking this.
+     * @throws IllegalArgumentException If the page number is less than 0 or greater than or equal
+     *                                  to the total page count.
+     * @see Page#close()
      */
     @SuppressLint("UnflaggedApi")
     @NonNull
@@ -250,6 +335,56 @@ public final class PdfRenderer implements AutoCloseable {
         return mCurrentPage;
     }
 
+    /**
+     * Returns the form type of the loaded PDF
+     *
+     * @throws IllegalStateException if the renderer is closed
+     * @throws IllegalArgumentException if an unexpected PDF form type is returned
+     */
+    @PdfFormType
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public int getPdfFormType() {
+        throwIfClosed();
+        synchronized (sPdfiumLock) {
+            int pdfFormType = mPdfProcessor.getPdfFormType();
+            if (pdfFormType == PDF_FORM_TYPE_ACRO_FORM) {
+                return PDF_FORM_TYPE_ACRO_FORM;
+            } else if (pdfFormType == PDF_FORM_TYPE_XFA_FULL) {
+                return PDF_FORM_TYPE_XFA_FULL;
+            } else if (pdfFormType == PDF_FORM_TYPE_XFA_FOREGROUND) {
+                return PDF_FORM_TYPE_XFA_FOREGROUND;
+            } else {
+                return PDF_FORM_TYPE_NONE;
+            }
+        }
+    }
+
+    /**
+     * Saves the current state of the loaded PDF document to the given writable
+     * {@link ParcelFileDescriptor}. If the document is password-protected then setting
+     * {@code removePasswordProtection} removes the protection before saving. The PDF document
+     * should already be decrypted with the correct password before writing. Useful for printing or
+     * sharing.
+     * <strong>Note:</strong> This method closes the provided file descriptor.
+     *
+     * @param destination              The writable {@link ParcelFileDescriptor}
+     * @param removePasswordProtection If true, removes password protection from the PDF before
+     *                                 saving.
+     * @throws IOException           If there's a write error, or if 'removePasswordSecurity' is
+     *                               {@code true} but the document remains encrypted.
+     * @throws IllegalStateException If {@link #close()} is called before invoking this.
+     */
+    @SuppressLint("UnflaggedApi")
+    public void write(@NonNull ParcelFileDescriptor destination, boolean removePasswordProtection)
+            throws IOException {
+        throwIfClosed();
+        synchronized (sPdfiumLock) {
+            mPdfProcessor.write(destination, removePasswordProtection);
+        }
+    }
+
+    // SuppressLint: Finalize needs to be overridden to make sure all resources are closed
+    // gracefully
     @Override
     @SuppressLint("GenericException")
     protected void finalize() throws Throwable {
@@ -271,17 +406,15 @@ public final class PdfRenderer implements AutoCloseable {
             mCurrentPage = null;
         }
 
-        if (mNativeDocument != 0) {
-            synchronized (sPdfiumLock) {
-                nativeClose(mNativeDocument);
-            }
-            mNativeDocument = 0;
+        synchronized (sPdfiumLock) {
+            mPdfProcessor.ensurePdfDestroyed();
         }
 
         if (mInput != null) {
             closeQuietly(mInput);
             mInput = null;
         }
+        mPdfProcessor = null;
         mCloseGuard.close();
     }
 
@@ -296,7 +429,7 @@ public final class PdfRenderer implements AutoCloseable {
     }
 
     private void throwIfClosed() {
-        if (mInput == null) {
+        if (mPdfProcessor == null) {
             throw new IllegalStateException("Already closed");
         }
     }
@@ -315,11 +448,30 @@ public final class PdfRenderer implements AutoCloseable {
 
     /** @hide */
     @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
+
+    /** @hide */
+    @IntDef({
             Page.RENDER_MODE_FOR_DISPLAY,
             Page.RENDER_MODE_FOR_PRINT
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface RenderMode {
+    }
+
+    /** @hide */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_UNKNOWN,
+            DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED,
+            DOCUMENT_LINEARIZED_TYPE_LINEARIZED})
+    public @interface PdfDocumentLinearizationType {
     }
 
     /**
@@ -343,16 +495,15 @@ public final class PdfRenderer implements AutoCloseable {
         private final int mWidth;
         private final int mHeight;
 
-        private long mNativePage;
 
         private Page(int index) {
-            Point size = mTempPoint;
-            synchronized (sPdfiumLock) {
-                mNativePage = nativeOpenPageAndGetSize(mNativeDocument, index, size);
-            }
             mIndex = index;
-            mWidth = size.x;
-            mHeight = size.y;
+            synchronized (sPdfiumLock) {
+                mPdfProcessor.retainPage(mIndex);
+                mWidth = mPdfProcessor.getPageWidth(mIndex);
+                mHeight = mPdfProcessor.getPageHeight(mIndex);
+            }
+
             mCloseGuard.open("close");
         }
 
@@ -367,9 +518,12 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         /**
-         * Gets the page width in points (1/72").
+         * Returns the width of the {@link PdfRenderer.Page} object in points (1/72"). It is
+         * not guaranteed that all pages will have the same width and the viewport should be resized
+         * to the page width.
          *
-         * @return The width in points.
+         * @return width of the page
+         * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @SuppressLint("UnflaggedApi")
         public int getWidth() {
@@ -377,9 +531,12 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         /**
-         * Gets the page height in points (1/72").
+         * Returns the height of the {@link PdfRenderer.Page} object in points (1/72"). It is
+         * not guaranteed that all pages will have the same height and the viewport should be
+         * resized to the page height.
          *
-         * @return The height in points.
+         * @return height of the page
+         * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @SuppressLint("UnflaggedApi")
         public int getHeight() {
@@ -392,29 +549,24 @@ public final class PdfRenderer implements AutoCloseable {
          * You may optionally specify a rectangular clip in the bitmap bounds. No rendering
          * outside the clip will be performed, hence it is your responsibility to initialize
          * the bitmap outside the clip.
-         * </p>
          * <p>
          * You may optionally specify a matrix to transform the content from page coordinates
          * which are in points (1/72") to bitmap coordinates which are in pixels. If this
          * matrix is not provided this method will apply a transformation that will fit the
          * whole page to the destination clip if provided or the destination bitmap if no
          * clip is provided.
-         * </p>
          * <p>
          * The clip and transformation are useful for implementing tile rendering where the
          * destination bitmap contains a portion of the image, for example when zooming.
          * Another useful application is for printing where the size of the bitmap holding
          * the page is too large and a client can render the page in stripes.
-         * </p>
          * <p>
          * <strong>Note: </strong> The destination bitmap format must be
          * {@link Config#ARGB_8888 ARGB}.
-         * </p>
          * <p>
          * <strong>Note: </strong> The optional transformation matrix must be affine as per
          * {@link android.graphics.Matrix#isAffine() Matrix.isAffine()}. Hence, you can specify
          * rotation, scaling, translation but not a perspective transformation.
-         * </p>
          *
          * @param destination Destination bitmap to which to render.
          * @param destClip    Optional clip in the bitmap bounds.
@@ -426,56 +578,289 @@ public final class PdfRenderer implements AutoCloseable {
         @SuppressLint("UnflaggedApi")
         public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
                 @Nullable Matrix transform, @RenderMode int renderMode) {
-            if (mNativePage == 0) {
-                throw new NullPointerException();
-            }
-
-            destination = Preconditions.checkNotNull(destination, "bitmap null");
-
-            if (destination.getConfig() != Config.ARGB_8888) {
-                throw new IllegalArgumentException("Unsupported pixel format");
-            }
-
-            if (destClip != null) {
-                if (destClip.left < 0 || destClip.top < 0
-                        || destClip.right > destination.getWidth()
-                        || destClip.bottom > destination.getHeight()) {
-                    throw new IllegalArgumentException("destBounds not in destination");
-                }
-            }
-
-            if (transform != null && !transform.isAffine()) {
-                throw new IllegalArgumentException("transform not affine");
-            }
-
-            if (renderMode != RENDER_MODE_FOR_PRINT && renderMode != RENDER_MODE_FOR_DISPLAY) {
-                throw new IllegalArgumentException("Unsupported render mode");
-            }
-
-            final int contentLeft = (destClip != null) ? destClip.left : 0;
-            final int contentTop = (destClip != null) ? destClip.top : 0;
-            final int contentRight = (destClip != null) ? destClip.right
-                    : destination.getWidth();
-            final int contentBottom = (destClip != null) ? destClip.bottom
-                    : destination.getHeight();
-
-            // If transform is not set, stretch page to whole clipped area
-            if (transform == null) {
-                int clipWidth = contentRight - contentLeft;
-                int clipHeight = contentBottom - contentTop;
-
-                transform = new Matrix();
-                transform.postScale((float) clipWidth / getWidth(),
-                        (float) clipHeight / getHeight());
-                transform.postTranslate(contentLeft, contentTop);
-            }
-
-            float[] transformArr = new float[9];
-            transform.getValues(transformArr);
-
             synchronized (sPdfiumLock) {
-                nativeRenderPage(mNativeDocument, mNativePage, destination, contentLeft,
-                        contentTop, contentRight, contentBottom, transformArr, renderMode);
+                mPdfProcessor.renderPage(
+                        mIndex,
+                        destination,
+                        destClip,
+                        transform,
+                        new RenderParams.Builder(renderMode).build());
+            }
+        }
+
+        /**
+         * Renders a page to a bitmap. In case of default zoom, the {@link Bitmap} dimensions will
+         * be equal to the page dimensions. In this case, {@link Rect} parameter can be null.
+         *
+         * <p>In case of zoom, the {@link Rect} parameter needs to be specified which represents
+         * the offset from top and left for tile generation purposes. In this case, the
+         * {@link Bitmap} dimensions should be equal to the tile dimensions.
+         * <p>
+         * <strong>Note:</strong> The method will take care of closing the bitmap. Should be
+         * invoked
+         * on the {@link android.annotation.WorkerThread} as it is long-running task.
+         *
+         * @param destination Destination bitmap to write to.
+         * @param destClip    If null, default zoom is applied. In case the value is non-null, the
+         *                    value specifies the top top-left corner of the tile.
+         * @param transform   Applied to scale the bitmap up/down from default 1/72 points.
+         * @param params      Render params for the changing display mode and/or annotations.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        public void render(@NonNull Bitmap destination,
+                @Nullable Rect destClip,
+                @Nullable Matrix transform,
+                @NonNull RenderParams params) {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
+            }
+        }
+
+        /**
+         * Return list of {@link PdfPageTextContent} in the order it was found on the page. It
+         * contains all the content associated with text found on the page. The list will be empty
+         * if there are no results found.
+         *
+         * @return list of text content found on the page.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @NonNull
+        public List<PdfPageTextContent> getTextContents() {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getPageTextContents(mIndex);
+            }
+        }
+
+        /**
+         * Return list of {@link PdfPageImageContent} in the order it was found on the page. It
+         * contains all the content associated with images found on the page including alt text.
+         * The list will be empty if there are no results found.
+         *
+         * @return list of image content found on the page.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @NonNull
+        public List<PdfPageImageContent> getImageContents() {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getPageImageContents(mIndex);
+            }
+        }
+
+        /**
+         * Search for the given string on the page and returns the bounds of all the matches. The
+         * list will be empty if there are no matches on the page. If this function was
+         * invoked previously for any page, it will wait for that operation to
+         * complete before this operation is started.
+         * <p>
+         * <strong>Note:</strong> Should be invoked on the {@link android.annotation.WorkerThread}
+         * as it is long-running task.
+         *
+         * @param query plain search string for querying the document
+         * @return List of {@link PageMatchBounds} representing the bounds of each match on the
+         * page.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @NonNull
+        public List<PageMatchBounds> searchText(@NonNull String query) {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.searchPageText(mIndex, query);
+            }
+        }
+
+        /**
+         * Return a {@link PageSelection} which represents the selected content that spans between
+         * the two boundaries, both of which can be either exactly defined with text indexes, or
+         * approximately defined with points on the page. The resulting selection will also be
+         * exactly defined with both indexes and points. If the start and stop boundary are both
+         * the same point, selects the word at that point. In case the selection from the given
+         * boundaries result in an empty space, then the method returns {@code null}. The left and
+         * right {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index
+         * when returned.
+         * <p>
+         * <strong>Note:</strong> Should be invoked on a {@link android.annotation.WorkerThread}
+         * as it is long-running task.
+         *
+         * @param left  start boundary of the selection (inclusive)
+         * @param right stop boundary of the selection (exclusive)
+         * @param isRtl determines right-to-left mode for the selection.
+         * @return collection of the selected content for text, images, etc.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @Nullable
+        public PageSelection selectContent(
+                @NonNull SelectionBoundary left,
+                @NonNull SelectionBoundary right,
+                boolean isRtl) {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.selectPageText(mIndex, left, right, isRtl);
+            }
+        }
+
+
+        /**
+         * Get the bounds and URLs of all the links on the page.
+         *
+         * @return list of all links on the page.
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @NonNull
+        public List<PdfPageLinkContent> getLinkContents() {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getPageLinkContents(mIndex);
+            }
+        }
+
+        /**
+         * Gets bookmarks and goto links present on the page of a pdf document. Goto Links
+         * are the internal navigation links which directs the user to different location
+         * within the same document.
+         *
+         * @return list of all goto links {@link PdfPageGotoLinkContent} on a page in the order
+         * they are present on the page
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
+        @NonNull
+        public List<PdfPageGotoLinkContent> getGotoLinks() {
+            throwIfClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getPageGotoLinks(mIndex);
+            }
+        }
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         *
+         * @throws IllegalStateException if the renderer or page is closed
+         */
+        @androidx.annotation.NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos() {
+            return getFormWidgetInfos(new HashSet<>());
+        }
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         *
+         * @param types the types of form widgets to return
+         * @throws IllegalStateException if the renderer or page is closed
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos(
+                @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+            throwIfDocumentOrPageClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getFormWidgetInfos(mIndex, types);
+            }
+        }
+
+        /**
+         * Returns information about the widget with {@code widgetIndex}.
+         *
+         * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
+         *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
+         *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
+         *     FormWidgetInfo#getWidgetIndex()}.
+         * @throws IllegalArgumentException if there is no form widget at the provided index.
+         * @throws IllegalStateException if the renderer or page is closed
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtIndex(int widgetIndex) {
+            throwIfDocumentOrPageClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, widgetIndex);
+            }
+        }
+
+        /**
+         * Returns information about the widget at the given point.
+         *
+         * @param x the x position of the widget on the page, in points
+         * @param y the y position of the widget on the page, in points
+         * @throws IllegalArgumentException if there is no form widget at the provided position.
+         * @throws IllegalStateException if the renderer or page is closed
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
+            throwIfDocumentOrPageClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.getFormWidgetInfoAtPosition(mIndex, x, y);
+            }
+        }
+
+        /**
+         * Applies a {@link FormEditRecord} to the PDF.
+         *
+         * <p>Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
+         * bitmaps for the corresponding areas of the page.
+         *
+         * <p>For click type {@link FormEditRecord}s, performs a click on {@link
+         * FormEditRecord#getClickPoint()}
+         *
+         * <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+         *
+         * <p>For set indices type {@link FormEditRecord}s, sets the {@link
+         * FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+         * form widget indicated by the record.
+         *
+         * @param editRecord the {@link FormEditRecord} to be applied
+         * @return Rectangular areas of the page bitmap that have been invalidated by this action.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
+         *     to the widget indicated by the index (e.g. a set indices type record contains an
+         *     index that corresponds to push button widget, or if the index does not correspond to
+         *     a form widget on the page).
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
+            throwIfDocumentOrPageClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.applyEdit(mIndex, editRecord);
+            }
+        }
+
+        /**
+         * Applies the {@link FormEditRecord}s to the page, in order.
+         *
+         * <p><strong>Note: </strong>Re-rendering the page via {@link #render(Bitmap, Rect, Matrix,
+         * RenderParams)} is required after calling this method. Applying edits to form widgets will
+         * change the appearance of the page.
+         *
+         * <p>If any record cannot be applied, it will be returned and no further records will be
+         * applied. Records already applied will not be reverted. To restore the page to its state
+         * before any records were applied, re-load the page via {@link #close()} and {@link
+         * #openPage(int)}.
+         *
+         * @param formEditRecords the {@link FormEditRecord}s to be applied
+         * @return the records that could not be applied, or an empty list if all were applied
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
+            throwIfDocumentOrPageClosed();
+            synchronized (sPdfiumLock) {
+                return mPdfProcessor.applyEdits(mIndex, formEditRecords);
             }
         }
 
@@ -487,7 +872,7 @@ public final class PdfRenderer implements AutoCloseable {
         @SuppressLint("UnflaggedApi")
         @Override
         public void close() {
-            throwIfClosed();
+            throwIfDocumentOrPageClosed();
             doClose();
         }
 
@@ -506,19 +891,21 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         private void doClose() {
-            if (mNativePage != 0) {
-                synchronized (sPdfiumLock) {
-                    nativeClosePage(mNativePage);
-                }
-                mNativePage = 0;
+            synchronized (sPdfiumLock) {
+                mPdfProcessor.releasePage(mIndex);
             }
 
             mCloseGuard.close();
             mCurrentPage = null;
         }
 
+        private void throwIfDocumentOrPageClosed() {
+            PdfRenderer.this.throwIfClosed();
+            throwIfClosed();
+        }
+
         private void throwIfClosed() {
-            if (mNativePage == 0) {
+            if (mCurrentPage == null) {
                 throw new IllegalStateException("Already closed");
             }
         }

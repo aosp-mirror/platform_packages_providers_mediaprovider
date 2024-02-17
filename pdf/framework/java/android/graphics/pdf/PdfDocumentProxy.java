@@ -16,7 +16,10 @@
 
 package android.graphics.pdf;
 
+import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
+import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.jni.LinkRects;
 import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.jni.MatchRects;
@@ -26,6 +29,7 @@ import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * This class accesses the PdfClient tools to manipulate and render a PDF document. One instance of
@@ -113,76 +117,29 @@ public class PdfDocumentProxy {
     public native int getPageHeight(int pageNum);
 
     /**
-     * Renders the given page at the given size and sends the bitmap bytes on the destination file
-     * descriptor.
+     * Renders a page to a bitmap.
      *
-     * <p>The given file descriptor is detached and closed by this function.
-     *
-     * @return true if the page was rendered into the output bitmap
-     */
-    public boolean renderPageFd(
-            int pageNum, int width, int height, boolean hideTextAnnots, int fileDescriptor) {
-        return renderPageFd(pageNum, width, height, hideTextAnnots, /* retainPage = */ false,
-                fileDescriptor);
-    }
-
-    private native boolean renderPageFd(
-            int pageNum, int width, int height, boolean hideTextAnnots, boolean retainPage, int fd);
-
-    /**
-     * Renders one tile of the given page and writes the output bitmap bytes to {@code destination}.
-     *
-     * <p>The {@code pageWidth} and {@code pageHeight} values define how large the page is to be
-     * rendered before extracting the tile located at (left, top, tileSize).
-     *
-     * <p>The whole page is not actually rendered.
-     *
-     * <p>The given file descriptor is detached and closed by this function.
-     *
-     * @param pageNum        the page number of the page to be rendered
-     * @param pageWidth      the width of the page to be (partially) rendered
-     * @param pageHeight     the height of the page to be (partially) rendered
-     * @param left           the x-axis position on the page of the tile (i.e. the bitmap left edge)
-     * @param top            the y-axis position on the page of the tile (i.e. the bitmap top edge)
-     * @param destination    the parcelFileDescriptor object to be filled (declares its own
-     *                       dimensions)
+     * @param pageNum the page number of the page to be rendered
+     * @param clipLeft the left coordinate of the clipping boundary in bitmap coordinates
+     * @param clipTop the top coordinate of the clipping boundary in bitmap coordinates
+     * @param clipRight the right coordinate of the clipping boundary in bitmap coordinates
+     * @param clipBottom the bottom coordinate of the clipping boundary in bitmap coordinates
+     * @param transform an affine transform matrix in the form of an array.
+     * @see android.graphics.Matrix#getValues(float[])
+     * @param renderMode the render mode
      * @param hideTextAnnots whether to hide text and highlight annotations
-     * @return true if the tile was rendered into the destination file descriptor
+     * @return true if the page was rendered into the destination bitmap
      */
-    public boolean renderTileFd(
+    public native boolean render(
             int pageNum,
-            int pageWidth,
-            int pageHeight,
-            int left,
-            int top,
-            int tileWidth,
-            int tileHeight,
-            boolean hideTextAnnots,
-            int destination) {
-        return renderTileFd(
-                pageNum,
-                pageWidth,
-                pageHeight,
-                left,
-                top,
-                tileWidth,
-                tileHeight,
-                hideTextAnnots,
-                /* retainPage = */ false,
-                destination);
-    }
-
-    private native boolean renderTileFd(
-            int pageNum,
-            int pageWidth,
-            int pageHeight,
-            int left,
-            int top,
-            int tileWidth,
-            int tileHeight,
-            boolean hideTextAnnots,
-            boolean retainPage,
-            int fd);
+            Bitmap bitmap,
+            int clipLeft,
+            int clipTop,
+            int clipRight,
+            int clipBottom,
+            float[] transform,
+            int renderMode,
+            boolean hideTextAnnots);
 
     /**
      * Clones the currently loaded document using the provided file descriptor.
@@ -235,11 +192,42 @@ public class PdfDocumentProxy {
     /** Get the bounds and URLs of all the links on the given page. */
     public native LinkRects getPageLinks(int pageNum);
 
+    /** Returns bookmarks and other goto links (within the current document) on a page */
+    public native List<PdfPageGotoLinkContent> getPageGotoLinks(int pageNum);
+
+    /** Loads a page object and retains it in memory when a page becomes visible. */
+    public native void retainPage(int pageNum);
+
     /** Cleans up objects in memory related to a page after it is no longer visible. */
     public native void releasePage(int pageNum);
 
     /** Returns true if the PDF is linearized. (May give false negatives for <1KB PDFs). */
     public native boolean isPdfLinearized();
+
+    /** Returns true if the document prefers to be scaled for printing. */
+    public native boolean scaleForPrinting();
+
+    /**
+     * Returns an int representing the form type contained in the PDF, e.g. Acro vs XFA (if any).
+     */
+    public native int getFormType();
+
+    /** Obtains information about the widget at point ({@code x}, {@code y}), if any. */
+    public native FormWidgetInfo getFormWidgetInfo(int pageNum, int x, int y);
+
+    /**
+     * Obtains information about the widget with ({@code annotationIndex} on page {@code pageNum}),
+     * if any.
+     */
+    public native FormWidgetInfo getFormWidgetInfo(int pageNum, int annotationIndex);
+
+    /**
+     * Obtains information about all form widgets on page ({@code pageNum}, if any.
+     *
+     * <p>Optionally restricts by {@code typeIds}. If {@code typeIds} is empty, all form widgets on
+     * the page will be returned.
+     */
+    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, Set<Integer> typeIds);
 
     /**
      * Executes an interactive click on the page at the given point ({@code x}, {@code y}).
@@ -247,4 +235,20 @@ public class PdfDocumentProxy {
      * @return rectangular areas of the page bitmap that have been invalidated by this action
      */
     public native List<Rect> clickOnPage(int pageNum, int x, int y);
+
+    /**
+     * Sets the text of the widget at {@code annotationIndex}, if applicable.
+     *
+     * @return rectangular areas of the page bitmap that have been invalidated by this action
+     */
+    public native List<Rect> setFormFieldText(int pageNum, int annotIndex, String text);
+
+    /**
+     * Selects the {@code selectedIndices} and unselects all others for the widget at {@code
+     * annotationIndex}, if applicable.
+     *
+     * @return Rectangular areas of the page bitmap that have been invalidated by this action
+     */
+    public native List<Rect> setFormFieldSelectedIndices(
+            int pageNum, int annotIndex, List<Integer> selectedIndices);
 }

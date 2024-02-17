@@ -57,7 +57,7 @@ class Document {
 
     // Wrap a FPDF_DOCUMENT in this Document, auto-close when this is destroyed.
     Document(ScopedFPDFDocument document, bool is_password_protected)
-        : Document(std::move(document), is_password_protected, nullptr, false) {}
+        : Document(std::move(document), is_password_protected, nullptr, false, false) {}
 
     int NumPages() const { return FPDF_GetPageCount(document_.get()); }
 
@@ -77,6 +77,8 @@ class Document {
     bool IsLinearized() const { return is_linearized_; }
 
     bool IsPasswordProtected() const { return is_password_protected_; }
+
+    bool ShouldScaleForPrinting() const { return should_scale_for_printing_; }
 
     // FPDF_DOCUMENT is automatically closed when destroyed.
     virtual ~Document();
@@ -100,12 +102,14 @@ class Document {
   private:
     // Wrap a FPDF_DOCUMENT in this Document, auto-close when this is destroyed.
     Document(ScopedFPDFDocument document, bool is_password_protected,
-             std::unique_ptr<FileReader> file_reader, bool is_linearized)
+             std::unique_ptr<FileReader> file_reader, bool is_linearized,
+             bool should_scale_for_printing)
         : file_reader_(std::move(file_reader)),
           document_(std::move(document)),
           form_filler_(this, document_.get()),
           is_password_protected_(is_password_protected),
-          is_linearized_(is_linearized) {}
+          is_linearized_(is_linearized),
+          should_scale_for_printing_(should_scale_for_printing) {}
 
     // Disable copy constructor because of the cleanup we do in ~Document.
     Document(const Document&);
@@ -139,6 +143,9 @@ class Document {
 
     // Whether the PDF is linearized.
     bool is_linearized_ = false;
+
+    // Whether this PDF should be scaled for printing.
+    bool should_scale_for_printing_ = false;
 };
 
 }  // namespace pdfClient

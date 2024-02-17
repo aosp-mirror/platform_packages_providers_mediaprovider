@@ -29,6 +29,8 @@
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
+using pdfClient::GotoLink;
+using pdfClient::GotoLinkDest;
 using pdfClient::Option;
 using pdfClient::Rectangle_i;
 using pdfClient::SelectionBoundary;
@@ -98,6 +100,12 @@ jobject ToJavaFormWidgetInfo(JNIEnv* env, const FormWidgetInfo& form_action_resu
 // Convert a vector<pdfClient::FormWidgetInfo> into a Java List of projector
 // FormWidgetInfo.
 jobject ToJavaFormWidgetInfos(JNIEnv* env, const std::vector<FormWidgetInfo>& widget_infos);
+
+jobject ToJavaDestination(JNIEnv* env, const GotoLinkDest dest);
+
+jobject ToJavaGotoLink(JNIEnv* env, const GotoLink link);
+
+jobject ToJavaGotoLinks(JNIEnv* env, const vector<GotoLink>& links);
 
 }  // namespace convert
 

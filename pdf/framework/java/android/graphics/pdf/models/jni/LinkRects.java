@@ -81,7 +81,7 @@ public class LinkRects extends ListOfList<Rect> {
     }
 
     /**
-     * <p>Un-flattens the list and converts to the public class.</p>
+     * Un-flattens the list and converts to the public class.
      * <p>As an example, in case there are 2 weblinks on the page of the document with the 1st link
      * overflowing to the next line, the {@link LinkRects} would have the following values -
      * <pre>
@@ -106,7 +106,6 @@ public class LinkRects extends ListOfList<Rect> {
      *      ),
      * )
      * </pre>
-     * </p>
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageLinkContent> unflattenToList() {

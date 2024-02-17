@@ -46,12 +46,13 @@ namespace pdfClient {
 
 static const int kBytesPerPixel = 4;
 
-static const int kRenderFlags = FPDF_ANNOT | FPDF_LCD_TEXT;
-
 static const Rectangle_i kEmptyIntRectangle = IntRect(0, 0, 0, 0);
 
 // The acceptable fatness / inaccuracy of a user's finger in points.
 static const int kFingerTolerance = 10;
+
+static const int RENDER_MODE_FOR_DISPLAY = 1;
+static const int RENDER_MODE_FOR_PRINT = 2;
 
 Page::Page(FPDF_DOCUMENT doc, int page_num, FormFiller* form_filler)
     : document_(doc),
@@ -79,39 +80,22 @@ int32_t Page::GetFeatures() const {
     return pdfClient::GetFeatures(page_.get());
 }
 
-bool Page::RenderPage(int width, int height, bool hide_text_annots, Extractor* extractor) const {
-    Rectangle_i page_sized_tile = IntRect(0, 0, width, height);
-    return RenderTile(width, height, page_sized_tile, hide_text_annots, extractor);
-}
-
-bool Page::RenderTile(int page_width, int page_height, const Rectangle_i& tile,
-                      bool hide_text_annots, Extractor* extractor) const {
+void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
+                  int clip_right, int clip_bottom, int render_mode, int hide_text_annots) {
     std::unordered_set<int> types;
     if (hide_text_annots) {
         types = {FPDF_ANNOT_TEXT, FPDF_ANNOT_HIGHLIGHT};
     }
     pdfClient_utils::AnnotHider annot_hider(page_.get(), types);
+    int renderFlags = FPDF_REVERSE_BYTE_ORDER;
+    if (render_mode == RENDER_MODE_FOR_DISPLAY) {
+        renderFlags |= FPDF_LCD_TEXT;
+    } else if (render_mode == RENDER_MODE_FOR_PRINT) {
+        renderFlags |= FPDF_PRINTING;
+    }
 
-    int num_pixels = tile.Width() * tile.Height();
-    ScopedFPDFBitmap bitmap(FPDFBitmap_Create(tile.Width(), tile.Height(), 0));
-    FPDFBitmap_FillRect(bitmap.get(), 0, 0, tile.Width(), tile.Height(), 0xffffffff);
-    // FPDF_RenderPageBitmap uses offset params as "scroll", so we have to negate
-    // the one we use (tile.left and .right)
-    FPDF_RenderPageBitmap(bitmap.get(), page_.get(), -tile.left, -tile.top, page_width, page_height,
-                          0, kRenderFlags);
-
-    // This renders forms - checkboxes, textfields, and annotations.
-    // There is some overlap with what is rendered by calling RenderPageBitmap
-    // with FPDF_ANNOT, but not complete, so we still need to make both calls.
-    form_filler_->RenderTile(page_.get(), page_width, page_height, tile, bitmap.get());
-
-    // No need to destroy this buffer - it is part of the bitmap:
-    uint8_t* buffer = static_cast<uint8_t*>(FPDFBitmap_GetBuffer(bitmap.get()));
-
-    InPlaceSwapRedBlueChannels(buffer, num_pixels);
-    bool extracted = extractor->extract(buffer, kBytesPerPixel * num_pixels);
-
-    return extracted;
+    FS_RECTF clip = {(float)clip_left, (float)clip_top, (float)clip_right, (float)clip_bottom};
+    FPDF_RenderPageBitmapWithMatrix(bitmap, page_.get(), &transform, &clip, renderFlags);
 }
 
 Point_i Page::ApplyPageTransform(const Point_d& input) const {

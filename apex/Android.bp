@@ -27,7 +27,6 @@ apex {
     compat_configs: ["media-provider-platform-compat-config"],
     jni_libs: [
         "libpdfclient",
-        "libpdf",
     ],
 }
 

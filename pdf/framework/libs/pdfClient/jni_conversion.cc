@@ -37,9 +37,8 @@ static const char* kLinkRects = "android/graphics/pdf/models/jni/LinkRects";
 static const char* kMatchRects = "android/graphics/pdf/models/jni/MatchRects";
 static const char* kSelection = "android/graphics/pdf/models/jni/PageSelection";
 static const char* kBoundary = "android/graphics/pdf/models/jni/SelectionBoundary";
-static const char* kFormWidgetInfo = "android/graphics/pdf/FormWidgetInfo";
-static const char* kChoiceOption = "android/graphics/pdf/ChoiceOption";
-static const char* kWidgetType = "android/graphics/pdf/WidgetType";
+static const char* kFormWidgetInfo = "android/graphics/pdf/models/FormWidgetInfo";
+static const char* kChoiceOption = "android/graphics/pdf/models/ChoiceOption";
 
 static const char* kRect = "android/graphics/Rect";
 static const char* kInteger = "java/lang/Integer";
@@ -289,39 +288,31 @@ jobject ToJavaLinkRects(JNIEnv* env, const vector<Rectangle_i>& rects,
 
 jobject ToJavaChoiceOption(JNIEnv* env, const Option& option) {
     static jclass choice_option_class = GetPermClassRef(env, kChoiceOption);
-    static jmethodID init = env->GetMethodID(choice_option_class, "<init>",
-                                             funcsig("V", "I", kString, "Z").c_str());
+    static jmethodID init =
+            env->GetMethodID(choice_option_class, "<init>", funcsig("V", kString, "Z").c_str());
     jobject java_label = ToJavaString(env, option.label);
-    return env->NewObject(choice_option_class, init, option.index, java_label, option.selected);
-}
-
-jobject ToJavaWidgetType(JNIEnv* env, int widgetType) {
-    static jclass widget_type_class = GetPermClassRef(env, kWidgetType);
-    static jmethodID of_method =
-            env->GetStaticMethodID(widget_type_class, "of", funcsig(kWidgetType, "I").c_str());
-    return env->CallStaticObjectMethod(widget_type_class, of_method, widgetType);
+    return env->NewObject(choice_option_class, init, java_label, option.selected);
 }
 
 jobject ToJavaFormWidgetInfo(JNIEnv* env, const FormWidgetInfo& form_action_result) {
     static jclass click_result_class = GetPermClassRef(env, kFormWidgetInfo);
 
-    static jmethodID init = env->GetMethodID(click_result_class, "<init>",
-                                             funcsig("V", kWidgetType, "I", kRect, "Z", kString,
-                                                     kString, "Z", "Z", "Z", "I", "F", kList)
-                                                     .c_str());
+    static jmethodID init = env->GetMethodID(
+            click_result_class, "<init>",
+            funcsig("V", "I", "I", kRect, "Z", kString, kString, "Z", "Z", "Z", "I", "F", kList)
+                    .c_str());
 
-    jobject widget_type = ToJavaWidgetType(env, form_action_result.widget_type());
     jobject java_widget_rect = ToJavaRect(env, form_action_result.widget_rect());
     jobject java_text_value = ToJavaString(env, form_action_result.text_value());
     jobject java_accessibility_label = ToJavaString(env, form_action_result.accessibility_label());
     jobject java_choice_options = ToJavaList(env, form_action_result.options(), &ToJavaChoiceOption);
 
-    return env->NewObject(click_result_class, init, widget_type, form_action_result.widget_index(),
-                          java_widget_rect, form_action_result.read_only(), java_text_value,
-                          java_accessibility_label, form_action_result.editable_text(),
-                          form_action_result.multiselect(), form_action_result.multi_line_text(),
-                          form_action_result.max_length(), form_action_result.font_size(),
-                          java_choice_options);
+    return env->NewObject(click_result_class, init, form_action_result.widget_type(),
+                          form_action_result.widget_index(), java_widget_rect,
+                          form_action_result.read_only(), java_text_value, java_accessibility_label,
+                          form_action_result.editable_text(), form_action_result.multiselect(),
+                          form_action_result.multi_line_text(), form_action_result.max_length(),
+                          form_action_result.font_size(), java_choice_options);
 }
 
 jobject ToJavaFormWidgetInfos(JNIEnv* env, const std::vector<FormWidgetInfo>& widget_infos) {

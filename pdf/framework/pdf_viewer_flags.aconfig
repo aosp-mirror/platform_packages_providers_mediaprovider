@@ -9,3 +9,11 @@ flag {
     bug: "319561098"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "enable_form_filling"
+    namespace: "pdf_viewer"
+    description: "This flag controls whether to enable pdf viewer form filling APIs."
+    bug: "319561098"
+    is_fixed_read_only: true
+}

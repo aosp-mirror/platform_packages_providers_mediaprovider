@@ -75,7 +75,7 @@ public class MatchRects extends ListOfList<Rect> {
     }
 
     /**
-     * <p>Un-flattens the list and converts to the public class.</p>
+     * Un-flattens the list and converts to the public class.
      * <p>As an example, in case there are 2 matches on the page of the document with the 1st match
      * overflowing to the next line, the {@link LinkRects} would have the following values -
      * <pre>
@@ -100,7 +100,6 @@ public class MatchRects extends ListOfList<Rect> {
      *      ),
      * )
      * </pre>
-     * </p>
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PageMatchBounds> unflattenToList() {

@@ -37,9 +37,11 @@ static const char* kLinkRects = "android/graphics/pdf/models/jni/LinkRects";
 static const char* kMatchRects = "android/graphics/pdf/models/jni/MatchRects";
 static const char* kSelection = "android/graphics/pdf/models/jni/PageSelection";
 static const char* kBoundary = "android/graphics/pdf/models/jni/SelectionBoundary";
-static const char* kFormWidgetInfo = "android/graphics/pdf/FormWidgetInfo";
-static const char* kChoiceOption = "android/graphics/pdf/ChoiceOption";
-static const char* kWidgetType = "android/graphics/pdf/WidgetType";
+static const char* kFormWidgetInfo = "android/graphics/pdf/models/FormWidgetInfo";
+static const char* kChoiceOption = "android/graphics/pdf/models/ChoiceOption";
+static const char* kGotoLinkDestination =
+        "android/graphics/pdf/content/PdfPageGotoLinkContent$Destination";
+static const char* kGotoLink = "android/graphics/pdf/content/PdfPageGotoLinkContent";
 
 static const char* kRect = "android/graphics/Rect";
 static const char* kInteger = "java/lang/Integer";
@@ -49,6 +51,7 @@ static const char* kArrayList = "java/util/ArrayList";
 static const char* kList = "java/util/List";
 static const char* kSet = "java/util/Set";
 static const char* kIterator = "java/util/Iterator";
+static const char* kFloat = "java/lang/Float";
 
 // Helper methods to build up type signatures like "Ljava/lang/Object;" and
 // function signatures like "(I)Ljava/lang/Integer;":
@@ -289,43 +292,58 @@ jobject ToJavaLinkRects(JNIEnv* env, const vector<Rectangle_i>& rects,
 
 jobject ToJavaChoiceOption(JNIEnv* env, const Option& option) {
     static jclass choice_option_class = GetPermClassRef(env, kChoiceOption);
-    static jmethodID init = env->GetMethodID(choice_option_class, "<init>",
-                                             funcsig("V", "I", kString, "Z").c_str());
+    static jmethodID init =
+            env->GetMethodID(choice_option_class, "<init>", funcsig("V", kString, "Z").c_str());
     jobject java_label = ToJavaString(env, option.label);
-    return env->NewObject(choice_option_class, init, option.index, java_label, option.selected);
-}
-
-jobject ToJavaWidgetType(JNIEnv* env, int widgetType) {
-    static jclass widget_type_class = GetPermClassRef(env, kWidgetType);
-    static jmethodID of_method =
-            env->GetStaticMethodID(widget_type_class, "of", funcsig(kWidgetType, "I").c_str());
-    return env->CallStaticObjectMethod(widget_type_class, of_method, widgetType);
+    return env->NewObject(choice_option_class, init, java_label, option.selected);
 }
 
 jobject ToJavaFormWidgetInfo(JNIEnv* env, const FormWidgetInfo& form_action_result) {
     static jclass click_result_class = GetPermClassRef(env, kFormWidgetInfo);
 
-    static jmethodID init = env->GetMethodID(click_result_class, "<init>",
-                                             funcsig("V", kWidgetType, "I", kRect, "Z", kString,
-                                                     kString, "Z", "Z", "Z", "I", "F", kList)
-                                                     .c_str());
+    static jmethodID init = env->GetMethodID(
+            click_result_class, "<init>",
+            funcsig("V", "I", "I", kRect, "Z", kString, kString, "Z", "Z", "Z", "I", "F", kList)
+                    .c_str());
 
-    jobject widget_type = ToJavaWidgetType(env, form_action_result.widget_type());
     jobject java_widget_rect = ToJavaRect(env, form_action_result.widget_rect());
     jobject java_text_value = ToJavaString(env, form_action_result.text_value());
     jobject java_accessibility_label = ToJavaString(env, form_action_result.accessibility_label());
     jobject java_choice_options = ToJavaList(env, form_action_result.options(), &ToJavaChoiceOption);
 
-    return env->NewObject(click_result_class, init, widget_type, form_action_result.widget_index(),
-                          java_widget_rect, form_action_result.read_only(), java_text_value,
-                          java_accessibility_label, form_action_result.editable_text(),
-                          form_action_result.multiselect(), form_action_result.multi_line_text(),
-                          form_action_result.max_length(), form_action_result.font_size(),
-                          java_choice_options);
+    return env->NewObject(click_result_class, init, form_action_result.widget_type(),
+                          form_action_result.widget_index(), java_widget_rect,
+                          form_action_result.read_only(), java_text_value, java_accessibility_label,
+                          form_action_result.editable_text(), form_action_result.multiselect(),
+                          form_action_result.multi_line_text(), form_action_result.max_length(),
+                          form_action_result.font_size(), java_choice_options);
 }
 
 jobject ToJavaFormWidgetInfos(JNIEnv* env, const std::vector<FormWidgetInfo>& widget_infos) {
     return ToJavaList(env, widget_infos, &ToJavaFormWidgetInfo);
+}
+
+jobject ToJavaDestination(JNIEnv* env, const GotoLinkDest dest) {
+    static jclass goto_link_dest_class = GetPermClassRef(env, kGotoLinkDestination);
+    static jmethodID init = env->GetMethodID(goto_link_dest_class, "<init>",
+                                             funcsig("V", "I", "F", "F", "F").c_str());
+
+    return env->NewObject(goto_link_dest_class, init, dest.page_number, dest.x, dest.y, dest.zoom);
+}
+
+jobject ToJavaGotoLink(JNIEnv* env, const GotoLink& link) {
+    static jclass goto_link_class = GetPermClassRef(env, kGotoLink);
+    static jmethodID init = env->GetMethodID(goto_link_class, "<init>",
+                                             funcsig("V", kList, kGotoLinkDestination).c_str());
+
+    jobject java_rects = ToJavaList(env, link.rect, &ToJavaRect);
+    jobject goto_link_dest = ToJavaDestination(env, link.dest);
+
+    return env->NewObject(goto_link_class, init, java_rects, goto_link_dest);
+}
+
+jobject ToJavaGotoLinks(JNIEnv* env, const vector<GotoLink>& links) {
+    return ToJavaList(env, links, &ToJavaGotoLink);
 }
 
 }  // namespace convert

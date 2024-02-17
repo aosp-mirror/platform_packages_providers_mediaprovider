@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,13 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.models.FormEditRecord;
+import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
@@ -43,7 +46,9 @@ import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * <p>
@@ -92,6 +97,22 @@ public final class PdfRendererPreV implements AutoCloseable {
     public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1;
     /** Represents a linearized PDF document. */
     public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2;
+
+    /** Represents a PDF without form fields */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_NONE = 0;
+
+    /** Represents a PDF with form fields specified using the AcroForm spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_ACRO_FORM = 1;
+
+    /** Represents a PDF with form fields specified using the entire XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FULL = 2;
+
+    /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
     private final int mPageCount;
     private PdfProcessor mPdfProcessor;
 
@@ -134,7 +155,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      * <p>
      * <strong>Note:</strong> The provided file descriptor must be <strong>seekable</strong>,
      * i.e. its data being randomly accessed, e.g. pointing to a file. If the password passed in
-     * {@link android.graphics.pdf.models.LoadParams} is incorrect, the
+     * {@link android.graphics.pdf.LoadParams} is incorrect, the
      * {@link android.graphics.pdf.PdfRendererPreV} will throw a {@link SecurityException}.
      * <p>
      * <strong>Note:</strong> This class takes ownership of the passed in file descriptor
@@ -189,10 +210,10 @@ public final class PdfRendererPreV implements AutoCloseable {
     @PdfDocumentLinearizationType
     public int getDocumentLinearizationType() {
         throwIfDocumentClosed();
-        if (mPdfProcessor.getDocumentLinearizationType() == PDF_DOCUMENT_TYPE_LINEARIZED) {
+        int documentType = mPdfProcessor.getDocumentLinearizationType();
+        if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
             return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
-        } else if (mPdfProcessor.getDocumentLinearizationType()
-                == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
+        } else if (documentType == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
             return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
         } else {
             return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
@@ -202,16 +223,39 @@ public final class PdfRendererPreV implements AutoCloseable {
     /**
      * Opens a {@link Page} for rendering.
      *
-     * @param pageNum The page number to open, starting from index 0.
+     * @param index The page index to open, starting from index 0.
      * @return A page that can be rendered.
      * @throws IllegalStateException    If {@link #close()} is called before invoking this.
      * @throws IllegalArgumentException If the page number is less than 0 or greater than or equal
      *                                  to the total page count.
      */
     @NonNull
-    public Page openPage(int pageNum) {
+    public Page openPage(int index) {
         throwIfDocumentClosed();
-        return new Page(pageNum);
+        throwIfPageNotInDocument(index);
+        return new Page(index);
+    }
+
+    /**
+     * Returns the form type of the loaded PDF
+     *
+     * @throws IllegalStateException if the renderer is closed
+     * @throws IllegalArgumentException if an unexpected PDF form type is returned
+     */
+    @PdfFormType
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    public int getPdfFormType() {
+        throwIfDocumentClosed();
+        int pdfFormType = mPdfProcessor.getPdfFormType();
+        if (pdfFormType == PDF_FORM_TYPE_ACRO_FORM) {
+            return PDF_FORM_TYPE_ACRO_FORM;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FULL) {
+            return PDF_FORM_TYPE_XFA_FULL;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FOREGROUND) {
+            return PDF_FORM_TYPE_XFA_FOREGROUND;
+        } else {
+            return PDF_FORM_TYPE_NONE;
+        }
     }
 
     /**
@@ -278,6 +322,16 @@ public final class PdfRendererPreV implements AutoCloseable {
     }
 
     /** @hide */
+    @IntDef({
+        PDF_FORM_TYPE_NONE,
+        PDF_FORM_TYPE_ACRO_FORM,
+        PDF_FORM_TYPE_XFA_FULL,
+        PDF_FORM_TYPE_XFA_FOREGROUND
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface PdfFormType {}
+
+    /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_UNKNOWN,
@@ -292,14 +346,21 @@ public final class PdfRendererPreV implements AutoCloseable {
     public final class Page implements AutoCloseable {
         private final int mWidth;
         private final int mHeight;
-        private int mPageNum;
+        private int mIndex;
 
-        private Page(int pageNum) {
-            throwIfDocumentClosed();
-            throwIfPageNotInDocument(pageNum);
-            this.mPageNum = pageNum;
-            mWidth = mPdfProcessor.getPageWidth(pageNum);
-            mHeight = mPdfProcessor.getPageHeight(pageNum);
+        private Page(int index) {
+            this.mIndex = index;
+            mWidth = mPdfProcessor.getPageWidth(index);
+            mHeight = mPdfProcessor.getPageHeight(index);
+        }
+
+        /**
+         * Gets the page index.
+         *
+         * @return The index.
+         */
+        public int getIndex() {
+            return mIndex;
         }
 
         /**
@@ -326,7 +387,7 @@ public final class PdfRendererPreV implements AutoCloseable {
                 @Nullable Matrix transform,
                 @NonNull RenderParams params) {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.renderPage(mPageNum, destination, destClip, transform, params);
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
         }
 
         /**
@@ -340,7 +401,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageTextContent> getTextContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageTextContents(mPageNum);
+            return mPdfProcessor.getPageTextContents(mIndex);
         }
 
         /**
@@ -354,7 +415,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageImageContent> getImageContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageImageContents(mPageNum);
+            return mPdfProcessor.getPageImageContents(mIndex);
         }
 
         /**
@@ -400,7 +461,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PageMatchBounds> searchText(@NonNull String query) {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.searchPageText(mPageNum, query);
+            return mPdfProcessor.searchPageText(mIndex, query);
         }
 
         /**
@@ -426,7 +487,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         public PageSelection selectContent(@NonNull SelectionBoundary left,
                 @NonNull SelectionBoundary right, boolean isRtl) {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.selectPageText(mPageNum, left, right, isRtl);
+            return mPdfProcessor.selectPageText(mIndex, left, right, isRtl);
         }
 
 
@@ -439,13 +500,152 @@ public final class PdfRendererPreV implements AutoCloseable {
         @NonNull
         public List<PdfPageLinkContent> getLinkContents() {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.getPageLinkContents(mPageNum);
+            return mPdfProcessor.getPageLinkContents(mIndex);
+        }
+
+        /**
+         * Gets bookmarks and goto links present on the page of a pdf document. Goto Links
+         * are the internal navigation links which directs the user to different location
+         * within the same document.
+         *
+         * @return list of all goto links {@link PdfPageGotoLinkContent} on a page in the order
+         * they are present on the page
+         * @throws IllegalStateException If the document/page is closed before invocation.
+         */
+        @NonNull
+        public List<PdfPageGotoLinkContent> getGotoLinks() {
+            throwIfDocumentOrPageClosed();
+            return mPdfProcessor.getPageGotoLinks(mIndex);
+        }
+
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         *
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos() {
+            return getFormWidgetInfos(new HashSet<>());
+        }
+
+        /**
+         * Returns information about all form widgets on the page, or an empty list if there are no
+         * form widgets on the page.
+         *
+         * @param types the types of form widgets to return
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormWidgetInfo> getFormWidgetInfos(
+                @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfos(mIndex, types);
+        }
+
+        /**
+         * Returns information about the widget with {@code annotationIndex}.
+         *
+         * @param annotationIndex the index of the widget within the page's "Annot" array in the PDF
+         *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
+         *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
+         *     FormWidgetInfo#getWidgetIndex()}.
+         * @throws IllegalArgumentException if there is no form widget at the provided index.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtIndex(int annotationIndex) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, annotationIndex);
+        }
+
+        /**
+         * Returns information about the widget at the given point.
+         *
+         * @param x the x position of the widget on the page, in points
+         * @param y the y position of the widget on the page, in points
+         * @throws IllegalArgumentException if there is no form widget at the provided position.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.getFormWidgetInfoAtPosition(mIndex, x, y);
+        }
+
+        /**
+         * Applies a {@link FormEditRecord} to the PDF.
+         *
+         * <p>Apps must call {@link #render(Bitmap, Rect, Matrix, RenderParams)} to render new
+         * bitmaps for the corresponding areas of the page.
+         *
+         * <p>For click type {@link FormEditRecord}s, performs a click on {@link
+         * FormEditRecord#getClickPoint()}
+         *
+         * <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+         *
+         * <p>For set indices type {@link FormEditRecord}s, sets the {@link
+         * FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+         * form widget indicated by the record.
+         *
+         * @param editRecord the {@link FormEditRecord} to be applied
+         * @return Rectangular areas of the page bitmap that have been invalidated by this action.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
+         *     to the widget indicated by the index (e.g. a set indices type record contains an
+         *     index that corresponds to push button widget, or if the index does not correspond to
+         *     a form widget on the page).
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @android.annotation.NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.applyEdit(mIndex, editRecord);
+        }
+
+        /**
+         * Applies the {@link FormEditRecord}s to the page, in order.
+         *
+         * <p><strong>Note: </strong>Re-rendering the page via {@link #render(Bitmap, Rect, Matrix,
+         * RenderParams)} is required after calling this method. Applying edits to form widgets will
+         * change the appearance of the page.
+         *
+         * <p>If any record cannot be applied, it will be returned and no further records will be
+         * applied. Records already applied will not be reverted. To restore the page to its state
+         * before any records were applied, re-load the page via {@link #close()} and {@link
+         * #openPage(int)}.
+         *
+         * @param formEditRecords the {@link FormEditRecord}s to be applied
+         * @return the records that could not be applied, or an empty list if all were applied
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+        public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
+            throwIfDocumentClosed();
+            throwIfPageClosed();
+            return mPdfProcessor.applyEdits(mIndex, formEditRecords);
         }
 
         /**
          * Closes this page.
          *
-         * @see android.graphics.pdf.PdfRendererPreV#openPage(int)
+         * @see android.graphics.pdf.PdfRenderer#openPage(int)
          */
         @Override
         public void close() {
@@ -466,12 +666,12 @@ public final class PdfRendererPreV implements AutoCloseable {
 
         private void doClose() {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.releasePage(mPageNum);
-            mPageNum = -1;
+            mPdfProcessor.releasePage(mIndex);
+            mIndex = -1;
         }
 
         private void throwIfPageClosed() {
-            if (mPageNum == -1) {
+            if (mIndex == -1) {
                 throw new IllegalStateException("Page already closed!");
             }
         }

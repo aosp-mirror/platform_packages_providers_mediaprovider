@@ -42,6 +42,7 @@ import android.provider.DeviceConfig;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
@@ -66,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 

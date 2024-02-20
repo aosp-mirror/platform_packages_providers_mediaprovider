@@ -230,6 +230,8 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test
@@ -254,6 +256,8 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test
@@ -319,7 +323,8 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                /* isLocal= */ true);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),
@@ -357,7 +362,7 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", "com.hooli.cloudpicker");
+                "Not_null", "com.hooli.cloudpicker", /* isLocal= */ false);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),

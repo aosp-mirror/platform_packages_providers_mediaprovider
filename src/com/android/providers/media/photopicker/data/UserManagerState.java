@@ -101,7 +101,12 @@ public interface UserManagerState {
     List<UserId> getAllUserProfileIds();
 
     /**
-     * Updates on/off values of all the user profiles other than current user profile
+     * Updates on/off values of all the user profiles and post cross profile status of all profiles
+     */
+    void updateProfileOffValuesAndPostCrossProfileStatus();
+
+    /**
+     * Updates on/off values of all the user profiles
      */
     void updateProfileOffValues();
 
@@ -417,7 +422,7 @@ public interface UserManagerState {
             setBlockedByAdminValue(intent);
 
             // 2. Check if work profile is off
-            updateProfileOffValues();
+            updateProfileOffValuesAndPostCrossProfileStatus();
 
             // 3. For first initial setup, wait for MediaProvider to be on.
             // (This is not blocking)
@@ -479,13 +484,18 @@ public interface UserManagerState {
         }
 
         @Override
+        public void updateProfileOffValuesAndPostCrossProfileStatus() {
+            updateProfileOffValues();
+            updateAndPostCrossProfileStatus();
+        }
+
+        @Override
         public void updateProfileOffValues() {
             assertMainThread();
             mProfileOffStatus.clear();
             for (UserId userId : mUserProfileIds) {
                 mProfileOffStatus.put(userId, isProfileOffInternal(userId));
             }
-            updateAndPostCrossProfileStatus();
         }
 
         private void updateAndPostCrossProfileStatus() {

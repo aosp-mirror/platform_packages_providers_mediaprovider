@@ -70,8 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blocked by your admin"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Accessing work data from a personal app is not permitted"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Accessing personal data from a work app is not permitted"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Accessing <xliff:g id="PROFILE1">%1$s</xliff:g> data from a <xliff:g id="PROFILE2">%2$s</xliff:g> app is not permitted"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Switch to <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Work apps are paused"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> apps are paused"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"To open work photos, turn on your work apps then try again"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"To open <xliff:g id="PROFILE1">%1$s</xliff:g> photos, turn on your <xliff:g id="PROFILE2">%2$s</xliff:g> apps then try again"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"This app can only access the photos you select"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Select photos and videos you allow this app to access"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> items}}"</string>

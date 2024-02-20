@@ -42,7 +42,6 @@ import androidx.work.Worker;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
-import com.android.providers.media.photopicker.PickerSyncController;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -89,6 +88,7 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
     static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
+    static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
     private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
 
@@ -274,7 +274,7 @@ public class PickerSyncManager {
         // requests in
         // order to avoid adding latency to critical MP code paths.
 
-        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
+        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.REPLACE, syncRequest);
     }
 
     /**
@@ -320,10 +320,10 @@ public class PickerSyncManager {
      *
      * @param albumId is the id of the album that needs to be synced.
      * @param authority The authority of the album media.
+     * @param isLocal is {@code true} iff the album authority is of the local provider.
      */
     public void syncAlbumMediaForProviderImmediately(
-            @NonNull String albumId, @NonNull String authority) {
-        boolean isLocal = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority);
+            @NonNull String albumId, @NonNull String authority, boolean isLocal) {
         syncAlbumMediaForProviderImmediately(albumId, getSyncSource(isLocal), authority);
     }
 
@@ -411,6 +411,7 @@ public class PickerSyncManager {
         return new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
                 .setInputData(inputData)
                 .setConstraints(constraints)
+                .setInitialDelay(PROACTIVE_SYNC_DELAY_MS, TimeUnit.MILLISECONDS)
                 .build();
     }
 

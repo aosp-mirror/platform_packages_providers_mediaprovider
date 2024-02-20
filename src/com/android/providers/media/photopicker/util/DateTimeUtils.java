@@ -33,7 +33,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
@@ -95,11 +94,11 @@ public class DateTimeUtils {
             return getTodayString();
         } else if (dayDiff == 1) {
             return getYesterdayString();
-        } else if (dayDiff > 0 && dayDiff < 7) {
-            return whenDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault());
         } else {
             final String skeleton;
-            if (whenDate.getYear() == nowDate.getYear()) {
+            if (dayDiff > 0 && dayDiff < 7) {
+                skeleton = DateFormat.WEEKDAY;
+            } else if (whenDate.getYear() == nowDate.getYear()) {
                 skeleton = DATE_FORMAT_SKELETON_WITHOUT_YEAR;
             } else {
                 skeleton = DATE_FORMAT_SKELETON_WITH_YEAR;

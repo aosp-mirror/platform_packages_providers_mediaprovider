@@ -17,6 +17,9 @@ package com.android.providers.media.photopicker.ui;
 
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -26,6 +29,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -35,6 +39,7 @@ import androidx.viewpager2.widget.CompositePageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -112,6 +117,21 @@ public class TabContainerFragment extends Fragment {
 
         final TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
 
+        if (PickerViewModel.isCustomPickerColorSet()) {
+            tabLayout.setBackgroundColor(PickerViewModel.getThemeBasedColor(
+                    AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                    AccentColorResources.SURFACE_CONTAINER_COLOR_DARK));
+            LayerDrawable pickerTabDrawable = (LayerDrawable) ContextCompat.getDrawable(
+                    getActivity(), R.drawable.picker_tab_background);
+            GradientDrawable pickerTab =
+                    (GradientDrawable) pickerTabDrawable.findDrawableByLayerId(R.id.picker_tab);
+            pickerTab.setColor(PickerViewModel.getThemeBasedColor(
+                    AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
+                    AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK));
+            tabLayout.setSelectedTabIndicatorColor(PickerViewModel.getPickerAccentColor());
+            setTabTextColors(tabLayout);
+        }
+
         mTabLayoutMediator = new TabLayoutMediator(tabLayout, mViewPager, (tab, pos) -> {
             if (pos == PHOTOS_TAB_POSITION) {
                 if (isOnlyVideoMimeTypeFilterAvailable()) {
@@ -130,6 +150,15 @@ public class TabContainerFragment extends Fragment {
         // set the drawable for the shape here.
         tabLayout.setSelectedTabIndicator(R.drawable.picker_tab_indicator);
         tabLayout.addOnTabSelectedListener(mOnTabSelectedListener);
+    }
+
+    private void setTabTextColors(TabLayout tabLayout) {
+        String selectedTabTextColor = PickerViewModel.isAccentColorBright()
+                ? AccentColorResources.DARK_TEXT_COLOR : AccentColorResources.LIGHT_TEXT_COLOR;
+        // Unselected tab text color in dark mode will be white and vice versa
+        tabLayout.setTabTextColors(PickerViewModel.getThemeBasedColor(
+                        AccentColorResources.DARK_TEXT_COLOR, AccentColorResources.LIGHT_TEXT_COLOR
+        ), Color.parseColor(selectedTabTextColor));
     }
 
     private boolean isOnlyVideoMimeTypeFilterAvailable() {

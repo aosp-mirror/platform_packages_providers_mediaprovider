@@ -165,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Кейінірек қайталап көріңіз. Мәселе шешілген соң, фотосуреттеріңіз қолжетімді болады."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Кейбір фотосуреттерді жүктеу мүмкін емес"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Түсінікті"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Мультимедиа иесіне арналған пакет атауын пайдалану"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Қолданба барлық қолжетімді мультимедиа файл иесіне арналған пакеттің атауларын пайдалануға рұқсат алады."</string>
 </resources>

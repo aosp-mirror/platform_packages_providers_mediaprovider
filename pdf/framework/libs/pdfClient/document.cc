@@ -68,12 +68,13 @@ Status Document::Load(std::unique_ptr<FileReader> fileReader, const char* passwo
     } else {
         fpdf_doc.reset(FPDF_LoadCustomDocument(fileReader.get(), password));
     }
+    FPDF_BOOL should_scale_for_print = FPDF_VIEWERREF_GetPrintScaling(fpdf_doc.get());
     if (fpdf_doc) {
         // Use WrapUnique instead of MakeUnique since this Document constructor is
         // private.
-        *result = std::unique_ptr<Document>(new Document(std::move(fpdf_doc),
-                                                         (password && password[0] != '\0'),
-                                                         std::move(fileReader), is_linearized));
+        *result = std::unique_ptr<Document>(
+                new Document(std::move(fpdf_doc), (password && password[0] != '\0'),
+                             std::move(fileReader), is_linearized, should_scale_for_print));
         return LOADED;
     }
 

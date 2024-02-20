@@ -23,18 +23,28 @@ java_sdk_library {
     srcs: [
         ":framework-pdf-sources",
     ],
+
     permitted_packages: [
         "android.graphics.pdf",
     ],
     static_libs: [
         "pdf_viewer_flags_java_lib",
+        "guava",
+    ],
+    libs: [
+        "androidx.annotation_annotation",
+        "error_prone_annotations",
+        "modules-utils-preconditions",
+        "unsupportedappusage",
     ],
     apex_available: [
         "com.android.mediaprovider",
     ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
+        "//cts/tests/pdf",
     ],
+    jarjar_rules: "jarjar-rules.txt",
     min_sdk_version: "30",
 }
 
@@ -45,6 +55,9 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
+    visibility: [
+        "//packages/providers/MediaProvider/pdf/tests",
+    ],
 }
 
 aconfig_declarations {

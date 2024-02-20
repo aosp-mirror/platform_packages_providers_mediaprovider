@@ -21,6 +21,7 @@
 #include <jni.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include <memory>
 #include <mutex>
@@ -28,25 +29,21 @@
 #include <unordered_set>
 
 #include "document.h"
+#include "fcntl.h"
 #include "file.h"
 #include "form_widget_info.h"
+#include "jni_conversion.h"
 #include "logging.h"
 #include "page.h"
-// #include "proto/goto_links.proto.h" @Todo b/307870155
-#include "fcntl.h"
-#include "jni_conversion.h"
 #include "rect.h"
 // #include "util/java/scoped_local_ref.h"
 #include <unistd.h>
 
 #define LOG_TAG "pdf_document_jni"
 
-// using util::java::ScopedLocalRef;
-
 using pdfClient::Document;
 using pdfClient::FileReader;
-// using pdfClient::GotoLink;
-// using pdfClient::GotoLinkList;
+using pdfClient::GotoLink;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -61,27 +58,19 @@ using pdfClient::LinuxFileOps;
 namespace {
 std::mutex mutex_;
 
-bool RenderTileFd(JNIEnv* env, jobject jPdfDocument, int pageNum, int pageWidth, int pageHeight,
-                  const Rectangle_i& tile, jboolean hideTextAnnots, jboolean retainPage, int fd);
-
+/** Matrix organizes its values in row-major order. These constants correspond to each
+ * value in Matrix.
+ */
+constexpr int kMScaleX = 0;  // horizontal scale factor
+constexpr int kMSkewX = 1;   // horizontal skew factor
+constexpr int kMTransX = 2;  // horizontal translation
+constexpr int kMSkewY = 3;   // vertical skew factor
+constexpr int kMScaleY = 4;  // vertical scale factor
+constexpr int kMTransY = 5;  // vertical translation
+constexpr int kMPersp0 = 6;  // input x perspective factor
+constexpr int kMPersp1 = 7;  // input y perspective factor
+constexpr int kMPersp2 = 8;  // perspective bias
 }  // namespace
-
-// Serializes the proto message into jbyteArray. Originally from
-// google3/gws/framework/java/proto_util.cc?rcl=234527948&l=69-94.
-// ScopedLocalRef<jbyteArray> CppProtoToBytes(JNIEnv* env, const proto2::MessageLite& proto) {
-//    const int byte_size = proto.ByteSizeLong();
-//    ScopedLocalRef<jbyteArray> array(env->NewByteArray(byte_size), env);
-//    if (!array) {
-//        return ScopedLocalRef<jbyteArray>(nullptr, env);
-//    }
-//    void* ptr = env->GetPrimitiveArrayCritical(array.get(), nullptr);
-//    if (!ptr) {
-//        return ScopedLocalRef<jbyteArray>(nullptr, env);
-//    }
-//    proto.SerializeWithCachedSizesToArray(reinterpret_cast<uint8*>(ptr));
-//    env->ReleasePrimitiveArrayCritical(array.get(), ptr, 0);
-//    return array;
-//} @Todo b/307870155
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -90,9 +79,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return JNI_VERSION_1_6;
 }
 
-// @Todo (b/312349744) Rename the pdflib path
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_createFromFd(
-        JNIEnv* env, jclass, jint jfd, jstring jpassword) {
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromFd(
+        JNIEnv* env, jobject obj, jint jfd, jstring jpassword) {
     std::unique_lock<std::mutex> lock(mutex_);
     LinuxFileOps::FDCloser fd(jfd);
     const char* password = jpassword == NULL ? NULL : env->GetStringUTFChars(jpassword, NULL);
@@ -110,8 +98,8 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaLoadPdfResult(env, status, std::move(doc));
 }
 
-JNIEXPORT void JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_destroy(JNIEnv* env, jobject jPdfDocument) {
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_destroy(JNIEnv* env,
+                                                                          jobject jPdfDocument) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     LOGD("Deleting Document: %p", doc);
@@ -119,8 +107,9 @@ Java_com_google_android_apps_viewer_pdflib_PdfDocument_destroy(JNIEnv* env, jobj
     LOGD("Destroyed Document: %p", doc);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_saveToFd(
-        JNIEnv* env, jobject jPdfDocument, jint jfd) {
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_saveToFd(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint jfd) {
     std::unique_lock<std::mutex> lock(mutex_);
     LinuxFileOps::FDCloser fd(jfd);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -128,7 +117,8 @@ JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocumen
     return doc->SaveAs(std::move(fd));
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageDimensions(
+// TODO(b/321979602): Cleanup Dimensions, reusing `android.util.Size`
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageDimensions(
         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -141,54 +131,74 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaDimensions(env, dimensions);
 }
 
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageFeatures(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum) {
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageWidth(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum);
-    return page->GetFeatures();
+    return page->Width();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_renderPageFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint w, jint h, jboolean hideTextAnnots,
-        jboolean retainPage, jint fd) {
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(JNIEnv* env,
+                                                                               jobject jPdfDocument,
+                                                                               jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
-    Rectangle_i tile = pdfClient::IntRect(0, 0, w, h);
-    LOGD("Start renderPageFd: Page %d at (%d x %d)", pageNum, w, h);
-
-    bool ret = RenderTileFd(env, jPdfDocument, pageNum, w, h, tile, hideTextAnnots, retainPage, fd);
-
-    LOGD("Finish renderPageFd");
-    return ret;
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum);
+    return page->Height();
 }
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_renderTileFd(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint pageWidth, jint pageHeight, jint left,
-        jint top, jint tileWidth, jint tileHeight, jboolean hideTextAnnots, jboolean retainPage,
-        jint fd) {
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
+        jint clipTop, jint clipRight, jint clipBottom, jfloatArray jTransform, jint renderMode,
+        jboolean hideTextAnnots) {
     std::unique_lock<std::mutex> lock(mutex_);
-    Rectangle_i tile = pdfClient::IntRectWithSize(left, top, tileWidth, tileHeight);
-    LOGD("Start renderTileFd: Page %d at (%d x %d), Tile (%d, %d)", pageNum, pageWidth, pageHeight,
-         tile.Width(), tile.Height());
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
 
-    bool ret = RenderTileFd(env, jPdfDocument, pageNum, pageWidth, pageHeight, tile, hideTextAnnots,
-                            retainPage, fd);
+    // android.graphics.Bitmap -> FPDF_Bitmap
+    void* bitmap_pixels;
+    if (AndroidBitmap_lockPixels(env, jbitmap, &bitmap_pixels) < 0) {
+        LOGE("Couldn't get bitmap pixel address");
+        return false;
+    }
+    AndroidBitmapInfo info;
+    AndroidBitmap_getInfo(env, jbitmap, &info);
+    const int stride = info.width * 4;
+    FPDF_BITMAP bitmap =
+            FPDFBitmap_CreateEx(info.width, info.height, FPDFBitmap_BGRA, bitmap_pixels, stride);
 
-    LOGD("Finish renderTileFd");
-    return ret;
+    // android.graphics.Matrix (SkMatrix) -> FS_Matrix
+    float transform[9];
+    env->GetFloatArrayRegion(jTransform, 0, 9, transform);
+    if (transform[kMPersp0] != 0 || transform[kMPersp1] != 0 || transform[kMPersp2] != 1) {
+        LOGE("Non-affine transform provided");
+        return false;
+    }
+
+    FS_MATRIX pdfiumTransform = {transform[kMScaleX], transform[kMSkewY],  transform[kMSkewX],
+                                 transform[kMScaleY], transform[kMTransX], transform[kMTransY]};
+
+    // Actually render via Page
+    std::shared_ptr<Page> page = doc->GetPage(pageNum);
+    page->Render(bitmap, pdfiumTransform, clipLeft, clipTop, clipRight, clipBottom, renderMode,
+                 hideTextAnnots);
+    if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
+        LOGE("Couldn't unlock bitmap pixel address");
+        return false;
+    }
+    return true;
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_cloneWithoutSecurity(JNIEnv* env,
-                                                                            jobject jPdfDocument,
-                                                                            jint destination) {
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
+        JNIEnv* env, jobject jPdfDocument, jint destination) {
     std::unique_lock<std::mutex> lock(mutex_);
     LinuxFileOps::FDCloser fd(destination);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     return doc->CloneDocumentWithoutSecurity(std::move(fd));
 }
 
-JNIEXPORT jstring JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageText(
+JNIEXPORT jstring JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -198,7 +208,7 @@ JNIEXPORT jstring JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return env->NewStringUTF(text.c_str());
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageAltText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageAltText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -209,7 +219,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaStrings(env, alt_texts);
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_searchPageText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_searchPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jstring query) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -226,7 +236,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return match_rects;
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_selectPageText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_selectPageText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject start, jobject stop) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -258,7 +268,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaSelection(env, pageNum, native_start, native_stop, rects, text);
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageLinks(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageLinks(
         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -272,71 +282,87 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaLinkRects(env, rects, link_to_rect, urls);
 }
 
-// JNIEXPORT jbyteArray JNICALL
-// Java_com_google_android_apps_viewer_pdflib_PdfDocument_getPageGotoLinksByteArray(
-//         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
-//     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-//     std::shared_ptr<Page> page = doc->GetPage(pageNum);
-//
-//     GotoLinkList links = page->GetGotoLinks();
-//
-//     ScopedLocalRef<jbyteArray> output_bytes = CppProtoToBytes(env, links);
-//     return output_bytes.release();
-// } @Todo b/307870155
-
-JNIEXPORT void JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_releasePage(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageGotoLinks(
         JNIEnv* env, jobject jPdfDocument, jint pageNum) {
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum);
 
+    vector<GotoLink> links = page->GetGotoLinks();
+
+    return convert::ToJavaGotoLinks(env, links);
+}
+
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_retainPage(JNIEnv* env,
+                                                                             jobject jPdfDocument,
+                                                                             jint pageNum) {
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    doc->GetPage(pageNum, true);
+}
+
+JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_releasePage(JNIEnv* env,
+                                                                              jobject jPdfDocument,
+                                                                              jint pageNum) {
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     doc->ReleaseRetainedPage(pageNum);
 }
 
-JNIEXPORT jboolean JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_isPdfLinearized(
-        JNIEnv* env, jobject jPdfDocument) {
+JNIEXPORT jboolean JNICALL
+Java_android_graphics_pdf_PdfDocumentProxy_scaleForPrinting(JNIEnv* env, jobject jPdfDocument) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    return doc->ShouldScaleForPrinting();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_android_graphics_pdf_PdfDocumentProxy_isPdfLinearized(JNIEnv* env, jobject jPdfDocument) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     return doc->IsLinearized();
 }
 
-JNIEXPORT jint JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormType(
-        JNIEnv* env, jobject jPdfDocument) {
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormType(JNIEnv* env,
+                                                                            jobject jPdfDocument) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     return doc->GetFormType();
 }
 
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfo__III(JNIEnv* env,
-                                                                              jobject jPdfDocument,
-                                                                              jint pageNum, jint x,
-                                                                              jint y) {
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfo__III(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint x, jint y) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     Point_i point{x, y};
     FormWidgetInfo result = page->GetFormWidgetInfo(point);
+    if (!result.FoundWidget()) {
+        LOGE("No widget found at point x = %d, y = %d", x, y);
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaFormWidgetInfo(env, result);
 }
 
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfo__II(JNIEnv* env,
-                                                                             jobject jPdfDocument,
-                                                                             jint pageNum,
-                                                                             jint index) {
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfo__II(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     FormWidgetInfo result = page->GetFormWidgetInfo(index);
+    if (!result.FoundWidget()) {
+        LOGE("No widget found at this index %d", index);
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaFormWidgetInfo(env, result);
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_getFormWidgetInfos(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfos(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
@@ -351,14 +377,19 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaFormWidgetInfos(env, widget_infos);
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_clickOnPage(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_clickOnPage(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint x, jint y) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     Point_i point{x, y};
-    page->ClickOnPoint(point);
+    bool clicked = page->ClickOnPoint(point);
+    if (!clicked) {
+        LOGE("Cannot click on this widget");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     vector<Rectangle_i> invalid_rects;
     if (page->HasInvalidRect()) {
@@ -368,14 +399,19 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaRects(env, invalid_rects);
 }
 
-JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldText(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldText(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex, jstring jText) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     const char* text = jText == nullptr ? "" : env->GetStringUTFChars(jText, nullptr);
-    page->SetFormFieldText(annotationIndex, text);
+    bool set = page->SetFormFieldText(annotationIndex, text);
+    if (!set) {
+        LOGE("Cannot set form field text on this widget.");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     if (jText) {
         env->ReleaseStringUTFChars(jText, text);
@@ -389,8 +425,7 @@ JNIEXPORT jobject JNICALL Java_com_google_android_apps_viewer_pdflib_PdfDocument
     return convert::ToJavaRects(env, invalid_rects);
 }
 
-JNIEXPORT jobject JNICALL
-Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldSelectedIndices(
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldSelectedIndices(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
         jobject jSelectedIndices) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -398,7 +433,12 @@ Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldSelectedIndic
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
     vector<int> selected_indices = convert::ToNativeIntegerVector(env, jSelectedIndices);
-    page->SetChoiceSelection(annotationIndex, selected_indices);
+    bool set = page->SetChoiceSelection(annotationIndex, selected_indices);
+    if (!set) {
+        LOGE("Cannot set selected indices on this widget.");
+        doc->ReleaseRetainedPage(pageNum);
+        return NULL;
+    }
 
     vector<Rectangle_i> invalid_rects;
     if (page->HasInvalidRect()) {
@@ -407,16 +447,3 @@ Java_com_google_android_apps_viewer_pdflib_PdfDocument_setFormFieldSelectedIndic
     doc->ReleaseRetainedPage(pageNum);
     return convert::ToJavaRects(env, invalid_rects);
 }
-
-namespace {
-
-bool RenderTileFd(JNIEnv* env, jobject jPdfDocument, jint pageNum, int pageWidth, int pageHeight,
-                  const Rectangle_i& tile, jboolean hideTextAnnots, jboolean retainPage, int fd) {
-    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
-    std::shared_ptr<Page> page = doc->GetPage(pageNum, retainPage);
-
-    FdWriter fd_writer(fd);
-    return page->RenderTile(pageWidth, pageHeight, tile, hideTextAnnots, &fd_writer);
-}
-
-}  // namespace

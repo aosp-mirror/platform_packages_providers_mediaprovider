@@ -39,6 +39,7 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.Application;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -1072,9 +1073,19 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logPickerOpened(int callingUid, String callingPackage, String intentAction) {
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            UserManagerState userManagerState = getUserManagerState();
+            if (userManagerState.getCurrentUserProfileId().getIdentifier()
+                    == ActivityManager.getCurrentUser()) {
+                mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
+            } else if (userManagerState.isManagedUserProfile(
+                    userManagerState.getCurrentUserProfileId())) {
+                mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
+            } else {
+                mLogger.logPickerOpenUnknown(mInstanceId, callingUid, callingPackage);
+            }
             return;
         }
-        //Todo(b/318614654): need to refactor
+
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1167,9 +1178,21 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logPickerConfirm(int callingUid, String callingPackage, int countOfItemsConfirmed) {
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            UserManagerState userManagerState = getUserManagerState();
+            if (userManagerState.getCurrentUserProfileId().getIdentifier()
+                    == ActivityManager.getCurrentUser()) {
+                mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
+                        countOfItemsConfirmed);
+            } else if (userManagerState.isManagedUserProfile(
+                    userManagerState.getCurrentUserProfileId())) {
+                mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
+                        countOfItemsConfirmed);
+            } else {
+                mLogger.logPickerConfirmUnknown(
+                        mInstanceId, callingUid, callingPackage, countOfItemsConfirmed);
+            }
             return;
         }
-        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
                     countOfItemsConfirmed);
@@ -1184,9 +1207,18 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void logPickerCancel(int callingUid, String callingPackage) {
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            UserManagerState userManagerState = getUserManagerState();
+            if (userManagerState.getCurrentUserProfileId().getIdentifier()
+                    == ActivityManager.getCurrentUser()) {
+                mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
+            } else if (userManagerState.isManagedUserProfile(
+                    userManagerState.getCurrentUserProfileId())) {
+                mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
+            } else {
+                mLogger.logPickerCancelUnknown(mInstanceId, callingUid, callingPackage);
+            }
             return;
         }
-        //Todo(b/318614654): need to refactor
         if (getUserIdManager().isManagedUserSelected()) {
             mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
         } else {
@@ -1225,10 +1257,24 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
+     * Log metrics to notify that the 'switch profile menu' button is visible
+     */
+    public void logProfileSwitchMenuButtonVisible() {
+        mLogger.logProfileSwitchMenuButtonVisible(mInstanceId);
+    }
+
+    /**
      * Log metrics to notify that the user has clicked the 'switch profile' button
      */
     public void logProfileSwitchButtonClick() {
         mLogger.logProfileSwitchButtonClick(mInstanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile menu ' button
+     */
+    public void logProfileSwitchMenuButtonClick() {
+        mLogger.logProfileSwitchMenuButtonClick(mInstanceId);
     }
 
     /**

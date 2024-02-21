@@ -48,7 +48,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
@@ -81,6 +86,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ModelTestUtils;
 import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.espresso.PhotoPickerBaseTest;
 
 import com.google.android.collect.Lists;
 
@@ -877,5 +883,78 @@ public class PickerViewModelTest {
 
         assertEquals(testIntent,
                 mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+    }
+
+    @Test
+    public void testMainGridInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that the request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void testMainGridPickerChoiceInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent =  PhotoPickerBaseTest.getUserSelectImagesForAppIntent();
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+    }
+
+    @Test
+    public void testMainGridInitOnResetRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.resetAllContentInCurrentProfile(true);
+
+        // Check that init request was sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(2)).initPhotoPickerData(any(), any(), eq(false), any());
     }
 }

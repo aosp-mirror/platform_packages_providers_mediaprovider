@@ -53,7 +53,7 @@ struct GotoLinkDest {
     int page_number = 0;
     float x = 0;
     float y = 0;
-    float zoom = 1;
+    float zoom = 0;
 
     void set_page_number(int page_number) { this->page_number = page_number; }
 

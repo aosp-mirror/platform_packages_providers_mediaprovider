@@ -88,7 +88,6 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
     static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
-    static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
     private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
 
@@ -274,7 +273,7 @@ public class PickerSyncManager {
         // requests in
         // order to avoid adding latency to critical MP code paths.
 
-        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.REPLACE, syncRequest);
+        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
     }
 
     /**
@@ -411,7 +410,6 @@ public class PickerSyncManager {
         return new OneTimeWorkRequest.Builder(ProactiveSyncWorker.class)
                 .setInputData(inputData)
                 .setConstraints(constraints)
-                .setInitialDelay(PROACTIVE_SYNC_DELAY_MS, TimeUnit.MILLISECONDS)
                 .build();
     }
 

@@ -73,6 +73,7 @@ bootclasspath_fragment {
     contents: [
         "framework-mediaprovider",
         "framework-pdf",
+        "framework-pdf-v",
     ],
     apex_available: ["com.android.mediaprovider"],
     // The bootclasspath_fragments that provide APIs on which this depends.

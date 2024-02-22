@@ -16,7 +16,7 @@ apex_defaults {
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
     sh_binaries: [
         // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
-        "media_provider"
+        "media_provider",
     ],
     prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
@@ -54,6 +54,7 @@ bootclasspath_fragment {
     contents: [
         "framework-mediaprovider",
         "framework-pdf",
+        "framework-pdf-v",
     ],
     apex_available: ["com.android.mediaprovider"],
 

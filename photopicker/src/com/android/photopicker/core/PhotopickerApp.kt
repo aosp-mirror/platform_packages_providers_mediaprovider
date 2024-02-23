@@ -16,11 +16,16 @@
 
 package com.android.photopicker.core
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
+import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.navigation.PhotopickerNavGraph
 
 /**
  * This is the top of the Compose UI node tree. This is called from the MainActivity and is the
@@ -29,5 +34,20 @@ import androidx.compose.ui.Modifier
  */
 @Composable
 fun PhotopickerApp() {
-    Surface(modifier = Modifier.fillMaxSize()) { Text("Hello World from Photopicker!") }
+
+    // Initialize and remember the NavController. This needs to be provided before the call to
+    // the NavigationGraph, so this is done at the top.
+    val navController = rememberNavController()
+
+    // Provide the NavController to the rest of the Compose stack.
+    CompositionLocalProvider(LocalNavController provides navController) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column {
+                Text("Hello World from Photopicker!")
+
+                // Initialize the navigation graph.
+                PhotopickerNavGraph()
+            }
+        }
+    }
 }

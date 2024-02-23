@@ -31,9 +31,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.PhotopickerConfiguration
-import com.android.photopicker.core.features.alwaysdisabledfeature.AlwaysDisabledFeature
-import com.android.photopicker.core.features.highpriorityuifeature.HighPriorityUiFeature
-import com.android.photopicker.core.features.simpleuifeature.SimpleUiFeature
+import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
+import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
+import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first

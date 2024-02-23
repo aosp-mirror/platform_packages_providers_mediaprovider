@@ -54,6 +54,7 @@ filegroup {
     srcs: [
         "java/**/*.java",
     ],
+    exclude_srcs: ["java/android/graphics/pdf/PdfRenderer.java"],
     path: "java",
     visibility: [
         "//packages/providers/MediaProvider/pdf/tests",

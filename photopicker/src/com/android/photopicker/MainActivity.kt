@@ -19,8 +19,13 @@ package com.android.photopicker
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
+import com.android.photopicker.core.ActivityOwned
 import com.android.photopicker.core.PhotopickerApp
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.LocalFeatureManager
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * This is the main entrypoint into the Android Photopicker.
@@ -30,6 +35,9 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint(ComponentActivity::class)
 class MainActivity : Hilt_MainActivity() {
+
+    @Inject @ActivityOwned lateinit var featureManager: FeatureManager
+
     companion object {
         val TAG: String = "Photopicker"
     }
@@ -37,6 +45,12 @@ class MainActivity : Hilt_MainActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContent { PhotopickerApp() }
+        setContent {
+
+            // Provide the [FeatureManager] to the entire compose stack.
+            CompositionLocalProvider(LocalFeatureManager provides featureManager) {
+                PhotopickerApp()
+            }
+        }
     }
 }

@@ -87,7 +87,7 @@ class Page {
     Rectangle_i Dimensions() const;
 
     // Returns the bit-wise or of all of the features found on this page -
-    // see features.h for the different features and their values.
+    // see pdf_features.h for the different features and their values.
     int32_t GetFeatures() const;
 
     // Render the page to the output bitmap, applying the appropriate transform, clip, and

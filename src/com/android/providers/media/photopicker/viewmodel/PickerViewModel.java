@@ -185,6 +185,10 @@ public class PickerViewModel extends AndroidViewModel {
     private static int sAccentColorBrightness;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
 
+    // This boolean remembers that the data has been initialized so that if Picker Activity gets
+    // re-created, we don't re-send a data initialization request.
+    private boolean mIsPhotoPickerDataInitialized = false;
+
     public PickerViewModel(@NonNull Application application) {
         super(application);
         mAppContext = application.getApplicationContext();
@@ -210,11 +214,6 @@ public class PickerViewModel extends AndroidViewModel {
             mUserManagerState = null;
         }
 
-        // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
-        // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
-        // background. In these scenarios, content observer will be unregistered and PickerViewModel
-        // will not be able to receive CMP change notifications.
-        initPhotoPickerData();
         registerRefreshUiNotificationObserver();
         // Add notification content observer for any notifications received for changes in media.
         NotificationContentObserver contentObserver = new NotificationContentObserver(null);
@@ -1690,10 +1689,21 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * This will inform the media Provider process that the UI is preparing to load data for the
-     * main photos grid.
+     * Sends an init notification to the Media Provider process if it hasn't already been sent yet.
      */
-    public void initPhotoPickerData() {
+    public void maybeInitPhotoPickerData() {
+        if (!mIsPhotoPickerDataInitialized) {
+            initPhotoPickerData();
+            mIsPhotoPickerDataInitialized = true;
+        } else {
+            Log.d(TAG, "Main grid is already initialized.");
+        }
+    }
+
+    /**
+     * Sends an init notification to the Media Provider process.
+     */
+    private void initPhotoPickerData() {
         initPhotoPickerData(Category.DEFAULT);
     }
 

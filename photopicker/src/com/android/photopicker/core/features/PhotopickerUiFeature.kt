@@ -17,6 +17,7 @@
 package com.android.photopicker.core.features
 
 import androidx.compose.runtime.Composable
+import com.android.photopicker.core.navigation.Route
 
 /**
  * All Features that wish to add composables to the UI must implement this interface.
@@ -42,12 +43,12 @@ interface PhotopickerUiFeature : PhotopickerFeature {
     fun registerLocations(): List<Pair<Location, Int>>
 
     /**
-     * The primary compose hool for rendering composables into the UI for a feature.
+     * The primary compose hook for rendering composables into the UI for a feature.
      *
      * The location being composed is passed as an argument, and it's expected that the feature
      * correctly maps the correct composable to the incoming location.
      *
-     * It is strongly encourage to use a when block to handle this top level compose call, and
+     * It is strongly encouraged to use a when block to handle this top level compose call, and
      * correctly map the feature's composables to the location such as:
      * ```
      *
@@ -70,4 +71,13 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * normal @Composable functions. (Such as offloading background work via Coroutines.)
      */
     @Composable fun compose(location: Location): Unit
+
+    /**
+     * This is called when the [NavHost] is composed for all enabled [PhotopickerUiFeature] to
+     * assemble the navigable routes.
+     *
+     * @return A set of [Route] to add to the navigation graph, or an empty set if this feature
+     *   exposes no routes.
+     */
+    fun registerNavigationRoutes(): Set<Route> = emptySet<Route>()
 }

@@ -184,6 +184,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
+
+            // This needs to happen after we have parsed values from Intent.
+            mPickerViewModel.maybeInitPhotoPickerData();
+
             if (PickerViewModel.isCustomPickerColorSet()) {
                 mDefaultBackgroundColor = PickerViewModel.getThemeBasedColor(
                         AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,

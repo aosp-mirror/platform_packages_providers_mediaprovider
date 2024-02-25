@@ -22,6 +22,8 @@ android_library {
         "androidx.core_core-ktx",
         "androidx.lifecycle_lifecycle-runtime-compose",
         "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.navigation_navigation-compose",
+        "androidx.navigation_navigation-runtime-ktx",
         "hilt_android",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",

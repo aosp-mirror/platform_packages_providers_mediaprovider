@@ -65,6 +65,9 @@ class FeatureManager(
     val enabledFeatures: Set<PhotopickerFeature>
         get() = _enabledFeatures.toSet()
 
+    val enabledUiFeatures: Set<PhotopickerUiFeature>
+        get() = _enabledFeatures.filterIsInstance<PhotopickerUiFeature>().toSet()
+
     /*
      * The location registry for [PhotopickerUiFeature].
      *

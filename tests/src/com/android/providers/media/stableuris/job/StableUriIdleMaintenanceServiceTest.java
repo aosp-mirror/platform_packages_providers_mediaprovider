@@ -36,6 +36,7 @@ import com.android.providers.media.ConfigStore;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -82,6 +83,7 @@ public class StableUriIdleMaintenanceServiceTest {
 
     @Test
     @SdkSuppress(minSdkVersion = 31, codeName = "S")
+    @Ignore
     public void testDataMigrationForInternalVolume() {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();

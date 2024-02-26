@@ -22,10 +22,9 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Point;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import com.google.common.base.Preconditions;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -275,7 +274,7 @@ public final class FormEditRecord implements Parcelable {
         public Builder setClickPoint(@Nullable Point clickPoint) {
             Preconditions.checkArgument(
                     mType == EDIT_TYPE_CLICK, "Cannot set clickPoint on a record of this type");
-            Preconditions.checkNotNull(clickPoint);
+            Preconditions.checkNotNull(clickPoint, "Click point cannot be null");
             this.mClickPoint = clickPoint;
             return this;
         }

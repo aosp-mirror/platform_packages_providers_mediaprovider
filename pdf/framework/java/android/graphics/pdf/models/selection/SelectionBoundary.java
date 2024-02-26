@@ -22,8 +22,7 @@ import android.annotation.Nullable;
 import android.graphics.Point;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
-
-import com.google.common.base.Preconditions;
+import android.graphics.pdf.utils.Preconditions;
 
 /**
  * Represents one edge of the selected content.

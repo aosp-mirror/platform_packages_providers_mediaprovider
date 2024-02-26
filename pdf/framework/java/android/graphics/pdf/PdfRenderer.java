@@ -39,14 +39,13 @@ import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.CloseGuard;
 import android.util.Log;
 
 import androidx.annotation.RestrictTo;
-
-import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;
@@ -338,7 +337,7 @@ public final class PdfRenderer implements AutoCloseable {
     /**
      * Returns the form type of the loaded PDF
      *
-     * @throws IllegalStateException if the renderer is closed
+     * @throws IllegalStateException    if the renderer is closed
      * @throws IllegalArgumentException if an unexpected PDF form type is returned
      */
     @PdfFormType
@@ -448,13 +447,14 @@ public final class PdfRenderer implements AutoCloseable {
 
     /** @hide */
     @IntDef({
-        PDF_FORM_TYPE_NONE,
-        PDF_FORM_TYPE_ACRO_FORM,
-        PDF_FORM_TYPE_XFA_FULL,
-        PDF_FORM_TYPE_XFA_FOREGROUND
+            PDF_FORM_TYPE_NONE,
+            PDF_FORM_TYPE_ACRO_FORM,
+            PDF_FORM_TYPE_XFA_FULL,
+            PDF_FORM_TYPE_XFA_FOREGROUND
     })
     @Retention(RetentionPolicy.SOURCE)
-    public @interface PdfFormType {}
+    public @interface PdfFormType {
+    }
 
     /** @hide */
     @IntDef({
@@ -773,11 +773,12 @@ public final class PdfRenderer implements AutoCloseable {
          * Returns information about the widget with {@code widgetIndex}.
          *
          * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
-         *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
-         *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
-         *     FormWidgetInfo#getWidgetIndex()}.
+         *                    document, available on results of previous calls to
+         *                    {@link #getFormWidgetInfos(Set)}
+         *                    or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
+         *                    FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
-         * @throws IllegalStateException if the renderer or page is closed
+         * @throws IllegalStateException    if the renderer or page is closed
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -794,7 +795,7 @@ public final class PdfRenderer implements AutoCloseable {
          * @param x the x position of the widget on the page, in points
          * @param y the y position of the widget on the page, in points
          * @throws IllegalArgumentException if there is no form widget at the provided position.
-         * @throws IllegalStateException if the renderer or page is closed
+         * @throws IllegalStateException    if the renderer or page is closed
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -822,12 +823,15 @@ public final class PdfRenderer implements AutoCloseable {
          *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not applicable
-         *     to the widget indicated by the index (e.g. a set indices type record contains an
-         *     index that corresponds to push button widget, or if the index does not correspond to
-         *     a form widget on the page).
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not
+         *                                  applicable
+         *                                  to the widget indicated by the index (e.g. a set indices
+         *                                  type record contains an
+         *                                  index that corresponds to push button widget, or if the
+         *                                  index does not correspond to
+         *                                  a form widget on the page).
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)

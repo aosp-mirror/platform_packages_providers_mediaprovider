@@ -28,6 +28,7 @@ apex {
     jni_libs: [
         "libpdfclient",
     ],
+    compile_multilib: "both",
 }
 
 apex_defaults {

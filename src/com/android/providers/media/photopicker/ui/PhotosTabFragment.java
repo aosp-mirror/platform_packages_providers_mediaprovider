@@ -168,7 +168,8 @@ public class PhotosTabFragment extends TabFragment {
                         mOnAccountUpdatedBannerEventListener,
                         mOnChooseAccountBannerEventListener,
                         mOnMediaItemHoverListener,
-                        viewSizeProvider);
+                        viewSizeProvider,
+                        mPickerViewModel);
 
         mPreloadModelProvider = new PickerPreloadModelProvider(getContext(), adapter);
         mGlideRequestManager = Glide.with(this);
@@ -274,12 +275,12 @@ public class PhotosTabFragment extends TabFragment {
         if (mIsCloudMediaInPhotoPickerEnabled) {
             mLoadingTextView = view.findViewById(R.id.loading_text_view);
             mProgressBar = view.findViewById(R.id.progress_bar);
-            if (PickerViewModel.isCustomPickerColorSet()) {
+            if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
                 setProgressBarColors(mLoadingTextView, mProgressBar,
-                        PickerViewModel.getThemeBasedColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                                 AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
                                 AccentColorResources.ON_SURFACE_VARIANT_DARK),
-                        PickerViewModel.getThemeBasedColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                                 AccentColorResources.SURFACE_TINT_LIGHT,
                                 AccentColorResources.SURFACE_TINT_DARK));
             }

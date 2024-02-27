@@ -44,7 +44,7 @@ java_sdk_library {
     ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
-        "//cts/tests/pdf",
+        "//cts/tests/pdf:__subpackages__",
     ],
     jarjar_rules: "jarjar-rules.txt",
     min_sdk_version: "30",

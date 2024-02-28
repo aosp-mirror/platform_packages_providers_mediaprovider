@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blockeras av administratören"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Åtkomst till jobbdata från en privat app tillåts inte"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Åtkomst till privat data från en jobbapp tillåts inte"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Åtkomst till <xliff:g id="PROFILE1">%1$s</xliff:g>data från en <xliff:g id="PROFILE2">%2$s</xliff:g>app tillåts inte"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Byt till <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Jobbappar har pausats"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g>appar har pausats"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Om du vill öppna jobbfoton aktiverar du jobbappar och försöker igen"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Om du vill öppna <xliff:g id="PROFILE1">%1$s</xliff:g>foton aktiverar du dina <xliff:g id="PROFILE2">%2$s</xliff:g>appar och försöker igen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Denna app får bara tillgång till foton du väljer"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Välj vilka foton och videor du vill ge appen åtkomst till"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> objekt}other{<xliff:g id="COUNT_1">^1</xliff:g> objekt}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Försök igen senare. Dina foton blir tillgängliga när problemet har lösts."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Det gick inte att läsa in vissa foton"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Åtkomst till medieägarens paketnamn"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Tillåter att appen får åtkomst till ägarens paketnamn för alla tillgängliga mediefiler."</string>
 </resources>

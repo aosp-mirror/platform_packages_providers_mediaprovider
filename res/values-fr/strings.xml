@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Aperçu"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Passer au profil professionnel"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Passer au profil personnel"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Personnel"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Vous n\'êtes pas autorisé à accéder à des données professionnelles depuis une appli personnelle"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Vous n\'êtes pas autorisé à accéder à des données à caractère personnel depuis une appli professionnelle"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Vous n\'êtes pas autorisé à accéder à des données <xliff:g id="PROFILE1">%1$s</xliff:g> depuis une appli <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Passer à <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Applis professionnelles en pause"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les applis <xliff:g id="PROFILE">%s</xliff:g> sont en veille"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Pour ouvrir des photos professionnelles, activez vos applis professionnelles, puis réessayez"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Pour ouvrir les photos <xliff:g id="PROFILE1">%1$s</xliff:g>, ouvrez vos applis <xliff:g id="PROFILE2">%2$s</xliff:g> et réessayez"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Cette appli peut uniquement accéder aux photos que vous sélectionnez"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Sélectionnez les photos et vidéos auxquelles cette appli peut accéder"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> élément}one{<xliff:g id="COUNT_1">^1</xliff:g> élément}many{<xliff:g id="COUNT_1">^1</xliff:g> éléments}other{<xliff:g id="COUNT_1">^1</xliff:g> éléments}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Réessayez plus tard. Vos photos seront disponibles une fois le problème résolu."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Impossible de charger certaines photos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Accéder au nom de package du propriétaire des fichiers multimédias"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Autorisez l\'application à accéder aux noms de package du propriétaire de l\'ensemble des fichiers multimédias accessibles."</string>
 </resources>

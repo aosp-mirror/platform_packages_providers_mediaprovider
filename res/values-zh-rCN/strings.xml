@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"预览"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"切换到工作资料"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"切换到个人资料"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"个人"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"已被您的管理员禁止"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"不允许通过个人应用访问工作数据"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"不允许通过工作应用访问个人数据"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"不允许通过<xliff:g id="PROFILE2">%2$s</xliff:g>应用访问<xliff:g id="PROFILE1">%1$s</xliff:g>数据"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"切换到<xliff:g id="PROFILE">%s</xliff:g>资料"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"工作应用已暂停"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g>应用已暂停"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"如需打开工作照片，请打开您的工作应用，然后重试"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"若要打开<xliff:g id="PROFILE1">%1$s</xliff:g>照片，请先开启<xliff:g id="PROFILE2">%2$s</xliff:g>应用，然后重试"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"此应用只能访问您选择的照片"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"选择允许此应用访问的照片和视频"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 个}other{<xliff:g id="COUNT_1">^1</xliff:g> 个}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"请稍后再试。问题解决后，您就能看到这些照片了。"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"部分照片无法加载"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"知道了"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"获取媒体所有者软件包名称"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"允许应用获取所有可访问的媒体文件的所有者软件包名称。"</string>
 </resources>

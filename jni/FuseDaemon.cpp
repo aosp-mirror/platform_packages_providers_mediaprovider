@@ -764,8 +764,31 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     fuse->active->store(true, std::memory_order_release);
 }
 
+static void removeInstance(struct fuse* fuse, std::string instance_name) {
+    if (fuse->level_db_connection_map.find(instance_name) != fuse->level_db_connection_map.end()) {
+        delete fuse->level_db_connection_map[instance_name];
+        (fuse->level_db_connection_map).erase(instance_name);
+        LOG(INFO) << "Removed leveldb connection for " << instance_name;
+    }
+}
+
+static void removeLevelDbConnection(struct fuse* fuse) {
+    if (android::base::StartsWith(fuse->path, PRIMARY_VOLUME_PREFIX)) {
+        removeInstance(fuse, VOLUME_INTERNAL);
+        removeInstance(fuse, OWNERSHIP_RELATION);
+        removeInstance(fuse, VOLUME_EXTERNAL_PRIMARY);
+    } else {
+        // Return "C58E-1702" from the path like "/storage/C58E-1702"
+        std::string volume_name = (fuse->path).substr(9);
+        // Convert to lowercase
+        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
+        removeInstance(fuse, volume_name);
+    }
+}
+
 static void pf_destroy(void* userdata) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    removeLevelDbConnection(fuse);
     LOG(INFO) << "DESTROY " << fuse->path;
 
     node::DeleteTree(fuse->root);
@@ -2643,8 +2666,8 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection.";
-        return file_paths;
+        LOG(INFO) << "ReadFilePathsFromLevelDb: Missing leveldb connection, attempting setup.";
+        SetupLevelDbInstances();
     }
 
     leveldb::Iterator* it =

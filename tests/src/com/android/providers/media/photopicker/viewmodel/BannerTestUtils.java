@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 
 class BannerTestUtils {
     static BannerController getTestBannerController(@NonNull Context context,
@@ -38,6 +39,42 @@ class BannerTestUtils {
     static BannerManager getTestCloudBannerManager(@NonNull Context context,
             @NonNull UserIdManager userIdManager, @NonNull ConfigStore configStore) {
         return new BannerManager.CloudBannerManager(context, userIdManager, configStore) {
+            @Override
+            void maybeInitialiseAndSetBannersForCurrentUser() {
+                // Get (iff exists) or create the banner controller for the current user
+                final BannerController bannerController =
+                        getBannerControllersPerUser().forUser(getCurrentUserProfileId());
+                // Post the banner related live data values from this current user banner controller
+                getCloudMediaProviderAuthorityLiveData()
+                        .postValue(bannerController.getCloudMediaProviderAuthority());
+                getCloudMediaProviderAppTitleLiveData()
+                        .postValue(bannerController.getCloudMediaProviderLabel());
+                getCloudMediaAccountNameLiveData()
+                        .postValue(bannerController.getCloudMediaProviderAccountName());
+                setChooseCloudMediaAccountActivityIntent(
+                        bannerController.getChooseCloudMediaAccountActivityIntent());
+                shouldShowChooseAppBannerLiveData()
+                        .postValue(bannerController.shouldShowChooseAppBanner());
+                shouldShowCloudMediaAvailableBannerLiveData()
+                        .postValue(bannerController.shouldShowCloudMediaAvailableBanner());
+                shouldShowAccountUpdatedBannerLiveData()
+                        .postValue(bannerController.shouldShowAccountUpdatedBanner());
+                shouldShowChooseAccountBannerLiveData()
+                        .postValue(bannerController.shouldShowChooseAccountBanner());
+            }
+
+            @NonNull
+            @Override
+            BannerController createBannerController(@NonNull Context context,
+                    @NonNull UserHandle userHandle, @NonNull ConfigStore configStore) {
+                return getTestBannerController(context, userHandle, configStore);
+            }
+        };
+    }
+
+    static BannerManager getTestCloudBannerManager(@NonNull Context context,
+            @NonNull UserManagerState userManagerState, @NonNull ConfigStore configStore) {
+        return new BannerManager.CloudBannerManager(context, userManagerState, configStore) {
             @Override
             void maybeInitialiseAndSetBannersForCurrentUser() {
                 // Get (iff exists) or create the banner controller for the current user

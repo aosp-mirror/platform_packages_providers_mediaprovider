@@ -18,8 +18,8 @@ package com.android.photopicker.core
 
 import javax.inject.Qualifier
 
-/** This qualifies the injectable resource to be bound to the Activity lifecycle */
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class ActivityOwned
+/** This qualifies the injectable resource to be bound to the Application. */
+@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class ApplicationOwned
 
 /** This qualifies the injectable resource to be bound to Background work. */
 @Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Background

@@ -39,6 +39,9 @@ java_sdk_library {
     apex_available: [
         "com.android.mediaprovider",
     ],
+    aconfig_declarations: [
+        "pdf_viewer_flags",
+    ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
         "//cts/tests/pdf",

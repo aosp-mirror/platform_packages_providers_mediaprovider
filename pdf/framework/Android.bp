@@ -29,7 +29,6 @@ java_sdk_library {
     ],
     static_libs: [
         "pdf_viewer_flags_java_lib",
-        "guava",
     ],
     libs: [
         "androidx.annotation_annotation",

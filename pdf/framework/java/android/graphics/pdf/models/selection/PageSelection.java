@@ -19,8 +19,7 @@ package android.graphics.pdf.models.selection;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.pdf.flags.Flags;
-
-import com.google.common.base.Preconditions;
+import android.graphics.pdf.utils.Preconditions;
 
 import java.util.List;
 

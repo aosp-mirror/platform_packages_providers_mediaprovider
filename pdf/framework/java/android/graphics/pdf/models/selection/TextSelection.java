@@ -21,8 +21,7 @@ import android.annotation.NonNull;
 import android.graphics.Rect;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
-
-import com.google.common.base.Preconditions;
+import android.graphics.pdf.utils.Preconditions;
 
 import java.util.List;
 

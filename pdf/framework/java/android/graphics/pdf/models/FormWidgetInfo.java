@@ -22,10 +22,9 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import com.google.common.base.Preconditions;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -341,9 +340,10 @@ public final class FormWidgetInfo implements Parcelable {
                 @NonNull String textValue, @NonNull String accessibilityLabel) {
             mWidgetType = widgetType;
             mWidgetIndex = widgetIndex;
-            mWidgetRect = Preconditions.checkNotNull(widgetRect);
-            mTextValue = Preconditions.checkNotNull(textValue);
-            mAccessibilityLabel = Preconditions.checkNotNull(accessibilityLabel);
+            mWidgetRect = Preconditions.checkNotNull(widgetRect, "widgetRect cannot be null");
+            mTextValue = Preconditions.checkNotNull(textValue, "textValue cannot be null");
+            mAccessibilityLabel = Preconditions.checkNotNull(accessibilityLabel,
+                    "accessibilityLabel cannot be null");
         }
 
         /** Sets whether this widget is read-only */
@@ -435,7 +435,7 @@ public final class FormWidgetInfo implements Parcelable {
          */
         @NonNull
         public Builder setChoiceOptions(@NonNull List<ChoiceOption> choiceOptions) {
-            Preconditions.checkNotNull(choiceOptions);
+            Preconditions.checkNotNull(choiceOptions, "choiceOptions cannot be null");
             Preconditions.checkArgument(mWidgetType == WIDGET_TYPE_COMBOBOX
                             || mWidgetType == WIDGET_TYPE_LISTBOX,
                     "Choice options are only supported on comboboxes and list boxes");

@@ -37,13 +37,12 @@ import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
 import android.util.Log;
-
-import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -359,16 +358,16 @@ public class PdfProcessor {
      * Applies a {@link FormEditRecord} to the PDF.
      *
      * @return a list of rectangular areas invalidated by form widget operation
-     *     <p>For click type {@link FormEditRecord}s, performs a click on {@link
-     *     FormEditRecord#getClickPoint()}
-     *     <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
-     *     <p>For set indices type {@link FormEditRecord}s, sets the {@link
-     *     FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
-     *     form widget indicated by the record.
+     * <p>For click type {@link FormEditRecord}s, performs a click on {@link
+     * FormEditRecord#getClickPoint()}
+     * <p>For set text type {@link FormEditRecord}s, sets the text value of the form widget.
+     * <p>For set indices type {@link FormEditRecord}s, sets the {@link
+     * FormEditRecord#getSelectedIndices()} as selected and all others as unselected for the
+     * form widget indicated by the record.
      */
     @NonNull
     public List<Rect> applyEdit(int pageNum, @NonNull FormEditRecord editRecord) {
-        Preconditions.checkNotNull(editRecord);
+        Preconditions.checkNotNull(editRecord, "Edit record cannot be null");
         Preconditions.checkArgument(pageNum >= 0, "Invalid page number");
         if (editRecord.getType() == FormEditRecord.EDIT_TYPE_CLICK) {
             return applyEditTypeClick(pageNum, editRecord);

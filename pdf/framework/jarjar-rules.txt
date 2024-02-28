@@ -1,3 +1,1 @@
-rule com.google.common.** android.graphics.pdf.internal.publicsuffix.@1
 rule javax.annotation.** android.graphics.pdf.internal.javax.annotation.@1
-rule com.google.thirdparty.publicsuffix.** android.graphics.pdf.internal.publicsuffix.@1

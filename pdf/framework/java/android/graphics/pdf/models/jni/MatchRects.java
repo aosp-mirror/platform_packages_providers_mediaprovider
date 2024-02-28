@@ -20,10 +20,9 @@ import android.annotation.FlaggedApi;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.models.PageMatchBounds;
+import android.graphics.pdf.utils.Preconditions;
 
 import androidx.annotation.NonNull;
-
-import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,9 +56,9 @@ public class MatchRects extends ListOfList<Rect> {
     public MatchRects(@NonNull List<Rect> rects, @NonNull List<Integer> matchToRect,
             @NonNull List<Integer> charIndexes) {
         super(rects, matchToRect);
-        this.mRects = Preconditions.checkNotNull(rects);
-        this.mMatchToRect = Preconditions.checkNotNull(matchToRect);
-        this.mCharIndexes = Preconditions.checkNotNull(charIndexes);
+        this.mRects = Preconditions.checkNotNull(rects, "rects cannot be null");
+        this.mMatchToRect = Preconditions.checkNotNull(matchToRect, "matchToRect cannot be null");
+        this.mCharIndexes = Preconditions.checkNotNull(charIndexes, "charIndexes cannot be null");
     }
 
     public List<Rect> getRects() {

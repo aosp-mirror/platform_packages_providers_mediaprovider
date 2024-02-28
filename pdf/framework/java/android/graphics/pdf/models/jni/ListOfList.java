@@ -16,9 +16,9 @@
 
 package android.graphics.pdf.models.jni;
 
-import androidx.annotation.NonNull;
+import android.graphics.pdf.utils.Preconditions;
 
-import com.google.common.base.Preconditions;
+import androidx.annotation.NonNull;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -38,8 +38,9 @@ public class ListOfList<T> extends AbstractList<List<T>> {
     private final List<Integer> mIndexToFirstValue;
 
     public ListOfList(@NonNull List<T> values, @NonNull List<Integer> indexToFirstValue) {
-        this.mValues = Preconditions.checkNotNull(values);
-        this.mIndexToFirstValue = Preconditions.checkNotNull(indexToFirstValue);
+        this.mValues = Preconditions.checkNotNull(values, "values cannot be null");
+        this.mIndexToFirstValue = Preconditions.checkNotNull(indexToFirstValue,
+                "indexToFirstValue cannot be null");
     }
 
     @NonNull
@@ -50,7 +51,7 @@ public class ListOfList<T> extends AbstractList<List<T>> {
         }
         int start = indexToFirstValue(index);
         int stop = indexToFirstValue(index + 1);
-        Preconditions.checkState(start < stop, "Empty inner lists are not allowed.");
+        Preconditions.checkArgument(start < stop, "Empty inner lists are not allowed.");
         return mValues.subList(start, stop);
     }
 

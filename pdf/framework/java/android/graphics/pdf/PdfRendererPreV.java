@@ -36,12 +36,11 @@ import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.ParcelFileDescriptor;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
-
-import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 import java.lang.annotation.Retention;

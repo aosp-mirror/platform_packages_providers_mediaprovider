@@ -20,9 +20,8 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.utils.Preconditions;
 import android.net.Uri;
-
-import com.google.common.base.Preconditions;
 
 import java.util.List;
 

@@ -178,7 +178,38 @@ public class SelectionTest {
         assertThat(mSelection.getSelectedItems().get(0).getContentUri())
                 .isEqualTo(item3.getContentUri());
     }
+    @Test
+    public void testGetSelectedItemsForPreview_orderedSelection() {
+        try {
+            enableOrderedSelection();
+            final String id1 = "1";
+            final Item item1 = generateFakeImageItem(id1);
+            final String id2 = "2";
+            final Item item2 = generateFakeImageItem(id2);
+            final String id3 = "3";
+            final Item item3 = generateFakeImageItem(id3);
 
+            mSelection.addSelectedItem(item3);
+            mSelection.addSelectedItem(item1);
+            mSelection.addSelectedItem(item2);
+            assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(3);
+
+            List<Item> itemsForPreview = mSelection.getSelectedItemsForPreview();
+            assertThat(itemsForPreview.size()).isEqualTo(0);
+
+            mSelection.prepareSelectedItemsForPreviewAll();
+
+            itemsForPreview = mSelection.getSelectedItemsForPreview();
+            assertThat(itemsForPreview.size()).isEqualTo(3);
+
+            // Verify that the item list is sorted based on dateTaken
+            assertThat(itemsForPreview.get(0).getId()).isEqualTo(id3);
+            assertThat(itemsForPreview.get(1).getId()).isEqualTo(id1);
+            assertThat(itemsForPreview.get(2).getId()).isEqualTo(id2);
+        } finally {
+            disableOrderedSelection();
+        }
+    }
     @Test
     public void testGetSelectedItemsForPreview_multiSelect() {
         final String id1 = "1";

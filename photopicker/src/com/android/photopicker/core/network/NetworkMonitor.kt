@@ -36,12 +36,13 @@ import kotlinx.coroutines.flow.shareIn
  * Provides a long-living [kotlinx.coroutines.flow.SharedFlow] that represents the device's current
  * network status given the defined required capabilities.
  *
- * This is provided in the Activity and will be lazily initialized to prevent it from being created
- * before it is needed, but will live as a singleton for the life of the activity once initialized.
+ * This is provided in the Application and will be lazily initialized to prevent it from being
+ * created before it is needed, but will live as a singleton for the life of the application once
+ * initialized.
  *
  * Will emit a value immediately of the current network status, and then re-emit on every network
- * condition change. Will replay the most recent value for new subscribers. Will stop emitting when
- * all subscribers have unsubscribed.
+ * condition change. Will replay the most recent value for new subscribers. Will stop emitting after
+ * a brief delay when all subscribers have unsubscribed.
  *
  * @property context This expects to receive the ActivityContext for the current Photopicker
  *   session.
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.shareIn
 class NetworkMonitor(context: Context, private val scope: CoroutineScope) {
     companion object {
         val TAG = "PhotopickerNetworkMonitor"
+        val STOP_TIMEOUT_MILLIS: Long = 60000L // One minute
     }
     private val connectivityManager: ConnectivityManager = context.requireSystemService()
 
@@ -99,5 +101,12 @@ class NetworkMonitor(context: Context, private val scope: CoroutineScope) {
                 }
             }
             .distinctUntilChanged()
-            .shareIn(scope, SharingStarted.WhileSubscribed(), replay = 1)
+            .shareIn(
+                scope,
+                // Continue running this callback for up to [STOP_TIMEOUT_MILLIS]
+                // after the last subscriber to allow any new photopicker sessions started
+                // before the deadline to re-use this listener.
+                SharingStarted.WhileSubscribed(stopTimeoutMillis = STOP_TIMEOUT_MILLIS),
+                replay = 1
+            )
 }

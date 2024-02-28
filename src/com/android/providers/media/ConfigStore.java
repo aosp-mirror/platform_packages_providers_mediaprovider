@@ -409,7 +409,8 @@ public interface ConfigStore {
 
         @Override
         public boolean isGetContentTakeOverEnabled() {
-            return getBooleanDeviceConfig(KEY_TAKE_OVER_GET_CONTENT, DEFAULT_TAKE_OVER_GET_CONTENT);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_TAKE_OVER_GET_CONTENT,
+                    DEFAULT_TAKE_OVER_GET_CONTENT);
         }
 
         @Override

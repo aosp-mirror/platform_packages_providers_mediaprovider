@@ -30,6 +30,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
+import static android.provider.MediaStore.EXTRA_IS_STABLE_URIS_ENABLED;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
@@ -48,6 +49,7 @@ import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -56,6 +58,7 @@ import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -6240,19 +6243,38 @@ public class MediaProvider extends ContentProvider {
         }
 
         final ArrayList<String> options = new ArrayList<>();
+        boolean isLatestSelectionOnlyRequired = extras.getBoolean(QUERY_ARG_LATEST_SELECTION_ONLY,
+                false);
         if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)
                 && hasUserSelectedAccess(mCallingIdentity.get(), uriType, forWrite)) {
             // If app has READ_MEDIA_VISUAL_USER_SELECTED permission, allow access on files granted
             // via PhotoPicker launched for Permission. These grants are defined in media_grants
             // table.
             // We exclude volume internal from the query because media_grants are not supported.
-            options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
+            if (isLatestSelectionOnlyRequired) {
+                // If the query arg to include only recent selection has been received then include
+                // this as filter while doing the access check for grants from the media_grants
+                // table. This reduces the clauses needed in the query and makes it more efficient.
+                Log.d(TAG, "In user_select mode, recent selection only is required.");
+                options.add(getWhereForLatestSelection(mCallingIdentity.get(), uriType));
+            } else {
+                Log.d(TAG, "In user_select mode, recent selection only is not required.");
+                options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
+                // Allow access to files which are owned by the caller. Or allow access to files
+                // based on legacy or any other special access permissions.
+                options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
+                        extras));
+            }
+        } else {
+            if (isLatestSelectionOnlyRequired) {
+                Log.w(TAG, "Latest selection request cannot be honored in the current"
+                        + " access mode.");
+            }
+            // Allow access to files which are owned by the caller. Or allow access to files
+            // based on legacy or any other special access permissions.
+            options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
+                    extras));
         }
-
-        // Allow access to files which are owned by the caller. Or allow access to files based on
-        // legacy or any other special access permissions.
-        options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
-                extras));
 
         appendWhereStandalone(qb, TextUtils.join(" OR ", options));
     }
@@ -6677,6 +6699,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.RESOLVE_PLAYLIST_MEMBERS_CALL: {
                 return getResultForResolvePlaylistMembers(extras);
             }
+            case MediaStore.SET_STABLE_URIS_FLAG: {
+                return getResultForSetStableUrisFlag(arg, extras);
+            }
             case MediaStore.RUN_IDLE_MAINTENANCE_CALL: {
                 return getResultForRunIdleMaintenance();
             }
@@ -6820,6 +6845,22 @@ public class MediaProvider extends ContentProvider {
         try {
             final Uri playlistUri = extras.getParcelable(MediaStore.EXTRA_URI);
             resolvePlaylistMembers(playlistUri);
+        } finally {
+            restoreCallingIdentity(providerToken);
+            restoreLocalCallingIdentity(token);
+        }
+        return null;
+    }
+
+    @Nullable
+    private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
+                "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        final CallingIdentity providerToken = clearCallingIdentity();
+        try {
+            final boolean isEnabled = extras.getBoolean(EXTRA_IS_STABLE_URIS_ENABLED);
+            mDatabaseBackupAndRecovery.setStableUrisGlobalFlag(volumeName, isEnabled);
         } finally {
             restoreCallingIdentity(providerToken);
             restoreLocalCallingIdentity(token);
@@ -11200,8 +11241,7 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (Environment.MEDIA_MOUNTED.equalsIgnoreCase(volumeState)) {
-            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName(),
-                    volume.getPath());
+            mDatabaseBackupAndRecovery.setupVolumeDbBackupAndRecovery(volume.getName());
         }
 
         return uri;
@@ -11223,6 +11263,7 @@ public class MediaProvider extends ContentProvider {
     }
 
     public void detachVolume(MediaVolume volume) {
+        Log.v(TAG, "detachVolume() received for " + volume.getName());
         if (mCallingIdentity.get().pid != android.os.Process.myPid()) {
             throw new SecurityException(
                     "Opening and closing databases not allowed.");
@@ -11238,7 +11279,7 @@ public class MediaProvider extends ContentProvider {
                     "Deleting the internal volume is not allowed");
         }
 
-        mDatabaseBackupAndRecovery.onDetachVolume(volume);
+        mDatabaseBackupAndRecovery.onDetachVolume(volumeName);
         // Signal any scanning to shut down
         mMediaScanner.onDetachVolume(volume);
 

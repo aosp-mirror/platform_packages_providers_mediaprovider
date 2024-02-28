@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.content.pm.UserProperties;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -67,8 +68,10 @@ import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.NumberFormat;
@@ -96,7 +99,7 @@ public abstract class TabFragment extends Fragment {
 
     private Button mAddButton;
 
-    private Button mViewSelectedButton;
+    private MaterialButton mViewSelectedButton;
     private View mBottomBar;
     private Animation mSlideUpAnimation;
     private Animation mSlideDownAnimation;
@@ -126,6 +129,7 @@ public abstract class TabFragment extends Fragment {
     private final MutableLiveData<Boolean> mIsProfileButtonOrProfileMenuButtonVisible =
             new MutableLiveData<>(false);
     private ConfigStore mConfigStore;
+    private boolean mIsCustomPickerColorSet = false;
 
     /**
      * In case of multiuser profile, it represents the number of profiles that are off
@@ -164,6 +168,8 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setHasFixedSize(true);
         final ViewModelProvider viewModelProvider = new ViewModelProvider(activity);
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
+        mIsCustomPickerColorSet =
+                mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet();
         mConfigStore = mPickerViewModel.getConfigStore();
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
@@ -201,7 +207,13 @@ public abstract class TabFragment extends Fragment {
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
             mAddButton = activity.findViewById(R.id.button_add);
+
             mViewSelectedButton = activity.findViewById(R.id.button_view_selected);
+
+            if (mIsCustomPickerColorSet) {
+                setCustomPickerButtonColors(
+                        mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor());
+            }
             mAddButton.setOnClickListener(v -> {
                 try {
                     requirePickerActivity().setResultAndFinishSelf();
@@ -229,6 +241,14 @@ public abstract class TabFragment extends Fragment {
             });
 
             mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
+
+            if (mIsCustomPickerColorSet) {
+                mBottomBar.setBackgroundColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+                ));
+            }
             // consume the event so that it doesn't get passed through to the next view b/287661737
             mBottomBar.setOnClickListener(v -> {});
             mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
@@ -359,6 +379,17 @@ public abstract class TabFragment extends Fragment {
                 == UserProperties.SHOW_IN_QUIET_MODE_HIDDEN;
     }
 
+    private void setCustomPickerButtonColors(int accentColor) {
+        String addButtonTextColor =
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR;
+        mAddButton.setBackgroundColor(accentColor);
+        mAddButton.setTextColor(Color.parseColor(addButtonTextColor));
+        mViewSelectedButton.setTextColor(accentColor);
+        mViewSelectedButton.setIconTint(ColorStateList.valueOf(accentColor));
+
+    }
 
     private void updateRecyclerViewBottomPadding() {
         final int recyclerViewBottomPadding;

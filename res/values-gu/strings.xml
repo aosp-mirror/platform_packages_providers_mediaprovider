@@ -70,16 +70,12 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"તમારા ઍડમિને સુવિધા બ્લૉક કરી છે"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"વ્યક્તિગત ઍપ પરથી ઑફિસનો ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ઑફિસ માટેની ઍપ પરથી વ્યક્તિગત ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
-    <!-- no translation found for picker_profile_admin_msg (4060112887923255178) -->
-    <skip />
-    <!-- no translation found for picker_profile_switch_message (1133817927412489487) -->
-    <skip />
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> ઍપ પરથી <xliff:g id="PROFILE1">%1$s</xliff:g>નો ડેટા ઍક્સેસ કરવાની પરવાનગી નથી"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> પર સ્વિચ કરો"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ઑફિસ માટેની ઍપ થોભાવવામાં આવી છે"</string>
-    <!-- no translation found for picker_profile_paused_title (2079739512895529028) -->
-    <skip />
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g>ની ઍપ થોભાવવામાં આવી છે"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ઑફિસના ફોટા ખોલવા માટે, તમારી ઑફિસ માટેની ઍપ ખોલો અને પછી ફરી પ્રયાસ કરો"</string>
-    <!-- no translation found for picker_profile_paused_msg (1215076898583993782) -->
-    <skip />
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g>ના ફોટા ખોલવા માટે, તમારી <xliff:g id="PROFILE2">%2$s</xliff:g> ઍપ ચાલુ કરો પછી ફરી પ્રયાસ કરો"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"આ ઍપ માત્ર તમે પસંદ કરેલા ફોટા જ ઍક્સેસ કરી શકે છે"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"તમે આ ઍપને જે ફોટા અને વીડિયો ઍક્સેસ કરવાની મંજૂરી આપતા હો, તેને પસંદ કરો"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> આઇટમ}one{<xliff:g id="COUNT_1">^1</xliff:g> આઇટમ}other{<xliff:g id="COUNT_1">^1</xliff:g> આઇટમ}}"</string>
@@ -169,8 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"થોડા સમય પછી ફરી પ્રયાસ કરો. એકવાર સમસ્યાનું નિરાકરણ થઈ જાય, તે પછી તમારા ફોટા ઉપલબ્ધ થશે."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"અમુક ફોટા લોડ કરી શકાતા નથી"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"સમજાઈ ગયું"</string>
-    <!-- no translation found for permlab_accessMediaOwnerPackageName (3849443148060165651) -->
-    <skip />
-    <!-- no translation found for permdesc_accessMediaOwnerPackageName (7381563109363105371) -->
-    <skip />
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"મીડિયાના માલિકના પૅકેજનું નામ ઍક્સેસ કરો"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"બધા દ્વારા ઍક્સેસિબલ મીડિયા ફાઇલોના માલિકના પૅકેજના નામોને ઍક્સેસ કરવાની ઍપને મંજૂરી આપે છે."</string>
 </resources>

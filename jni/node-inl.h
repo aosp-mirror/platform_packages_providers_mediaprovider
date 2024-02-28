@@ -322,12 +322,20 @@ class node {
     }
 
     void DestroyHandle(handle* h) {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
+        // A deadlock occurs between FuseDaemon lock and inode lock in the photo picker scenario.
+        // In order to address this deadlock, we release the FuseDaemon lock before closing the
+        // backing file.
+        std::unique_ptr<handle> temp;
+
+        lock_->lock();
 
         auto comp = [h](const std::unique_ptr<handle>& ptr) { return ptr.get() == h; };
         auto it = std::find_if(handles_.begin(), handles_.end(), comp);
         CHECK(it != handles_.end());
+        temp = std::move(*it);
         handles_.erase(it);
+
+        lock_->unlock();
     }
 
     bool HasCachedHandle() const {

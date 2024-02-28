@@ -41,6 +41,8 @@ import androidx.lifecycle.ViewModelProvider;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -48,22 +50,58 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 public class ProfileDialogFragment extends DialogFragment {
 
     private static final String TAG = "ProfileDialog";
+    private UserId mUserIdToSwitch = null;
+
+    public ProfileDialogFragment(UserId userId) {
+        mUserIdToSwitch = userId;
+    }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         final PickerViewModel pickerViewModel = new ViewModelProvider(requireActivity()).get(
                 PickerViewModel.class);
-        final UserIdManager userIdManager = pickerViewModel.getUserIdManager();
         final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity());
+        boolean isDialogCreated;
+        if (pickerViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
+                && SdkLevel.isAtLeastS()) {
+            isDialogCreated = createDialogForMultiProfile(pickerViewModel, builder);
+        } else {
+            isDialogCreated = createDialogForWorkProfile(pickerViewModel, builder);
+        }
+
+        if (!isDialogCreated) {
+            return null;
+        }
+        return builder.create();
+    }
+
+    private boolean createDialogForWorkProfile(PickerViewModel pickerViewModel,
+            MaterialAlertDialogBuilder builder) {
+        final UserIdManager userIdManager = pickerViewModel.getUserIdManager();
         if (userIdManager.isBlockedByAdmin()) {
             setBlockedByAdminParams(userIdManager.isManagedUserSelected(), builder);
         } else if (userIdManager.isWorkProfileOff()) {
             setWorkProfileOffParams(builder);
         } else {
             Log.e(TAG, "Unknown error for profile dialog");
-            return null;
+            return false;
         }
-        return builder.create();
+        return true;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private boolean createDialogForMultiProfile(PickerViewModel pickerViewModel,
+            MaterialAlertDialogBuilder builder) {
+        final UserManagerState userManagerState = pickerViewModel.getUserManagerState();
+        if (userManagerState.isBlockedByAdmin(mUserIdToSwitch)) {
+            setBlockedByAdminParams(userManagerState, builder);
+        } else if (userManagerState.isProfileOff(mUserIdToSwitch)) {
+            setProfileOffParams(builder, userManagerState);
+        } else {
+            Log.e(TAG, "Unknown error for profile dialog");
+            return false;
+        }
+        return true;
     }
 
     private void setBlockedByAdminParams(
@@ -75,7 +113,7 @@ public class ProfileDialogFragment extends DialogFragment {
                     BLOCKED_BY_ADMIN_TITLE, R.string.picker_profile_admin_title);
             message = isManagedUserSelected
                     ? getUpdatedEnterpriseString(
-                            BLOCKED_FROM_WORK_MESSAGE, R.string.picker_profile_admin_msg_from_work)
+                    BLOCKED_FROM_WORK_MESSAGE, R.string.picker_profile_admin_msg_from_work)
                     : getUpdatedEnterpriseString(
                             BLOCKED_FROM_PERSONAL_MESSAGE,
                             R.string.picker_profile_admin_msg_from_personal);
@@ -85,10 +123,44 @@ public class ProfileDialogFragment extends DialogFragment {
                     ? getString(R.string.picker_profile_admin_msg_from_work)
                     : getString(R.string.picker_profile_admin_msg_from_personal);
         }
-        builder.setIcon(R.drawable.ic_lock);
-        builder.setTitle(title);
-        builder.setMessage(message);
-        builder.setPositiveButton(android.R.string.ok, null);
+
+        setDialogParams(builder, null, title, message);
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private void setBlockedByAdminParams(UserManagerState userManagerState,
+            MaterialAlertDialogBuilder builder) {
+        String title;
+        String message;
+        boolean isManagedUserSelected =
+                userManagerState.isManagedUserProfile(userManagerState.getCurrentUserProfileId());
+        if (SdkLevel.isAtLeastV()) {
+            String currentUserProfileLabel =
+                    userManagerState.getProfileLabelsForAll().get(UserId.CURRENT_USER);
+            String switchUserProfileLabel =
+                    userManagerState.getProfileLabelsForAll().get(mUserIdToSwitch);
+
+            title = getString(R.string.picker_profile_admin_title);
+            message = getString(R.string.picker_profile_admin_msg,
+                    switchUserProfileLabel, currentUserProfileLabel);
+
+        } else if (SdkLevel.isAtLeastT()) {
+            title = getUpdatedEnterpriseString(
+                    BLOCKED_BY_ADMIN_TITLE, R.string.picker_profile_admin_title);
+            message = isManagedUserSelected
+                    ? getUpdatedEnterpriseString(
+                    BLOCKED_FROM_WORK_MESSAGE, R.string.picker_profile_admin_msg_from_work)
+                    : getUpdatedEnterpriseString(
+                            BLOCKED_FROM_PERSONAL_MESSAGE,
+                            R.string.picker_profile_admin_msg_from_personal);
+        } else {
+            title = getString(R.string.picker_profile_admin_title);
+            message = isManagedUserSelected
+                    ? getString(R.string.picker_profile_admin_msg_from_work)
+                    : getString(R.string.picker_profile_admin_msg_from_personal);
+        }
+
+        setDialogParams(builder, null, title, message);
     }
 
     private void setWorkProfileOffParams(MaterialAlertDialogBuilder builder) {
@@ -106,12 +178,54 @@ public class ProfileDialogFragment extends DialogFragment {
             title = getContext().getString(R.string.picker_profile_work_paused_title);
             message = getContext().getString(R.string.picker_profile_work_paused_msg);
         }
-        builder.setIcon(icon);
-        builder.setTitle(title);
-        builder.setMessage(message);
         // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
         // after turning on Work profile, work profile MediaProvider may not be available
         // immediately.
+        setDialogParams(builder, icon, title, message);
+    }
+    private void setProfileOffParams(
+            MaterialAlertDialogBuilder builder, UserManagerState userManagerState) {
+
+        Drawable icon;
+        String title;
+        String message;
+
+        if (SdkLevel.isAtLeastV()) {
+            String switchUserProfileLabel =
+                    userManagerState.getProfileLabelsForAll().get(mUserIdToSwitch);
+
+            icon = userManagerState.getProfileBadgeForAll().get(mUserIdToSwitch);
+            title = getContext().getString(
+                    R.string.picker_profile_paused_title, switchUserProfileLabel);
+            message = getContext().getString(R.string.picker_profile_paused_msg,
+                    switchUserProfileLabel, switchUserProfileLabel);
+        } else if (SdkLevel.isAtLeastT()) {
+            icon = getUpdatedWorkProfileIcon();
+            title = getUpdatedEnterpriseString(
+                    WORK_PROFILE_PAUSED_TITLE, R.string.picker_profile_work_paused_title);
+            message = getUpdatedEnterpriseString(
+                    WORK_PROFILE_PAUSED_MESSAGE, R.string.picker_profile_work_paused_msg);
+        } else {
+            icon = getContext().getDrawable(R.drawable.ic_work_outline);
+            title = getContext().getString(R.string.picker_profile_work_paused_title);
+            message = getContext().getString(R.string.picker_profile_work_paused_msg);
+        }
+
+        // TODO(b/197199728): Add listener to turn on apps. This maybe a bit tricky because
+        // after turning on Work profile, work profile MediaProvider may not be available
+        // immediately.
+        setDialogParams(builder, icon, title, message);
+    }
+
+    private void setDialogParams(MaterialAlertDialogBuilder builder, Drawable icon, String title,
+            String message) {
+        if (icon == null) {
+            builder.setIcon(R.drawable.ic_lock);
+        } else {
+            builder.setIcon(icon);
+        }
+        builder.setTitle(title);
+        builder.setMessage(message);
         builder.setPositiveButton(android.R.string.ok, null);
     }
 
@@ -128,9 +242,12 @@ public class ProfileDialogFragment extends DialogFragment {
                 getContext().getDrawable(R.drawable.ic_work_outline));
     }
 
-    public static void show(FragmentManager fm) {
+    /**
+     * Show a profile dialog when given user profile doesn't allow cross profile interaction.
+     */
+    public static void show(FragmentManager fm, UserId userId) {
         FragmentTransaction ft = fm.beginTransaction();
-        Fragment f = new ProfileDialogFragment();
+        Fragment f = new ProfileDialogFragment(userId);
         ft.add(f, TAG);
         ft.commitAllowingStateLoss();
     }

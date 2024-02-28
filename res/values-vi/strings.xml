@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Xem trước"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Chuyển sang hồ sơ công việc"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Chuyển sang hồ sơ cá nhân"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Cá nhân"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Quản trị viên của bạn đã chặn thao tác này"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Bạn không được phép truy cập dữ liệu công việc từ một ứng dụng cá nhân"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Bạn không được phép truy cập dữ liệu cá nhân từ một ứng dụng công việc"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Không được phép truy cập dữ liệu <xliff:g id="PROFILE1">%1$s</xliff:g> từ một ứng dụng <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Chuyển sang <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Ứng dụng công việc đã tạm dừng"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Các ứng dụng <xliff:g id="PROFILE">%s</xliff:g> đang tạm dừng"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Để mở ảnh trong hồ sơ công việc, hãy bật ứng dụng công việc rồi thử lại"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Để mở ảnh <xliff:g id="PROFILE1">%1$s</xliff:g>, hãy bật ứng dụng <xliff:g id="PROFILE2">%2$s</xliff:g> của bạn rồi thử lại"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ứng dụng này chỉ có thể truy cập vào những bức ảnh bạn chọn"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Chọn ảnh và video mà bạn cho phép ứng dụng này truy cập"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> mục}other{<xliff:g id="COUNT_1">^1</xliff:g> mục}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Hãy thử lại sau. Ảnh của bạn sẽ xuất hiện sau khi vấn đề được giải quyết."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Không tải được một số ảnh"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Tôi hiểu"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Truy cập tên gói chủ sở hữu của tất cả tệp đa phương tiện"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Cho phép ứng dụng truy cập tên gói chủ sở hữu của tất cả tệp đa phương tiện có thể truy cập."</string>
 </resources>

@@ -18,14 +18,13 @@ package com.android.photopicker.core.features
 
 import android.util.Log
 import androidx.compose.runtime.Composable
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import java.util.TreeSet
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
  * The core class in the feature framework, the FeatureManager manages the registration,
@@ -35,13 +34,13 @@ import kotlinx.coroutines.flow.update
  * framework, for various lifecycles, as well as providing the APIs for callers to inspect feature
  * state, change configuration, and generate composable units for various UI [Location]s.
  *
- * @property config the initial PhotopickerConfiguration
- * @property scope A CoroutineScope that PhotopickerConfiguration updates are shared in.
+ * @property configuration a collectable [StateFlow] of configuration changes
+ * @property scope A CoroutineScope that PhotopickerConfiguration updates are collected in.
  * @property registeredFeatures A set of Registrations that correspond to (potentially) enabled
  *   features.
  */
 class FeatureManager(
-    config: PhotopickerConfiguration,
+    private val configuration: StateFlow<PhotopickerConfiguration>,
     private val scope: CoroutineScope,
     // This is in the constructor to allow tests to swap in test features.
     private val registeredFeatures: Set<FeatureRegistration> =
@@ -64,6 +63,9 @@ class FeatureManager(
     /* Returns an immutable copy rather than the actual set. */
     val enabledFeatures: Set<PhotopickerFeature>
         get() = _enabledFeatures.toSet()
+
+    val enabledUiFeatures: Set<PhotopickerUiFeature>
+        get() = _enabledFeatures.filterIsInstance<PhotopickerUiFeature>().toSet()
 
     /*
      * The location registry for [PhotopickerUiFeature].
@@ -92,27 +94,16 @@ class FeatureManager(
     /* Instantiate a shared single instance of our custom priority sorter to save memory */
     private val priorityDescending: Comparator<Pair<Any, Int>> = PriorityDescendingComparator()
 
-    /*
-     * Internal [PhotopickerConfiguration] flow. When the configuration changes, this is what should
-     * be updated to ensure all listeners are notified.
-     *
-     * Note: Updating this is expensive and should be avoided (or batched, if possible).
-     * This will cause a recalculation of the active features and will likely result in the UI
-     * being re-composed from the top of the tree.
-     */
-    private val _configuration: MutableStateFlow<PhotopickerConfiguration> =
-        MutableStateFlow(config)
-
-    /* Exposes the current configuration used by the FeatureManager */
-    val configuration: StateFlow<PhotopickerConfiguration> =
-        _configuration.stateIn(
-            scope,
-            SharingStarted.WhileSubscribed(),
-            initialValue = _configuration.value
-        )
-
     init {
         initializeFeatureSet()
+
+        // Begin collecting the PhotopickerConfiguration and update the feature configuration
+        // accordingly.
+        scope.launch {
+            // Drop the first value here to prevent initializing twice.
+            // (initializeFeatureSet will pick up the first value on its own.)
+            configuration.drop(1).collect { onConfigurationChanged(it) }
+        }
     }
 
     /**
@@ -123,9 +114,8 @@ class FeatureManager(
      * 1. Notify all existing features of the pending configuration change,
      * 2. Wipe existing features
      * 3. Re-initialize Feature set with new configuration
-     * 4. Emit the new configuration to downstream collectors.
      */
-    fun updateConfiguration(newConfig: PhotopickerConfiguration) {
+    private fun onConfigurationChanged(newConfig: PhotopickerConfiguration) {
         Log.d(TAG, """Configuration has changed, re-initializing. $newConfig""")
 
         // Notify all active features of the incoming config change.
@@ -136,9 +126,6 @@ class FeatureManager(
 
         // Re-initialize.
         initializeFeatureSet(newConfig)
-
-        // Finally, emit the new configuration downstream.
-        _configuration.update { newConfig }
     }
 
     /** Drops all known registrations and returns to a pre-initialization state */
@@ -151,11 +138,11 @@ class FeatureManager(
      * For the provided set of [FeatureRegistration]s, attempt to initialize the runtime Feature set
      * with the current [PhotopickerConfiguration].
      *
-     * @param config The configuration to use for initialization. Defaults to the last emitted
+     * @param config The configuration to use for initialization. Defaults to the current
      *   configuration.
      */
-    private fun initializeFeatureSet(config: PhotopickerConfiguration = _configuration.value) {
-        Log.d(TAG, "Beginning feature initialization.")
+    private fun initializeFeatureSet(config: PhotopickerConfiguration = configuration.value) {
+        Log.d(TAG, "Beginning feature initialization with config: ${configuration.value}")
 
         for (featureCompanion in registeredFeatures) {
             if (featureCompanion.isEnabled(config)) {

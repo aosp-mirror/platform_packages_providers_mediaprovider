@@ -230,6 +230,8 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test
@@ -254,6 +256,8 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test

@@ -32,12 +32,11 @@ package android.graphics.pdf {
 
   public final class PdfRenderer.Page implements java.lang.AutoCloseable {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.Rect> applyEdit(@NonNull android.graphics.pdf.models.FormEditRecord);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormEditRecord> applyEdits(@NonNull java.util.List<android.graphics.pdf.models.FormEditRecord>);
     method public void close();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from=0) int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
     method public int getHeight();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
@@ -73,12 +72,11 @@ package android.graphics.pdf {
 
   public final class PdfRendererPreV.Page implements java.lang.AutoCloseable {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.Rect> applyEdit(@NonNull android.graphics.pdf.models.FormEditRecord);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormEditRecord> applyEdits(@NonNull java.util.List<android.graphics.pdf.models.FormEditRecord>);
     method public void close();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from=0) int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull java.util.Set<java.lang.Integer>);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
     method public int getHeight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
@@ -145,25 +143,14 @@ package android.graphics.pdf.content {
 
 package android.graphics.pdf.models {
 
-  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class ChoiceOption implements android.os.Parcelable {
-    ctor public ChoiceOption(@NonNull String, boolean);
-    method public int describeContents();
-    method @NonNull public String getLabel();
-    method public boolean isSelected();
-    method public void setLabel(@NonNull String);
-    method public void setSelected(boolean);
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.ChoiceOption> CREATOR;
-  }
-
   @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormEditRecord implements android.os.Parcelable {
     method public int describeContents();
     method @Nullable public android.graphics.Point getClickPoint();
-    method public int getPageNumber();
-    method @NonNull public java.util.Set<java.lang.Integer> getSelectedIndices();
+    method @IntRange(from=0) public int getPageNumber();
+    method @NonNull public int[] getSelectedIndices();
     method @Nullable public String getText();
     method public int getType();
-    method public int getWidgetIndex();
+    method @IntRange(from=0) public int getWidgetIndex();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.FormEditRecord> CREATOR;
     field public static final int EDIT_TYPE_CLICK = 0; // 0x0
@@ -172,21 +159,21 @@ package android.graphics.pdf.models {
   }
 
   public static final class FormEditRecord.Builder {
-    ctor public FormEditRecord.Builder(int, int, int);
+    ctor public FormEditRecord.Builder(int, @IntRange(from=0) int, @IntRange(from=0) int);
     method @NonNull public android.graphics.pdf.models.FormEditRecord build();
     method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setClickPoint(@Nullable android.graphics.Point);
-    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setSelectedIndices(@Nullable java.util.Set<java.lang.Integer>);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setSelectedIndices(@Nullable int[]);
     method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setText(@Nullable String);
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormWidgetInfo implements android.os.Parcelable {
     method public int describeContents();
     method @Nullable public String getAccessibilityLabel();
-    method @NonNull public java.util.List<android.graphics.pdf.models.ChoiceOption> getChoiceOptions();
-    method public float getFontSize();
-    method public int getMaxLength();
+    method @FloatRange(from=0.0f) public float getFontSize();
+    method @NonNull public java.util.List<android.graphics.pdf.models.ListItem> getListItems();
+    method @IntRange(from=0xffffffff) public int getMaxLength();
     method @Nullable public String getTextValue();
-    method public int getWidgetIndex();
+    method @IntRange(from=0) public int getWidgetIndex();
     method @NonNull public android.graphics.Rect getWidgetRect();
     method public int getWidgetType();
     method public boolean isEditableText();
@@ -206,15 +193,24 @@ package android.graphics.pdf.models {
   }
 
   public static final class FormWidgetInfo.Builder {
-    ctor public FormWidgetInfo.Builder(int, int, @NonNull android.graphics.Rect, @NonNull String, @NonNull String);
+    ctor public FormWidgetInfo.Builder(int, @IntRange(from=0) int, @NonNull android.graphics.Rect, @NonNull String, @NonNull String);
     method @NonNull public android.graphics.pdf.models.FormWidgetInfo build();
-    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setChoiceOptions(@NonNull java.util.List<android.graphics.pdf.models.ChoiceOption>);
     method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setEditableText(boolean);
-    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setFontSize(float);
-    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMaxLength(int);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setFontSize(@FloatRange(from=0.0f) float);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setListItems(@NonNull java.util.List<android.graphics.pdf.models.ListItem>);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMaxLength(@IntRange(from=0) int);
     method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiLineText(boolean);
     method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiSelect(boolean);
     method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setReadOnly(boolean);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class ListItem implements android.os.Parcelable {
+    ctor public ListItem(@NonNull String, boolean);
+    method public int describeContents();
+    method @NonNull public String getLabel();
+    method public boolean isSelected();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.ListItem> CREATOR;
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds {

@@ -23,7 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location

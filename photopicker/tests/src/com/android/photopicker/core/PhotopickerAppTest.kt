@@ -21,6 +21,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,17 +46,18 @@ class PhotopickerAppTest {
 
             // Stub FeatureManager. This is usually injected above this composable and provided
             // via [LocalFeatureManager].
+            val scope = TestScope()
             val featureManager =
                 FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
-                    TestScope(),
+                    provideTestConfigurationFlow(scope = scope.backgroundScope),
+                    scope,
                     emptySet()
                 )
 
             // Normally, this is provided in the activity's setContent block since this is
             // injected into the activity.
             CompositionLocalProvider(LocalFeatureManager provides featureManager) {
-                PhotopickerApp()
+                PhotopickerApp(testPhotopickerConfiguration)
             }
         }
 

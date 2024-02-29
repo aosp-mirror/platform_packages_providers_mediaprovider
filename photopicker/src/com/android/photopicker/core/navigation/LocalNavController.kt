@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.photopicker.core.navigation
 
-import javax.inject.Qualifier
+import androidx.compose.runtime.compositionLocalOf
+import androidx.navigation.NavHostController
 
-/** This qualifies the injectable resource to be bound to the Application. */
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class ApplicationOwned
-
-/** This qualifies the injectable resource to be bound to Background work. */
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Background
-
-/** This qualifies the injectable resource to be bound to Main thread work. */
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Main
+/**
+ * Provider for fetching the [NavHostController] inside of composables.
+ *
+ * This uses [compositionLocalOf] (rather than a static one) in case of a configuration change which
+ * would result in a value change here as the UI is recomposed.
+ */
+val LocalNavController =
+    compositionLocalOf<NavHostController> { error("No NavHostController provided") }

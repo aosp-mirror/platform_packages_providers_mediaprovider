@@ -48,7 +48,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
@@ -81,6 +86,7 @@ import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ModelTestUtils;
 import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.espresso.PhotoPickerBaseTest;
 
 import com.google.android.collect.Lists;
 
@@ -667,19 +673,23 @@ public class PickerViewModelTest {
 
     @Test
     public void testParseValuesFromPickImagesIntent_validAccentColor() {
-        String accentColor = "#FF0000";
+        long accentColor = 0xFFFF0000;
         final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
         intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(PickerViewModel.getPickerAccentColor()).isEqualTo(Color.parseColor(accentColor));
-        assertThat(PickerViewModel.isCustomPickerColorSet()).isTrue();
+        assertThat(
+                mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor()).isEqualTo(
+                        Color.parseColor(String.format("#%06X", (0xFFFFFF & accentColor))));
+        assertThat(
+                mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet())
+                .isTrue();
     }
 
     @Test
     public void testParseValuesFromPickImagesIntent_invalidAccentColor() {
-        String accentColor = "brown";
+        long accentColor = 0xFF6;
 
         final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
         intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
@@ -706,13 +716,13 @@ public class PickerViewModelTest {
     @Test
     public void testParseValuesFromPickImagesIntent_accentColorsWithUnacceptedBrightness() {
         // Accent color brightness is less than the accepted brightness
-        String[] accentColors = new String[] {
-                "#000000", // black
-                "#FFFFFF", // white
-                "#FFFFF0"  // variant of white
+        long[] accentColors = new long[] {
+                0xFF000000, // black
+                0xFFFFFFFF, // white
+                0xFFFFFFF0  // variant of white
         };
 
-        for (String accentColor: accentColors) {
+        for (long accentColor: accentColors) {
             final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
             intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
 
@@ -721,24 +731,29 @@ public class PickerViewModelTest {
             // Fall back to the android theme
             assertWithMessage("Input accent color " + accentColor
                     + " does not fall within accepted luminance range.")
-                    .that(PickerViewModel.getPickerAccentColor()).isEqualTo(-1);
+                    .that(mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor())
+                    .isEqualTo(-1);
             assertWithMessage("Custom picker color flag for input color "
                     + accentColor + " should be false but was true.")
-                    .that(PickerViewModel.isCustomPickerColorSet()).isFalse();
+                    .that(mPickerViewModel.getPickerAccentColorParameters()
+                            .isCustomPickerColorSet()).isFalse();
         }
     }
 
     @Test
     public void testParseValuesFromGetContentIntent_accentColor() {
-        String accentColor = "#FF0000";
+        long accentColor = 0xFFFF0000;
         final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        // GET_CONTENT doesn't support this option. Accent color will be an empty string
-        assertThat(PickerViewModel.getPickerAccentColor()).isEqualTo(-1);
-        assertThat(PickerViewModel.isCustomPickerColorSet()).isFalse();
+        // GET_CONTENT doesn't support this option. Accent color parameter object is not
+        // created.
+        assertThat(mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor())
+                .isEqualTo(-1);
+        assertThat(mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet())
+                .isFalse();
     }
 
     @Test
@@ -877,5 +892,78 @@ public class PickerViewModelTest {
 
         assertEquals(testIntent,
                 mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+    }
+
+    @Test
+    public void testMainGridInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that the request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void testMainGridPickerChoiceInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent =  PhotoPickerBaseTest.getUserSelectImagesForAppIntent();
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+    }
+
+    @Test
+    public void testMainGridInitOnResetRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.resetAllContentInCurrentProfile(true);
+
+        // Check that init request was sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(2)).initPhotoPickerData(any(), any(), eq(false), any());
     }
 }

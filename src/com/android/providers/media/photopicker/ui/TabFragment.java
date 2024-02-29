@@ -129,6 +129,7 @@ public abstract class TabFragment extends Fragment {
     private final MutableLiveData<Boolean> mIsProfileButtonOrProfileMenuButtonVisible =
             new MutableLiveData<>(false);
     private ConfigStore mConfigStore;
+    private boolean mIsCustomPickerColorSet = false;
 
     /**
      * In case of multiuser profile, it represents the number of profiles that are off
@@ -167,6 +168,8 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setHasFixedSize(true);
         final ViewModelProvider viewModelProvider = new ViewModelProvider(activity);
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
+        mIsCustomPickerColorSet =
+                mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet();
         mConfigStore = mPickerViewModel.getConfigStore();
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
@@ -207,8 +210,9 @@ public abstract class TabFragment extends Fragment {
 
             mViewSelectedButton = activity.findViewById(R.id.button_view_selected);
 
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                setCustomPickerButtonColors(PickerViewModel.getPickerAccentColor());
+            if (mIsCustomPickerColorSet) {
+                setCustomPickerButtonColors(
+                        mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor());
             }
             mAddButton.setOnClickListener(v -> {
                 try {
@@ -238,8 +242,9 @@ public abstract class TabFragment extends Fragment {
 
             mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
 
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                mBottomBar.setBackgroundColor(PickerViewModel.getThemeBasedColor(
+            if (mIsCustomPickerColorSet) {
+                mBottomBar.setBackgroundColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                                 AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                                 AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
                 ));
@@ -375,8 +380,10 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setCustomPickerButtonColors(int accentColor) {
-        String addButtonTextColor = PickerViewModel.isAccentColorBright()
-                ? AccentColorResources.DARK_TEXT_COLOR : AccentColorResources.LIGHT_TEXT_COLOR;
+        String addButtonTextColor =
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR;
         mAddButton.setBackgroundColor(accentColor);
         mAddButton.setTextColor(Color.parseColor(addButtonTextColor));
         mViewSelectedButton.setTextColor(accentColor);

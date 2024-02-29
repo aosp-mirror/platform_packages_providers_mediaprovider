@@ -9,6 +9,7 @@ android_test {
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
     ],
     static_libs: [
@@ -17,6 +18,7 @@ android_test {
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui-test-junit4",
         "androidx.compose.ui_ui-test-manifest",
+        "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
         "mockito-target",

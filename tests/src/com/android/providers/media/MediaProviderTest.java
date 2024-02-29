@@ -575,6 +575,21 @@ public class MediaProviderTest {
     }
 
     /**
+     * This is only for coverage purposes. All logical tests will be included in the
+     * root/cts/hostsidetests/scopedStorage directory.
+     */
+    @Test
+    public void testRecentSelectionOnly() {
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY, true);
+
+        try (Cursor c = sIsolatedResolver.query(MediaStore.Files.EXTERNAL_CONTENT_URI,
+                null, extras, null)) {
+            assertNotNull(c);
+        }
+    }
+
+    /**
      * We already have solid coverage of this logic in
      * {@code CtsProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince

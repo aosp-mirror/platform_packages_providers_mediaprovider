@@ -75,6 +75,7 @@ import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.NotificationContentObserver;
+import com.android.providers.media.photopicker.PickerAccentColorParameters;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.PaginationParameters;
@@ -177,9 +178,17 @@ public class PickerViewModel extends AndroidViewModel {
     private boolean mIsAllCategoryItemsLoaded = false;
     private boolean mIsNotificationForUpdateReceived = false;
     private CancellationSignal mCancellationSignal = new CancellationSignal();
+    private Application mApplication;
+    private PickerAccentColorParameters mPickerAccentColorParameters =
+            new PickerAccentColorParameters();
+
+    // This boolean remembers that the data has been initialized so that if Picker Activity gets
+    // re-created, we don't re-send a data initialization request.
+    private boolean mIsPhotoPickerDataInitialized = false;
 
     public PickerViewModel(@NonNull Application application) {
         super(application);
+        mApplication = application;
         mAppContext = application.getApplicationContext();
         mItemsProvider = new ItemsProvider(mAppContext);
         mSelection = new Selection();
@@ -191,6 +200,7 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = false;
 
         initConfigStore();
+
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
             mUserManagerState = UserManagerState.create(mAppContext);
             mUserIdManager = null;
@@ -199,11 +209,6 @@ public class PickerViewModel extends AndroidViewModel {
             mUserManagerState = null;
         }
 
-        // When the user opens the PhotoPickerSettingsActivity and changes the cloud provider, it's
-        // possible that system kills PhotoPickerActivity and PickerViewModel while it's in the
-        // background. In these scenarios, content observer will be unregistered and PickerViewModel
-        // will not be able to receive CMP change notifications.
-        initPhotoPickerData();
         registerRefreshUiNotificationObserver();
         // Add notification content observer for any notifications received for changes in media.
         NotificationContentObserver contentObserver = new NotificationContentObserver(null);
@@ -935,19 +940,48 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void parseValuesFromIntent(Intent intent) throws IllegalArgumentException {
         final Bundle extras = intent.getExtras();
-        if (extras != null && extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
-            if (intent.getAction().equals(ACTION_GET_CONTENT)) {
-                Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
-                        + "ACTION_GET_CONTENT");
-            } else if (intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
-                throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed as an "
-                        + "extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
-            } else {
-                mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
-                if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
-                    throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
-                            + " received for the intent extra: "
-                            + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+        if (extras != null) {
+            // Get the tab with which the picker needs to be launched
+            if (extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB)) {
+                if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                    Log.e(TAG, "EXTRA_PICKER_LAUNCH_TAB cannot be passed as an extra in "
+                            + "ACTION_GET_CONTENT");
+                } else if (intent.getAction().equals(
+                        MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                    throw new IllegalArgumentException("EXTRA_PICKER_LAUNCH_TAB cannot be passed "
+                            + "as an extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+                } else {
+                    mPickerLaunchTab = extras.getInt(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                    if (!checkPickerLaunchOptionValidity(mPickerLaunchTab)) {
+                        throw new IllegalArgumentException("Incorrect value " + mPickerLaunchTab
+                                + " received for the intent extra: "
+                                + MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB);
+                    }
+                }
+            }
+            // Get the picker accent color
+            if (extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR)) {
+                if (intent.getAction().equals(ACTION_GET_CONTENT)) {
+                    Log.w(TAG, "EXTRA_PICK_IMAGES_ACCENT_COLOR cannot be passed as an "
+                            + "extra in ACTION_GET_CONTENT");
+                } else if (intent.getAction().equals(
+                        MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+                    throw new IllegalArgumentException(
+                            "EXTRA_PICK_IMAGES_ACCENT_COLOR cannot be passed "
+                                    + "as an extra in ACTION_USER_SELECT_IMAGES_FOR_APP");
+                } else if (intent.getAction().equals(MediaStore.ACTION_PICK_IMAGES)) {
+                    try {
+                        long inputColor = extras.getLong(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
+                        if (mPickerAccentColorParameters.checkColorValidity(inputColor)) {
+                            mPickerAccentColorParameters = new PickerAccentColorParameters(
+                                    inputColor, mApplication);
+                        }
+                    } catch (Exception exception) {
+                        throw new IllegalArgumentException("The Accent colour provided in "
+                                + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
+                                + " fails validation. Please refer to the javadocs on what "
+                                + "is acceptable.");
+                    }
                 }
             }
         }
@@ -956,6 +990,7 @@ public class PickerViewModel extends AndroidViewModel {
         } else {
             mUserIdManager.setIntentAndCheckRestrictions(intent);
         }
+
         mMimeTypeFilters = MimeFilterUtils.getMimeTypeFilters(intent);
 
         mSelection.parseSelectionValuesFromIntent(intent);
@@ -990,6 +1025,12 @@ public class PickerViewModel extends AndroidViewModel {
         }
     }
 
+    /**
+     * Returns the PickerAccentColorParameters object to access accent color parameters
+     */
+    public PickerAccentColorParameters getPickerAccentColorParameters() {
+        return mPickerAccentColorParameters;
+    }
 
     private boolean checkPickerLaunchOptionValidity(int launchOption) {
         return launchOption == MediaStore.PICK_IMAGES_TAB_IMAGES
@@ -1581,10 +1622,21 @@ public class PickerViewModel extends AndroidViewModel {
     }
 
     /**
-     * This will inform the media Provider process that the UI is preparing to load data for the
-     * main photos grid.
+     * Sends an init notification to the Media Provider process if it hasn't already been sent yet.
      */
-    public void initPhotoPickerData() {
+    public void maybeInitPhotoPickerData() {
+        if (!mIsPhotoPickerDataInitialized) {
+            initPhotoPickerData();
+            mIsPhotoPickerDataInitialized = true;
+        } else {
+            Log.d(TAG, "Main grid is already initialized.");
+        }
+    }
+
+    /**
+     * Sends an init notification to the Media Provider process.
+     */
+    private void initPhotoPickerData() {
         initPhotoPickerData(Category.DEFAULT);
     }
 

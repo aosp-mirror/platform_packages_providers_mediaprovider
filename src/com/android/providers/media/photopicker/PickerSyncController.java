@@ -688,7 +688,8 @@ public class PickerSyncController {
             // A full sync is therefore unlikely to resolve any issue
             Log.e(TAG, "Failed to sync album media", e);
         } catch (RequestObsoleteException e) {
-            Log.e(TAG, "Failed to sync all album media because authority has changed: ", e);
+            Log.e(TAG, "Failed to sync all album media because authority has changed.", e);
+            executeSyncAlbumReset(authority, isLocal, albumId);
         } finally {
             Trace.endSection();
         }
@@ -787,7 +788,12 @@ public class PickerSyncController {
                     throw new IllegalArgumentException("Unexpected sync type: " + params.syncType);
             }
         } catch (RequestObsoleteException e) {
-            Log.e(TAG, "Failed to sync all media because authority has changed: ", e);
+            Log.e(TAG, "Failed to sync all media because authority has changed.", e);
+            try {
+                resetAllMedia(authority, isLocal);
+            } catch (UnableToAcquireLockException ex) {
+                Log.e(TAG, "Could not reset media", e);
+            }
         } catch (IllegalStateException e) {
             // If we're in an illegal state, reset and start a full sync again.
             Log.e(TAG, "Failed to sync all media. Reset media and retry: " + retryOnFailure, e);

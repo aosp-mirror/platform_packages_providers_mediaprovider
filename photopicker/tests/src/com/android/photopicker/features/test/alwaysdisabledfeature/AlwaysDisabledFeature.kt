@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.features.alwaysdisabledfeature
+package com.android.photopicker.features.alwaysdisabledfeature
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location

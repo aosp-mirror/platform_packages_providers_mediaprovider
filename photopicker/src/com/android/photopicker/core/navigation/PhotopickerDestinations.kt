@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.photopicker.core.navigation
 
-/**
- * Data object that represents a possible configuration state of the Photopicker.
- *
- * @property action the [Intent#getAction] that Photopicker is currently serving.
- */
-data class PhotopickerConfiguration(val action: String)
+enum class PhotopickerDestinations(val route: String) {
+
+    // The default route, only used when no other Routes are registered.
+    DEFAULT("default"),
+}

@@ -117,18 +117,20 @@ public class TabContainerFragment extends Fragment {
 
         final TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
 
-        if (PickerViewModel.isCustomPickerColorSet()) {
-            tabLayout.setBackgroundColor(PickerViewModel.getThemeBasedColor(
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            tabLayout.setBackgroundColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                     AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                     AccentColorResources.SURFACE_CONTAINER_COLOR_DARK));
             LayerDrawable pickerTabDrawable = (LayerDrawable) ContextCompat.getDrawable(
                     getActivity(), R.drawable.picker_tab_background);
             GradientDrawable pickerTab =
                     (GradientDrawable) pickerTabDrawable.findDrawableByLayerId(R.id.picker_tab);
-            pickerTab.setColor(PickerViewModel.getThemeBasedColor(
+            pickerTab.setColor(mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                     AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
                     AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK));
-            tabLayout.setSelectedTabIndicatorColor(PickerViewModel.getPickerAccentColor());
+            tabLayout.setSelectedTabIndicatorColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor());
             setTabTextColors(tabLayout);
         }
 
@@ -153,12 +155,16 @@ public class TabContainerFragment extends Fragment {
     }
 
     private void setTabTextColors(TabLayout tabLayout) {
-        String selectedTabTextColor = PickerViewModel.isAccentColorBright()
-                ? AccentColorResources.DARK_TEXT_COLOR : AccentColorResources.LIGHT_TEXT_COLOR;
+        String selectedTabTextColor =
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR;
         // Unselected tab text color in dark mode will be white and vice versa
-        tabLayout.setTabTextColors(PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.DARK_TEXT_COLOR, AccentColorResources.LIGHT_TEXT_COLOR
-        ), Color.parseColor(selectedTabTextColor));
+        tabLayout.setTabTextColors(
+                mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                        AccentColorResources.DARK_TEXT_COLOR,
+                        AccentColorResources.LIGHT_TEXT_COLOR),
+                Color.parseColor(selectedTabTextColor));
     }
 
     private boolean isOnlyVideoMimeTypeFilterAvailable() {

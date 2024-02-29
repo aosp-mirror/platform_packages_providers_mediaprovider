@@ -29,7 +29,6 @@ java_sdk_library {
     ],
     static_libs: [
         "pdf_viewer_flags_java_lib",
-        "guava",
     ],
     libs: [
         "androidx.annotation_annotation",
@@ -39,6 +38,9 @@ java_sdk_library {
     ],
     apex_available: [
         "com.android.mediaprovider",
+    ],
+    aconfig_declarations: [
+        "pdf_viewer_flags",
     ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
@@ -54,6 +56,7 @@ filegroup {
     srcs: [
         "java/**/*.java",
     ],
+    exclude_srcs: ["java/android/graphics/pdf/PdfRenderer.java"],
     path: "java",
     visibility: [
         "//packages/providers/MediaProvider/pdf/tests",

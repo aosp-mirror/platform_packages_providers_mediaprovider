@@ -889,16 +889,16 @@ public final class MediaStore {
      * The accent color will be used for various primary elements in the PhotoPicker view.
      * All other colors will be set based on android material guidelines.
      * <p>
-     * The value of this intent-extra must be a string specifying the hex code of the accent color
-     * that is to be used within the picker. Only colors with luminance(can also be understood as
-     * brightness) greater than 0.05 and less than 0.9 are permitted.
+     * The value of this intent extra should be a long color value.
+     * Only colors with luminance(can also be understood as brightness) greater than 0.05 and
+     * less than 0.9 are permitted.
      * Luminance of a color is determined using:
      * luminance = Color.luminance(color)
      *       where color is the input accent color to be set.
-     * Check {@link Color} docs for more details on the same.
+     * Check {@link Color} docs for more details on color luminance and long color values.
      * In case the luminance of the input color is unacceptable, picker colors will be set
      * based on the colors of the device android theme.
-     * In case of an invalid input color code i.e. the input color code cannot be parsed,
+     * In case of an invalid input color value i.e. the input color cannot be parsed,
      * {@code IllegalArgumentException} is thrown.
      */
     @FlaggedApi("com.android.providers.media.flags.picker_accent_color")

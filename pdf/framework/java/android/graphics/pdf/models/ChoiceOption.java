@@ -19,28 +19,40 @@ package android.graphics.pdf.models;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.utils.Preconditions;
 import android.os.Parcel;
 import android.os.Parcelable;
-
-import com.google.common.base.Preconditions;
 
 import java.util.Objects;
 
 /** Represents a single option in a combo box or list box PDF form widget. */
 @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
 public final class ChoiceOption implements Parcelable {
+    @NonNull
+    public static final Creator<ChoiceOption> CREATOR =
+            new Creator<ChoiceOption>() {
+                @Override
+                public ChoiceOption createFromParcel(Parcel in) {
+                    return new ChoiceOption(in);
+                }
+
+                @Override
+                public ChoiceOption[] newArray(int size) {
+                    return new ChoiceOption[size];
+                }
+            };
     private String mLabel;
     private boolean mSelected;
 
     /**
      * Creates a new choice option with the specified label, and selected state.
      *
-     * @param label Label for choice option.
+     * @param label    Label for choice option.
      * @param selected Determines if the option is selected or not.
      * @throws NullPointerException if {@code label} is null
      */
     public ChoiceOption(@NonNull String label, boolean selected) {
-        Preconditions.checkNotNull(label);
+        Preconditions.checkNotNull(label, "Label cannot be null");
         this.mLabel = label;
         this.mSelected = selected;
     }
@@ -62,7 +74,7 @@ public final class ChoiceOption implements Parcelable {
      * @throws NullPointerException if {@code label} is null
      */
     public void setLabel(@NonNull String label) {
-        Preconditions.checkNotNull(label);
+        Preconditions.checkNotNull(label, "Label cannot be null");
         mLabel = label;
     }
 
@@ -96,20 +108,6 @@ public final class ChoiceOption implements Parcelable {
                 + "\tselected=" + mSelected + "\n"
                 + "}";
     }
-
-    @NonNull
-    public static final Creator<ChoiceOption> CREATOR =
-            new Creator<ChoiceOption>() {
-                @Override
-                public ChoiceOption createFromParcel(Parcel in) {
-                    return new ChoiceOption(in);
-                }
-
-                @Override
-                public ChoiceOption[] newArray(int size) {
-                    return new ChoiceOption[size];
-                }
-            };
 
     @Override
     public int describeContents() {

@@ -20,8 +20,7 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
-
-import com.google.common.base.Preconditions;
+import android.graphics.pdf.utils.Preconditions;
 
 import java.util.List;
 
@@ -42,7 +41,7 @@ public class PdfPageGotoLinkContent {
      * Creates a new instance of {@link PdfPageGotoLinkContent} using the bounds of the goto link
      * and the destination where it is directing
      *
-     * @param bounds Bounds which envelop the goto link
+     * @param bounds      Bounds which envelop the goto link
      * @param destination Destination where the goto link is directing
      * @throws NullPointerException     If bounds or destination is null.
      * @throws IllegalArgumentException If the bounds list is empty.
@@ -96,13 +95,13 @@ public class PdfPageGotoLinkContent {
          * y coordinate of the destination where goto link is directing, and the zoom factor of the
          * page when goto link takes to the destination
          *
-         * @param pageNumber Page number of the goto link Destination
+         * @param pageNumber  Page number of the goto link Destination
          * @param xCoordinate X coordinate of the goto link Destination in points (1/72")
          * @param yCoordinate Y coordinate of the goto link Destination in points (1/72")
-         * @param zoom Zoom factor {@link Destination#getZoom()} of the page when goto link
-         * takes to the destination
+         * @param zoom        Zoom factor {@link Destination#getZoom()} of the page when goto link
+         *                    takes to the destination
          * @throws IllegalArgumentException If pageNumber or either of the coordinates or zoom are
-         * less than zero
+         *                                  less than zero
          */
         public Destination(int pageNumber, float xCoordinate, float yCoordinate, float zoom) {
             Preconditions.checkArgument(pageNumber >= 0, "Page number must be"
@@ -162,7 +161,6 @@ public class PdfPageGotoLinkContent {
          * <p><strong>Note:</strong> If there is no zoom value embedded, default value of zoom
          * will be zero. Otherwise it will be less than 1.0f in case of zoom out and greater
          * than 1.0f in case of zoom in.
-         *
          *
          * @return zoom factor of the page when the goto link takes to the destination
          */

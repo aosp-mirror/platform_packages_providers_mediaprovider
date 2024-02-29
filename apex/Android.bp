@@ -28,6 +28,7 @@ apex {
     jni_libs: [
         "libpdfclient",
     ],
+    compile_multilib: "both",
 }
 
 apex_defaults {
@@ -73,6 +74,7 @@ bootclasspath_fragment {
     contents: [
         "framework-mediaprovider",
         "framework-pdf",
+        "framework-pdf-v",
     ],
     apex_available: ["com.android.mediaprovider"],
     // The bootclasspath_fragments that provide APIs on which this depends.
@@ -108,25 +110,6 @@ bootclasspath_fragment {
             "android.graphics.pdf.internal.javax.annotation",
             "android.graphics.pdf.internal.javax.annotation.concurrent",
             "android.graphics.pdf.internal.javax.annotation.meta",
-            "android.graphics.pdf.internal.publicsuffix",
-            "android.graphics.pdf.internal.publicsuffix.annotations",
-            "android.graphics.pdf.internal.publicsuffix.base",
-            "android.graphics.pdf.internal.publicsuffix.base.internal",
-            "android.graphics.pdf.internal.publicsuffix.cache",
-            "android.graphics.pdf.internal.publicsuffix.collect",
-            "android.graphics.pdf.internal.publicsuffix.escape",
-            "android.graphics.pdf.internal.publicsuffix.eventbus",
-            "android.graphics.pdf.internal.publicsuffix.graph",
-            "android.graphics.pdf.internal.publicsuffix.hash",
-            "android.graphics.pdf.internal.publicsuffix.html",
-            "android.graphics.pdf.internal.publicsuffix.io",
-            "android.graphics.pdf.internal.publicsuffix.math",
-            "android.graphics.pdf.internal.publicsuffix.net",
-            "android.graphics.pdf.internal.publicsuffix.primitives",
-            "android.graphics.pdf.internal.publicsuffix.reflect",
-            "android.graphics.pdf.internal.publicsuffix.util.concurrent",
-            "android.graphics.pdf.internal.publicsuffix.util.concurrent.internal",
-            "android.graphics.pdf.internal.publicsuffix.xml",
             "android.graphics.pdf.models",
             "android.graphics.pdf.utils",
             "android.graphics.pdf.content",

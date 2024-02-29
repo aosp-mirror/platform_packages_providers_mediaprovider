@@ -16,11 +16,9 @@
 
 package android.graphics.pdf.models.jni;
 
+import android.annotation.Nullable;
 import android.graphics.pdf.PdfDocumentProxy;
-
-import androidx.annotation.Nullable;
-
-import com.google.common.base.Preconditions;
+import android.graphics.pdf.utils.Preconditions;
 
 /**
  * A class that holds either a successfully loaded {@link PdfDocumentProxy}, or the reason why it

@@ -32,6 +32,7 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.ui.PhotosTabAdapter.DateHeader;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.bumptech.glide.util.ViewPreloadSizeProvider;
 
@@ -194,7 +195,8 @@ public class PhotosTabAdapterTest {
                 /* onChooseAccountBannerEventListener */
                 mock(TabAdapter.OnBannerEventListener.class),
                 /* onHoverListener */ mock(View.OnHoverListener.class),
-                /* mPreloadSizeProvider */ mock(ViewPreloadSizeProvider.class));
+                /* mPreloadSizeProvider */ mock(ViewPreloadSizeProvider.class),
+                /*pickerViewModel*/ mock(PickerViewModel.class));
     }
 
     private static Item generateFakeImageItem(String id) {

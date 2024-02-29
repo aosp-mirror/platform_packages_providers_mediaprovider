@@ -30,14 +30,19 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.photopicker.core.PhotopickerConfiguration
-import com.android.photopicker.core.features.alwaysdisabledfeature.AlwaysDisabledFeature
-import com.android.photopicker.core.features.highpriorityuifeature.HighPriorityUiFeature
-import com.android.photopicker.core.features.simpleuifeature.SimpleUiFeature
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
+import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
+import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -80,7 +85,7 @@ class FeatureManagerTest {
         runTest {
             val featureManager =
                 FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
                 )
@@ -100,7 +105,7 @@ class FeatureManagerTest {
         runTest {
             val featureManager =
                 FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
                 )
@@ -136,7 +141,7 @@ class FeatureManagerTest {
         runTest {
             val featureManager =
                 FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
                 )
@@ -159,39 +164,6 @@ class FeatureManagerTest {
         }
     }
 
-    /* Ensures that the [FeatureManager] emits its current configuration. */
-    @Test
-    fun testFeatureManagerEmitsConfiguration() {
-
-        runTest {
-            val featureManager =
-                FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
-                    backgroundScope,
-                    testRegistrations,
-                )
-
-            backgroundScope.launch {
-                val reportedConfiguration = featureManager.configuration.first()
-                assertThat(reportedConfiguration)
-                    .isEqualTo(PhotopickerConfiguration(action = "TEST_ACTION"))
-            }
-
-            // Now change the configuration after initialization
-            featureManager.updateConfiguration(
-                PhotopickerConfiguration(action = "SOME_OTHER_ACTION")
-            )
-
-            advanceTimeBy(100)
-
-            backgroundScope.launch {
-                val reportedConfiguration = featureManager.configuration.first()
-                assertThat(reportedConfiguration)
-                    .isEqualTo(PhotopickerConfiguration(action = "SOME_OTHER_ACTION"))
-            }
-        }
-    }
-
     /* Ensures that the [FeatureManager] notifies enabled features of a pending configuration
      * change. */
     @Test
@@ -206,22 +178,24 @@ class FeatureManagerTest {
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
 
-        runTest {
-            val featureManager =
-                FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
-                    backgroundScope,
-                    setOf(mockRegistration)
-                )
+        val configFlow = MutableStateFlow(testPhotopickerConfiguration)
 
-            // Now change the configuration after initialization
-            featureManager.updateConfiguration(
-                PhotopickerConfiguration(action = "SOME_OTHER_ACTION")
+        runTest {
+            FeatureManager(
+                configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
+                backgroundScope,
+                setOf(mockRegistration)
             )
+
+            advanceTimeBy(100) // Wait for initialization
+            configFlow.update { it.copy(action = "SOME_OTHER_ACTION") }
+            advanceTimeBy(100) // Wait for the update to reach the StateFlow
 
             // The feature should have received a call with the new configuration
             verify(mockSimpleUiFeature)
-                .onConfigurationChanged(PhotopickerConfiguration(action = "SOME_OTHER_ACTION"))
+                .onConfigurationChanged(
+                    testPhotopickerConfiguration.copy(action = "SOME_OTHER_ACTION")
+                )
         }
     }
 
@@ -232,7 +206,7 @@ class FeatureManagerTest {
         runTest {
             val featureManager =
                 FeatureManager(
-                    PhotopickerConfiguration(action = "TEST_ACTION"),
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
                 )

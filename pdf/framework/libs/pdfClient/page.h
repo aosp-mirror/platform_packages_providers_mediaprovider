@@ -53,7 +53,7 @@ struct GotoLinkDest {
     int page_number = 0;
     float x = 0;
     float y = 0;
-    float zoom = 1;
+    float zoom = 0;
 
     void set_page_number(int page_number) { this->page_number = page_number; }
 
@@ -87,7 +87,7 @@ class Page {
     Rectangle_i Dimensions() const;
 
     // Returns the bit-wise or of all of the features found on this page -
-    // see features.h for the different features and their values.
+    // see pdf_features.h for the different features and their values.
     int32_t GetFeatures() const;
 
     // Render the page to the output bitmap, applying the appropriate transform, clip, and

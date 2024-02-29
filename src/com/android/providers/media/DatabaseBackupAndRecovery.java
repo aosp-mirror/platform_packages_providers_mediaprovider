@@ -29,6 +29,7 @@ import static com.android.providers.media.util.Logging.TAG;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -175,7 +176,7 @@ public class DatabaseBackupAndRecovery {
     public static final String STABLE_URI_EXTERNAL_PROPERTY =
             "persist.sys.fuse.backup.external_volume_backup";
 
-    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = true;
 
     public static final String STABLE_URI_PUBLIC_PROPERTY =
             "persist.sys.fuse.backup.public_db_backup";
@@ -191,6 +192,10 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mIsStableUriEnabledForInternal

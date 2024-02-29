@@ -1,4 +1,3 @@
-
 //
 // Copyright (C) 2022 The Android Open Source Project
 //
@@ -22,4 +21,9 @@ package {
 filegroup {
     name: "privapp_allowlist_com.android.providers.media.module.xml",
     srcs: ["com.android.providers.media.module.xml"],
+}
+
+filegroup {
+    name: "privapp_allowlist_com.android.photopicker.xml",
+    srcs: ["com.android.photopicker.xml"],
 }

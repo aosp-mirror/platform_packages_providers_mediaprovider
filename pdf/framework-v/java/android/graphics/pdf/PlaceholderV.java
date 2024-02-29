@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package android.graphics.pdf;
 
 /**
- * Data object that represents a possible configuration state of the Photopicker.
- *
- * @property action the [Intent#getAction] that Photopicker is currently serving.
- */
-data class PhotopickerConfiguration(val action: String)
+ * Placeholder class for new PDF viewer inside MediaProvider module.
+*
+* @hide
+*
+*/
+public class PlaceholderV {
+}

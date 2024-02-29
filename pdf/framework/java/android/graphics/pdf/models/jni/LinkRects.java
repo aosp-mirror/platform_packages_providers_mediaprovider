@@ -21,9 +21,8 @@ import android.annotation.NonNull;
 import android.graphics.Rect;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.utils.Preconditions;
 import android.net.Uri;
-
-import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,9 +55,9 @@ public class LinkRects extends ListOfList<Rect> {
     public LinkRects(@NonNull List<Rect> rects, @NonNull List<Integer> linkToRect,
             @NonNull List<String> urls) {
         super(rects, linkToRect);
-        this.mRects = Preconditions.checkNotNull(rects);
-        this.mLinkToRect = Preconditions.checkNotNull(linkToRect);
-        this.mUrls = Preconditions.checkNotNull(urls);
+        this.mRects = Preconditions.checkNotNull(rects, "rects cannot be null");
+        this.mLinkToRect = Preconditions.checkNotNull(linkToRect, "linkToRect cannot be null");
+        this.mUrls = Preconditions.checkNotNull(urls, "urls cannot be null");
     }
 
     /** Returns the list of bounds for the embedded weblinks. */

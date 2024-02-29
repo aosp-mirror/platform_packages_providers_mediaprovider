@@ -157,7 +157,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:enabled="false"
-            android:hint="Color hex code(for ex: #000000)"
+            android:hint="Color long value(for ex: 0xFFFF0000)"
             android:textSize="16sp" />
     </LinearLayout>
 

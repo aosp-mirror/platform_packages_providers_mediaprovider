@@ -16,7 +16,7 @@
 
 package com.android.photopicker.core.features
 
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 
 /**
  * This registration interface represents the registration contract between [FeatureManager] and

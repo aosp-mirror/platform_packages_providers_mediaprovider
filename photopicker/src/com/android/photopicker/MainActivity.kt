@@ -20,11 +20,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
-import com.android.photopicker.core.ActivityOwned
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.core.PhotopickerApp
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
 
 /**
@@ -36,7 +41,10 @@ import javax.inject.Inject
 @AndroidEntryPoint(ComponentActivity::class)
 class MainActivity : Hilt_MainActivity() {
 
-    @Inject @ActivityOwned lateinit var featureManager: FeatureManager
+    @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    // This needs to be injected lazily, to defer initialization until the action can be set
+    // on the ConfigurationManager.
+    @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
 
     companion object {
         val TAG: String = "Photopicker"
@@ -45,11 +53,17 @@ class MainActivity : Hilt_MainActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Set the action before allowing FeatureManager to be initialized, so that it receives
+        // the correct config with this activity's action.
+        configurationManager.setAction(getIntent()?.getAction() ?: "")
+
         setContent {
+            val photopickerConfiguration by
+                configurationManager.configuration.collectAsStateWithLifecycle()
 
             // Provide the [FeatureManager] to the entire compose stack.
-            CompositionLocalProvider(LocalFeatureManager provides featureManager) {
-                PhotopickerApp()
+            CompositionLocalProvider(LocalFeatureManager provides featureManager.get()) {
+                PhotopickerApp(config = photopickerConfiguration)
             }
         }
     }

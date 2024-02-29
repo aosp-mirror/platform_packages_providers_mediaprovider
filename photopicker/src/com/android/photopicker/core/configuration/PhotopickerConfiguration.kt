@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.photopicker.core.configuration
 
 /**
  * Data object that represents a possible configuration state of the Photopicker.
  *
  * @property action the [Intent#getAction] that Photopicker is currently serving.
+ * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
  */
-data class PhotopickerConfiguration(val action: String)
+data class PhotopickerConfiguration(
+    val action: String,
+    val flags: PhotopickerFlags = PhotopickerFlags(),
+)

@@ -63,7 +63,6 @@ class UserMonitor(
     context: Context,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
-    private val intent: Intent,
     private val processOwnerUserHandle: UserHandle,
 ) {
 

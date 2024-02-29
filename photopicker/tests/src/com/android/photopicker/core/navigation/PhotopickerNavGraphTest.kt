@@ -28,7 +28,7 @@ import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
@@ -65,10 +65,11 @@ class PhotopickerNavGraphTest {
     fun setup() {
 
         // Initialize a basic [FeatureManager] with the standard test registrations.
+        val scope = TestScope()
         featureManager =
             FeatureManager(
-                PhotopickerConfiguration(action = "TEST_ACTION"),
-                TestScope(),
+                provideTestConfigurationFlow(scope = scope.backgroundScope),
+                scope,
                 testRegistrations,
             )
     }
@@ -100,10 +101,11 @@ class PhotopickerNavGraphTest {
     @Test
     fun testVerifyStartDestinationWithNoFeatures() {
 
+        val scope = TestScope()
         val emptyFeatureManager =
             FeatureManager(
-                PhotopickerConfiguration(action = "TEST_ACTION"),
-                TestScope(),
+                provideTestConfigurationFlow(scope = scope.backgroundScope),
+                scope,
                 emptySet<FeatureRegistration>()
             )
 

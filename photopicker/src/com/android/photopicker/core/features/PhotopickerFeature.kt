@@ -16,7 +16,7 @@
 
 package com.android.photopicker.core.features
 
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 
 /**
  * The base feature interface, that exposes hooks from the [FeatureManager] that is available to all

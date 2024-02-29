@@ -72,7 +72,6 @@ class UserMonitorTest {
     @Mock lateinit var context: Context
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-    @Mock lateinit var intent: Intent
     @Captor lateinit var broadcastReceiver: ArgumentCaptor<BroadcastReceiver>
     @Captor lateinit var intentFilter: ArgumentCaptor<IntentFilter>
     @Captor lateinit var flag: ArgumentCaptor<Int>
@@ -125,7 +124,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -152,7 +150,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -193,7 +190,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -234,7 +230,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -270,7 +265,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -315,7 +309,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -363,7 +356,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -428,7 +420,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -461,7 +452,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -495,7 +485,6 @@ class UserMonitorTest {
                     context,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 

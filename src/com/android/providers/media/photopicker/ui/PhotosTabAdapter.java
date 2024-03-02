@@ -71,12 +71,14 @@ public class PhotosTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
             @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
             @NonNull View.OnHoverListener onMediaItemHoverListener,
-            @NonNull ViewPreloadSizeProvider preloadSizeProvider) {
+            @NonNull ViewPreloadSizeProvider preloadSizeProvider,
+            @NonNull PickerViewModel pickerViewModel) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
                 onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
-                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener,
+                pickerViewModel);
         mLifecycleOwner = lifecycleOwner;
         mShowRecentSection = showRecentSection;
         mSelection = selection;
@@ -103,6 +105,7 @@ public class PhotosTabAdapter extends TabAdapter {
                         mImageLoader,
                         mOnMediaItemClickListener,
                         mOnMediaItemHoverListener,
+                        mPickerViewModel,
                         mSelection.canSelectMultiple(),
                         mSelection.isSelectionOrdered());
         mPreloadSizeProvider.setView(viewHolder.getThumbnailImageView());
@@ -115,6 +118,13 @@ public class PhotosTabAdapter extends TabAdapter {
         final DateHeaderViewHolder dateHeaderVH = (DateHeaderViewHolder) viewHolder;
 
         dateHeaderVH.bind(dateHeader);
+        TextView titleTextView = dateHeaderVH.title;
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            titleTextView.setTextColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                            AccentColorResources.ON_SURFACE_COLOR_DARK));
+        }
     }
 
     @Override
@@ -203,11 +213,6 @@ public class PhotosTabAdapter extends TabAdapter {
         DateHeaderViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.date_header_title);
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                title.setTextColor(PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
-                        AccentColorResources.ON_SURFACE_COLOR_DARK));
-            }
         }
 
         void bind(@NonNull DateHeader dateHeader) {

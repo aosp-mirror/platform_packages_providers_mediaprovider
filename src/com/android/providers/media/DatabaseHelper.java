@@ -103,8 +103,6 @@ import java.util.regex.Matcher;
  */
 public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     @VisibleForTesting
-    static final String TEST_RECOMPUTE_DB = "test_recompute";
-    @VisibleForTesting
     static final String TEST_UPGRADE_DB = "test_upgrade";
     @VisibleForTesting
     static final String TEST_DOWNGRADE_DB = "test_downgrade";
@@ -742,7 +740,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Temporarily drop indexes to improve migration performance
                 makePristineIndexes(db);
                 migrateFromLegacy(db);
-                createLatestIndexes(db);
+                createAllLatestIndexes(db);
             } finally {
                 mSchemaLock.writeLock().unlock();
                 // Clear flag, since we should only attempt once
@@ -1157,7 +1155,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
         createLatestViews(db);
         createLatestTriggers(db);
-        createLatestIndexes(db);
+        createAllLatestIndexes(db);
 
         // Since this code is used by both the legacy and modern providers, we
         // only want to migrate when we're running as the modern provider
@@ -1168,6 +1166,37 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 Log.e(TAG, "Failed to create a migration file: ." + mVolumeName, e);
             }
         }
+    }
+
+    private void createAllLatestIndexes(SQLiteDatabase db) {
+        createLatestIndexes(db);
+        if (isExternal()) {
+            createMediaGrantsIndex(db);
+        }
+    }
+
+    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL("DROP INDEX IF EXISTS media_grants.generation_granted");
+        db.execSQL("DROP TABLE IF EXISTS media_grants");
+        db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "package_user_id INTEGER,"
+                            + "generation_granted INTEGER DEFAULT 0,"
+                            + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                            + "  ON CONFLICT IGNORE "
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
+        createMediaGrantsIndex(db);
+    }
+
+    private static void createMediaGrantsIndex(SQLiteDatabase db) {
+        db.execSQL(
+                "CREATE INDEX generation_granted_index ON media_grants"
+                        + "(generation_granted)");
     }
 
     /**
@@ -1914,19 +1943,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
     }
 
-    private static void updateAddMediaGrantsTable(SQLiteDatabase db) {
-        db.execSQL("DROP TABLE IF EXISTS media_grants");
-        db.execSQL(
-                "CREATE TABLE media_grants ("
-                        + "owner_package_name TEXT,"
-                        + "file_id INTEGER,"
-                        + "package_user_id INTEGER,"
-                        + "UNIQUE(owner_package_name, file_id, package_user_id)"
-                        + "  ON CONFLICT IGNORE "
-                        + "FOREIGN KEY (file_id)"
-                        + "  REFERENCES files(_id)"
-                        + "  ON DELETE CASCADE"
-                        + ")");
+    /**
+     * Alters existing database media_grants table to have an additional column to store
+     * generation_granted.
+     */
+    private static void updateAddGenerationGranted(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE media_grants ADD COLUMN " + MediaGrants.GENERATION_GRANTED
+                + " INTEGER DEFAULT 0");
+        createMediaGrantsIndex(db);
     }
 
     private void updateUserId(SQLiteDatabase db) {
@@ -1986,20 +2010,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
-    static final int VERSION_J = 509;
-    static final int VERSION_K = 700;
-    static final int VERSION_L = 700;
-    static final int VERSION_M = 800;
-    static final int VERSION_N = 800;
-    static final int VERSION_O = 800;
-    static final int VERSION_P = 900;
-    static final int VERSION_Q = 1023;
     static final int VERSION_R = 1115;
     static final int VERSION_S = 1209;
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1407;
+    static final int VERSION_U = 1408;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2210,9 +2226,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 // Empty version bump to ensure triggers are recreated
             }
 
-            if (fromVersion < 1407) {
+            if (fromVersion < 1408) {
                 if (isExternal()) {
-                    updateAddMediaGrantsTable(db);
+                    if (fromVersion == 1407) {
+                        // media_grants table was added as part of version 1407, hence when
+                        // the fromVersion is 1407 the existing table needs to be altered to
+                        // introduce the new column and index.
+                        updateAddGenerationGranted(db);
+                    } else {
+                        // The media_grants table needs to be created with the latest schema
+                        // and index as it does not exist for fromVersion below 1407.
+                        updateAddMediaGrantsTable(db);
+                    }
                 }
             }
 
@@ -2365,8 +2390,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         // Matches test dbs as external
         switch (mName) {
             case EXTERNAL_DATABASE_NAME:
-                return true;
-            case TEST_RECOMPUTE_DB:
                 return true;
             case TEST_UPGRADE_DB:
                 return true;

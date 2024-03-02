@@ -34,12 +34,14 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -61,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
@@ -95,6 +98,7 @@ public class StableUriIdleMaintenanceServiceTest {
             Set<String> internalFilePaths = new HashSet<>();
             Map<String, Long> pathToIdMap = new HashMap<>();
             MediaStore.waitForIdle(resolver);
+            MediaStore.scanVolume(resolver, MediaStore.VOLUME_INTERNAL);
             try (Cursor c = resolver.query(
                     MediaStore.Files.getContentUri(MediaStore.VOLUME_INTERNAL),
                     new String[]{MediaStore.Files.FileColumns.DATA,
@@ -134,7 +138,7 @@ public class StableUriIdleMaintenanceServiceTest {
         Set<String> newFilePaths = new HashSet<>();
         Map<String, Long> pathToIdMap = new HashMap<>();
         MediaStore.waitForIdle(resolver);
-
+        MediaStore.scanVolume(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
         try {
             MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, true);
             MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, true);

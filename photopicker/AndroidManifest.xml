@@ -30,6 +30,9 @@
   <!-- Required to inspect network capabilities through ConnectivityManager -->
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
+  <!-- Permissions required for reading device configs -->
+  <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
           android:label="@string/photopicker_application_label"

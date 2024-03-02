@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
 
@@ -33,7 +34,7 @@ import com.android.photopicker.core.navigation.PhotopickerNavGraph
  * [setContent] block.
  */
 @Composable
-fun PhotopickerApp() {
+fun PhotopickerApp(config: PhotopickerConfiguration) {
 
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
@@ -44,6 +45,7 @@ fun PhotopickerApp() {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column {
                 Text("Hello World from Photopicker!")
+                Text("$config")
 
                 // Initialize the navigation graph.
                 PhotopickerNavGraph()

@@ -210,7 +210,7 @@ public class PhotoPickerToolActivity extends Activity {
             }
 
             if (mPickerAccentColorCheckBox.isChecked()) {
-                String accentColor = mAccentColorText.getText().toString();
+                long accentColor = Long.decode(mAccentColorText.getText().toString());
                 intent.putExtra(EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
             }
         }

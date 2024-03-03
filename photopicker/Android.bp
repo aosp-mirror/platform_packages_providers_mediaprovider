@@ -11,6 +11,7 @@ android_library {
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
     ],
     static_libs: [
@@ -46,6 +47,7 @@ android_app {
     kotlincflags: ["-Xjvm-default=all"],
     certificate: "media",
     privileged: true,
+    privapp_allowlist: ":privapp_allowlist_com.android.photopicker.xml",
     sdk_version: "module_current",
     min_sdk_version: "30",
     apex_available: [

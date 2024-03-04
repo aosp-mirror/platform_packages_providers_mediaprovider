@@ -29,6 +29,7 @@ import static com.android.providers.media.util.Logging.TAG;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -191,6 +192,10 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mIsStableUriEnabledForInternal

@@ -69,18 +69,18 @@ package android.graphics.pdf {
 
 package android.graphics.pdf.content {
 
-  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public class PdfPageGotoLinkContent {
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageGotoLinkContent {
     ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
     method @NonNull public java.util.List<android.graphics.Rect> getBounds();
     method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
   }
 
-  public static class PdfPageGotoLinkContent.Destination {
+  public static final class PdfPageGotoLinkContent.Destination {
     ctor public PdfPageGotoLinkContent.Destination(int, float, float, float);
-    method public int getPageNumber();
-    method public float getXCoordinate();
-    method public float getYCoordinate();
-    method public float getZoom();
+    method @IntRange(from=0) public int getPageNumber();
+    method @FloatRange(from=0.0f) public float getXCoordinate();
+    method @FloatRange(from=0.0f) public float getYCoordinate();
+    method @FloatRange(from=0.0f) public float getZoom();
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageImageContent {

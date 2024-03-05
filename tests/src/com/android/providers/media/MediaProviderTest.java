@@ -575,29 +575,18 @@ public class MediaProviderTest {
     }
 
     /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
+     * This is only for coverage purposes. All logical tests will be included in the
+     * root/cts/hostsidetests/scopedStorage directory.
      */
     @Test
-    public void testGetRedactionRanges_Image() throws Exception {
-        final File file = File.createTempFile("test", ".jpg");
-        stage(R.raw.test_image, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
-    }
+    public void testRecentSelectionOnly() {
+        final Bundle extras = new Bundle();
+        extras.putBoolean(MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY, true);
 
-    /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
-     */
-    @Test
-    public void testGetRedactionRanges_Video() throws Exception {
-        final File file = File.createTempFile("test", ".mp4");
-        stage(R.raw.test_video, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
+        try (Cursor c = sIsolatedResolver.query(MediaStore.Files.EXTERNAL_CONTENT_URI,
+                null, extras, null)) {
+            assertNotNull(c);
+        }
     }
 
     @Test
@@ -1643,7 +1632,7 @@ public class MediaProviderTest {
     }
 
     private static boolean isGreylistMatch(String raw) {
-        for (Pattern p : MediaProvider.sGreylist) {
+        for (Pattern p : MediaProvider.sAllowlist) {
             if (p.matcher(raw).matches()) {
                 return true;
             }

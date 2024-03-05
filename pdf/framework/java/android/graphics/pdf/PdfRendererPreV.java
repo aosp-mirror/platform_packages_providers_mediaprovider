@@ -64,25 +64,22 @@ import java.util.Set;
  * A typical use of the APIs to render a PDF looks like this:
  * <pre>
  * // create a new renderer
- * PdfRendererPreV renderer = new PdfRendererPreV(getSeekableFileDescriptor(), loadParams);
+ * try (PdfRendererPreV renderer = new PdfRendererPreV(getSeekableFileDescriptor(), loadParams)) {
+ *      // let us just render all pages
+ *      final int pageCount = renderer.getPageCount();
+ *      for (int i = 0; i < pageCount; i++) {
+ *          Page page = renderer.openPage(i);
+ *          RenderParams params = new RenderParams.Builder(Page.RENDER_MODE_FOR_DISPLAY).build();
  *
- * // let us just render all pages
- * final int pageCount = renderer.getPageCount();
- * for (int i = 0; i < pageCount; i++) {
- *     Page page = renderer.openPage(i);
- *     RenderParams params = new RenderParams.Builder(Page.RENDER_MODE_FOR_DISPLAY).build();
+ *          // say we render for showing on the screen
+ *          page.render(mBitmap, params, null, null);
  *
- *     // say we render for showing on the screen
- *     page.render(mBitmap, params, null, null);
+ *          // do stuff with the bitmap
  *
- *     // do stuff with the bitmap
- *
- *     // close the page
- *     page.close();
+ *          // close the page
+ *          page.close();
+ *      }
  * }
- *
- * // close the renderer
- * renderer.close();
  * </pre>
  * <h3>Print preview and print output</h3>
  * <p>

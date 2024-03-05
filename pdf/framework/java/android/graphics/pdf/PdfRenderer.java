@@ -688,8 +688,8 @@ public final class PdfRenderer implements AutoCloseable {
          * <strong>Note:</strong> Should be invoked on a {@link android.annotation.WorkerThread}
          * as it is long-running task.
          *
-         * @param left  start boundary of the selection (inclusive)
-         * @param right stop boundary of the selection (exclusive)
+         * @param left  left boundary of the selection (inclusive)
+         * @param right right boundary of the selection (exclusive)
          * @param isRtl determines right-to-left mode for the selection.
          * @return collection of the selected content for text, images, etc.
          * @throws IllegalStateException If the document/page is closed before invocation.

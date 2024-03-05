@@ -93,7 +93,7 @@ public class IsoInterfaceTest {
     public void testXmp() throws Exception {
         final File file = stageFile(R.raw.test_video_xmp);
         final IsoInterface mp4 = IsoInterface.fromFile(file);
-        final XmpInterface xmp = XmpInterface.fromContainer(mp4);
+        final XmpInterface xmp = XmpInterface.createXmpInterface(mp4);
 
         assertEquals("image/dng", xmp.getFormat());
         assertEquals("xmp.did:041dfd42-0b46-4302-918a-836fba5016ed", xmp.getDocumentId());

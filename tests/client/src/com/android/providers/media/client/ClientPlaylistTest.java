@@ -41,6 +41,8 @@ import android.util.Pair;
 
 import androidx.test.InstrumentationRegistry;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -63,6 +65,7 @@ import java.util.concurrent.TimeUnit;
  * external client app. Exercises all supported playlist formats.
  */
 @RunWith(Parameterized.class)
+@RunOnlyOnPostsubmit
 public class ClientPlaylistTest {
     private static final String TAG = "ClientPlaylistTest";
 

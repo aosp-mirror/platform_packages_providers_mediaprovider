@@ -40,9 +40,8 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
-
-    private static final int VERSION_T = 9;
-    public static final int VERSION_LATEST = VERSION_T;
+    private static final int VERSION_U = 11;
+    public static final int VERSION_LATEST = VERSION_U;
 
     final Context mContext;
     final String mName;
@@ -98,12 +97,15 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
 
     private void resetData(SQLiteDatabase db) {
         clearPickerPrefs(mContext);
+
+        dropAllTables(db);
+
         createLatestSchema(db);
         createLatestIndexes(db);
     }
 
     @VisibleForTesting
-    static void makePristineSchema(SQLiteDatabase db) {
+    static void dropAllTables(SQLiteDatabase db) {
         // drop all tables
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'table'", null, null,
                 null, null);
@@ -114,26 +116,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
         c.close();
     }
 
-    @VisibleForTesting
-    static void makePristineIndexes(SQLiteDatabase db) {
-        // drop all indexes
-        Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
-                null, null, null, null);
-        while (c.moveToNext()) {
-            if (c.getString(0).startsWith("sqlite_")) continue;
-            db.execSQL("DROP INDEX IF EXISTS " + c.getString(0));
-        }
-        c.close();
-    }
-
     private static void createLatestSchema(SQLiteDatabase db) {
-        makePristineSchema(db);
 
         db.execSQL("CREATE TABLE media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "local_id TEXT,"
                 + "cloud_id TEXT UNIQUE,"
                 + "is_visible INTEGER CHECK(is_visible == 1),"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "width INTEGER,"
                 + "height INTEGER,"
@@ -150,7 +139,7 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "local_id TEXT,"
                 + "cloud_id TEXT,"
                 + "album_id TEXT,"
-                + "date_taken_ms INTEGER NOT NULL CHECK(date_taken_ms >= 0),"
+                + "date_taken_ms INTEGER NOT NULL,"
                 + "sync_generation INTEGER NOT NULL CHECK(sync_generation >= 0),"
                 + "size_bytes INTEGER NOT NULL CHECK(size_bytes > 0),"
                 + "duration_ms INTEGER CHECK(duration_ms >= 0),"
@@ -163,21 +152,20 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {
-        makePristineIndexes(db);
 
         db.execSQL("CREATE INDEX local_id_index on media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_index on media(cloud_id)");
         db.execSQL("CREATE INDEX is_visible_index on media(is_visible)");
-        db.execSQL("CREATE INDEX date_taken_index on media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_index on media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_index on media(mime_type)");
         db.execSQL("CREATE INDEX is_favorite_index on media(is_favorite)");
+        db.execSQL("CREATE INDEX date_taken_row_id_index on media(date_taken_ms, _id)");
 
         db.execSQL("CREATE INDEX local_id_album_index on album_media(local_id)");
         db.execSQL("CREATE INDEX cloud_id_album_index on album_media(cloud_id)");
-        db.execSQL("CREATE INDEX date_taken_album_index on album_media(date_taken_ms)");
         db.execSQL("CREATE INDEX size_album_index on album_media(size_bytes)");
         db.execSQL("CREATE INDEX mime_type_album_index on album_media(mime_type)");
+        db.execSQL("CREATE INDEX date_taken_album_row_id_index on album_media(date_taken_ms,_id)");
     }
 
     private static void clearPickerPrefs(Context context) {

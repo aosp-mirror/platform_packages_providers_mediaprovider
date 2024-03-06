@@ -44,8 +44,9 @@ public class BackupIdRowTest {
                 .setIsTrashed(0)
                 .setOwnerPackagedId(1)
                 .setUserId(1)
-                .setDateExpires("10")
+                .setDateExpires(null)
                 .setIsDirty(true)
+                .setMediaType(1)
                 .build();
         String s = BackupIdRow.serialize(row);
 
@@ -59,6 +60,7 @@ public class BackupIdRowTest {
                 .setUserId(1)
                 .setDateExpires("10")
                 .setIsDirty(false)
+                .setMediaType(0)
                 .build();
 
         assertThat(BackupIdRow.deserialize(s)).isNotEqualTo(row2);

@@ -526,6 +526,22 @@ TEST_F(NodeTest, LookupChildByName_ChildrenWithSameName) {
     test_fn("BaZ", baz1.get(), baz2.get());
 }
 
+TEST_F(NodeTest, DestroyDoesntDoubleFree) {
+    node* root = node::Create(nullptr, "root", "", true, 0, 0, &lock_, 0, &tracker_);
+    node* child = node::Create(root, "child", "", true, 0, 0, &lock_, 0, &tracker_);
+    node* grandchild = node::Create(child, "grandchild", "", true, 0, 0, &lock_, 0, &tracker_);
+
+    // 'child' is referenced by itself and by 'grandchild'
+    ASSERT_EQ(2, GetRefCount(child));
+    // Kernel forgets about child only
+    ASSERT_FALSE(child->Release(1));
+    // Child only referenced by 'grandchild'
+    ASSERT_EQ(1, GetRefCount(child));
+
+    // Now, destroying the filesystem shouldn't result in a double free
+    node::DeleteTree(root);
+}
+
 TEST_F(NodeTest, ForChild) {
     unique_node_ptr parent = CreateNode(nullptr, "/path");
     unique_node_ptr foo1 = CreateNode(parent.get(), "FoO");

@@ -68,8 +68,8 @@ public class ViewPager2IdlingResource implements IdlingResource, AutoCloseable {
      * @return {@link ViewPager2IdlingResource} that is registered to the activity related to the
      *     given {@link ActivityScenarioRule} and the resource ID of the ViewPager2.
      */
-    public static ViewPager2IdlingResource register(
-            ActivityScenario<PhotoPickerTestActivity> scenario, int viewPager2Id) {
+    public static <T extends PhotoPickerTestActivity> ViewPager2IdlingResource register(
+            ActivityScenario<T> scenario, int viewPager2Id) {
         final ViewPager2IdlingResource[] idlingResources = new ViewPager2IdlingResource[1];
         scenario.onActivity(
                 (activity -> {

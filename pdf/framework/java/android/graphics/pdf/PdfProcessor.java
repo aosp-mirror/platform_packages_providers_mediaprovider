@@ -98,8 +98,7 @@ public class PdfProcessor {
         }
 
         String password = (params != null) ? params.getPassword() : null;
-        LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(),
-                password);
+        LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(), password);
         switch (result.status) {
             case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR -> throw new IOException(
                     "Unable to load the document!");
@@ -144,8 +143,8 @@ public class PdfProcessor {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         // Use {@link java.util.Stream#collect()} instead of {@link java.util.Stream#toList)} as
         // it is available from Android SDK 34.
-        return mPdfDocument.getPageAltText(pageNum).stream().map(
-                PdfPageImageContent::new).collect(Collectors.toList());
+        return mPdfDocument.getPageAltText(pageNum).stream().map(PdfPageImageContent::new).collect(
+                Collectors.toList());
     }
 
     /**
@@ -173,19 +172,18 @@ public class PdfProcessor {
      * task.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public void renderPage(
-            int pageNum, Bitmap bitmap, Rect destClip, Matrix transform, RenderParams params) {
+    public void renderPage(int pageNum, Bitmap bitmap, Rect destClip, Matrix transform,
+            RenderParams params) {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(bitmap, "Destination bitmap cannot be null");
         Preconditions.checkNotNull(params, "RenderParams cannot be null");
-        Preconditions.checkArgument(
-                bitmap.getConfig() == Bitmap.Config.ARGB_8888, "Unsupported pixel format");
-        Preconditions.checkArgument(
-                transform == null || transform.isAffine(), "Transform not affine");
+        Preconditions.checkArgument(bitmap.getConfig() == Bitmap.Config.ARGB_8888,
+                "Unsupported pixel format");
+        Preconditions.checkArgument(transform == null || transform.isAffine(),
+                "Transform not affine");
         int renderMode = params.getRenderMode();
-        Preconditions.checkArgument(renderMode == PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
-                        || renderMode == PdfRenderer.Page.RENDER_MODE_FOR_PRINT,
-                "Unsupported render mode");
+        Preconditions.checkArgument(renderMode == RenderParams.RENDER_MODE_FOR_DISPLAY
+                || renderMode == RenderParams.RENDER_MODE_FOR_PRINT, "Unsupported render mode");
         Preconditions.checkArgument(clipInBitmap(destClip, bitmap), "destClip not in bounds");
         final int contentLeft = (destClip != null) ? destClip.left : 0;
         final int contentTop = (destClip != null) ? destClip.top : 0;
@@ -197,8 +195,7 @@ public class PdfProcessor {
             int clipWidth = contentRight - contentLeft;
             int clipHeight = contentBottom - contentTop;
             transform = new Matrix();
-            transform.postScale(
-                    (float) clipWidth / getPageWidth(pageNum),
+            transform.postScale((float) clipWidth / getPageWidth(pageNum),
                     (float) clipHeight / getPageHeight(pageNum));
             transform.postTranslate(contentLeft, contentTop);
         }
@@ -206,16 +203,8 @@ public class PdfProcessor {
         float[] transformArr = new float[9];
         transform.getValues(transformArr);
 
-        mPdfDocument.render(
-                pageNum,
-                bitmap,
-                contentLeft,
-                contentTop,
-                contentRight,
-                contentBottom,
-                transformArr,
-                renderMode,
-                params.areAnnotationsDisabled());
+        mPdfDocument.render(pageNum, bitmap, contentLeft, contentTop, contentRight, contentBottom,
+                transformArr, renderMode, params.areAnnotationsDisabled());
     }
 
     /**
@@ -243,14 +232,13 @@ public class PdfProcessor {
      * the same point, selects the word at that point.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public PageSelection selectPageText(int pageNum,
-            SelectionBoundary start, SelectionBoundary stop, boolean isRtl) {
+    public PageSelection selectPageText(int pageNum, SelectionBoundary start,
+            SelectionBoundary stop, boolean isRtl) {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(start, "Start selection boundary cannot be null");
         Preconditions.checkNotNull(stop, "Stop selection boundary cannot be null");
         android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
-                mPdfDocument.selectPageText(
-                        pageNum,
+                mPdfDocument.selectPageText(pageNum,
                         android.graphics.pdf.models.jni.SelectionBoundary.convert(start, isRtl),
                         android.graphics.pdf.models.jni.SelectionBoundary.convert(stop, isRtl));
         if (legacyPageSelection != null) {
@@ -290,8 +278,7 @@ public class PdfProcessor {
     @PdfLinearizationTypes.PdfLinearizationType
     public int getDocumentLinearizationType() {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.isPdfLinearized()
-                ? PDF_DOCUMENT_TYPE_LINEARIZED
+        return mPdfDocument.isPdfLinearized() ? PDF_DOCUMENT_TYPE_LINEARIZED
                 : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
     }
 
@@ -323,8 +310,8 @@ public class PdfProcessor {
      * page will be returned.
      */
     @NonNull
-    public List<FormWidgetInfo> getFormWidgetInfos(
-            int pageNum, @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+    public List<FormWidgetInfo> getFormWidgetInfos(int pageNum,
+            @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
         return mPdfDocument.getFormWidgetInfos(pageNum, types);
     }
 
@@ -379,9 +366,10 @@ public class PdfProcessor {
         return new ArrayList<>();
     }
 
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     private List<Rect> applyEditTypeClick(int pageNum, @NonNull FormEditRecord editRecord) {
-        Preconditions.checkNotNull(
-                editRecord.getClickPoint(), "Can't apply click edit record without point");
+        Preconditions.checkNotNull(editRecord.getClickPoint(),
+                "Can't apply click edit record without point");
         Point clickPoint = editRecord.getClickPoint();
         List<Rect> results = mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
         if (results == null) {
@@ -390,23 +378,24 @@ public class PdfProcessor {
         return results;
     }
 
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     private List<Rect> applyEditTypeSetIndices(int pageNum, @NonNull FormEditRecord editRecord) {
         Set<Integer> selectedIndices = editRecord.getSelectedIndices();
-        List<Rect> results =
-                mPdfDocument.setFormFieldSelectedIndices(
-                        pageNum, editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
+        List<Rect> results = mPdfDocument.setFormFieldSelectedIndices(pageNum,
+                editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
         if (results == null) {
             throw new IllegalArgumentException("Cannot set selected indices on this widget.");
         }
         return results;
     }
 
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     private List<Rect> applyEditSetText(int pageNum, @NonNull FormEditRecord editRecord) {
-        Preconditions.checkNotNull(
-                editRecord.getText(), "Can't apply set text record without text");
+        Preconditions.checkNotNull(editRecord.getText(),
+                "Can't apply set text record without text");
         String text = editRecord.getText();
-        List<Rect> results =
-                mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
+        List<Rect> results = mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(),
+                text);
         if (results == null) {
             throw new IllegalArgumentException("Cannot set form field text on this widget.");
         }
@@ -422,8 +411,8 @@ public class PdfProcessor {
      */
     /** Executes the {@link FormEditRecord}s on the page, in order. */
     @NonNull
-    public List<FormEditRecord> applyEdits(
-            int pageNum, @NonNull List<FormEditRecord> formEditRecords) {
+    public List<FormEditRecord> applyEdits(int pageNum,
+            @NonNull List<FormEditRecord> formEditRecords) {
         for (int i = 0; i < formEditRecords.size(); i++) {
             try {
                 applyEdit(pageNum, formEditRecords.get(i));
@@ -484,8 +473,7 @@ public class PdfProcessor {
         if (clip == null) {
             return true;
         }
-        return clip.left >= 0 && clip.top >= 0
-                && clip.right <= destination.getWidth()
+        return clip.left >= 0 && clip.top >= 0 && clip.right <= destination.getWidth()
                 && clip.bottom <= destination.getHeight();
     }
 }

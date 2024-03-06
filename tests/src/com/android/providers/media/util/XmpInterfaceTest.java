@@ -21,16 +21,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import android.content.Context;
 import android.media.ExifInterface;
-import android.util.ArraySet;
 import android.util.Xml;
 
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.R;
 
@@ -47,15 +46,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
 public class XmpInterfaceTest {
+
     @Test
     public void testContainer_Empty() throws Exception {
-        final Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
         try (InputStream in = context.getResources().openRawResource(R.raw.test_image)) {
-            final XmpInterface xmp = XmpInterface.fromContainer(in);
+            final ExifInterface exifInterface = new ExifInterface(in);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(exifInterface);
             assertNull(xmp.getFormat());
             assertNull(xmp.getDocumentId());
             assertNull(xmp.getInstanceId());
@@ -65,9 +65,10 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_ValidAttrs() throws Exception {
-        final Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
         try (InputStream in = context.getResources().openRawResource(R.raw.lg_g4_iso_800_jpg)) {
-            final XmpInterface xmp = XmpInterface.fromContainer(in);
+            final ExifInterface exifInterface = new ExifInterface(in);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(exifInterface);
             assertEquals("image/dng", xmp.getFormat());
             assertEquals("xmp.did:041dfd42-0b46-4302-918a-836fba5016ed", xmp.getDocumentId());
             assertEquals("xmp.iid:041dfd42-0b46-4302-918a-836fba5016ed", xmp.getInstanceId());
@@ -77,9 +78,10 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_ValidTags() throws Exception {
-        final Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
         try (InputStream in = context.getResources().openRawResource(R.raw.lg_g4_iso_800_dng)) {
-            final XmpInterface xmp = XmpInterface.fromContainer(in);
+            final ExifInterface exifInterface = new ExifInterface(in);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(exifInterface);
             assertEquals("image/dng", xmp.getFormat());
             assertEquals("xmp.did:041dfd42-0b46-4302-918a-836fba5016ed", xmp.getDocumentId());
             assertEquals("xmp.iid:041dfd42-0b46-4302-918a-836fba5016ed", xmp.getInstanceId());
@@ -89,17 +91,11 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_ExifRedactionRanges() throws Exception {
-        final Set<String> redactionTags = new ArraySet<>();
-        redactionTags.add(ExifInterface.TAG_GPS_LATITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_LONGITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_TIMESTAMP);
-        redactionTags.add(ExifInterface.TAG_GPS_VERSION_ID);
-
-        final Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
         try (InputStream in = context.getResources().openRawResource(R.raw.lg_g4_iso_800_jpg)) {
             ExifInterface exif = new ExifInterface(in);
             assertEquals(1809, exif.getAttributeRange(ExifInterface.TAG_XMP)[0]);
-            final XmpInterface xmp = XmpInterface.fromContainer(exif, redactionTags);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(exif);
 
             // Confirm redact range within entire file
             // The XMP contents start at byte 1809. These are the file offsets.
@@ -116,15 +112,9 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_IsoRedactionRanges() throws Exception {
-        final Set<String> redactionTags = new ArraySet<>();
-        redactionTags.add(ExifInterface.TAG_GPS_LATITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_LONGITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_TIMESTAMP);
-        redactionTags.add(ExifInterface.TAG_GPS_VERSION_ID);
-
         final File file = stageFile(R.raw.test_video_xmp);
         final IsoInterface mp4 = IsoInterface.fromFile(file);
-        final XmpInterface xmp = XmpInterface.fromContainer(mp4, redactionTags);
+        final XmpInterface xmp = XmpInterface.createXmpInterface(mp4);
 
         // Confirm redact range within entire file
         // The XMP contents start at byte 30286. These are the file offsets.
@@ -140,16 +130,10 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_IsoRedactionRanges_BadTagValue() throws Exception {
-        final Set<String> redactionTags = new ArraySet<>();
-        redactionTags.add(ExifInterface.TAG_GPS_LATITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_LONGITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_TIMESTAMP);
-        redactionTags.add(ExifInterface.TAG_GPS_VERSION_ID);
-
         // This file has some inner xml in the latitude tag. We should redact anyway.
         final File file = stageFile(R.raw.test_video_xmp_bad_tag);
         final IsoInterface mp4 = IsoInterface.fromFile(file);
-        final XmpInterface xmp = XmpInterface.fromContainer(mp4, redactionTags);
+        final XmpInterface xmp = XmpInterface.createXmpInterface(mp4);
 
         // The XMP contents start at byte 30286. These are the file offsets.
         final long[] expectedRanges = new long[]{37299,37349,37352,37404,37407,37466,37469,37515};
@@ -158,19 +142,10 @@ public class XmpInterfaceTest {
 
     @Test
     public void testContainer_IsoRedactionRanges_MalformedXml() throws Exception {
-        final Set<String> redactionTags = new ArraySet<>();
-        redactionTags.add(ExifInterface.TAG_GPS_LATITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_LONGITUDE);
-        redactionTags.add(ExifInterface.TAG_GPS_TIMESTAMP);
-        redactionTags.add(ExifInterface.TAG_GPS_VERSION_ID);
-
         // This file has malformed XML in the latitude tag. XML parsing will fail
         final File file = stageFile(R.raw.test_video_xmp_malformed);
         final IsoInterface mp4 = IsoInterface.fromFile(file);
-        try {
-            final XmpInterface xmp = XmpInterface.fromContainer(mp4, redactionTags);
-            fail("Should throw IOException");
-        } catch (IOException e) {}
+        assertThrows(IOException.class, () -> XmpInterface.createXmpInterface(mp4));
     }
 
     @Test
@@ -223,7 +198,7 @@ public class XmpInterfaceTest {
     }
 
     private static File stageFile(int resId) throws Exception {
-        final Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
         final File file = File.createTempFile("test", ".mp4");
         try (InputStream in = context.getResources().openRawResource(resId);
              OutputStream out = new FileOutputStream(file)) {

@@ -1279,7 +1279,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Also hunt around for XMP metadata
             final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
-            final XmpInterface xmp = XmpInterface.fromContainer(iso);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(iso);
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
@@ -1360,7 +1360,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Also hunt around for XMP metadata
             final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
-            final XmpInterface xmp = XmpInterface.fromContainer(iso);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(iso);
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
@@ -1400,7 +1400,7 @@ public class ModernMediaScanner implements MediaScanner {
                     parseOptional(exif.getAttribute(ExifInterface.TAG_SCENE_CAPTURE_TYPE)));
 
             // Also hunt around for XMP metadata
-            final XmpInterface xmp = XmpInterface.fromContainer(exif);
+            final XmpInterface xmp = XmpInterface.createXmpInterface(exif);
             withXmpValues(op, xmp, mimeType);
 
             op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));

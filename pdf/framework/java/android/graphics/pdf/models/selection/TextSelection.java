@@ -53,8 +53,10 @@ public final class TextSelection {
 
     /**
      * Gets the bounds of the highlighter for the selected text content represented as a list of
-     * {@link Rect}. Selections which are spread across multiple lines will be represented by
-     * multiple {@link Rect} in order of selection.
+     * {@link Rect}. Each {@link Rect} represents a bound of the selected text content in a single
+     * line and defines the coordinates of its 4 edges (left, top, right and bottom) in
+     * points (1/72"). Selections which are spread across multiple lines will be represented by
+     * list of {@link Rect} in the order of selection.
      *
      * @return The bounds of the selections.
      */

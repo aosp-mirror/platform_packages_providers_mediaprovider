@@ -64,25 +64,22 @@ import java.util.Set;
  * A typical use of the APIs to render a PDF looks like this:
  * <pre>
  * // create a new renderer
- * PdfRendererPreV renderer = new PdfRendererPreV(getSeekableFileDescriptor(), loadParams);
+ * try (PdfRendererPreV renderer = new PdfRendererPreV(getSeekableFileDescriptor(), loadParams)) {
+ *      // let us just render all pages
+ *      final int pageCount = renderer.getPageCount();
+ *      for (int i = 0; i < pageCount; i++) {
+ *          Page page = renderer.openPage(i);
+ *          RenderParams params = new RenderParams.Builder(Page.RENDER_MODE_FOR_DISPLAY).build();
  *
- * // let us just render all pages
- * final int pageCount = renderer.getPageCount();
- * for (int i = 0; i < pageCount; i++) {
- *     Page page = renderer.openPage(i);
- *     RenderParams params = new RenderParams.Builder(Page.RENDER_MODE_FOR_DISPLAY).build();
+ *          // say we render for showing on the screen
+ *          page.render(mBitmap, params, null, null);
  *
- *     // say we render for showing on the screen
- *     page.render(mBitmap, params, null, null);
+ *          // do stuff with the bitmap
  *
- *     // do stuff with the bitmap
- *
- *     // close the page
- *     page.close();
+ *          // close the page
+ *          page.close();
+ *      }
  * }
- *
- * // close the renderer
- * renderer.close();
  * </pre>
  * <h3>Print preview and print output</h3>
  * <p>
@@ -322,13 +319,14 @@ public final class PdfRendererPreV implements AutoCloseable {
 
     /** @hide */
     @IntDef({
-        PDF_FORM_TYPE_NONE,
-        PDF_FORM_TYPE_ACRO_FORM,
-        PDF_FORM_TYPE_XFA_FULL,
-        PDF_FORM_TYPE_XFA_FOREGROUND
+            PDF_FORM_TYPE_NONE,
+            PDF_FORM_TYPE_ACRO_FORM,
+            PDF_FORM_TYPE_XFA_FULL,
+            PDF_FORM_TYPE_XFA_FOREGROUND
     })
     @Retention(RetentionPolicy.SOURCE)
-    public @interface PdfFormType {}
+    public @interface PdfFormType {
+    }
 
     /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -476,8 +474,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          * <strong>Note:</strong> Should be invoked on a {@link android.annotation.WorkerThread}
          * as it is long-running task.
          *
-         * @param left  start boundary of the selection (inclusive)
-         * @param right stop boundary of the selection (exclusive)
+         * @param left  left boundary of the selection (inclusive)
+         * @param right right boundary of the selection (exclusive)
          * @param isRtl determines right-to-left mode for the selection.
          * @return collection of the selected content for text, images, etc.
          * @throws IllegalStateException If the document/page is closed before invocation.
@@ -556,8 +554,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
          *     FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -573,8 +571,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          * @param x the x position of the widget on the page, in points
          * @param y the y position of the widget on the page, in points
          * @throws IllegalArgumentException if there is no form widget at the provided position.
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)

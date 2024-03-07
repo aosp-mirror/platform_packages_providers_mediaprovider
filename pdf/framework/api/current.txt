@@ -20,7 +20,7 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
     method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
     method public boolean shouldScaleForPrinting();
-    method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0

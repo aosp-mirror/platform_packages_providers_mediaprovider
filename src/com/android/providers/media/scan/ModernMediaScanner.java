@@ -105,6 +105,7 @@ import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.SpecialFormatDetector;
+import com.android.providers.media.util.XmpDataParser;
 import com.android.providers.media.util.XmpInterface;
 
 import java.io.File;
@@ -1279,7 +1280,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Also hunt around for XMP metadata
             final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
-            final XmpInterface xmp = XmpInterface.fromContainer(iso);
+            final XmpInterface xmp = XmpDataParser.createXmpInterface(iso);
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
@@ -1360,7 +1361,7 @@ public class ModernMediaScanner implements MediaScanner {
 
             // Also hunt around for XMP metadata
             final IsoInterface iso = IsoInterface.fromFileDescriptor(is.getFD());
-            final XmpInterface xmp = XmpInterface.fromContainer(iso);
+            final XmpInterface xmp = XmpDataParser.createXmpInterface(iso);
             withXmpValues(op, xmp, mimeType);
 
         } catch (Exception e) {
@@ -1400,7 +1401,7 @@ public class ModernMediaScanner implements MediaScanner {
                     parseOptional(exif.getAttribute(ExifInterface.TAG_SCENE_CAPTURE_TYPE)));
 
             // Also hunt around for XMP metadata
-            final XmpInterface xmp = XmpInterface.fromContainer(exif);
+            final XmpInterface xmp = XmpDataParser.createXmpInterface(exif);
             withXmpValues(op, xmp, mimeType);
 
             op.withValue(FileColumns._SPECIAL_FORMAT, SpecialFormatDetector.detect(exif, file));

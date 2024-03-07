@@ -34,7 +34,6 @@ import com.android.providers.media.photopicker.util.SafetyProtectionUtils;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -74,7 +73,6 @@ public class SafetyProtectionUtilsTest {
         });
     }
 
-    @Ignore("Enable once b/269874157 is fixed")
     @Test
     public void testWhetherShouldUseSafetyProtectionResourcesWhenTOrAboveAndFeatureFlagOn() {
         assumeTrue(SdkLevel.isAtLeastT());

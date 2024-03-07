@@ -20,13 +20,8 @@ import android.provider.MediaStore.MediaColumns;
 
 import com.android.providers.media.util.StringUtils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.Base64;
 import java.util.Objects;
 
 /**
@@ -248,24 +243,35 @@ public final class BackupIdRow implements Serializable {
 
     /**
      * Serializes the given {@link BackupIdRow} object to a string
+     * Format is
+     * "is_dirty::_id::is_fav::is_pending::is_trashed::media_type::user_id::owner_id::date_expires"
      */
     public static String serialize(BackupIdRow backupIdRow) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-        objectOutputStream.writeObject(backupIdRow);
-        objectOutputStream.close();
-        return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
+        return String.format("%s::%s::%s::%s::%s::%s::%s::%s::%s",
+                backupIdRow.getIsDirty() ? "1" : "0", backupIdRow.getId(),
+                backupIdRow.getIsFavorite(), backupIdRow.getIsPending(), backupIdRow.getIsTrashed(),
+                backupIdRow.getMediaType(), backupIdRow.getUserId(),
+                backupIdRow.getOwnerPackageId(), backupIdRow.getDateExpires());
     }
 
     /**
      * Deserializes the given string to {@link BackupIdRow} object
      */
     public static BackupIdRow deserialize(String s) throws IOException, ClassNotFoundException {
-        byte[] bytes = Base64.getDecoder().decode(s);
-        ObjectInputStream objectInputStream = new ObjectInputStream(
-                new ByteArrayInputStream(bytes));
-        BackupIdRow backupIdRow = (BackupIdRow) objectInputStream.readObject();
-        objectInputStream.close();
-        return backupIdRow;
+        if (s == null || s.isEmpty()) {
+            return null;
+        }
+
+        String[] fields = s.split("::");
+        BackupIdRow.Builder builder = BackupIdRow.newBuilder(Long.parseLong(fields[1]));
+        builder.setIsDirty(Objects.equals(fields[0], "1"));
+        builder.setIsFavorite(Integer.parseInt(fields[2]));
+        builder.setIsPending(Integer.parseInt(fields[3]));
+        builder.setIsTrashed(Integer.parseInt(fields[4]));
+        builder.setMediaType(Integer.parseInt(fields[5]));
+        builder.setUserId(Integer.parseInt(fields[6]));
+        builder.setOwnerPackagedId(Integer.parseInt(fields[7]));
+        builder.setDateExpires(fields[8]);
+        return builder.build();
     }
 }

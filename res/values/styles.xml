@@ -14,7 +14,8 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert">
@@ -89,6 +90,7 @@
 
     <style name="PickerDefaultTheme" parent="@android:style/Theme.DeviceDefault.DayNight">
         <!-- System | Widget section -->
+        <item name="actionOverflowButtonStyle">@style/OverflowButtonStyle</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:navigationBarColor">@color/picker_background_color</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -103,7 +105,7 @@
         <item name="android:listPreferredItemPaddingEnd">@dimen/picker_settings_list_item_padding_end</item>
     </style>
 
-    <style name="PickerMaterialTheme" parent="@style/Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>
         <item name="pickerHighlightColor">?android:attr/colorAccent</item>
@@ -127,6 +129,8 @@
         <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="PickerBannerButtonTheme"
@@ -138,4 +142,23 @@
         <item name="android:textColor">?attr/pickerBannerButtonTextColor</item>
     </style>
 
+    <style name="OverflowButtonStyle" parent="Widget.AppCompat.ActionButton.Overflow">
+        <item name="android:minWidth">@dimen/button_touch_size</item>
+    </style>
+
+    <style name="SelectedMediaPreloaderDialogTheme"
+           parent="@style/ThemeOverlay.MaterialComponents.MaterialAlertDialog.Centered">
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/AlertDialogTitleStyle</item>
+    </style>
+
+    <style name="ProgressDialogCancelButtonStyle"
+           parent="@style/Widget.MaterialComponents.Button.TextButton">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="AlertDialogTitleStyle"
+           parent="@style/MaterialAlertDialog.MaterialComponents.Title.Text.CenterStacked">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
 </resources>

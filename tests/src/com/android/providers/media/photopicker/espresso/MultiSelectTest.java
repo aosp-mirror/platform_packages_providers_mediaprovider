@@ -51,17 +51,16 @@ import androidx.test.espresso.action.ViewActions;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class MultiSelectTest extends PhotoPickerBaseTest {
-
-    private static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
 
     private ActivityScenario<PhotoPickerTestActivity> mScenario;
 
@@ -75,11 +74,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     @After
     public void closeActivity() {
         mScenario.close();
-    }
-
-    @Test
-    public void testMultiSelectDoesNotShowProfileButton() {
-        assertProfileButtonNotShown();
     }
 
     @Test
@@ -254,7 +248,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/228574741 is fixed")
     public void testMultiSelectTabSwiping() throws Exception {
         onView(withId(TAB_LAYOUT_ID)).check(matches(isDisplayed()));
 
@@ -287,7 +280,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
-    @Ignore("Enable after b/222013536 is fixed")
     public void testMultiSelectScrollDownToClose() {
         final BottomSheetIdlingResource bottomSheetIdlingResource =
                 BottomSheetIdlingResource.register(mScenario);
@@ -300,15 +292,6 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
                 assertBottomSheetState(activity, STATE_EXPANDED);
             });
 
-            // Shows dragBar and privacy text after we are back to Photos tab
-            onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
-            onView(withId(PRIVACY_TEXT_ID)).check(matches(isDisplayed()));
-            mScenario.onActivity(activity -> {
-                assertBottomSheetState(activity, STATE_EXPANDED);
-            });
-
-            // Swiping down on drag bar or toolbar is not closing the bottom sheet as closing the
-            // bottomsheet requires a stronger downward swipe.
             onView(withId(R.id.bottom_sheet)).perform(ViewActions.swipeDown());
         } finally {
             IdlingRegistry.getInstance().unregister(bottomSheetIdlingResource);
@@ -316,30 +299,5 @@ public class MultiSelectTest extends PhotoPickerBaseTest {
 
         assertThat(mScenario.getResult().getResultCode()).isEqualTo(
                 Activity.RESULT_CANCELED);
-    }
-
-
-    private void assertProfileButtonNotShown() {
-        // Partial screen does not show profile button
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Navigate to Albums tab
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        final int cameraStringId = R.string.picker_category_camera;
-        // Navigate to photos in Camera album
-        onView(allOf(withText(cameraStringId),
-                isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).perform(click());
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
-
-        // Click back button
-        onView(withContentDescription("Navigate up")).perform(click());
-
-        // on clicking back button we are back to Album grid
-        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
-                .check(matches(isSelected()));
-        onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
     }
 }

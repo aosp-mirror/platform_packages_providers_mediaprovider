@@ -54,6 +54,8 @@ package android.graphics.pdf {
     method public int getRenderMode();
     field public static final int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 4; // 0x4
     field public static final int FLAG_RENDER_TEXT_ANNOTATIONS = 2; // 0x2
+    field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
+    field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
   }
 
   public static final class RenderParams.Builder {

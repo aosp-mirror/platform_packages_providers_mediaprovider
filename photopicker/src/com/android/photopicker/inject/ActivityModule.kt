@@ -24,6 +24,8 @@ import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.data.DataService
+import com.android.photopicker.data.DataServiceImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -58,6 +60,7 @@ class ActivityModule {
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
     private lateinit var configurationManager: ConfigurationManager
+    private lateinit var dataService: DataService
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
     private lateinit var userMonitor: UserMonitor
@@ -100,6 +103,38 @@ class ActivityModule {
             )
             configurationManager = ConfigurationManager(scope, dispatcher, DeviceConfigProxyImpl())
             return configurationManager
+        }
+    }
+
+    /**
+     * Provider method for [DataService]. This is lazily initialized only when requested to save on
+     * initialization costs of this module.
+     *
+     * Ideally this should not be limited to an Activity scope. This is planned to be changed soon.
+     */
+    @Provides
+    @ActivityRetainedScoped
+    fun provideDataService(
+            @ApplicationContext context: Context,
+            @ActivityRetainedScoped featureManager: FeatureManager,
+            @ActivityRetainedScoped @Background scope: CoroutineScope,
+            @ActivityRetainedScoped userMonitor: UserMonitor,
+    ): DataService {
+
+        if (::dataService.isInitialized) {
+            return dataService
+        } else {
+            Log.d(
+                    DataService.TAG,
+                    "DataService requested but not yet initialized. Initializing DataService."
+            )
+            dataService = DataServiceImpl(
+                    context,
+                    featureManager,
+                    scope,
+                    userMonitor
+            )
+            return dataService
         }
     }
 

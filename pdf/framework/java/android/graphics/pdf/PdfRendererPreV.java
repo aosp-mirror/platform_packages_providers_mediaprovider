@@ -388,9 +388,10 @@ public final class PdfRendererPreV implements AutoCloseable {
         }
 
         /**
-         * Return list of {@link PdfPageTextContent} in the order it was found on the page. It
-         * contains all the content associated with text found on the page. The list will be empty
-         * if there are no results found.
+         * Return list of {@link PdfPageTextContent} found on the page, ordered left to right
+         * and top to bottom. It contains all the content associated with text found on the page.
+         * The list will be empty if there are no results found. Currently, localisation does
+         * not have any impact on the order in which {@link PdfPageTextContent} is returned.
          *
          * @return list of text content found on the page.
          * @throws IllegalStateException If the document/page is closed before invocation.
@@ -402,9 +403,11 @@ public final class PdfRendererPreV implements AutoCloseable {
         }
 
         /**
-         * Return list of {@link PdfPageImageContent} in the order it was found on the page. It
-         * contains all the content associated with images found on the page including alt text.
-         * The list will be empty if there are no results found.
+         * Return list of {@link PdfPageImageContent} found on the page, ordered left to right
+         * and top to bottom. It contains all the content associated with images found on the
+         * page including alt text. The list will be empty if there are no results found.
+         * Currently, localisation does not have any impact on the order in which
+         * {@link PdfPageImageContent} is returned.
          *
          * @return list of image content found on the page.
          * @throws IllegalStateException If the document/page is closed before invocation.
@@ -505,8 +508,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          * are the internal navigation links which directs the user to different location
          * within the same document.
          *
-         * @return list of all goto links {@link PdfPageGotoLinkContent} on a page in the order
-         * they are present on the page
+         * @return list of all goto links {@link PdfPageGotoLinkContent} on a page, ordered
+         * left to right and top to bottom.
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @NonNull

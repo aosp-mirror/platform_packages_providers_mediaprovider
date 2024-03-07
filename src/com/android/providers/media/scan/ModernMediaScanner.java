@@ -77,6 +77,7 @@ import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
@@ -115,6 +116,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -183,6 +185,14 @@ public class ModernMediaScanner implements MediaScanner {
 
     private static final Pattern PATTERN_ALBUM_ART = Pattern.compile(
             "(?i)(?:(?:^folder|(?:^AlbumArt(?:(?:_\\{.*\\}_)?(?:small|large))?))(?:\\.jpg$)|(?:\\._.*))");
+
+    // The path of the MyFiles/Downloads directory shared from Chrome OS in ARC.
+    private static final Path ARC_MYFILES_DOWNLOADS_PATH = Paths.get(
+            "/storage/0000000000000000000000000000CAFEF00D2019/Downloads");
+
+    // Check the same property as android.os.Build.IS_ARC.
+    private static final boolean IS_ARC =
+            SystemProperties.getBoolean("ro.boot.container", false);
 
     @NonNull
     private final Context mContext;
@@ -1692,6 +1702,12 @@ public class ModernMediaScanner implements MediaScanner {
 
     @VisibleForTesting
     static boolean shouldScanDirectory(@NonNull File dir) {
+        if (isInARCMyFilesDownloadsDirectory(dir)) {
+            // In ARC, skip files under MyFiles/Downloads since it's scanned under
+            // /storage/emulated.
+            return false;
+        }
+
         final File nomedia = new File(dir, ".nomedia");
 
         // Handle well-known paths that should always be visible or invisible,
@@ -1714,6 +1730,10 @@ public class ModernMediaScanner implements MediaScanner {
             return false;
         }
         return true;
+    }
+
+    private static boolean isInARCMyFilesDownloadsDirectory(@NonNull File file) {
+        return IS_ARC && file.toPath().startsWith(ARC_MYFILES_DOWNLOADS_PATH);
     }
 
     /**

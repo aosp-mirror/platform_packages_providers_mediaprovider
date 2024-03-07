@@ -73,8 +73,9 @@ public class SelectionBoundary {
     }
 
     /**
-     * Gets the {@link Point} for selection boundary. If the value is {@code null} then the
-     * {@link #getIndex()} will determine the selection boundary.
+     * Gets the x, y coordinates of the selection boundary in points (1/72"). These coordinates are
+     * represented by a {@link Point} . If the value is {@code null} then the {@link #getIndex()}
+     * will determine the selection boundary.
      *
      * @return The point of the selection boundary.
      */

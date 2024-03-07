@@ -2127,7 +2127,7 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
-    private Uri scanFileAsMediaProvider(File file, int reason) {
+    private Uri scanFileAsMediaProvider(File file) {
         final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try {
             return scanFile(file, REASON_DEMAND);
@@ -2929,8 +2929,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
-        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(oldPath));
+        scanFileAsMediaProvider(new File(newPath));
     }
 
     /**
@@ -3403,10 +3403,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile());
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile());
         }
 
         return 0;
@@ -5616,7 +5616,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile());
         }
 
         return newUri;
@@ -8360,14 +8360,14 @@ public class MediaProvider extends ContentProvider {
                             final boolean notifyTranscodeHelper = isUriPublished;
                             if (deferScan) {
                                 helper.postBackground(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
@@ -9422,7 +9422,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        scanFileAsMediaProvider(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file);
                         break;
                 }
             } catch (Exception e2) {

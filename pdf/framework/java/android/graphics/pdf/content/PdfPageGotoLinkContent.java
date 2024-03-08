@@ -63,6 +63,11 @@ public final class PdfPageGotoLinkContent {
      * Links which are spread across multiple lines will be surrounded by multiple {@link Rect}
      * in order of viewing.
      *
+     * <p><strong>Note:</strong> Each {@link Rect} represents a bound of the goto link in a single
+     * line and defines the coordinates of its 4 edges (left, top, right and bottom) in
+     * points (1/72"). The developer will need to render the highlighter as well as
+     * intercept the touch events for functionalities such as clicking the link.
+     *
      * @return The bounds of the goto link.
      */
     @NonNull

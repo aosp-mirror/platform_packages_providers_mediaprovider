@@ -22,7 +22,7 @@
   </application>
 
   <instrumentation
-    android:name="androidx.test.runner.AndroidJUnitRunner"
+    android:name="com.android.photopicker.tests.HiltTestRunner"
     android:targetPackage="com.android.photopicker.tests"
     android:label="Tests for Android Photopicker"/>
 </manifest>

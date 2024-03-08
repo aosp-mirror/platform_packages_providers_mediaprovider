@@ -19,15 +19,18 @@ package com.android.photopicker
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 
 /** This test class will run Photopicker's actual MainActivity. */
-@RunWith(AndroidJUnit4::class)
+@HiltAndroidTest
 class MainActivityTest {
-    @get:Rule
+
+    /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
+    @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
+    @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = MainActivity::class.java)
 
     @Test

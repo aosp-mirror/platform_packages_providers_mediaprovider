@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core
 
+import android.content.ContentResolver
 import android.content.Context
 import android.util.Log
 import com.android.photopicker.core.network.NetworkMonitor
@@ -61,6 +62,12 @@ class ApplicationModule {
             backgroundScope = CoroutineScope(SupervisorJob() + dispatcher)
             return backgroundScope
         }
+    }
+
+    @Provides
+    @ApplicationOwned
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver {
+        return context.getContentResolver()
     }
 
     /**

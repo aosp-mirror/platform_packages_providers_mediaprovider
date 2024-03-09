@@ -17,6 +17,8 @@
 package android.graphics.pdf.content;
 
 import android.annotation.FlaggedApi;
+import android.annotation.FloatRange;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
@@ -30,7 +32,7 @@ import java.util.List;
  * document
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public class PdfPageGotoLinkContent {
+public final class PdfPageGotoLinkContent {
     @NonNull
     private final List<Rect> mBounds;
     @NonNull
@@ -82,7 +84,7 @@ public class PdfPageGotoLinkContent {
     /**
      * Represents the content associated with the destination where a goto link is directing
      */
-    public static class Destination {
+    public static final class Destination {
         private final int mPageNumber;
 
         private final float mXCoordinate;
@@ -125,32 +127,35 @@ public class PdfPageGotoLinkContent {
          *
          * @return page number of the destination where goto link is directing the user.
          */
+        @IntRange(from = 0)
         public int getPageNumber() {
             return mPageNumber;
         }
 
 
         /**
-         * Gets the x coordinate of the destination where the {@link PdfPageGotoLinkContent}
-         * is directing.
+         * Gets the x coordinate in points (1/72") of the destination where
+         * the {@link PdfPageGotoLinkContent} is directing.
          * <p><strong>Note:</strong> If underlying pdfium library can't determine the x coordinate,
          * it will be set to 0
          *
          * @return x coordinate of the Destination where the goto link is directing the user.
          */
+        @FloatRange(from = 0.0f)
         public float getXCoordinate() {
             return mXCoordinate;
         }
 
 
         /**
-         * Gets the y coordinate of the destination where the {@link PdfPageGotoLinkContent}
-         * is directing.
+         * Gets the y coordinate in points (1/72") of the destination where
+         * the {@link PdfPageGotoLinkContent} is directing.
          * <p><strong>Note:</strong> If underlying pdfium library can't determine the y coordinate,
          * it will be set to 0
          *
          * @return y coordinate of the Destination where the goto link is directing the user.
          */
+        @FloatRange(from = 0.0f)
         public float getYCoordinate() {
             return mYCoordinate;
         }
@@ -158,12 +163,13 @@ public class PdfPageGotoLinkContent {
 
         /**
          * Gets the zoom factor of the page when the goto link takes to the destination
-         * <p><strong>Note:</strong> If there is no zoom value embedded, default value of zoom
-         * will be zero. Otherwise it will be less than 1.0f in case of zoom out and greater
+         * <p><strong>Note:</strong> If there is no zoom value embedded, default value of Zoom
+         * will be zero. Otherwise, it will be less than 1.0f in case of zoom out and greater
          * than 1.0f in case of zoom in.
          *
          * @return zoom factor of the page when the goto link takes to the destination
          */
+        @FloatRange(from = 0.0f)
         public float getZoom() {
             return mZoom;
         }

@@ -373,7 +373,7 @@ public final class PdfRenderer implements AutoCloseable {
      *                               {@code true} but the document remains encrypted.
      * @throws IllegalStateException If {@link #close()} is called before invoking this.
      */
-    @SuppressLint("UnflaggedApi")
+    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public void write(@NonNull ParcelFileDescriptor destination, boolean removePasswordProtection)
             throws IOException {
         throwIfClosed();

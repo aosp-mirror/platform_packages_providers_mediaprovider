@@ -20,7 +20,7 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
     method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
     method public boolean shouldScaleForPrinting();
-    method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
+    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0
@@ -111,18 +111,18 @@ package android.graphics.pdf {
 
 package android.graphics.pdf.content {
 
-  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public class PdfPageGotoLinkContent {
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageGotoLinkContent {
     ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
     method @NonNull public java.util.List<android.graphics.Rect> getBounds();
     method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
   }
 
-  public static class PdfPageGotoLinkContent.Destination {
+  public static final class PdfPageGotoLinkContent.Destination {
     ctor public PdfPageGotoLinkContent.Destination(int, float, float, float);
-    method public int getPageNumber();
-    method public float getXCoordinate();
-    method public float getYCoordinate();
-    method public float getZoom();
+    method @IntRange(from=0) public int getPageNumber();
+    method @FloatRange(from=0.0f) public float getXCoordinate();
+    method @FloatRange(from=0.0f) public float getYCoordinate();
+    method @FloatRange(from=0.0f) public float getZoom();
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageImageContent {

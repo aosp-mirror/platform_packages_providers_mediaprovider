@@ -21,6 +21,7 @@ import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_L
 
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SuppressLint;
@@ -50,9 +51,7 @@ import androidx.annotation.RestrictTo;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * <p>
@@ -752,20 +751,20 @@ public final class PdfRenderer implements AutoCloseable {
         @androidx.annotation.NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<FormWidgetInfo> getFormWidgetInfos() {
-            return getFormWidgetInfos(new HashSet<>());
+            return getFormWidgetInfos(new int[0]);
         }
 
         /**
-         * Returns information about all form widgets on the page, or an empty list if there are no
-         * form widgets on the page.
+         * Returns information about all form widgets of the specified types on the page, or an
+         * empty list if there are no form widgets of the specified types on the page.
          *
-         * @param types the types of form widgets to return
+         * @param types the types of form widgets to return, or an empty array to return all widgets
          * @throws IllegalStateException if the renderer or page is closed
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<FormWidgetInfo> getFormWidgetInfos(
-                @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+                @NonNull @FormWidgetInfo.WidgetType int[] types) {
             throwIfDocumentOrPageClosed();
             synchronized (sPdfiumLock) {
                 return mPdfProcessor.getFormWidgetInfos(mIndex, types);
@@ -776,16 +775,15 @@ public final class PdfRenderer implements AutoCloseable {
          * Returns information about the widget with {@code widgetIndex}.
          *
          * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
-         *                    document, available on results of previous calls to
-         *                    {@link #getFormWidgetInfos(Set)}
-         *                    or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
-         *                    FormWidgetInfo#getWidgetIndex()}.
+         *     document, available on results of previous calls to {@link
+         *     #getFormWidgetInfos(int[])} or {@link #getFormWidgetInfoAtPosition(int, int)} via
+         *     {@link FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
-         * @throws IllegalStateException    if the renderer or page is closed
+         * @throws IllegalStateException if the renderer or page is closed
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-        public FormWidgetInfo getFormWidgetInfoAtIndex(int widgetIndex) {
+        public FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from = 0) int widgetIndex) {
             throwIfDocumentOrPageClosed();
             synchronized (sPdfiumLock) {
                 return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, widgetIndex);
@@ -826,15 +824,11 @@ public final class PdfRenderer implements AutoCloseable {
          *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         * @throws IllegalArgumentException if the provided {@link FormEditRecord} is not
-         *                                  applicable
-         *                                  to the widget indicated by the index (e.g. a set indices
-         *                                  type record contains an
-         *                                  index that corresponds to push button widget, or if the
-         *                                  index does not correspond to
-         *                                  a form widget on the page).
-         * @throws IllegalStateException    If the document is already closed.
-         * @throws IllegalStateException    If the page is already closed.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} cannot be applied
+         *     to the widget indicated by the index, or if the index does not correspond to a widget
+         *     on the page.
+         * @throws IllegalStateException If the document is already closed.
+         * @throws IllegalStateException If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -842,32 +836,6 @@ public final class PdfRenderer implements AutoCloseable {
             throwIfDocumentOrPageClosed();
             synchronized (sPdfiumLock) {
                 return mPdfProcessor.applyEdit(mIndex, editRecord);
-            }
-        }
-
-        /**
-         * Applies the {@link FormEditRecord}s to the page, in order.
-         *
-         * <p><strong>Note: </strong>Re-rendering the page via {@link #render(Bitmap, Rect, Matrix,
-         * RenderParams)} is required after calling this method. Applying edits to form widgets will
-         * change the appearance of the page.
-         *
-         * <p>If any record cannot be applied, it will be returned and no further records will be
-         * applied. Records already applied will not be reverted. To restore the page to its state
-         * before any records were applied, re-load the page via {@link #close()} and {@link
-         * #openPage(int)}.
-         *
-         * @param formEditRecords the {@link FormEditRecord}s to be applied
-         * @return the records that could not be applied, or an empty list if all were applied
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
-         */
-        @NonNull
-        @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-        public List<FormEditRecord> applyEdits(@NonNull List<FormEditRecord> formEditRecords) {
-            throwIfDocumentOrPageClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.applyEdits(mIndex, formEditRecords);
             }
         }
 

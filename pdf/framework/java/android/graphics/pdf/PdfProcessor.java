@@ -47,7 +47,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -310,8 +309,8 @@ public class PdfProcessor {
      * page will be returned.
      */
     @NonNull
-    public List<FormWidgetInfo> getFormWidgetInfos(int pageNum,
-            @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
+    public List<FormWidgetInfo> getFormWidgetInfos(
+            int pageNum, @NonNull @FormWidgetInfo.WidgetType int[] types) {
         return mPdfDocument.getFormWidgetInfos(pageNum, types);
     }
 
@@ -380,9 +379,10 @@ public class PdfProcessor {
 
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     private List<Rect> applyEditTypeSetIndices(int pageNum, @NonNull FormEditRecord editRecord) {
-        Set<Integer> selectedIndices = editRecord.getSelectedIndices();
-        List<Rect> results = mPdfDocument.setFormFieldSelectedIndices(pageNum,
-                editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
+        int[] selectedIndices = editRecord.getSelectedIndices();
+        List<Rect> results =
+                mPdfDocument.setFormFieldSelectedIndices(
+                        pageNum, editRecord.getWidgetIndex(), selectedIndices);
         if (results == null) {
             throw new IllegalArgumentException("Cannot set selected indices on this widget.");
         }
@@ -400,28 +400,6 @@ public class PdfProcessor {
             throw new IllegalArgumentException("Cannot set form field text on this widget.");
         }
         return results;
-    }
-
-    /**
-     * Executes the {@link FormEditRecord}s on the page, in order.
-     *
-     * <p>If any record cannot be applied, it will be returned and no further records will be
-     * applied. Records already applied will not be reverted. To restore the page to its state
-     * before any records were applied, re-load the page by closing and re-opening the page.
-     */
-    /** Executes the {@link FormEditRecord}s on the page, in order. */
-    @NonNull
-    public List<FormEditRecord> applyEdits(int pageNum,
-            @NonNull List<FormEditRecord> formEditRecords) {
-        for (int i = 0; i < formEditRecords.size(); i++) {
-            try {
-                applyEdit(pageNum, formEditRecords.get(i));
-            } catch (IllegalArgumentException ex) {
-                Log.e(TAG, String.format("Can't apply record %d", i), ex);
-                return formEditRecords.subList(i, formEditRecords.size());
-            }
-        }
-        return new ArrayList<>();
     }
 
     /** Ensures that any previous {@link PdfDocumentProxy} instance is closed. */

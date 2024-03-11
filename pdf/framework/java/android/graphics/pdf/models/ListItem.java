@@ -27,37 +27,38 @@ import java.util.Objects;
 
 /** Represents a single option in a combo box or list box PDF form widget. */
 @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
-public final class ChoiceOption implements Parcelable {
+public final class ListItem implements Parcelable {
     @NonNull
-    public static final Creator<ChoiceOption> CREATOR =
-            new Creator<ChoiceOption>() {
+    public static final Creator<ListItem> CREATOR =
+            new Creator<ListItem>() {
                 @Override
-                public ChoiceOption createFromParcel(Parcel in) {
-                    return new ChoiceOption(in);
+                public ListItem createFromParcel(Parcel in) {
+                    return new ListItem(in);
                 }
 
                 @Override
-                public ChoiceOption[] newArray(int size) {
-                    return new ChoiceOption[size];
+                public ListItem[] newArray(int size) {
+                    return new ListItem[size];
                 }
             };
-    private String mLabel;
-    private boolean mSelected;
+
+    private final String mLabel;
+    private final boolean mSelected;
 
     /**
      * Creates a new choice option with the specified label, and selected state.
      *
-     * @param label    Label for choice option.
+     * @param label Label for choice option.
      * @param selected Determines if the option is selected or not.
      * @throws NullPointerException if {@code label} is null
      */
-    public ChoiceOption(@NonNull String label, boolean selected) {
+    public ListItem(@NonNull String label, boolean selected) {
         Preconditions.checkNotNull(label, "Label cannot be null");
         this.mLabel = label;
         this.mSelected = selected;
     }
 
-    private ChoiceOption(@NonNull Parcel in) {
+    private ListItem(@NonNull Parcel in) {
         mLabel = in.readString();
         mSelected = in.readInt() != 0;
     }
@@ -68,24 +69,9 @@ public final class ChoiceOption implements Parcelable {
         return mLabel;
     }
 
-    /**
-     * Sets the label of this option
-     *
-     * @throws NullPointerException if {@code label} is null
-     */
-    public void setLabel(@NonNull String label) {
-        Preconditions.checkNotNull(label, "Label cannot be null");
-        mLabel = label;
-    }
-
     /** @return {@code true} if the choice option is selected in the list */
     public boolean isSelected() {
         return mSelected;
-    }
-
-    /** Sets this option as selected in the list */
-    public void setSelected(boolean selected) {
-        this.mSelected = selected;
     }
 
     @Override
@@ -95,7 +81,7 @@ public final class ChoiceOption implements Parcelable {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ChoiceOption other) {
+        if (obj instanceof ListItem other) {
             return mLabel.equals(other.mLabel) && mSelected == other.mSelected;
         }
         return false;

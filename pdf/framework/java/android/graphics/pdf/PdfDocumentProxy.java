@@ -29,7 +29,6 @@ import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * This class accesses the PdfClient tools to manipulate and render a PDF document. One instance of
@@ -227,7 +226,7 @@ public class PdfDocumentProxy {
      * <p>Optionally restricts by {@code typeIds}. If {@code typeIds} is empty, all form widgets on
      * the page will be returned.
      */
-    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, Set<Integer> typeIds);
+    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, int[] typeIds);
 
     /**
      * Executes an interactive click on the page at the given point ({@code x}, {@code y}).
@@ -250,5 +249,5 @@ public class PdfDocumentProxy {
      * @return Rectangular areas of the page bitmap that have been invalidated by this action
      */
     public native List<Rect> setFormFieldSelectedIndices(
-            int pageNum, int annotIndex, List<Integer> selectedIndices);
+            int pageNum, int annotIndex, int[] selectedIndices);
 }

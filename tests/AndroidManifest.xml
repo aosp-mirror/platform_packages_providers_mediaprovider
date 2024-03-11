@@ -69,6 +69,14 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="com.android.providers.media.photopicker.ui.testapp.TestActivity"
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+            <intent-filter>
+                <action android:name="com.android.providers.media.photopicker.tests.LAUNCH_TEST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <provider android:name="com.android.providers.media.photopicker.LocalProvider"
             android:authorities="com.android.providers.media.photopicker.tests.local"
             android:exported="false" />

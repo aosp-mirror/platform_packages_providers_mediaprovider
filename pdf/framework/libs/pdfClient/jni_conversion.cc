@@ -38,7 +38,7 @@ static const char* kMatchRects = "android/graphics/pdf/models/jni/MatchRects";
 static const char* kSelection = "android/graphics/pdf/models/jni/PageSelection";
 static const char* kBoundary = "android/graphics/pdf/models/jni/SelectionBoundary";
 static const char* kFormWidgetInfo = "android/graphics/pdf/models/FormWidgetInfo";
-static const char* kChoiceOption = "android/graphics/pdf/models/ChoiceOption";
+static const char* kChoiceOption = "android/graphics/pdf/models/ListItem";
 static const char* kGotoLinkDestination =
         "android/graphics/pdf/content/PdfPageGotoLinkContent$Destination";
 static const char* kGotoLink = "android/graphics/pdf/content/PdfPageGotoLinkContent";
@@ -116,49 +116,6 @@ jobject ToJavaList(JNIEnv* env, const vector<T>& input,
     return java_list;
 }
 
-template <class T>
-vector<T> ToNativeVector(JNIEnv* env, jobject jList,
-                         T (*ToNativeObject)(JNIEnv* env, jobject jValue)) {
-    static jclass list_class = GetPermClassRef(env, kList);
-    static jmethodID list_size = env->GetMethodID(list_class, "size", "()I");
-    static jmethodID list_get = env->GetMethodID(list_class, "get", funcsig(kObject, "I").c_str());
-
-    std::vector<T> integer_list;
-
-    jint len = env->CallIntMethod(jList, list_size);
-    for (jint i = 0; i < len; i++) {
-        jobject jValue = env->CallObjectMethod(jList, list_get, i);
-        T native_value = ToNativeObject(env, jValue);
-        integer_list.push_back(native_value);
-    }
-
-    return integer_list;
-}
-
-template <class T>
-std::unordered_set<T> ToNativeUnorderedSet(JNIEnv* env, jobject jSet,
-                                           T (*ToNativeObject)(JNIEnv* env, jobject jValue)) {
-    static jclass set_class = GetPermClassRef(env, kSet);
-    static jclass iterator_class = GetPermClassRef(env, kIterator);
-
-    static jmethodID set_iterator =
-            env->GetMethodID(set_class, "iterator", funcsig(kIterator).c_str());
-    static jmethodID iterator_has_next = env->GetMethodID(iterator_class, "hasNext", "()Z");
-    static jmethodID iterator_next =
-            env->GetMethodID(iterator_class, "next", funcsig(kObject).c_str());
-
-    std::unordered_set<T> native_set;
-
-    jobject jIterator = env->CallObjectMethod(jSet, set_iterator);
-    while (env->CallBooleanMethod(jIterator, iterator_has_next)) {
-        jobject jValue = env->CallObjectMethod(jIterator, iterator_next);
-        T native_value = ToNativeObject(env, jValue);
-        native_set.insert(native_value);
-    }
-
-    return native_set;
-}
-
 }  // namespace
 
 jobject ToJavaPdfDocument(JNIEnv* env, std::unique_ptr<Document> doc) {
@@ -204,12 +161,18 @@ int ToNativeInteger(JNIEnv* env, jobject jInteger) {
     return env->CallIntMethod(jInteger, get_int_value);
 }
 
-vector<int> ToNativeIntegerVector(JNIEnv* env, jobject jIntegerList) {
-    return ToNativeVector(env, jIntegerList, &ToNativeInteger);
+vector<int> ToNativeIntegerVector(JNIEnv* env, jintArray jintArray) {
+    jsize size = env->GetArrayLength(jintArray);
+    vector<int> output(size);
+    env->GetIntArrayRegion(jintArray, jsize{0}, size, &output[0]);
+    return output;
 }
 
-std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jobject jIntegerSet) {
-    return ToNativeUnorderedSet(env, jIntegerSet, &ToNativeInteger);
+std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jintArray jintArray) {
+    jsize size = env->GetArrayLength(jintArray);
+    vector<int> intermediate(size);
+    env->GetIntArrayRegion(jintArray, jsize{0}, size, &intermediate[0]);
+    return std::unordered_set<int>(std::begin(intermediate), std::end(intermediate));
 }
 
 jobject ToJavaRect(JNIEnv* env, const Rectangle_i& r) {

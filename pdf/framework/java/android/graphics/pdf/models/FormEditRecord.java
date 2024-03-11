@@ -18,6 +18,7 @@ package android.graphics.pdf.models;
 
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Point;
@@ -28,11 +29,8 @@ import android.os.Parcelable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Record of a form filling operation that has been executed on a single form field in a PDF.
@@ -75,8 +73,7 @@ public final class FormEditRecord implements Parcelable {
     @Nullable
     private final Point mClickPoint;
 
-    @NonNull
-    private final Set<Integer> mSelectedIndices;
+    @NonNull private final int[] mSelectedIndices;
 
     @Nullable
     private final String mText;
@@ -87,13 +84,13 @@ public final class FormEditRecord implements Parcelable {
             int widgetIndex,
             @EditType int type,
             @Nullable Point clickPoint,
-            @Nullable Set<Integer> selectedIndices,
+            @Nullable int[] selectedIndices,
             @Nullable String text) {
         this.mPageNumber = pageNumber;
         this.mWidgetIndex = widgetIndex;
         this.mType = type;
         this.mClickPoint = clickPoint;
-        this.mSelectedIndices = Objects.requireNonNullElseGet(selectedIndices, HashSet::new);
+        this.mSelectedIndices = Objects.requireNonNullElseGet(selectedIndices, () -> new int[0]);
         this.mText = text;
     }
 
@@ -103,14 +100,17 @@ public final class FormEditRecord implements Parcelable {
         mType = in.readInt();
         mClickPoint = in.readParcelable(Point.class.getClassLoader());
 
-        ArrayList<Integer> selectedIndices = in.readArrayList(Integer.class.getClassLoader());
-        mSelectedIndices = new HashSet<>(selectedIndices);
-
+        int selectedIndicesSize = in.readInt();
+        mSelectedIndices = new int[selectedIndicesSize];
+        in.readIntArray(mSelectedIndices);
 
         mText = in.readString();
     }
 
-    /** @return the page on which the edit occurred */
+    /**
+     * @return the page on which the edit occurred
+     */
+    @IntRange(from = 0)
     public int getPageNumber() {
         return mPageNumber;
     }
@@ -118,6 +118,7 @@ public final class FormEditRecord implements Parcelable {
     /**
      * @return the index of the widget within the page's "Annot" array in the PDF document
      */
+    @IntRange(from = 0)
     public int getWidgetIndex() {
         return mWidgetIndex;
     }
@@ -129,7 +130,8 @@ public final class FormEditRecord implements Parcelable {
     }
 
     /**
-     * @return the point on which the user tapped, if applicable
+     * @return the point on which the user tapped, if this record is of type {@link
+     *     #EDIT_TYPE_CLICK}, else null
      */
     @Nullable
     public Point getClickPoint() {
@@ -137,15 +139,17 @@ public final class FormEditRecord implements Parcelable {
     }
 
     /**
-     * @return the selected indices in the choice widget, if applicable, else an empty set
+     * @return the selected indices in the choice widget, if this record is of type {@link
+     *     #EDIT_TYPE_SET_INDICES}, else an empty array
      */
     @NonNull
-    public Set<Integer> getSelectedIndices() {
+    public int[] getSelectedIndices() {
         return mSelectedIndices;
     }
 
     /**
-     * @return the text input by the user, if applicable
+     * @return the text input by the user, if this record is of type {@link #EDIT_TYPE_SET_TEXT},
+     * else null
      */
     @Nullable
     public String getText() {
@@ -163,7 +167,8 @@ public final class FormEditRecord implements Parcelable {
         dest.writeInt(mWidgetIndex);
         dest.writeInt(mType);
         dest.writeParcelable(mClickPoint, flags);
-        dest.writeList(new ArrayList<>(mSelectedIndices));
+        dest.writeInt(mSelectedIndices.length);
+        dest.writeIntArray(mSelectedIndices);
         dest.writeString(mText);
     }
 
@@ -181,7 +186,7 @@ public final class FormEditRecord implements Parcelable {
                 && mType == formEditRecord.mType
                 && Objects.equals(mClickPoint, formEditRecord.mClickPoint)
                 && Objects.equals(mText, formEditRecord.mText)
-                && Objects.equals(mSelectedIndices, formEditRecord.mSelectedIndices);
+                && Arrays.equals(mSelectedIndices, formEditRecord.mSelectedIndices);
     }
 
     @Override
@@ -214,8 +219,7 @@ public final class FormEditRecord implements Parcelable {
         @Nullable
         private Point mClickPoint = null;
 
-        @Nullable
-        private Set<Integer> mSelectedIndices = null;
+        @Nullable private int[] mSelectedIndices = null;
 
         @Nullable
         private String mText = null;
@@ -223,12 +227,15 @@ public final class FormEditRecord implements Parcelable {
         /**
          * Creates a new instance.
          *
-         * @param type        the type of {@link FormEditRecord} to create
-         * @param pageNumber  the page number of which the record is
+         * @param type the type of {@link FormEditRecord} to create
+         * @param pageNumber the page number of which the record is
          * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
-         * @throws IllegalArgumentException if a negative page number of widget index is provided
+         * @throws IllegalArgumentException if a negative page number or widget index is provided
          */
-        public Builder(@EditType int type, int pageNumber, int widgetIndex) {
+        public Builder(
+                @EditType int type,
+                @IntRange(from = 0) int pageNumber,
+                @IntRange(from = 0) int widgetIndex) {
             Preconditions.checkArgument(pageNumber >= 0, "Invalid pageNumber.");
             Preconditions.checkArgument(widgetIndex >= 0, "Invalid widgetIndex.");
             this.mType = type;
@@ -285,7 +292,7 @@ public final class FormEditRecord implements Parcelable {
          * @throws IllegalArgumentException if this is not a set indices type record
          */
         @NonNull
-        public Builder setSelectedIndices(@Nullable Set<Integer> selectedIndices) {
+        public Builder setSelectedIndices(@Nullable int[] selectedIndices) {
             Preconditions.checkArgument(
                     mType == EDIT_TYPE_SET_INDICES,
                     "Cannot set selectedIndices on a record of this type.");

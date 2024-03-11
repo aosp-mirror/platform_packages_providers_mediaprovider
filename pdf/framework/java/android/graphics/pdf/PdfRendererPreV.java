@@ -17,7 +17,6 @@
 package android.graphics.pdf;
 
 import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEARIZED;
-import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
 
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
@@ -87,12 +86,10 @@ import java.util.Set;
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class PdfRendererPreV implements AutoCloseable {
-    /** Represents that the linearization of the PDF document cannot be determined. */
-    public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0;
     /** Represents a non-linearized PDF document. */
-    public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1;
+    public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0;
     /** Represents a linearized PDF document. */
-    public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2;
+    public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1;
 
     /** Represents a PDF without form fields */
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -209,10 +206,8 @@ public final class PdfRendererPreV implements AutoCloseable {
         int documentType = mPdfProcessor.getDocumentLinearizationType();
         if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
             return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
-        } else if (documentType == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
-            return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
         } else {
-            return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
+            return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
         }
     }
 
@@ -331,8 +326,7 @@ public final class PdfRendererPreV implements AutoCloseable {
     /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_UNKNOWN,
-            DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED,
+    @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED,
             DOCUMENT_LINEARIZED_TYPE_LINEARIZED})
     public @interface PdfDocumentLinearizationType {
     }

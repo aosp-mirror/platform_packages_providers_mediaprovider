@@ -363,7 +363,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidg
 }
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfos(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds) {
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jintArray jTypeIds) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
@@ -427,7 +427,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldSelectedIndices(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
-        jobject jSelectedIndices) {
+        jintArray jSelectedIndices) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);

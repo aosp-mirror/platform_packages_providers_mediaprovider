@@ -17,7 +17,9 @@
 package android.graphics.pdf.models;
 
 import android.annotation.FlaggedApi;
+import android.annotation.FloatRange;
 import android.annotation.IntDef;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Rect;
@@ -29,6 +31,7 @@ import android.os.Parcelable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -82,7 +85,7 @@ public final class FormWidgetInfo implements Parcelable {
     private final boolean mMultiLineText; // Text Field only.
     private final int mMaxLength; // Text Field only.
     private final float mFontSize; // Editable Text only.
-    private final List<ChoiceOption> mChoiceOptions; // Combo/Listbox only.
+    private final List<ListItem> mListItems; // Combo/Listbox only.
 
     /**
      * Creates a new instance
@@ -101,7 +104,7 @@ public final class FormWidgetInfo implements Parcelable {
             boolean multiLineText,
             int maxLength,
             float fontSize,
-            @Nullable List<ChoiceOption> choiceOptions) {
+            List<ListItem> listItems) {
         this.mWidgetType = widgetType;
         this.mWidgetIndex = widgetIndex;
         this.mWidgetRect = widgetRect;
@@ -113,7 +116,8 @@ public final class FormWidgetInfo implements Parcelable {
         this.mMultiLineText = multiLineText;
         this.mMaxLength = maxLength;
         this.mFontSize = fontSize;
-        this.mChoiceOptions = choiceOptions;
+        // Defensive copy
+        this.mListItems = Collections.unmodifiableList(new ArrayList<>(listItems));
     }
 
     private FormWidgetInfo(Parcel in) {
@@ -128,8 +132,9 @@ public final class FormWidgetInfo implements Parcelable {
         mMultiLineText = in.readInt() != 0;
         mMaxLength = in.readInt();
         mFontSize = in.readFloat();
-        mChoiceOptions = new ArrayList<>();
-        in.readTypedList(mChoiceOptions, ChoiceOption.CREATOR);
+        ArrayList<ListItem> listItems = new ArrayList<>();
+        in.readTypedList(listItems, ListItem.CREATOR);
+        mListItems = Collections.unmodifiableList(listItems);
     }
 
     /** Returns the type of this widget */
@@ -138,9 +143,8 @@ public final class FormWidgetInfo implements Parcelable {
         return mWidgetType;
     }
 
-    /**
-     * Returns the index of the widget within the page's "Annot" array in the PDF document
-     */
+    /** Returns the index of the widget within the page's "Annot" array in the PDF document */
+    @IntRange(from = 0)
     public int getWidgetIndex() {
         return mWidgetIndex;
     }
@@ -204,32 +208,47 @@ public final class FormWidgetInfo implements Parcelable {
     }
 
     /**
-     * Returns the maximum length of text supported by a text input widget.
+     * Returns the maximum length of text supported by a text input widget, or -1 for text inputs
+     * without a maximum length and widgets that are not text inputs.
      */
+    @IntRange(from = -1)
     public int getMaxLength() {
         return mMaxLength;
     }
 
     /**
-     * Returns the font size in pixels for text input.
+     * Returns the font size in pixels for text input, or 0 for text inputs without a specified font
+     * size and widgets that are not text inputs.
      */
+    @FloatRange(from = 0f)
     public float getFontSize() {
         return mFontSize;
     }
 
     /**
-     * Returns the list of choice options in the order that it was passed in.
+     * Returns the list of choice options in the order that it was passed in, or an empty list for
+     * widgets without choice options.
      */
     @NonNull
-    public List<ChoiceOption> getChoiceOptions() {
-        return mChoiceOptions;
+    public List<ListItem> getListItems() {
+        return mListItems;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mWidgetType, mWidgetIndex, mWidgetRect, mReadOnly, mTextValue,
-                mAccessibilityLabel, mEditableText, mMultiSelect, mMultiLineText, mMaxLength,
-                mFontSize, mChoiceOptions);
+        return Objects.hash(
+                mWidgetType,
+                mWidgetIndex,
+                mWidgetRect,
+                mReadOnly,
+                mTextValue,
+                mAccessibilityLabel,
+                mEditableText,
+                mMultiSelect,
+                mMultiLineText,
+                mMaxLength,
+                mFontSize,
+                mListItems);
     }
 
     @Override
@@ -246,26 +265,51 @@ public final class FormWidgetInfo implements Parcelable {
                     && mMultiLineText == other.mMultiLineText
                     && mMaxLength == other.mMaxLength
                     && mFontSize == other.mFontSize
-                    && mChoiceOptions.equals(other.mChoiceOptions);
+                    && mListItems.equals(other.mListItems);
         }
         return false;
     }
 
     @Override
     public String toString() {
-        return "FormWidgetInfo{" + "\n"
-                + "\ttype=" + mWidgetType + "\n"
-                + "\tindex=" + mWidgetIndex + "\n"
-                + "\trect=" + mWidgetRect + "\n"
-                + "\treadOnly=" + mReadOnly + "\n"
-                + "\ttextValue=" + mTextValue + "\n"
-                + "\taccessibilityLabel=" + mAccessibilityLabel + "\n"
-                + "\teditableText=" + mEditableText + "\n"
-                + "\tmultiSelect=" + mMultiSelect + "\n"
-                + "\tmultiLineText=" + mMultiLineText + "\n"
-                + "\tmaxLength=" + mMaxLength + "\n"
-                + "\tfontSize=" + mFontSize + "\n"
-                + "\tmChoiceOptions=" + mChoiceOptions + "\n"
+        return "FormWidgetInfo{"
+                + "\n"
+                + "\ttype="
+                + mWidgetType
+                + "\n"
+                + "\tindex="
+                + mWidgetIndex
+                + "\n"
+                + "\trect="
+                + mWidgetRect
+                + "\n"
+                + "\treadOnly="
+                + mReadOnly
+                + "\n"
+                + "\ttextValue="
+                + mTextValue
+                + "\n"
+                + "\taccessibilityLabel="
+                + mAccessibilityLabel
+                + "\n"
+                + "\teditableText="
+                + mEditableText
+                + "\n"
+                + "\tmultiSelect="
+                + mMultiSelect
+                + "\n"
+                + "\tmultiLineText="
+                + mMultiLineText
+                + "\n"
+                + "\tmaxLength="
+                + mMaxLength
+                + "\n"
+                + "\tfontSize="
+                + mFontSize
+                + "\n"
+                + "\tmChoiceOptions="
+                + mListItems
+                + "\n"
                 + "}";
     }
 
@@ -287,7 +331,7 @@ public final class FormWidgetInfo implements Parcelable {
         dest.writeInt(mMultiLineText ? 1 : 0);
         dest.writeInt(mMaxLength);
         dest.writeFloat(mFontSize);
-        dest.writeTypedList(mChoiceOptions);
+        dest.writeTypedList(mListItems);
     }
 
     /**
@@ -323,21 +367,25 @@ public final class FormWidgetInfo implements Parcelable {
         private boolean mMultiLineText = false; // Text Field only.
         private int mMaxLength = -1; // Text Field only.
         private float mFontSize = 0f; // Editable Text only.
-        private List<ChoiceOption> mChoiceOptions = List.of(); // Combo/Listbox only.
+        private List<ListItem> mListItems = List.of(); // Combo/Listbox only.
 
         /**
          * Creates an instance
          *
-         * @param widgetType         the type of widget
-         * @param widgetIndex        the index of the widget in the page's "Annot" array in the PDF
-         * @param widgetRect         the {@link Rect} in page coordinates occupied by the widget
-         * @param textValue          the widget's text value
+         * @param widgetType the type of widget
+         * @param widgetIndex the index of the widget in the page's "Annot" array in the PDF
+         * @param widgetRect the {@link Rect} in page coordinates occupied by the widget
+         * @param textValue the widget's text value
          * @param accessibilityLabel the field's accessibility label
-         * @throws NullPointerException if any of {@code widgetRect}, {@code textValue}, or
-         *                              {@code accessibilityLabel} are null
+         * @throws NullPointerException if any of {@code widgetRect}, {@code textValue}, or {@code
+         *     accessibilityLabel} are null
          */
-        public Builder(@WidgetType int widgetType, int widgetIndex, @NonNull Rect widgetRect,
-                @NonNull String textValue, @NonNull String accessibilityLabel) {
+        public Builder(
+                @WidgetType int widgetType,
+                @IntRange(from = 0) int widgetIndex,
+                @NonNull Rect widgetRect,
+                @NonNull String textValue,
+                @NonNull String accessibilityLabel) {
             mWidgetType = widgetType;
             mWidgetIndex = widgetIndex;
             mWidgetRect = Preconditions.checkNotNull(widgetRect, "widgetRect cannot be null");
@@ -400,10 +448,10 @@ public final class FormWidgetInfo implements Parcelable {
          * for text fields
          *
          * @throws IllegalArgumentException if this is not a text field, or if a negative max length
-         *                                  is supplied
+         *     is supplied
          */
         @NonNull
-        public Builder setMaxLength(int maxLength) {
+        public Builder setMaxLength(@IntRange(from = 0) int maxLength) {
             Preconditions.checkArgument(maxLength > 0, "Invalid max length");
             Preconditions.checkArgument(mWidgetType == WIDGET_TYPE_TEXTFIELD,
                     "Max length is only supported on text fields");
@@ -415,10 +463,10 @@ public final class FormWidgetInfo implements Parcelable {
          * Sets the font size for this widget. Only supported for text fields and comboboxes
          *
          * @throws IllegalArgumentException if this is not a combobox or text field, or if a
-         *                                  negative font size is supplied
+         *     negative font size is supplied
          */
         @NonNull
-        public Builder setFontSize(float fontSize) {
+        public Builder setFontSize(@FloatRange(from = 0f) float fontSize) {
             Preconditions.checkArgument(fontSize > 0, "Invalid font size");
             Preconditions.checkArgument(mWidgetType == WIDGET_TYPE_COMBOBOX
                             || mWidgetType == WIDGET_TYPE_TEXTFIELD,
@@ -431,24 +479,34 @@ public final class FormWidgetInfo implements Parcelable {
          * Sets the choice options for this widget. Only supported for comboboxes and list boxes
          *
          * @throws IllegalArgumentException if this is not a combobox or list box
-         * @throws NullPointerException     if {@code choiceOptions} is null
+         * @throws NullPointerException if {@code choiceOptions} is null
          */
         @NonNull
-        public Builder setChoiceOptions(@NonNull List<ChoiceOption> choiceOptions) {
-            Preconditions.checkNotNull(choiceOptions, "choiceOptions cannot be null");
+        public Builder setListItems(@NonNull List<ListItem> listItems) {
+            Preconditions.checkNotNull(listItems, "choiceOptions cannot be null");
             Preconditions.checkArgument(mWidgetType == WIDGET_TYPE_COMBOBOX
                             || mWidgetType == WIDGET_TYPE_LISTBOX,
                     "Choice options are only supported on comboboxes and list boxes");
-            mChoiceOptions = choiceOptions;
+            mListItems = listItems;
             return this;
         }
 
         /** Builds a {@link FormWidgetInfo} */
         @NonNull
         public FormWidgetInfo build() {
-            return new FormWidgetInfo(mWidgetType, mWidgetIndex, mWidgetRect, mReadOnly, mTextValue,
-                    mAccessibilityLabel, mEditableText, mMultiSelect, mMultiLineText, mMaxLength,
-                    mFontSize, mChoiceOptions);
+            return new FormWidgetInfo(
+                    mWidgetType,
+                    mWidgetIndex,
+                    mWidgetRect,
+                    mReadOnly,
+                    mTextValue,
+                    mAccessibilityLabel,
+                    mEditableText,
+                    mMultiSelect,
+                    mMultiLineText,
+                    mMaxLength,
+                    mFontSize,
+                    mListItems);
         }
     }
 }

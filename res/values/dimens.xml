@@ -15,10 +15,10 @@
 -->
 
 <resources>
-    <dimen name="permission_dialog_width">320dp</dimen>
     <dimen name="permission_thumb_size">64dp</dimen>
     <dimen name="permission_thumb_margin">6dp</dimen>
     <dimen name="dialog_space">20dp</dimen>
+    <dimen name="button_touch_size">48dp</dimen>
 
     <!-- PhotoPicker -->
     <dimen name="picker_top_corner_radius">28dp</dimen>
@@ -53,7 +53,7 @@
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
-    <!-- Photo Picker recycler view bottom padding for profile button or bottom bar -->
+    <!-- Photo Picker recycler view bottom padding for progress bar -->
     <dimen name="picker_recycler_view_bottom_padding">78dp</dimen>
 
     <dimen name="picker_tab_text_size">14sp</dimen>
@@ -62,6 +62,12 @@
     <dimen name="picker_tab_width">80dp</dimen>
     <dimen name="picker_tab_min_width">88dp</dimen>
     <dimen name="picker_tab_horizontal_gap">4dp</dimen>
+
+    <dimen name="picker_tab_loading_message_text_size">11sp</dimen>
+
+    <dimen name="picker_progress_bar_margin_top">15dp</dimen>
+    <!-- Photo Picker recycler view top padding for profile button or bottom bar -->
+    <dimen name="picker_recycler_view_top_padding">31dp</dimen>
 
     <dimen name="picker_drag_margin_top">16dp</dimen>
     <dimen name="picker_drag_margin_bottom">16dp</dimen>

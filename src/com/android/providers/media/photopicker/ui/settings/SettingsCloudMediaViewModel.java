@@ -20,17 +20,21 @@ import static android.provider.MediaStore.AUTHORITY;
 
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.fetchProviderAuthority;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.getAvailableCloudProviders;
-import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaAccountName;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.getCloudMediaCollectionInfo;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.persistSelectedProvider;
 
 import static java.util.Objects.requireNonNull;
 
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Looper;
 import android.os.UserHandle;
+import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -56,11 +60,13 @@ import java.util.List;
 public class SettingsCloudMediaViewModel extends ViewModel {
     static final String NONE_PREF_KEY = "none";
     private static final String TAG = "SettingsFragVM";
+    private static final long GET_CLOUD_MEDIA_COLLECTION_INFO_TIMEOUT_IN_MILLIS = 10000L;
 
     @NonNull
     private final Context mContext;
     @NonNull
-    private final MutableLiveData<CloudMediaProviderAccount> mCurrentProviderAccount;
+    private final MutableLiveData<CloudProviderMediaCollectionInfo>
+            mCurrentProviderMediaCollectionInfo;
     @NonNull
     private final List<CloudMediaProviderOption> mProviderOptions;
     @NonNull
@@ -77,7 +83,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
         mUserId = requireNonNull(userId);
         mProviderOptions = new ArrayList<>();
         mSelectedProviderAuthority = null;
-        mCurrentProviderAccount = new MutableLiveData<CloudMediaProviderAccount>();
+        mCurrentProviderMediaCollectionInfo = new MutableLiveData<>();
     }
 
     @NonNull
@@ -91,11 +97,11 @@ public class SettingsCloudMediaViewModel extends ViewModel {
     }
 
     @NonNull
-    LiveData<CloudMediaProviderAccount> getCurrentProviderAccount() {
-        return mCurrentProviderAccount;
+    LiveData<CloudProviderMediaCollectionInfo> getCurrentProviderMediaCollectionInfo() {
+        return mCurrentProviderMediaCollectionInfo;
     }
 
-    @Nullable
+    @NonNull
     String getSelectedPreferenceKey() {
         return getPreferenceKey(mSelectedProviderAuthority);
     }
@@ -140,7 +146,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
                 ? null : preferenceKey;
     }
 
-    @Nullable
+    @NonNull
     private String getPreferenceKey(@Nullable String providerAuthority) {
         return providerAuthority == null
                 ? SettingsCloudMediaViewModel.NONE_PREF_KEY : providerAuthority;
@@ -171,38 +177,50 @@ public class SettingsCloudMediaViewModel extends ViewModel {
     }
 
     @UiThread
-    void loadAccountNameAsync() {
+    void loadMediaCollectionInfoAsync() {
         if (!Looper.getMainLooper().isCurrentThread()) {
-            // This method should only be run from the UI thread so that fetch account name
+            // This method should only be run from the UI thread so that fetch media collection info
             // requests are executed serially.
-            Log.d(TAG, "loadAccountNameAsync method needs to be called from the UI thread");
+            Log.w(TAG, "loadMediaCollectionInfoAsync method needs to be called from the UI thread");
             return;
         }
 
         final String providerAuthority = getSelectedProviderAuthority();
         // Foreground thread internally uses a queue to execute each request in a serialized manner.
         ForegroundThread.getExecutor().execute(() -> {
-            mCurrentProviderAccount.postValue(
-                    fetchAccountFromProvider(providerAuthority));
+            mCurrentProviderMediaCollectionInfo.postValue(
+                    fetchMediaCollectionInfoFromProvider(providerAuthority));
         });
     }
 
     @Nullable
-    private CloudMediaProviderAccount fetchAccountFromProvider(
+    private CloudProviderMediaCollectionInfo fetchMediaCollectionInfoFromProvider(
             @Nullable String currentProviderAuthority) {
+        // If the selected cloud provider preference is "None", the media collection info is not
+        // applicable.
         if (currentProviderAuthority == null) {
-            // If the selected cloud provider preference is "None", account name is not applicable.
             return null;
-        } else {
-            try {
-                final String accountName = getCloudMediaAccountName(
-                        mUserId.getContentResolver(mContext), currentProviderAuthority);
-                return new CloudMediaProviderAccount(currentProviderAuthority, accountName);
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to fetch account name from the cloud media provider.", e);
-                return null;
-            }
         }
+
+        Bundle cloudMediaCollectionInfo = null;
+        try {
+            final ContentResolver currentUserContentResolver = mUserId.getContentResolver(mContext);
+            cloudMediaCollectionInfo = getCloudMediaCollectionInfo(currentUserContentResolver,
+                    currentProviderAuthority, GET_CLOUD_MEDIA_COLLECTION_INFO_TIMEOUT_IN_MILLIS);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch media collection info from the cloud media provider.", e);
+        }
+
+        if (cloudMediaCollectionInfo == null) {
+            return new CloudProviderMediaCollectionInfo(currentProviderAuthority);
+        }
+
+        final String accountName = cloudMediaCollectionInfo.getString(
+                CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME);
+        final Intent cloudProviderSettingsActivityIntent = cloudMediaCollectionInfo.getParcelable(
+                CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT);
+        return new CloudProviderMediaCollectionInfo(currentProviderAuthority, accountName,
+                cloudProviderSettingsActivityIntent);
     }
 
     @NonNull

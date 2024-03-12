@@ -24,12 +24,14 @@ import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_SE
 
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,6 +46,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
@@ -66,7 +69,7 @@ import java.util.Locale;
  * The base abstract Tab fragment
  */
 public abstract class TabFragment extends Fragment {
-
+    private static final String TAG = TabFragment.class.getSimpleName();
     protected PickerViewModel mPickerViewModel;
     protected Selection mSelection;
     protected ImageLoader mImageLoader;
@@ -80,6 +83,8 @@ public abstract class TabFragment extends Fragment {
     private boolean mIsAccessibilityEnabled;
 
     private Button mAddButton;
+
+    private Button mViewSelectedButton;
     private View mBottomBar;
     private Animation mSlideUpAnimation;
     private Animation mSlideDownAnimation;
@@ -98,6 +103,8 @@ public abstract class TabFragment extends Fragment {
 
     private int mRecyclerViewBottomPadding;
 
+    private RecyclerView.OnScrollListener mOnScrollListenerForMultiProfileButton;
+
     private final MutableLiveData<Boolean> mIsBottomBarVisible = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> mIsProfileButtonVisible = new MutableLiveData<>(false);
 
@@ -113,11 +120,13 @@ public abstract class TabFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        final Context context = getContext();
+        final Context context = requireContext();
+        final FragmentActivity activity = requireActivity();
+
         mImageLoader = new ImageLoader(context);
         mRecyclerView = view.findViewById(R.id.picker_tab_recyclerview);
         mRecyclerView.setHasFixedSize(true);
-        final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(activity);
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
         mSelection = mPickerViewModel.getSelection();
         mRecyclerViewBottomPadding = getResources().getDimensionPixelSize(
@@ -144,44 +153,80 @@ public abstract class TabFragment extends Fragment {
         mButtonIconAndTextColor = ta.getColor(/* index */ 1, /* defValue */ -1);
         ta.recycle();
 
-        mProfileButton = getActivity().findViewById(R.id.profile_button);
+        mProfileButton = activity.findViewById(R.id.profile_button);
         mUserIdManager = mPickerViewModel.getUserIdManager();
 
         final boolean canSelectMultiple = mSelection.canSelectMultiple();
         if (canSelectMultiple) {
-            mAddButton = getActivity().findViewById(R.id.button_add);
+            mAddButton = activity.findViewById(R.id.button_add);
+            mViewSelectedButton = activity.findViewById(R.id.button_view_selected);
             mAddButton.setOnClickListener(v -> {
-                ((PhotoPickerActivity) getActivity()).setResultAndFinishSelf();
+                try {
+                    requirePickerActivity().setResultAndFinishSelf();
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
-
-            final Button viewSelectedButton = getActivity().findViewById(R.id.button_view_selected);
             // Transition to PreviewFragment on clicking "View Selected".
-            viewSelectedButton.setOnClickListener(v -> {
+            mViewSelectedButton.setOnClickListener(v -> {
+                // Load items for preview that are pre granted but not yet loaded for UI. This is an
+                // async call. Until the items are loaded, we can still preview already available
+                // items
+                mPickerViewModel.getRemainingPreGrantedItems();
                 mSelection.prepareSelectedItemsForPreviewAll();
-                PreviewFragment.show(getActivity().getSupportFragmentManager(),
-                        PreviewFragment.getArgsForPreviewOnViewSelected());
+
+                int selectedItemCount = mSelection.getSelectedItemCount().getValue();
+                mPickerViewModel.logPreviewAllSelected(selectedItemCount);
+
+                try {
+                    PreviewFragment.show(requireActivity().getSupportFragmentManager(),
+                            PreviewFragment.getArgsForPreviewOnViewSelected());
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
 
-            mBottomBar = getActivity().findViewById(R.id.picker_bottom_bar);
-            mSlideUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
-            mSlideDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
+            mBottomBar = activity.findViewById(R.id.picker_bottom_bar);
+            // consume the event so that it doesn't get passed through to the next view b/287661737
+            mBottomBar.setOnClickListener(v -> {});
+            mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
+            mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 
             mSelection.getSelectedItemCount().observe(this, selectedItemListSize -> {
-                updateProfileButtonVisibility();
-                updateVisibilityAndAnimateBottomBar(selectedItemListSize);
+                // Fetch activity or context again instead of capturing existing variable in lambdas
+                // to avoid memory leaks.
+                try {
+                    updateProfileButtonVisibility();
+                    updateVisibilityAndAnimateBottomBar(requireContext(), selectedItemListSize);
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
             });
         }
-
-        // Initial setup
-        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
 
         // Observe for cross profile access changes.
         final LiveData<Boolean> crossProfileAllowed = mUserIdManager.getCrossProfileAllowed();
         if (crossProfileAllowed != null) {
             crossProfileAllowed.observe(this, isCrossProfileAllowed -> {
                 setUpProfileButton();
+                if (Boolean.TRUE.equals(mIsProfileButtonVisible.getValue())) {
+                    if (isCrossProfileAllowed) {
+                        mPickerViewModel.logProfileSwitchButtonEnabled();
+                    } else {
+                        mPickerViewModel.logProfileSwitchButtonDisabled();
+                    }
+                }
             });
         }
+
+
+        final AccessibilityManager accessibilityManager =
+                context.getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
+        accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
+            mIsAccessibilityEnabled = enabled;
+            setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
+        });
 
         // Observe for multi-user changes.
         final LiveData<Boolean> isMultiUserProfiles = mUserIdManager.getIsMultiUserProfiles();
@@ -189,13 +234,8 @@ public abstract class TabFragment extends Fragment {
             isMultiUserProfiles.observe(this, this::setUpProfileButtonWithListeners);
         }
 
-        final AccessibilityManager accessibilityManager =
-                context.getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
-        accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
-            mIsAccessibilityEnabled = enabled;
-            updateProfileButtonVisibility();
-        });
+        // Initial setup
+        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
     }
 
     private void updateRecyclerViewBottomPadding() {
@@ -209,29 +249,49 @@ public abstract class TabFragment extends Fragment {
         mRecyclerView.setPadding(0, 0, 0, recyclerViewBottomPadding);
     }
 
-    private void updateVisibilityAndAnimateBottomBar(int selectedItemListSize) {
+    private void updateVisibilityAndAnimateBottomBar(@NonNull Context context,
+            int selectedItemListSize) {
         if (!mSelection.canSelectMultiple()) {
             return;
         }
 
-        if (selectedItemListSize == 0) {
-            if (mBottomBar.getVisibility() == View.VISIBLE) {
-                mBottomBar.setVisibility(View.GONE);
-                mBottomBar.startAnimation(mSlideDownAnimation);
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
+            animateAndShowBottomBar(context, selectedItemListSize);
+            if (selectedItemListSize == 0) {
+                mViewSelectedButton.setVisibility(View.GONE);
+                // Update the add button to show "Allow none".
+                mAddButton.setText(R.string.picker_add_button_allow_none_option);
             }
         } else {
-            if (mBottomBar.getVisibility() == View.GONE) {
-                mBottomBar.setVisibility(View.VISIBLE);
-                mBottomBar.startAnimation(mSlideUpAnimation);
+            if (selectedItemListSize == 0) {
+                animateAndHideBottomBar();
+            } else {
+                animateAndShowBottomBar(context, selectedItemListSize);
             }
-            mAddButton.setText(generateAddButtonString(getContext(), selectedItemListSize));
         }
-        mIsBottomBarVisible.setValue(selectedItemListSize > 0);
+        mIsBottomBarVisible.setValue(
+                mPickerViewModel.isManagedSelectionEnabled() || selectedItemListSize > 0);
+    }
+
+    private void animateAndShowBottomBar(Context context, int selectedItemListSize) {
+        if (mBottomBar.getVisibility() == View.GONE) {
+            mBottomBar.setVisibility(View.VISIBLE);
+            mBottomBar.startAnimation(mSlideUpAnimation);
+        }
+        mViewSelectedButton.setVisibility(View.VISIBLE);
+        mAddButton.setText(generateAddButtonString(context, selectedItemListSize));
+    }
+
+    private void animateAndHideBottomBar() {
+        if (mBottomBar.getVisibility() == View.VISIBLE) {
+            mBottomBar.setVisibility(View.GONE);
+            mBottomBar.startAnimation(mSlideDownAnimation);
+        }
     }
 
     private void setUpListenersForProfileButton() {
         mProfileButton.setOnClickListener(v -> onClickProfileButton());
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        mOnScrollListenerForMultiProfileButton = new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
@@ -248,7 +308,8 @@ public abstract class TabFragment extends Fragment {
                     updateProfileButtonVisibility();
                 }
             }
-        });
+        };
+        mRecyclerView.addOnScrollListener(mOnScrollListenerForMultiProfileButton);
     }
 
     @Override
@@ -260,10 +321,11 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void setUpProfileButtonWithListeners(boolean isMultiUserProfile) {
+        if (mOnScrollListenerForMultiProfileButton != null) {
+            mRecyclerView.removeOnScrollListener(mOnScrollListenerForMultiProfileButton);
+        }
         if (isMultiUserProfile) {
             setUpListenersForProfileButton();
-        } else {
-            mRecyclerView.clearOnScrollListeners();
         }
         setUpProfileButton();
     }
@@ -287,8 +349,14 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void onClickProfileButton() {
+        mPickerViewModel.logProfileSwitchButtonClick();
+
         if (!mUserIdManager.isCrossProfileAllowed()) {
-            ProfileDialogFragment.show(getActivity().getSupportFragmentManager());
+            try {
+                ProfileDialogFragment.show(requireActivity().getSupportFragmentManager());
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            }
         } else {
             changeProfile();
         }
@@ -308,60 +376,79 @@ public abstract class TabFragment extends Fragment {
 
         updateProfileButtonContent(mUserIdManager.isManagedUserSelected());
 
-        mPickerViewModel.onUserSwitchedProfile();
+        mPickerViewModel.onSwitchedProfile();
     }
 
     private void updateProfileButtonContent(boolean isManagedUserSelected) {
         final Drawable icon;
         final String text;
+        final Context context;
+        try {
+            context = requireContext();
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not update profile button content because the fragment is not"
+                    + " attached.");
+            return;
+        }
+
         if (isManagedUserSelected) {
-            icon = getContext().getDrawable(R.drawable.ic_personal_mode);
-            text = getSwitchToPersonalMessage();
+            icon = context.getDrawable(R.drawable.ic_personal_mode);
+            text = getSwitchToPersonalMessage(context);
         } else {
-            icon = getWorkProfileIcon();
-            text = getSwitchToWorkMessage();
+            icon = getWorkProfileIcon(context);
+            text = getSwitchToWorkMessage(context);
         }
         mProfileButton.setIcon(icon);
         mProfileButton.setText(text);
     }
 
-    private String getSwitchToPersonalMessage() {
+    private String getSwitchToPersonalMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
+                    context, SWITCH_TO_PERSONAL_MESSAGE, R.string.picker_personal_profile);
         } else {
-            return getContext().getString(R.string.picker_personal_profile);
+            return context.getString(R.string.picker_personal_profile);
         }
     }
 
-    private String getSwitchToWorkMessage() {
+    private String getSwitchToWorkMessage(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
             return getUpdatedEnterpriseString(
-                    SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
+                    context, SWITCH_TO_WORK_MESSAGE, R.string.picker_work_profile);
         } else {
-            return getContext().getString(R.string.picker_work_profile);
+            return context.getString(R.string.picker_work_profile);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private String getUpdatedEnterpriseString(String updatableStringId, int defaultStringId) {
-        final DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
+    private String getUpdatedEnterpriseString(@NonNull Context context,
+            @NonNull String updatableStringId,
+            int defaultStringId) {
+        final DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
         return dpm.getResources().getString(updatableStringId, () -> getString(defaultStringId));
     }
 
-    private Drawable getWorkProfileIcon() {
+    private Drawable getWorkProfileIcon(@NonNull Context context) {
         if (SdkLevel.isAtLeastT()) {
-            return getUpdatedWorkProfileIcon();
+            return getUpdatedWorkProfileIcon(context);
         } else {
-            return getContext().getDrawable(R.drawable.ic_work_outline);
+            return context.getDrawable(R.drawable.ic_work_outline);
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private Drawable getUpdatedWorkProfileIcon() {
-        DevicePolicyManager dpm = getContext().getSystemService(DevicePolicyManager.class);
-        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () ->
-                getContext().getDrawable(R.drawable.ic_work_outline));
+    private Drawable getUpdatedWorkProfileIcon(@NonNull Context context) {
+        DevicePolicyManager dpm = context.getSystemService(DevicePolicyManager.class);
+        return dpm.getResources().getDrawable(WORK_PROFILE_ICON, OUTLINE, () -> {
+            // Fetch activity or context again instead of capturing existing variable in
+            // lambdas to avoid memory leaks.
+            try {
+                return requireContext().getDrawable(R.drawable.ic_work_outline);
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                return null;
+            }
+        });
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {
@@ -397,6 +484,8 @@ public abstract class TabFragment extends Fragment {
     /**
      * If we show the {@link #mEmptyView}, hide the {@link #mRecyclerView}. If we don't hide the
      * {@link #mEmptyView}, show the {@link #mRecyclerView}
+     * when user switches the profile ,till the time when updated profile data is loading,
+     * on the UI we hide {@link #mEmptyView} and show Empty {@link #mRecyclerView}
      */
     protected void updateVisibilityForEmptyView(boolean shouldShowEmptyView) {
         mEmptyView.setVisibility(shouldShowEmptyView ? View.VISIBLE : View.GONE);
@@ -420,13 +509,18 @@ public abstract class TabFragment extends Fragment {
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
 
-    protected final PhotoPickerActivity getPickerActivity() {
-        return (PhotoPickerActivity) getActivity();
+    /**
+     * Returns {@link PhotoPickerActivity} if the fragment is attached to one. Otherwise, throws an
+     * {@link IllegalStateException}.
+     */
+    protected final PhotoPickerActivity requirePickerActivity() throws IllegalStateException {
+        return (PhotoPickerActivity) requireActivity();
     }
 
-    protected final void setLayoutManager(@NonNull TabAdapter adapter, int spanCount) {
+    protected final void setLayoutManager(@NonNull Context context,
+            @NonNull TabAdapter adapter, int spanCount) {
         final GridLayoutManager layoutManager =
-                new GridLayoutManager(getContext(), spanCount);
+                new GridLayoutManager(context, spanCount);
         final GridLayoutManager.SpanSizeLookup lookup = new GridLayoutManager.SpanSizeLookup() {
             @Override
             public int getSpanSize(int position) {
@@ -447,17 +541,28 @@ public abstract class TabFragment extends Fragment {
     private abstract class OnBannerEventListener implements TabAdapter.OnBannerEventListener {
         @Override
         public void onActionButtonClick() {
+            mPickerViewModel.logBannerActionButtonClicked();
             dismissBanner();
-            getPickerActivity().startSettingsActivity();
+            launchCloudProviderSettings();
         }
 
         @Override
         public void onDismissButtonClick() {
+            mPickerViewModel.logBannerDismissed();
             dismissBanner();
         }
 
         @Override
-        public void onBannerAdded() {
+        public void onBannerClick() {
+            mPickerViewModel.logBannerClicked();
+            dismissBanner();
+            launchCloudProviderSettings();
+        }
+
+        @Override
+        public void onBannerAdded(@NonNull String name) {
+            mPickerViewModel.logBannerAdded(name);
+
             // Should scroll to the banner only if the first completely visible item is the one
             // just below it. The possible adapter item positions of such an item are 0 and 1.
             // During onViewCreated, before restoring the state, the first visible item position
@@ -477,6 +582,21 @@ public abstract class TabFragment extends Fragment {
         }
 
         abstract void dismissBanner();
+
+        private void launchCloudProviderSettings() {
+            final Intent accountChangeIntent =
+                    mPickerViewModel.getChooseCloudMediaAccountActivityIntent();
+
+            try {
+                if (accountChangeIntent != null) {
+                    requirePickerActivity().startActivity(accountChangeIntent);
+                } else {
+                    requirePickerActivity().startSettingsActivity();
+                }
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+            }
+        }
     }
 
     protected final OnBannerEventListener mOnChooseAppBannerEventListener =
@@ -493,6 +613,11 @@ public abstract class TabFragment extends Fragment {
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedCloudMediaAvailableBanner();
                 }
+
+                @Override
+                public boolean shouldShowActionButton() {
+                    return mPickerViewModel.getChooseCloudMediaAccountActivityIntent() != null;
+                }
             };
 
     protected final OnBannerEventListener mOnAccountUpdatedBannerEventListener =
@@ -508,6 +633,11 @@ public abstract class TabFragment extends Fragment {
                 @Override
                 void dismissBanner() {
                     mPickerViewModel.onUserDismissedChooseAccountBanner();
+                }
+
+                @Override
+                public boolean shouldShowActionButton() {
+                    return mPickerViewModel.getChooseCloudMediaAccountActivityIntent() != null;
                 }
             };
 }

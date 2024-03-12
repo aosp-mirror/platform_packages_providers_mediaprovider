@@ -17,6 +17,7 @@ package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -27,18 +28,20 @@ import androidx.fragment.app.FragmentTransaction;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 
+import java.util.ArrayList;
+
 /**
  * Albums tab fragment for showing the albums
  */
 public class AlbumsTabFragment extends TabFragment {
-
+    private static final String TAG = PhotosTabFragment.class.getSimpleName();
     private static final int MINIMUM_SPAN_COUNT = 2;
     private static final int GRID_COLUMN_COUNT = 2;
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        final Context context = getContext();
+        final Context context = requireContext();
 
         // Set the pane title for A11y.
         view.setAccessibilityPaneTitle(getString(R.string.picker_albums));
@@ -56,9 +59,14 @@ public class AlbumsTabFragment extends TabFragment {
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
                 mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
-            adapter.updateCategoryList(categoryList);
-            // Handle emptyView's visibility
-            updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
+            if (categoryList.size() == 1 && categoryList.get(0).getId().equals("EMPTY_VIEW")) {
+                adapter.updateCategoryList(new ArrayList<>());
+                updateVisibilityForEmptyView(false);
+            } else {
+                adapter.updateCategoryList(categoryList);
+                // Handle emptyView's visibility
+                updateVisibilityForEmptyView(/* shouldShowEmptyView */ categoryList.size() == 0);
+            }
         });
 
         final AlbumsTabItemDecoration itemDecoration = new AlbumsTabItemDecoration(context);
@@ -68,7 +76,7 @@ public class AlbumsTabFragment extends TabFragment {
         mRecyclerView.setColumnWidth(albumSize + spacing);
         mRecyclerView.setMinimumSpanCount(MINIMUM_SPAN_COUNT);
 
-        setLayoutManager(adapter, GRID_COLUMN_COUNT);
+        setLayoutManager(context, adapter, GRID_COLUMN_COUNT);
         mRecyclerView.setAdapter(adapter);
         mRecyclerView.addItemDecoration(itemDecoration);
     }
@@ -76,11 +84,20 @@ public class AlbumsTabFragment extends TabFragment {
     @Override
     public void onResume() {
         super.onResume();
-        getPickerActivity().updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB, /* title */ "");
+
+        requirePickerActivity()
+                .updateCommonLayouts(LayoutModeUtils.MODE_ALBUMS_TAB, /* title */ "");
     }
 
-    private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener = category ->
-        PhotosTabFragment.show(getActivity().getSupportFragmentManager(), category);
+    private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener =
+            (category, position) -> {
+                mPickerViewModel.logAlbumOpened(category, position);
+                try {
+                    PhotosTabFragment.show(requireActivity().getSupportFragmentManager(), category);
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Fragment is likely not attached to an activity. ", e);
+                }
+            };
 
     /**
      * Create the albums tab fragment and add it into the FragmentManager

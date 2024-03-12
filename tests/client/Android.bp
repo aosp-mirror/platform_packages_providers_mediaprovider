@@ -16,6 +16,7 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":mediaprovider-testutils",
+        ":mediaprovider-library",
     ],
 
     libs: [

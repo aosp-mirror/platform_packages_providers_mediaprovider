@@ -36,8 +36,8 @@ import java.util.Objects;
  */
 public final class FuseDaemon extends Thread {
     public static final String TAG = "FuseDaemonThread";
-    private static final int POLL_INTERVAL_MS = 1000;
-    private static final int POLL_COUNT = 5;
+    private static final int POLL_INTERVAL_MS = 100;
+    private static final int POLL_COUNT = 50;
 
     private final Object mLock = new Object();
     private final MediaProvider mMediaProvider;
@@ -219,6 +219,18 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
+     * Sets up public volume's database backup to external storage to recover during a rollback.
+     */
+    public void setupPublicVolumeDbBackup(String volumeName) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_setup_public_volume_db_backup(mPtr, volumeName);
+        }
+    }
+
+    /**
      * Deletes entry for given key from external storage.
      */
     public void deleteDbBackup(String key) throws IOException {
@@ -231,14 +243,14 @@ public final class FuseDaemon extends Thread {
     }
 
     /**
-     * Backs up given key-value pair in external storage.
+     * Backs up given key-value pair in external storage for provided volume.
      */
-    public void backupVolumeDbData(String key, String value) throws IOException {
+    public void backupVolumeDbData(String volumeName, String key, String value) throws IOException {
         synchronized (mLock) {
             if (mPtr == 0) {
                 throw new IOException("FUSE daemon unavailable");
             }
-            native_backup_volume_db_data(mPtr, key, value);
+            native_backup_volume_db_data(mPtr, volumeName, key, value);
         }
     }
 
@@ -333,8 +345,10 @@ public final class FuseDaemon extends Thread {
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
     private native void native_setup_volume_db_backup(long daemon);
+    private native void native_setup_public_volume_db_backup(long daemon, String volumeName);
     private native void native_delete_db_backup(long daemon, String key);
-    private native void native_backup_volume_db_data(long daemon, String key, String value);
+    private native void native_backup_volume_db_data(long daemon, String volumeName, String key,
+            String value);
     private native String[] native_read_backed_up_file_paths(long daemon, String volumeName,
             String lastReadValue, int limit);
     private native String native_read_backed_up_data(long daemon, String key);

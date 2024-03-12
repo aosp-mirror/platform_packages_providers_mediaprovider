@@ -80,6 +80,11 @@ class FuseDaemon final {
     void SetupLevelDbInstances();
 
     /**
+     * Setup leveldb instances for public volume.
+     */
+    void SetupPublicVolumeLevelDbInstance(const std::string& volume_name);
+
+    /**
      * Creates a leveldb instance and sets up a connection.
      */
     void SetupLevelDbConnection(const std::string& instance_name);
@@ -90,9 +95,10 @@ class FuseDaemon final {
     void DeleteFromLevelDb(const std::string& key);
 
     /**
-     * Inserts in leveldb instance of volume derived from path.
+     * Inserts in leveldb instance of provided volume.
      */
-    void InsertInLevelDb(const std::string& key, const std::string& value);
+    void InsertInLevelDb(const std::string& volume_name, const std::string& key,
+                         const std::string& value);
 
     /**
      * Reads file paths for given volume from leveldb for given range.

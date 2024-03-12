@@ -679,9 +679,9 @@ public final class PdfRenderer implements AutoCloseable {
 
         /**
          * Return a {@link PageSelection} which represents the selected content that spans between
-         * the two boundaries, both of which can be either exactly defined with text indexes, or
+         * the two boundaries. The boundaries can be either exactly defined with text indexes, or
          * approximately defined with points on the page. The resulting selection will also be
-         * exactly defined with both indexes and points. If the start and stop boundary are both
+         * exactly defined with both indexes and points. If the left and right boundary are both
          * the same point, selects the word at that point. In case the selection from the given
          * boundaries result in an empty space, then the method returns {@code null}. The left and
          * right {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index

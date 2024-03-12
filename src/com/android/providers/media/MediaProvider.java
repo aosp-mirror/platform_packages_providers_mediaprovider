@@ -216,7 +216,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.icu.util.ULocale;
-import android.media.ExifInterface;
 import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
@@ -307,19 +306,18 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
-import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.Preconditions;
+import com.android.providers.media.util.RedactionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
-import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
 
@@ -2129,7 +2127,7 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
-    private Uri scanFileAsMediaProvider(File file, int reason) {
+    private Uri scanFileAsMediaProvider(File file) {
         final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try {
             return scanFile(file, REASON_DEMAND);
@@ -2502,7 +2500,7 @@ public class MediaProvider extends ContentProvider {
             Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
-                redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+                redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
@@ -2931,8 +2929,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
-        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(oldPath));
+        scanFileAsMediaProvider(new File(newPath));
     }
 
     /**
@@ -3405,10 +3403,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile());
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile());
         }
 
         return 0;
@@ -5618,7 +5616,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile());
         }
 
         return newUri;
@@ -8362,14 +8360,14 @@ public class MediaProvider extends ContentProvider {
                             final boolean notifyTranscodeHelper = isUriPublished;
                             if (deferScan) {
                                 helper.postBackground(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
@@ -9392,10 +9390,10 @@ public class MediaProvider extends ContentProvider {
         // Figure out if we need to redact contents
         final boolean redactionNeeded = isRedactionNeededForOpenViaContentResolver(redactedUri,
                 ownerPackageName, file);
-        final RedactionInfo redactionInfo;
+        long[] redactionRanges;
         try {
-            redactionInfo = redactionNeeded ? getRedactionRanges(file)
-                    : new RedactionInfo(new long[0], new long[0]);
+            redactionRanges = redactionNeeded ? RedactionUtils.getRedactionRanges(file)
+                    : new long[0];
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -9424,7 +9422,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        scanFileAsMediaProvider(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file);
                         break;
                 }
             } catch (Exception e2) {
@@ -9445,7 +9443,7 @@ public class MediaProvider extends ContentProvider {
                 // So, we use it to signify that mediaCapabilitiesUid is not set.
                 mediaCapabilitiesUid = 0;
             }
-            if (redactionInfo.redactionRanges.length > 0) {
+            if (redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
                 pfd = openWithFuse(filePath, uid, mediaCapabilitiesUid, modeBits,
@@ -9690,71 +9688,6 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    /**
-     * Set of Exif tags that should be considered for redaction.
-     */
-    private static final String[] REDACTED_EXIF_TAGS = new String[] {
-            ExifInterface.TAG_GPS_ALTITUDE,
-            ExifInterface.TAG_GPS_ALTITUDE_REF,
-            ExifInterface.TAG_GPS_AREA_INFORMATION,
-            ExifInterface.TAG_GPS_DOP,
-            ExifInterface.TAG_GPS_DATESTAMP,
-            ExifInterface.TAG_GPS_DEST_BEARING,
-            ExifInterface.TAG_GPS_DEST_BEARING_REF,
-            ExifInterface.TAG_GPS_DEST_DISTANCE,
-            ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
-            ExifInterface.TAG_GPS_DEST_LATITUDE,
-            ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_DIFFERENTIAL,
-            ExifInterface.TAG_GPS_IMG_DIRECTION,
-            ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
-            ExifInterface.TAG_GPS_LATITUDE,
-            ExifInterface.TAG_GPS_LATITUDE_REF,
-            ExifInterface.TAG_GPS_LONGITUDE,
-            ExifInterface.TAG_GPS_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_MAP_DATUM,
-            ExifInterface.TAG_GPS_MEASURE_MODE,
-            ExifInterface.TAG_GPS_PROCESSING_METHOD,
-            ExifInterface.TAG_GPS_SATELLITES,
-            ExifInterface.TAG_GPS_SPEED,
-            ExifInterface.TAG_GPS_SPEED_REF,
-            ExifInterface.TAG_GPS_STATUS,
-            ExifInterface.TAG_GPS_TIMESTAMP,
-            ExifInterface.TAG_GPS_TRACK,
-            ExifInterface.TAG_GPS_TRACK_REF,
-            ExifInterface.TAG_GPS_VERSION_ID,
-    };
-
-    /**
-     * Set of ISO boxes that should be considered for redaction.
-     */
-    private static final int[] REDACTED_ISO_BOXES = new int[] {
-            IsoInterface.BOX_LOCI,
-            IsoInterface.BOX_XYZ,
-            IsoInterface.BOX_GPS,
-            IsoInterface.BOX_GPS0,
-    };
-
-    public static final Set<String> sRedactedExifTags = new ArraySet<>(
-            Arrays.asList(REDACTED_EXIF_TAGS));
-
-    private static final class RedactionInfo {
-        public final long[] redactionRanges;
-        public final long[] freeOffsets;
-
-        public RedactionInfo() {
-            this.redactionRanges = new long[0];
-            this.freeOffsets = new long[0];
-        }
-
-        public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
-            this.redactionRanges = redactionRanges;
-            this.freeOffsets = freeOffsets;
-        }
-    }
-
     private static class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int mMaxSize;
 
@@ -9806,7 +9739,7 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(ioPath);
 
         if (forceRedaction) {
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         }
 
         // When calculating redaction ranges initiated from MediaProvider, the redaction policy
@@ -9820,7 +9753,7 @@ public class MediaProvider extends ContentProvider {
             if (info != null && info.uid == original_uid) {
                 boolean shouldRedact = info.shouldRedact;
                 if (shouldRedact) {
-                    return getRedactionRanges(file).redactionRanges;
+                    return RedactionUtils.getRedactionRanges(file);
                 } else {
                     return new long[0];
                 }
@@ -9883,83 +9816,9 @@ public class MediaProvider extends ContentProvider {
                 return new long[0];
             }
 
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         } finally {
             restoreLocalCallingIdentity(token);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param file file to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(File file) throws IOException {
-        try (FileInputStream is = new FileInputStream(file)) {
-            return getRedactionRanges(is, MimeUtils.resolveMimeType(file));
-        } catch (FileNotFoundException ignored) {
-            // If file not found, then there's nothing to redact
-            return new RedactionInfo();
-        } catch (IOException e) {
-            throw new IOException("Failed to redact " + file, e);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param fis {@link FileInputStream} to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(FileInputStream fis, String mimeType)
-            throws IOException {
-        final LongArray res = new LongArray();
-        final LongArray freeOffsets = new LongArray();
-
-        Trace.beginSection("MP.getRedactionRanges");
-        try {
-            if (ExifInterface.isSupportedMimeType(mimeType)) {
-                final ExifInterface exif = new ExifInterface(fis.getFD());
-                for (String tag : REDACTED_EXIF_TAGS) {
-                    final long[] range = exif.getAttributeRange(tag);
-                    if (range != null) {
-                        res.add(range[0]);
-                        res.add(range[0] + range[1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
-                res.addAll(exifXmp.getRedactionRanges());
-            }
-
-            if (IsoInterface.isSupportedMimeType(mimeType)) {
-                final IsoInterface iso = IsoInterface.fromFileDescriptor(fis.getFD());
-                for (int box : REDACTED_ISO_BOXES) {
-                    final long[] ranges = iso.getBoxRanges(box);
-                    for (int i = 0; i < ranges.length; i += 2) {
-                        long boxTypeOffset = ranges[i] - 4;
-                        freeOffsets.add(boxTypeOffset);
-                        res.add(boxTypeOffset);
-                        res.add(ranges[i + 1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
-                res.addAll(isoXmp.getRedactionRanges());
-            }
-
-            return new RedactionInfo(res.toArray(), freeOffsets.toArray());
-        } finally {
-            Trace.endSection();
         }
     }
 

@@ -59,9 +59,10 @@ public final class PdfPageLinkContent {
      * Gets the bounds of the embedded weblink represented as a list of {@link Rect}. Links which
      * are spread across multiple lines will be surrounded by multiple {@link Rect} in order of
      * viewing.
-     * <p><strong>Note:</strong> The bounds only represent the coordinates of the bounds of a
-     * single line using {@link Rect}. The developer will need to render the highlighter as well as
-     * intercept the touch events for functionalities such as clicking the link.
+     * <p><strong>Note:</strong> Each {@link Rect} represents a bound of the weblink in a single
+     * line and defines the coordinates of its 4 edges (left, top, right and bottom) in
+     * points (1/72"). The developer will need to render the highlighter as well as intercept the
+     * touch events for functionalities such as clicking the link.
      *
      * @return The bounds of the link.
      */

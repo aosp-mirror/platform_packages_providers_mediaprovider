@@ -1986,6 +1986,7 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
     char buf[READDIR_BUF];
     struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
     size_t used = 0;
+    bool redacted = false;
     char* dirents_out = (char*)(fro + 1);
 
     ATRACE_CALL();
@@ -2021,8 +2022,11 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
             *dirent_out = *dirent_in;
             strcpy(dirent_out->name, child_name.c_str());
             used += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+        } else {
+            redacted = true;
         }
     }
+    if (redacted && used == 0) fro->again = 1;
     fuse_reply_buf(req, buf, sizeof(*fro) + used);
 }
 

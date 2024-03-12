@@ -30,6 +30,16 @@ import java.lang.annotation.RetentionPolicy;
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class RenderParams {
     /**
+     * Mode to render the content for display on a screen.
+     */
+    public static final int RENDER_MODE_FOR_DISPLAY = 1;
+
+    /**
+     * Mode to render the content for printing.
+     */
+    public static final int RENDER_MODE_FOR_PRINT = 2;
+
+    /**
      * Flag to enable rendering of text annotation on the page.
      *
      * @see RenderParams#getRenderFlags()
@@ -58,8 +68,6 @@ public final class RenderParams {
 
     /**
      * Returns the render mode.
-     *
-     * @see PdfRenderer.Page
      */
     @RenderMode
     public int getRenderMode() {
@@ -81,8 +89,8 @@ public final class RenderParams {
 
     /** @hide */
     @IntDef({
-            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY,
-            PdfRenderer.Page.RENDER_MODE_FOR_PRINT
+            RENDER_MODE_FOR_DISPLAY,
+            RENDER_MODE_FOR_PRINT
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface RenderMode {
@@ -111,7 +119,6 @@ public final class RenderParams {
          * Create a builder for constructing a {@link RenderParams} object with the render mode.
          *
          * @param renderMode render mode for the content.
-         * @see PdfRenderer.Page
          */
         public Builder(@RenderMode int renderMode) {
             this.mRenderMode = renderMode;

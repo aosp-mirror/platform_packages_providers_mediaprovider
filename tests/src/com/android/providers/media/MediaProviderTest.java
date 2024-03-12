@@ -589,32 +589,6 @@ public class MediaProviderTest {
         }
     }
 
-    /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
-     */
-    @Test
-    public void testGetRedactionRanges_Image() throws Exception {
-        final File file = File.createTempFile("test", ".jpg");
-        stage(R.raw.test_image, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
-    }
-
-    /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
-     */
-    @Test
-    public void testGetRedactionRanges_Video() throws Exception {
-        final File file = File.createTempFile("test", ".mp4");
-        stage(R.raw.test_video, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
-    }
-
     @Test
     public void testComputeCommonPrefix_Single() {
         assertEquals(Uri.parse("content://authority/1/2/3"),

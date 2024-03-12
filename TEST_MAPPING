@@ -1,7 +1,13 @@
 {
     "mainline-presubmit": [
         {
-            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]"
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    // Ignore the tests with @RunOnlyOnPostsubmit annotation
+                    "exclude-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
+                }
+            ]
         },
         {
             "name": "CtsScopedStorageCoreHostTest[com.google.android.mediaprovider.apex]"
@@ -13,20 +19,27 @@
             "name": "CtsScopedStorageDeviceOnlyTest[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
+            "name": "CtsScopedStorageBypassDatabaseOperationsTest[com.google.android.mediaprovider.apex]"
         },
         {
-            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
-            "options": [
-              {
-                "exclude-annotation": "androidx.test.filters.LargeTest"
-              }
-            ]
+            "name": "CtsScopedStorageGeneralTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsScopedStorageRedactUriTest[com.google.android.mediaprovider.apex]"
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests[com.google.android.mediaprovider.apex]"
         }
     ],
     "presubmit": [
         {
-            "name": "MediaProviderTests"
+            "name": "MediaProviderTests",
+            "options": [
+                {
+                    // Ignore the tests with @RunOnlyOnPostsubmit annotation
+                    "exclude-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
+                }
+            ]
         },
         {
             "name": "MediaProviderClientTests",
@@ -62,15 +75,16 @@
             "name": "CtsScopedStorageDeviceOnlyTest"
         },
         {
-            "name": "fuse_node_test"
+            "name": "CtsScopedStorageBypassDatabaseOperationsTest"
         },
         {
-            "name": "CtsPhotoPickerTest",
-            "options": [
-                {
-                    "exclude-annotation": "androidx.test.filters.LargeTest"
-                }
-            ]
+            "name": "CtsScopedStorageGeneralTest"
+        },
+        {
+            "name": "CtsScopedStorageRedactUriTest"
+        },
+        {
+            "name": "fuse_node_test"
         }
     ],
     "postsubmit": [
@@ -82,7 +96,7 @@
             "name": "CtsMediaProviderTranscodeTests"
         },
         {
-            "name": "CtsAppSecurityHostTestCases",
+            "name": "CtsStorageHostTestCases",
             "options": [
                 {
                     "include-filter": "android.appsecurity.cts.ExternalStorageHostTest"
@@ -91,6 +105,34 @@
         },
         {
             "name": "CtsPhotoPickerTest"
+        },
+        {
+            "name": "MediaProviderTests",
+            "options": [
+                {
+                    // Only execute the tests with @RunOnlyOnPostsubmit annotation
+                    "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
+                }
+            ]
+        }
+    ],
+    "mainline-postsubmit": [
+        {
+            "name": "MediaProviderTests[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    // Only execute the tests with @RunOnlyOnPostsubmit annotation
+                    "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
+                }
+            ]
+        },
+        {
+            "name": "CtsPhotoPickerTest[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    "exclude-annotation": "androidx.test.filters.LargeTest"
+                }
+            ]
         }
     ]
 }

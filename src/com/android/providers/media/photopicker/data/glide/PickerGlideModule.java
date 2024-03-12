@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.data.glide;
 
 import android.content.Context;
-import android.net.Uri;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.Registry;
@@ -34,6 +33,7 @@ public class PickerGlideModule extends AppGlideModule {
 
     @Override
     public void registerComponents(Context context, Glide glide, Registry registry) {
-        registry.prepend(Uri.class, InputStream.class, new PickerModelLoaderFactory(context));
+        registry.append(
+                GlideLoadable.class, InputStream.class, new PickerModelLoaderFactory(context));
     }
 }

@@ -39,7 +39,9 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.glide.GlideLoadable;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -48,6 +50,9 @@ import java.util.Locale;
 public class Category {
     public static final String TAG = "PhotoPicker";
     public static final Category DEFAULT = new Category();
+    public static final Category EMPTY_VIEW = new Category("EMPTY_VIEW");
+    private static final List<String> TRANSLATABLE_CATEGORIES = List.of(ALBUM_ID_VIDEOS,
+            ALBUM_ID_CAMERA, ALBUM_ID_SCREENSHOTS, ALBUM_ID_DOWNLOADS, ALBUM_ID_FAVORITES);
 
     private final String mId;
     private final String mAuthority;
@@ -60,6 +65,9 @@ public class Category {
         this(null, null, null, null, 0, false);
     }
 
+    private Category(String id) {
+        this(id, null, null, null, 0, false);
+    }
     @VisibleForTesting
     public Category(String id, String authority, String displayName, Uri coverUri, int itemCount,
             boolean isLocal) {
@@ -74,7 +82,7 @@ public class Category {
     @Override
     public String toString() {
         return String.format(Locale.ROOT, "Category: {mId: %s, mAuthority: %s, mDisplayName: %s, " +
-                "mCoverUri: %s, mItemCount: %d, mIsLocal: %b",
+                        "mCoverUri: %s, mItemCount: %d, mIsLocal: %b",
                 mId, mAuthority, mDisplayName, mCoverUri, mItemCount, mIsLocal);
     }
 
@@ -87,7 +95,7 @@ public class Category {
     }
 
     public String getDisplayName(Context context) {
-        if (mIsLocal) {
+        if (TRANSLATABLE_CATEGORIES.contains(mId)) {
             return getLocalizedDisplayName(context, mId);
         }
         return mDisplayName;
@@ -159,7 +167,7 @@ public class Category {
         return new Category(getCursorString(cursor, AlbumColumns.ID),
                 authority,
                 getCursorString(cursor, AlbumColumns.DISPLAY_NAME),
-                coverUri,
+                getCursorString(cursor, AlbumColumns.MEDIA_COVER_ID) != null ? coverUri : null,
                 getCursorInt(cursor, AlbumColumns.MEDIA_COUNT),
                 isLocal);
     }
@@ -179,5 +187,14 @@ public class Category {
             default:
                 return albumId;
         }
+    }
+
+    /**
+     * Convert this category into a loadable object for Glide.
+     *
+     * @return {@link GlideLoadable} that represents the relevant loadable data for this item.
+     */
+    public GlideLoadable toGlideLoadable() {
+        return new GlideLoadable(getCoverUri());
     }
 }

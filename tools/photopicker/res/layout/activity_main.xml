@@ -100,6 +100,13 @@
             android:textSize="16sp" />
     </LinearLayout>
 
+    <CheckBox
+        android:id="@+id/cbx_ordered_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ORDERED SELECTION"
+        android:textSize="16sp" />
+
     <Button
         android:id="@+id/launch_button"
         android:layout_width="match_parent"

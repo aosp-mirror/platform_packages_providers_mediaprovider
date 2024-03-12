@@ -40,12 +40,15 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
+import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class PhotosTabTest extends PhotoPickerBaseTest {
     private static final int ICON_GIF_ID = R.id.icon_gif;
@@ -63,6 +66,10 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
 
         // check the count of items
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(new RecyclerViewItemCountAssertion(4));
+
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_PHOTOS, /* countOfMediaItems */ 3);
 
         // Verify first item is recent header
         onView(withRecyclerView(PICKER_TAB_RECYCLERVIEW_ID)
@@ -137,6 +144,10 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
         // Verify that drag bar is shown
         onView(withId(DRAG_BAR_ID)).check(matches(isDisplayed()));
 
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceIdAndPosition(mRule,
+                PhotoPickerEvent.PHOTO_PICKER_UI_LOADED_ALBUM_CONTENTS, /* countOfMediaItems */ 1);
+
         final int dateHeaderTitleId = R.id.date_header_title;
         final int recentHeaderPosition = 0;
         // Verify that first item is not a recent header
@@ -170,5 +181,20 @@ public class PhotosTabTest extends PhotoPickerBaseTest {
                 .check(matches(isSelected()));
         onView(allOf(withText(cameraStringId),
                 isDescendantOfA(withId(PICKER_TAB_RECYCLERVIEW_ID)))).check(matches(isDisplayed()));
+    }
+
+    @Test
+    public void testSwitchToPhotosGrid() {
+        // Goto Albums page
+        onView(allOf(withText(PICKER_ALBUMS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+
+        // Goto Photos page
+        onView(allOf(withText(PICKER_PHOTOS_STRING_ID), isDescendantOfA(withId(TAB_LAYOUT_ID))))
+                .perform(click());
+
+        // Verify log
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mRule, PhotoPickerEvent.PHOTO_PICKER_TAB_PHOTOS_OPEN);
     }
 }

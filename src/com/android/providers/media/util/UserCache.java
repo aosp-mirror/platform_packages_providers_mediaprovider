@@ -18,6 +18,7 @@ package com.android.providers.media.util;
 
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_AWARE;
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
+
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.annotation.SuppressLint;
@@ -111,8 +112,7 @@ public class UserCache {
     private boolean isUnlockedAndMediaSharedWithParent(@NonNull UserHandle profile) {
         Context userContext = getContextForUser(profile);
         UserManager userManager = userContext.getSystemService(UserManager.class);
-        return (SdkLevel.isAtLeastT() ?
-                userManager.isUserUnlocked() : userManager.isUserUnlocked(profile))
+        return userManager.isUserUnlockingOrUnlocked(profile)
                 && userManager.isMediaSharedWithParent();
     }
 

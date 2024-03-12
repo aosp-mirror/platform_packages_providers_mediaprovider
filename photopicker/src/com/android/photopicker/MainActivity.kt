@@ -27,6 +27,9 @@ import com.android.photopicker.core.PhotopickerApp
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.data.model.Media
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.scopes.ActivityRetainedScoped
@@ -42,6 +45,7 @@ import javax.inject.Inject
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var selection: Selection<Media>
     // This needs to be injected lazily, to defer initialization until the action can be set
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
@@ -62,7 +66,10 @@ class MainActivity : Hilt_MainActivity() {
                 configurationManager.configuration.collectAsStateWithLifecycle()
 
             // Provide the [FeatureManager] to the entire compose stack.
-            CompositionLocalProvider(LocalFeatureManager provides featureManager.get()) {
+            CompositionLocalProvider(
+                LocalFeatureManager provides featureManager.get(),
+                LocalSelection provides selection,
+            ) {
                 PhotopickerApp(config = photopickerConfiguration)
             }
         }

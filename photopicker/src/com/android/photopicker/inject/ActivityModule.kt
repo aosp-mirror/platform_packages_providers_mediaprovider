@@ -23,9 +23,11 @@ import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.DataServiceImpl
+import com.android.photopicker.data.model.Media
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,6 +65,7 @@ class ActivityModule {
     private lateinit var dataService: DataService
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
+    private lateinit var selection: Selection<Media>
     private lateinit var userMonitor: UserMonitor
 
     /** Provider for a @Background Dispatcher [CoroutineScope]. */
@@ -115,25 +118,20 @@ class ActivityModule {
     @Provides
     @ActivityRetainedScoped
     fun provideDataService(
-            @ApplicationContext context: Context,
-            @ActivityRetainedScoped featureManager: FeatureManager,
-            @ActivityRetainedScoped @Background scope: CoroutineScope,
-            @ActivityRetainedScoped userMonitor: UserMonitor,
+        @ApplicationContext context: Context,
+        @ActivityRetainedScoped featureManager: FeatureManager,
+        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @ActivityRetainedScoped userMonitor: UserMonitor,
     ): DataService {
 
         if (::dataService.isInitialized) {
             return dataService
         } else {
             Log.d(
-                    DataService.TAG,
-                    "DataService requested but not yet initialized. Initializing DataService."
+                DataService.TAG,
+                "DataService requested but not yet initialized. Initializing DataService."
             )
-            dataService = DataServiceImpl(
-                    context,
-                    featureManager,
-                    scope,
-                    userMonitor
-            )
+            dataService = DataServiceImpl(context, featureManager, scope, userMonitor)
             return dataService
         }
     }
@@ -182,6 +180,21 @@ class ActivityModule {
                 mainScope.cancel()
             }
             return mainScope
+        }
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideSelection(
+        @ActivityRetainedScoped @Background scope: CoroutineScope,
+    ): Selection<Media> {
+
+        if (::selection.isInitialized) {
+            return selection
+        } else {
+            Log.d(TAG, "Initializing selection.")
+            selection = Selection(scope = scope)
+            return selection
         }
     }
 

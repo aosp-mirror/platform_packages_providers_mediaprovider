@@ -21,9 +21,8 @@ package android.graphics.pdf {
     method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
     method public boolean shouldScaleForPrinting();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
-    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
-    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
-    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0
+    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
+    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_ACRO_FORM = 1; // 0x1
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_NONE = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3; // 0x3
@@ -61,9 +60,8 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
     method @NonNull public android.graphics.pdf.PdfRendererPreV.Page openPage(int);
     method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
-    field public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2; // 0x2
-    field public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1; // 0x1
-    field public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0; // 0x0
+    field public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
+    field public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_ACRO_FORM = 1; // 0x1
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_NONE = 0; // 0x0
     field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3; // 0x3

@@ -773,6 +773,7 @@ static void removeInstance(struct fuse* fuse, std::string instance_name) {
 }
 
 static void removeLevelDbConnection(struct fuse* fuse) {
+    fuse->level_db_mutex.lock();
     if (android::base::StartsWith(fuse->path, PRIMARY_VOLUME_PREFIX)) {
         removeInstance(fuse, VOLUME_INTERNAL);
         removeInstance(fuse, OWNERSHIP_RELATION);
@@ -784,6 +785,7 @@ static void removeLevelDbConnection(struct fuse* fuse) {
         std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
         removeInstance(fuse, volume_name);
     }
+    fuse->level_db_mutex.unlock();
 }
 
 static void pf_destroy(void* userdata) {
@@ -2634,8 +2636,10 @@ std::string deriveVolumeName(const std::string& path) {
 }
 
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
+    fuse->level_db_mutex.lock();
     std::string volume_name = deriveVolumeName(key);
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "DeleteFromLevelDb: Missing leveldb connection.";
         return;
     }
@@ -2643,22 +2647,28 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     leveldb::Status status;
     status = fuse->level_db_connection_map[volume_name]->Delete(leveldb::WriteOptions(), key);
     if (!status.ok()) {
-        LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
-            " from volume:" << volume_name;
+        LOG(ERROR) << "Failure in leveldb delete for key: " << key
+                   << " from volume:" << volume_name;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::string& key,
                                  const std::string& value) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "InsertInLevelDb: Missing leveldb connection.";
         return;
     }
 
     leveldb::Status status;
-    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
+    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key,
+                                                             value);
+    fuse->level_db_mutex.unlock();
     if (!status.ok()) {
-        LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
+        LOG(ERROR) << "Failure in leveldb insert for key: " << key
+                   << " in volume:" << volume_name;
         LOG(ERROR) << status.ToString();
     }
 }
@@ -2666,6 +2676,7 @@ void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::stri
 std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string& volume_name,
                                                               const std::string& last_read_value,
                                                               int limit) {
+    fuse->level_db_mutex.lock();
     int counter = 0;
     std::vector<std::string> file_paths;
 
@@ -2688,37 +2699,47 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
         file_paths.push_back(it->key().ToString());
         counter++;
     }
+    fuse->level_db_mutex.unlock();
     return file_paths;
 }
 
 std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
+    fuse->level_db_mutex.lock();
     std::string data = "";
     std::string volume_name = deriveVolumeName(filePath);
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "ReadBackedUpDataFromLevelDb: Missing leveldb connection.";
         return data;
     }
 
-    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
-                                                                             filePath, &data);
+    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(
+            leveldb::ReadOptions(), filePath, &data);
+    fuse->level_db_mutex.unlock();
+
     if (status.IsNotFound()) {
         LOG(VERBOSE) << "Key is not found in leveldb: " << filePath << " " << status.ToString();
     } else if (!status.ok()) {
-        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " " << status.ToString();
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " "
+                     << status.ToString();
     }
     return data;
 }
 
 std::string FuseDaemon::ReadOwnership(const std::string& key) {
+    fuse->level_db_mutex.lock();
     // Return empty string if key not found
     std::string data = "";
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "ReadOwnership: Missing leveldb connection.";
         return data;
     }
 
     leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
             leveldb::ReadOptions(), key, &data);
+    fuse->level_db_mutex.unlock();
+
     if (status.IsNotFound()) {
         LOG(VERBOSE) << "Key is not found in leveldb: " << key << " " << status.ToString();
     } else if (!status.ok()) {
@@ -2730,7 +2751,9 @@ std::string FuseDaemon::ReadOwnership(const std::string& key) {
 
 void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "CreateOwnerIdRelation: Missing leveldb connection.";
         return;
     }
@@ -2749,11 +2772,14 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
         LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
                    << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "RemoveOwnerIdRelation: Missing leveldb connection.";
         return;
     }
@@ -2775,11 +2801,14 @@ void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
         LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
                    << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    fuse->level_db_mutex.lock();
     std::map<std::string, std::string> resultMap;
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "GetOwnerRelationship: Missing leveldb connection.";
         return resultMap;
     }
@@ -2793,6 +2822,8 @@ std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
         std::string value = it->value().ToString();
         resultMap.insert(std::pair<std::string, std::string>(key, value));
     }
+
+    fuse->level_db_mutex.unlock();
     return resultMap;
 }
 

@@ -17,7 +17,6 @@
 package android.graphics.pdf;
 
 import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEARIZED;
-import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
 
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
@@ -115,17 +114,13 @@ import java.util.List;
  */
 @SuppressLint("UnflaggedApi")
 public final class PdfRenderer implements AutoCloseable {
-    /** Represents that the linearization of the PDF document cannot be determined. */
-    @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public static final int DOCUMENT_LINEARIZED_TYPE_UNKNOWN = 0;
-
     /** Represents a non-linearized PDF document. */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 1;
+    public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0;
 
     /** Represents a linearized PDF document. */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 2;
+    public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1;
 
     /** Represents a PDF without form fields */
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -305,10 +300,8 @@ public final class PdfRenderer implements AutoCloseable {
             int documentType = mPdfProcessor.getDocumentLinearizationType();
             if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
                 return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
-            } else if (documentType == PDF_DOCUMENT_TYPE_NON_LINEARIZED) {
-                return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
             } else {
-                return DOCUMENT_LINEARIZED_TYPE_UNKNOWN;
+                return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
             }
         }
     }
@@ -467,8 +460,7 @@ public final class PdfRenderer implements AutoCloseable {
     /** @hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_UNKNOWN,
-            DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED,
+    @IntDef(prefix = {"PDF_DOCUMENT_TYPE_"}, value = {DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED,
             DOCUMENT_LINEARIZED_TYPE_LINEARIZED})
     public @interface PdfDocumentLinearizationType {
     }
@@ -679,9 +671,9 @@ public final class PdfRenderer implements AutoCloseable {
 
         /**
          * Return a {@link PageSelection} which represents the selected content that spans between
-         * the two boundaries, both of which can be either exactly defined with text indexes, or
+         * the two boundaries. The boundaries can be either exactly defined with text indexes, or
          * approximately defined with points on the page. The resulting selection will also be
-         * exactly defined with both indexes and points. If the start and stop boundary are both
+         * exactly defined with both indexes and points. If the left and right boundary are both
          * the same point, selects the word at that point. In case the selection from the given
          * boundaries result in an empty space, then the method returns {@code null}. The left and
          * right {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index

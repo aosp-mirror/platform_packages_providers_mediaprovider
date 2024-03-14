@@ -68,8 +68,8 @@ package android.graphics.pdf {
 package android.graphics.pdf.content {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageGotoLinkContent {
-    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
   }
 
@@ -87,15 +87,15 @@ package android.graphics.pdf.content {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageLinkContent {
-    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.net.Uri);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.net.Uri);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public android.net.Uri getUri();
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageTextContent {
     ctor public PdfPageTextContent(@NonNull String);
-    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.Rect>);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.RectF>);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public String getText();
   }
 
@@ -174,8 +174,8 @@ package android.graphics.pdf.models {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds {
-    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.Rect>, int);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.RectF>, int);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method public int getTextStartIndex();
   }
 

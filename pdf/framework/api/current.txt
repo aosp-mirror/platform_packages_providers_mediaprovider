@@ -224,7 +224,6 @@ package android.graphics.pdf.models {
 package android.graphics.pdf.models.selection {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageSelection {
-    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>);
     ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>, boolean);
     method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getLeft();
     method public int getPage();

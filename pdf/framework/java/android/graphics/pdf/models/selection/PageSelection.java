@@ -44,23 +44,6 @@ public final class PageSelection {
 
     /**
      * Creates a new instance of {@link PageSelection} for the specified page, the left and right
-     * selection edge and the selected text content. Rtl defaults to {@code false}.
-     *
-     * @param page             The page number of the selection.
-     * @param left             Left edge of the selection.
-     * @param right            right edge of the selection.
-     * @param selectedContents list of segments of selected text content.
-     * @throws IllegalArgumentException If the page number is negative.
-     * @throws NullPointerException     If left/right edge or text selection is null.
-     */
-    public PageSelection(int page, @NonNull SelectionBoundary left,
-            @NonNull SelectionBoundary right,
-            @NonNull List<PdfPageTextContent> selectedContents) {
-        this(page, left, right, selectedContents, /* isRtl = */ false);
-    }
-
-    /**
-     * Creates a new instance of {@link PageSelection} for the specified page, the left and right
      * selection edge and the selected text content.
      *
      * @param page             The page number of the selection.
@@ -72,14 +55,12 @@ public final class PageSelection {
      * @throws NullPointerException     If left/right edge or text selection is null.
      */
     public PageSelection(int page, @NonNull SelectionBoundary left,
-            @NonNull SelectionBoundary right,
-            @NonNull List<PdfPageTextContent> selectedContents, boolean isRtl) {
-        Preconditions.checkArgument(page >= 0, "Page number cannot "
-                + "be negative");
+            @NonNull SelectionBoundary right, @NonNull List<PdfPageTextContent> selectedContents,
+            boolean isRtl) {
+        Preconditions.checkArgument(page >= 0, "Page number cannot be negative");
         Preconditions.checkNotNull(left, "Left boundary cannot be null");
         Preconditions.checkNotNull(right, "Right boundary cannot be null");
-        Preconditions.checkNotNull(selectedContents, "Selected text content "
-                + "cannot be null");
+        Preconditions.checkNotNull(selectedContents, "Selected text content " + "cannot be null");
         this.mLeft = left;
         this.mRight = right;
         this.mPage = page;

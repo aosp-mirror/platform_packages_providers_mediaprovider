@@ -56,11 +56,15 @@ interface GlideLoadable {
     fun getDataSource(): DataSource
 
     /**
-     * Provide a the MimeType for Glide to use for this loadable.
-     * By default, this is ["image / *"], but for certain formats (a more specific image type), this
-     * can be overridden.
+     * Provide a the MimeType for Glide to use for this loadable. By default, this is ["image / *"],
+     * but for certain formats (a more specific image type), this can be overridden.
      */
     fun getMimeTypeForGlide(): String {
-      return DEFAULT_IMAGE_MIME_TYPE
+        return DEFAULT_IMAGE_MIME_TYPE
     }
+
+    /**
+     * Provide a timestamp for ordering this GlideLoadable within a list of other GlideLoadables.
+     */
+    fun getTimestamp(): Long
 }

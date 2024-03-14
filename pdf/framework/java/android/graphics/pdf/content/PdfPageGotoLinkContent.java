@@ -101,6 +101,7 @@ public final class PdfPageGotoLinkContent {
          * Creates a new instance of {@link Destination} using the page number, x coordinate, and
          * y coordinate of the destination where goto link is directing, and the zoom factor of the
          * page when goto link takes to the destination
+         * <p><strong>Note:</strong> Here (0,0) represents top-left corner of the page
          *
          * @param pageNumber  Page number of the goto link Destination
          * @param xCoordinate X coordinate of the goto link Destination in points (1/72")

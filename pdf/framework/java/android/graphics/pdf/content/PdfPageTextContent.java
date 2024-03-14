@@ -18,8 +18,11 @@ package android.graphics.pdf.content;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.graphics.Rect;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+
+import java.util.List;
 
 /**
  * <p>
@@ -28,10 +31,12 @@ import android.graphics.pdf.utils.Preconditions;
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class PdfPageTextContent {
     private final String mText;
+    private final List<Rect> mBounds;
+
 
     /**
      * Creates a new instance of {@link PdfPageTextContent} using the raw text on the page of the
-     * document.
+     * document. By default, the bounds will be an empty list.
      *
      * @param text Text content on the page.
      * @throws NullPointerException If text is null.
@@ -39,15 +44,46 @@ public final class PdfPageTextContent {
     public PdfPageTextContent(@NonNull String text) {
         Preconditions.checkNotNull(text, "Text cannot be null");
         this.mText = text;
+        this.mBounds = List.of();
     }
 
     /**
-     * Gets the text content on the page of the document.
+     * Creates a new instance of {@link PdfPageTextContent} to represent text content within defined
+     * bounds represented by a non-empty list of {@link Rect} on the page of the document.
+     *
+     * @param text   Text content within the bounds.
+     * @param bounds Bounds for the text content
+     * @throws NullPointerException If text or bounds is null.
+     */
+    public PdfPageTextContent(@NonNull String text, @NonNull List<Rect> bounds) {
+        Preconditions.checkNotNull(text, "Text cannot be null");
+        Preconditions.checkNotNull(bounds, "Bounds cannot be null");
+        Preconditions.checkArgument(!bounds.isEmpty(), "Bounds cannot be empty");
+        this.mText = text;
+        this.mBounds = bounds;
+    }
+
+    /**
+     * Gets the text content on the document.
      *
      * @return The text content on the page.
      */
     @NonNull
     public String getText() {
         return mText;
+    }
+
+    /**
+     * Gets the bounds for the text content represented as a list of {@link Rect}. Each
+     * {@link Rect} represents text content in a single line defined in points (1/72") for its 4
+     * corners. Content spread across multiple lines is represented by list of {@link Rect} in the
+     * order of viewing (left to right and top to bottom). If the text content is unbounded then the
+     * list will be empty.
+     *
+     * @return The bounds of the text content.
+     */
+    @NonNull
+    public List<Rect> getBounds() {
+        return mBounds;
     }
 }

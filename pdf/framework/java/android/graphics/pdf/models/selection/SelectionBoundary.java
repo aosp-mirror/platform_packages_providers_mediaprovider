@@ -76,6 +76,7 @@ public class SelectionBoundary {
      * Gets the x, y coordinates of the selection boundary in points (1/72"). These coordinates are
      * represented by a {@link Point} . If the value is {@code null} then the {@link #getIndex()}
      * will determine the selection boundary.
+     * <p><strong>Note:</strong> Point (0,0) represents the top-left corner of the page
      *
      * @return The point of the selection boundary.
      */

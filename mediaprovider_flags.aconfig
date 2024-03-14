@@ -2,6 +2,7 @@ package: "com.android.providers.media.flags"
 
 flag {
     name: "pick_ordered_images"
+    is_exported: true
     namespace: "mediaprovider"
     description: "This flag controls whether to enable ordered selection in photopicker"
     bug: "303784642"
@@ -9,6 +10,7 @@ flag {
 
 flag {
     name: "picker_default_tab"
+    is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable launching the photopicker in the requested tab/activity"
     bug: "303783867"
@@ -16,6 +18,7 @@ flag {
 
 flag {
     name: "access_media_owner_package_name_permission"
+    is_exported: true
     namespace: "mediaprovider"
     description: "Controls exposure of the ACCESS_MEDIA_OWNER_PACKAGE_NAME permission name"
     bug: "309920631"
@@ -23,6 +26,7 @@ flag {
 
 flag {
     name: "picker_recent_selection"
+    is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable selection of items based on recency of selection in picker choice."
     bug: "323132658"
@@ -30,6 +34,7 @@ flag {
 
 flag {
     name: "picker_accent_color"
+    is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable setting an accent color in the photopicker"
     bug: "303784053"

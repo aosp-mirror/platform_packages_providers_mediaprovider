@@ -22,8 +22,7 @@
         TODO(b/309578419): Make activities handle insets properly and then remove this.
     -->
     <style name="OptOutEdgeToEdgeEnforcement">
-        <!-- Style is added for compat with main branch but remove the item since
-             android:windowOptOutEdgeToEdgeEnforcement is not supported in udc -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
 </resources>

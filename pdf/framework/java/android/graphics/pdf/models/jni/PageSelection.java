@@ -20,7 +20,6 @@ import android.annotation.FlaggedApi;
 import android.graphics.Rect;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
-import android.graphics.pdf.models.selection.TextSelection;
 
 import java.util.List;
 
@@ -79,10 +78,9 @@ public class PageSelection {
     /** Converts JNI models to the public class */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public android.graphics.pdf.models.selection.PageSelection convert(boolean isRtl) {
-        TextSelection textSelectedContent = new TextSelection(mBounds,
-                new PdfPageTextContent(mText));
+        PdfPageTextContent selectedTextContent = new PdfPageTextContent(mText, mBounds);
         return new android.graphics.pdf.models.selection.PageSelection(mPage, mLeft.convert(),
                 mRight.convert(),
-                /* textSelectedContents = */ List.of(textSelectedContent), isRtl);
+                /* selectedContents = */ List.of(selectedTextContent), isRtl);
     }
 }

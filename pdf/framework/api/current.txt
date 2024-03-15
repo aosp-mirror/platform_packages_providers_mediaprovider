@@ -134,6 +134,8 @@ package android.graphics.pdf.content {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageTextContent {
     ctor public PdfPageTextContent(@NonNull String);
+    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.Rect>);
+    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
     method @NonNull public String getText();
   }
 
@@ -222,12 +224,11 @@ package android.graphics.pdf.models {
 package android.graphics.pdf.models.selection {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageSelection {
-    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.models.selection.TextSelection>);
-    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.models.selection.TextSelection>, boolean);
+    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>, boolean);
     method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getLeft();
     method public int getPage();
     method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getRight();
-    method @NonNull public java.util.List<android.graphics.pdf.models.selection.TextSelection> getTextSelections();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getSelectedTextContents();
     method public boolean isRtl();
   }
 
@@ -236,12 +237,6 @@ package android.graphics.pdf.models.selection {
     ctor public SelectionBoundary(@NonNull android.graphics.Point);
     method public int getIndex();
     method @Nullable public android.graphics.Point getPoint();
-  }
-
-  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class TextSelection {
-    ctor public TextSelection(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageTextContent);
-    method @NonNull public android.graphics.pdf.content.PdfPageTextContent getSelectedTextContents();
-    method @NonNull public java.util.List<android.graphics.Rect> getSelectionBounds();
   }
 
 }

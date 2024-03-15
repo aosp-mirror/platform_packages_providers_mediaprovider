@@ -9,6 +9,7 @@ flag {
     description: "This flag controls whether to enable pdf viewer APIs."
     bug: "319561098"
     is_fixed_read_only: true
+    is_exported: true
 }
 
 flag {
@@ -18,4 +19,5 @@ flag {
     description: "This flag controls whether to enable pdf viewer form filling APIs."
     bug: "319561098"
     is_fixed_read_only: true
+    is_exported: true
 }

@@ -18,7 +18,7 @@ package android.graphics.pdf.models;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
-import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
 
@@ -29,7 +29,7 @@ import java.util.List;
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class PageMatchBounds {
-    private final List<Rect> mBounds;
+    private final List<RectF> mBounds;
     private final int mTextStartIndex;
 
     /**
@@ -43,7 +43,7 @@ public final class PageMatchBounds {
      * @throws IllegalArgumentException If bounds list is empty or if the text starting index is
      *                                  negative.
      */
-    public PageMatchBounds(@NonNull List<Rect> bounds, int textStartIndex) {
+    public PageMatchBounds(@NonNull List<RectF> bounds, int textStartIndex) {
         Preconditions.checkNotNull(bounds, "Bounds cannot be null");
         Preconditions.checkArgument(!bounds.isEmpty(), "Match bounds cannot be empty");
         Preconditions.checkArgument(textStartIndex >= 0, "Index cannot be negative");
@@ -53,16 +53,17 @@ public final class PageMatchBounds {
 
     /**
      * <p>
-     * Represents the {@link Rect} bounds of a match. Matches which are spread across multiple lines
-     * will be represented by multiple {@link Rect} in order of viewing.
+     * Represents the {@link RectF} bounds of a match. Matches which are spread across multiple
+     * lines will be represented by multiple {@link RectF} in order of viewing.
      * <p><strong>Note:</strong> The bounds only represent the coordinates of the bounds of a
-     * single line using {@link Rect}. The developer will need to render the highlighter as well as
+     * single line using {@link RectF}. The developer will need to render the highlighter as well
+     * as
      * intercept the touch events for any additional UI interactions.
      *
      * @return list of bounds for the match on the page.
      */
     @NonNull
-    public List<Rect> getBounds() {
+    public List<RectF> getBounds() {
         return mBounds;
     }
 

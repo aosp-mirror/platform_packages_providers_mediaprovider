@@ -11,46 +11,6 @@ package android.graphics.pdf {
     method @NonNull public android.graphics.pdf.LoadParams.Builder setPassword(@Nullable String);
   }
 
-  public final class PdfRenderer implements java.lang.AutoCloseable {
-    ctor public PdfRenderer(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
-    ctor @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public PdfRenderer(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
-    method public void close();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public int getDocumentLinearizationType();
-    method public int getPageCount();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
-    method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
-    method public boolean shouldScaleForPrinting();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
-    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
-    field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0; // 0x0
-    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_ACRO_FORM = 1; // 0x1
-    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_NONE = 0; // 0x0
-    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3; // 0x3
-    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FULL = 2; // 0x2
-  }
-
-  public final class PdfRenderer.Page implements java.lang.AutoCloseable {
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.Rect> applyEdit(@NonNull android.graphics.pdf.models.FormEditRecord);
-    method public void close();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from=0) int);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
-    method public int getHeight();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
-    method public int getIndex();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
-    method public int getWidth();
-    method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, boolean);
-    field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
-    field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
-  }
-
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfRendererPreV implements java.lang.AutoCloseable {
     ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
     ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
@@ -108,8 +68,8 @@ package android.graphics.pdf {
 package android.graphics.pdf.content {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageGotoLinkContent {
-    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
   }
 
@@ -127,15 +87,15 @@ package android.graphics.pdf.content {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageLinkContent {
-    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.Rect>, @NonNull android.net.Uri);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.net.Uri);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public android.net.Uri getUri();
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageTextContent {
     ctor public PdfPageTextContent(@NonNull String);
-    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.Rect>);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.RectF>);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method @NonNull public String getText();
   }
 
@@ -214,8 +174,8 @@ package android.graphics.pdf.models {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds {
-    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.Rect>, int);
-    method @NonNull public java.util.List<android.graphics.Rect> getBounds();
+    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.RectF>, int);
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
     method public int getTextStartIndex();
   }
 

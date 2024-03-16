@@ -20,7 +20,7 @@ import android.annotation.FlaggedApi;
 import android.annotation.FloatRange;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
-import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
 
@@ -34,7 +34,7 @@ import java.util.List;
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class PdfPageGotoLinkContent {
     @NonNull
-    private final List<Rect> mBounds;
+    private final List<RectF> mBounds;
     @NonNull
     private final Destination mDestination;
 
@@ -48,7 +48,7 @@ public final class PdfPageGotoLinkContent {
      * @throws NullPointerException     If bounds or destination is null.
      * @throws IllegalArgumentException If the bounds list is empty.
      */
-    public PdfPageGotoLinkContent(@NonNull List<Rect> bounds, @NonNull Destination
+    public PdfPageGotoLinkContent(@NonNull List<RectF> bounds, @NonNull Destination
             destination) {
         Preconditions.checkNotNull(bounds, "Bounds cannot be null");
         Preconditions.checkArgument(!bounds.isEmpty(), "Bounds cannot be empty");
@@ -59,11 +59,11 @@ public final class PdfPageGotoLinkContent {
 
 
     /**
-     * Gets the bounds of a {@link PdfPageGotoLinkContent} represented as a list of {@link Rect}.
-     * Links which are spread across multiple lines will be surrounded by multiple {@link Rect}
+     * Gets the bounds of a {@link PdfPageGotoLinkContent} represented as a list of {@link RectF}.
+     * Links which are spread across multiple lines will be surrounded by multiple {@link RectF}
      * in order of viewing.
      *
-     * <p><strong>Note:</strong> Each {@link Rect} represents a bound of the goto link in a single
+     * <p><strong>Note:</strong> Each {@link RectF} represents a bound of the goto link in a single
      * line and defines the coordinates of its 4 edges (left, top, right and bottom) in
      * points (1/72"). The developer will need to render the highlighter as well as
      * intercept the touch events for functionalities such as clicking the link.
@@ -71,7 +71,7 @@ public final class PdfPageGotoLinkContent {
      * @return The bounds of the goto link.
      */
     @NonNull
-    public List<Rect> getBounds() {
+    public List<RectF> getBounds() {
         return mBounds;
     }
 

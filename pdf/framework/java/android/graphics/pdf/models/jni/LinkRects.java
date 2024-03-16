@@ -19,6 +19,7 @@ package android.graphics.pdf.models.jni;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
@@ -117,7 +118,8 @@ public class LinkRects extends ListOfList<Rect> {
                     boundIndex++) {
                 bounds.add(mRects.get(boundIndex));
             }
-            boundedLinks.add(new PdfPageLinkContent(bounds, Uri.parse(mUrls.get(index))));
+            boundedLinks.add(new PdfPageLinkContent(bounds.stream().map(RectF::new).toList(),
+                    Uri.parse(mUrls.get(index))));
         }
 
         return boundedLinks;

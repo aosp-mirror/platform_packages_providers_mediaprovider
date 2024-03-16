@@ -44,6 +44,7 @@ static const char* kGotoLinkDestination =
 static const char* kGotoLink = "android/graphics/pdf/content/PdfPageGotoLinkContent";
 
 static const char* kRect = "android/graphics/Rect";
+static const char* kRectF = "android/graphics/RectF";
 static const char* kInteger = "java/lang/Integer";
 static const char* kString = "java/lang/String";
 static const char* kObject = "java/lang/Object";
@@ -181,6 +182,13 @@ jobject ToJavaRect(JNIEnv* env, const Rectangle_i& r) {
     return env->NewObject(rect_class, init, r.left, r.top, r.right, r.bottom);
 }
 
+jobject ToJavaRectF(JNIEnv* env, const Rectangle_i& r) {
+    static jclass rectF_class = GetPermClassRef(env, kRectF);
+    static jmethodID init = env->GetMethodID(rectF_class, "<init>", "(FFFF)V");
+    return env->NewObject(rectF_class, init, float(r.left), float(r.top), float(r.right),
+                          float(r.bottom));
+}
+
 jobject ToJavaRects(JNIEnv* env, const vector<Rectangle_i>& rects) {
     return ToJavaList(env, rects, &ToJavaRect);
 }
@@ -299,7 +307,7 @@ jobject ToJavaGotoLink(JNIEnv* env, const GotoLink& link) {
     static jmethodID init = env->GetMethodID(goto_link_class, "<init>",
                                              funcsig("V", kList, kGotoLinkDestination).c_str());
 
-    jobject java_rects = ToJavaList(env, link.rect, &ToJavaRect);
+    jobject java_rects = ToJavaList(env, link.rect, &ToJavaRectF);
     jobject goto_link_dest = ToJavaDestination(env, link.dest);
 
     return env->NewObject(goto_link_class, init, java_rects, goto_link_dest);

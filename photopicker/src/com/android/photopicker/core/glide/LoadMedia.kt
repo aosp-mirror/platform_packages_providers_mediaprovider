@@ -20,9 +20,14 @@ package com.android.photopicker.core.glide
 import android.graphics.drawable.Drawable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import com.bumptech.glide.RequestBuilder
+import com.android.photopicker.R
+import androidx.compose.ui.res.stringResource
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.integration.compose.placeholder
 
 /**
  * The composable for loading images through the Glide pipeline.
@@ -49,7 +54,14 @@ fun loadMedia(
         ) -> RequestBuilder<Drawable>)? =
         null
 ) {
-    GlideImage(model = media, contentDescription = "", modifier = modifier) {
+    GlideImage(
+        model = media,
+        contentDescription = stringResource(R.string.photopicker_media_item),
+        modifier = modifier,
+        // TODO(b/323830032): Use a proper material theme color here.
+        loading = placeholder(ColorPainter(Color.Black)),
+        failure = placeholder(ColorPainter(Color.Black)),
+    ) {
         requestBuilderTransformation?.invoke(media, resolution, it)
         // If no RequestBuilder function was provided, then apply the loadables signature to ensure
         // the cache is populated.

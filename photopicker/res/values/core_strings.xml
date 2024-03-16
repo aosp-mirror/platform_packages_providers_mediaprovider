@@ -19,4 +19,10 @@
     <!-- Label to show to user for this package and for Photo picker. -->
   <string name="photopicker_application_label" translation_description="Label for the application that handles picking media files to share with other apps. [CHAR_LIMIT=NONE]">Media Picker</string>
 
+  <!-- Content description for an individual piece of media in the photopicker's media grid -->
+  <string name="photopicker_media_item" translation_description="Accessibility text denoting an element that represents an individual photo or video in a grid of selectable media. [CHAR_LIMIT=NONE]">Media</string>
+
+  <!-- Content description for the selected checkmark in the media grid -->
+  <string name="photopicker_item_selected" translation_description="Accessibility text denoting an individual photo is selected in a grid of photos. [CHAR_LIMIT=NONE]">Selected</string>
+
 </resources>

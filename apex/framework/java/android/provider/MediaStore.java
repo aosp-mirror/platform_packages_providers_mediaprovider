@@ -273,6 +273,12 @@ public final class MediaStore {
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER_RESULT = "cloud_provider_result";
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_DETAILS =
+            "get_cloud_provider_details";
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_DETAILS_RESULT =
+            "get_cloud_provider_details_result";
+    /** {@hide} */
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** @hide */

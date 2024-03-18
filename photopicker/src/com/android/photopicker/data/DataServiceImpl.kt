@@ -16,18 +16,22 @@
 
 package com.android.photopicker.data
 
-import android.content.Context
-import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.user.UserMonitor
-import com.android.photopicker.data.model.Provider
+import android.database.ContentObserver
+import android.net.Uri
+import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.CloudMediaProviderDetails
+import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.AlbumContentPagingSource
 import com.android.photopicker.data.paging.AlbumPagingSource
 import com.android.photopicker.data.paging.MediaPagingSource
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Collections.emptyList
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 /**
  * Provides data to the Photo Picker UI. The data comes from a [ContentProvider] called
@@ -36,18 +40,65 @@ import java.util.Collections.emptyList
  * Underlying data changes in [MediaProvider] are observed using [ContentObservers]. When a change
  * in data is observed, the data is re-fetched from the [MediaProvider] process and the new data
  * is emitted to the [StateFlows]-s.
- *
- * This class depends on [FeatureManager] to provide the info about which feature set is currently
- * enabled. This information helps with building the [ContentProvider] queries to fetch data from
- * the [MediaProvider] process.
  */
 class DataServiceImpl(
-    private val context: Context,
-    private val featureManager: FeatureManager,
+    private val userStatus: StateFlow<UserStatus>,
     private val scope: CoroutineScope,
-    private val userMonitor: UserMonitor,
+    private val notificationService: NotificationService,
 ) : DataService {
-    override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
+    companion object {
+        const val FLOW_TIMEOUT_MILLI_SECONDS: Long = 5000
+    }
+
+    /**
+     * Internal callback flow that fetches data from MediaProvider and emits updates when a change
+     * is detected using [ContentObserver].
+     */
+    private val availableProvidersCallbackFlow: Flow<List<Provider>> = callbackFlow<Unit> {
+        // Define a callback that tries sending a [Unit] in the [Channel].
+        val observer = object : ContentObserver(/* handler */ null) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                trySend(Unit)
+            }
+        }
+
+        // Register the content observer callback.
+        notificationService.registerContentObserverCallback(
+            userStatus.value.activeContentResolver,
+            AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI,
+            /* notifyForDescendants */ true,
+            observer
+        )
+
+        // Unregister when the flow is closed.
+        awaitClose {
+            notificationService.unregisterContentObserverCallback(
+                userStatus.value.activeContentResolver,
+                observer
+            )
+        }
+    }.map {
+        // Fetch the available providers again when a change is detected.
+        MediaProviderClient.fetchAvailableProviders(userStatus.value.activeContentResolver)
+    }
+
+    /**
+     * Create a state flow from the callback flow [availableProvidersCallbackFlow]. The state flow
+     * helps retain and provide immediate access to the last emitted value.
+     *
+     * The producer block remains active for some time after the last observer stops collecting.
+     * This helps retain the flow through transient changes like activity recreation due to
+     * config changes.
+     *
+     * Note that [StateFlow] automatically filters out subsequent repetitions of the same value.
+     */
+    override val availableProviders: StateFlow<List<Provider>> by lazy {
+        availableProvidersCallbackFlow.stateIn(
+            scope,
+            SharingStarted.WhileSubscribed(FLOW_TIMEOUT_MILLI_SECONDS),
+            MediaProviderClient.fetchAvailableProviders(userStatus.value.activeContentResolver)
+        )
+    }
 
     override fun albumContentPagingSource(
         albumId: String

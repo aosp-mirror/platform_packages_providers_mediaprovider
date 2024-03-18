@@ -2038,7 +2038,7 @@ public class MediaProvider extends ContentProvider {
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
         // Delete Android/media entries.
-        deleteAndroidMediaEntries(db, packageName, userId);
+        deleteAndroidMediaEntriesAndInvalidateDentryCache(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
@@ -2080,7 +2080,8 @@ public class MediaProvider extends ContentProvider {
                 packages, /* reason */ "Package orphaned", userId);
     }
 
-    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+    private void deleteAndroidMediaEntriesAndInvalidateDentryCache(SQLiteDatabase db,
+            String packageName, int userId) {
         String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
         try (Cursor cursor = db.query(
                 "files",
@@ -2107,6 +2108,9 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
                     + packageName + " on " + db.getPath());
         }
+
+        // Invalidate Dentry cache for Android/media/<package-name> directories
+        invalidateDentryForExternalStorage(packageName);
     }
 
     private void orphanEntries(

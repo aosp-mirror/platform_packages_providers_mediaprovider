@@ -493,9 +493,8 @@ public class PickerViewModel extends AndroidViewModel {
      * Performs required modification to the item list and returns the live data for it.
      */
     public LiveData<PaginatedItemsResult> getPaginatedItemsForAction(
-            @NonNull @ItemsAction.Type int action,
+            @ItemsAction.Type int action,
             @Nullable PaginationParameters paginationParameters) {
-        Objects.requireNonNull(action);
         switch (action) {
             case ACTION_VIEW_CREATED: {
                 // Use this when a fresh view is created. If the current list is empty, it will

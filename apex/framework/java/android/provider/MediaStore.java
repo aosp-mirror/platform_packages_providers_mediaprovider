@@ -889,7 +889,9 @@ public final class MediaStore {
      * The accent color will be used for various primary elements in the PhotoPicker view.
      * All other colors will be set based on android material guidelines.
      * <p>
-     * The value of this intent extra should be a long color value.
+     * The value of this intent extra should be a long color value. The alpha component of the
+     * given color is not taken into account while setting the accent color. We assume full color
+     * opacity.
      * Only colors with luminance(can also be understood as brightness) greater than 0.05 and
      * less than 0.9 are permitted.
      * Luminance of a color is determined using:

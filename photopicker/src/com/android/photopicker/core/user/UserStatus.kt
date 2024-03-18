@@ -16,14 +16,18 @@
 
 package com.android.photopicker.core.user
 
+import android.content.ContentResolver
+
 /**
  * A representation of the current UserStatus for the PhotopickerApplication
  *
  * @property activeUserProfile The user profile currently selected by the user.
  * @property allProfiles A list of known profiles accessible to this user. Note: This list does not
  *   have a stable sort order, so do not index this list directly.
+ * @property activeContentResolver The Content resolver for the active user profile.
  */
 data class UserStatus(
     val activeUserProfile: UserProfile,
     val allProfiles: List<UserProfile>,
+    val activeContentResolver: ContentResolver,
 )

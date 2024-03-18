@@ -19,6 +19,8 @@ package com.android.providers.media;
 import android.content.UriMatcher;
 import android.net.Uri;
 
+import com.android.providers.media.photopicker.v2.PickerUriResolverV2;
+
 class LocalUriMatcher {
 
     // WARNING: the values of IMAGES_MEDIA, AUDIO_MEDIA, and VIDEO_MEDIA and AUDIO_PLAYLISTS
@@ -79,6 +81,11 @@ class LocalUriMatcher {
     static final int PICKER_INTERNAL_ALBUMS_LOCAL = 905;
     public static final int PICKER_GET_CONTENT_ID = 906;
 
+    /**
+     * Picker V2 base URI. {@see PickerUriResolverV2}.
+     */
+    public static final int PICKER_INTERNAL_V2 = 908;
+
     public static final int MEDIA_GRANTS = 1000;
 
     // MediaProvider Command Line Interface
@@ -87,10 +94,24 @@ class LocalUriMatcher {
     private final UriMatcher mPublic = new UriMatcher(UriMatcher.NO_MATCH);
     private final UriMatcher mHidden = new UriMatcher(UriMatcher.NO_MATCH);
 
+    /* Matcher for Picker V2 URI */
+    private final UriMatcher mPickerInternalV2 = new UriMatcher(UriMatcher.NO_MATCH);
+
     int matchUri(Uri uri, boolean allowHidden) {
+        return matchUri(uri, allowHidden, /* isCallerPhotoPicker */ false);
+    }
+
+    int matchUri(Uri uri, boolean allowHidden, boolean isCallerPhotoPicker) {
         final int publicMatch = mPublic.match(uri);
         if (publicMatch != UriMatcher.NO_MATCH) {
             return publicMatch;
+        }
+
+        if (isCallerPhotoPicker) {
+            final int pickerInternalMatch = mPickerInternalV2.match(uri);
+            if (pickerInternalMatch != UriMatcher.NO_MATCH) {
+                return pickerInternalMatch;
+            }
         }
 
         final int hiddenMatch = mHidden.match(uri);
@@ -177,6 +198,10 @@ class LocalUriMatcher {
         mHidden.addURI(auth, "picker_internal/media/local", PICKER_INTERNAL_MEDIA_LOCAL);
         mHidden.addURI(auth, "picker_internal/albums/all", PICKER_INTERNAL_ALBUMS_ALL);
         mHidden.addURI(auth, "picker_internal/albums/local", PICKER_INTERNAL_ALBUMS_LOCAL);
+
+        mPickerInternalV2.addURI(
+                auth, PickerUriResolverV2.BASE_PICKER_PATH + "*", PICKER_INTERNAL_V2);
+
         mHidden.addURI(auth, "media_grants", MEDIA_GRANTS);
         mHidden.addURI(auth, "*", VOLUMES_ID);
         mHidden.addURI(auth, null, VOLUMES);

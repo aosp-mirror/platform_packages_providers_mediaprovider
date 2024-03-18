@@ -867,10 +867,22 @@ public abstract class TabFragment extends Fragment {
     }
 
     private void updateProfileButtonColor(boolean isDisabled) {
-        final int textAndIconColor =
+        int textAndIconColor =
                 isDisabled ? mButtonDisabledIconAndTextColor : mButtonIconAndTextColor;
-        final int backgroundTintColor =
+        int backgroundTintColor =
                 isDisabled ? mButtonDisabledBackgroundColor : mButtonBackgroundColor;
+
+        if (mIsCustomPickerColorSet) {
+            textAndIconColor = mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                    AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                    AccentColorResources.ON_SURFACE_VARIANT_DARK
+            );
+            backgroundTintColor =
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_LOW_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_LOW_DARK
+                    );
+        }
 
         mProfileButton.setTextColor(ColorStateList.valueOf(textAndIconColor));
         mProfileButton.setIconTint(ColorStateList.valueOf(textAndIconColor));

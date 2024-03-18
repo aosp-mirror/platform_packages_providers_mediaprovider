@@ -493,9 +493,8 @@ public class PickerViewModel extends AndroidViewModel {
      * Performs required modification to the item list and returns the live data for it.
      */
     public LiveData<PaginatedItemsResult> getPaginatedItemsForAction(
-            @NonNull @ItemsAction.Type int action,
+            @ItemsAction.Type int action,
             @Nullable PaginationParameters paginationParameters) {
-        Objects.requireNonNull(action);
         switch (action) {
             case ACTION_VIEW_CREATED: {
                 // Use this when a fresh view is created. If the current list is empty, it will
@@ -972,9 +971,12 @@ public class PickerViewModel extends AndroidViewModel {
                 } else if (intent.getAction().equals(MediaStore.ACTION_PICK_IMAGES)) {
                     try {
                         long inputColor = extras.getLong(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
-                        if (mPickerAccentColorParameters.checkColorValidity(inputColor)) {
+                        int validatedColor =
+                                PickerAccentColorParameters.checkColorValidityAndGetColor(
+                                        inputColor);
+                        if (validatedColor != -1) {
                             mPickerAccentColorParameters = new PickerAccentColorParameters(
-                                    inputColor, mApplication);
+                                    validatedColor, mApplication);
                         }
                     } catch (Exception exception) {
                         throw new IllegalArgumentException("The Accent colour provided in "

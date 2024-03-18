@@ -16,7 +16,6 @@
 
 package com.android.providers.media.photopicker;
 
-import android.annotation.ColorLong;
 import android.app.Application;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -32,16 +31,17 @@ import android.util.Log;
  */
 public class PickerAccentColorParameters {
     public static final String TAG = "PhotoPicker";
-    @ColorLong
-    private long mPickerAccentColor = -1;
+    private int mPickerAccentColor = -1;
     private boolean mIsNightModeEnabled = false;
     private float mAccentColorLuminance = 0;
 
     public PickerAccentColorParameters() {}
 
-    public PickerAccentColorParameters(
-            long color, Application application) {
+    public PickerAccentColorParameters(int color, Application application) {
         mPickerAccentColor = color;
+        // Needs to be set here since the PickerAccentColorParameters object gets initialised again
+        // after color validity check therefore the value if set then will be lost.
+        mAccentColorLuminance = Color.luminance(color);
         setNightModeFlag(application);
     }
 
@@ -71,38 +71,32 @@ public class PickerAccentColorParameters {
     }
 
     /**
-     * Checks whether the input color to be used as the picker accent color is valid or not.
+     * Checks whether the input color to be used as the picker accent color is valid or not and
+     * returns the int color value if it is valid after dropping the alpha component
+     * or -1 otherwise.
      */
-    public boolean checkColorValidity(long color) {
+    public static int checkColorValidityAndGetColor(long color) {
         // Gives us the formatted color string where the mask gives us the color in the RRGGBB
         // format and the %06X gives zero-padded hex (6 characters long)
         String hexColor = String.format("#%06X", (0xFFFFFF & color));
         int inputColor = Color.parseColor(hexColor);
-        // Color.luminance(int) would require casting the input color to integer. Instead, we
-        // can encode it to use Color.luminance(long)
-        long inputColorEncoded = Color.pack(inputColor);
-        if (!isColorFeasibleForBothBackgrounds(inputColorEncoded)) {
+        if (!isColorFeasibleForBothBackgrounds(inputColor)) {
             // Fall back to the android theme
-            resetPickerAccentColorParameters();
             Log.w(TAG, "Value set for " + MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
                     + " is not within the permitted brightness range. Please refer to the "
                     + "docs for more details. Setting android theme on the picker.");
-            return false;
+            return -1;
         }
-        return true;
+        return inputColor;
     }
 
-    private void resetPickerAccentColorParameters() {
-        mPickerAccentColor = -1;
-    }
-
-    private boolean isColorFeasibleForBothBackgrounds(long color) {
+    private static boolean isColorFeasibleForBothBackgrounds(int color) {
         // Returns the luminance(can also be thought of brightness)
         // Returned value ranges from 0(black) to 1(white)
-        mAccentColorLuminance = Color.luminance(color);
         // Colors within this range will work both on light and dark background. Range set by
         // testing with different colors.
-        return mAccentColorLuminance >= 0.05 && mAccentColorLuminance < 0.9;
+        float luminance = Color.luminance(color);
+        return luminance >= 0.05 && luminance < 0.9;
     }
 
     /**
@@ -119,6 +113,6 @@ public class PickerAccentColorParameters {
      * value to set their respective colors.
      */
     public int getPickerAccentColor() {
-        return (int) mPickerAccentColor;
+        return mPickerAccentColor;
     }
 }

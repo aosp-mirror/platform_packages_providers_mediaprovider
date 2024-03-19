@@ -16,9 +16,9 @@ package android.graphics.pdf {
     ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
     method public void close();
     method public int getDocumentLinearizationType();
-    method public int getPageCount();
+    method @IntRange(from=0) public int getPageCount();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
-    method @NonNull public android.graphics.pdf.PdfRendererPreV.Page openPage(int);
+    method @NonNull public android.graphics.pdf.PdfRendererPreV.Page openPage(@IntRange(from=0) int);
     method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
     field public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
     field public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0; // 0x0
@@ -36,12 +36,12 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
-    method public int getHeight();
+    method @IntRange(from=0) public int getHeight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
-    method public int getIndex();
+    method @IntRange(from=0) public int getIndex();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
-    method public int getWidth();
+    method @IntRange(from=0) public int getWidth();
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
     method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, boolean);

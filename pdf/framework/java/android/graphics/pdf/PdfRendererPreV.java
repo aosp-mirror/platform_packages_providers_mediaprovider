@@ -46,7 +46,6 @@ import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
-import java.util.Set;
 
 /**
  * <p>
@@ -189,6 +188,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      * @return The page count.
      * @throws IllegalStateException If {@link #close()} is called before invoking this.
      */
+    @IntRange(from = 0)
     public int getPageCount() {
         throwIfDocumentClosed();
         return mPageCount;
@@ -221,7 +221,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      *                                  to the total page count.
      */
     @NonNull
-    public Page openPage(int index) {
+    public Page openPage(@IntRange(from = 0) int index) {
         throwIfDocumentClosed();
         throwIfPageNotInDocument(index);
         return new Page(index);
@@ -230,7 +230,7 @@ public final class PdfRendererPreV implements AutoCloseable {
     /**
      * Returns the form type of the loaded PDF
      *
-     * @throws IllegalStateException if the renderer is closed
+     * @throws IllegalStateException    if the renderer is closed
      * @throws IllegalArgumentException if an unexpected PDF form type is returned
      */
     @PdfFormType
@@ -350,6 +350,7 @@ public final class PdfRendererPreV implements AutoCloseable {
          *
          * @return The index.
          */
+        @IntRange(from = 0)
         public int getIndex() {
             return mIndex;
         }
@@ -420,6 +421,7 @@ public final class PdfRendererPreV implements AutoCloseable {
          * @return width of the given page
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
+        @IntRange(from = 0)
         public int getWidth() {
             throwIfDocumentOrPageClosed();
             return mWidth;
@@ -433,6 +435,7 @@ public final class PdfRendererPreV implements AutoCloseable {
          * @return height of the given page
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
+        @IntRange(from = 0)
         public int getHeight() {
             throwIfDocumentOrPageClosed();
             return mHeight;
@@ -546,13 +549,14 @@ public final class PdfRendererPreV implements AutoCloseable {
         /**
          * Returns information about the widget with {@code annotationIndex}.
          *
-         * @param annotationIndex the index of the widget within the page's "Annot" array in the PDF
-         *     document, available on results of previous calls to {@link #getFormWidgetInfos(Set)}
-         *     or {@link #getFormWidgetInfoAtPosition(int, int)} via {@link
-         *     FormWidgetInfo#getWidgetIndex()}.
+         * @param annotationIndex the index of the widget within the page's "Annot" array in the
+         *                        PDF document, available on results of previous calls to
+         *                        {@link #getFormWidgetInfos(int[])} or
+         *                        {@link #getFormWidgetInfoAtPosition(int, int)} via
+         *                        {@link FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -596,11 +600,11 @@ public final class PdfRendererPreV implements AutoCloseable {
          *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         * @throws IllegalArgumentException if the provided {@link FormEditRecord} cannot be applied
-         *     to the widget indicated by the index, or if the index does not correspond to a widget
-         *     on the page.
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} cannot be
+         *                                  applied to the widget indicated by the index, or if the
+         *                                  index does not correspond to a widget on the page.
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @android.annotation.NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)

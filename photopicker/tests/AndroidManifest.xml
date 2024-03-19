@@ -22,6 +22,9 @@
 
   <application android:debuggable="true">
     <uses-library android:name="android.test.runner"/>
+     <activity
+      android:name="com.android.photopicker.tests.HiltTestActivity"
+      android:exported="false"/>
   </application>
 
   <instrumentation

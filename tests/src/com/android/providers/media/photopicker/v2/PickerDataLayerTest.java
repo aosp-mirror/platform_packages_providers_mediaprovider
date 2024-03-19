@@ -17,8 +17,8 @@
 package com.android.providers.media.photopicker.v2;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -70,7 +70,8 @@ public class PickerDataLayerTest {
                     /* expected */ MediaSource.LOCAL,
                     MediaSource.valueOf(availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_MEDIA_SOURCE_COLUMN)))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .MEDIA_SOURCE.getColumnName())))
             );
 
             assertEquals(
@@ -78,7 +79,8 @@ public class PickerDataLayerTest {
                     /* expected */ localProviderAuthority,
                     availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDER_AUTHORITY_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .AUTHORITY.getColumnName()))
             );
 
             assertEquals(
@@ -86,7 +88,8 @@ public class PickerDataLayerTest {
                     /* expected */ Process.myUid(),
                     availableProviders.getInt(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_UID_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .UID.getColumnName()))
             );
         }
     }
@@ -127,7 +130,8 @@ public class PickerDataLayerTest {
                     /* expected */ MediaSource.LOCAL,
                     MediaSource.valueOf(availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_MEDIA_SOURCE_COLUMN)))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .MEDIA_SOURCE.getColumnName())))
             );
 
             assertEquals(
@@ -135,7 +139,8 @@ public class PickerDataLayerTest {
                     /* expected */ localProviderAuthority,
                     availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDER_AUTHORITY_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .AUTHORITY.getColumnName()))
             );
 
             assertEquals(
@@ -143,7 +148,8 @@ public class PickerDataLayerTest {
                     /* expected */ Process.myUid(),
                     availableProviders.getInt(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_UID_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .UID.getColumnName()))
             );
 
             availableProviders.moveToNext();
@@ -153,7 +159,8 @@ public class PickerDataLayerTest {
                     /* expected */ MediaSource.REMOTE,
                     MediaSource.valueOf(availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_MEDIA_SOURCE_COLUMN)))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .MEDIA_SOURCE.getColumnName())))
             );
 
             assertEquals(
@@ -161,7 +168,8 @@ public class PickerDataLayerTest {
                     /* expected */ cloudProviderAuthority,
                     availableProviders.getString(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDER_AUTHORITY_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .AUTHORITY.getColumnName()))
             );
 
             assertEquals(
@@ -169,7 +177,8 @@ public class PickerDataLayerTest {
                     /* expected */ cloudUID,
                     availableProviders.getInt(
                             availableProviders.getColumnIndex(
-                                    PickerDataLayerV2.AVAILABLE_PROVIDERS_UID_COLUMN))
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .UID.getColumnName()))
             );
         }
     }

@@ -78,6 +78,10 @@ public class RedactionUtils {
     private static final Set<String> sRedactedExifTags = new ArraySet<>(
             Arrays.asList(REDACTED_EXIF_TAGS));
 
+    private RedactionUtils() {
+        // Utility Class
+    }
+
     /**
      * Set of Exif tags that should be considered for redaction.
      */

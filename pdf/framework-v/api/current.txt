@@ -6,9 +6,9 @@ package android.graphics.pdf {
     ctor @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public PdfRenderer(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
     method public void close();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public int getDocumentLinearizationType();
-    method public int getPageCount();
+    method @IntRange(from=0) public int getPageCount();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
-    method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(int);
+    method @NonNull public android.graphics.pdf.PdfRenderer.Page openPage(@IntRange(from=0) int);
     method public boolean shouldScaleForPrinting();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
     field @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
@@ -27,12 +27,12 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
-    method public int getHeight();
+    method @IntRange(from=0) public int getHeight();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
-    method public int getIndex();
+    method @IntRange(from=0) public int getIndex();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
-    method public int getWidth();
+    method @IntRange(from=0) public int getWidth();
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);

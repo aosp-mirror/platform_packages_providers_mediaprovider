@@ -68,6 +68,7 @@ aconfig_declarations {
     srcs: [
         "pdf_viewer_flags.aconfig",
     ],
+    container: "com.android.mediaprovider",
 }
 
 java_aconfig_library {

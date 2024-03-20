@@ -46,6 +46,26 @@ public final class SelectionBoundary implements Parcelable {
     private final int mIndex;
     private final Point mPoint;
 
+    private final boolean mIsRtl;
+
+    /**
+     * <p>
+     * Create a new instance of {@link SelectionBoundary} if index of boundary and isRtl is known.
+     * The text returned by {@link PdfPageTextContent#getText()} form a "stream" and inside this
+     * "stream" each character has an index.
+     *
+     * @param index index of the selection boundary
+     * @param isRtl Determines whether the direction of selection is right-to-left (rtl) or reverse
+     * @throws IllegalArgumentException If the index is negative
+     * @hide
+     */
+    public SelectionBoundary(int index, boolean isRtl) {
+        Preconditions.checkArgument(index >= 0, "Index cannot be negative");
+        this.mIndex = index;
+        this.mPoint = null;
+        this.mIsRtl = isRtl;
+    }
+
     /**
      * <p>
      * Create a new instance of {@link SelectionBoundary} if index of boundary is known. The text
@@ -60,6 +80,22 @@ public final class SelectionBoundary implements Parcelable {
         Preconditions.checkArgument(index >= 0, "Index cannot be negative");
         this.mIndex = index;
         this.mPoint = null;
+        this.mIsRtl = false;
+    }
+
+    /**
+     * Creates a new instance of {@link SelectionBoundary} if the boundary and isRTL is known.
+     *
+     * @param point The point of selection boundary.
+     * @param isRtl Determines whether the direction of selection is right-to-left (rtl) or reverse
+     * @throws NullPointerException If the point is null
+     * @hide
+     */
+    public SelectionBoundary(@NonNull Point point, boolean isRtl) {
+        Preconditions.checkNotNull(point, "Point cannot be null");
+        this.mIndex = -1;
+        this.mPoint = point;
+        this.mIsRtl = isRtl;
     }
 
     /**
@@ -73,11 +109,13 @@ public final class SelectionBoundary implements Parcelable {
         Preconditions.checkNotNull(point, "Point cannot be null");
         this.mIndex = -1;
         this.mPoint = point;
+        this.mIsRtl = false;
     }
 
     private SelectionBoundary(Parcel in) {
         mIndex = in.readInt();
         mPoint = in.readParcelable(Point.class.getClassLoader());
+        mIsRtl = in.readBoolean();
     }
 
     /**
@@ -112,5 +150,16 @@ public final class SelectionBoundary implements Parcelable {
     public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
         dest.writeInt(mIndex);
         dest.writeParcelable(mPoint, flags);
+        dest.writeBoolean(mIsRtl);
+    }
+
+    /**
+     * Gets whether the direction of selection is right-to-left (rtl) or reverse. The value of isRtl
+     * is determined by the underlying native layer using the start and stop boundaries.
+     *
+     * @return The direction of selection
+     */
+    public boolean getIsRtl() {
+        return mIsRtl;
     }
 }

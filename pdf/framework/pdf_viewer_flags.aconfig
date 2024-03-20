@@ -1,4 +1,5 @@
 package: "android.graphics.pdf.flags"
+container: "com.android.mediaprovider"
 
 # All the flags that we are adding into Android V release have to be fixed read only.
 

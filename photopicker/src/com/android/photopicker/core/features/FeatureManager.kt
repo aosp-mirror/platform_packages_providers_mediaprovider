@@ -19,7 +19,6 @@ package com.android.photopicker.core.features
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import java.util.TreeSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -76,19 +75,15 @@ class FeatureManager(
      * Each pair represents a Feature which would like to draw UI at this Location, and the Priority
      * with which it would like to do so.
      *
-     * It is critical that the list always remains sorted to avoid drawing the wrong element for
-     * Location with a limited number of slots. (And also drawing elements in the correct order)
-     * As such, avoid using [MutableList#add] to add elements to this list, and instead use an
-     * insertion which maintains the sorted nature of this list.
-     *
-     * The sorted dataset is maintained in a [TreeSet] providing O(log n) for common operations,
-     * add, remove, and contains as these operations are performance critical during compose calls.
+     * It is critical that the list always remains sorted to avoid drawing the wrong element for a
+     * Location with a limited number of slots. It can be sorted with [PriorityDescendingComparator]
+     * to keep features sorted in order of Priority, then Registration (insertion) order.
      *
      * For Features who set the default Location [Priority.REGISTRATION_ORDER] they will
      * be drawn in order of registration in the [FeatureManager.KNOWN_FEATURE_REGISTRATIONS].
      *
      */
-    private val locationRegistry: HashMap<Location, TreeSet<Pair<PhotopickerUiFeature, Int>>> =
+    private val locationRegistry: HashMap<Location, MutableList<Pair<PhotopickerUiFeature, Int>>> =
         HashMap()
 
     /* Instantiate a shared single instance of our custom priority sorter to save memory */
@@ -158,11 +153,11 @@ class FeatureManager(
      * Adds the [PhotopickerUiFeature]'s registered locations to the internal location registry.
      *
      * To minimize memory footprint, the location is only initialized if at least one feature has it
-     * in its list of registeredLocations. This avoids the underlying registry carrying empty
-     * [TreeSet]s for location that no feature wishes to use.
+     * in its list of registeredLocations. This avoids the underlying registry carrying empty lists
+     * for location that no feature wishes to use.
      *
-     * The [TreeSet] that is initialized uses the local [PriorityDescendingComparator] to keep the
-     * set of features at that location sorted by priority.
+     * The list that is initialized uses the local [PriorityDescendingComparator] to keep the
+     * features at that location sorted by priority.
      */
     private fun registerLocationsForFeature(feature: PhotopickerUiFeature) {
 
@@ -171,9 +166,13 @@ class FeatureManager(
         for ((first, second) in locationPairs) {
 
             // Try to add the feature to this location's registry.
-            locationRegistry.get(first)?.add(Pair(feature, second))
-            // If this is the first registration for this location, initialize the TreeSet.
-            ?: locationRegistry.put(first, sortedSetOf(priorityDescending, Pair(feature, second)))
+            locationRegistry.get(first)?.let {
+                it.add(Pair(feature, second))
+                it.sortWith(priorityDescending)
+            }
+            // If this is the first registration for this location, initialize the list and add
+            // the current feature to the registry for this location.
+            ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
         }
     }
 
@@ -209,7 +208,6 @@ class FeatureManager(
      */
     @Composable
     fun composeLocation(location: Location, maxSlots: Int? = null) {
-        Log.d(TAG, "Composing for $location")
 
         val featurePairs = locationRegistry.get(location)
 
@@ -217,6 +215,7 @@ class FeatureManager(
         // lazily, its possible that features have not been registered.
         featurePairs?.let {
             for (feature in featurePairs.take(maxSlots ?: featurePairs.size)) {
+                Log.d(TAG, "Composing for $location for $feature")
                 feature.first.compose(location)
             }
         }

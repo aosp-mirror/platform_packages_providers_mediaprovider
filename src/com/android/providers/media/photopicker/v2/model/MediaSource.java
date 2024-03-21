@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package android.graphics.pdf;
+package com.android.providers.media.photopicker.v2.model;
 
 /**
- * Placeholder class for new PDF viewer inside MediaProvider module.
-*
-* @hide
-*
-*/
-public class PlaceholderV {
+ * Enum that tells us about where a Media item is stored.
+ */
+public enum MediaSource {
+    LOCAL,
+    REMOTE
 }

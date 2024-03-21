@@ -33,6 +33,9 @@
   <!-- Permissions required for reading device configs -->
   <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
+  <!-- Permissions required for fetching User profiles -->
+  <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS"/>
+
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
           android:label="@string/photopicker_application_label"

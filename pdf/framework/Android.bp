@@ -68,13 +68,14 @@ aconfig_declarations {
     srcs: [
         "pdf_viewer_flags.aconfig",
     ],
+    container: "com.android.mediaprovider",
 }
 
 java_aconfig_library {
     name: "pdf_viewer_flags_java_lib",
     aconfig_declarations: "pdf_viewer_flags",
     visibility: [
-        "//packages/provider/MediaProvider/pdf:__subpackages__",
+        "//packages/providers/MediaProvider/pdf:__subpackages__",
     ],
     min_sdk_version: "30",
     apex_available: [

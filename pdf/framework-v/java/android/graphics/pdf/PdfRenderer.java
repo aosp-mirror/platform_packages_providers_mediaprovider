@@ -263,6 +263,7 @@ public final class PdfRenderer implements AutoCloseable {
      * @throws IllegalStateException If {@link #close()} is called before invoking this.
      */
     @SuppressLint("UnflaggedApi")
+    @IntRange(from = 0)
     public int getPageCount() {
         throwIfClosed();
         return mPageCount;
@@ -318,7 +319,7 @@ public final class PdfRenderer implements AutoCloseable {
      */
     @SuppressLint("UnflaggedApi")
     @NonNull
-    public Page openPage(int index) {
+    public Page openPage(@IntRange(from = 0) int index) {
         throwIfClosed();
         throwIfPageOpened();
         throwIfPageNotInDocument(index);
@@ -504,6 +505,7 @@ public final class PdfRenderer implements AutoCloseable {
          * @return The index.
          */
         @SuppressLint("UnflaggedApi")
+        @IntRange(from = 0)
         public int getIndex() {
             return mIndex;
         }
@@ -517,6 +519,7 @@ public final class PdfRenderer implements AutoCloseable {
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @SuppressLint("UnflaggedApi")
+        @IntRange(from = 0)
         public int getWidth() {
             return mWidth;
         }
@@ -530,6 +533,7 @@ public final class PdfRenderer implements AutoCloseable {
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @SuppressLint("UnflaggedApi")
+        @IntRange(from = 0)
         public int getHeight() {
             return mHeight;
         }
@@ -767,11 +771,12 @@ public final class PdfRenderer implements AutoCloseable {
          * Returns information about the widget with {@code widgetIndex}.
          *
          * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
-         *     document, available on results of previous calls to {@link
-         *     #getFormWidgetInfos(int[])} or {@link #getFormWidgetInfoAtPosition(int, int)} via
-         *     {@link FormWidgetInfo#getWidgetIndex()}.
+         *                    document, available on results of previous calls to {@link
+         *                    #getFormWidgetInfos(int[])} or
+         *                    {@link #getFormWidgetInfoAtPosition(int, int)} via
+         *                    {@link FormWidgetInfo#getWidgetIndex()}.
          * @throws IllegalArgumentException if there is no form widget at the provided index.
-         * @throws IllegalStateException if the renderer or page is closed
+         * @throws IllegalStateException    if the renderer or page is closed
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
@@ -816,11 +821,11 @@ public final class PdfRenderer implements AutoCloseable {
          *
          * @param editRecord the {@link FormEditRecord} to be applied
          * @return Rectangular areas of the page bitmap that have been invalidated by this action.
-         * @throws IllegalArgumentException if the provided {@link FormEditRecord} cannot be applied
-         *     to the widget indicated by the index, or if the index does not correspond to a widget
-         *     on the page.
-         * @throws IllegalStateException If the document is already closed.
-         * @throws IllegalStateException If the page is already closed.
+         * @throws IllegalArgumentException if the provided {@link FormEditRecord} cannot be
+         *                                  applied to the widget indicated by the index, or if the
+         *                                  index does not correspond to a widget on the page.
+         * @throws IllegalStateException    If the document is already closed.
+         * @throws IllegalStateException    If the page is already closed.
          */
         @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)

@@ -18,4 +18,8 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_application_label" msgid="3482718304682270084">"Файлдарды тандоо терезеси"</string>
+    <!-- no translation found for photopicker_media_item (3592234718212377636) -->
+    <skip />
+    <!-- no translation found for photopicker_item_selected (3741045642641682375) -->
+    <skip />
 </resources>

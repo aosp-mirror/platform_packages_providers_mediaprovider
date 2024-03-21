@@ -18,7 +18,7 @@ package android.graphics.pdf.content;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
-import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
 import android.net.Uri;
@@ -34,7 +34,7 @@ import java.util.List;
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
 public final class PdfPageLinkContent {
-    private final List<Rect> mBounds;
+    private final List<RectF> mBounds;
     private final Uri mUri;
 
     /**
@@ -46,7 +46,7 @@ public final class PdfPageLinkContent {
      * @throws NullPointerException     If bounds or uri is null.
      * @throws IllegalArgumentException If the bounds list is empty.
      */
-    public PdfPageLinkContent(@NonNull List<Rect> bounds, @NonNull Uri uri) {
+    public PdfPageLinkContent(@NonNull List<RectF> bounds, @NonNull Uri uri) {
         Preconditions.checkNotNull(bounds, "Bounds cannot be null");
         Preconditions.checkArgument(!bounds.isEmpty(), "Link bounds cannot be empty");
         Preconditions.checkNotNull(uri, "Uri cannot be null");
@@ -56,10 +56,10 @@ public final class PdfPageLinkContent {
 
     /**
      * <p>
-     * Gets the bounds of the embedded weblink represented as a list of {@link Rect}. Links which
-     * are spread across multiple lines will be surrounded by multiple {@link Rect} in order of
+     * Gets the bounds of the embedded weblink represented as a list of {@link RectF}. Links which
+     * are spread across multiple lines will be surrounded by multiple {@link RectF} in order of
      * viewing.
-     * <p><strong>Note:</strong> Each {@link Rect} represents a bound of the weblink in a single
+     * <p><strong>Note:</strong> Each {@link RectF} represents a bound of the weblink in a single
      * line and defines the coordinates of its 4 edges (left, top, right and bottom) in
      * points (1/72"). The developer will need to render the highlighter as well as intercept the
      * touch events for functionalities such as clicking the link.
@@ -67,7 +67,7 @@ public final class PdfPageLinkContent {
      * @return The bounds of the link.
      */
     @NonNull
-    public List<Rect> getBounds() {
+    public List<RectF> getBounds() {
         return mBounds;
     }
 

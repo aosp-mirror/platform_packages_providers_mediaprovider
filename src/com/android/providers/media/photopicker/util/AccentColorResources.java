@@ -33,4 +33,6 @@ public class AccentColorResources {
     public static String ON_SURFACE_VARIANT_DARK = "#CAC4D0";
     public static String SURFACE_TINT_LIGHT = "#6750A4";
     public static String SURFACE_TINT_DARK = "#D0BCFF";
+    public static String SURFACE_CONTAINER_LOW_LIGHT = "#F7F2FA";
+    public static String SURFACE_CONTAINER_LOW_DARK = "#1D1B20";
 }

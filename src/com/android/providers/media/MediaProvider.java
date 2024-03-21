@@ -117,6 +117,7 @@ import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
@@ -297,6 +298,8 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
+import com.android.providers.media.photopicker.v2.PickerUriResolverV2;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -2035,7 +2038,7 @@ public class MediaProvider extends ContentProvider {
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
         // Delete Android/media entries.
-        deleteAndroidMediaEntries(db, packageName, userId);
+        deleteAndroidMediaEntriesAndInvalidateDentryCache(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
@@ -2077,7 +2080,8 @@ public class MediaProvider extends ContentProvider {
                 packages, /* reason */ "Package orphaned", userId);
     }
 
-    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+    private void deleteAndroidMediaEntriesAndInvalidateDentryCache(SQLiteDatabase db,
+            String packageName, int userId) {
         String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
         try (Cursor cursor = db.query(
                 "files",
@@ -2104,6 +2108,9 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
                     + packageName + " on " + db.getPath());
         }
+
+        // Invalidate Dentry cache for Android/media/<package-name> directories
+        invalidateDentryForExternalStorage(packageName);
     }
 
     private void orphanEntries(
@@ -3710,7 +3717,7 @@ public class MediaProvider extends ContentProvider {
 
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int table = matchUri(uri, allowHidden);
+        final int table = mUriMatcher.matchUri(uri, allowHidden, isCallerPhotoPicker());
 
         if (table == MEDIA_GRANTS) {
             return getReadGrantedMediaForPackage(queryArgs);
@@ -3750,6 +3757,8 @@ public class MediaProvider extends ContentProvider {
             return mPickerDataLayer.fetchAllAlbums(queryArgs);
         } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
             return mPickerDataLayer.fetchLocalAlbums(queryArgs);
+        } else if (table == PICKER_INTERNAL_V2) {
+            return PickerUriResolverV2.query(uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -4487,6 +4496,7 @@ public class MediaProvider extends ContentProvider {
 
             FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath, isFuseThread());
+            assertFileColumnsConsistent(match, uri, values);
 
             // Create result file
             File res = new File(values.getAsString(MediaColumns.DATA));
@@ -6768,6 +6778,14 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
                 return getResultForGetCloudProviderLabel();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_DETAILS: {
+                if (isCallerPhotoPicker()) {
+                    return PickerDataLayerV2.getCloudProviderDetails(extras);
+                } else  {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("GET_CLOUD_PROVIDER_DETAILS"));
+                }
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
@@ -11403,6 +11421,19 @@ public class MediaProvider extends ContentProvider {
 
     private int getCallingUidOrSelf() {
         return mCallingIdentity.get().uid;
+    }
+
+    private boolean isCallerPhotoPicker() {
+        try {
+            return PermissionUtils.checkManageCloudMediaProvidersPermission(
+                    getContext(),
+                    mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid
+            );
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not check MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION permission", e);
+            return false;
+        }
     }
 
     @Deprecated

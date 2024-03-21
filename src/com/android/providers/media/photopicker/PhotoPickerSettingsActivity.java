@@ -60,6 +60,9 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
+        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
+
         super.onCreate(savedInstanceState);
 
         mSettingsViewModel =

@@ -27,6 +27,8 @@ import com.android.photopicker.core.PhotopickerMain
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
@@ -67,6 +69,7 @@ abstract class PhotopickerFeatureBaseTest {
     protected fun callPhotopickerMain(
         featureManager: FeatureManager,
         selection: Selection<Media>,
+        events: Events,
         photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration,
         navController: TestNavHostController = createNavController(),
     ) {
@@ -75,6 +78,7 @@ abstract class PhotopickerFeatureBaseTest {
             LocalSelection provides selection,
             LocalPhotopickerConfiguration provides photopickerConfiguration,
             LocalNavController provides navController,
+            LocalEvents provides events,
         ) {
             PhotopickerTheme { PhotopickerMain() }
         }

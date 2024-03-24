@@ -20,6 +20,7 @@ import android.content.Context
 import android.os.Process
 import android.os.UserHandle
 import android.util.Log
+import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.features.FeatureManager
@@ -28,8 +29,9 @@ import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.DataServiceImpl
 import com.android.photopicker.data.model.Media
-import dagger.Module
+import com.android.photopicker.data.NotificationService
 import dagger.Provides
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.ActivityRetainedLifecycle
 import dagger.hilt.android.components.ActivityRetainedComponent
@@ -65,6 +67,7 @@ class ActivityModule {
     private lateinit var dataService: DataService
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
+    private lateinit var notificationService: NotificationService
     private lateinit var selection: Selection<Media>
     private lateinit var userMonitor: UserMonitor
 
@@ -118,22 +121,23 @@ class ActivityModule {
     @Provides
     @ActivityRetainedScoped
     fun provideDataService(
-        @ApplicationContext context: Context,
-        @ActivityRetainedScoped featureManager: FeatureManager,
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
-        @ActivityRetainedScoped userMonitor: UserMonitor,
+            @ActivityRetainedScoped @Background scope: CoroutineScope,
+            @ActivityRetainedScoped userMonitor: UserMonitor,
+            @ActivityRetainedScoped notificationService: NotificationService
     ): DataService {
 
-        if (::dataService.isInitialized) {
-            return dataService
-        } else {
+        if (!::dataService.isInitialized) {
             Log.d(
-                DataService.TAG,
-                "DataService requested but not yet initialized. Initializing DataService."
+                    DataService.TAG,
+                    "DataService requested but not yet initialized. Initializing DataService."
             )
-            dataService = DataServiceImpl(context, featureManager, scope, userMonitor)
-            return dataService
+            dataService = DataServiceImpl(
+                    userMonitor.userStatus,
+                    scope,
+                    notificationService
+            )
         }
+        return dataService
     }
 
     @Provides
@@ -181,6 +185,21 @@ class ActivityModule {
             }
             return mainScope
         }
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideNotificationService(): NotificationService {
+
+        if (!::notificationService.isInitialized) {
+            Log.d(
+                NotificationService.TAG,
+                "NotificationService requested but not yet initialized. " +
+                        "Initializing NotificationService."
+            )
+            notificationService = NotificationServiceImpl()
+        }
+        return notificationService
     }
 
     @Provides

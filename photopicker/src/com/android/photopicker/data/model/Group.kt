@@ -23,7 +23,7 @@ import android.net.Uri
  */
 sealed interface Group {
         /** Unique identifier for this group */
-        open val id: String
+        val id: String
 
         /**
          * Holds metadata for a album item. It is a type of a [Group] object because it represents a

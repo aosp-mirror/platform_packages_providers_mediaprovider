@@ -18,8 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_application_label" msgid="3482718304682270084">"ຕົວເລືອກສື່"</string>
-    <!-- no translation found for photopicker_media_item (3592234718212377636) -->
-    <skip />
-    <!-- no translation found for photopicker_item_selected (3741045642641682375) -->
-    <skip />
+    <string name="photopicker_media_item" msgid="3592234718212377636">"ສື່"</string>
+    <string name="photopicker_item_selected" msgid="3741045642641682375">"ເລືອກແລ້ວ"</string>
 </resources>

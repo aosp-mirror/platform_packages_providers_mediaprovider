@@ -23,14 +23,27 @@ import android.graphics.Point;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 /**
  * Represents one edge of the selected content.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public class SelectionBoundary {
-    private final int mIndex;
+public final class SelectionBoundary implements Parcelable {
+    @NonNull
+    public static final Creator<SelectionBoundary> CREATOR = new Creator<SelectionBoundary>() {
+        @Override
+        public SelectionBoundary createFromParcel(Parcel in) {
+            return new SelectionBoundary(in);
+        }
 
+        @Override
+        public SelectionBoundary[] newArray(int size) {
+            return new SelectionBoundary[size];
+        }
+    };
+    private final int mIndex;
     private final Point mPoint;
 
     /**
@@ -62,6 +75,11 @@ public class SelectionBoundary {
         this.mPoint = point;
     }
 
+    private SelectionBoundary(Parcel in) {
+        mIndex = in.readInt();
+        mPoint = in.readParcelable(Point.class.getClassLoader());
+    }
+
     /**
      * Gets the index of the text as determined by the text stream processed. If the value is -1
      * then the {@link #getPoint()} will determine the selection boundary.
@@ -83,5 +101,16 @@ public class SelectionBoundary {
     @Nullable
     public Point getPoint() {
         return mPoint;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeInt(mIndex);
+        dest.writeParcelable(mPoint, flags);
     }
 }

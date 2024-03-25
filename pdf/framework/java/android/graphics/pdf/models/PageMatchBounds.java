@@ -21,6 +21,8 @@ import android.annotation.NonNull;
 import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -28,7 +30,19 @@ import java.util.List;
  * Represents the bounds of a single search match on a page of the PDF document.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PageMatchBounds {
+public final class PageMatchBounds implements Parcelable {
+    @NonNull
+    public static final Creator<PageMatchBounds> CREATOR = new Creator<PageMatchBounds>() {
+        @Override
+        public PageMatchBounds createFromParcel(Parcel in) {
+            return new PageMatchBounds(in);
+        }
+
+        @Override
+        public PageMatchBounds[] newArray(int size) {
+            return new PageMatchBounds[size];
+        }
+    };
     private final List<RectF> mBounds;
     private final int mTextStartIndex;
 
@@ -49,6 +63,11 @@ public final class PageMatchBounds {
         Preconditions.checkArgument(textStartIndex >= 0, "Index cannot be negative");
         this.mBounds = bounds;
         this.mTextStartIndex = textStartIndex;
+    }
+
+    private PageMatchBounds(Parcel in) {
+        mBounds = in.createTypedArrayList(RectF.CREATOR);
+        mTextStartIndex = in.readInt();
     }
 
     /**
@@ -75,6 +94,17 @@ public final class PageMatchBounds {
      */
     public int getTextStartIndex() {
         return mTextStartIndex;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeTypedList(mBounds);
+        dest.writeInt(mTextStartIndex);
     }
 }
 

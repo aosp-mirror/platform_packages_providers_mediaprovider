@@ -22,6 +22,8 @@ import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
 import android.net.Uri;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -33,7 +35,19 @@ import java.util.List;
  * plain text will be returned as part of {@link PdfPageTextContent}.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PdfPageLinkContent {
+public final class PdfPageLinkContent implements Parcelable {
+    @NonNull
+    public static final Creator<PdfPageLinkContent> CREATOR = new Creator<PdfPageLinkContent>() {
+        @Override
+        public PdfPageLinkContent createFromParcel(Parcel in) {
+            return new PdfPageLinkContent(in);
+        }
+
+        @Override
+        public PdfPageLinkContent[] newArray(int size) {
+            return new PdfPageLinkContent[size];
+        }
+    };
     private final List<RectF> mBounds;
     private final Uri mUri;
 
@@ -52,6 +66,11 @@ public final class PdfPageLinkContent {
         Preconditions.checkNotNull(uri, "Uri cannot be null");
         this.mBounds = bounds;
         this.mUri = uri;
+    }
+
+    private PdfPageLinkContent(Parcel in) {
+        mBounds = in.createTypedArrayList(RectF.CREATOR);
+        mUri = in.readParcelable(Uri.class.getClassLoader());
     }
 
     /**
@@ -83,5 +102,16 @@ public final class PdfPageLinkContent {
     @NonNull
     public Uri getUri() {
         return mUri;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeTypedList(mBounds);
+        dest.writeParcelable(mUri, flags);
     }
 }

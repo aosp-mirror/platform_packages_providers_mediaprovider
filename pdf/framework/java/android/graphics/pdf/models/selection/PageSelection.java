@@ -21,6 +21,8 @@ import android.annotation.NonNull;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -31,15 +33,23 @@ import java.util.List;
  * <strong>Note: </strong>Currently supports text selection only.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PageSelection {
+public final class PageSelection implements Parcelable {
+    @NonNull
+    public static final Creator<PageSelection> CREATOR = new Creator<PageSelection>() {
+        @Override
+        public PageSelection createFromParcel(Parcel in) {
+            return new PageSelection(in);
+        }
+
+        @Override
+        public PageSelection[] newArray(int size) {
+            return new PageSelection[size];
+        }
+    };
     private final int mPage;
-
     private final boolean mIsRtl;
-
     private final SelectionBoundary mLeft;
-
     private final SelectionBoundary mRight;
-
     private final List<PdfPageTextContent> mSelectedContents;
 
     /**
@@ -66,6 +76,14 @@ public final class PageSelection {
         this.mPage = page;
         this.mSelectedContents = selectedContents;
         this.mIsRtl = isRtl;
+    }
+
+    private PageSelection(Parcel in) {
+        mPage = in.readInt();
+        mIsRtl = in.readByte() != 0;
+        mLeft = in.readParcelable(SelectionBoundary.class.getClassLoader());
+        mRight = in.readParcelable(SelectionBoundary.class.getClassLoader());
+        mSelectedContents = in.createTypedArrayList(PdfPageTextContent.CREATOR);
     }
 
     /**
@@ -121,5 +139,19 @@ public final class PageSelection {
     @NonNull
     public List<PdfPageTextContent> getSelectedTextContents() {
         return mSelectedContents;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeInt(mPage);
+        dest.writeByte((byte) (mIsRtl ? 1 : 0));
+        dest.writeParcelable(mLeft, flags);
+        dest.writeParcelable(mRight, flags);
+        dest.writeTypedList(mSelectedContents);
     }
 }

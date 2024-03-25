@@ -21,6 +21,8 @@ import android.annotation.NonNull;
 import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -29,7 +31,7 @@ import java.util.List;
  * Represents a continuous stream of text in a page of a PDF document in the order of viewing.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PdfPageTextContent {
+public final class PdfPageTextContent implements Parcelable {
     private final String mText;
     private final List<RectF> mBounds;
 
@@ -63,6 +65,24 @@ public final class PdfPageTextContent {
         this.mBounds = bounds;
     }
 
+    private PdfPageTextContent(Parcel in) {
+        mText = in.readString();
+        mBounds = in.createTypedArrayList(RectF.CREATOR);
+    }
+
+    @NonNull
+    public static final Creator<PdfPageTextContent> CREATOR = new Creator<PdfPageTextContent>() {
+        @Override
+        public PdfPageTextContent createFromParcel(Parcel in) {
+            return new PdfPageTextContent(in);
+        }
+
+        @Override
+        public PdfPageTextContent[] newArray(int size) {
+            return new PdfPageTextContent[size];
+        }
+    };
+
     /**
      * Gets the text content on the document.
      *
@@ -85,5 +105,16 @@ public final class PdfPageTextContent {
     @NonNull
     public List<RectF> getBounds() {
         return mBounds;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeString(mText);
+        dest.writeTypedList(mBounds);
     }
 }

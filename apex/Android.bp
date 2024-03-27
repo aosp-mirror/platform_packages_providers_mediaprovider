@@ -116,6 +116,7 @@ bootclasspath_fragment {
             "android.graphics.pdf.content",
             "android.graphics.pdf.models.jni",
             "android.graphics.pdf.models.selection",
+            "android.graphics.pdf.logging",
         ],
     },
 }

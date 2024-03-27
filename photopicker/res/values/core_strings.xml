@@ -28,4 +28,7 @@
   <!-- Button label for the "Add" button in the selection bar -->
   <string name="photopicker_add_button_label" translation_description="Button label that gives the user an option to add the number of selected items to the launching app's available photos.">Add <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
 
+  <!-- Button label for the Photos navigation button -->
+  <string name="photopicker_photos_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their photos.">Photos</string>
+
 </resources>

@@ -23,6 +23,8 @@ import android.annotation.NonNull;
 import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -32,12 +34,24 @@ import java.util.List;
  * document
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PdfPageGotoLinkContent {
+public final class PdfPageGotoLinkContent implements Parcelable {
+    @NonNull
+    public static final Creator<PdfPageGotoLinkContent> CREATOR =
+            new Creator<>() {
+                @Override
+                public PdfPageGotoLinkContent createFromParcel(Parcel in) {
+                    return new PdfPageGotoLinkContent(in);
+                }
+
+                @Override
+                public PdfPageGotoLinkContent[] newArray(int size) {
+                    return new PdfPageGotoLinkContent[size];
+                }
+            };
     @NonNull
     private final List<RectF> mBounds;
     @NonNull
     private final Destination mDestination;
-
 
     /**
      * Creates a new instance of {@link PdfPageGotoLinkContent} using the bounds of the goto link
@@ -58,6 +72,11 @@ public final class PdfPageGotoLinkContent {
     }
 
 
+    private PdfPageGotoLinkContent(Parcel in) {
+        this.mBounds = in.createTypedArrayList(RectF.CREATOR);
+        this.mDestination = in.readParcelable(Destination.class.getClassLoader());
+    }
+
     /**
      * Gets the bounds of a {@link PdfPageGotoLinkContent} represented as a list of {@link RectF}.
      * Links which are spread across multiple lines will be surrounded by multiple {@link RectF}
@@ -75,7 +94,6 @@ public final class PdfPageGotoLinkContent {
         return mBounds;
     }
 
-
     /**
      * Gets the destination {@link Destination} of the {@link PdfPageGotoLinkContent}.
      *
@@ -86,16 +104,38 @@ public final class PdfPageGotoLinkContent {
         return mDestination;
     }
 
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeTypedList(mBounds);
+        dest.writeParcelable(mDestination, flags);
+    }
+
     /**
      * Represents the content associated with the destination where a goto link is directing
      */
-    public static final class Destination {
+    public static final class Destination implements Parcelable {
+        @NonNull
+        public static final Creator<Destination> CREATOR = new Creator<Destination>() {
+            @Override
+            public Destination createFromParcel(Parcel in) {
+                return new Destination(in);
+            }
+
+            @Override
+            public Destination[] newArray(int size) {
+                return new Destination[size];
+            }
+        };
         private final int mPageNumber;
-
         private final float mXCoordinate;
-
         private final float mYCoordinate;
         private final float mZoom;
+
 
         /**
          * Creates a new instance of {@link Destination} using the page number, x coordinate, and
@@ -126,6 +166,12 @@ public final class PdfPageGotoLinkContent {
             this.mZoom = zoom;
         }
 
+        private Destination(Parcel in) {
+            mPageNumber = in.readInt();
+            mXCoordinate = in.readFloat();
+            mYCoordinate = in.readFloat();
+            mZoom = in.readFloat();
+        }
 
         /**
          * Gets the page number of the destination where the {@link PdfPageGotoLinkContent}
@@ -178,6 +224,19 @@ public final class PdfPageGotoLinkContent {
         @FloatRange(from = 0.0f)
         public float getZoom() {
             return mZoom;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+            dest.writeInt(mPageNumber);
+            dest.writeFloat(mXCoordinate);
+            dest.writeFloat(mYCoordinate);
+            dest.writeFloat(mZoom);
         }
     }
 }

@@ -800,8 +800,9 @@ public class MediaProvider extends ContentProvider {
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
+                    int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
                     if (pkg != null) {
-                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        invalidateLocalCallingIdentityCache(uid, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
@@ -895,14 +896,19 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        try {
+            int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+            invalidateLocalCallingIdentityCache(packageUid, reason);
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Couldn't get uid for package: " + packageName);
+        }
+    }
+
+    private void invalidateLocalCallingIdentityCache(int packageUid, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
-            try {
-                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
-                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
-                    mCachedCallingIdentityForFuse.remove(packageUid);
-                }
-            } catch (NameNotFoundException ignored) {
+            if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                mCachedCallingIdentityForFuse.remove(packageUid);
             }
         }
     }

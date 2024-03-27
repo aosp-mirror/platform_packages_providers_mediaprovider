@@ -279,6 +279,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      */
     @Override
     public void close() {
+        throwIfDocumentClosed();
         doClose();
     }
 
@@ -295,9 +296,10 @@ public final class PdfRendererPreV implements AutoCloseable {
     }
 
     private void doClose() {
-        throwIfDocumentClosed();
-        mPdfProcessor.ensurePdfDestroyed();
-        mPdfProcessor = null;
+        if (mPdfProcessor != null) {
+            mPdfProcessor.ensurePdfDestroyed();
+            mPdfProcessor = null;
+        }
     }
 
     private void throwIfDocumentClosed() {
@@ -621,6 +623,7 @@ public final class PdfRendererPreV implements AutoCloseable {
          */
         @Override
         public void close() {
+            throwIfDocumentOrPageClosed();
             doClose();
         }
 
@@ -637,9 +640,10 @@ public final class PdfRendererPreV implements AutoCloseable {
         }
 
         private void doClose() {
-            throwIfDocumentOrPageClosed();
-            mPdfProcessor.releasePage(mIndex);
-            mIndex = -1;
+            if (mPdfProcessor != null) {
+                mPdfProcessor.releasePage(mIndex);
+                mIndex = -1;
+            }
         }
 
         private void throwIfPageClosed() {

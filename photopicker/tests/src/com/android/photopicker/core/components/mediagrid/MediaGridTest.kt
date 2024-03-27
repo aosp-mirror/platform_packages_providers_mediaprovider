@@ -55,6 +55,7 @@ import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItem
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -173,7 +174,8 @@ class MediaGridTest {
         }
 
         // Normally this would be created in the view model that owns the paged data.
-        pager = Pager(PagingConfig(pageSize = 50, maxSize = 500)) { FakeInMemoryPagingSource() }
+        pager =
+            Pager(PagingConfig(pageSize = 50, maxSize = 500)) { FakeInMemoryMediaPagingSource() }
 
         // Keep the flow processing out of the composable as that drastically cuts down on the
         // flakiness of individual test runs.

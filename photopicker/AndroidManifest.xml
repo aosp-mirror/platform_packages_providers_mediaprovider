@@ -33,7 +33,7 @@
   <!-- Permissions required for reading device configs -->
   <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
-  <!-- Permissions required for fetching User profiles -->
+   <!-- Permissions required for fetching User profiles -->
   <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS"/>
 
   <application
@@ -47,6 +47,7 @@
       android:exported="true"
       android:theme="@style/Theme.Photopicker"
       android:label="@string/photopicker_application_label"
+      android:windowSoftInputMode="adjustResize"
       android:excludeFromRecents="true">
 
       <intent-filter android:priority="105" >

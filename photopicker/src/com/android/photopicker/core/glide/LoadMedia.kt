@@ -22,9 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
-import com.bumptech.glide.RequestBuilder
-import com.android.photopicker.R
 import androidx.compose.ui.res.stringResource
+import com.android.photopicker.R
+import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
@@ -65,6 +65,8 @@ fun loadMedia(
         requestBuilderTransformation?.invoke(media, resolution, it)
         // If no RequestBuilder function was provided, then apply the loadables signature to ensure
         // the cache is populated.
-        ?: it.set(RESOLUTION_REQUESTED, resolution).signature(media.getSignature(resolution))
+        ?: it.set(RESOLUTION_REQUESTED, resolution)
+                .centerCrop()
+                .signature(media.getSignature(resolution))
     }
 }

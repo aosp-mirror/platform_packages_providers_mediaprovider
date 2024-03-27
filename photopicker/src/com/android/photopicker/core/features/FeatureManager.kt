@@ -19,6 +19,7 @@ package com.android.photopicker.core.features
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.features.photogrid.PhotoGridFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -53,7 +54,9 @@ class FeatureManager(
          * Any features that include their registration here, are subject to be enabled by the
          * [FeatureManager] when their [FeatureRegistration#isEnabled] returns true.
          */
-        private val KNOWN_FEATURE_REGISTRATIONS: Set<FeatureRegistration> = setOf()
+        val KNOWN_FEATURE_REGISTRATIONS: Set<FeatureRegistration> = setOf(
+          PhotoGridFeature.Registration,
+        )
     }
 
     // The internal mutable set of enabled features.

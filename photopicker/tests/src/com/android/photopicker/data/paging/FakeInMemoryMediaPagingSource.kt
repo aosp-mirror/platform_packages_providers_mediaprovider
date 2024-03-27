@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.components
+package com.android.photopicker.data.paging
 
 import android.net.Uri
 import androidx.paging.PagingSource
@@ -28,11 +28,13 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 /**
- * This is a fake implementation of a PagingSource<MediaPageKey, Media> that generates its own
- * data and holds it in a list in memory, and slices the list for the Pager based on the requested
- * pages.
+ * This [FakeInMemoryMediaPagingSource] class is responsible to providing paginated media data from
+ * Picker Database by serving requests from Paging library.
+ *
+ * It generates and returns its own fake data.
  */
-class FakeInMemoryPagingSource(val DATA_SIZE: Int = 10_000) : PagingSource<MediaPageKey, Media>() {
+class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
+    PagingSource<MediaPageKey, Media>() {
 
     private val currentDateTime = LocalDateTime.now()
     // Generate an internal dataset of size [DATA_SIZE], and hold it in a list in memory.

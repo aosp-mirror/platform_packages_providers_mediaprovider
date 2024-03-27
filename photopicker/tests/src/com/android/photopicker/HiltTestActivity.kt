@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.navigation
+package com.android.photopicker.tests
 
-enum class PhotopickerDestinations(val route: String) {
+import androidx.activity.ComponentActivity
+import dagger.hilt.android.AndroidEntryPoint
 
-    // The default route, only used when no other Routes are registered.
-    DEFAULT("default"),
-
-    // The main route which shows a grid of the user's photos.
-    PHOTO_GRID("photogrid"),
-}
+@AndroidEntryPoint(ComponentActivity::class) class HiltTestActivity : Hilt_HiltTestActivity()

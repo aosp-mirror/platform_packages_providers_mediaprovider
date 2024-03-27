@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.navigation
+package com.android.photopicker.core.configuration
 
-enum class PhotopickerDestinations(val route: String) {
+import androidx.compose.runtime.compositionLocalOf
 
-    // The default route, only used when no other Routes are registered.
-    DEFAULT("default"),
-
-    // The main route which shows a grid of the user's photos.
-    PHOTO_GRID("photogrid"),
-}
+/**
+ * Provider for fetching the [PhotopickerConfiguration] inside of composables.
+ *
+ * This uses [compositionLocalOf] (rather than a static one) in case of a configuration change which
+ * would result in a value change here as the UI is recomposed.
+ */
+val LocalPhotopickerConfiguration =
+    compositionLocalOf<PhotopickerConfiguration> { error("No PhotopickerConfiguration provided") }

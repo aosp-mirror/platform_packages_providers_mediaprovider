@@ -16,11 +16,12 @@
 
 package com.android.photopicker.data
 
-import com.android.photopicker.data.model.Provider
+import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
-import com.android.photopicker.data.paging.MediaPagingSource
-import com.android.photopicker.data.paging.AlbumContentPagingSource
-import com.android.photopicker.data.paging.AlbumPagingSource
+import com.android.photopicker.data.model.Group.Album
+import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.Provider
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -29,42 +30,29 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * It's implementation should ideally observe data changes and emit updates when possible.
  */
-interface DataService{
+interface DataService {
 
     companion object {
         val TAG: String = "PhotopickerDataService"
     }
 
-    /**
-     * A [StateFlow] with a list of available [Provider]-s.
-     */
+    /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
 
-    /**
-     * @return an instance of [AlbumContentPagingSource].
-     */
-    fun albumContentPagingSource(
-        albumId: String
-    ): AlbumContentPagingSource
+    /** @return an instance of [PagingSource]. */
+    fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media>
 
-    /**
-     * @return an instance of [AlbumPagingSource].
-     */
-    fun albumPagingSource(): AlbumPagingSource
+    /** @return an instance of [PagingSource]. */
+    fun albumPagingSource(): PagingSource<MediaPageKey, Album>
 
     /**
      * @param authority The authority of the [Provider]. See [availableProviders] to get the
-     * authority of the available providers.
-     *
+     *   authority of the available providers.
      * @return A [StateFlow] with the details of the provider. It returns [null] if the requested
-     * provider is not longer available.
+     *   provider is not longer available.
      */
-    fun cloudMediaProviderDetails(
-            authority: String
-    ): StateFlow<CloudMediaProviderDetails?>
+    fun cloudMediaProviderDetails(authority: String): StateFlow<CloudMediaProviderDetails?>
 
-    /**
-     * @return an instance of [MediaPagingSource].
-     */
-    fun mediaPagingSource(): MediaPagingSource
+    /** @return an instance of [PagingSource]. */
+    fun mediaPagingSource(): PagingSource<MediaPageKey, Media>
 }

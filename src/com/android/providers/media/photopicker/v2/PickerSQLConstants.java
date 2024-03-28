@@ -183,4 +183,21 @@ public class PickerSQLConstants {
             );
         }
     }
+
+    enum MediaResponseExtras {
+        PREV_PAGE_ID("prev_page_picker_id"),
+        PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
+        NEXT_PAGE_ID("next_page_picker_id"),
+        NEXT_PAGE_DATE_TAKEN("next_page_date_taken");
+
+        private final String mKey;
+
+        MediaResponseExtras(String key) {
+            mKey = key;
+        }
+
+        public String getKey() {
+            return mKey;
+        }
+    }
 }

@@ -50,7 +50,7 @@ class MediaPagingSource(
         val pageSize = params.loadSize
 
         try {
-            return mediaProviderClient.getMediaPage(
+            return mediaProviderClient.fetchMedia(
                 pageKey,
                 pageSize,
                 userStatus.value.activeContentResolver,

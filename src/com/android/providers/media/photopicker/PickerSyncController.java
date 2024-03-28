@@ -1820,7 +1820,8 @@ public class PickerSyncController {
                     && providers.contains(cloudProvider)
                     && cloudProvider.equals(mDbFacade.getCloudProvider());
         } catch (UnableToAcquireLockException e) {
-            throw new RuntimeException(e);
+            Log.e(TAG, "Could not check if cloud media should be queried", e);
+            return false;
         }
     }
 }

@@ -19,6 +19,8 @@ package com.android.providers.media.photopicker.v2.model;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ID;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_VISIBLE;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 
 import android.os.Bundle;
 
@@ -35,17 +37,17 @@ import java.util.Objects;
  */
 public class MediaQuery {
     @NonNull
-    private Long mDateTakenMs = Long.MIN_VALUE;
+    private Long mDateTakenMs;
     @NonNull
-    private Long mPickerId = Long.MIN_VALUE;
+    private Long mPickerId;
     @NonNull
-    private Integer mPageSize = Integer.MAX_VALUE;
+    private Integer mPageSize;
     @NonNull
     private final List<String> mProviders;
 
     public MediaQuery(Bundle queryArgs) {
-        mPickerId = queryArgs.getLong("picker_id", Long.MIN_VALUE);
-        mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MIN_VALUE);
+        mPickerId = queryArgs.getLong("picker_id", Long.MAX_VALUE);
+        mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MAX_VALUE);
         mPageSize = queryArgs.getInt("page_size", Integer.MAX_VALUE);
         mProviders = queryArgs.getStringArrayList("providers");
 
@@ -65,8 +67,10 @@ public class MediaQuery {
     /**
      * @param queryBuilder Adds SQL query where clause based on the Media query arguments to the
      *                     given query builder.
-     * @param shouldQueryCloudMedia true if cloud media should be queried or not.
-     * @param cloudAuthority The authority of the cloud provider.
+     * @param localAuthority the authority of the local provider if we should include local media in
+     *                       the query response. Otherwise, this is null.
+     * @param cloudAuthority The authority of the cloud provider if we should include cloud media in
+     *                      the query response. Otherwise, this is null.
      * @param reverseOrder by default, the sort order of the media query is
      *                     (Date taken DESC, Picker ID DESC). But for some queries we want to query
      *                     media in the reverse sort order i.e. (Date taken ASC, Picker id ASC).
@@ -74,13 +78,18 @@ public class MediaQuery {
      */
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
-            boolean shouldQueryCloudMedia,
+            @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
-        if (!shouldQueryCloudMedia
-                || mProviders.contains(cloudAuthority)) {
+        queryBuilder.appendWhereStandalone(KEY_IS_VISIBLE + " = 1");
+
+        if (cloudAuthority == null) {
             queryBuilder.appendWhereStandalone(KEY_CLOUD_ID + " IS NULL");
+        }
+
+        if (localAuthority == null) {
+            queryBuilder.appendWhereStandalone(KEY_LOCAL_ID + " IS NULL");
         }
 
         addDateTakenClause(queryBuilder, reverseOrder);
@@ -99,29 +108,16 @@ public class MediaQuery {
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
             boolean reverseOrder
     ) {
-        if (mDateTakenMs != null && mDateTakenMs != Long.MIN_VALUE) {
-            if (reverseOrder) {
-                if (mPickerId != null && mPickerId != Long.MIN_VALUE) {
-                    queryBuilder.appendWhereStandalone(
-                            KEY_DATE_TAKEN_MS + " > " + mDateTakenMs
-                                    + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
-                                    + " AND " + KEY_ID + " > " + mPickerId + ")");
-                } else {
-                    queryBuilder.appendWhereStandalone(
-                            KEY_DATE_TAKEN_MS + " > " + mDateTakenMs);
-                }
-            } else {
-                if (mPickerId != null && mPickerId != Long.MIN_VALUE) {
-                    queryBuilder.appendWhereStandalone(
-                            KEY_DATE_TAKEN_MS + " < " + mDateTakenMs
-                                    + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
-                                    + " AND " + KEY_ID + " <= " + mPickerId + ")");
-                } else {
-                    queryBuilder.appendWhereStandalone(
-                            KEY_DATE_TAKEN_MS + " < " + mDateTakenMs);
-                }
-            }
-
+        if (reverseOrder) {
+            queryBuilder.appendWhereStandalone(
+                        KEY_DATE_TAKEN_MS + " > " + mDateTakenMs
+                        + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
+                        + " AND " + KEY_ID + " > " + mPickerId + ")");
+        } else {
+            queryBuilder.appendWhereStandalone(
+                        KEY_DATE_TAKEN_MS + " < " + mDateTakenMs
+                        + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
+                        + " AND " + KEY_ID + " <= " + mPickerId + ")");
         }
     }
 }

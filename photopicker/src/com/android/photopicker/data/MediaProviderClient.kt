@@ -32,7 +32,7 @@ import java.util.ArrayList
  *
  * It typically fetches data from [MediaProvider] using content queries and call methods.
  */
-class MediaProviderClient {
+open class MediaProviderClient {
     /** Contains all optional and mandatory keys required to make a Media query */
     private enum class MediaQuery(val key: String) {
         PICKER_ID("picker_id"),
@@ -44,14 +44,14 @@ class MediaProviderClient {
     /** Contains all optional and mandatory keys for data in the Available Providers query
      * response.
      */
-    private enum class AvailableProviderResponse(val key: String) {
+    enum class AvailableProviderResponse(val key: String) {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
         UID("uid"),
     }
 
     /** Contains all optional and mandatory keys for data in the Media query response. */
-    private enum class MediaResponse(val key: String) {
+    enum class MediaResponse(val key: String) {
         MEDIA_ID("id"),
         PICKER_ID("picker_id"),
         AUTHORITY("authority"),
@@ -64,7 +64,7 @@ class MediaProviderClient {
     }
 
     /** Contains all optional and mandatory keys for data in the Media query response extras. */
-    private enum class MediaResponseExtras(val key: String) {
+    enum class MediaResponseExtras(val key: String) {
         PREV_PAGE_ID("prev_page_picker_id"),
         PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
         NEXT_PAGE_ID("next_page_picker_id"),
@@ -120,7 +120,7 @@ class MediaProviderClient {
     /**
      * Fetch a list of [Media] from MediaProvider for the given page key.
      */
-    fun getMediaPage(
+    fun fetchMedia(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,

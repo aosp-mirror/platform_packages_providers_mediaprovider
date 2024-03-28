@@ -104,7 +104,6 @@ public class PickerDataLayerV2 {
                         getMediaPageQuery(
                             query,
                             database,
-                            shouldQueryCloudMedia,
                             localAuthority,
                             cloudAuthority
                     ),
@@ -116,7 +115,7 @@ public class PickerDataLayerV2 {
                         getMediaNextPageKeyQuery(
                             query,
                             database,
-                            shouldQueryCloudMedia,
+                            localAuthority,
                             cloudAuthority
                         ),
                         /* selectionArgs */ null
@@ -127,7 +126,7 @@ public class PickerDataLayerV2 {
                         getMediaPreviousPageQuery(
                                 query,
                                 database,
-                                shouldQueryCloudMedia,
+                                localAuthority,
                                 cloudAuthority
                         ),
                         /* selectionArgs */ null
@@ -135,6 +134,8 @@ public class PickerDataLayerV2 {
                 addPrevPageKey(extraArgs, prevPageKeyCursor);
 
                 database.setTransactionSuccessful();
+
+                pageData.setExtras(extraArgs);
                 return pageData;
             } finally {
                 database.endTransaction();
@@ -161,7 +162,7 @@ public class PickerDataLayerV2 {
             );
 
             if (pickerIdColumnIndex >= 0) {
-                extraArgs.putLong("next_page_picker_id",
+                extraArgs.putLong(PickerSQLConstants.MediaResponseExtras.NEXT_PAGE_ID.getKey(),
                         nextPageKeyCursor.getLong(pickerIdColumnIndex)
                 );
             }
@@ -171,7 +172,8 @@ public class PickerDataLayerV2 {
             );
 
             if (dateTakenColumnIndex >= 0) {
-                extraArgs.putLong("next_page_date_taken",
+                extraArgs.putLong(PickerSQLConstants.MediaResponseExtras
+                                .NEXT_PAGE_DATE_TAKEN.getKey(),
                         nextPageKeyCursor.getLong(dateTakenColumnIndex)
                 );
             }
@@ -193,7 +195,7 @@ public class PickerDataLayerV2 {
             );
 
             if (pickerIdColumnIndex >= 0) {
-                extraArgs.putLong("prev_page_picker_id",
+                extraArgs.putLong(PickerSQLConstants.MediaResponseExtras.PREV_PAGE_ID.getKey(),
                         prevPageKeyCursor.getLong(pickerIdColumnIndex)
                 );
             }
@@ -203,7 +205,8 @@ public class PickerDataLayerV2 {
             );
 
             if (dateTakenColumnIndex >= 0) {
-                extraArgs.putLong("prev_page_date_taken",
+                extraArgs.putLong(PickerSQLConstants.MediaResponseExtras
+                                .PREV_PAGE_DATE_TAKEN.getKey(),
                         prevPageKeyCursor.getLong(dateTakenColumnIndex)
                 );
             }
@@ -216,7 +219,6 @@ public class PickerDataLayerV2 {
     private static String getMediaPageQuery(
             @NonNull MediaQuery query,
             @NonNull SQLiteDatabase database,
-            boolean shouldQueryCloudMedia,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
@@ -245,7 +247,7 @@ public class PickerDataLayerV2 {
 
         query.addWhereClause(
                 queryBuilder,
-                shouldQueryCloudMedia,
+                localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ false
         );
@@ -260,7 +262,7 @@ public class PickerDataLayerV2 {
     private static String getMediaNextPageKeyQuery(
             @NonNull MediaQuery query,
             @NonNull SQLiteDatabase database,
-            boolean shouldQueryCloudMedia,
+            @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         if (query.getPageSize() == Integer.MAX_VALUE) {
             return null;
@@ -284,7 +286,7 @@ public class PickerDataLayerV2 {
 
         query.addWhereClause(
                 queryBuilder,
-                shouldQueryCloudMedia,
+                localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ false
         );
@@ -303,7 +305,7 @@ public class PickerDataLayerV2 {
     private static String getMediaPreviousPageQuery(
             @NonNull MediaQuery query,
             @NonNull SQLiteDatabase database,
-            boolean shouldQueryCloudMedia,
+            @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(PickerSQLConstants.Table.MEDIA.name())
@@ -321,7 +323,7 @@ public class PickerDataLayerV2 {
 
         query.addWhereClause(
                 queryBuilder,
-                shouldQueryCloudMedia,
+                localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ true
         );

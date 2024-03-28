@@ -111,7 +111,6 @@ public class PickerDbFacade {
     public static final String KEY_ID = "_id";
     public static final String KEY_LOCAL_ID = "local_id";
     public static final String KEY_CLOUD_ID = "cloud_id";
-    @VisibleForTesting
     public static final String KEY_IS_VISIBLE = "is_visible";
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting

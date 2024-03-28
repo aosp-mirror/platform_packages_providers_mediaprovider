@@ -78,11 +78,11 @@ public class PageSelection {
 
     /** Converts JNI models to the public class */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public android.graphics.pdf.models.selection.PageSelection convert(boolean isRtl) {
+    public android.graphics.pdf.models.selection.PageSelection convert() {
         PdfPageTextContent selectedTextContent = new PdfPageTextContent(mText,
                 mBounds.stream().map(RectF::new).toList());
         return new android.graphics.pdf.models.selection.PageSelection(mPage, mLeft.convert(),
                 mRight.convert(),
-                /* selectedContents = */ List.of(selectedTextContent), isRtl);
+                /* selectedContents = */ List.of(selectedTextContent));
     }
 }

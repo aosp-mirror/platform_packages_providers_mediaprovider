@@ -27,6 +27,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.selection.LocalSelection
@@ -53,6 +55,9 @@ class MainActivity : Hilt_MainActivity() {
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
 
+    // Events requires the feature manager, so initialize this lazily until the action is set.
+    @Inject lateinit var events: Lazy<Events>
+
     companion object {
         val TAG: String = "Photopicker"
     }
@@ -74,6 +79,7 @@ class MainActivity : Hilt_MainActivity() {
                 LocalFeatureManager provides featureManager.get(),
                 LocalPhotopickerConfiguration provides photopickerConfiguration,
                 LocalSelection provides selection,
+                LocalEvents provides events.get(),
             ) {
                 PhotopickerTheme { PhotopickerAppWithBottomSheet(onDismissRequest = ::finish) }
             }

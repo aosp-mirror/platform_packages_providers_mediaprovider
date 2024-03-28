@@ -24,6 +24,7 @@ import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
@@ -98,6 +99,16 @@ abstract class PhotopickerTestModule {
     @Provides
     fun createDataService(): DataService {
         return TestDataServiceImpl()
+    }
+
+    @Singleton
+    @Provides
+    fun createEvents(
+        @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
+        featureManager: FeatureManager
+    ): Events {
+        return Events(scope = scope, configurationManager.configuration, featureManager)
     }
 
     @Singleton

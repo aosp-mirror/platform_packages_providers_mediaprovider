@@ -257,7 +257,7 @@ public class PdfProcessor {
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public PageSelection selectPageText(int pageNum, SelectionBoundary start,
-            SelectionBoundary stop, boolean isRtl) {
+            SelectionBoundary stop) {
         Preconditions.checkNotNull(start, "Start selection boundary cannot be null");
         Preconditions.checkNotNull(stop, "Stop selection boundary cannot be null");
         synchronized (sPdfiumLock) {
@@ -265,13 +265,13 @@ public class PdfProcessor {
             android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
                     mPdfDocument.selectPageText(
                             pageNum,
-                            android.graphics.pdf.models.jni.SelectionBoundary.convert(start, isRtl),
-                            android.graphics.pdf.models.jni.SelectionBoundary.convert(stop, isRtl));
+                            android.graphics.pdf.models.jni.SelectionBoundary.convert(start),
+                            android.graphics.pdf.models.jni.SelectionBoundary.convert(stop));
             if (legacyPageSelection != null) {
-                return legacyPageSelection.convert(isRtl);
+                return legacyPageSelection.convert();
             }
+            return null;
         }
-        return null;
     }
 
     /** Get the bounds and URLs of all the links on the given page. */

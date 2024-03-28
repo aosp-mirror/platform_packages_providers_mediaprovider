@@ -17,6 +17,7 @@
 package com.android.photopicker.core.features
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.android.photopicker.core.navigation.Route
 
 /**
@@ -70,7 +71,7 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * thread. Do not do expensive operations in this method, and follow all best practices for
      * normal @Composable functions. (Such as offloading background work via Coroutines.)
      */
-    @Composable fun compose(location: Location): Unit
+    @Composable fun compose(location: Location, modifier: Modifier): Unit
 
     /**
      * This is called when the [NavHost] is composed for all enabled [PhotopickerUiFeature] to

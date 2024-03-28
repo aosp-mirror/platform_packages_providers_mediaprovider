@@ -41,6 +41,7 @@ import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
@@ -117,6 +118,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
+    @Inject lateinit var events: Events
 
     @Before
     fun setup() {
@@ -170,6 +172,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
+                    events = events,
                 )
             }
 
@@ -191,7 +194,11 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         mainScope.runTest {
             composeTestRule.setContent {
-                callPhotopickerMain(featureManager = featureManager, selection = selection)
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
             }
 
             assertWithMessage("Expected selection to initially be empty.")
@@ -227,7 +234,11 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         mainScope.runTest {
             composeTestRule.setContent {
-                callPhotopickerMain(featureManager = featureManager, selection = selection)
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
             }
 
             // Wait for the PhotoGridViewModel to load data and for the UI to update.

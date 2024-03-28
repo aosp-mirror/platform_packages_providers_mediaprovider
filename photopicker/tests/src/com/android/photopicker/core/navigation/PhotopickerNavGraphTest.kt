@@ -29,6 +29,7 @@ import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
@@ -71,6 +72,8 @@ class PhotopickerNavGraphTest {
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
                 testRegistrations,
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
             )
     }
 
@@ -106,7 +109,9 @@ class PhotopickerNavGraphTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
-                emptySet<FeatureRegistration>()
+                emptySet<FeatureRegistration>(),
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
             )
 
         composeTestRule.setContent { testNavGraph(emptyFeatureManager) }

@@ -17,12 +17,15 @@
 package com.android.photopicker.features.photogrid
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
@@ -41,6 +44,14 @@ class PhotoGridFeature : PhotopickerUiFeature {
         override fun isEnabled(config: PhotopickerConfiguration) = true
         override fun build(featureManager: FeatureManager) = PhotoGridFeature()
     }
+
+    override val token = FeatureToken.PHOTO_GRID.token
+
+    /** Events consumed by the Photo grid */
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    /** Events produced by the Photo grid */
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return emptyList()
@@ -71,5 +82,5 @@ class PhotoGridFeature : PhotopickerUiFeature {
         )
     }
 
-    @Composable override fun compose(location: Location) {}
+    @Composable override fun compose(location: Location, modifier: Modifier) {}
 }

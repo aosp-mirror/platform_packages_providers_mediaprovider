@@ -972,9 +972,12 @@ public class PickerViewModel extends AndroidViewModel {
                 } else if (intent.getAction().equals(MediaStore.ACTION_PICK_IMAGES)) {
                     try {
                         long inputColor = extras.getLong(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR);
-                        if (mPickerAccentColorParameters.checkColorValidity(inputColor)) {
+                        int validatedColor =
+                                PickerAccentColorParameters.checkColorValidityAndGetColor(
+                                        inputColor);
+                        if (validatedColor != -1) {
                             mPickerAccentColorParameters = new PickerAccentColorParameters(
-                                    inputColor, mApplication);
+                                    validatedColor, mApplication);
                         }
                     } catch (Exception exception) {
                         throw new IllegalArgumentException("The Accent colour provided in "

@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.navigation
+package com.android.photopicker.core.events
 
-enum class PhotopickerDestinations(val route: String) {
-
-    // The default route, only used when no other Routes are registered.
-    DEFAULT("default"),
-
-    // The main route which shows a grid of the user's photos.
-    PHOTO_GRID("photogrid"),
-}
+/**
+ * Exception that is thrown when an [Event] is dispatched without that event being
+ * present in the dispatchers [PhotopickerFeature.eventsProduced] registration.
+ *
+ * @property message
+ */
+class UnregisteredEventDispatchedException(message: String) : Exception(message)

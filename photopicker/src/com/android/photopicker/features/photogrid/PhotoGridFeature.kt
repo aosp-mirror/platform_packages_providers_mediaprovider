@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.simpleuifeature
+package com.android.photopicker.features.photogrid
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
@@ -28,40 +25,45 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.Route
 
-/** Test [PhotopickerUiFeature] that renders a simple string to [Location.COMPOSE_TOP] */
-open class SimpleUiFeature : PhotopickerUiFeature {
+/**
+ * Feature class for the Photopicker's primary photo grid.
+ *
+ * This feature adds the [PHOTO_GRID] route to the application as a high priority initial route.
+ */
+class PhotoGridFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "SimpleUiFeature"
+        override val TAG: String = "PhotopickerPhotoGridFeature"
         override fun isEnabled(config: PhotopickerConfiguration) = true
-        override fun build(featureManager: FeatureManager) = SimpleUiFeature()
-
-        val UI_STRING = "I'm a simple string, from a SimpleUiFeature"
-        val SIMPLE_ROUTE = "simple"
+        override fun build(featureManager: FeatureManager) = PhotoGridFeature()
     }
 
-    override val token = TAG
+    override val token = FeatureToken.PHOTO_GRID.token
 
+    /** Events consumed by the Photo grid */
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
+    /** Events produced by the Photo grid */
     override val eventsProduced = emptySet<RegisteredEventClass>()
 
-    /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
+        return emptyList()
     }
 
-    /** Navigation registration callback from feature framework */
     override fun registerNavigationRoutes(): Set<Route> {
+
         return setOf(
+            // The main grid of the user's photos.
             object : Route {
-                override val route = SIMPLE_ROUTE
-                override val initialRoutePriority = Priority.MEDIUM.priority
+                override val route = PhotopickerDestinations.PHOTO_GRID.route
+                override val initialRoutePriority = Priority.HIGH.priority
                 override val arguments = emptyList<NamedNavArgument>()
                 override val deepLinks = emptyList<NavDeepLink>()
                 override val isDialog = false
@@ -71,32 +73,14 @@ open class SimpleUiFeature : PhotopickerUiFeature {
                 override val popEnterTransition = null
                 override val popExitTransition = null
                 @Composable
-                override fun composable(navBackStackEntry: NavBackStackEntry?) {
-                    simpleRoute()
+                override fun composable(
+                    navBackStackEntry: NavBackStackEntry?,
+                ) {
+                    PhotoGrid()
                 }
             },
         )
     }
 
-    /* Feature framework compose-at-location callback */
-    @Composable
-    override fun compose(location: Location, modifier: Modifier) {
-
-        when (location) {
-            Location.COMPOSE_TOP -> composeTop()
-            else -> {}
-        }
-    }
-
-    /* Private composable used for the [Location.COMPOSE_TOP] location */
-    @Composable
-    private fun composeTop() {
-        Text(UI_STRING)
-    }
-
-    /* Composes the [SIMPLE_ROUTE] */
-    @Composable
-    private fun simpleRoute() {
-        Text(UI_STRING)
-    }
+    @Composable override fun compose(location: Location, modifier: Modifier) {}
 }

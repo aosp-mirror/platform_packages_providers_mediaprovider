@@ -16,13 +16,20 @@
 
 package com.android.photopicker.core.configuration
 
+import android.os.SystemProperties
+
+/** Check system properties to determine if the device is considered debuggable */
+private val buildIsDebuggable = SystemProperties.getInt("ro.debuggable", 0) == 1
+
 /**
  * Data object that represents a possible configuration state of the Photopicker.
  *
  * @property action the [Intent#getAction] that Photopicker is currently serving.
  * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
+ * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  */
 data class PhotopickerConfiguration(
     val action: String,
+    val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
 )

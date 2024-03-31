@@ -20,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
@@ -41,12 +43,20 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
         val UI_STRING = "Can anyone hear me? :("
     }
 
+    override val token = TAG
+
+    /** Events consumed by the Photo grid */
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    /** Events produced by the Photo grid */
+    override val eventsProduced = emptySet<RegisteredEventClass>()
+
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
     }
 
     @Composable
-    override fun compose(location: Location) {
+    override fun compose(location: Location, modifier: Modifier) {
 
         when (location) {
             Location.COMPOSE_TOP -> composeTop()

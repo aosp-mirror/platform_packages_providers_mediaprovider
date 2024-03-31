@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.navigation
+package com.android.photopicker.core.events
 
-enum class PhotopickerDestinations(val route: String) {
+import androidx.compose.runtime.staticCompositionLocalOf
 
-    // The default route, only used when no other Routes are registered.
-    DEFAULT("default"),
-
-    // The main route which shows a grid of the user's photos.
-    PHOTO_GRID("photogrid"),
-}
+/**
+ * Provider for fetching the [Events] bus inside of composables.
+ *
+ * This uses [staticCompositionLocalOf] as the event bus is an injected singleton and is unlikely to
+ * change.
+ */
+val LocalEvents = staticCompositionLocalOf<Events> { error("No Events bus provided") }

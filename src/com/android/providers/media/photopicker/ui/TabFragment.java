@@ -96,6 +96,8 @@ public abstract class TabFragment extends Fragment {
     private View mEmptyView;
     private TextView mEmptyTextView;
     private boolean mIsAccessibilityEnabled;
+    private AccessibilityManager mAccessibilityManager;
+    private AccessibilityManager.AccessibilityStateChangeListener mAccessibilityStateChangeListener;
 
     private Button mAddButton;
 
@@ -133,7 +135,7 @@ public abstract class TabFragment extends Fragment {
 
     /**
      * In case of multiuser profile, it represents the number of profiles that are off
-     * (In quiet mode) with {@link UserProperties.SHOW_IN_QUIET_MODE_HIDDEN}. Such profiles
+     * (In quiet mode) with {@link UserProperties#SHOW_IN_QUIET_MODE_HIDDEN}. Such profiles
      * in quiet mode will not appear in photopicker.
      */
     private int mHideProfileCount = 0;
@@ -141,7 +143,7 @@ public abstract class TabFragment extends Fragment {
     /**
      * This member variable is relevant to get the userId (other than current user) when only two
      * number of profiles those either unlocked/on or don't have
-     * {@link UserProperties.SHOW_IN_QUIET_MODE_HIDDEN},  are available on the device.
+     * {@link UserProperties#SHOW_IN_QUIET_MODE_HIDDEN},  are available on the device.
      * we are using this variable to get label and icon of a userId to update the content
      * in {@link #mProfileButton}, and at the time when user will press {@link #mProfileButton}
      * to change the current profile.
@@ -247,10 +249,11 @@ public abstract class TabFragment extends Fragment {
                         mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                                 AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                                 AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
-                ));
+                        ));
             }
             // consume the event so that it doesn't get passed through to the next view b/287661737
-            mBottomBar.setOnClickListener(v -> {});
+            mBottomBar.setOnClickListener(v -> {
+            });
             mSlideUpAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_up);
             mSlideDownAnimation = AnimationUtils.loadAnimation(context, R.anim.slide_down);
 
@@ -286,19 +289,30 @@ public abstract class TabFragment extends Fragment {
         }
 
 
-        final AccessibilityManager accessibilityManager =
-                context.getSystemService(AccessibilityManager.class);
-        mIsAccessibilityEnabled = accessibilityManager.isEnabled();
-        accessibilityManager.addAccessibilityStateChangeListener(enabled -> {
-            mIsAccessibilityEnabled = enabled;
-            if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
-                setUpProfileButtonAndProfileMenuButtonWithListeners(
-                        mUserManagerState.isMultiUserProfiles());
-            } else {
-                setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
-            }
-        });
+        mAccessibilityManager = context.getSystemService(AccessibilityManager.class);
+        mIsAccessibilityEnabled = mAccessibilityManager.isEnabled();
+        mAccessibilityStateChangeListener =
+                enabled -> {
+                    mIsAccessibilityEnabled = enabled;
+                    if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                            && SdkLevel.isAtLeastS()) {
+                        setUpProfileButtonAndProfileMenuButtonWithListeners(
+                                mUserManagerState.isMultiUserProfiles());
+                    } else {
+                        setUpProfileButtonWithListeners(mUserIdManager.isMultiUserProfiles());
+                    }
+                };
+        mAccessibilityManager.addAccessibilityStateChangeListener(
+                mAccessibilityStateChangeListener);
+    }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (mAccessibilityManager != null) {
+            mAccessibilityManager.removeAccessibilityStateChangeListener(
+                    mAccessibilityStateChangeListener);
+        }
     }
 
     private void setupObserverForCrossProfileAccess() {
@@ -331,7 +345,7 @@ public abstract class TabFragment extends Fragment {
         final LiveData<Map<UserId, Boolean>> crossProfileAllowed =
                 mUserManagerState.getCrossProfileAllowed();
         if (crossProfileAllowed != null) {
-            crossProfileAllowed.observe(this , crossProfileAllowedStatus -> {
+            crossProfileAllowed.observe(this, crossProfileAllowedStatus -> {
                 setUpProfileButtonAndProfileMenuButton();
                 // Todo(b/318339948): need to put log metrics like present above;
             });
@@ -580,6 +594,7 @@ public abstract class TabFragment extends Fragment {
 
     /**
      * To get estimated dimensions of {@link #sProfileMenuWindow};
+     *
      * @return a pair of two Integers, first represents width and second represents height
      */
     private Pair<Integer, Integer> getProfileMenuWindowDimensions() {
@@ -649,14 +664,12 @@ public abstract class TabFragment extends Fragment {
         updateProfileButtonAndProfileMenuButtonColor();
     }
 
-
-
     private boolean shouldShowProfileButton() {
         return mUserIdManager.isMultiUserProfiles()
                 && !mHideProfileButtonAndProfileMenuButton
                 && !mPickerViewModel.isUserSelectForApp()
                 && (!mSelection.canSelectMultiple()
-                        || mSelection.getSelectedItemCount().getValue() == 0);
+                || mSelection.getSelectedItemCount().getValue() == 0);
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -688,7 +701,7 @@ public abstract class TabFragment extends Fragment {
     /**
      * This method is relevant to get the userId (other than current user profile) when only two
      * number of profiles those either unlocked/on or don't have
-     * {@link UserProperties.SHOW_IN_QUIET_MODE_HIDDEN},  are available on the device.
+     * {@link UserProperties#SHOW_IN_QUIET_MODE_HIDDEN},  are available on the device.
      * we are using this method to get label and icon of a userId to update the content
      * in {@link #mProfileButton}, and at the time when user will press {@link #mProfileButton}
      * to change the current profile.
@@ -697,7 +710,7 @@ public abstract class TabFragment extends Fragment {
     private UserId getUserToSwitchFromProfileButton() {
         if (mPotentialUserForProfileButton != null
                 && mPotentialUserForProfileButton.equals(
-                        mUserManagerState.getCurrentUserProfileId())) {
+                mUserManagerState.getCurrentUserProfileId())) {
             return UserId.CURRENT_USER;
         }
         return mPotentialUserForProfileButton;
@@ -799,7 +812,7 @@ public abstract class TabFragment extends Fragment {
                 if (SdkLevel.isAtLeastV()) {
                     profileButtonIcon =
                             mUserManagerState.getProfileBadgeForAll().get(userIdToSwitch);
-                    profileButtonText  = context.getString(R.string.picker_profile_switch_message,
+                    profileButtonText = context.getString(R.string.picker_profile_switch_message,
                             mUserManagerState.getProfileLabelsForAll().get(userIdToSwitch));
                 } else {
                     if (mUserManagerState.isManagedUserProfile(currentUserProfileId)) {
@@ -1006,7 +1019,7 @@ public abstract class TabFragment extends Fragment {
      * Generates the Button Label for the {@link TabFragment#mAddButton}.
      *
      * @param context The current application context.
-     * @param size The current size of the selection.
+     * @param size    The current size of the selection.
      * @return Localized, formatted string.
      */
     private String generateAddButtonString(Context context, int size) {

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.navigation
+package com.android.photopicker.core.features
 
-enum class PhotopickerDestinations(val route: String) {
-
-    // The default route, only used when no other Routes are registered.
-    DEFAULT("default"),
-
-    // The main route which shows a grid of the user's photos.
-    PHOTO_GRID("photogrid"),
+/**
+ * A feature token which is claimed by a feature. These can be used to designate which feature is
+ * making a specific call.
+ */
+enum class FeatureToken(val token: String) {
+    CORE("CORE"),
+    PHOTO_GRID("PHOTO_GRID"),
 }

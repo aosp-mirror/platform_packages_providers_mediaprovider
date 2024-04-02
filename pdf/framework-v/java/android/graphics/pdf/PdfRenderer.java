@@ -135,12 +135,6 @@ public final class PdfRenderer implements AutoCloseable {
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
 
-    /**
-     * Any call the native pdfium code has to be single threaded as the library does not support
-     * parallel use.
-     */
-    static final Object sPdfiumLock = new Object();
-
     private static final String TAG = PdfRenderer.class.getSimpleName();
     private final CloseGuard mCloseGuard = new CloseGuard();
     private final int mPageCount;
@@ -177,16 +171,13 @@ public final class PdfRenderer implements AutoCloseable {
         Preconditions.checkNotNull(fileDescriptor, "File descriptor cannot be null!");
         mInput = fileDescriptor;
 
-        synchronized (sPdfiumLock) {
-            try {
-                mPdfProcessor = new PdfProcessor();
-                mPdfProcessor.create(mInput, null);
-                mPageCount = mPdfProcessor.getNumPages();
-            } catch (Throwable t) {
-                doClose();
-                throw t;
-            }
-
+        try {
+            mPdfProcessor = new PdfProcessor();
+            mPdfProcessor.create(mInput, null);
+            mPageCount = mPdfProcessor.getNumPages();
+        } catch (Throwable t) {
+            doClose();
+            throw t;
         }
 
         mCloseGuard.open("close");
@@ -218,24 +209,19 @@ public final class PdfRenderer implements AutoCloseable {
      * @throws NullPointerException        If the file descriptor or load params is null.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public PdfRenderer(@NonNull ParcelFileDescriptor fileDescriptor,
-            @NonNull LoadParams params)
-            throws
-            IOException {
+    public PdfRenderer(@NonNull ParcelFileDescriptor fileDescriptor, @NonNull LoadParams params)
+            throws IOException {
         Preconditions.checkNotNull(fileDescriptor, "input cannot be null");
         Preconditions.checkNotNull(params, "Load params cannot be null");
         mInput = fileDescriptor;
 
-        synchronized (sPdfiumLock) {
-            try {
-                mPdfProcessor = new PdfProcessor();
-                mPdfProcessor.create(mInput, params);
-                mPageCount = mPdfProcessor.getNumPages();
-            } catch (Throwable t) {
-                doClose();
-                throw t;
-            }
-
+        try {
+            mPdfProcessor = new PdfProcessor();
+            mPdfProcessor.create(mInput, params);
+            mPageCount = mPdfProcessor.getNumPages();
+        } catch (Throwable t) {
+            doClose();
+            throw t;
         }
 
         mCloseGuard.open("close");
@@ -282,9 +268,7 @@ public final class PdfRenderer implements AutoCloseable {
     public boolean shouldScaleForPrinting() {
         throwIfClosed();
 
-        synchronized (sPdfiumLock) {
-            return mPdfProcessor.scaleForPrinting();
-        }
+        return mPdfProcessor.scaleForPrinting();
     }
 
     /**
@@ -297,13 +281,11 @@ public final class PdfRenderer implements AutoCloseable {
     @PdfDocumentLinearizationType
     public int getDocumentLinearizationType() {
         throwIfClosed();
-        synchronized (sPdfiumLock) {
-            int documentType = mPdfProcessor.getDocumentLinearizationType();
-            if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
-                return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
-            } else {
-                return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
-            }
+        int documentType = mPdfProcessor.getDocumentLinearizationType();
+        if (documentType == PDF_DOCUMENT_TYPE_LINEARIZED) {
+            return DOCUMENT_LINEARIZED_TYPE_LINEARIZED;
+        } else {
+            return DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED;
         }
     }
 
@@ -337,17 +319,15 @@ public final class PdfRenderer implements AutoCloseable {
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public int getPdfFormType() {
         throwIfClosed();
-        synchronized (sPdfiumLock) {
-            int pdfFormType = mPdfProcessor.getPdfFormType();
-            if (pdfFormType == PDF_FORM_TYPE_ACRO_FORM) {
-                return PDF_FORM_TYPE_ACRO_FORM;
-            } else if (pdfFormType == PDF_FORM_TYPE_XFA_FULL) {
-                return PDF_FORM_TYPE_XFA_FULL;
-            } else if (pdfFormType == PDF_FORM_TYPE_XFA_FOREGROUND) {
-                return PDF_FORM_TYPE_XFA_FOREGROUND;
-            } else {
-                return PDF_FORM_TYPE_NONE;
-            }
+        int pdfFormType = mPdfProcessor.getPdfFormType();
+        if (pdfFormType == PDF_FORM_TYPE_ACRO_FORM) {
+            return PDF_FORM_TYPE_ACRO_FORM;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FULL) {
+            return PDF_FORM_TYPE_XFA_FULL;
+        } else if (pdfFormType == PDF_FORM_TYPE_XFA_FOREGROUND) {
+            return PDF_FORM_TYPE_XFA_FOREGROUND;
+        } else {
+            return PDF_FORM_TYPE_NONE;
         }
     }
 
@@ -370,9 +350,7 @@ public final class PdfRenderer implements AutoCloseable {
     public void write(@NonNull ParcelFileDescriptor destination, boolean removePasswordProtection)
             throws IOException {
         throwIfClosed();
-        synchronized (sPdfiumLock) {
-            mPdfProcessor.write(destination, removePasswordProtection);
-        }
+        mPdfProcessor.write(destination, removePasswordProtection);
     }
 
     // SuppressLint: Finalize needs to be overridden to make sure all resources are closed
@@ -398,15 +376,16 @@ public final class PdfRenderer implements AutoCloseable {
             mCurrentPage = null;
         }
 
-        synchronized (sPdfiumLock) {
+        if (mPdfProcessor != null) {
             mPdfProcessor.ensurePdfDestroyed();
+            mPdfProcessor = null;
         }
 
         if (mInput != null) {
             closeQuietly(mInput);
             mInput = null;
         }
-        mPdfProcessor = null;
+
         mCloseGuard.close();
     }
 
@@ -439,21 +418,14 @@ public final class PdfRenderer implements AutoCloseable {
     }
 
     /** @hide */
-    @IntDef({
-            PDF_FORM_TYPE_NONE,
-            PDF_FORM_TYPE_ACRO_FORM,
-            PDF_FORM_TYPE_XFA_FULL,
-            PDF_FORM_TYPE_XFA_FOREGROUND
-    })
+    @IntDef({PDF_FORM_TYPE_NONE, PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL,
+            PDF_FORM_TYPE_XFA_FOREGROUND})
     @Retention(RetentionPolicy.SOURCE)
     public @interface PdfFormType {
     }
 
     /** @hide */
-    @IntDef({
-            Page.RENDER_MODE_FOR_DISPLAY,
-            Page.RENDER_MODE_FOR_PRINT
-    })
+    @IntDef({Page.RENDER_MODE_FOR_DISPLAY, Page.RENDER_MODE_FOR_PRINT})
     @Retention(RetentionPolicy.SOURCE)
     public @interface RenderMode {
     }
@@ -490,11 +462,9 @@ public final class PdfRenderer implements AutoCloseable {
 
         private Page(int index) {
             mIndex = index;
-            synchronized (sPdfiumLock) {
-                mPdfProcessor.retainPage(mIndex);
-                mWidth = mPdfProcessor.getPageWidth(mIndex);
-                mHeight = mPdfProcessor.getPageHeight(mIndex);
-            }
+            mPdfProcessor.retainPage(mIndex);
+            mWidth = mPdfProcessor.getPageWidth(mIndex);
+            mHeight = mPdfProcessor.getPageHeight(mIndex);
 
             mCloseGuard.open("close");
         }
@@ -573,14 +543,8 @@ public final class PdfRenderer implements AutoCloseable {
         @SuppressLint("UnflaggedApi")
         public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
                 @Nullable Matrix transform, @RenderMode int renderMode) {
-            synchronized (sPdfiumLock) {
-                mPdfProcessor.renderPage(
-                        mIndex,
-                        destination,
-                        destClip,
-                        transform,
-                        new RenderParams.Builder(renderMode).build());
-            }
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform,
+                    new RenderParams.Builder(renderMode).build());
         }
 
         /**
@@ -603,14 +567,10 @@ public final class PdfRenderer implements AutoCloseable {
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-        public void render(@NonNull Bitmap destination,
-                @Nullable Rect destClip,
-                @Nullable Matrix transform,
-                @NonNull RenderParams params) {
+        public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
+                @Nullable Matrix transform, @NonNull RenderParams params) {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
-            }
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
         }
 
         /**
@@ -626,9 +586,7 @@ public final class PdfRenderer implements AutoCloseable {
         @NonNull
         public List<PdfPageTextContent> getTextContents() {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getPageTextContents(mIndex);
-            }
+            return mPdfProcessor.getPageTextContents(mIndex);
         }
 
         /**
@@ -645,9 +603,7 @@ public final class PdfRenderer implements AutoCloseable {
         @NonNull
         public List<PdfPageImageContent> getImageContents() {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getPageImageContents(mIndex);
-            }
+            return mPdfProcessor.getPageImageContents(mIndex);
         }
 
         /**
@@ -668,40 +624,33 @@ public final class PdfRenderer implements AutoCloseable {
         @NonNull
         public List<PageMatchBounds> searchText(@NonNull String query) {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.searchPageText(mIndex, query);
-            }
+            return mPdfProcessor.searchPageText(mIndex, query);
         }
 
         /**
          * Return a {@link PageSelection} which represents the selected content that spans between
          * the two boundaries. The boundaries can be either exactly defined with text indexes, or
          * approximately defined with points on the page. The resulting selection will also be
-         * exactly defined with both indexes and points. If the left and right boundary are both
+         * exactly defined with both indexes and points. If the start and stop boundary are both at
          * the same point, selects the word at that point. In case the selection from the given
-         * boundaries result in an empty space, then the method returns {@code null}. The left and
-         * right {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index
+         * boundaries result in an empty space, then the method returns {@code null}. The start and
+         * stop {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index
          * when returned.
          * <p>
          * <strong>Note:</strong> Should be invoked on a {@link android.annotation.WorkerThread}
          * as it is long-running task.
          *
-         * @param left  left boundary of the selection (inclusive)
-         * @param right right boundary of the selection (exclusive)
-         * @param isRtl determines right-to-left mode for the selection.
+         * @param start boundary where the selection starts (inclusive)
+         * @param stop  boundary where the selection stops (exclusive)
          * @return collection of the selected content for text, images, etc.
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
         @Nullable
-        public PageSelection selectContent(
-                @NonNull SelectionBoundary left,
-                @NonNull SelectionBoundary right,
-                boolean isRtl) {
+        public PageSelection selectContent(@NonNull SelectionBoundary start,
+                @NonNull SelectionBoundary stop) {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.selectPageText(mIndex, left, right, isRtl);
-            }
+            return mPdfProcessor.selectPageText(mIndex, start, stop);
         }
 
 
@@ -715,9 +664,7 @@ public final class PdfRenderer implements AutoCloseable {
         @NonNull
         public List<PdfPageLinkContent> getLinkContents() {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getPageLinkContents(mIndex);
-            }
+            return mPdfProcessor.getPageLinkContents(mIndex);
         }
 
         /**
@@ -733,9 +680,7 @@ public final class PdfRenderer implements AutoCloseable {
         @NonNull
         public List<PdfPageGotoLinkContent> getGotoLinks() {
             throwIfClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getPageGotoLinks(mIndex);
-            }
+            return mPdfProcessor.getPageGotoLinks(mIndex);
         }
 
         /**
@@ -762,9 +707,7 @@ public final class PdfRenderer implements AutoCloseable {
         public List<FormWidgetInfo> getFormWidgetInfos(
                 @NonNull @FormWidgetInfo.WidgetType int[] types) {
             throwIfDocumentOrPageClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getFormWidgetInfos(mIndex, types);
-            }
+            return mPdfProcessor.getFormWidgetInfos(mIndex, types);
         }
 
         /**
@@ -782,9 +725,7 @@ public final class PdfRenderer implements AutoCloseable {
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from = 0) int widgetIndex) {
             throwIfDocumentOrPageClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, widgetIndex);
-            }
+            return mPdfProcessor.getFormWidgetInfoAtIndex(mIndex, widgetIndex);
         }
 
         /**
@@ -799,9 +740,7 @@ public final class PdfRenderer implements AutoCloseable {
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public FormWidgetInfo getFormWidgetInfoAtPosition(int x, int y) {
             throwIfDocumentOrPageClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.getFormWidgetInfoAtPosition(mIndex, x, y);
-            }
+            return mPdfProcessor.getFormWidgetInfoAtPosition(mIndex, x, y);
         }
 
         /**
@@ -831,9 +770,7 @@ public final class PdfRenderer implements AutoCloseable {
         @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
         public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
             throwIfDocumentOrPageClosed();
-            synchronized (sPdfiumLock) {
-                return mPdfProcessor.applyEdit(mIndex, editRecord);
-            }
+            return mPdfProcessor.applyEdit(mIndex, editRecord);
         }
 
         /**
@@ -863,12 +800,12 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         private void doClose() {
-            synchronized (sPdfiumLock) {
+            if (mPdfProcessor != null) {
                 mPdfProcessor.releasePage(mIndex);
+                mCurrentPage = null;
             }
 
             mCloseGuard.close();
-            mCurrentPage = null;
         }
 
         private void throwIfDocumentOrPageClosed() {

@@ -44,7 +44,7 @@ package android.graphics.pdf {
     method @IntRange(from=0) public int getWidth();
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
-    method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, boolean);
+    method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary);
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class RenderParams {
@@ -202,13 +202,12 @@ package android.graphics.pdf.models {
 package android.graphics.pdf.models.selection {
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageSelection implements android.os.Parcelable {
-    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>, boolean);
+    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>);
     method public int describeContents();
-    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getLeft();
     method public int getPage();
-    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getRight();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getSelectedTextContents();
-    method public boolean isRtl();
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getStart();
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getStop();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.selection.PageSelection> CREATOR;
   }
@@ -218,6 +217,7 @@ package android.graphics.pdf.models.selection {
     ctor public SelectionBoundary(@NonNull android.graphics.Point);
     method public int describeContents();
     method public int getIndex();
+    method public boolean getIsRtl();
     method @Nullable public android.graphics.Point getPoint();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.selection.SelectionBoundary> CREATOR;

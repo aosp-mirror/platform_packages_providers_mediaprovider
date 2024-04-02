@@ -127,9 +127,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      * @throws IllegalArgumentException    If the {@link ParcelFileDescriptor} is not seekable.
      * @throws NullPointerException        If the file descriptor is null.
      */
-    public PdfRendererPreV(@NonNull ParcelFileDescriptor fileDescriptor)
-            throws
-            IOException {
+    public PdfRendererPreV(@NonNull ParcelFileDescriptor fileDescriptor) throws IOException {
         Preconditions.checkNotNull(fileDescriptor, "Input FD cannot be null");
 
         try {
@@ -165,10 +163,8 @@ public final class PdfRendererPreV implements AutoCloseable {
      * @throws IllegalArgumentException    If the {@link ParcelFileDescriptor} is not seekable.
      * @throws NullPointerException        If the file descriptor or load params is null.
      */
-    public PdfRendererPreV(@NonNull ParcelFileDescriptor fileDescriptor,
-            @NonNull LoadParams params)
-            throws
-            IOException {
+    public PdfRendererPreV(@NonNull ParcelFileDescriptor fileDescriptor, @NonNull LoadParams params)
+            throws IOException {
         Preconditions.checkNotNull(fileDescriptor, "Input FD cannot be null");
         Preconditions.checkNotNull(params, "LoadParams cannot be null");
 
@@ -279,6 +275,7 @@ public final class PdfRendererPreV implements AutoCloseable {
      */
     @Override
     public void close() {
+        throwIfDocumentClosed();
         doClose();
     }
 
@@ -295,9 +292,10 @@ public final class PdfRendererPreV implements AutoCloseable {
     }
 
     private void doClose() {
-        throwIfDocumentClosed();
-        mPdfProcessor.ensurePdfDestroyed();
-        mPdfProcessor = null;
+        if (mPdfProcessor != null) {
+            mPdfProcessor.ensurePdfDestroyed();
+            mPdfProcessor = null;
+        }
     }
 
     private void throwIfDocumentClosed() {
@@ -313,12 +311,8 @@ public final class PdfRendererPreV implements AutoCloseable {
     }
 
     /** @hide */
-    @IntDef({
-            PDF_FORM_TYPE_NONE,
-            PDF_FORM_TYPE_ACRO_FORM,
-            PDF_FORM_TYPE_XFA_FULL,
-            PDF_FORM_TYPE_XFA_FOREGROUND
-    })
+    @IntDef({PDF_FORM_TYPE_NONE, PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL,
+            PDF_FORM_TYPE_XFA_FOREGROUND})
     @Retention(RetentionPolicy.SOURCE)
     public @interface PdfFormType {
     }
@@ -374,10 +368,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          * @param params      Render params for the changing display mode and/or annotations.
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
-        public void render(@NonNull Bitmap destination,
-                @Nullable Rect destClip,
-                @Nullable Matrix transform,
-                @NonNull RenderParams params) {
+        public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
+                @Nullable Matrix transform, @NonNull RenderParams params) {
             throwIfDocumentOrPageClosed();
             mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
         }
@@ -465,26 +457,25 @@ public final class PdfRendererPreV implements AutoCloseable {
          * Return a {@link PageSelection} which represents the selected content that spans between
          * the two boundaries. The boundaries can be either exactly defined with text indexes, or
          * approximately defined with points on the page. The resulting selection will also be
-         * exactly defined with both indexes and points. If the left and right boundary are both
+         * exactly defined with both indexes and points. If the start and stop boundary are both at
          * the same point, selects the word at that point. In case the selection from the given
-         * boundaries result in an empty space, then the method returns {@code null}. The left and
-         * right {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index
+         * boundaries result in an empty space, then the method returns {@code null}. The start and
+         * stop {@link SelectionBoundary} in {@link PageSelection} resolves to the "nearest" index
          * when returned.
          * <p>
          * <strong>Note:</strong> Should be invoked on a {@link android.annotation.WorkerThread}
          * as it is long-running task.
          *
-         * @param left  left boundary of the selection (inclusive)
-         * @param right right boundary of the selection (exclusive)
-         * @param isRtl determines right-to-left mode for the selection.
+         * @param start boundary where the selection starts (inclusive)
+         * @param stop  boundary where the selection stops (exclusive)
          * @return collection of the selected content for text, images, etc.
          * @throws IllegalStateException If the document/page is closed before invocation.
          */
         @Nullable
-        public PageSelection selectContent(@NonNull SelectionBoundary left,
-                @NonNull SelectionBoundary right, boolean isRtl) {
+        public PageSelection selectContent(@NonNull SelectionBoundary start,
+                @NonNull SelectionBoundary stop) {
             throwIfDocumentOrPageClosed();
-            return mPdfProcessor.selectPageText(mIndex, left, right, isRtl);
+            return mPdfProcessor.selectPageText(mIndex, start, stop);
         }
 
 
@@ -621,6 +612,7 @@ public final class PdfRendererPreV implements AutoCloseable {
          */
         @Override
         public void close() {
+            throwIfDocumentOrPageClosed();
             doClose();
         }
 
@@ -637,9 +629,10 @@ public final class PdfRendererPreV implements AutoCloseable {
         }
 
         private void doClose() {
-            throwIfDocumentOrPageClosed();
-            mPdfProcessor.releasePage(mIndex);
-            mIndex = -1;
+            if (mPdfProcessor != null) {
+                mPdfProcessor.releasePage(mIndex);
+                mIndex = -1;
+            }
         }
 
         private void throwIfPageClosed() {

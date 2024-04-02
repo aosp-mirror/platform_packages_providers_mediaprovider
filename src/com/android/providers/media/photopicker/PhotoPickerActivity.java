@@ -242,8 +242,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
-            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
-                    intentAction);
+            mPickerViewModel.logPickerOpened(getCallingUid(), getCallingPackage(), intentAction);
+        }
+    }
+
+    private int getCallingUid() {
+        final String callingPackage = getCallingPackage();
+        try {
+            return getPackageManager().getPackageUid(callingPackage, /* flags= */ 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Returning calling uid as -1; callingPackage: " + callingPackage + ".", e);
+            return -1;
         }
     }
 

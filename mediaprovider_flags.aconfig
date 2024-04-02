@@ -1,4 +1,5 @@
 package: "com.android.providers.media.flags"
+container: "com.android.mediaprovider"
 
 flag {
     name: "pick_ordered_images"

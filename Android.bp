@@ -175,6 +175,7 @@ sh_binary {
 aconfig_declarations {
     name: "mediaprovider_flags",
     package: "com.android.providers.media.flags",
+    container: "com.android.mediaprovider",
     srcs: ["mediaprovider_flags.aconfig"],
 }
 

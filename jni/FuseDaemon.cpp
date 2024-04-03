@@ -702,7 +702,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name,
     // directories.
     if (!fuse->bpf || !is_bpf_backing_path(parent_path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
-        e->attr_timeout = std::numeric_limits<double>::max();
+        e->attr_timeout = fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max();
     }
     return node;
 }
@@ -720,11 +720,19 @@ namespace fuse {
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
 
+    // Check the same property as android.os.Build.IS_ARC.
+    const bool is_arc = android::base::GetBoolProperty("ro.boot.container", false);
+
     // We don't want a getattr request with every read request
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
     uint64_t mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS | FUSE_CAP_PARALLEL_DIROPS);
+    // Disable writeback cache if it's uncached mode or if it's ARC. In ARC, due to the Downloads
+    // bind-mount, we need to disable it on the primary emulated volume as well as on StubVolumes.
+    if (fuse->uncached_mode || is_arc) {
+        mask &= ~FUSE_CAP_WRITEBACK_CACHE;
+    }
 
     bool disable_splice_write = false;
     if (fuse->passthrough) {
@@ -1038,7 +1046,8 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, std::numeric_limits<double>::max());
+        fuse_reply_attr(req, &s,
+                        fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max());
     }
 }
 
@@ -1141,7 +1150,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, std::numeric_limits<double>::max());
+    fuse_reply_attr(req, attr, fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max());
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)

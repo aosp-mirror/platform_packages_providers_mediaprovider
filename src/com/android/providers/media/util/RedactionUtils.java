@@ -78,6 +78,10 @@ public class RedactionUtils {
     private static final Set<String> sRedactedExifTags = new ArraySet<>(
             Arrays.asList(REDACTED_EXIF_TAGS));
 
+    private RedactionUtils() {
+        // Utility Class
+    }
+
     /**
      * Set of Exif tags that should be considered for redaction.
      */
@@ -130,8 +134,7 @@ public class RedactionUtils {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.createXmpInterface(exif);
-                res.addAll(exifXmp.getRedactionRanges());
+                res.addAll(XmpDataParser.getRedactionRanges(exif));
             }
 
             if (IsoInterface.isSupportedMimeType(mimeType)) {
@@ -145,8 +148,7 @@ public class RedactionUtils {
                     }
                 }
                 // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.createXmpInterface(iso);
-                res.addAll(isoXmp.getRedactionRanges());
+                res.addAll(XmpDataParser.getRedactionRanges(iso));
             }
 
             return res.toArray();

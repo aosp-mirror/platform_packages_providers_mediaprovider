@@ -17,50 +17,64 @@
 package com.android.photopicker.data.model
 
 import android.net.Uri
+import com.android.photopicker.core.glide.GlideLoadable
+import com.android.photopicker.core.glide.Resolution
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.signature.ObjectKey
 
-/**
- * Holds metadata for a type of media item like [Image] or [Video].
- */
-sealed interface Media {
-        /** This is the ID that provider has shared with Picker */
-        val mediaId: String
+/** Holds metadata for a type of media item like [Image] or [Video]. */
+sealed interface Media : GlideLoadable {
+    /** This is the ID that provider has shared with Picker */
+    val mediaId: String
 
-        /** This is the Picker ID auto-generated in Picker DB */
-        val pickerId: Long
-        val authority: String
-        val uri: Uri
-        val dateTakenMillisLong: Long
-        val sizeInBytes: Long
-        val mimeType: String
-        val standardMimeTypeExtension: Int
+    /** This is the Picker ID auto-generated in Picker DB */
+    val pickerId: Long
+    val authority: String
+    val uri: Uri
+    val dateTakenMillisLong: Long
+    val sizeInBytes: Long
+    val mimeType: String
+    val standardMimeTypeExtension: Int
 
-        /**
-         * Holds metadata for an image item.
-         */
-        data class Image(
-                override val mediaId: String,
-                override val pickerId: Long,
-                override val authority: String,
-                override val uri: Uri,
-                override val dateTakenMillisLong: Long,
-                override val sizeInBytes: Long,
-                override val mimeType: String,
-                override val standardMimeTypeExtension: Int,
-        ) : Media
+    override fun getSignature(resolution: Resolution): ObjectKey {
+        return ObjectKey("${uri}_$resolution")
+    }
 
-        /**
-         * Holds metadata for a video item.
-         */
-        data class Video(
-                override val mediaId: String,
-                override val pickerId: Long,
-                override val authority: String,
-                override val uri: Uri,
-                override val dateTakenMillisLong: Long,
-                override val sizeInBytes: Long,
-                override val mimeType: String,
-                override val standardMimeTypeExtension: Int,
+    override fun getLoadableUri(): Uri {
+        return uri
+    }
 
-                val duration: Int,
-        ) : Media
+    override fun getDataSource(): DataSource {
+        // TODO(b/303782563): Use MediaSource to determine datasource.
+        return DataSource.LOCAL
+    }
+
+    override fun getTimestamp(): Long {
+        return dateTakenMillisLong
+    }
+
+    /** Holds metadata for an image item. */
+    data class Image(
+        override val mediaId: String,
+        override val pickerId: Long,
+        override val authority: String,
+        override val uri: Uri,
+        override val dateTakenMillisLong: Long,
+        override val sizeInBytes: Long,
+        override val mimeType: String,
+        override val standardMimeTypeExtension: Int,
+    ) : Media
+
+    /** Holds metadata for a video item. */
+    data class Video(
+        override val mediaId: String,
+        override val pickerId: Long,
+        override val authority: String,
+        override val uri: Uri,
+        override val dateTakenMillisLong: Long,
+        override val sizeInBytes: Long,
+        override val mimeType: String,
+        override val standardMimeTypeExtension: Int,
+        val duration: Int,
+    ) : Media
 }

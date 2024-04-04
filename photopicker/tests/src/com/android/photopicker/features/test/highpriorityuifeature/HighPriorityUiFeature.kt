@@ -30,6 +30,7 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
@@ -57,6 +58,14 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
         val DIALOG_ROUTE = "highpriority/dialog"
         val DIALOG_STRING = "I'm the dialog location."
     }
+
+    override val token = TAG
+
+    /** Events consumed by the Photo grid */
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    /** Events produced by the Photo grid */
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
@@ -103,7 +112,7 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location) {
+    override fun compose(location: Location, modifier: Modifier) {
 
         when (location) {
             Location.COMPOSE_TOP -> composeTop()

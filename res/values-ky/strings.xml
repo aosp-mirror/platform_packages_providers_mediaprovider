@@ -108,7 +108,7 @@
     <string name="preloading_cancel_button" msgid="824053521307342209">"Жокко чыгаруу"</string>
     <string name="picker_banner_cloud_first_time_available_title" msgid="5912973744275711595">"Эми камдык көчүрмөсү сакталган сүрөттөр камтылат"</string>
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"<xliff:g id="APP_NAME">%1$s</xliff:g> аккаунтундагы (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) сүрөттөрдү тандай аласыз"</string>
-    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> аккаунту жаңыртылды"</string>
+    <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"<xliff:g id="APP_NAME">%1$s</xliff:g> аккаунту жаңырды"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"<xliff:g id="USER_ACCOUNT">%1$s</xliff:g> сүрөттөрү бул жерде камтылган"</string>
     <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Булуттагы мультимедиа колдонмосун тандоо"</string>
     <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Бул жерде камдык көчүрмөсү сакталган сүрөттөрдү камтуу үчүн Тууралоодон булуттагы мультимедиа колдонмосун тандаңыз"</string>

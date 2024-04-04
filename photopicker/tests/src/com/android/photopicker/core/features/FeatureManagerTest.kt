@@ -33,9 +33,12 @@ import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
+import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +48,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertThrows
+import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -88,6 +93,8 @@ class FeatureManagerTest {
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
+                    /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                    /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
 
             // Expect only the [SimpleUiFeature] and [HighPriorityUiFeature] to be enabled.
@@ -108,6 +115,8 @@ class FeatureManagerTest {
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
+                    /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                    /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
 
             composeTestRule.setContent { featureManagerTestUiComposeTop(featureManager) }
@@ -144,6 +153,8 @@ class FeatureManagerTest {
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
+                    /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                    /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
 
             composeTestRule.setContent {
@@ -184,7 +195,9 @@ class FeatureManagerTest {
             FeatureManager(
                 configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                 backgroundScope,
-                setOf(mockRegistration)
+                setOf(mockRegistration),
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
             )
 
             advanceTimeBy(100) // Wait for initialization
@@ -199,6 +212,84 @@ class FeatureManagerTest {
         }
     }
 
+    /* Ensures that the [FeatureManager] does crash non production configurations when
+     * an event that needs to be consumed is not produced. */
+    @Test
+    fun testFeatureManagerConsumedEventsRequireProducerThrowsDebug() {
+
+        // Mock out a feature and provide a fake registration that provides the mock.
+        val mockSimpleUiFeature: SimpleUiFeature = mock(SimpleUiFeature::class.java)
+        val mockRegistration =
+            object : FeatureRegistration {
+                override val TAG = "MockedFeature"
+                override fun isEnabled(config: PhotopickerConfiguration) = true
+                override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
+            }
+
+        val configFlow =
+            MutableStateFlow(
+                PhotopickerConfiguration(
+                    action = "TEST",
+                    deviceIsDebuggable = true,
+                )
+            )
+
+        whenever(mockSimpleUiFeature.eventsConsumed) {
+            setOf(Event.MediaSelectionConfirmed::class.java)
+        }
+        whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
+
+        runTest {
+            assertThrows(IllegalStateException::class.java) {
+                FeatureManager(
+                    configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
+                    backgroundScope,
+                    setOf(mockRegistration)
+                )
+            }
+        }
+    }
+
+    /* Ensures that the [FeatureManager] does not crash production configurations when
+     * an event that needs to be consumed is not produced. */
+    @Test
+    fun testFeatureManagerConsumedEventsRequireProducerDoesNotThrowProduction() {
+
+        // Mock out a feature and provide a fake registration that provides the mock.
+        val mockSimpleUiFeature: SimpleUiFeature = mock(SimpleUiFeature::class.java)
+        val mockRegistration =
+            object : FeatureRegistration {
+                override val TAG = "MockedFeature"
+                override fun isEnabled(config: PhotopickerConfiguration) = true
+                override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
+            }
+
+        val configFlow =
+            MutableStateFlow(
+                PhotopickerConfiguration(
+                    action = "TEST",
+                    deviceIsDebuggable = false,
+                )
+            )
+
+        whenever(mockSimpleUiFeature.eventsConsumed) {
+            setOf(Event.MediaSelectionConfirmed::class.java)
+        }
+        whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
+
+        runTest {
+            try {
+                FeatureManager(
+                    configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
+                    backgroundScope,
+                    setOf(mockRegistration)
+                )
+            } catch (e: IllegalStateException) {
+                fail("IllegalStateException was thrown in a production configuration.")
+            }
+        }
+    }
+
     /* Ensure the isEnabled api can correctly return which features are enabled. */
     @Test
     fun testFeatureManagerIsFeatureEnabled() {
@@ -209,6 +300,8 @@ class FeatureManagerTest {
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
                     testRegistrations,
+                    /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                    /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
 
             // Expect only the [SimpleUiFeature] and [HighPriorityUiFeature] to be enabled.

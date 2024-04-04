@@ -102,6 +102,9 @@ public class PhotoPickerBaseTest {
      */
     static final int DEFAULT_BANNER_POSITION = 0;
 
+    static final String TEST_APP_PACKAGE_NAME = getTargetContext().getPackageName();
+    static final int TEST_APP_UID = Process.myUid();
+
 
     private static final Intent sSingleSelectIntent;
     static {

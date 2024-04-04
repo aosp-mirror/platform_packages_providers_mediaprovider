@@ -31,7 +31,13 @@ public class UiEventLoggerTestUtils {
 
     static void verifyLogWithInstanceId(ActivityScenarioRule<PhotoPickerTestActivity> rule,
             UiEventLogger.UiEventEnum event, int uid, String packageName) {
-        rule.getScenario().onActivity(activity ->
+        verifyLogWithInstanceId(rule.getScenario(), event, uid, packageName);
+    }
+
+    static <T extends PhotoPickerTestActivity> void verifyLogWithInstanceId(
+            ActivityScenario<T> scenario, UiEventLogger.UiEventEnum event, int uid,
+            String packageName) {
+        scenario.onActivity(activity ->
                 verify(activity.getLogger()).logWithInstanceId(
                         event, uid, packageName, activity.getInstanceId()));
     }

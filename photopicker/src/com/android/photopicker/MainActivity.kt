@@ -19,12 +19,25 @@ package com.android.photopicker
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
-import com.android.photopicker.core.ActivityOwned
-import com.android.photopicker.core.PhotopickerApp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.android.photopicker.core.PhotopickerAppWithBottomSheet
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.model.Media
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
 
 /**
@@ -36,7 +49,14 @@ import javax.inject.Inject
 @AndroidEntryPoint(ComponentActivity::class)
 class MainActivity : Hilt_MainActivity() {
 
-    @Inject @ActivityOwned lateinit var featureManager: FeatureManager
+    @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var selection: Selection<Media>
+    // This needs to be injected lazily, to defer initialization until the action can be set
+    // on the ConfigurationManager.
+    @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
+
+    // Events requires the feature manager, so initialize this lazily until the action is set.
+    @Inject lateinit var events: Lazy<Events>
 
     companion object {
         val TAG: String = "Photopicker"
@@ -45,11 +65,23 @@ class MainActivity : Hilt_MainActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContent {
+        enableEdgeToEdge()
+        // Set the action before allowing FeatureManager to be initialized, so that it receives
+        // the correct config with this activity's action.
+        configurationManager.setAction(getIntent()?.getAction() ?: "")
 
-            // Provide the [FeatureManager] to the entire compose stack.
-            CompositionLocalProvider(LocalFeatureManager provides featureManager) {
-                PhotopickerApp()
+        setContent {
+            val photopickerConfiguration by
+                configurationManager.configuration.collectAsStateWithLifecycle()
+
+            // Provide values to the entire compose stack.
+            CompositionLocalProvider(
+                LocalFeatureManager provides featureManager.get(),
+                LocalPhotopickerConfiguration provides photopickerConfiguration,
+                LocalSelection provides selection,
+                LocalEvents provides events.get(),
+            ) {
+                PhotopickerTheme { PhotopickerAppWithBottomSheet(onDismissRequest = ::finish) }
             }
         }
     }

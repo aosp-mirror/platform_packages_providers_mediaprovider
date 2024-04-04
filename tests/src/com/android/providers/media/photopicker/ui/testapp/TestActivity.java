@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core
+package com.android.providers.media.photopicker.ui.testapp;
 
-/**
- * Data object that represents a possible configuration state of the Photopicker.
- *
- * @property action the [Intent#getAction] that Photopicker is currently serving.
- */
-data class PhotopickerConfiguration(val action: String)
+import android.os.Bundle;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.android.providers.media.R;
+
+public class TestActivity extends AppCompatActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_test);
+    }
+}

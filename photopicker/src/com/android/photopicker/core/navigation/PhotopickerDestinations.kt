@@ -20,4 +20,7 @@ enum class PhotopickerDestinations(val route: String) {
 
     // The default route, only used when no other Routes are registered.
     DEFAULT("default"),
+
+    // The main route which shows a grid of the user's photos.
+    PHOTO_GRID("photogrid"),
 }

@@ -20,10 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
-import com.android.photopicker.core.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
@@ -42,6 +44,12 @@ open class SimpleUiFeature : PhotopickerUiFeature {
         val UI_STRING = "I'm a simple string, from a SimpleUiFeature"
         val SIMPLE_ROUTE = "simple"
     }
+
+    override val token = TAG
+
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
@@ -72,7 +80,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location) {
+    override fun compose(location: Location, modifier: Modifier) {
 
         when (location) {
             Location.COMPOSE_TOP -> composeTop()

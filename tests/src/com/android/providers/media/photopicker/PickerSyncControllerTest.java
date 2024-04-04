@@ -1744,6 +1744,8 @@ public class PickerSyncControllerTest {
 
             mController.syncAllMedia();
 
+            refreshUiNotificationObserver.waitForChange();
+
             assertWithMessage("Refresh ui notification should have been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
@@ -1908,6 +1910,7 @@ public class PickerSyncControllerTest {
     private static class TestContentObserver extends ContentObserver {
         boolean mNotificationReceived;
         Uri mNotificationUri;
+        private CountDownLatch mLatch = new CountDownLatch(1);
 
         TestContentObserver(Handler handler) {
             super(handler);
@@ -1917,6 +1920,17 @@ public class PickerSyncControllerTest {
         public void onChange(boolean selfChange, Uri uri) {
             mNotificationReceived = true;
             mNotificationUri = uri;
+            mLatch.countDown();
+        }
+
+        public void waitForChange() {
+            try {
+                assertWithMessage("Timed out while waiting for observer change.")
+                        .that(mLatch.await(5, TimeUnit.SECONDS))
+                        .isTrue();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public void clear() {

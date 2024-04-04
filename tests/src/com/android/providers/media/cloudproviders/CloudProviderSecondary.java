@@ -19,6 +19,7 @@ package com.android.providers.media.cloudproviders;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.photopicker.ui.testapp.TestActivityUtils.TEST_ACTIVITY_INTENT;
 
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -40,12 +41,14 @@ import java.io.FileNotFoundException;
 public class CloudProviderSecondary extends CloudMediaProvider {
     public static final String AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_secondary";
+    public static final String ACCOUNT_NAME = "test_account@secondaryCloudProvider";
 
     private final MediaGenerator mMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(AUTHORITY);
 
     @Override
     public boolean onCreate() {
+        mMediaGenerator.setAccountInfo(ACCOUNT_NAME, TEST_ACTIVITY_INTENT);
         return true;
     }
 

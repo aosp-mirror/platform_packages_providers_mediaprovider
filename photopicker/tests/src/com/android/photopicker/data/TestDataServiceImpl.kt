@@ -57,4 +57,10 @@ class TestDataServiceImpl() : DataService {
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> {
         return FakeInMemoryMediaPagingSource()
     }
+
+    override fun refreshMedia() =
+        throw NotImplementedError("This method is not implemented yet.")
+
+    override fun refreshAlbumMedia(albumId: String, providerAuthority: String) =
+        throw NotImplementedError("This method is not implemented yet.")
 }

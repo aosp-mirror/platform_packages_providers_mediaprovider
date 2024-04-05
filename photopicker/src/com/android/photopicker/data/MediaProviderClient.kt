@@ -20,12 +20,12 @@ import android.content.ContentResolver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.paging.PagingSource.LoadResult
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
-import java.util.ArrayList
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -33,6 +33,12 @@ import java.util.ArrayList
  * It typically fetches data from [MediaProvider] using content queries and call methods.
  */
 open class MediaProviderClient {
+    companion object {
+        private const val TAG = "MediaProviderClient"
+        private const val MEDIA_INIT_CALL_METHOD: String = "picker_media_init"
+        private const val EXTRA_LOCAL_ONLY = "is_local_only"
+    }
+
     /** Contains all optional and mandatory keys required to make a Media query */
     private enum class MediaQuery(val key: String) {
         PICKER_ID("picker_id"),
@@ -268,6 +274,35 @@ open class MediaProviderClient {
                 pickerId = id,
                 dateTakenMillis = date
             )
+        }
+    }
+
+    fun refreshMedia(providers: List<Provider>, resolver: ContentResolver) {
+        if (providers.isEmpty()) {
+            Log.e(TAG, "List of providers is empty. Ignoring refresh media request.")
+            return
+        }
+
+        val extras = Bundle()
+        val initLocalOnlyMedia: Boolean = providers.map {
+                provider -> (provider.mediaSource == MediaSource.LOCAL)
+            }.reduce{
+                aggregate, isProviderLocal -> aggregate && isProviderLocal
+            }
+        extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
+        refreshMedia(extras, resolver)
+    }
+
+    private fun refreshMedia(extras: Bundle, contentResolver: ContentResolver) {
+        try {
+            contentResolver.call(
+                MEDIA_PROVIDER_AUTHORITY,
+                MEDIA_INIT_CALL_METHOD,
+                /* arg */null,
+                extras
+            )
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not send refresh media call to Media Provider $extras", e)
         }
     }
 }

@@ -34,6 +34,7 @@ import static com.android.providers.media.photopicker.espresso.BottomSheetTestUt
 import static com.android.providers.media.photopicker.espresso.OrientationUtils.setLandscapeOrientation;
 import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewMatcher.withRecyclerView;
+import static com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent.PHOTO_PICKER_OPEN_PERSONAL_PROFILE;
 
 import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED;
 import static com.google.common.truth.Truth.assertThat;
@@ -93,6 +94,10 @@ public class PhotoPickerActivityTest extends PhotoPickerBaseTest {
         // Single user mode does not show profile button
         onView(withId(R.id.profile_button)).check(matches(not(isDisplayed())));
         onView(withId(android.R.id.empty)).check(matches(not(isDisplayed())));
+
+        // Verify ui event
+        UiEventLoggerTestUtils.verifyLogWithInstanceId(
+                mScenario, PHOTO_PICKER_OPEN_PERSONAL_PROFILE, TEST_APP_UID, TEST_APP_PACKAGE_NAME);
 
         final String cancelString =
                 InstrumentationRegistry.getTargetContext().getResources().getString(

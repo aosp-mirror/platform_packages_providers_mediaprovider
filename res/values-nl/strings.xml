@@ -72,8 +72,8 @@
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Het is niet toegestaan om persoonsgegevens te openen via een werk-app"</string>
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Je kunt geen toegang krijgen tot gegevens voor je <xliff:g id="PROFILE1">%1$s</xliff:g>-profiel vanuit een app voor je <xliff:g id="PROFILE2">%2$s</xliff:g>-profiel"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Overschakelen naar <xliff:g id="PROFILE">%s</xliff:g>"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Werk-apps zijn onderbroken"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Apps in je <xliff:g id="PROFILE">%s</xliff:g>-profiel zijn onderbroken"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Werk-apps zijn gepauzeerd"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Apps in je <xliff:g id="PROFILE">%s</xliff:g>-profiel zijn gepauzeerd"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Als je werkfoto\'s wilt openen, zet je je werk-apps aan en probeer je het opnieuw"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Als je foto\'s uit je <xliff:g id="PROFILE1">%1$s</xliff:g>-profiel wilt openen, zet je de apps voor je <xliff:g id="PROFILE2">%2$s</xliff:g>-profiel aan en probeer je het opnieuw"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Deze app heeft alleen toegang tot de foto\'s die je selecteert"</string>

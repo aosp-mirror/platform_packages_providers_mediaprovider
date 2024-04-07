@@ -3055,10 +3055,19 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
-            // TODO(b/146777893): System gallery apps can rename a media directory containing
-            // non-media files. This update doesn't support updating non-media files that are not
-            // owned by system gallery app.
-            count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            Long parent = values.getAsLong(FileColumns.PARENT);
+            // Opening a transaction here and ensuring the qbForUpdate happens within
+            // doesn't open two transactions, but just joins the existing one
+            count = helper.runWithTransaction((db) -> {
+                if (parent == null && newPath != null) {
+                    final long parentId = getParent(db, newPath);
+                    values.put(FileColumns.PARENT, parentId);
+                }
+                // TODO(b/146777893): System gallery apps can rename a media directory
+                // containing non-media files. This update doesn't support updating
+                // non-media files that are not owned by system gallery app.
+                return qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            });
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
             retryUpdateWithReplace = true;

@@ -162,6 +162,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
+        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
+
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_photo_picker);
@@ -239,8 +242,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
-            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
-                    intentAction);
+            mPickerViewModel.logPickerOpened(getCallingUid(), getCallingPackage(), intentAction);
+        }
+    }
+
+    private int getCallingUid() {
+        final String callingPackage = getCallingPackage();
+        try {
+            return getPackageManager().getPackageUid(callingPackage, /* flags= */ 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Returning calling uid as -1; callingPackage: " + callingPackage + ".", e);
+            return -1;
         }
     }
 

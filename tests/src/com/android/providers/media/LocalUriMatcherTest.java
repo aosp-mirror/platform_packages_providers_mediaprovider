@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.UriMatcher;
 import android.net.Uri;
 import android.provider.MediaStore;
 
@@ -355,6 +356,26 @@ public class LocalUriMatcherTest {
         assertMatchesHidden(
                 LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL,
                 assembleTestUri(new String[] {"picker_internal", "albums", "local"}));
+    }
+
+    @Test
+    public void testPickerV2UriMatch() {
+        int match = LocalUriMatcher.PICKER_INTERNAL_V2;
+        Uri uri = assembleTestUri(new String[] {"picker_internal", "v2", "wildcard"});
+
+        // Allow if the caller is Photo Picker
+        assertEquals(match, mMatcher.matchUri(
+                uri,
+                /* allowHidden */ false,
+                /* isCallerPhotoPicker */ true)
+        );
+
+        // Don't allow if the caller is Photo Picker
+        assertEquals(UriMatcher.NO_MATCH, mMatcher.matchUri(
+                uri,
+                /* allowHidden */ true,
+                /* isCallerPhotoPicker */ false)
+        );
     }
 
     private void assertMatchesHidden(int match, Uri uri) {

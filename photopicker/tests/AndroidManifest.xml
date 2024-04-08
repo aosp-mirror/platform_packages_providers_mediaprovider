@@ -17,8 +17,14 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.photopicker.tests">
 
+  <uses-permission
+      android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"/>
+
   <application android:debuggable="true">
     <uses-library android:name="android.test.runner"/>
+     <activity
+      android:name="com.android.photopicker.tests.HiltTestActivity"
+      android:exported="false"/>
   </application>
 
   <instrumentation

@@ -16,7 +16,6 @@
 
 package com.android.photopicker.data.paging
 
-import android.content.Context
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.android.photopicker.data.model.Media
@@ -28,9 +27,7 @@ import com.android.photopicker.data.model.MediaPageKey
  *
  * It sources data from a [ContentProvider] called [MediaProvider].
  */
-class MediaPagingSource(
-        context: Context,
-) : PagingSource<MediaPageKey, Media>() {
+class MediaPagingSource() : PagingSource<MediaPageKey, Media>() {
 
     override suspend fun load(
             params: LoadParams<MediaPageKey>

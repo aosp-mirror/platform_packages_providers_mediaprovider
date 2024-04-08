@@ -290,14 +290,16 @@ public interface ConfigStore {
         private static final String KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG =
                 "picker_pick_images_respect_preload_selected_arg";
 
-        private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        @VisibleForTesting
+        public static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
 
         @VisibleForTesting
         public static final String KEY_PRIVATE_SPACE_FEATURE_ENABLED =
                 "private_space_feature_enabled";
         private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
                 "picker_choice_managed_selection_enabled";
-        private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
+        @VisibleForTesting
+        public static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
         private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
                 "cloud_media_enforce_provider_allowlist";
 

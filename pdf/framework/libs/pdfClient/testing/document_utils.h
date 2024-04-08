@@ -20,12 +20,11 @@ static const float kZeroToleranceDifference = 0.0;
 // Creates the full path to the file using ::testing::SrcDir().
 std::string CreateTestFilePath(const std::string file_name, const std::string resources_path);
 
-// Renders a page to RawImage that can be compared with looks_like.
-// std::unique_ptr<image_base::RawImage> RenderPage(const Page& page);
-
 // Loads and returns a Document.
 std::unique_ptr<pdfClient::Document> LoadDocument(std::string_view path,
                                                   const char* password = nullptr);
+
+std::string GetTempFile(std::string filename);
 
 }  // namespace testing
 }  // namespace pdfClient

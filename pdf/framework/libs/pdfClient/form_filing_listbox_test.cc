@@ -22,16 +22,17 @@
 
 #include "document.h"
 #include "form_widget_info.h"
+#include "fpdf_formfill.h"
+#include "fpdfview.h"
+#include "linux_fileops.h"
 #include "page.h"
 #include "rect.h"
 #include "testing/document_utils.h"
-// #include "testing/looks_like.h"
-//  #include "image/base/rawimage.h"
-#include "fpdf_formfill.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
+using pdfClient::LinuxFileOps;
+using pdfClient::Option;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -64,18 +65,12 @@ std::unique_ptr<Document> LoadDocument(const std::string file_name) {
  * No change should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ListboxReadOnlySetChoiceSelectionDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {0};
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxReadOnlySetChoiceSelectionDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices = {0};
+    EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
+}
 
 /**
  * GetFormWidgetInfo for a read only listbox and check that all data returned
@@ -113,68 +108,44 @@ TEST(Test, ListboxReadOnlyGetFormWidgetInfo) {
  * Try to set selected index of a general (non-multiselect) listbox.
  * Selection should be made and end result should display like expected file.
  */
-// TEST(Test, ListboxGeneralSetChoiceSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {2};  // select "Qux"
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kListboxFormIndexSelected);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxGeneralSetChoiceSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ(FPDF_FORMFIELD_LISTBOX, fwiInitial.widget_type());
+    EXPECT_EQ("Foo", fwiInitial.text_value());
+
+    std::vector<int> selected_indices = {2};  // select "Qux"
+    EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ("Qux", fwiResult.text_value());
+}
 
 /**
  * Try to set multiple indices selected in a general (non-multiselect) listbox.
  * No change should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ListboxGeneralSetChoiceMultipleSelectionDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {1, 2};
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxGeneralSetChoiceMultipleSelectionDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices = {1, 2};
+    EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
+}
 
 /**
  * Try to deselect all indices of a general (non-multiselect) listbox.
  * All selections should be cleared and end result should display like
  * expected file.
  */
-// TEST(Test, ListboxGeneralClearSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices;  // Nothing selected.
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kListboxFormCleared);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxGeneralClearSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices;  // Nothing selected.
+    EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
+}
 
 /**
  * GetFormWidgetInfo for a general (non-multiselect) listbox and check that all
@@ -209,74 +180,56 @@ TEST(Test, ListboxGeneralGetFormWidgetInfo) {
  * Try to set selected index of a multiselect listbox.
  * Selection should be made and end result should display like expected file.
  */
-// TEST(Test, ListboxMultiSelectSetChoiceSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {5};  // select "Fig"
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kListboxFormMultiIndexSelected);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxMultiSelectSetChoiceSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ(FPDF_FORMFIELD_LISTBOX, fwiInitial.widget_type());
+    EXPECT_EQ("Banana", fwiInitial.text_value());
+
+    std::vector<int> selected_indices = {5};  // select "Fig"
+    EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("Fig", fwiResult.text_value());
+}
 
 /**
  * Try to set multiple indices selected in a multiselect listbox.
  * Selections should be made and end result should display like expected file.
  */
-// TEST(Test, ListboxMultiSelectSetChoiceMultipleSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {3, 4, 7};
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kListboxFormMultiIndicesSelected);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxMultiSelectSetChoiceMultipleSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices = {3, 4, 7};
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ(FPDF_FORMFIELD_LISTBOX, fwiInitial.widget_type());
+    EXPECT_TRUE(fwiInitial.multiselect());
+    EXPECT_EQ("Banana", fwiInitial.text_value());
+
+    EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(1);
+    const std::vector<Option>& selections = fwiResult.options();
+
+    EXPECT_TRUE(selections[3].selected);
+    EXPECT_TRUE(selections[4].selected);
+    EXPECT_TRUE(selections[7].selected);
+}
 
 /**
  * Try to deselect all indices of a multiselect listbox.
  * All selections should be cleared and end result should display like
  * expected file.
  */
-// TEST(Test, ListboxMultiSelectClearSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices;  // Nothing selected.
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kListboxFormMultiCleared);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxMultiSelectClearSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices;  // Nothing selected.
+    EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
+}
 
 /**
  * GetFormWidgetInfo for a multiselect listbox and check that all data
@@ -311,38 +264,26 @@ TEST(Test, ListboxMultiSelectGetFormWidgetInfo) {
  * Listboxes do not have editable text. Verify that setting text in these
  * widgets is a no-op.
  */
-// TEST(Test, ListboxSetTextInvalidDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::string test_text = "Test Text";
-//     EXPECT_FALSE(page_zero->SetFormFieldText(0, test_text));
-//     EXPECT_FALSE(page_zero->SetFormFieldText(1, test_text));
-//     EXPECT_FALSE(page_zero->SetFormFieldText(2, test_text));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxSetTextInvalidDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::string test_text = "Test Text";
+    EXPECT_FALSE(page_zero->SetFormFieldText(0, test_text));
+    EXPECT_FALSE(page_zero->SetFormFieldText(1, test_text));
+    EXPECT_FALSE(page_zero->SetFormFieldText(2, test_text));
+}
 
 /**
  * Clicking on listbox widgets should always be a no-op and never change the
  * rendering of the page.
  */
-// TEST(Test, ListboxClickOnPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kGeneralLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kMultiSelectLocationDeviceCoords));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ListboxClickOnPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kListboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kGeneralLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kMultiSelectLocationDeviceCoords));
+}
 
 /**
  * Clicking on listbox widgets should always be a no-op and never result in

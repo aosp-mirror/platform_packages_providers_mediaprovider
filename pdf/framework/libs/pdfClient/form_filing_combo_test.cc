@@ -23,16 +23,16 @@
 
 #include "document.h"
 #include "form_widget_info.h"
+#include "fpdf_formfill.h"
+#include "fpdfview.h"
+#include "linux_fileops.h"
 #include "page.h"
 #include "rect.h"
 #include "testing/document_utils.h"
-// #include "testing/looks_like.h"
-//  #include "image/base/rawimage.h"
-#include "fpdf_formfill.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
+using pdfClient::LinuxFileOps;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -66,35 +66,24 @@ std::unique_ptr<Document> LoadDocument(const std::string file_name) {
  * No change should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ComboboxReadOnlySetTextDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->SetFormFieldText(0, "Custom Text"));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxReadOnlySetTextDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    EXPECT_FALSE(page_zero->SetFormFieldText(0, "Custom Text"));
+}
 
 /**
  * Try to set selected indices of a read-only combobox.
  * No change should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ComboboxReadOnlySetChoiceSelectionDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {0};
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxReadOnlySetChoiceSelectionDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices = {0};
+    EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
+}
 
 /**
  * GetFormWidgetInfo for a read only combobox and check that all data returned
@@ -133,41 +122,29 @@ TEST(Test, ComboboxReadOnlyGetFormWidgetInfo) {
  * No change should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ComboboxUneditableSetTextDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->SetFormFieldText(1, "Custom Text"));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxUneditableSetTextDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    EXPECT_FALSE(page_zero->SetFormFieldText(1, "Custom Text"));
+}
 
 /**
  * Try to set selected index of an uneditable combobox.
  * Selection should be made and end result should display like expected file.
  */
-// TEST(Test, ComboboxUneditableSetChoiceSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {17};  // select "Raspberry"
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kComboboxFormUneditableIndexSelected);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxUneditableSetChoiceSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ(FPDF_FORMFIELD_COMBOBOX, fwiInitial.widget_type());
+    EXPECT_EQ("Banana", fwiInitial.text_value());
+
+    std::vector<int> selected_indices = {17};  // select "Raspberry"
+    EXPECT_TRUE(page_zero->SetChoiceSelection(1, selected_indices));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("Raspberry", fwiResult.text_value());
+}
 
 /**
  * GetFormWidgetInfo for an uneditable combobox and check that all data
@@ -202,48 +179,38 @@ TEST(Test, ComboboxUneditableGetFormWidgetInfo) {
  * Try to set the text of an editable combobox.
  * Text should be set and end result should display like expected file.
  */
-// TEST(Test, ComboboxEditableSetText) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->SetFormFieldText(2, "Custom Text"));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kComboboxFormEditableTextEdited);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxEditableSetText) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ(FPDF_FORMFIELD_COMBOBOX, fwiInitial.widget_type());
+    EXPECT_EQ("", fwiInitial.text_value());
+
+    EXPECT_TRUE(page_zero->SetFormFieldText(2, "Custom Text"));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ("Custom Text", fwiResult.text_value());
+}
 
 /**
  * Try to set selected index of an editable combobox.
  * Selection should be made and end result should display like expected file.
  */
-// TEST(Test, ComboboxEditableSetChoiceSelection) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {1};  // select "Bar"
-//     EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kComboboxFormEditableIndexSelected);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxEditableSetChoiceSelection) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ(FPDF_FORMFIELD_COMBOBOX, fwiInitial.widget_type());
+    EXPECT_EQ("", fwiInitial.text_value());
+
+    std::vector<int> selected_indices = {1};  // select "Bar"
+    EXPECT_TRUE(page_zero->SetChoiceSelection(2, selected_indices));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ("Bar", fwiResult.text_value());
+}
 
 /**
  * GetFormWidgetInfo for an editable combobox and check that all data returned
@@ -279,59 +246,43 @@ TEST(Test, ComboboxEditableGetFormWidgetInfo) {
  * No changes should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ComboboxSetChoiceSelectionInvalidEmptyListDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices;
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(1, selected_indices));
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxSetChoiceSelectionInvalidEmptyListDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    std::vector<int> selected_indices;
+    EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
+    EXPECT_FALSE(page_zero->SetChoiceSelection(1, selected_indices));
+    EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
+}
 
 /**
  * Try to set more than one index as selected in the comboboxes.
  * No changes should be made and the end result should look identical to
  * pre-editing.
  */
-// TEST(Test, ComboboxSetChoiceSelectionInvalidMoreThanOneSelectedDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {0, 1};
-//
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(1, selected_indices));
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxSetChoiceSelectionInvalidMoreThanOneSelectedDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    std::vector<int> selected_indices = {0, 1};
+
+    EXPECT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
+    EXPECT_FALSE(page_zero->SetChoiceSelection(1, selected_indices));
+    EXPECT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
+}
 
 /**
  * Clicking on combobox widgets should always be a no-op and never change the
  * rendering of the page.
  */
-// TEST(Test, ComboboxClickOnPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kUneditableLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kEditableLocationDeviceCoords));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ComboboxClickOnPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kComboboxForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kUneditableLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kEditableLocationDeviceCoords));
+}
 
 /**
  * Clicking on combobox widgets should always be a no-op and never result in

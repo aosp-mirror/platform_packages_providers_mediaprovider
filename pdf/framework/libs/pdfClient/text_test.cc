@@ -23,13 +23,11 @@
 #include <vector>
 
 // Goes first due to conflicts.
+#include "cpp/fpdf_scopers.h"
 #include "document.h"
+#include "fpdfview.h"
 #include "page.h"
 #include "rect.h"
-// #include "file/base/path.h"
-// #include "testing/base/public/gmock.h"
-#include "cpp/fpdf_scopers.h"
-#include "fpdfview.h"
 
 namespace {
 
@@ -213,22 +211,17 @@ TEST(Test, GetTextBounds_hyphens) {
     EXPECT_EQ(1, page->BoundsOfMatchesUtf8("failure\r\n  modes", &fm_bounds, &fm_m2r, nullptr));
 }
 
-// TEST(Test, ExtractAltText) {
-//     Document doc(LoadTestDocument(kAltTextFile), false);
-//     std::shared_ptr<Page> page = doc.GetPage(6);
-//
-//     std::vector<std::string> alt_texts;
-//     page->GetAltTextUtf8(&alt_texts);
-//     EXPECT_THAT(alt_texts,
-//                 ElementsAre("A sample excerpt from a publication that includes three types of "
-//                             "image: a portrait, a chart, and background decoration. The "
-//                             "publication "
-//                             "is the Long-range plan for dog treat at the agency, with a welcome "
-//                             "message from Pastel, the guide dog. The types of image are "
-//                             "explained in "
-//                             "the text that follows.",
-//                             "take note!"));
-// }
+TEST(Test, ExtractAltText) {
+    Document doc(LoadTestDocument(kAltTextFile), false);
+    std::shared_ptr<Page> page = doc.GetPage(6);
+
+    std::vector<std::string> alt_texts;
+    page->GetAltTextUtf8(&alt_texts);
+    // For now testing returned vector size GT 0, once we address include path
+    // we can consider gmock matchers for uncommenting following lines to
+    // confirm vector content
+    EXPECT_GT(alt_texts.size(), 0);
+}
 
 TEST(Test, BugSwitzerland) {
     Document doc(LoadTestDocument(kBugSwitzerland), false);

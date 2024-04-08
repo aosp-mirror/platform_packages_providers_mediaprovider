@@ -30,22 +30,16 @@
 
 #include "extractors.h"
 #include "file.h"
+#include "fpdfview.h"
+#include "linux_fileops.h"
 #include "logging.h"
 #include "page.h"
-// #include "testing/looks_like.h"
-// #include "testing/undeclared_outputs.h"
-//  #include "file/base/path.h"
-#include "linux_fileops.h"
-// #include "image/base/rawimage.h"
-// #include "image/codec/pngencoder.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FileReader;
 using pdfClient::LinuxFileOps;
 using pdfClient::Page;
 using std::string_view;
-// using image_base::RawImage;
 
 namespace {
 
@@ -64,38 +58,9 @@ std::string GetTestFile(std::string filename) {
     return GetTestDataDir() + "/" + kTestdata + "/" + filename;
 }
 
-// std::string GetTempFile(string_view filename) {
-//     return JoinPath(::testing::TempDir(), filename);
-// }
-
-// void SaveAsPngTestOutput(const RawImage& img, string_view name, string_view description) {
-//     image_codec::PngEncoder encoder;
-//     encoder.set_compression_level(6);
-//     std::string result;
-//     QCHECK(encoder.EncodeImage(&img, &result));
-//     pdfClient::testing::SaveUndeclaredOutput(name, description, "image/png", result);
-// }
-
-// std::unique_ptr<RawImage> RenderPage(const std::shared_ptr<Page> page) {
-//     std::unique_ptr<RawImage> dest(new RawImage());
-//
-//     // Render to a standard max dimension.
-//     static constexpr int kMaxDimension = 1024;
-//     QCHECK_GT(page->Width(), 0) << "0 page width";
-//     QCHECK_GT(page->Height(), 0) << "0 page height";
-//     const float scale = static_cast<float>(kMaxDimension) / std::max(page->Width(), page->Height());
-//     size_t width = static_cast<size_t>(page->Width() * scale);
-//     size_t height = static_cast<size_t>(page->Height() * scale);
-//
-//     QCHECK(dest->Resize(width, height, image_base::SimpleImage::Colorspace::RGBA))
-//             << "could not resize dest image to " << width << "x" << height;
-//
-//     pdfClient::BufferWriter pix_writer(dest->mutable_pixel_data());
-//     QCHECK(page->RenderPage(width, height, false, &pix_writer))
-//             << "could not render page at " << width << "x" << height;
-//
-//     return dest;
-// }
+std::string GetTempFile(std::string filename) {
+    return GetTestDataDir() + "/" + filename;
+}
 
 std::unique_ptr<Document> LoadDocument(string_view path, const char* password = nullptr) {
     LinuxFileOps::FDCloser fd(open(path.data(), O_RDONLY));
@@ -107,58 +72,69 @@ std::unique_ptr<Document> LoadDocument(string_view path, const char* password = 
     return document;
 }
 
-// TEST(Test, CloneWithoutEncryption) {
-//     std::unique_ptr<Document> doc = LoadDocument(GetTestFile(kSecretWithPassword), kPassword);
-//     std::unique_ptr<RawImage> encrypted_page_image = RenderPage(doc->GetPage(0));
-//     SaveAsPngTestOutput(*encrypted_page_image, "expected.png", "Expected");
-//     std::string cloned_path = GetTempFile("cloned.pdf");
-//     LinuxFileOps::FDCloser out(
-//             open(cloned_path.c_str(), O_RDWR | O_CREAT | O_APPEND, 0600));
-//     ASSERT_GT(out.get(), 0);
-//     ASSERT_TRUE(doc->CloneDocumentWithoutSecurity(std::move(out)));
-//     std::unique_ptr<Document> cloned = LoadDocument(cloned_path);
-//     std::unique_ptr<RawImage> cloned_page_image = RenderPage(cloned->GetPage(0));
-//     SaveAsPngTestOutput(*cloned_page_image, "actual.png", "Actual");
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*encrypted_page_image, *cloned_page_image));
-//     std::unique_ptr<Document> no_password = LoadDocument(GetTestFile(kSekretNoPassword));
-//     std::unique_ptr<RawImage> no_password_page_image = RenderPage(no_password->GetPage(0));
-//     SaveAsPngTestOutput(*cloned_page_image, "reference.png", "Reference");
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*no_password_page_image, *cloned_page_image));
-// }
+void compareDocuments(const std::shared_ptr<Page> page_orig,
+                      const std::shared_ptr<Page> page_copied) {
+    static constexpr int kMaxDimension = 1024;
+    CHECK_GT(page_orig->Width(), 0) << "0 page width";
+    CHECK_GT(page_orig->Height(), 0) << "0 page height";
+    const float scale_orig =
+            static_cast<float>(kMaxDimension) / std::max(page_orig->Width(), page_orig->Height());
+    size_t width_orig = static_cast<size_t>(page_orig->Width() * scale_orig);
+    size_t height_orig = static_cast<size_t>(page_orig->Height() * scale_orig);
 
-// TEST(Test, SaveAs) {
-//     std::unique_ptr<Document> doc = LoadDocument(GetTestFile(kSecretWithPassword), kPassword);
-//     std::unique_ptr<RawImage> encrypted_page_image = RenderPage(doc->GetPage(0));
-//     SaveAsPngTestOutput(*encrypted_page_image, "expected.png", "Expected");
-//     std::string copied_path = GetTempFile("copied.pdf");
-//     LinuxFileOps::FDCloser out(
-//             open(copied_path.c_str(), O_RDWR | O_CREAT | O_APPEND, 0600));
-//     ASSERT_GT(out.get(), 0);
-//     ASSERT_TRUE(doc->SaveAs(std::move(out)));
-//
-//     // Expect to fail for lack of password.
-//     LinuxFileOps::FDCloser in(open(copied_path.c_str(), O_RDONLY));
-//     ASSERT_GT(in.get(), 0);
-//     std::unique_ptr<Document> should_fail;
-//     auto fr = std::make_unique<FileReader>(std::move(in));
-//     QCHECK_EQ(pdfClient::REQUIRES_PASSWORD,
-//               Document::Load(std::move(fr), nullptr, /* closeFdOnFailure= */ true, &should_fail))
-//             << "should not have been able to load copy of " << kSecretWithPassword
-//             << " without password";
-//
-//     // Should load with same password.
-//     std::unique_ptr<Document> copied = LoadDocument(copied_path, kPassword);
-//     std::unique_ptr<RawImage> copied_page_image = RenderPage(copied->GetPage(0));
-//     SaveAsPngTestOutput(*copied_page_image, "actual.png", "Actual");
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*encrypted_page_image, *copied_page_image));
-// }
+    CHECK_GT(page_copied->Width(), 0) << "0 page width";
+    CHECK_GT(page_copied->Height(), 0) << "0 page height";
+    const float scale_copied = static_cast<float>(kMaxDimension) /
+                               std::max(page_copied->Width(), page_copied->Height());
+    size_t width_copied = static_cast<size_t>(page_copied->Width() * scale_copied);
+    size_t height_copied = static_cast<size_t>(page_copied->Height() * scale_copied);
+
+    ASSERT_EQ(width_orig, width_copied);
+    ASSERT_EQ(height_orig, height_copied);
+    ASSERT_EQ(scale_orig, scale_copied);
+}
+
+void loadDocumentWithoutPassword(std::string fpath) {
+    // Expect to fail for lack of password.
+    LinuxFileOps::FDCloser in(open(fpath.c_str(), O_RDONLY));
+    ASSERT_GT(in.get(), 0);
+    std::unique_ptr<Document> should_fail;
+    auto fr = std::make_unique<FileReader>(std::move(in));
+    CHECK_EQ(pdfClient::REQUIRES_PASSWORD,
+             Document::Load(std::move(fr), nullptr, /* closeFdOnFailure= */ true, &should_fail))
+            << "should not have been able to load copy of " << kSecretWithPassword
+            << " without password";
+}
+
+TEST(Test, CloneWithoutEncryption) {
+    std::unique_ptr<Document> doc =
+            LoadDocument(GetTestFile(kSecretWithPassword), kPassword.c_str());
+    std::string cloned_path = GetTempFile("cloned.pdf");
+    LinuxFileOps::FDCloser out(open(cloned_path.c_str(), O_RDWR | O_CREAT | O_APPEND, 0600));
+    ASSERT_GT(out.get(), 0);
+    ASSERT_TRUE(doc->CloneDocumentWithoutSecurity(std::move(out)));
+    std::unique_ptr<Document> cloned = LoadDocument(cloned_path);
+    compareDocuments(doc->GetPage(0), cloned->GetPage(0));
+}
+
+TEST(Test, SaveAs) {
+    std::unique_ptr<Document> doc_orig =
+            LoadDocument(GetTestFile(kSecretWithPassword), kPassword.c_str());
+    std::string copied_path = GetTempFile("copied.pdf");
+    LinuxFileOps::FDCloser out(open(copied_path.c_str(), O_RDWR | O_CREAT | O_APPEND, 0600));
+    ASSERT_GT(out.get(), 0);
+    ASSERT_TRUE(doc_orig->SaveAs(std::move(out)));
+    loadDocumentWithoutPassword(copied_path);
+    // Should load with same password.
+    std::unique_ptr<Document> copied = LoadDocument(copied_path, kPassword.c_str());
+    compareDocuments(doc_orig->GetPage(0), copied->GetPage(0));
+}
 
 /*
  * Tests the retention of std::shared_ptr<Page> as requested.
  */
 TEST(Test, GetPageTest) {
     std::unique_ptr<Document> doc = LoadDocument(GetTestFile(kSekretNoPassword), nullptr);
-
     // retain == false so should be a new copy each time
     std::shared_ptr<Page> page_zero_copy_one = doc->GetPage(0);
     std::shared_ptr<Page> page_zero_copy_two = doc->GetPage(0);

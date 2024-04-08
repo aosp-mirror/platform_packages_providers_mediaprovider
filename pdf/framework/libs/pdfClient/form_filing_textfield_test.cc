@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <android-base/file.h>
 #include <gtest/gtest.h>
 
 #include <cstdlib>
@@ -23,16 +24,16 @@
 
 #include "document.h"
 #include "form_widget_info.h"
+#include "fpdf_formfill.h"
+#include "fpdfview.h"
+#include "linux_fileops.h"
 #include "page.h"
 #include "rect.h"
 #include "testing/document_utils.h"
-// #include "testing/looks_like.h"
-//  #include "image/base/rawimage.h"
-#include "fpdf_formfill.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
+using pdfClient::LinuxFileOps;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -62,21 +63,30 @@ std::unique_ptr<Document> LoadDocument(const std::string file_name) {
             pdfClient::testing::CreateTestFilePath(file_name, kTestdata));
 }
 
+std::string GetTestDataDir() {
+    return android::base::GetExecutableDirectory();
+}
+
+std::string GetTestFile(std::string filename) {
+    return GetTestDataDir() + "/" + kTestdata + "/" + filename;
+}
+
+std::string GetTempFile(std::string filename) {
+    // For now hardcoding - TODO
+    return GetTestDataDir() + "/" + filename;
+}
+
 /**
  * Try to set the text of a read-only text field. No change should be made and
  * the end result should look identical to pre-editing.
  */
-// TEST(Test, TextFieldReadOnlySetTextDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->SetFormFieldText(0, "Some New Text"));
-//
-//     std::unique_ptr<RawImage> edited_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *edited_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldReadOnlySetTextDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    page_zero->InitializeFormFilling();
+
+    EXPECT_FALSE(page_zero->SetFormFieldText(0, "Some New Text"));
+}
 
 /**
  * Send a click action to the coordinates of the read only text field and check
@@ -112,47 +122,38 @@ TEST(Test, TextFieldReadOnlyGetFormWidgetInfo) {
  * Set the text of a text field. The text should be set in the field and it
  * should display like the expected file.
  */
-// TEST(Test, TextFieldSetText) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->SetFormFieldText(1, "Gecko taillllllllll"));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kTextFormEdited);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldSetText) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    page_zero->InitializeFormFilling();
+    int annotation_index = 1;
+    std::string_view annotate = "Gecko tailllllllll";
+
+    FormWidgetInfo initial = page_zero->GetFormWidgetInfo(annotation_index);
+    EXPECT_EQ("Chameleon", initial.text_value());
+
+    EXPECT_TRUE(page_zero->SetFormFieldText(annotation_index, annotate));
+
+    FormWidgetInfo result = page_zero->GetFormWidgetInfo(annotation_index);
+    EXPECT_EQ(annotate, result.text_value());
+}
 
 /**
  * Clear the text of a text field by setting it to empty string. The field
  * should be cleared and it should display like the expected file.
  */
-// TEST(Test, TextFieldClearText) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->SetFormFieldText(1, ""));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kTextFormCleared);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldClearText) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo initial = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("Chameleon", initial.text_value());
+
+    EXPECT_TRUE(page_zero->SetFormFieldText(1, ""));
+
+    FormWidgetInfo result = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("", result.text_value());
+}
 
 /**
  * Send a click action to the coordinates of the text field and check
@@ -190,24 +191,21 @@ TEST(Test, TextFieldGetFormWidgetInfo) {
  * than the char limit. The substring from index (0, charLimit) should be
  * set in the field and it should display like the expected file.
  */
-// TEST(Test, TextFieldCharLimitSetTextOverLimitTest) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->SetFormFieldText(2, "Gecko taillllllllll"));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kTextFormCharLimitEdited);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldCharLimitSetTextOverLimitTest) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    EXPECT_TRUE(page_zero->SetFormFieldText(2, "Gecko taillllllllll"));
+    std::string copy_edited_path = GetTempFile("copyeditcharlimit.pdf");
+    LinuxFileOps::FDCloser out(open(copy_edited_path.c_str(), O_RDWR | O_CREAT | O_APPEND, 0600));
+    ASSERT_GT(out.get(), 0);
+    ASSERT_TRUE(doc->SaveAs(std::move(out)));
+    std::unique_ptr<Document> expected_doc = pdfClient::testing::LoadDocument(copy_edited_path);
+    std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true);
+    expected_page_zero->InitializeFormFilling();
+    FormWidgetInfo result = expected_page_zero->GetFormWidgetInfo(2);
+    EXPECT_EQ("Gecko tail", result.text_value());
+}
 
 /**
  * Send a click action to the coordinates of the text field with a character
@@ -276,38 +274,31 @@ TEST(Test, TextFieldMultiLineGetFormWidgetInfo) {
  * not alter the state of the page. Verify that page bitmap has not been
  * changed by these actions.
  */
-// TEST(Test, TextFieldSetChoiceSelectionDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {0};
-//     page_zero->SetChoiceSelection(0, selected_indices);
-//     page_zero->SetChoiceSelection(1, selected_indices);
-//     page_zero->SetChoiceSelection(2, selected_indices);
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldSetChoiceSelectionDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    // For now assert that setting choice returns false  as they are not choice
+    // widgets. Create a PDF with certain choices that can be programmatically
+    // changed for additional verification
+    std::vector<int> selected_indices = {0};
+    ASSERT_FALSE(page_zero->SetChoiceSelection(0, selected_indices));
+    ASSERT_FALSE(page_zero->SetChoiceSelection(1, selected_indices));
+    ASSERT_FALSE(page_zero->SetChoiceSelection(2, selected_indices));
+}
 
 /**
  * Clicking on textfield widgets should always be a no-op and never change the
  * rendering of the page.
  */
-// TEST(Test, TextFieldClickOnPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kTextForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kGeneralLocationDeviceCoords));
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kCharLimitLocationDeviceCoords));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, TextFieldClickOnPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kTextForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kGeneralLocationDeviceCoords));
+    EXPECT_FALSE(page_zero->ClickOnPoint(kCharLimitLocationDeviceCoords));
+}
 
 /**
  * Clicking on textfield widgets should always be a no-op and never result in

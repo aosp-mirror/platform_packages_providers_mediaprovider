@@ -1744,6 +1744,8 @@ public class PickerSyncControllerTest {
 
             mController.syncAllMedia();
 
+            refreshUiNotificationObserver.waitForChange();
+
             assertWithMessage("Refresh ui notification should have been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
@@ -1818,6 +1820,64 @@ public class PickerSyncControllerTest {
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderIsNull() {
+        mController.setCloudProvider(/* authority */ null);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is null")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderHasChanged() {
+        mController.setCloudProvider(/* authority */ CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is not in the "
+                + "providers list")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudDBQueriesAreDisabled() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ null);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when PickerDBFacade has disabled cloud"
+                + " queries")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMedia() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should be included in the picker media queries")
+                .that(shouldQueryCloudMedia)
+                .isTrue();
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
@@ -1908,6 +1968,7 @@ public class PickerSyncControllerTest {
     private static class TestContentObserver extends ContentObserver {
         boolean mNotificationReceived;
         Uri mNotificationUri;
+        private CountDownLatch mLatch = new CountDownLatch(1);
 
         TestContentObserver(Handler handler) {
             super(handler);
@@ -1917,6 +1978,17 @@ public class PickerSyncControllerTest {
         public void onChange(boolean selfChange, Uri uri) {
             mNotificationReceived = true;
             mNotificationUri = uri;
+            mLatch.countDown();
+        }
+
+        public void waitForChange() {
+            try {
+                assertWithMessage("Timed out while waiting for observer change.")
+                        .that(mLatch.await(5, TimeUnit.SECONDS))
+                        .isTrue();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public void clear() {

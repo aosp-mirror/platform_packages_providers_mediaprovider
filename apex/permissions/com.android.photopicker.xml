@@ -18,5 +18,7 @@
     <privapp-permissions package="com.android.photopicker">
       <!-- Permissions required for reading DeviceConfig -->
       <permission name="android.permission.READ_DEVICE_CONFIG" />
+      <!-- Permissions required for fetching User profiles -->
+      <permission name="android.permission.INTERACT_ACROSS_USERS"/>
     </privapp-permissions>
 </permissions>

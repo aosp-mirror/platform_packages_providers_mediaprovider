@@ -142,6 +142,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
     private AccessibilityManager mAccessibilityManager;
     private boolean mIsAccessibilityEnabled;
+    private boolean mIsCustomPickerColorSet = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -160,6 +161,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // material components. We use force "false" here, only values that are not already defined
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
+
+        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
 
         super.onCreate(savedInstanceState);
 
@@ -184,14 +188,22 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         try {
             mPickerViewModel.parseValuesFromIntent(intent);
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                mDefaultBackgroundColor = PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
-                        AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+            mIsCustomPickerColorSet =
+                    mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet();
+
+            // This needs to happen after we have parsed values from Intent.
+            mPickerViewModel.maybeInitPhotoPickerData();
+
+            if (mIsCustomPickerColorSet) {
+                mDefaultBackgroundColor =
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                                AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
                 );
-                mToolBarIconColor = PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.ON_SURFACE_COLOR_LIGHT,
-                        AccentColorResources.ON_SURFACE_COLOR_DARK
+                mToolBarIconColor =
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                                AccentColorResources.ON_SURFACE_COLOR_DARK
                 );
             }
         } catch (IllegalArgumentException e) {
@@ -230,8 +242,17 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
-            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
-                    intentAction);
+            mPickerViewModel.logPickerOpened(getCallingUid(), getCallingPackage(), intentAction);
+        }
+    }
+
+    private int getCallingUid() {
+        final String callingPackage = getCallingPackage();
+        try {
+            return getPackageManager().getPackageUid(callingPackage, /* flags= */ 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Returning calling uid as -1; callingPackage: " + callingPackage + ".", e);
+            return -1;
         }
     }
 
@@ -455,12 +476,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
         mBottomSheetBehavior.addBottomSheetCallback(createBottomSheetCallBack());
         setRoundedCornersForBottomSheet();
-        if (PickerViewModel.isCustomPickerColorSet()) {
+        if (mIsCustomPickerColorSet) {
             setCustomPickerColorsInBottomSheet(
-                    PickerViewModel.getThemeBasedColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                             AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
                             AccentColorResources.SURFACE_CONTAINER_COLOR_DARK),
-                    PickerViewModel.getThemeBasedColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                             AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
                             AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK)
             );
@@ -878,8 +899,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Drawable icon;
         if (shouldShowTabLayout) {
             icon = getDrawable(R.drawable.ic_close);
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                icon.setTint(PickerViewModel.getThemeBasedColor(
+            if (mIsCustomPickerColorSet) {
+                icon.setTint(mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
                         AccentColorResources.ON_SURFACE_COLOR_LIGHT,
                         AccentColorResources.ON_SURFACE_COLOR_DARK
                 ));
@@ -1001,11 +1022,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
             mPrivacyText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimension(R.dimen.picker_privacy_text_size));
-            if (PickerViewModel.isCustomPickerColorSet()) {
-                mPrivacyText.setTextColor(PickerViewModel.getThemeBasedColor(
-                        AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
-                        AccentColorResources.ON_SURFACE_VARIANT_DARK
-                ));
+            if (mIsCustomPickerColorSet) {
+                mPrivacyText.setTextColor(
+                        mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                                AccentColorResources.ON_SURFACE_VARIANT_LIGHT,
+                                AccentColorResources.ON_SURFACE_VARIANT_DARK
+                        ));
             }
         }
 

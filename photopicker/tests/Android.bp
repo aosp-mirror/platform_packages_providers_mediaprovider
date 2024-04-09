@@ -9,16 +9,23 @@ android_test {
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
+        "android.test.mock",
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-mediaprovider.impl",
     ],
+    resource_dirs: ["res"],
     static_libs: [
         // sources
         "PhotopickerLib", // test dependencies
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui-test-junit4",
         "androidx.compose.ui_ui-test-manifest",
+        "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
+        "hilt_android",
+        "hilt_android_testing",
         "mockito-target",
         "modules-utils-build",
         "truth",

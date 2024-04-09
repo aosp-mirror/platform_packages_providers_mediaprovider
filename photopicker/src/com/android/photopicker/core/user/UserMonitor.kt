@@ -17,6 +17,7 @@
 package com.android.photopicker.core.user
 
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -54,7 +55,7 @@ import kotlinx.coroutines.launch
  * depending on how busy the device currently is (and if Photopicker is currently in the
  * foreground).
  *
- * @property context The context of the Activity this UserMonitor is provided in.
+ * @param context The context of the Application this UserMonitor is provided in.
  * @property scope The [CoroutineScope] that the BroadcastReceiver will listen in.
  * @property dispatcher [CoroutineDispatcher] scope that the BroadcastReceiver will listen in.
  * @property intent The activity's intent for determining CrossProfile support.
@@ -63,16 +64,15 @@ class UserMonitor(
     context: Context,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
-    private val intent: Intent,
     private val processOwnerUserHandle: UserHandle,
 ) {
 
     companion object {
-        val TAG: String = "PhotopickerUserMonitor"
+        const val TAG: String = "PhotopickerUserMonitor"
     }
 
     private val userManager: UserManager = context.requireSystemService()
-    private val packageManager: PackageManager = context.getPackageManager()
+    private val packageManager: PackageManager = context.packageManager
 
     /**
      * Internal state flow that the external flow is derived from. When making state changes, this
@@ -82,7 +82,11 @@ class UserMonitor(
         MutableStateFlow(
             UserStatus(
                 activeUserProfile = getUserProfileFromHandle(processOwnerUserHandle),
-                allProfiles = userManager.getUserProfiles().map(::getUserProfileFromHandle)
+                allProfiles = userManager.userProfiles.map(::getUserProfileFromHandle),
+                activeContentResolver = getContentResolver(
+                    context,
+                    processOwnerUserHandle
+                )
             )
         )
 
@@ -159,7 +163,10 @@ class UserMonitor(
      *
      * @return The [SwitchProfileResult] of the requested change.
      */
-    suspend fun requestSwitchActiveUserProfile(requested: UserProfile): SwitchUserProfileResult {
+    suspend fun requestSwitchActiveUserProfile(
+        requested: UserProfile,
+        context: Context
+    ): SwitchUserProfileResult {
 
         // Attempt to find the requested profile amongst the profiles known.
         val profile: UserProfile? =
@@ -169,7 +176,15 @@ class UserMonitor(
 
             // Only allow the switch if a profile is currently enabled.
             if (profile.enabled) {
-                _userStatus.update { it.copy(activeUserProfile = profile) }
+                _userStatus.update {
+                    it.copy(
+                        activeUserProfile = profile,
+                        activeContentResolver = getContentResolver(
+                            context,
+                            UserHandle.of(profile.identifier)
+                        )
+                    )
+                }
                 return SwitchUserProfileResult.SUCCESS
             }
 
@@ -222,8 +237,7 @@ class UserMonitor(
                 )
 
                 // The current profile is disabled, we need to transition back to the process
-                // owner's
-                // profile.
+                // owner's profile.
                 val processOwnerProfile =
                     newProfilesList.find { it.identifier == processOwnerUserHandle.getIdentifier() }
 
@@ -320,4 +334,17 @@ class UserMonitor(
             @Suppress("DEPRECATION")
             return intent.getParcelableExtra(Intent.EXTRA_USER) as? UserHandle
     }
+
+    /**
+     * @return the content resolver for given profile.
+     */
+    private fun getContentResolver(
+        context: Context,
+        userHandle: UserHandle
+    ): ContentResolver =
+        context.createPackageContextAsUser(
+            context.packageName,
+            /* flags */ 0,
+            userHandle
+        ).contentResolver
 }

@@ -17,6 +17,7 @@
 package com.android.photopicker.core.user
 
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -44,8 +45,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Captor
 import org.mockito.Mock
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
@@ -55,24 +59,24 @@ import org.mockito.MockitoAnnotations
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserMonitorTest {
 
-    val USER_HANDLE_PRIMARY: UserHandle
-    val USER_ID_PRIMARY: Int = 0
-    val PRIMARY_PROFILE_BASE =
+    private val USER_HANDLE_PRIMARY: UserHandle
+    private val USER_ID_PRIMARY: Int = 0
+    private val PRIMARY_PROFILE_BASE =
         UserProfile(identifier = USER_ID_PRIMARY, profileType = UserProfile.ProfileType.PRIMARY)
 
-    val USER_HANDLE_MANAGED: UserHandle
-    val USER_ID_MANAGED: Int = 10
-    val MANAGED_PROFILE_BASE =
+    private val USER_HANDLE_MANAGED: UserHandle
+    private val USER_ID_MANAGED: Int = 10
+    private val MANAGED_PROFILE_BASE =
         UserProfile(identifier = USER_ID_MANAGED, profileType = UserProfile.ProfileType.MANAGED)
 
-    val initialExpectedStatus: UserStatus
+    private val initialExpectedStatus: UserStatus
+    private val mockContentResolver: ContentResolver = mock(ContentResolver::class.java)
 
-    lateinit var userMonitor: UserMonitor
+    private lateinit var userMonitor: UserMonitor
 
-    @Mock lateinit var context: Context
+    @Mock lateinit var mockContext: Context
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-    @Mock lateinit var intent: Intent
     @Captor lateinit var broadcastReceiver: ArgumentCaptor<BroadcastReceiver>
     @Captor lateinit var intentFilter: ArgumentCaptor<IntentFilter>
     @Captor lateinit var flag: ArgumentCaptor<Int>
@@ -92,18 +96,21 @@ class UserMonitorTest {
         initialExpectedStatus =
             UserStatus(
                 activeUserProfile = PRIMARY_PROFILE_BASE,
-                allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE)
+                allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
+                activeContentResolver = mockContentResolver
             )
     }
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-        mockSystemService(context, UserManager::class.java) { mockUserManager }
-        whenever(context.getPackageManager()) { mockPackageManager }
+        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockContext.packageManager) { mockPackageManager }
+        whenever(mockContext.contentResolver) { mockContentResolver }
+        whenever(mockContext.createPackageContextAsUser(any(), anyInt(), any())) { mockContext }
 
         // Initial setup state: Two profiles (Personal/Work), both enabled
-        whenever(mockUserManager.getUserProfiles()) {
+        whenever(mockUserManager.userProfiles) {
             listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED)
         }
 
@@ -122,10 +129,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -149,10 +155,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -161,7 +166,7 @@ class UserMonitorTest {
                 assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -190,10 +195,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -202,7 +206,7 @@ class UserMonitorTest {
                 assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -231,10 +235,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -243,7 +246,7 @@ class UserMonitorTest {
                 assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -267,10 +270,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -278,7 +280,7 @@ class UserMonitorTest {
 
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -288,7 +290,7 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
 
             advanceTimeBy(100)
 
@@ -296,7 +298,8 @@ class UserMonitorTest {
                 UserStatus(
                     activeUserProfile = PRIMARY_PROFILE_BASE,
                     allProfiles =
-                        listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE.copy(enabled = false))
+                        listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE.copy(enabled = false)),
+                    activeContentResolver = mockContentResolver
                 )
 
             assertThat(emissions.size).isEqualTo(2)
@@ -312,10 +315,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -323,7 +325,7 @@ class UserMonitorTest {
 
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -333,7 +335,7 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
 
             advanceTimeBy(100)
 
@@ -344,7 +346,7 @@ class UserMonitorTest {
             val intent2 = Intent()
             intent2.setAction(Intent.ACTION_PROFILE_INACCESSIBLE)
             intent2.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent2)
+            receiver.onReceive(mockContext, intent2)
 
             advanceTimeBy(100)
 
@@ -360,10 +362,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -374,7 +375,8 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
@@ -384,7 +386,8 @@ class UserMonitorTest {
             val expectedStatus =
                 UserStatus(
                     activeUserProfile = MANAGED_PROFILE_BASE,
-                    allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE)
+                    allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
+                    activeContentResolver = mockContentResolver
                 )
 
             assertThat(emissions.size).isEqualTo(2)
@@ -419,16 +422,16 @@ class UserMonitorTest {
                             profileType = UserProfile.ProfileType.MANAGED,
                             enabled = false
                         )
-                    )
+                    ),
+                activeContentResolver = mockContentResolver
             )
 
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -439,7 +442,8 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
             }
@@ -458,10 +462,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -471,7 +474,10 @@ class UserMonitorTest {
 
             backgroundScope.launch {
                 val switchResult =
-                    userMonitor.requestSwitchActiveUserProfile(UserProfile(identifier = 999))
+                    userMonitor.requestSwitchActiveUserProfile(
+                        UserProfile(identifier = 999),
+                        mockContext
+                    )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_UNKNOWN_PROFILE)
             }
 
@@ -492,10 +498,9 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    intent,
                     USER_HANDLE_PRIMARY
                 )
 
@@ -503,13 +508,14 @@ class UserMonitorTest {
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
 
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
@@ -524,7 +530,7 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
             advanceTimeBy(100)
 
             assertThat(emissions.last().activeUserProfile).isEqualTo(PRIMARY_PROFILE_BASE)

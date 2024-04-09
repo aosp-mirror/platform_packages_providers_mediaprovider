@@ -29,6 +29,7 @@ import static com.android.providers.media.util.Logging.TAG;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -160,7 +161,7 @@ public class DatabaseBackupAndRecovery {
     private AtomicInteger mNextOwnerIdBackup;
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
-    private Set<String> mSetupCompletePublicVolumes = ConcurrentHashMap.newKeySet();
+    private Set<String> mSetupCompleteVolumes = ConcurrentHashMap.newKeySet();
     private boolean mIsStableUriEnabledForInternal = false;
     private boolean mIsStableUriEnabledForExternal = false;
     private boolean mIsStableUrisEnabledForPublic = false;
@@ -191,6 +192,10 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false;
+        }
+
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
                 return mIsStableUriEnabledForInternal
@@ -231,7 +236,7 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        if (mSetupCompletePublicVolumes.contains(volumeName)) {
+        if (mSetupCompleteVolumes.contains(volumeName)) {
             // Return if setup is already done
             return;
         }
@@ -256,7 +261,7 @@ public class DatabaseBackupAndRecovery {
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
                 fuseDaemon.setupVolumeDbBackup();
-                mSetupCompletePublicVolumes.add(volumeName);
+                mSetupCompleteVolumes.add(volumeName);
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__SUCCESS, vol);
@@ -266,7 +271,7 @@ public class DatabaseBackupAndRecovery {
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
                 fuseDaemon.setupPublicVolumeDbBackup(volumeName);
-                mSetupCompletePublicVolumes.add(volumeName);
+                mSetupCompleteVolumes.add(volumeName);
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__SUCCESS, vol);
@@ -331,7 +336,7 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        if (!mSetupCompletePublicVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+        if (!mSetupCompleteVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
             Log.w(TAG,
                 "Setup is not present for backup of internal and external primary volume.");
             return;
@@ -372,7 +377,7 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        if (!mSetupCompletePublicVolumes.contains(volumeName)) {
+        if (!mSetupCompleteVolumes.contains(volumeName)) {
             return;
         }
 
@@ -630,7 +635,8 @@ public class DatabaseBackupAndRecovery {
     protected void removeOwnerIdToPackageRelation(String packageName, int userId) {
         if (Strings.isNullOrEmpty(packageName) || packageName.equalsIgnoreCase("null")
                 || !isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                || !new File(OWNER_RELATION_LOWER_FS_BACKUP_PATH).exists()) {
+                || !new File(OWNER_RELATION_LOWER_FS_BACKUP_PATH).exists()
+                || !mSetupCompleteVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
             return;
         }
 
@@ -669,7 +675,7 @@ public class DatabaseBackupAndRecovery {
     protected boolean isBackupUpdateAllowed(DatabaseHelper databaseHelper, String volumeName) {
         // Backup only if stable uris is enabled, db is not recovering and backup setup is complete.
         return isStableUrisEnabled(volumeName) && !databaseHelper.isDatabaseRecovering()
-                && mSetupCompletePublicVolumes.contains(volumeName);
+                && mSetupCompleteVolumes.contains(volumeName);
     }
 
 
@@ -1117,8 +1123,8 @@ public class DatabaseBackupAndRecovery {
      * @param volumeName name of volume which is detached
      */
     public void onDetachVolume(String volumeName) {
-        if (mSetupCompletePublicVolumes.contains(volumeName)) {
-            mSetupCompletePublicVolumes.remove(volumeName);
+        if (mSetupCompleteVolumes.contains(volumeName)) {
+            mSetupCompleteVolumes.remove(volumeName);
             Log.v(TAG,
                     "Removed leveldb connections from in memory setup cache for volume:"
                             + volumeName);

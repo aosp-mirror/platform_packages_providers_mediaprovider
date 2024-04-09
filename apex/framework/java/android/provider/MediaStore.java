@@ -273,6 +273,12 @@ public final class MediaStore {
     /** {@hide} */
     public static final String EXTRA_CLOUD_PROVIDER_RESULT = "cloud_provider_result";
     /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_DETAILS =
+            "get_cloud_provider_details";
+    /** {@hide} */
+    public static final String GET_CLOUD_PROVIDER_DETAILS_RESULT =
+            "get_cloud_provider_details_result";
+    /** {@hide} */
     public static final String CREATE_SURFACE_CONTROLLER = "create_surface_controller";
 
     /** @hide */
@@ -889,16 +895,18 @@ public final class MediaStore {
      * The accent color will be used for various primary elements in the PhotoPicker view.
      * All other colors will be set based on android material guidelines.
      * <p>
-     * The value of this intent-extra must be a string specifying the hex code of the accent color
-     * that is to be used within the picker. Only colors with luminance(can also be understood as
-     * brightness) greater than 0.05 and less than 0.9 are permitted.
+     * The value of this intent extra should be a long color value. The alpha component of the
+     * given color is not taken into account while setting the accent color. We assume full color
+     * opacity.
+     * Only colors with luminance(can also be understood as brightness) greater than 0.05 and
+     * less than 0.9 are permitted.
      * Luminance of a color is determined using:
      * luminance = Color.luminance(color)
      *       where color is the input accent color to be set.
-     * Check {@link Color} docs for more details on the same.
+     * Check {@link Color} docs for more details on color luminance and long color values.
      * In case the luminance of the input color is unacceptable, picker colors will be set
      * based on the colors of the device android theme.
-     * In case of an invalid input color code i.e. the input color code cannot be parsed,
+     * In case of an invalid input color value i.e. the input color cannot be parsed,
      * {@code IllegalArgumentException} is thrown.
      */
     @FlaggedApi("com.android.providers.media.flags.picker_accent_color")
@@ -1121,6 +1129,31 @@ public final class MediaStore {
      */
     @Match
     public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
+
+    /**
+     * Flag that indicates if only the latest selection in the photoPicker for
+     * the calling app should be returned. If set to true, all items that were
+     * granted to the calling app in the last selection are returned.
+     *
+     * <p>Selection in this scenario refers to when the user selects items in
+     * <b> the permission prompt photo picker</b>. The access for these items
+     * is granted to the calling app and these grants are persisted unless the
+     * user deselects a granted item explicitly.</p>
+     *
+     * <p>The result excludes items owned by the calling app unless they are
+     * explicitly selected by the user.</p>
+     *
+     * <p>Note: If there has been no user selections after the introduction of
+     * this feature then all the granted items will be returned.</p>
+     *
+     * <p>This key can be placed in a {@link Bundle} of extras and passed to
+     * {@link ContentResolver#query}.</p>
+     *
+     * @see android.Manifest.permission#READ_MEDIA_VISUAL_USER_SELECTED
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_recent_selection")
+    public static final String QUERY_ARG_LATEST_SELECTION_ONLY =
+            "android:query-arg-latest-selection-only";
 
     /**
      * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}

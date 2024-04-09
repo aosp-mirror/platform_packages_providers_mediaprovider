@@ -49,6 +49,7 @@ import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -57,6 +58,7 @@ import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -115,6 +117,7 @@ import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
@@ -213,7 +216,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.icu.util.ULocale;
-import android.media.ExifInterface;
 import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
@@ -295,6 +297,8 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
+import com.android.providers.media.photopicker.v2.PickerUriResolverV2;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -304,19 +308,18 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
-import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.Preconditions;
+import com.android.providers.media.util.RedactionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
-import com.android.providers.media.util.XmpInterface;
 
 import com.google.common.hash.Hashing;
 
@@ -796,8 +799,9 @@ public class MediaProvider extends ContentProvider {
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
+                    int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
                     if (pkg != null) {
-                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        invalidateLocalCallingIdentityCache(uid, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
@@ -891,14 +895,19 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        try {
+            int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+            invalidateLocalCallingIdentityCache(packageUid, reason);
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Couldn't get uid for package: " + packageName);
+        }
+    }
+
+    private void invalidateLocalCallingIdentityCache(int packageUid, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
-            try {
-                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
-                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
-                    mCachedCallingIdentityForFuse.remove(packageUid);
-                }
-            } catch (NameNotFoundException ignored) {
+            if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                mCachedCallingIdentityForFuse.remove(packageUid);
             }
         }
     }
@@ -2019,7 +2028,7 @@ public class MediaProvider extends ContentProvider {
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
         // Delete Android/media entries.
-        deleteAndroidMediaEntries(db, packageName, userId);
+        deleteAndroidMediaEntriesAndInvalidateDentryCache(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
@@ -2061,7 +2070,8 @@ public class MediaProvider extends ContentProvider {
                 packages, /* reason */ "Package orphaned", userId);
     }
 
-    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+    private void deleteAndroidMediaEntriesAndInvalidateDentryCache(SQLiteDatabase db,
+            String packageName, int userId) {
         String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
         try (Cursor cursor = db.query(
                 "files",
@@ -2088,6 +2098,9 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
                     + packageName + " on " + db.getPath());
         }
+
+        // Invalidate Dentry cache for Android/media/<package-name> directories
+        invalidateDentryForExternalStorage(packageName);
     }
 
     private void orphanEntries(
@@ -2111,7 +2124,7 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
-    private Uri scanFileAsMediaProvider(File file, int reason) {
+    private Uri scanFileAsMediaProvider(File file) {
         final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try {
             return scanFile(file, REASON_DEMAND);
@@ -2484,7 +2497,7 @@ public class MediaProvider extends ContentProvider {
             Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
-                redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+                redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
@@ -2913,8 +2926,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
-        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(oldPath));
+        scanFileAsMediaProvider(new File(newPath));
     }
 
     /**
@@ -3387,10 +3400,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile());
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile());
         }
 
         return 0;
@@ -3694,7 +3707,7 @@ public class MediaProvider extends ContentProvider {
 
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int table = matchUri(uri, allowHidden);
+        final int table = mUriMatcher.matchUri(uri, allowHidden, isCallerPhotoPicker());
 
         if (table == MEDIA_GRANTS) {
             return getReadGrantedMediaForPackage(queryArgs);
@@ -3734,6 +3747,8 @@ public class MediaProvider extends ContentProvider {
             return mPickerDataLayer.fetchAllAlbums(queryArgs);
         } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
             return mPickerDataLayer.fetchLocalAlbums(queryArgs);
+        } else if (table == PICKER_INTERNAL_V2) {
+            return PickerUriResolverV2.query(uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -4471,6 +4486,7 @@ public class MediaProvider extends ContentProvider {
 
             FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath, isFuseThread());
+            assertFileColumnsConsistent(match, uri, values);
 
             // Create result file
             File res = new File(values.getAsString(MediaColumns.DATA));
@@ -5600,7 +5616,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile());
         }
 
         return newUri;
@@ -6241,19 +6257,38 @@ public class MediaProvider extends ContentProvider {
         }
 
         final ArrayList<String> options = new ArrayList<>();
+        boolean isLatestSelectionOnlyRequired = extras.getBoolean(QUERY_ARG_LATEST_SELECTION_ONLY,
+                false);
         if (!MediaStore.VOLUME_INTERNAL.equals(volumeName)
                 && hasUserSelectedAccess(mCallingIdentity.get(), uriType, forWrite)) {
             // If app has READ_MEDIA_VISUAL_USER_SELECTED permission, allow access on files granted
             // via PhotoPicker launched for Permission. These grants are defined in media_grants
             // table.
             // We exclude volume internal from the query because media_grants are not supported.
-            options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
+            if (isLatestSelectionOnlyRequired) {
+                // If the query arg to include only recent selection has been received then include
+                // this as filter while doing the access check for grants from the media_grants
+                // table. This reduces the clauses needed in the query and makes it more efficient.
+                Log.d(TAG, "In user_select mode, recent selection only is required.");
+                options.add(getWhereForLatestSelection(mCallingIdentity.get(), uriType));
+            } else {
+                Log.d(TAG, "In user_select mode, recent selection only is not required.");
+                options.add(getWhereForUserSelectedAccess(mCallingIdentity.get(), uriType));
+                // Allow access to files which are owned by the caller. Or allow access to files
+                // based on legacy or any other special access permissions.
+                options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
+                        extras));
+            }
+        } else {
+            if (isLatestSelectionOnlyRequired) {
+                Log.w(TAG, "Latest selection request cannot be honored in the current"
+                        + " access mode.");
+            }
+            // Allow access to files which are owned by the caller. Or allow access to files
+            // based on legacy or any other special access permissions.
+            options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
+                    extras));
         }
-
-        // Allow access to files which are owned by the caller. Or allow access to files based on
-        // legacy or any other special access permissions.
-        options.add(getWhereForConstrainedAccess(mCallingIdentity.get(), uriType, forWrite,
-                extras));
 
         appendWhereStandalone(qb, TextUtils.join(" OR ", options));
     }
@@ -6733,6 +6768,14 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
                 return getResultForGetCloudProviderLabel();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_DETAILS: {
+                if (isCallerPhotoPicker()) {
+                    return PickerDataLayerV2.getCloudProviderDetails(extras);
+                } else  {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("GET_CLOUD_PROVIDER_DETAILS"));
+                }
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
@@ -8320,14 +8363,14 @@ public class MediaProvider extends ContentProvider {
                             final boolean notifyTranscodeHelper = isUriPublished;
                             if (deferScan) {
                                 helper.postBackground(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
@@ -9350,10 +9393,10 @@ public class MediaProvider extends ContentProvider {
         // Figure out if we need to redact contents
         final boolean redactionNeeded = isRedactionNeededForOpenViaContentResolver(redactedUri,
                 ownerPackageName, file);
-        final RedactionInfo redactionInfo;
+        long[] redactionRanges;
         try {
-            redactionInfo = redactionNeeded ? getRedactionRanges(file)
-                    : new RedactionInfo(new long[0], new long[0]);
+            redactionRanges = redactionNeeded ? RedactionUtils.getRedactionRanges(file)
+                    : new long[0];
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -9382,7 +9425,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        scanFileAsMediaProvider(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file);
                         break;
                 }
             } catch (Exception e2) {
@@ -9403,7 +9446,7 @@ public class MediaProvider extends ContentProvider {
                 // So, we use it to signify that mediaCapabilitiesUid is not set.
                 mediaCapabilitiesUid = 0;
             }
-            if (redactionInfo.redactionRanges.length > 0) {
+            if (redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
                 pfd = openWithFuse(filePath, uid, mediaCapabilitiesUid, modeBits,
@@ -9648,71 +9691,6 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    /**
-     * Set of Exif tags that should be considered for redaction.
-     */
-    private static final String[] REDACTED_EXIF_TAGS = new String[] {
-            ExifInterface.TAG_GPS_ALTITUDE,
-            ExifInterface.TAG_GPS_ALTITUDE_REF,
-            ExifInterface.TAG_GPS_AREA_INFORMATION,
-            ExifInterface.TAG_GPS_DOP,
-            ExifInterface.TAG_GPS_DATESTAMP,
-            ExifInterface.TAG_GPS_DEST_BEARING,
-            ExifInterface.TAG_GPS_DEST_BEARING_REF,
-            ExifInterface.TAG_GPS_DEST_DISTANCE,
-            ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
-            ExifInterface.TAG_GPS_DEST_LATITUDE,
-            ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_DIFFERENTIAL,
-            ExifInterface.TAG_GPS_IMG_DIRECTION,
-            ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
-            ExifInterface.TAG_GPS_LATITUDE,
-            ExifInterface.TAG_GPS_LATITUDE_REF,
-            ExifInterface.TAG_GPS_LONGITUDE,
-            ExifInterface.TAG_GPS_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_MAP_DATUM,
-            ExifInterface.TAG_GPS_MEASURE_MODE,
-            ExifInterface.TAG_GPS_PROCESSING_METHOD,
-            ExifInterface.TAG_GPS_SATELLITES,
-            ExifInterface.TAG_GPS_SPEED,
-            ExifInterface.TAG_GPS_SPEED_REF,
-            ExifInterface.TAG_GPS_STATUS,
-            ExifInterface.TAG_GPS_TIMESTAMP,
-            ExifInterface.TAG_GPS_TRACK,
-            ExifInterface.TAG_GPS_TRACK_REF,
-            ExifInterface.TAG_GPS_VERSION_ID,
-    };
-
-    /**
-     * Set of ISO boxes that should be considered for redaction.
-     */
-    private static final int[] REDACTED_ISO_BOXES = new int[] {
-            IsoInterface.BOX_LOCI,
-            IsoInterface.BOX_XYZ,
-            IsoInterface.BOX_GPS,
-            IsoInterface.BOX_GPS0,
-    };
-
-    public static final Set<String> sRedactedExifTags = new ArraySet<>(
-            Arrays.asList(REDACTED_EXIF_TAGS));
-
-    private static final class RedactionInfo {
-        public final long[] redactionRanges;
-        public final long[] freeOffsets;
-
-        public RedactionInfo() {
-            this.redactionRanges = new long[0];
-            this.freeOffsets = new long[0];
-        }
-
-        public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
-            this.redactionRanges = redactionRanges;
-            this.freeOffsets = freeOffsets;
-        }
-    }
-
     private static class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int mMaxSize;
 
@@ -9764,7 +9742,7 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(ioPath);
 
         if (forceRedaction) {
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         }
 
         // When calculating redaction ranges initiated from MediaProvider, the redaction policy
@@ -9778,7 +9756,7 @@ public class MediaProvider extends ContentProvider {
             if (info != null && info.uid == original_uid) {
                 boolean shouldRedact = info.shouldRedact;
                 if (shouldRedact) {
-                    return getRedactionRanges(file).redactionRanges;
+                    return RedactionUtils.getRedactionRanges(file);
                 } else {
                     return new long[0];
                 }
@@ -9841,83 +9819,9 @@ public class MediaProvider extends ContentProvider {
                 return new long[0];
             }
 
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         } finally {
             restoreLocalCallingIdentity(token);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param file file to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(File file) throws IOException {
-        try (FileInputStream is = new FileInputStream(file)) {
-            return getRedactionRanges(is, MimeUtils.resolveMimeType(file));
-        } catch (FileNotFoundException ignored) {
-            // If file not found, then there's nothing to redact
-            return new RedactionInfo();
-        } catch (IOException e) {
-            throw new IOException("Failed to redact " + file, e);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param fis {@link FileInputStream} to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(FileInputStream fis, String mimeType)
-            throws IOException {
-        final LongArray res = new LongArray();
-        final LongArray freeOffsets = new LongArray();
-
-        Trace.beginSection("MP.getRedactionRanges");
-        try {
-            if (ExifInterface.isSupportedMimeType(mimeType)) {
-                final ExifInterface exif = new ExifInterface(fis.getFD());
-                for (String tag : REDACTED_EXIF_TAGS) {
-                    final long[] range = exif.getAttributeRange(tag);
-                    if (range != null) {
-                        res.add(range[0]);
-                        res.add(range[0] + range[1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
-                res.addAll(exifXmp.getRedactionRanges());
-            }
-
-            if (IsoInterface.isSupportedMimeType(mimeType)) {
-                final IsoInterface iso = IsoInterface.fromFileDescriptor(fis.getFD());
-                for (int box : REDACTED_ISO_BOXES) {
-                    final long[] ranges = iso.getBoxRanges(box);
-                    for (int i = 0; i < ranges.length; i += 2) {
-                        long boxTypeOffset = ranges[i] - 4;
-                        freeOffsets.add(boxTypeOffset);
-                        res.add(boxTypeOffset);
-                        res.add(ranges[i + 1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
-                res.addAll(isoXmp.getRedactionRanges());
-            }
-
-            return new RedactionInfo(res.toArray(), freeOffsets.toArray());
-        } finally {
-            Trace.endSection();
         }
     }
 
@@ -11502,6 +11406,19 @@ public class MediaProvider extends ContentProvider {
 
     private int getCallingUidOrSelf() {
         return mCallingIdentity.get().uid;
+    }
+
+    private boolean isCallerPhotoPicker() {
+        try {
+            return PermissionUtils.checkManageCloudMediaProvidersPermission(
+                    getContext(),
+                    mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid
+            );
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not check MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION permission", e);
+            return false;
+        }
     }
 
     @Deprecated

@@ -11,17 +11,38 @@ android_library {
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-mediaprovider.impl",
     ],
     static_libs: [
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
+        "androidx.compose.material3_material3-window-size-class",
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui",
         "androidx.core_core-ktx",
         "androidx.lifecycle_lifecycle-runtime-compose",
         "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.hilt_hilt-navigation-compose",
+        "androidx.navigation_navigation-compose",
+        "androidx.navigation_navigation-runtime-ktx",
+        "androidx.paging_paging-common",
+        "androidx.paging_paging-common-ktx",
+        "androidx.paging_paging-compose",
+        "androidx.paging_paging-runtime",
+        // glide and dependencies
+        "androidx.exifinterface_exifinterface",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "glide-prebuilt",
+        "glide-ktx-prebuilt",
+        "glide-integration-webpdecoder-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-compose-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        //
         "hilt_android",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
@@ -31,6 +52,9 @@ android_library {
     apex_available: [
         "//apex_available:platform",
         "com.android.mediaprovider",
+    ],
+    plugins: [
+        "glide-annotation-processor",
     ],
 }
 
@@ -44,6 +68,7 @@ android_app {
     kotlincflags: ["-Xjvm-default=all"],
     certificate: "media",
     privileged: true,
+    privapp_allowlist: ":privapp_allowlist_com.android.photopicker.xml",
     sdk_version: "module_current",
     min_sdk_version: "30",
     apex_available: [

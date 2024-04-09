@@ -32,4 +32,8 @@ enum class Location {
 
     /* CORE Locations */
     COMPOSE_TOP, // UI feature entrypoint at the top of the compose UI tree.
+
+    /* SELECTION_BAR */
+    SELECTION_BAR, // Location where the selection bar should be drawn (when it is active).
+    SELECTION_BAR_SECONDARY_ACTION, // Location where the extra button on the selection bar.
 }

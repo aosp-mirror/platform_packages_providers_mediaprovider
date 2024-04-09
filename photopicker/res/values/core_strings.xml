@@ -25,4 +25,7 @@
   <!-- Content description for the selected checkmark in the media grid -->
   <string name="photopicker_item_selected" translation_description="Accessibility text denoting an individual photo is selected in a grid of photos. [CHAR_LIMIT=NONE]">Selected</string>
 
+  <!-- Button label for the "Add" button in the selection bar -->
+  <string name="photopicker_add_button_label" translation_description="Button label that gives the user an option to add the number of selected items to the launching app's available photos.">Add <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+
 </resources>

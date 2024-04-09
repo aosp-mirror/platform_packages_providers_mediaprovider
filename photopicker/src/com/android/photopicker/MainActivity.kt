@@ -23,10 +23,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
@@ -39,6 +43,7 @@ import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /**
  * This is the main entrypoint into the Android Photopicker.
@@ -70,6 +75,9 @@ class MainActivity : Hilt_MainActivity() {
         // the correct config with this activity's action.
         configurationManager.setAction(getIntent()?.getAction() ?: "")
 
+        // Begin listening for events before starting the UI.
+        listenForEvents()
+
         setContent {
             val photopickerConfiguration by
                 configurationManager.configuration.collectAsStateWithLifecycle()
@@ -82,6 +90,21 @@ class MainActivity : Hilt_MainActivity() {
                 LocalEvents provides events.get(),
             ) {
                 PhotopickerTheme { PhotopickerAppWithBottomSheet(onDismissRequest = ::finish) }
+            }
+        }
+    }
+
+    /** Setup an [Event] listener for the [MainActivity] to monitor the event bus. */
+    private fun listenForEvents() {
+
+        lifecycleScope.launch {
+            events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
+                ->
+                when (event) {
+                    is Event.MediaSelectionConfirmed -> {
+                        finish()
+                    }
+                }
             }
         }
     }

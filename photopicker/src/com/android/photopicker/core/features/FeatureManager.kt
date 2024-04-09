@@ -23,6 +23,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.photogrid.PhotoGridFeature
+import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -63,10 +64,13 @@ class FeatureManager(
         val KNOWN_FEATURE_REGISTRATIONS: Set<FeatureRegistration> =
             setOf(
                 PhotoGridFeature.Registration,
+                SelectionBarFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
-        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> = setOf()
+        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> = setOf(
+          Event.MediaSelectionConfirmed::class.java,
+        )
 
         /* The list of events that the core library produces. */
         val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> = setOf()
@@ -181,15 +185,14 @@ class FeatureManager(
     }
 
     /**
-     * Inspect the event registrations for consumed and produced events based on the
-     * core library and the current set of enabledFeatures.
+     * Inspect the event registrations for consumed and produced events based on the core library
+     * and the current set of enabledFeatures.
      *
      * This check ensures that all events that need to be consumed have at least one possible
      * producer (it does not guarantee the event will actually be produced).
      *
      * In the event consumed events are not produced, this behaves differently depending on the
      * [PhotopickerConfiguration].
-     *
      * - If [PhotopickerConfiguration.deviceIsDebuggable] this will throw [IllegalStateException]
      *   This is done to try to prevent bad configurations from escaping test and dev builds.
      * - Else This will Log a warning, but allow initialization to proceed to avoid a runtime crash.

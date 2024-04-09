@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static android.content.Intent.ACTION_GET_CONTENT;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.MediaStore.ACTION_PICK_IMAGES;
 
 import static androidx.test.InstrumentationRegistry.getContext;
@@ -29,6 +30,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +61,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -117,7 +120,7 @@ public class PickerUriResolverTest {
     }
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUpBeforeClass() throws Exception {
         // this test uses isolated context which requires these permissions to be granted
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(android.Manifest.permission.LOG_COMPAT_CHANGE,
@@ -136,6 +139,14 @@ public class PickerUriResolverTest {
         sMediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
         TEST_ID = sMediaStoreUriInOtherContext.getLastPathSegment();
     }
+
+    @Before
+    public void setUp() {
+        when(sCurrentContext
+                .checkPermission(eq(MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION), anyInt(), anyInt()))
+                .thenReturn(PERMISSION_DENIED);
+    }
+
 
     @AfterClass
     public static void tearDown() {
@@ -354,6 +365,21 @@ public class PickerUriResolverTest {
         sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
                 TEST_USER, ACTION_PICK_IMAGES);
         updateReadUriPermission(sTestPickerUri, /* grant */ true);
+
+        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
+        testOpenFile(sTestPickerUri);
+        testOpenTypedAssetFile(sTestPickerUri);
+        testQuery(sTestPickerUri);
+        testGetType(sTestPickerUri, "image/jpeg");
+    }
+
+    @Test
+    public void testPickerUriResolver_photoPicker() throws Exception {
+        when(sCurrentContext
+                .checkPermission(eq(MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION), anyInt(), anyInt()))
+                .thenReturn(PERMISSION_GRANTED);
+        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
+                TEST_USER, ACTION_PICK_IMAGES);
 
         assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
         testOpenFile(sTestPickerUri);

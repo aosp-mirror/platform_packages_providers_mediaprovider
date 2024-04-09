@@ -28,6 +28,7 @@ import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.DataServiceImpl
+import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
 import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.data.model.Media
@@ -133,7 +134,12 @@ class ActivityModule {
                 DataService.TAG,
                 "DataService requested but not yet initialized. Initializing DataService."
             )
-            dataService = DataServiceImpl(userMonitor.userStatus, scope, notificationService)
+            dataService = DataServiceImpl(
+                userMonitor.userStatus,
+                scope,
+                notificationService,
+                MediaProviderClient()
+            )
         }
         return dataService
     }

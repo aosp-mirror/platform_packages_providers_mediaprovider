@@ -25,30 +25,42 @@ import android.net.Uri
 private const val MEDIA_PROVIDER_AUTHORITY = "media"
 private const val UPDATE_PATH_SEGMENT = "update"
 private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
+private const val MEDIA_PATH_SEGMENT = "media"
 
 private val pickerUri: Uri = Uri.Builder().apply {
     scheme(ContentResolver.SCHEME_CONTENT)
     authority(MEDIA_PROVIDER_AUTHORITY)
     appendPath("picker_internal")
     appendPath("v2")
-}
-    .build()
+}.build()
 
 /**
  * URI for available providers resource.
  */
-val AVAILABLE_PROVIDERS_URI: Uri =
-    pickerUri
-        .buildUpon()
-        .appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
-        .build()
+val AVAILABLE_PROVIDERS_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
+}.build()
 
 /**
  * URI that receives [ContentProvider] change notifications for available provider updates.
  */
-val AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI: Uri =
-        pickerUri
-            .buildUpon()
-            .appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
-            .appendPath(UPDATE_PATH_SEGMENT)
-            .build()
+val AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
+    appendPath(UPDATE_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI for media metadata.
+ */
+val MEDIA_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(MEDIA_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI that receives [ContentProvider] change notifications for media updates.
+ */
+val MEDIA_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(MEDIA_PATH_SEGMENT)
+    appendPath(UPDATE_PATH_SEGMENT)
+}.build()
+

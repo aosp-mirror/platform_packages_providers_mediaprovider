@@ -49,6 +49,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
+import com.android.providers.media.util.PermissionUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -79,6 +80,7 @@ public class PickerUriResolver {
     public static final String REFRESH_PICKER_UI_PATH = "refresh_ui";
     public static final Uri REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI =
             PICKER_INTERNAL_URI.buildUpon().appendPath(REFRESH_PICKER_UI_PATH).build();
+    public static final String INIT_PATH = "init";
 
     public static final String MEDIA_PATH = "media";
     public static final String ALBUM_PATH = "albums";
@@ -328,7 +330,9 @@ public class PickerUriResolver {
         // Clear query parameters to check for URI permissions, apps can add requireOriginal
         // query parameter to URI, URI grants will not be present in that case.
         Uri uriWithoutQueryParams = uri.buildUpon().clearQuery().build();
-        if (!isSelf(uid) && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
+        if (!isSelf(uid)
+                && !PermissionUtils.checkManageCloudMediaProvidersPermission(mContext, pid, uid)
+                && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
             throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
                     "access picker uri: " + uriWithoutQueryParams);

@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"תצוגה מקדימה"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"לפרופיל העבודה"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"לפרופיל האישי"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"אישי"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"הפעולה נחסמה על ידי מנהל המערכת"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"אי אפשר לגשת לנתוני עבודה דרך אפליקציה לשימוש אישי"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"אי אפשר לגשת למידע אישי דרך אפליקציה לעבודה"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"אי אפשר לגשת לנתונים של <xliff:g id="PROFILE1">%1$s</xliff:g> דרך האפליקציה <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"מעבר אל <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"האפליקציות לעבודה מושהות"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"האפליקציות של <xliff:g id="PROFILE">%s</xliff:g> מושהות"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"כדי לפתוח תמונות מפרופיל העבודה, צריך להפעיל את האפליקציות לעבודה ולנסות שוב"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"כדי לפתוח את התמונות של <xliff:g id="PROFILE1">%1$s</xliff:g>, צריך להפעיל את האפליקציות <xliff:g id="PROFILE2">%2$s</xliff:g> ולנסות שוב"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"לאפליקציה הזו יש גישה רק לתמונות שבחרת"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"צריך לבחור תמונות וסרטונים שהאפליקציה הזו תוכל לגשת אליהם"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{פריט אחד (<xliff:g id="COUNT_0">^1</xliff:g>)}one{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}two{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}other{<xliff:g id="COUNT_1">^1</xliff:g> פריטים}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"כדאי לנסות שוב אחר כך. התמונות שלך יהיו זמינות כשהבעיה תיפתר."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"יש תמונות שאי אפשר לטעון כרגע"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"הבנתי"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"גישה לשמות החבילות של בעלי המדיה"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"מאפשרת לאפליקציה לקבל גישה לשמות החבילות של הבעלים של כל קובצי המדיה שאפשר לגשת אליהם."</string>
 </resources>

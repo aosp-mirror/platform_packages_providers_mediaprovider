@@ -18,16 +18,21 @@ package com.android.providers.media.util;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * A utility class to assist creating files for tests
@@ -98,5 +103,15 @@ public class FileCreationUtils {
         builder.encodedAuthority(authority);
 
         return builder;
+    }
+
+    static File stageMp4File(int resId) throws Exception {
+        final Context context = InstrumentationRegistry.getInstrumentation().getContext();
+        final File file = File.createTempFile("test", ".mp4");
+        try (InputStream in = context.getResources().openRawResource(resId);
+                OutputStream out = new FileOutputStream(file)) {
+            FileUtils.copy(in, out);
+        }
+        return file;
     }
 }

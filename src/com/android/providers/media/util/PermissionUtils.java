@@ -22,6 +22,7 @@ import static android.Manifest.permission.BACKUP;
 import static android.Manifest.permission.INSTALL_PACKAGES;
 import static android.Manifest.permission.MANAGE_EXTERNAL_STORAGE;
 import static android.Manifest.permission.MANAGE_MEDIA;
+import static android.Manifest.permission.QUERY_ALL_PACKAGES;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.READ_MEDIA_AUDIO;
 import static android.Manifest.permission.READ_MEDIA_IMAGES;
@@ -40,6 +41,7 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 
 import android.annotation.UserIdInt;
 import android.app.AppOpsManager;
@@ -48,6 +50,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.UserHandle;
+import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -93,6 +96,14 @@ public class PermissionUtils {
             default:
                 return false;
         }
+    }
+
+    /**
+     * @return {@code true} if the given {@code uid} is {@link android.os.Process#SYSTEM_UID},
+     *         {@code false} otherwise.
+     */
+    public static boolean checkPermissionSystem(int uid) {
+        return UserHandle.getAppId(uid) == android.os.Process.SYSTEM_UID;
     }
 
     /**
@@ -197,8 +208,8 @@ public class PermissionUtils {
     }
 
     public static boolean checkIsLegacyStorageGranted(@NonNull Context context, int uid,
-            String packageName, @Nullable String attributionTag) {
-        if (context.getSystemService(AppOpsManager.class)
+            String packageName, @Nullable String attributionTag, boolean isTargetSdkAtLeastR) {
+        if (!isTargetSdkAtLeastR && context.getSystemService(AppOpsManager.class)
                 .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED) {
             return true;
         }
@@ -315,6 +326,27 @@ public class PermissionUtils {
                 generateAppOpMessage(packageName, sOpDescription.get()));
     }
 
+    /**
+     * Check if the given package has been granted the
+     * android.Manifest.permission#QUERY_ALL_PACKAGES permission.
+     */
+    public static boolean checkPermissionQueryAllPackages(@NonNull Context context, int pid,
+            int uid, @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, QUERY_ALL_PACKAGES, pid,
+                uid, packageName, attributionTag, null);
+    }
+
+    /**
+     * Check if the given package has been granted the
+     * android.provider.MediaStore.#ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION permission.
+     */
+    public static boolean checkPermissionAccessMediaOwnerPackageName(@NonNull Context context,
+            int pid, int uid, @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context,
+                MediaStore.ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION,
+                pid, uid, packageName, attributionTag, null);
+    }
+
     public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
         @NonNull String packageName, @Nullable String attributionTag) {
         return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,
@@ -353,6 +385,22 @@ public class PermissionUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * @param context Application context
+     * @param pid calling process ID
+     * @param uid callers UID
+     * @return true if the given uid has MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION permission,
+     * otherwise returns false.
+     */
+    public static boolean checkManageCloudMediaProvidersPermission(@NonNull Context context,
+            int pid, @UserIdInt int uid) {
+        return context.checkPermission(
+                MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION,
+                pid,
+                uid
+        ) == PERMISSION_GRANTED;
     }
 
     @VisibleForTesting

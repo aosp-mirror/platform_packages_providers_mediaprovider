@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static com.android.providers.media.PickerProviderMediaGenerator.MediaGenerator;
+import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
 
@@ -36,6 +37,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Process;
 import android.os.storage.StorageManager;
@@ -48,6 +50,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.PickerProviderMediaGenerator;
+import com.android.providers.media.R;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.data.CloudProviderInfo;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
@@ -77,6 +80,7 @@ public class PickerSyncControllerTest {
     private static final String CLOUD_SECONDARY_PROVIDER_AUTHORITY =
             "com.android.providers.media.photopicker.tests.cloud_secondary";
     private static final String PACKAGE_NAME = "com.android.providers.media.tests";
+    private static final String APP_LABEL = "MediaProvider Tests";
 
     private final MediaGenerator mLocalMediaGenerator =
             PickerProviderMediaGenerator.getMediaGenerator(LOCAL_PROVIDER_AUTHORITY);
@@ -743,7 +747,7 @@ public class PickerSyncControllerTest {
     }
 
     @Test
-    public void testSetCloudProvider() {
+    public void testSetCloudProvider() throws UnableToAcquireLockException {
         //1. Get local provider assertion out of the way
         assertWithMessage("Unexpected local provider.")
                 .that(mController.getLocalProvider()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
@@ -757,6 +761,8 @@ public class PickerSyncControllerTest {
                 .that(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertWithMessage("Unexpected cloud provider.")
                 .that(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel()).isEqualTo(APP_LABEL);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade
@@ -771,6 +777,11 @@ public class PickerSyncControllerTest {
                 .that(setCloudProviderAndSyncAllMedia(null)).isTrue();
         assertWithMessage("Cloud provider should have been null.")
                 .that(mController.getCloudProvider()).isNull();
+        final String noProviderLabel = mContext.getResources()
+                .getString(R.string.picker_settings_no_provider);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel())
+                .isEqualTo(noProviderLabel);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade
@@ -785,6 +796,8 @@ public class PickerSyncControllerTest {
                 .that(mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY)).isTrue();
         assertWithMessage("Unexpected cloud provider.")
                 .that(mController.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Unexpected cloud provider label.")
+                .that(mController.getCurrentCloudProviderLocalizedLabel()).isEqualTo(APP_LABEL);
 
         // Assert that setting cloud provider clears facade cloud provider
         // And after syncing, the latest provider is set on the facade
@@ -1725,14 +1738,21 @@ public class PickerSyncControllerTest {
 
             // Simulate a UI session begins listening.
             contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+                    /* notifyForDescendants */ true, refreshUiNotificationObserver);
 
             mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
 
             mController.syncAllMedia();
 
+            refreshUiNotificationObserver.waitForChange();
+
             assertWithMessage("Refresh ui notification should have been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
+
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isFalse();
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
@@ -1744,7 +1764,7 @@ public class PickerSyncControllerTest {
         final TestContentObserver refreshUiNotificationObserver = new TestContentObserver(null);
         try {
             contentResolver.registerContentObserver(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI,
-                    /* notifyForDescendants */ false, refreshUiNotificationObserver);
+                    /* notifyForDescendants */ true, refreshUiNotificationObserver);
 
             assertWithMessage("Refresh ui notification should have not been received.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isFalse();
@@ -1760,7 +1780,12 @@ public class PickerSyncControllerTest {
                     "Failed to receive refresh ui notification on change in cloud provider.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
-            refreshUiNotificationObserver.mNotificationReceived = false;
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isTrue();
+
+            refreshUiNotificationObserver.clear();
 
             // The SET_CLOUD_PROVIDER is called using a different cloud provider from before
             mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
@@ -1769,7 +1794,12 @@ public class PickerSyncControllerTest {
                     "Failed to receive refresh ui notification on change in cloud provider.")
                     .that(refreshUiNotificationObserver.mNotificationReceived).isTrue();
 
-            refreshUiNotificationObserver.mNotificationReceived = false;
+            assertWithMessage("Refresh ui notification uri should not include init path.")
+                    .that(refreshUiNotificationObserver.mNotificationUri.getLastPathSegment()
+                            .equals(INIT_PATH))
+                    .isTrue();
+
+            refreshUiNotificationObserver.clear();
 
             // The cloud provider remains unchanged on PickerSyncController construction
             mController = PickerSyncController
@@ -1790,6 +1820,64 @@ public class PickerSyncControllerTest {
         } finally {
             contentResolver.unregisterContentObserver(refreshUiNotificationObserver);
         }
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderIsNull() {
+        mController.setCloudProvider(/* authority */ null);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is null")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderHasChanged() {
+        mController.setCloudProvider(/* authority */ CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is not in the "
+                + "providers list")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudDBQueriesAreDisabled() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ null);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when PickerDBFacade has disabled cloud"
+                + " queries")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMedia() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should be included in the picker media queries")
+                .that(shouldQueryCloudMedia)
+                .isTrue();
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
@@ -1879,14 +1967,33 @@ public class PickerSyncControllerTest {
 
     private static class TestContentObserver extends ContentObserver {
         boolean mNotificationReceived;
+        Uri mNotificationUri;
+        private CountDownLatch mLatch = new CountDownLatch(1);
 
         TestContentObserver(Handler handler) {
             super(handler);
         }
 
         @Override
-        public void onChange(boolean selfChange) {
+        public void onChange(boolean selfChange, Uri uri) {
             mNotificationReceived = true;
+            mNotificationUri = uri;
+            mLatch.countDown();
+        }
+
+        public void waitForChange() {
+            try {
+                assertWithMessage("Timed out while waiting for observer change.")
+                        .that(mLatch.await(5, TimeUnit.SECONDS))
+                        .isTrue();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void clear() {
+            mNotificationReceived = false;
+            mNotificationUri = null;
         }
     }
 }

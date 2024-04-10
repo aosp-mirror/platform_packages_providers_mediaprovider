@@ -97,6 +97,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -696,7 +697,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
         final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
-                mSelection.getSelectedItemsWithoutGrants());
+                mSelection.getNewlySelectedItems());
         if (!uris.isEmpty()) {
             ForegroundThread.getExecutor().execute(() -> {
                 // Handle grants in another thread to not block the UI.
@@ -709,7 +710,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // deselected them.
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getDeselectedItemsToBeRevoked()
+                            .stream().collect(Collectors.toList()));
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.

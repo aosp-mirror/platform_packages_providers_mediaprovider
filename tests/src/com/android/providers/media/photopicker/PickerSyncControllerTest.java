@@ -1822,6 +1822,64 @@ public class PickerSyncControllerTest {
         }
     }
 
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderIsNull() {
+        mController.setCloudProvider(/* authority */ null);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is null")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudProviderHasChanged() {
+        mController.setCloudProvider(/* authority */ CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when cloud provider is not in the "
+                + "providers list")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMediaWhenCloudDBQueriesAreDisabled() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ null);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should not be queried when PickerDBFacade has disabled cloud"
+                + " queries")
+                .that(shouldQueryCloudMedia)
+                .isFalse();
+    }
+
+    @Test
+    public void testQueryCloudMedia() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        mFacade.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        final boolean shouldQueryCloudMedia =
+                mController.shouldQueryCloudMedia(
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+
+        assertWithMessage("Cloud media should be included in the picker media queries")
+                .that(shouldQueryCloudMedia)
+                .isTrue();
+    }
+
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {
         generator.addMedia(media.first, media.second);
     }

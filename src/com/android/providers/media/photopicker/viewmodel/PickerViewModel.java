@@ -41,7 +41,6 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -477,14 +476,12 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
             String[] mimeTypeFilters) {
-        if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
+        if (isManagedSelectionEnabled() && selection.getPreGrantedUris() == null) {
             DataLoaderThread.getHandler().postDelayed(() -> {
-                Set<String> preGrantedItems = mItemsProvider.fetchReadGrantedItemsUrisForPackage(
-                                intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
-                        .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
-                        .collect(Collectors.toSet());
-                selection.setPreGrantedItemSet(preGrantedItems);
-                logPickerChoiceInitGrantsCount(preGrantedItems.size(), intentExtras);
+                List<Uri> preGrantedUris = mItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                                intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters);
+                selection.setPreGrantedItems(preGrantedUris);
+                logPickerChoiceInitGrantsCount(preGrantedUris.size(), intentExtras);
             }, TOKEN, DELAY_MILLIS);
         }
     }
@@ -613,20 +610,19 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
-            Set<String> preGrantedItems = new HashSet<>(0);
-            Set<String> deSelectedPreGrantedItems = new HashSet<>(0);
-            if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
-                preGrantedItems = mSelection.getPreGrantedItems();
-                deSelectedPreGrantedItems = new HashSet<>(
-                        mSelection.getPreGrantedItemIdsToBeRevoked());
+            Set<Uri> preGrantedUris = new HashSet<>(0);
+            Set<Uri> deSelectedPreGrantedUris = new HashSet<>(0);
+            if (isManagedSelectionEnabled() && mSelection.getPreGrantedUris() != null) {
+                preGrantedUris = mSelection.getPreGrantedUris();
+                deSelectedPreGrantedUris = mSelection.getDeselectedUrisToBeRevoked();
             }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
                 final Item item = Item.fromCursor(cursor, userId);
-                if (preGrantedItems.contains(item.getId())) {
+                if (preGrantedUris.contains(item.getContentUri())) {
                     item.setPreGranted();
-                    if (!deSelectedPreGrantedItems.contains(item.getId())) {
+                    if (!deSelectedPreGrantedUris.contains(item.getContentUri())) {
                         mSelection.addSelectedItem(item);
                     }
                 }
@@ -669,19 +665,20 @@ public class PickerViewModel extends AndroidViewModel {
      * issue by selectively loading those items and adding them to the selection list.</p>
      */
     public void getRemainingPreGrantedItems() {
-        if (!isManagedSelectionEnabled() || mSelection.getPreGrantedItems() == null) return;
+        if (!isManagedSelectionEnabled() || mSelection.getPreGrantedUris() == null) return;
 
-        List<String> idsForItemsToBeFetched =
-                new ArrayList<>(mSelection.getPreGrantedItems());
-        idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
-        idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
+        List<Uri> idsForItemsToBeFetched =
+                new ArrayList<>(mSelection.getPreGrantedUris());
+        idsForItemsToBeFetched.removeAll(mSelection.getSelectedItems().stream().map(
+                Item::getContentUri).collect(Collectors.toSet()));
+        idsForItemsToBeFetched.removeAll(mSelection.getDeselectedUrisToBeRevoked());
 
         if (!idsForItemsToBeFetched.isEmpty()) {
             UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
                 loadItemsWithLocalIdSelection(Category.DEFAULT, userId,
-                        idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
-                                Collectors.toList()));
+                        idsForItemsToBeFetched.stream().map(Uri::getLastPathSegment)
+                                .map(Integer::valueOf).collect(Collectors.toList()));
                 // If new data has loaded then post value representing a successful operation.
                 mIsAllPreGrantedMediaLoaded.postValue(true);
                 Log.d(TAG, "Fetched " + idsForItemsToBeFetched.size()

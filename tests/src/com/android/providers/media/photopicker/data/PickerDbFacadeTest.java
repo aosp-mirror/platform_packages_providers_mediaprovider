@@ -19,7 +19,49 @@ package com.android.providers.media.photopicker.data;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES;
 import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS;
 
-import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.ALBUM_ID;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_1;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_2;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_3;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_4;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_PROVIDER;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.DATE_TAKEN_MS;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GENERATION_MODIFIED;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GIF_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.IMAGE_MIME_TYPES_QUERY;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.JPEG_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_1;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_2;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_3;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_4;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_PROVIDER;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.M4V_VIDEO_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.MP4_VIDEO_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.MPEG_VIDEO_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.PNG_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.SIZE_BYTES;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.STANDARD_MIME_TYPE_EXTENSION;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.VIDEO_MIME_TYPES_QUERY;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.WEBM_VIDEO_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddAlbumMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAllMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertCloudAlbumCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertCloudMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertMediaStoreCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertRemoveMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertResetAlbumMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertResetMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertWriteOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getDeletedMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.queryAlbumMedia;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.queryMediaAll;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -30,8 +72,6 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.MatrixCursor;
-import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.Column;
 import android.provider.ExportedSince;
@@ -58,39 +98,6 @@ import java.util.concurrent.CompletableFuture;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDbFacadeTest {
-    private static final long SIZE_BYTES = 7000;
-    private static final long DATE_TAKEN_MS = 1623852851911L;
-    private static final long GENERATION_MODIFIED = 1L;
-    private static final long DURATION_MS = 5;
-    private static final int HEIGHT = 720;
-    private static final int WIDTH = 1080;
-    private static final int ORIENTATION = 90;
-    private static final String LOCAL_ID = "50";
-    private static final String LOCAL_ID_1 = "501";
-    private static final String LOCAL_ID_2 = "502";
-    private static final String LOCAL_ID_3 = "503";
-    private static final String LOCAL_ID_4 = "504";
-    private static final String CLOUD_ID = "asdfghjkl;";
-    private static final String CLOUD_ID_1 = "asdfghjkl;1";
-    private static final String CLOUD_ID_2 = "asdfghjkl;2";
-    private static final String CLOUD_ID_3 = "asdfghjkl;3";
-    private static final String CLOUD_ID_4 = "asdfghjkl;4";
-    private static final String ALBUM_ID = "testAlbum";
-    private static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
-    private static final String WEBM_VIDEO_MIME_TYPE = "video/webm";
-    private static final String MPEG_VIDEO_MIME_TYPE = "video/mpeg";
-    private static final String M4V_VIDEO_MIME_TYPE = "video/m4v";
-    private static final String[] VIDEO_MIME_TYPES_QUERY = new String[]{"video/mp4"};
-    private static final String JPEG_IMAGE_MIME_TYPE = "image/jpeg";
-    private static final String GIF_IMAGE_MIME_TYPE = "image/gif";
-    private static final String PNG_IMAGE_MIME_TYPE = "image/png";
-    private static final String[] IMAGE_MIME_TYPES_QUERY = new String[]{"image/jpeg"};
-    private static final int STANDARD_MIME_TYPE_EXTENSION =
-            MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
-
-    private static final String LOCAL_PROVIDER = "com.local.provider";
-    private static final String CLOUD_PROVIDER = "com.cloud.provider";
-
     private PickerDbFacade mFacade;
     private Context mContext;
     private ProjectionHelper mProjectionHelper;
@@ -132,9 +139,9 @@ public class PickerDbFacadeTest {
         Cursor cursor1 = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 2);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with cursor1 "
                             + "on LOCAL_PROVIDER.")
@@ -144,9 +151,9 @@ public class PickerDbFacadeTest {
         }
 
         // Test updating the same row
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after trying to update the same row with cursor2 "
                             + "on LOCAL_PROVIDER.")
@@ -160,9 +167,9 @@ public class PickerDbFacadeTest {
     public void testAddCloudPlusLocal() throws Exception {
         Cursor cursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation on CLOUD_PROVIDER.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -176,9 +183,9 @@ public class PickerDbFacadeTest {
         Cursor cursor1 = getCloudMediaCursor(CLOUD_ID, null, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getCloudMediaCursor(CLOUD_ID, null, DATE_TAKEN_MS + 2);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with cursor1 on "
                             + "CLOUD_PROVIDER.")
@@ -188,9 +195,9 @@ public class PickerDbFacadeTest {
         }
 
         // Test updating the same row
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after trying to update the same row with cursor2 "
                             + "on CLOUD_PROVIDER.")
@@ -205,10 +212,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with:\nlocalCursor having "
                             + "localId = " + LOCAL_ID + ", followed by\ncloudCursor having "
@@ -224,10 +231,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS + 1);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with:\ncloudCursor having "
                             + "localId = " + LOCAL_ID + ", cloudId = " + CLOUD_ID + ", followed by"
@@ -244,11 +251,11 @@ public class PickerDbFacadeTest {
         final Cursor cursor2 = getCloudMediaCursor(CLOUD_ID_1, null, DATE_TAKEN_MS);
         final Cursor cursor3 = getLocalMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS + 1);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor2, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media on queryMediaAll() after adding 2 "
                             + "localMediaCursor and 1 cloudMediaCursor to "
@@ -274,9 +281,9 @@ public class PickerDbFacadeTest {
         Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID, /* cloud id */ null, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID, /* cloud id */ null, DATE_TAKEN_MS + 2);
 
-        assertAddAlbumMediaOperation(LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, true)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, true)) {
             assertWithMessage(
                     "Unexpected number of albumMedia after adding albumMediaCursor having localId"
                             + " = "
@@ -287,10 +294,10 @@ public class PickerDbFacadeTest {
         }
 
         // Test updating the same row. We always do a full sync for album media files.
-        assertResetAlbumMediaOperation(LOCAL_PROVIDER, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertResetAlbumMediaOperation(mFacade, LOCAL_PROVIDER, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, true)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, true)) {
             assertWithMessage(
                     "Unexpected number of albumMedia after resetting and updating the same row "
                             + "with albumMediaCursor having localId = "
@@ -306,9 +313,9 @@ public class PickerDbFacadeTest {
         Cursor cursor1 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 2);
 
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of albumMedia after adding albumMediaCursor having localId"
                             + " = "
@@ -319,10 +326,10 @@ public class PickerDbFacadeTest {
         }
 
         // Test updating the same row. We always do a full sync for album media files.
-        assertResetAlbumMediaOperation(CLOUD_PROVIDER, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertResetAlbumMediaOperation(mFacade, CLOUD_PROVIDER, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of albumMedia after resetting and updating the same row "
                     + "with albumMediaCursor having localId = "
@@ -343,9 +350,9 @@ public class PickerDbFacadeTest {
 
         Cursor cursor1 = getAlbumMediaCursor(/* local id */ null, CLOUD_ID, DATE_TAKEN_MS + 1);
 
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of albumMedia after adding albumMediaCursor having localId"
                     + " = "
@@ -357,7 +364,7 @@ public class PickerDbFacadeTest {
 
         // These files should also be in the media table since we're pretending that
         // we have a cloud sync running.
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media on querying all media with cloud sync running.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -370,16 +377,16 @@ public class PickerDbFacadeTest {
     public void testAddCloudAlbumMediaAvailableOnDevice() {
         // Add local row for a media item in media table.
         final Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
 
         // Attempt to insert a media item available locally and on cloud in album_media table.
         final Cursor cloudCursor =
                 getAlbumMediaCursor(LOCAL_ID, CLOUD_ID, DATE_TAKEN_MS + 1);
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
 
         // Assert that preference was given to the local media item over cloud media item at the
         // time of insertion in album_media table.
-        try (Cursor albumCursor = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor albumCursor = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of albumMedia on querying " + ALBUM_ID)
                     .that(albumCursor.getCount()).isEqualTo(1);
@@ -394,11 +401,11 @@ public class PickerDbFacadeTest {
         // album_media table.
         final Cursor cloudCursor =
                 getAlbumMediaCursor(LOCAL_ID, CLOUD_ID, DATE_TAKEN_MS);
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
 
         // Assert that cloud media metadata was inserted in the database as local_id points to a
         // deleted item.
-        try (Cursor albumCursor = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor albumCursor = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of albumMedia on querying " + ALBUM_ID)
                     .that(albumCursor.getCount()).isEqualTo(1);
@@ -413,11 +420,11 @@ public class PickerDbFacadeTest {
         final Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_1, null, DATE_TAKEN_MS);
         final Cursor cursor3 = getAlbumMediaCursor(null, CLOUD_ID_2, DATE_TAKEN_MS + 1);
 
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
 
-        try (Cursor cr = queryAlbumMedia(ALBUM_ID, false)) {
+        try (Cursor cr = queryAlbumMedia(mFacade, ALBUM_ID, false)) {
             assertWithMessage(
                     "Unexpected number of media on queryMediaAll() after adding 2 "
                             + "cloudAlbumMediaCursor and 1 localAlbumMediaCursor to "
@@ -442,18 +449,18 @@ public class PickerDbFacadeTest {
     public void testRemoveLocal() throws Exception {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with local media cursor "
                             + "localCursor.")
                     .that(cr.getCount()).isEqualTo(1);
         }
 
-        assertRemoveMediaOperation(LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
+        assertRemoveMediaOperation(mFacade, LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on local provider.")
                     .that(cr.getCount()).isEqualTo(0);
@@ -465,10 +472,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "one cloudCursor where "
@@ -479,9 +486,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
-        assertRemoveMediaOperation(LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
+        assertRemoveMediaOperation(mFacade, LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on local provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -494,18 +501,18 @@ public class PickerDbFacadeTest {
     public void testRemoveCloud() throws Exception {
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with cloud media cursor "
                             + "cloudCursor.")
                     .that(cr.getCount()).isEqualTo(1);
         }
 
-        assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+        assertRemoveMediaOperation(mFacade, CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on cloud provider.")
                     .that(cr.getCount()).isEqualTo(0);
@@ -524,7 +531,7 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with two cloudCursor where "
                             + "\ncloudCursor1 has localId = " + LOCAL_ID + ", cloudId = " + CLOUD_ID
@@ -537,9 +544,10 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, CLOUD_ID + "1", DATE_TAKEN_MS + 1);
         }
 
-        assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID + "1"), 1);
+        assertRemoveMediaOperation(mFacade, CLOUD_PROVIDER,
+                getDeletedMediaCursor(CLOUD_ID + "1"), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on cloud provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -553,10 +561,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "one cloudCursor where "
@@ -567,9 +575,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
-        assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+        assertRemoveMediaOperation(mFacade, CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on cloud provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -591,7 +599,7 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with two localCursor where "
                             + "\nlocalCursor1 has localId = " + LOCAL_ID
@@ -601,9 +609,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS + 2);
         }
 
-        assertRemoveMediaOperation(LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
+        assertRemoveMediaOperation(mFacade, LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on local provider.")
                     .that(cr.getCount()).isEqualTo(0);
@@ -615,10 +623,10 @@ public class PickerDbFacadeTest {
         Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
         Cursor cloudCursor2 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 2);
 
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor2, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with two cloudCursor where "
                             + "\ncloudCursor1 has localId = " + LOCAL_ID + ", cloudId = " + CLOUD_ID
@@ -629,9 +637,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
 
-        assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+        assertRemoveMediaOperation(mFacade, CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on cloud provider.")
                     .that(cr.getCount()).isEqualTo(0);
@@ -644,11 +652,11 @@ public class PickerDbFacadeTest {
         Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
         Cursor cloudCursor2 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 2);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor2, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "two cloudCursor, where \nlocalCursor has localId = "
@@ -660,9 +668,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
-        assertRemoveMediaOperation(LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
+        assertRemoveMediaOperation(mFacade, LOCAL_PROVIDER, getDeletedMediaCursor(LOCAL_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation deleting media with "
                             + "localId ="
@@ -672,9 +680,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
 
-        assertRemoveMediaOperation(CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
+        assertRemoveMediaOperation(mFacade, CLOUD_PROVIDER, getDeletedMediaCursor(CLOUD_ID), 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation deleting media with "
                             + "cloudId ="
@@ -688,10 +696,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS + 1);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor1, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "one cloudCursor where "
@@ -723,7 +731,7 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after removeMediaOperation on cloud provider then"
                             + " on local provider.")
@@ -739,11 +747,11 @@ public class PickerDbFacadeTest {
         Cursor cloudCursor1 = getCloudMediaCursor(CLOUD_ID + "1", LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor2 = getCloudMediaCursor(CLOUD_ID + "2", LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor2, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "two cloudCursor, where \nlocalCursor has localId = " + LOCAL_ID
@@ -756,9 +764,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
-        assertResetMediaOperation(LOCAL_PROVIDER, null, 1);
+        assertResetMediaOperation(mFacade, LOCAL_PROVIDER, null, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after resetMediaOperation on local provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -776,10 +784,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "one cloudCursor where "
@@ -790,9 +798,9 @@ public class PickerDbFacadeTest {
             assertCloudMediaCursor(cr, LOCAL_ID, DATE_TAKEN_MS);
         }
 
-        assertResetMediaOperation(CLOUD_PROVIDER, null, 1);
+        assertResetMediaOperation(mFacade, CLOUD_PROVIDER, null, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after resetMediaOperation on cloud provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -806,10 +814,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, LOCAL_ID, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of media after addMediaOperation with one localCursor and "
                             + "one cloudCursor where "
@@ -878,9 +886,9 @@ public class PickerDbFacadeTest {
         Cursor cursor2 = getCloudMediaCursor(CLOUD_ID + "2", null, DATE_TAKEN_MS);
         Cursor cursor3 = getLocalMediaCursor(LOCAL_ID + "3", DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor2, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
 
         PickerDbFacade.QueryFilterBuilder qfbBefore = new PickerDbFacade.QueryFilterBuilder(1);
         qfbBefore.setDateTakenBeforeMs(DATE_TAKEN_MS + 1);
@@ -927,8 +935,8 @@ public class PickerDbFacadeTest {
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
 
         // Verify all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
@@ -1019,12 +1027,12 @@ public class PickerDbFacadeTest {
                 /* mediaStoreUri */ null, SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor2, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor3, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor4, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor5, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor6, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor4, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor5, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor6, 1);
 
         // Verify all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
@@ -1186,14 +1194,14 @@ public class PickerDbFacadeTest {
                 /* mediaStoreUri */ null, SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor2, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor3, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor4, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor5, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor6, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor7, 1);
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor8, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor4, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor5, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor6, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor7, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor8, 1);
 
         // Verify all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
@@ -1315,8 +1323,8 @@ public class PickerDbFacadeTest {
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, MP4_VIDEO_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, cursor1, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
 
         // mime_type and size filter matches all
         PickerDbFacade.QueryFilterBuilder qfbAll = new PickerDbFacade.QueryFilterBuilder(1000);
@@ -1345,8 +1353,8 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
         // Assert all projection columns
         final String[] allProjection = mProjectionHelper.getProjectionMap(
@@ -1387,7 +1395,7 @@ public class PickerDbFacadeTest {
             cr.moveToFirst();
             assertWithMessage(
                     "Unexpected value of PickerMediaColumns.DATE_TAKEN with cloud provider.")
-                    .that(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
+                    .that(cr.getLong(cr.getColumnIndexOrThrow(PickerMediaColumns.DATE_TAKEN)))
                     .isEqualTo(DATE_TAKEN_MS);
         }
 
@@ -1408,11 +1416,11 @@ public class PickerDbFacadeTest {
             cr.moveToFirst();
             assertWithMessage(
                     "Unexpected value of the invalidColumn with cloud provider.")
-                    .that(cr.getLong(cr.getColumnIndex(invalidColumn)))
+                    .that(cr.getLong(cr.getColumnIndexOrThrow(invalidColumn)))
                     .isEqualTo(0);
             assertWithMessage(
                     "Unexpected value of PickerMediaColumns.DATE_TAKEN with cloud provider.")
-                    .that(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
+                    .that(cr.getLong(cr.getColumnIndexOrThrow(PickerMediaColumns.DATE_TAKEN)))
                     .isEqualTo(DATE_TAKEN_MS);
         }
     }
@@ -1427,8 +1435,8 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
         PickerDbFacade.QueryFilterBuilder qfb =
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
@@ -1471,8 +1479,8 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, /* localId */ null, DATE_TAKEN_MS);
 
-        assertAddAlbumMediaOperation(LOCAL_PROVIDER, localCursor, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1, ALBUM_ID);
 
         PickerDbFacade.QueryFilterBuilder localQfb =
                 new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
@@ -1520,10 +1528,10 @@ public class PickerDbFacadeTest {
         Cursor localCursor = getLocalMediaCursor(LOCAL_ID, DATE_TAKEN_MS);
         Cursor cloudCursor = getCloudMediaCursor(CLOUD_ID, null, DATE_TAKEN_MS);
 
-        assertAddMediaOperation(LOCAL_PROVIDER, localCursor, 1);
-        assertAddMediaOperation(CLOUD_PROVIDER, cloudCursor, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, localCursor, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cloudCursor, 1);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of rows on queryMediaAll with both local and cloud "
                             + "provider.")
@@ -1539,7 +1547,7 @@ public class PickerDbFacadeTest {
         // Clearing the cloud provider hides cloud media
         mFacade.setCloudProvider(null);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of rows on queryMediaAll after hiding cloud provider.")
                     .that(cr.getCount()).isEqualTo(1);
@@ -1551,7 +1559,7 @@ public class PickerDbFacadeTest {
         // Setting the cloud provider unhides cloud media
         mFacade.setCloudProvider(CLOUD_PROVIDER);
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage(
                     "Unexpected number of rows on queryMediaAll after un-hiding cloud provider.")
                     .that(cr.getCount()).isEqualTo(2);
@@ -1932,11 +1940,11 @@ public class PickerDbFacadeTest {
 
             cr.moveToNext();
             assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
-                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                    .that(cr.getString(cr.getColumnIndexOrThrow(MediaColumns.ID))).isEqualTo(
                             LOCAL_ID + "2");
             cr.moveToNext();
             assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
-                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                    .that(cr.getString(cr.getColumnIndexOrThrow(MediaColumns.ID))).isEqualTo(
                             LOCAL_ID + "1");
         }
 
@@ -1995,7 +2003,7 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cr = queryMediaAll()) {
+        try (Cursor cr = queryMediaAll(mFacade)) {
             assertWithMessage("Unexpected number of rows on queryMediaForUi.")
                     .that(cr.getCount()).isEqualTo(2);
             cr.moveToFirst();
@@ -2043,14 +2051,14 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cursor = queryMediaAll()) {
+        try (Cursor cursor = queryMediaAll(mFacade)) {
             assertWithMessage("Unexpected number of rows after update operation.")
                     .that(cursor.getCount()).isEqualTo(1);
 
             // Assert that STANDARD_MIME_TYPE_EXTENSION has been updated
             cursor.moveToFirst();
             assertWithMessage("Failed to update STANDARD_MIME_TYPE_EXTENSION.")
-                    .that(cursor.getInt(cursor.getColumnIndex(
+                    .that(cursor.getInt(cursor.getColumnIndexOrThrow(
                             MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
                     .isEqualTo(MediaColumns.STANDARD_MIME_TYPE_EXTENSION_ANIMATED_WEBP);
         }
@@ -2077,352 +2085,16 @@ public class PickerDbFacadeTest {
             operation.setSuccess();
         }
 
-        try (Cursor cursor = queryMediaAll()) {
+        try (Cursor cursor = queryMediaAll(mFacade)) {
             assertWithMessage("Unexpected number of rows after update operation.")
                     .that(cursor.getCount()).isEqualTo(1);
 
             // Assert that STANDARD_MIME_TYPE_EXTENSION is same as before
             cursor.moveToFirst();
             assertWithMessage("Unexpected STANDARD_MIME_TYPE_EXTENSION, not same as before.")
-                    .that(cursor.getInt(cursor.getColumnIndex(
+                    .that(cursor.getInt(cursor.getColumnIndexOrThrow(
                             MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
                     .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
         }
-    }
-
-    private Cursor queryMediaAll() {
-        return mFacade.queryMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).build());
-    }
-
-    private Cursor queryAlbumMedia(String albumId, boolean isLocal) {
-        final String authority = isLocal ? LOCAL_PROVIDER : CLOUD_PROVIDER;
-
-        return mFacade.queryAlbumMediaForUi(
-                new PickerDbFacade.QueryFilterBuilder(1000).setAlbumId(albumId).build(), authority);
-    }
-
-    private void assertAddMediaOperation(String authority, Cursor cursor, int writeCount) {
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginAddMediaOperation(authority)) {
-            assertWriteOperation(operation, cursor, writeCount);
-            operation.setSuccess();
-        }
-    }
-
-    private void assertAddAlbumMediaOperation(String authority, Cursor cursor, int writeCount,
-            String albumId) {
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginAddAlbumMediaOperation(authority, albumId)) {
-            assertWriteOperation(operation, cursor, writeCount);
-            operation.setSuccess();
-        }
-    }
-
-    private void assertRemoveMediaOperation(String authority, Cursor cursor, int writeCount) {
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginRemoveMediaOperation(authority)) {
-            assertWriteOperation(operation, cursor, writeCount);
-            operation.setSuccess();
-        }
-    }
-
-    private void assertResetMediaOperation(String authority, Cursor cursor, int writeCount) {
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginResetMediaOperation(authority)) {
-            assertWriteOperation(operation, cursor, writeCount);
-            operation.setSuccess();
-        }
-    }
-
-    private void assertResetAlbumMediaOperation(String authority, int writeCount,
-            String albumId) {
-        try (PickerDbFacade.DbWriteOperation operation =
-                     mFacade.beginResetAlbumMediaOperation(authority, albumId)) {
-            assertWriteOperation(operation, null, writeCount);
-            operation.setSuccess();
-        }
-    }
-
-    private static void assertWriteOperation(PickerDbFacade.DbWriteOperation operation,
-            Cursor cursor, int expectedWriteCount) {
-        final int writeCount = operation.execute(cursor);
-        assertWithMessage("Unexpected write count on operation.execute(cursor).")
-                .that(writeCount).isEqualTo(expectedWriteCount);
-    }
-
-    // TODO(b/190713331): s/id/CloudMediaProviderContract#MediaColumns#ID/
-    private static Cursor getDeletedMediaCursor(String id) {
-        MatrixCursor c =
-                new MatrixCursor(new String[]{"id"});
-        c.addRow(new String[]{id});
-        return c;
-    }
-
-    private static Cursor getMediaCursor(String id, long dateTakenMs, long generationModified,
-            String mediaStoreUri, long sizeBytes, String mimeType, int standardMimeTypeExtension,
-            boolean isFavorite) {
-        String[] projectionKey = new String[]{
-                MediaColumns.ID,
-                MediaColumns.MEDIA_STORE_URI,
-                MediaColumns.DATE_TAKEN_MILLIS,
-                MediaColumns.SYNC_GENERATION,
-                MediaColumns.SIZE_BYTES,
-                MediaColumns.MIME_TYPE,
-                MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-                MediaColumns.DURATION_MILLIS,
-                MediaColumns.IS_FAVORITE,
-                MediaColumns.HEIGHT,
-                MediaColumns.WIDTH,
-                MediaColumns.ORIENTATION,
-        };
-
-        String[] projectionValue = new String[]{
-                id,
-                mediaStoreUri,
-                String.valueOf(dateTakenMs),
-                String.valueOf(generationModified),
-                String.valueOf(sizeBytes),
-                mimeType,
-                String.valueOf(standardMimeTypeExtension),
-                String.valueOf(DURATION_MS),
-                String.valueOf(isFavorite ? 1 : 0),
-                String.valueOf(HEIGHT),
-                String.valueOf(WIDTH),
-                String.valueOf(ORIENTATION),
-        };
-
-        MatrixCursor c = new MatrixCursor(projectionKey);
-        c.addRow(projectionValue);
-        return c;
-    }
-
-    private static Cursor getAlbumMediaCursor(
-            String id,
-            long dateTakenMs,
-            long generationModified,
-            String mediaStoreUri,
-            long sizeBytes,
-            String mimeType,
-            int standardMimeTypeExtension) {
-        String[] projectionKey =
-                new String[]{
-                        MediaColumns.ID,
-                        MediaColumns.MEDIA_STORE_URI,
-                        MediaColumns.DATE_TAKEN_MILLIS,
-                        MediaColumns.SYNC_GENERATION,
-                        MediaColumns.SIZE_BYTES,
-                        MediaColumns.MIME_TYPE,
-                        MediaColumns.STANDARD_MIME_TYPE_EXTENSION,
-                        MediaColumns.DURATION_MILLIS,
-                };
-
-        String[] projectionValue =
-                new String[]{
-                        id,
-                        mediaStoreUri,
-                        String.valueOf(dateTakenMs),
-                        String.valueOf(generationModified),
-                        String.valueOf(sizeBytes),
-                        mimeType,
-                        String.valueOf(standardMimeTypeExtension),
-                        String.valueOf(DURATION_MS),
-                };
-
-        MatrixCursor c = new MatrixCursor(projectionKey);
-        c.addRow(projectionValue);
-        return c;
-    }
-
-    private static Cursor getLocalMediaCursor(String localId, long dateTakenMs) {
-        return getMediaCursor(localId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
-                SIZE_BYTES, MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION,
-                /* isFavorite */ false);
-    }
-
-    private static Cursor getAlbumMediaCursor(String localId, String cloudId, long dateTakenMs) {
-        return getAlbumMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED,
-                toMediaStoreUri(localId), SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
-                STANDARD_MIME_TYPE_EXTENSION);
-    }
-
-    private static Cursor getCloudMediaCursor(String cloudId, String localId,
-            long dateTakenMs) {
-        return getMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
-                SIZE_BYTES, MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION,
-                /* isFavorite */ false);
-    }
-
-    private static String toMediaStoreUri(String localId) {
-        if (localId == null) {
-            return null;
-        }
-        return "content://media/external/file/" + localId;
-    }
-
-    private static String getDisplayName(String mediaId, String mimeType) {
-        return mediaId + getExtensionFromMimeType(mimeType);
-    }
-
-    private static String getData(String authority, String displayName, String pickerSegmentType) {
-        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/0/" + authority + "/media/"
-                + displayName;
-    }
-
-    private static void assertCloudAlbumCursor(Cursor cursor, String albumId, String displayName,
-            String mediaCoverId, long dateTakenMs, long mediaCount) {
-        assertWithMessage("Unexpected value of AlbumColumns.ID for cloud album cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(AlbumColumns.ID)))
-                .isEqualTo(albumId);
-        assertWithMessage("Unexpected value of AlbumColumns.DISPLAY_NAME for cloud album cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(AlbumColumns.DISPLAY_NAME)))
-                .isEqualTo(displayName);
-        assertWithMessage("Unexpected value of AlbumColumns.MEDIA_COVER_ID for cloud album cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(AlbumColumns.MEDIA_COVER_ID)))
-                .isEqualTo(mediaCoverId);
-        assertWithMessage(
-                "Unexpected value of AlbumColumns.DATE_TAKEN_MILLIS for cloud album cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(AlbumColumns.DATE_TAKEN_MILLIS)))
-                .isEqualTo(dateTakenMs);
-        assertWithMessage("Unexpected value of AlbumColumns.MEDIA_COUNT for cloud album cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(AlbumColumns.MEDIA_COUNT)))
-                .isEqualTo(mediaCount);
-    }
-
-    private static void assertCloudMediaCursor(Cursor cursor, String id, String mimeType) {
-        final String displayName = getDisplayName(id, mimeType);
-        final String localData = getData(LOCAL_PROVIDER, displayName,
-                PickerUriResolver.PICKER_SEGMENT);
-        final String cloudData = getData(CLOUD_PROVIDER, displayName,
-                PickerUriResolver.PICKER_SEGMENT);
-
-        assertWithMessage("Unexpected value of MediaColumns.ID for the cloud media cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(MediaColumns.ID)))
-                .isEqualTo(id);
-        assertWithMessage("Unexpected value of MediaColumns.AUTHORITY for the cloud media cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(MediaColumns.AUTHORITY)))
-                .isEqualTo(id.startsWith(LOCAL_ID) ? LOCAL_PROVIDER : CLOUD_PROVIDER);
-        assertWithMessage("Unexpected value of MediaColumns.DATA for the cloud media cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(MediaColumns.DATA)))
-                .isEqualTo(id.startsWith(LOCAL_ID) ? localData : cloudData);
-    }
-
-    private static void assertCloudMediaCursor(Cursor cursor, String id, long dateTakenMs) {
-        assertCloudMediaCursor(cursor, id, MP4_VIDEO_MIME_TYPE);
-
-        assertWithMessage("Unexpected value of MediaColumns.MIME_TYPE for the cloud media cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
-                .isEqualTo(MP4_VIDEO_MIME_TYPE);
-        assertWithMessage(
-                "Unexpected value of MediaColumns.STANDARD_MIME_TYPE_EXTENSION for the cloud "
-                        + "media cursor.")
-                .that(cursor.getInt(
-                        cursor.getColumnIndex(MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
-                .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
-        assertWithMessage(
-                "Unexpected value of MediaColumns.DATE_TAKEN_MILLIS for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MILLIS)))
-                .isEqualTo(dateTakenMs);
-        assertWithMessage(
-                "Unexpected value of MediaColumns.SYNC_GENERATION for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.SYNC_GENERATION)))
-                .isEqualTo(GENERATION_MODIFIED);
-        assertWithMessage("Unexpected value of MediaColumns.SIZE_BYTES for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.SIZE_BYTES)))
-                .isEqualTo(SIZE_BYTES);
-        assertWithMessage(
-                "Unexpected value of MediaColumns.DURATION_MILLIS for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.DURATION_MILLIS)))
-                .isEqualTo(DURATION_MS);
-    }
-
-    private static void assertCloudMediaCursor(
-            Cursor cursor, String id, long dateTakenMs, String mimeType) {
-        assertCloudMediaCursor(cursor, id, mimeType);
-
-        assertWithMessage("Unexpected value for MediaColumns.MIME_TYPE for the cloud media cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(MediaColumns.MIME_TYPE)))
-                .isEqualTo(mimeType);
-        assertWithMessage(
-                "Unexpected value for MediaColumns.STANDARD_MIME_TYPE_EXTENSION for the cloud "
-                        + "media cursor.")
-                .that(cursor.getInt(
-                        cursor.getColumnIndex(MediaColumns.STANDARD_MIME_TYPE_EXTENSION)))
-                .isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
-        assertWithMessage(
-                "Unexpected value for MediaColumns.DATE_TAKEN_MILLIS for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.DATE_TAKEN_MILLIS)))
-                .isEqualTo(dateTakenMs);
-        assertWithMessage(
-                "Unexpected value for MediaColumns.SYNC_GENERATION for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.SYNC_GENERATION)))
-                .isEqualTo(GENERATION_MODIFIED);
-        assertWithMessage(
-                "Unexpected value for MediaColumns.SIZE_BYTES for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.SIZE_BYTES)))
-                .isEqualTo(SIZE_BYTES);
-        assertWithMessage(
-                "Unexpected value for MediaColumns.DURATION_MILLIS for the cloud media cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(MediaColumns.DURATION_MILLIS)))
-                .isEqualTo(DURATION_MS);
-    }
-
-    private static void assertAllMediaCursor(
-            Cursor cursor, String[] mediaIds, long[] dateTakenMs, String[] mimeTypes) {
-        int mediaCount = cursor.getCount();
-        for (int mediaNo = 0; mediaNo < mediaCount; mediaNo = mediaNo + 1) {
-            if (mediaNo == 0) {
-                cursor.moveToFirst();
-            } else {
-                cursor.moveToNext();
-            }
-            assertCloudMediaCursor(cursor, mediaIds[mediaNo], dateTakenMs[mediaNo],
-                    mimeTypes[mediaNo]);
-        }
-    }
-
-    private static void assertMediaStoreCursor(Cursor cursor, String id, long dateTakenMs,
-            String pickerSegmentType) {
-        final String displayName = getDisplayName(id, MP4_VIDEO_MIME_TYPE);
-        final String localData = getData(LOCAL_PROVIDER, displayName, pickerSegmentType);
-        final String cloudData = getData(CLOUD_PROVIDER, displayName, pickerSegmentType);
-
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.DISPLAY_NAME for the media store cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(PickerMediaColumns.DISPLAY_NAME)))
-                .isEqualTo(displayName);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.DATA for the media store cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(PickerMediaColumns.DATA)))
-                .isEqualTo(id.startsWith(LOCAL_ID) ? localData : cloudData);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.MIME_TYPE for the media store cursor.")
-                .that(cursor.getString(cursor.getColumnIndex(PickerMediaColumns.MIME_TYPE)))
-                .isEqualTo(MP4_VIDEO_MIME_TYPE);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.DATE_TAKEN for the media store cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
-                .isEqualTo(dateTakenMs);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.SIZE for the media store cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(PickerMediaColumns.SIZE)))
-                .isEqualTo(SIZE_BYTES);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.DURATION_MILLIS for the media store "
-                        + "cursor.")
-                .that(cursor.getLong(cursor.getColumnIndex(PickerMediaColumns.DURATION_MILLIS)))
-                .isEqualTo(DURATION_MS);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.HEIGHT for the media store cursor.")
-                .that(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.HEIGHT)))
-                .isEqualTo(HEIGHT);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.WIDTH for the media store cursor.")
-                .that(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.WIDTH)))
-                .isEqualTo(WIDTH);
-        assertWithMessage(
-                "Unexpected value for PickerMediaColumns.ORIENTATION for the media store cursor.")
-                .that(cursor.getInt(cursor.getColumnIndex(PickerMediaColumns.ORIENTATION)))
-                .isEqualTo(ORIENTATION);
     }
 }

@@ -53,6 +53,7 @@ class DataServiceImplTest {
         allProfiles = listOf(userProfile),
         activeContentResolver = ContentResolver.wrap(testContentProvider)
     )
+    private val mediaProviderClient: MediaProviderClient = MediaProviderClient()
 
     @Test
     fun testInitialAllowedProvider() = runTest {
@@ -61,7 +62,8 @@ class DataServiceImplTest {
         val dataService: DataService = DataServiceImpl(
             userStatus = userStatusFlow,
             scope = this.backgroundScope,
-            notificationService = notificationService
+            notificationService = notificationService,
+            mediaProviderClient = mediaProviderClient
         )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -85,7 +87,8 @@ class DataServiceImplTest {
         val dataService: DataService = DataServiceImpl(
             userStatus = userStatusFlow,
             scope = this.backgroundScope,
-            notificationService = notificationService
+            notificationService = notificationService,
+            mediaProviderClient = mediaProviderClient
         )
 
         val emissions = mutableListOf<List<Provider>>()

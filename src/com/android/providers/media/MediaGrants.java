@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.MediaColumns.DATA;
-
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
@@ -180,8 +178,8 @@ public class MediaGrants {
                             .build());
 
             return queryBuilder.query(db,
-                    new String[]{DATA, FILE_ID_COLUMN}, null, selectionArgs, null, null, null, null,
-                    null);
+                    new String[]{FILE_ID_COLUMN, PACKAGE_USER_ID_COLUMN}, null,
+                    selectionArgs, null, null, null, null, null);
         });
     }
 

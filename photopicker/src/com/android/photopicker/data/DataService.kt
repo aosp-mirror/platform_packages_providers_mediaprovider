@@ -53,6 +53,8 @@ interface DataService {
      */
     fun cloudMediaProviderDetails(authority: String): StateFlow<CloudMediaProviderDetails?>
 
-    /** @return an instance of [PagingSource]. */
+    /**
+     * @return a new instance of [PagingSource].
+     */
     fun mediaPagingSource(): PagingSource<MediaPageKey, Media>
 }

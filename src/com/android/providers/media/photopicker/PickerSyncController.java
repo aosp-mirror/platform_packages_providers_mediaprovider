@@ -1798,4 +1798,30 @@ public class PickerSyncController {
         writer.println("  cachedCloudMediaCollectionInfo="
                 + getCachedMediaCollectionInfo(/* isLocal */ false));
     }
+
+    /**
+     * Returns the associated Picker DB instance.
+     */
+    public PickerDbFacade getDbFacade() {
+        return mDbFacade;
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current cloud provider is not null.
+     * 2. Current cloud provider is present in the given providers list.
+     * 3. Database has currently enabled cloud provider queries.
+     */
+    public boolean shouldQueryCloudMedia(List<String> providers) {
+        try (CloseableReentrantLock ignored =
+                    mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            String cloudProvider = getCloudProvider();
+            return cloudProvider != null
+                    && providers.contains(cloudProvider)
+                    && cloudProvider.equals(mDbFacade.getCloudProvider());
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not check if cloud media should be queried", e);
+            return false;
+        }
+    }
 }

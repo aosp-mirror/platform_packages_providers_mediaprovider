@@ -41,7 +41,6 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
-import android.content.ContentUris;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -62,7 +61,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -252,7 +251,7 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
             Selection selection =
                     new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
             selection.setTotalNumberOfPreGrantedItems(1);
-            selection.setPreGrantedItemSet(Set.of(String.valueOf(ContentUris.parseId(uri))));
+            selection.setPreGrantedItems(List.of(uri));
 
             // Verify that we don't have anything to preview
             selection.prepareSelectedItemsForPreviewAll();

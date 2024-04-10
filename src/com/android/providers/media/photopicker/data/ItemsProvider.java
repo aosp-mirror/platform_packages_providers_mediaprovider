@@ -19,15 +19,14 @@ package com.android.providers.media.photopicker.data;
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.provider.MediaStore.AUTHORITY;
-import static android.provider.MediaStore.MediaColumns.DATA;
 
 import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
-import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -52,6 +51,7 @@ import androidx.annotation.Nullable;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 
@@ -431,10 +431,13 @@ public class ItemsProvider {
                     /* queryArgs= */ extras,
                     null)) {
                 while (c.moveToNext()) {
-                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
                     final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
-                    filesUriList.add(getContentUriForPath(
-                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                    final Integer userId = c.getInt(
+                            c.getColumnIndexOrThrow(PACKAGE_USER_ID_COLUMN));
+                    // transforming ids to Item uris to use as a key in selection based features.
+                    filesUriList.add(getItemsUri(String.valueOf(file_id),
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                            UserId.of(UserHandle.of(userId))));
                 }
             }
             return filesUriList;

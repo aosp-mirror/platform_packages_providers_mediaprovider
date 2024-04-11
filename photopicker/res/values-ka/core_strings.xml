@@ -20,4 +20,5 @@
     <string name="photopicker_application_label" msgid="3482718304682270084">"მედიის ამომრჩევი"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"მედია"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"არჩეულია"</string>
+    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g>-ის დამატება"</string>
 </resources>

@@ -17,13 +17,15 @@
 package com.android.photopicker.data.model
 
 import android.net.Uri
+import android.os.Parcel
+import android.os.Parcelable
 import com.android.photopicker.core.glide.GlideLoadable
 import com.android.photopicker.core.glide.Resolution
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
 /** Holds metadata for a type of media item like [Image] or [Video]. */
-sealed interface Media : GlideLoadable {
+sealed interface Media : GlideLoadable, Parcelable {
     /** This is the ID that provider has shared with Picker */
     val mediaId: String
 
@@ -53,6 +55,23 @@ sealed interface Media : GlideLoadable {
         return dateTakenMillisLong
     }
 
+    /** Implemented for [Parcelable], but always returns 0 since Media is never a FileDescriptor. */
+    override fun describeContents(): Int {
+        return 0
+    }
+
+    /** Implemented for [Parcelable], and handles all the common attributes. */
+    override fun writeToParcel(out: Parcel, flags: Int) {
+        out.writeString(mediaId)
+        out.writeLong(pickerId)
+        out.writeString(authority)
+        out.writeString(uri.toString())
+        out.writeLong(dateTakenMillisLong)
+        out.writeLong(sizeInBytes)
+        out.writeString(mimeType)
+        out.writeInt(standardMimeTypeExtension)
+    }
+
     /** Holds metadata for an image item. */
     data class Image(
         override val mediaId: String,
@@ -63,7 +82,35 @@ sealed interface Media : GlideLoadable {
         override val sizeInBytes: Long,
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
-    ) : Media
+    ) : Media {
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+        }
+
+        companion object CREATOR : Parcelable.Creator<Image> {
+
+            override fun createFromParcel(parcel: Parcel): Image {
+                val image =
+                    Image(
+                        /* mediaId=*/ parcel.readString() ?: "",
+                        /* pickerId=*/ parcel.readLong(),
+                        /* authority=*/ parcel.readString() ?: "",
+                        /* uri= */ Uri.parse(parcel.readString() ?: ""),
+                        /* dateTakenMillisLong=*/ parcel.readLong(),
+                        /* sizeInBytes=*/ parcel.readLong(),
+                        /* mimeType=*/ parcel.readString() ?: "",
+                        /* standardMimeTypeExtension=*/ parcel.readInt(),
+                    )
+                parcel.recycle()
+                return image
+            }
+
+            override fun newArray(size: Int): Array<Image?> {
+                return arrayOfNulls(size)
+            }
+        }
+    }
 
     /** Holds metadata for a video item. */
     data class Video(
@@ -76,5 +123,33 @@ sealed interface Media : GlideLoadable {
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
         val duration: Int,
-    ) : Media
+    ) : Media {
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeInt(duration)
+        }
+
+        companion object CREATOR : Parcelable.Creator<Video> {
+
+            override fun createFromParcel(parcel: Parcel): Video {
+                return Video(
+
+                    /* mediaId=*/ parcel.readString() ?: "",
+                    /* pickerId=*/ parcel.readLong(),
+                    /* authority=*/ parcel.readString() ?: "",
+                    /* uri= */ Uri.parse(parcel.readString() ?: ""),
+                    /* dateTakenMillisLong=*/ parcel.readLong(),
+                    /* sizeInBytes=*/ parcel.readLong(),
+                    /* mimeType=*/ parcel.readString() ?: "",
+                    /* standardMimeTypeExtension=*/ parcel.readInt(),
+                    /* duration=*/ parcel.readInt(),
+                )
+            }
+
+            override fun newArray(size: Int): Array<Video?> {
+                return arrayOfNulls(size)
+            }
+        }
+    }
 }

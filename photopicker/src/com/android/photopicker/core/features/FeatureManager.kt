@@ -24,6 +24,7 @@ import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
+import com.android.photopicker.features.navigationbar.NavigationBarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -65,6 +66,7 @@ class FeatureManager(
             setOf(
                 PhotoGridFeature.Registration,
                 SelectionBarFeature.Registration,
+                NavigationBarFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */

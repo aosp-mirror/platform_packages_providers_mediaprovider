@@ -337,7 +337,7 @@ public class IdleServiceTest {
             secondaryUser = createNewUser(userManager);
             secondaryUserPresent = true;
             startUser(secondaryUser);
-            SystemClock.sleep(3000);
+            SystemClock.sleep(12000);
 
             // Verify presence of recovery data
             String[] recoveryData = MediaStore.getRecoveryData(context.getContentResolver());

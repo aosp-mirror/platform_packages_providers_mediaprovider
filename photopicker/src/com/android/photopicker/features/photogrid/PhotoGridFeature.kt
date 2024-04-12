@@ -16,6 +16,11 @@
 
 package com.android.photopicker.features.photogrid
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
@@ -54,7 +59,9 @@ class PhotoGridFeature : PhotopickerUiFeature {
     override val eventsProduced = emptySet<RegisteredEventClass>()
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return emptyList()
+        return listOf(
+            Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority),
+        )
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
@@ -68,10 +75,39 @@ class PhotoGridFeature : PhotopickerUiFeature {
                 override val deepLinks = emptyList<NavDeepLink>()
                 override val isDialog = false
                 override val dialogProperties = null
-                override val enterTransition = null
-                override val exitTransition = null
-                override val popEnterTransition = null
-                override val popExitTransition = null
+
+                /*
+                 Animations for PHOTO_GRID
+                 - When navigating directly, content will slide IN from the left edge.
+                 - When navigating away, content will slide OUT towards the left edge.
+                 - When returning from the backstack, content will slide IN from the right edge.
+                 - When popping to another route on the backstack, content will slide OUT towards
+                   the left edge.
+                */
+                override val enterTransition:
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    {
+                        // Positive value to slide left-to-right
+                        slideInHorizontally() { it }
+                    }
+                override val exitTransition:
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    {
+                        // Negative value to slide right-to-left
+                        slideOutHorizontally() { -it }
+                    }
+                override val popEnterTransition:
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    {
+                        // When returning from the backstack slide right-to-left
+                        slideInHorizontally() { -it }
+                    }
+                override val popExitTransition:
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    {
+                        // When navigating to the backstack slide left-to-right
+                        slideOutHorizontally() { it }
+                    }
                 @Composable
                 override fun composable(
                     navBackStackEntry: NavBackStackEntry?,
@@ -82,5 +118,11 @@ class PhotoGridFeature : PhotopickerUiFeature {
         )
     }
 
-    @Composable override fun compose(location: Location, modifier: Modifier) {}
+    @Composable
+    override fun compose(location: Location, modifier: Modifier) {
+        when (location) {
+            Location.NAVIGATION_BAR_NAV_BUTTON -> PhotoGridNavButton(modifier)
+            else -> {}
+        }
+    }
 }

@@ -41,7 +41,6 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkContinuation;
-import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
@@ -50,7 +49,6 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,10 +56,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -393,41 +388,6 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
         assertThat(workRequest.getWorkSpec().input.getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_CLOUD_ONLY);
-    }
-
-    @Test
-    public void testUniqueWorkStatusForPendingWork() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-        final String workName = "testWorkName";
-        final SettableFuture<List<WorkInfo>> future = SettableFuture.create();
-        final List<WorkInfo> futureResult = new ArrayList<>();
-        futureResult.add(getWorkInfo(WorkInfo.State.SUCCEEDED));
-        futureResult.add(getWorkInfo(WorkInfo.State.ENQUEUED));
-        future.set(futureResult);
-        doReturn(future).when(mMockWorkManager)
-                .getWorkInfosForUniqueWork(workName);
-
-        assertThat(mPickerSyncManager.isUniqueWorkPending(workName)).isTrue();
-    }
-
-    @Test
-    public void testUniqueWorkStatusForCompletedWork() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-        final String workName = "testWorkName";
-        final SettableFuture<List<WorkInfo>> future = SettableFuture.create();
-        final List<WorkInfo> futureResult = new ArrayList<>();
-        futureResult.add(getWorkInfo(WorkInfo.State.SUCCEEDED));
-        futureResult.add(getWorkInfo(WorkInfo.State.FAILED));
-        futureResult.add(getWorkInfo(WorkInfo.State.CANCELLED));
-        future.set(futureResult);
-        doReturn(future).when(mMockWorkManager)
-                .getWorkInfosForUniqueWork(workName);
-
-        assertThat(mPickerSyncManager.isUniqueWorkPending(workName)).isFalse();
-    }
-
-    private WorkInfo getWorkInfo(WorkInfo.State state) {
-        return new WorkInfo(UUID.randomUUID(), state, new HashSet<>());
     }
 
     private void setupPickerSyncManager(boolean schedulePeriodicSyncs) {

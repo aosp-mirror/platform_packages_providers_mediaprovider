@@ -22,7 +22,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,7 +49,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
@@ -119,6 +122,7 @@ fun mediaGrid(
     items: LazyPagingItems<MediaGridItem>,
     selection: Set<Media>,
     onItemClick: (item: Media) -> Unit,
+    onItemLongPress: (item: Media) -> Unit = {},
     isExpandedScreen: Boolean = false,
     columns: GridCells =
         if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
@@ -135,9 +139,11 @@ fun mediaGrid(
             item: MediaGridItem.MediaItem,
             isSelected: Boolean,
             onClick: ((item: Media) -> Unit)?,
+            onLongPress: ((item: Media) -> Unit)?,
         ) -> Unit =
-        { item, isSelected, onClick ->
-            defaultBuildItem(item.media, isSelected, onClick)
+        { item, isSelected, onClick, onLongPress,
+            ->
+            defaultBuildItem(item.media, isSelected, onClick, onLongPress)
         },
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
@@ -163,7 +169,12 @@ fun mediaGrid(
             item?.let {
                 when (item) {
                     is MediaGridItem.MediaItem ->
-                        contentItemFactory(item, selection.contains(item.media), onItemClick)
+                        contentItemFactory(
+                            item,
+                            selection.contains(item.media),
+                            onItemClick,
+                            onItemLongPress,
+                        )
                     is MediaGridItem.SeparatorItem -> contentSeparatorFactory(item)
                 }
             }
@@ -220,6 +231,7 @@ private fun defaultBuildItem(
     item: Media,
     isSelected: Boolean,
     onClick: ((item: Media) -> Unit)?,
+    onLongPress: ((item: Media) -> Unit)?,
 ) {
 
     // Padding is animated based on the selected state of the item. When the item is selected,
@@ -240,7 +252,31 @@ private fun defaultBuildItem(
     val selectedModifier = baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORDER_RADIUS))
 
     // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
-    Box(Modifier.aspectRatio(1f).fillMaxSize().clickable { onClick?.invoke(item) }) {
+    Box(
+        // Apply semantics for the click handlers
+        Modifier.semantics(mergeDescendants = true) {
+                onClick(
+                    action = {
+                        onClick?.invoke(item)
+                        /* eventHandled= */ true
+                    }
+                )
+                onLongClick(
+                    action = {
+                        onLongPress?.invoke(item)
+                        /* eventHandled= */ true
+                    }
+                )
+            }
+            .aspectRatio(1f)
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick?.invoke(item) },
+                    onLongPress = { onLongPress?.invoke(item) }
+                )
+            }
+    ) {
 
         // A background surface that is shown behind selected images.
         Surface(

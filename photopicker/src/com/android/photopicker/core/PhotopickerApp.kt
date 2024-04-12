@@ -22,25 +22,25 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import com.android.photopicker.core.features.LocalFeatureManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.android.photopicker.core.features.Location
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.compose.rememberNavController
+import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
 
@@ -133,6 +133,12 @@ fun PhotopickerMain() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
+            // The navigation bar is drawn above the navigation graph
+            LocalFeatureManager.current.composeLocation(
+                Location.NAVIGATION_BAR,
+                maxSlots = 1,
+                modifier = Modifier,
+            )
             // Initialize the navigation graph.
             PhotopickerNavGraph()
         }

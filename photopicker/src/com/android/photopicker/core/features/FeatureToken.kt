@@ -22,6 +22,7 @@ package com.android.photopicker.core.features
  */
 enum class FeatureToken(val token: String) {
     CORE("CORE"),
+    NAVIGATION_BAR("NAVIGATION_BAR"),
     PHOTO_GRID("PHOTO_GRID"),
     SELECTION_BAR("SELECTION_BAR"),
 }

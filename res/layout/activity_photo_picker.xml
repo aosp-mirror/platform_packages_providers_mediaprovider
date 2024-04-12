@@ -117,45 +117,53 @@
 
             </com.google.android.material.appbar.AppBarLayout>
 
-            <FrameLayout
+            <LinearLayout
                 android:id="@+id/picker_bottom_bar"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/picker_bottom_bar_size"
                 android:layout_gravity="bottom"
                 android:background="@color/picker_background_color"
                 android:elevation="@dimen/picker_bottom_bar_elevation"
-                android:visibility="gone">
+                android:visibility="gone"
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_view_selected"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="2"
                     android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-                    android:layout_gravity="start|center_vertical"
+                    android:gravity="start|center_vertical"
                     android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
                     android:text="@string/picker_view_selected"
                     android:textAllCaps="false"
                     android:textColor="?attr/pickerSelectedColor"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     app:icon="@drawable/ic_collections"
                     app:iconPadding="@dimen/picker_viewselected_icon_padding"
                     app:iconSize="@dimen/picker_viewselected_icon_size"
                     app:iconTint="?attr/pickerSelectedColor"
+                    app:iconGravity="textStart"
                     style="@style/MaterialBorderlessButtonStyle"/>
 
                 <Button
                     android:id="@+id/button_add"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-                    android:layout_gravity="end|center_vertical"
+                    android:gravity="center|center_vertical"
                     android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
                     android:text="@string/add"
                     android:textAllCaps="false"
                     android:textColor="?attr/pickerHighlightTextColor"
+                    android:maxLines="1"
+                    android:ellipsize="middle"
                     android:backgroundTint="?attr/pickerHighlightColor"
                     style="@style/MaterialButtonStyle"/>
 
-            </FrameLayout>
+            </LinearLayout>
 
         </FrameLayout>
 

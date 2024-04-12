@@ -16,6 +16,10 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static com.android.providers.media.MediaApplication.getAppContext;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
+import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
+
 import android.annotation.UserIdInt;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -25,6 +29,7 @@ import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,6 +37,8 @@ import androidx.annotation.Nullable;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.sync.SyncCompletionWaiter;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
@@ -43,6 +50,8 @@ import java.util.List;
  * This class handles Photo Picker content queries.
  */
 public class PickerDataLayerV2 {
+    private static final String TAG = "PickerDataLayerV2";
+    private static final int CLOUD_SYNC_TIMEOUT_MILLIS = 500;
     /**
      * Returns a cursor with the Photo Picker media in response.
      * @param queryArgs The arguments help us filter on the media query to yield the desired
@@ -98,6 +107,8 @@ public class PickerDataLayerV2 {
                     ? syncController.getCloudProvider()
                     : null;
 
+            waitForOngoingSync(localAuthority, cloudAuthority);
+
             try {
                 database.beginTransactionNonExclusive();
                 Cursor pageData = database.rawQuery(
@@ -144,6 +155,26 @@ public class PickerDataLayerV2 {
 
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
+        }
+    }
+
+    private static void waitForOngoingSync(
+            String localAuthority,
+            String cloudAuthority) {
+        if (localAuthority != null) {
+            SyncCompletionWaiter.waitForSync(
+                    getWorkManager(getAppContext()),
+                    SyncTrackerRegistry.getLocalSyncTracker(),
+                    IMMEDIATE_LOCAL_SYNC_WORK_NAME
+            );
+        }
+
+        if (cloudAuthority != null) {
+            boolean syncIsComplete = SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getCloudSyncTracker(),
+                    CLOUD_SYNC_TIMEOUT_MILLIS);
+            Log.i(TAG, "Finished waiting for cloud sync.  Is cloud sync complete: "
+                    + syncIsComplete);
         }
     }
 

@@ -2514,6 +2514,7 @@ public class MediaProvider extends ContentProvider {
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
                 redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
+                Log.v(TAG, "Redaction ranges: " + Arrays.toString(redactionRanges));
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);

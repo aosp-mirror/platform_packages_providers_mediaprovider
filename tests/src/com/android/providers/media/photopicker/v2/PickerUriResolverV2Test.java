@@ -22,7 +22,7 @@ import android.net.Uri;
 
 import org.junit.Test;
 
-public class PickerUriResolverTest {
+public class PickerUriResolverV2Test {
     @Test
     public void testMediaQuery() {
         assertEquals(PickerUriResolverV2.sUriMatcher.match(

@@ -18,17 +18,24 @@ package com.android.photopicker.features.photogrid
 
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.photopicker.R
 import com.android.photopicker.core.components.mediaGrid
-import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
+import com.android.photopicker.extensions.navigateToPhotoGrid
+import com.android.photopicker.features.navigationbar.NavigationBarButton
 
 /**
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
@@ -60,4 +67,22 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
         onItemClick = { item -> viewModel.handleGridItemSelection(item) },
         state = state,
     )
+}
+
+/**
+ * The navigation button for the main photo grid. Composable for
+ * [Location.NAVIGATION_BAR_NAV_BUTTON]
+ */
+@Composable
+fun PhotoGridNavButton(modifier: Modifier) {
+
+    val navController = LocalNavController.current
+
+    NavigationBarButton(
+        onClick = navController::navigateToPhotoGrid,
+        modifier = modifier,
+        isCurrentRoute = { route -> route == PHOTO_GRID.route },
+    ) {
+        Text(stringResource(R.string.photopicker_photos_nav_button_label))
+    }
 }

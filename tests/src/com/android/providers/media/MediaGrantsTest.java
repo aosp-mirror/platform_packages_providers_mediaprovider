@@ -16,11 +16,11 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.MediaColumns.DATA;
-
+import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
+import static com.android.providers.media.photopicker.data.ItemsProvider.getItemsUri;
 import static com.android.providers.media.util.FileCreationUtils.buildValidPickerUri;
 import static com.android.providers.media.util.FileCreationUtils.insertFileInResolver;
-import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -40,6 +40,9 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.model.UserId;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -634,10 +637,13 @@ public class MediaGrantsTest {
     private List<Uri> convertToListOfUri(Cursor c) {
         List<Uri> filesUriList = new ArrayList<>(0);
         while (c.moveToNext()) {
-            final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
-            final Integer file_id = c.getInt(c.getColumnIndexOrThrow(MediaGrants.FILE_ID_COLUMN));
-            filesUriList.add(getContentUriForPath(
-                    file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+            final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
+            final Integer userId = c.getInt(
+                    c.getColumnIndexOrThrow(PACKAGE_USER_ID_COLUMN));
+            // transforming ids to Item uris to use as a key in selection based features.
+            filesUriList.add(getItemsUri(String.valueOf(file_id),
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                    UserId.of(UserHandle.of(userId))));
         }
         return filesUriList;
     }

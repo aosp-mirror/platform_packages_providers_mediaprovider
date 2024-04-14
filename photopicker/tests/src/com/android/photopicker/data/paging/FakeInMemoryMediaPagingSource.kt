@@ -91,7 +91,7 @@ class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
             else
                 MediaPageKey(
                     pickerId = nextRow.pickerId,
-                    dateTakenMillisLong = nextRow.dateTakenMillisLong
+                    dateTakenMillis = nextRow.dateTakenMillisLong
                 )
 
         // Find the start of the previous page and generate a Page key.
@@ -101,7 +101,7 @@ class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
             else
                 MediaPageKey(
                     pickerId = prevPageRow.pickerId,
-                    dateTakenMillisLong = prevPageRow.dateTakenMillisLong
+                    dateTakenMillis = prevPageRow.dateTakenMillisLong
                 )
 
         return LoadResult.Page(

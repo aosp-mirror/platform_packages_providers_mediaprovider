@@ -108,23 +108,15 @@ public class PickerDbFacade {
 
     private static final String TABLE_ALBUM_MEDIA = "album_media";
 
-    @VisibleForTesting
     public static final String KEY_ID = "_id";
-    @VisibleForTesting
     public static final String KEY_LOCAL_ID = "local_id";
-    @VisibleForTesting
     public static final String KEY_CLOUD_ID = "cloud_id";
-    @VisibleForTesting
     public static final String KEY_IS_VISIBLE = "is_visible";
-    @VisibleForTesting
     public static final String KEY_DATE_TAKEN_MS = "date_taken_ms";
     @VisibleForTesting
     public static final String KEY_SYNC_GENERATION = "sync_generation";
-    @VisibleForTesting
     public static final String KEY_SIZE_BYTES = "size_bytes";
-    @VisibleForTesting
     public static final String KEY_DURATION_MS = "duration_ms";
-    @VisibleForTesting
     public static final String KEY_MIME_TYPE = "mime_type";
     public static final String KEY_STANDARD_MIME_TYPE_EXTENSION = "standard_mime_type_extension";
     @VisibleForTesting
@@ -256,7 +248,6 @@ public class PickerDbFacade {
      * This should not be used in picker sync paths because we should not wait on a lock
      * indefinitely during the picker sync process.
      */
-    @VisibleForTesting
     public String getCloudProvider() {
         try (CloseableReentrantLock ignored = mPickerSyncLockManager
                 .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
@@ -1705,5 +1696,12 @@ public class PickerDbFacade {
         writer.println("Picker db facade state:");
         writer.println("  mLocalProvider=" + getLocalProvider());
         writer.println("  mCloudProvider=" + getCloudProvider());
+    }
+
+    /**
+     * Returns the associated SQLiteDatabase instance.
+     */
+    public SQLiteDatabase getDatabase() {
+        return mDatabase;
     }
 }

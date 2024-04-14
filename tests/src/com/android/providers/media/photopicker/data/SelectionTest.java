@@ -23,6 +23,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
@@ -398,6 +399,83 @@ public class SelectionTest {
         mSelection.addSelectedItem(item2);
 
         assertThat(mSelection.isSelectionAllowed()).isFalse();
+    }
+
+    @Test
+    public void test_setPreGrantedItems_correctValuesSet() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+        final String id3 = "3";
+        final Item item3 = generateFakeImageItem(id3);
+
+        assertThat(mSelection.getPreGrantedUris()).isNull();
+
+        List<Uri> preGrantedUrisInput = List.of(item1.getContentUri(), item2.getContentUri(),
+                item3.getContentUri());
+        mSelection.setPreGrantedItems(preGrantedUrisInput);
+
+        assertThat(mSelection.getPreGrantedUris().size()).isEqualTo(3);
+        assertThat(mSelection.getPreGrantedUris().containsAll(preGrantedUrisInput)).isTrue();
+    }
+
+    @Test
+    public void test_getDeselectedItems_correctValuesReturned() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+        final String id3 = "3";
+        final Item item3 = generateFakeImageItem(id3);
+
+        // mark items as preGranted.
+        item1.setPreGranted();
+        item2.setPreGranted();
+        item3.setPreGranted();
+
+        assertThat(mSelection.getDeselectedItemsToBeRevoked().size()).isEqualTo(0);
+        assertThat(mSelection.getDeselectedUrisToBeRevoked().size()).isEqualTo(0);
+
+        // Add 2 preGranted items to selection.
+        mSelection.addSelectedItem(item1);
+        mSelection.addSelectedItem(item2);
+
+        // remove 1 of them.
+        mSelection.removeSelectedItem(item1);
+
+        // verify removed item was added to deselection set.
+        assertThat(mSelection.getDeselectedItemsToBeRevoked().size()).isEqualTo(1);
+        assertThat(mSelection.getDeselectedUrisToBeRevoked().size()).isEqualTo(1);
+        assertThat(mSelection.getDeselectedUrisToBeRevoked()).contains(item1.getContentUri());
+    }
+
+
+    @Test
+    public void test_getNewlySelectedItems_correctValuesReturned() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+        final String id3 = "3";
+        final Item item3 = generateFakeImageItem(id3);
+
+        // mark 2 items as preGranted.
+        item1.setPreGranted();
+        item2.setPreGranted();
+
+        assertThat(mSelection.getNewlySelectedItems().size()).isEqualTo(0);
+
+        // Add all 3 items to selection.
+        mSelection.addSelectedItem(item1);
+        mSelection.addSelectedItem(item2);
+        mSelection.addSelectedItem(item3);
+
+
+        // verify only non-preGranted item is returned.
+        assertThat(mSelection.getSelectedItems().size()).isEqualTo(3);
+        assertThat(mSelection.getNewlySelectedItems().size()).isEqualTo(1);
+        assertThat(mSelection.getNewlySelectedItems()).contains(item3);
     }
 
     private static Item generateFakeImageItem(String id) {

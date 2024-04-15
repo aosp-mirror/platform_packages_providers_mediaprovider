@@ -54,6 +54,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -77,6 +78,7 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
+import com.android.providers.media.util.UserCache;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -500,11 +502,36 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testInsertionWithFilePathOnAnotherUserVolume_throwsIllegalArgumentException() {
+        final UserCache userCache = new UserCache(sContext);
+        UserHandle otherUserHandle = sContext.getSystemService(UserManager.class)
+                .getUserHandles(true).stream()
+                .filter(uH -> !userCache.getUsersCached().contains(uH))
+                .findFirst()
+                .orElse(null);
+        Assume.assumeNotNull(otherUserHandle);
+
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+        final String filePath = "/storage/emulated/"
+                + otherUserHandle.getIdentifier() + "/Pictures/test.jpg";
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,
+                "./../../../../../../../../../../../" + filePath);
+
+        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
+                IllegalArgumentException.class, () -> sIsolatedResolver.insert(
+                        MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        values));
+
+        assertThat(illegalArgumentException).hasMessageThat().contains(
+                "Requested path " + filePath + " doesn't appear");
+    }
+
+    @Test
     public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
         final ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
-        values.put(MediaStore.Images.Media.DISPLAY_NAME,
-                "./../../../../../../../../../../../data/media/test.txt");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example/");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "data/media/test.txt");
 
         IllegalArgumentException illegalArgumentException = Assert.assertThrows(
                 IllegalArgumentException.class, () -> sIsolatedResolver.insert(

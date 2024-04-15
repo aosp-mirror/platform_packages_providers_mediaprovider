@@ -452,15 +452,24 @@ public class PickerViewModel extends AndroidViewModel {
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
 
+        final List<Item> itemsList = new ArrayList<>();
+        itemsList.add(Item.EMPTY_VIEW);
         if (mItemsResult != null) {
             DataLoaderThread.getHandler().postDelayed(() ->
-                    mItemsResult.postValue(new PaginatedItemsResult(List.of(Item.EMPTY_VIEW),
-                            ACTION_CLEAR_GRID)), TOKEN, DELAY_MILLIS);
+                    mItemsResult.postValue(new PaginatedItemsResult(itemsList, ACTION_CLEAR_GRID)),
+                    TOKEN,
+                    DELAY_MILLIS
+            );
         }
 
+        final List<Category> categoryList = new ArrayList<>();
+        categoryList.add(Category.EMPTY_VIEW);
         if (mCategoryList != null) {
             DataLoaderThread.getHandler().postDelayed(() ->
-                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)), TOKEN, DELAY_MILLIS);
+                    mCategoryList.postValue(categoryList),
+                    TOKEN,
+                    DELAY_MILLIS
+            );
         }
 
         mBannerManager.hideAllBanners();

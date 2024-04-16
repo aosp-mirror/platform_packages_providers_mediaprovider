@@ -6901,6 +6901,8 @@ public class MediaProvider extends ContentProvider {
 
     @Nullable
     private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        // WRITE_MEDIA_STORAGE is a privileged permission which only MediaProvider and some other
+        // system apps have.
         getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                 "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
         final LocalCallingIdentity token = clearLocalCallingIdentity();

@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.v2;
 
 import static com.android.providers.media.MediaApplication.getAppContext;
 
+import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
@@ -70,13 +71,13 @@ public class PickerUriResolverV2 {
      * request.
      */
     @NonNull
-    public static Cursor query(@NonNull Uri uri, @Nullable Bundle queryArgs) {
+    public static Cursor query(Context appContext, @NonNull Uri uri, @Nullable Bundle queryArgs) {
         @PickerQuery
         final int query = sUriMatcher.match(uri);
 
         switch (query) {
             case PICKER_INTERNAL_MEDIA:
-                return PickerDataLayerV2.queryMedia(queryArgs);
+                return PickerDataLayerV2.queryMedia(appContext, queryArgs);
             case PICKER_INTERNAL_ALBUM:
                 return PickerDataLayerV2.queryAlbum(queryArgs);
             case PICKER_INTERNAL_ALBUM_CONTENT:

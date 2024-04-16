@@ -249,7 +249,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
                         new ArrayList<>(Arrays.asList("invalid.provider"))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -272,7 +272,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -302,7 +302,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -338,7 +338,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -371,7 +371,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -411,7 +411,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -449,7 +449,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -481,7 +481,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -538,7 +538,9 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS + 1, /* pageSize */ 2,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE,
+                        DATE_TAKEN_MS + 1,
+                        /* pageSize */ 2,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -590,7 +592,9 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS + 2, /* pageSize */ 3,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE,
+                        DATE_TAKEN_MS + 2,
+                        /* pageSize */ 3,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
@@ -646,7 +650,9 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
-                getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS + 2, /* pageSize */ 2,
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE,
+                        DATE_TAKEN_MS + 2,
+                        /* pageSize */ 2,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")

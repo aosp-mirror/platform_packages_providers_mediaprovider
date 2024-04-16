@@ -70,11 +70,16 @@ cc_test {
         "testing/*.cc",
     ],
 
+    test_config: "pdfClient_test_config.xml",
+
     data: [
         "testdata/**/*.pdf",
     ],
 
-    test_suites: ["device-tests"],
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
 
     static_libs: [
         "libbase_ndk",

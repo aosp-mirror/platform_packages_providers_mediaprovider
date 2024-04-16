@@ -162,8 +162,14 @@ public class DatabaseBackupAndRecovery {
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
     private Set<String> mSetupCompleteVolumes = ConcurrentHashMap.newKeySet();
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUriEnabledForInternal = false;
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUriEnabledForExternal = false;
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUrisEnabledForPublic = false;
 
     private static Map<String, String> sOwnerIdRelationMap;
@@ -192,6 +198,18 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        // Check if flags are enabled for test for internal volume
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && mIsStableUriEnabledForInternal) {
+            return true;
+        }
+        // Check if flags are enabled for test for external primary volume
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                && mIsStableUriEnabledForExternal) {
+            return true;
+        }
+
+        // Feature is disabled for below S due to vold mount issues.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return false;
         }

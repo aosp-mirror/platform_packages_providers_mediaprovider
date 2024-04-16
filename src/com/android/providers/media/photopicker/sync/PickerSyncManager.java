@@ -36,20 +36,16 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -179,27 +175,6 @@ public class PickerSyncManager {
         mWorkManager.enqueueUniqueWork(
                 ENDLESS_WORK_NAME, ExistingWorkPolicy.KEEP, request);
         Log.d(TAG, "EndlessWorker has been enqueued");
-    }
-
-    /**
-     * Returns true if the given unique work is pending. In case the unique work is complete or
-     * there was an error in getting the work state, it returns false.
-     */
-    public boolean isUniqueWorkPending(String uniqueWorkName) {
-        ListenableFuture<List<WorkInfo>> future =
-                mWorkManager.getWorkInfosForUniqueWork(uniqueWorkName);
-        try {
-            List<WorkInfo> workInfos = future.get();
-            for (WorkInfo workInfo : workInfos) {
-                if (!workInfo.getState().isFinished()) {
-                    return true;
-                }
-            }
-            return false;
-        } catch (InterruptedException | ExecutionException e) {
-            Log.e(TAG, "Error occurred in fetching work info - ignore pending work");
-            return false;
-        }
     }
 
     private void schedulePeriodicSyncs() {

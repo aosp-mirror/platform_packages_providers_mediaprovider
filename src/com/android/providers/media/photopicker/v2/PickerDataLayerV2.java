@@ -16,6 +16,9 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
+import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
+
 import android.annotation.UserIdInt;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -25,6 +28,7 @@ import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Process;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,6 +36,8 @@ import androidx.annotation.Nullable;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.sync.SyncCompletionWaiter;
+import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
@@ -43,12 +49,16 @@ import java.util.List;
  * This class handles Photo Picker content queries.
  */
 public class PickerDataLayerV2 {
+    private static final String TAG = "PickerDataLayerV2";
+    private static final int CLOUD_SYNC_TIMEOUT_MILLIS = 500;
     /**
      * Returns a cursor with the Photo Picker media in response.
+     *
      * @param queryArgs The arguments help us filter on the media query to yield the desired
      *                  results.
      */
-    public static Cursor queryMedia(Bundle queryArgs) {
+    @NonNull
+    public static Cursor queryMedia(@NonNull Context appContext, @NonNull Bundle queryArgs) {
         final MediaQuery query = new MediaQuery(queryArgs);
         final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
 
@@ -58,6 +68,7 @@ public class PickerDataLayerV2 {
                          syncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
                 // TODO(b/329122491) wait for sync to finish.
                 return queryMediaLocked(
+                        appContext,
                         syncController,
                         query,
                         /* shouldQueryCloudMedia */ true
@@ -67,6 +78,7 @@ public class PickerDataLayerV2 {
             }
         } else {
             return queryMediaLocked(
+                    appContext,
                     syncController,
                     query,
                     /* shouldQueryCloudMedia */ false
@@ -82,9 +94,11 @@ public class PickerDataLayerV2 {
      * a transaction in {@code DEFERRED} mode. This is why we'll perform the read queries in
      * {@code IMMEDIATE} mode instead.
      */
+    @NonNull
     static Cursor queryMediaLocked(
-            PickerSyncController syncController,
-            MediaQuery query,
+            @NonNull Context appContext,
+            @NonNull PickerSyncController syncController,
+            @NonNull MediaQuery query,
             boolean shouldQueryCloudMedia
     ) {
         try {
@@ -97,6 +111,8 @@ public class PickerDataLayerV2 {
                     && query.getProviders().contains(syncController.getCloudProvider()))
                     ? syncController.getCloudProvider()
                     : null;
+
+            waitForOngoingSync(appContext, localAuthority, cloudAuthority);
 
             try {
                 database.beginTransactionNonExclusive();
@@ -144,6 +160,27 @@ public class PickerDataLayerV2 {
 
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
+        }
+    }
+
+    private static void waitForOngoingSync(
+            @NonNull Context appContext,
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority) {
+        if (localAuthority != null) {
+            SyncCompletionWaiter.waitForSync(
+                    getWorkManager(appContext),
+                    SyncTrackerRegistry.getLocalSyncTracker(),
+                    IMMEDIATE_LOCAL_SYNC_WORK_NAME
+            );
+        }
+
+        if (cloudAuthority != null) {
+            boolean syncIsComplete = SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getCloudSyncTracker(),
+                    CLOUD_SYNC_TIMEOUT_MILLIS);
+            Log.i(TAG, "Finished waiting for cloud sync.  Is cloud sync complete: "
+                    + syncIsComplete);
         }
     }
 

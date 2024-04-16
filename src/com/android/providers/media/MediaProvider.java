@@ -6499,6 +6499,15 @@ public class MediaProvider extends ContentProvider {
             final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+
+                // if calling package is not self and its target SDK version is greater than U,
+                // ignore the deleteparam and do not allow use by apps
+                if (!isCallingPackageSelf() && getCallingPackageTargetSdkVersion()
+                        > Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    deleteparam = null;
+                    Log.w(TAG, "Ignoring param:deletedata post U for external apps");
+                }
+
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     Cursor c = qb.query(helper, projection, userWhere, userWhereArgs,
                             null, null, null, null, null);

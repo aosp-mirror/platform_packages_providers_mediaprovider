@@ -3765,7 +3765,7 @@ public class MediaProvider extends ContentProvider {
         } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
             return mPickerDataLayer.fetchLocalAlbums(queryArgs);
         } else if (table == PICKER_INTERNAL_V2) {
-            return PickerUriResolverV2.query(uri, queryArgs);
+            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);

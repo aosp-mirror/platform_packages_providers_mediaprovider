@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "cpp/fpdf_scopers.h"
-#include "extractors.h"
 #include "form_filler.h"
 #include "form_widget_info.h"
 #include "fpdf_annot.h"

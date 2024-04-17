@@ -273,44 +273,12 @@ public final class FormWidgetInfo implements Parcelable {
     @Override
     public String toString() {
         return "FormWidgetInfo{"
-                + "\n"
-                + "\ttype="
-                + mWidgetType
-                + "\n"
-                + "\tindex="
-                + mWidgetIndex
-                + "\n"
-                + "\trect="
-                + mWidgetRect
-                + "\n"
-                + "\treadOnly="
-                + mReadOnly
-                + "\n"
-                + "\ttextValue="
-                + mTextValue
-                + "\n"
-                + "\taccessibilityLabel="
-                + mAccessibilityLabel
-                + "\n"
-                + "\teditableText="
-                + mEditableText
-                + "\n"
-                + "\tmultiSelect="
-                + mMultiSelect
-                + "\n"
-                + "\tmultiLineText="
-                + mMultiLineText
-                + "\n"
-                + "\tmaxLength="
-                + mMaxLength
-                + "\n"
-                + "\tfontSize="
-                + mFontSize
-                + "\n"
-                + "\tmChoiceOptions="
-                + mListItems
-                + "\n"
-                + "}";
+                + "\n\ttype=" + mWidgetType + "\n\tindex=" + mWidgetIndex + "\n\trect="
+                + mWidgetRect + "\n\treadOnly=" + mReadOnly + "\n\ttextValue=" + mTextValue
+                + "\n\taccessibilityLabel=" + mAccessibilityLabel + "\n\teditableText="
+                + mEditableText + "\n\tmultiSelect=" + mMultiSelect + "\n\tmultiLineText="
+                + mMultiLineText + "\n\tmaxLength=" + mMaxLength + "\n\tfontSize=" + mFontSize
+                + "\n\tmChoiceOptions=" + mListItems + "\n}";
     }
 
     @Override
@@ -372,13 +340,13 @@ public final class FormWidgetInfo implements Parcelable {
         /**
          * Creates an instance
          *
-         * @param widgetType the type of widget
-         * @param widgetIndex the index of the widget in the page's "Annot" array in the PDF
-         * @param widgetRect the {@link Rect} in page coordinates occupied by the widget
-         * @param textValue the widget's text value
+         * @param widgetType         the type of widget
+         * @param widgetIndex        the index of the widget in the page's "Annot" array in the PDF
+         * @param widgetRect         the {@link Rect} in page coordinates occupied by the widget
+         * @param textValue          the widget's text value
          * @param accessibilityLabel the field's accessibility label
          * @throws NullPointerException if any of {@code widgetRect}, {@code textValue}, or {@code
-         *     accessibilityLabel} are null
+         *                              accessibilityLabel} are null
          */
         public Builder(
                 @WidgetType int widgetType,
@@ -448,7 +416,7 @@ public final class FormWidgetInfo implements Parcelable {
          * for text fields
          *
          * @throws IllegalArgumentException if this is not a text field, or if a negative max length
-         *     is supplied
+         *                                  is supplied
          */
         @NonNull
         public Builder setMaxLength(@IntRange(from = 0) int maxLength) {
@@ -463,7 +431,7 @@ public final class FormWidgetInfo implements Parcelable {
          * Sets the font size for this widget. Only supported for text fields and comboboxes
          *
          * @throws IllegalArgumentException if this is not a combobox or text field, or if a
-         *     negative font size is supplied
+         *                                  negative font size is supplied
          */
         @NonNull
         public Builder setFontSize(@FloatRange(from = 0f) float fontSize) {
@@ -479,7 +447,7 @@ public final class FormWidgetInfo implements Parcelable {
          * Sets the choice options for this widget. Only supported for comboboxes and list boxes
          *
          * @throws IllegalArgumentException if this is not a combobox or list box
-         * @throws NullPointerException if {@code choiceOptions} is null
+         * @throws NullPointerException     if {@code choiceOptions} is null
          */
         @NonNull
         public Builder setListItems(@NonNull List<ListItem> listItems) {

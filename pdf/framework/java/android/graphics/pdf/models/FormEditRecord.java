@@ -73,7 +73,8 @@ public final class FormEditRecord implements Parcelable {
     @Nullable
     private final Point mClickPoint;
 
-    @NonNull private final int[] mSelectedIndices;
+    @NonNull
+    private final int[] mSelectedIndices;
 
     @Nullable
     private final String mText;
@@ -131,7 +132,7 @@ public final class FormEditRecord implements Parcelable {
 
     /**
      * @return the point on which the user tapped, if this record is of type {@link
-     *     #EDIT_TYPE_CLICK}, else null
+     * #EDIT_TYPE_CLICK}, else null
      */
     @Nullable
     public Point getClickPoint() {
@@ -140,7 +141,7 @@ public final class FormEditRecord implements Parcelable {
 
     /**
      * @return the selected indices in the choice widget, if this record is of type {@link
-     *     #EDIT_TYPE_SET_INDICES}, else an empty array
+     * #EDIT_TYPE_SET_INDICES}, else an empty array
      */
     @NonNull
     public int[] getSelectedIndices() {
@@ -191,8 +192,8 @@ public final class FormEditRecord implements Parcelable {
 
     @Override
     public int hashCode() {
-        Object[] values = {mPageNumber, mWidgetIndex, mType, mClickPoint, mSelectedIndices, mText};
-        return Arrays.hashCode(values);
+        return Objects.hash(mPageNumber, mWidgetIndex, mType, mClickPoint,
+                Arrays.hashCode(mSelectedIndices), mText);
     }
 
     /**
@@ -219,7 +220,8 @@ public final class FormEditRecord implements Parcelable {
         @Nullable
         private Point mClickPoint = null;
 
-        @Nullable private int[] mSelectedIndices = null;
+        @Nullable
+        private int[] mSelectedIndices = null;
 
         @Nullable
         private String mText = null;
@@ -227,8 +229,8 @@ public final class FormEditRecord implements Parcelable {
         /**
          * Creates a new instance.
          *
-         * @param type the type of {@link FormEditRecord} to create
-         * @param pageNumber the page number of which the record is
+         * @param type        the type of {@link FormEditRecord} to create
+         * @param pageNumber  the page number of which the record is
          * @param widgetIndex the index of the widget within the page's "Annot" array in the PDF
          * @throws IllegalArgumentException if a negative page number or widget index is provided
          */

@@ -119,7 +119,7 @@ class DataServiceImpl(
     override fun cloudMediaProviderDetails(
         authority: String
     ): StateFlow<CloudMediaProviderDetails?> =
-            throw NotImplementedError("This method is not implemented yet.")
+        throw NotImplementedError("This method is not implemented yet.")
 
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> {
         return MediaPagingSource(
@@ -128,4 +128,14 @@ class DataServiceImpl(
             mediaProviderClient
         )
     }
+
+    override fun refreshMedia() {
+        mediaProviderClient.refreshMedia(
+                availableProviders.value,
+                userStatus.value.activeContentResolver
+        )
+    }
+
+    override fun refreshAlbumMedia(albumId: String, providerAuthority: String) =
+        throw NotImplementedError("This method is not implemented yet.")
 }

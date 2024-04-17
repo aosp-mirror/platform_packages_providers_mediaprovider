@@ -27,6 +27,7 @@ import static com.android.providers.media.photopicker.data.PickerResult.getPicke
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.annotation.SuppressLint;
 import android.annotation.UserIdInt;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -35,6 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.UserProperties;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -241,6 +243,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         observeRefreshUiNotificationLiveData();
+
+        if (SdkLevel.isAtLeastV()) {
+            updateRecentsScreenshotSetting();
+        }
+
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
 
@@ -1290,6 +1297,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus();
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOff();
@@ -1309,6 +1319,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1319,6 +1332,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         private void handleProfileAdded() {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1335,6 +1351,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
             // immediately, we need to check if it is ready before we reload the content.
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.waitForMediaProviderToBeAvailable(userId);
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOn();
@@ -1376,5 +1395,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
                         resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
+    }
+
+    @SuppressLint("NewApi")
+    private void updateRecentsScreenshotSetting() {
+        if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV())) return;
+        UserManagerState state = mPickerViewModel.getUserManagerState();
+        if (state == null) {
+            Log.e(TAG, "Can't update Recents screenshot setting, user manager state is null");
+            return;
+        }
+        for (UserId userId : state.getAllUserProfileIds()) {
+            if (state.getShowInQuietMode(userId) == UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
+                    && !state.isProfileOff(userId)) {
+                // Show blank screen in Recents to not leak existence of the profile which might
+                // be in a quiet mode after the app is moved to the background.
+                setRecentsScreenshotEnabled(false);
+                return;
+            }
+        }
+        setRecentsScreenshotEnabled(true);
     }
 }

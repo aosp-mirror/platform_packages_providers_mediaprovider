@@ -70,6 +70,7 @@ class TestMediaProvider(
     var providers: List<Provider> = DEFAULT_PROVIDERS,
     var media: List<Media> = DEFAULT_MEDIA
 ) : MockContentProvider() {
+    var lastRefreshMediaRequest: Bundle? = null
 
     override fun query (
         uri: Uri,
@@ -81,6 +82,21 @@ class TestMediaProvider(
             "available_providers" -> getAvailableProviders()
             "media" -> getMedia()
             else -> throw UnsupportedOperationException("Could not recognize uri $uri")
+        }
+    }
+
+    override fun call (
+            authority: String,
+            method: String,
+            arg: String?,
+            extras: Bundle?
+    ): Bundle? {
+        return when (method) {
+            "picker_media_init" -> {
+                initMedia(extras)
+                null
+            }
+            else -> throw UnsupportedOperationException("Could not recognize method $method")
         }
     }
 
@@ -137,5 +153,9 @@ class TestMediaProvider(
                 )
         }
         return cursor
+    }
+
+    private fun initMedia(extras: Bundle?) {
+        lastRefreshMediaRequest = extras
     }
 }

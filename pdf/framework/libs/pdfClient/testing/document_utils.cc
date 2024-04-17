@@ -8,7 +8,6 @@
 #include <string>
 
 #include "../document.h"
-#include "../extractors.h"
 #include "../file.h"
 #include "../linux_fileops.h"
 #include "../page.h"

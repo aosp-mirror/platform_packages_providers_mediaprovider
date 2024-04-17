@@ -63,12 +63,15 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -243,12 +246,37 @@ public class PermissionActivity extends Activity {
             Log.w(TAG, "Couldn't find message element");
         }
 
+        centerAlertDialogButtons(actionDialog);
+
         // Hunt around to find the title of our newly created dialog so we can
         // adjust accessibility focus once descriptions have been loaded
         titleView = (TextView) findViewByPredicate(actionDialog.getWindow().getDecorView(),
                 (view) -> {
                     return (view instanceof TextView) && view.isImportantForAccessibility();
                 });
+    }
+
+    private void centerAlertDialogButtons(AlertDialog actionDialog) {
+        final Button positiveButton = actionDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        final Button negativeButton = actionDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+        // Getting layout params for the buttons
+        LinearLayout.LayoutParams layoutParams =
+                (LinearLayout.LayoutParams) positiveButton.getLayoutParams();
+        // Setting weight = 1 and width = 0 so that the buttons occupy equal widths
+        layoutParams.weight = 1;
+        layoutParams.width = 0;
+        positiveButton.setLayoutParams(layoutParams);
+        negativeButton.setLayoutParams(layoutParams);
+
+        // Modifying the layout parameters of the parent layout of the buttons:
+        // 1. Setting gravity to CENTER_HORIZONTAL so that buttons and their text are center aligned
+        // 2. Removing leftSpacer by setting its visibility to View.GONE, so that there are only two
+        //    buttons left which occupy equal halves of their parent layout
+        LinearLayout parent = (LinearLayout) positiveButton.getParent();
+        parent.setGravity(Gravity.CENTER_HORIZONTAL);
+        View leftSpacer = parent.getChildAt(1);
+        leftSpacer.setVisibility(View.GONE);
     }
 
     private void createProgressDialog() {
@@ -597,10 +625,14 @@ public class PermissionActivity extends Activity {
         }
 
         switch (firstMatch) {
-            case AUDIO_MEDIA_ID: return DATA_AUDIO;
-            case VIDEO_MEDIA_ID: return DATA_VIDEO;
-            case IMAGES_MEDIA_ID: return DATA_IMAGE;
-            default: return DATA_GENERIC;
+            case AUDIO_MEDIA_ID:
+                return DATA_AUDIO;
+            case VIDEO_MEDIA_ID:
+                return DATA_VIDEO;
+            case IMAGES_MEDIA_ID:
+                return DATA_IMAGE;
+            default:
+                return DATA_GENERIC;
         }
     }
 
@@ -726,10 +758,14 @@ public class PermissionActivity extends Activity {
                     final int match = matcher.matchUri(uri, false);
 
                     switch (match) {
-                        case AUDIO_MEDIA_ID: return ORDER_AUDIO;
-                        case VIDEO_MEDIA_ID: return ORDER_VIDEO;
-                        case IMAGES_MEDIA_ID: return ORDER_IMAGE;
-                        default: return ORDER_GENERIC;
+                        case AUDIO_MEDIA_ID:
+                            return ORDER_AUDIO;
+                        case VIDEO_MEDIA_ID:
+                            return ORDER_VIDEO;
+                        case IMAGES_MEDIA_ID:
+                            return ORDER_IMAGE;
+                        default:
+                            return ORDER_GENERIC;
                     }
                 };
                 final Comparator<Uri> bestScore = (a, b) ->
@@ -825,10 +861,10 @@ public class PermissionActivity extends Activity {
                 final int shownCount = Math.min(visualResults.size(), MAX_THUMBS - 1);
                 final int moreCount = results.size() - shownCount;
                 final CharSequence moreText =
-                    TextUtils.expandTemplate(
-                        StringUtils.getICUFormatString(
-                            res, moreCount, R.string.permission_more_thumb),
-                        String.valueOf(moreCount));
+                        TextUtils.expandTemplate(
+                                StringUtils.getICUFormatString(
+                                        res, moreCount, R.string.permission_more_thumb),
+                                String.valueOf(moreCount));
                 thumbMoreText.setText(moreText);
                 thumbMoreContainer.setVisibility(View.VISIBLE);
                 gradientView.setVisibility(View.VISIBLE);
@@ -867,10 +903,10 @@ public class PermissionActivity extends Activity {
                 if (list.size() >= MAX_THUMBS && results.size() > list.size()) {
                     final int moreCount = results.size() - list.size();
                     final CharSequence moreText =
-                        TextUtils.expandTemplate(
-                            StringUtils.getICUFormatString(
-                                res, moreCount, R.string.permission_more_text),
-                            String.valueOf(moreCount));
+                            TextUtils.expandTemplate(
+                                    StringUtils.getICUFormatString(
+                                            res, moreCount, R.string.permission_more_text),
+                                    String.valueOf(moreCount));
                     list.add(moreText);
                     break;
                 }
@@ -905,7 +941,7 @@ public class PermissionActivity extends Activity {
                 // textual to display in case we have image trouble below
                 if ((loadFlags & LOAD_CONTENT_DESCRIPTION) != 0) {
                     try (Cursor c = resolver.query(uri,
-                            new String[] { MediaColumns.DISPLAY_NAME }, null, null)) {
+                            new String[]{MediaColumns.DISPLAY_NAME}, null, null)) {
                         if (c.moveToFirst()) {
                             contentDescription = c.getString(0);
                         }

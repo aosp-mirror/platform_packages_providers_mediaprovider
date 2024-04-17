@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "cpp/fpdf_scopers.h"
-#include "extractors.h"
 #include "form_filler.h"
 #include "form_widget_info.h"
 #include "fpdfview.h"
@@ -85,10 +84,6 @@ class Page {
     int Height() const;
 
     Rectangle_i Dimensions() const;
-
-    // Returns the bit-wise or of all of the features found on this page -
-    // see pdf_features.h for the different features and their values.
-    int32_t GetFeatures() const;
 
     // Render the page to the output bitmap, applying the appropriate transform, clip, and
     // render mode as specified.

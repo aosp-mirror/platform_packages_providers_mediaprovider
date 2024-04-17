@@ -28,7 +28,6 @@
 #include <string>
 #include <utility>
 
-#include "extractors.h"
 #include "file.h"
 #include "fpdfview.h"
 #include "linux_fileops.h"

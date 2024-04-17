@@ -46,19 +46,6 @@ Status Document::Load(std::unique_ptr<FileReader> fileReader, const char* passwo
                       bool closeFdOnFailure, std::unique_ptr<Document>* result,
                       int* requestedHeaderSize, int* requestedFooterSize) {
     *result = nullptr;
-    if (!fileReader->IsComplete() && FPDFAvail_IsDocAvail(fileReader->fpdf_avail_.get(),
-                                                          fileReader.get()) == PDF_DATA_NOTAVAIL) {
-        if (!closeFdOnFailure) {
-            fileReader->ReleaseFd();
-        }
-        if (requestedHeaderSize) {
-            *requestedHeaderSize = fileReader->RequestedHeaderSize();
-        }
-        if (requestedFooterSize) {
-            *requestedFooterSize = fileReader->RequestedFooterSize();
-        }
-        return NEED_MORE_DATA;
-    }
 
     ScopedFPDFDocument fpdf_doc;
 

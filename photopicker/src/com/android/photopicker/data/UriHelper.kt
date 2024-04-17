@@ -18,11 +18,12 @@ package com.android.photopicker.data
 
 import android.content.ContentResolver
 import android.net.Uri
+import android.provider.MediaStore
 
 /**
  * Provides URI constants and helper functions.
  */
-private const val MEDIA_PROVIDER_AUTHORITY = "media"
+internal const val MEDIA_PROVIDER_AUTHORITY = MediaStore.AUTHORITY
 private const val UPDATE_PATH_SEGMENT = "update"
 private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
 private const val MEDIA_PATH_SEGMENT = "media"

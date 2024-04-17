@@ -7216,7 +7216,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForPickerMediaInit(Bundle extras) {
         Log.i(TAG, "Received media init query for extras: " + extras);
         if (!checkPermissionShell(Binder.getCallingUid())
-                && !checkPermissionSelf(Binder.getCallingUid())) {
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker media init"));
         }

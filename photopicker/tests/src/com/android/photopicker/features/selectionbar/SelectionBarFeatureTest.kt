@@ -41,9 +41,10 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
-import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
@@ -167,7 +168,8 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalSelection provides selection,
-                    LocalEvents provides events
+                    LocalEvents provides events,
+                    LocalNavController provides createNavController(),
                 ) {
                     SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
                 }
@@ -234,7 +236,8 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalSelection provides selection,
-                    LocalEvents provides events
+                    LocalEvents provides events,
+                    LocalNavController provides createNavController(),
                 ) {
                     SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
                 }

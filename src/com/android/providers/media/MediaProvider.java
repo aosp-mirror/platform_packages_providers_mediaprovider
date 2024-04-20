@@ -3749,7 +3749,7 @@ public class MediaProvider extends ContentProvider {
         } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
             return mPickerDataLayer.fetchLocalAlbums(queryArgs);
         } else if (table == PICKER_INTERNAL_V2) {
-            return PickerUriResolverV2.query(uri, queryArgs);
+            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -4487,7 +4487,6 @@ public class MediaProvider extends ContentProvider {
 
             FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath, isFuseThread());
-            assertFileColumnsConsistent(match, uri, values);
 
             // Create result file
             File res = new File(values.getAsString(MediaColumns.DATA));
@@ -6877,6 +6876,8 @@ public class MediaProvider extends ContentProvider {
 
     @Nullable
     private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        // WRITE_MEDIA_STORAGE is a privileged permission which only MediaProvider and some other
+        // system apps have.
         getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                 "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
         final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -7190,7 +7191,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForPickerMediaInit(Bundle extras) {
         Log.i(TAG, "Received media init query for extras: " + extras);
         if (!checkPermissionShell(Binder.getCallingUid())
-                && !checkPermissionSelf(Binder.getCallingUid())) {
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker media init"));
         }

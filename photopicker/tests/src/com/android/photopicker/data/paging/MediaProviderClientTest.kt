@@ -72,4 +72,61 @@ class MediaProviderClientTest {
             assertThat(media[index]).isEqualTo(testContentProvider.media[index])
         }
     }
+
+    @Test
+    fun testRefreshCloudMedia() = runTest {
+        testContentProvider.lastRefreshMediaRequest = null
+        val mediaProviderClient = MediaProviderClient()
+        val providers: List<Provider> = mutableListOf(
+            Provider(
+                authority = "local_authority",
+                mediaSource = MediaSource.LOCAL,
+                uid = 0
+            ),
+            Provider(
+                authority = "cloud_authority",
+                mediaSource = MediaSource.REMOTE,
+                uid = 1
+            ),
+            Provider(
+                authority = "hypothetical_local_authority",
+                mediaSource = MediaSource.LOCAL,
+                uid = 2
+            ),
+        )
+
+        mediaProviderClient.refreshMedia(
+            providers = providers,
+            resolver = testContentResolver
+        )
+
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", true))
+            .isFalse()
+    }
+
+    @Test
+    fun testRefreshLocalOnlyMedia() = runTest {
+        testContentProvider.lastRefreshMediaRequest = null
+        val mediaProviderClient = MediaProviderClient()
+        val providers: List<Provider> = mutableListOf(
+            Provider(
+                authority = "local_authority",
+                mediaSource = MediaSource.LOCAL,
+                uid = 0
+            ),
+            Provider(
+                authority = "hypothetical_local_authority",
+                mediaSource = MediaSource.LOCAL,
+                uid = 1
+            ),
+        )
+
+        mediaProviderClient.refreshMedia(
+            providers = providers,
+            resolver = testContentResolver
+        )
+
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", false))
+            .isTrue()
+    }
 }

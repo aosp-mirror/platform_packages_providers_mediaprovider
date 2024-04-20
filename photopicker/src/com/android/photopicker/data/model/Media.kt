@@ -133,7 +133,7 @@ sealed interface Media : GlideLoadable, Parcelable {
         companion object CREATOR : Parcelable.Creator<Video> {
 
             override fun createFromParcel(parcel: Parcel): Video {
-                return Video(
+                val video = Video(
 
                     /* mediaId=*/ parcel.readString() ?: "",
                     /* pickerId=*/ parcel.readLong(),
@@ -145,6 +145,8 @@ sealed interface Media : GlideLoadable, Parcelable {
                     /* standardMimeTypeExtension=*/ parcel.readInt(),
                     /* duration=*/ parcel.readInt(),
                 )
+                parcel.recycle()
+                return video
             }
 
             override fun newArray(size: Int): Array<Video?> {

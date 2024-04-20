@@ -22,9 +22,10 @@ import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
-import com.android.photopicker.features.photogrid.PhotoGridFeature
-import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
+import com.android.photopicker.features.photogrid.PhotoGridFeature
+import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -67,12 +68,14 @@ class FeatureManager(
                 PhotoGridFeature.Registration,
                 SelectionBarFeature.Registration,
                 NavigationBarFeature.Registration,
+                PreviewFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
-        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> = setOf(
-          Event.MediaSelectionConfirmed::class.java,
-        )
+        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> =
+            setOf(
+                Event.MediaSelectionConfirmed::class.java,
+            )
 
         /* The list of events that the core library produces. */
         val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> = setOf()

@@ -16,16 +16,15 @@
 
 package com.android.photopicker.data.paging
 
+import android.content.ContentResolver
 import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadResult
 import androidx.paging.PagingState
-import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
-import kotlinx.coroutines.flow.StateFlow
 
 /**
  * This [PagingSource] class is responsible to providing paginated media data from Picker
@@ -34,8 +33,8 @@ import kotlinx.coroutines.flow.StateFlow
  * It sources data from a [ContentProvider] called [MediaProvider].
  */
 class MediaPagingSource(
-    private val userStatus: StateFlow<UserStatus>,
-    private val availableProviders: StateFlow<List<Provider>>,
+    private val contentResolver: ContentResolver,
+    private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
 ) : PagingSource<MediaPageKey, Media>() {
 
@@ -49,16 +48,20 @@ class MediaPagingSource(
         val pageKey = params.key ?: MediaPageKey()
         val pageSize = params.loadSize
 
-        try {
-            return mediaProviderClient.fetchMedia(
-                pageKey,
-                pageSize,
-                userStatus.value.activeContentResolver,
-                availableProviders.value
+        return try {
+            if (availableProviders.isEmpty()) {
+                throw IllegalArgumentException("No available providers found.")
+            }
+
+            mediaProviderClient.fetchMedia(
+                    pageKey,
+                    pageSize,
+                    contentResolver,
+                    availableProviders
             )
         } catch (e: Exception) {
             Log.e(TAG, "Could not fetch page from Media provider", e)
-            return LoadResult.Error(e)
+            LoadResult.Error(e)
         }
     }
 

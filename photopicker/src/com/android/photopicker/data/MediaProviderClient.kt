@@ -284,11 +284,9 @@ open class MediaProviderClient {
         }
 
         val extras = Bundle()
-        val initLocalOnlyMedia: Boolean = providers.map {
-                provider -> (provider.mediaSource == MediaSource.LOCAL)
-            }.reduce{
-                aggregate, isProviderLocal -> aggregate && isProviderLocal
-            }
+        val initLocalOnlyMedia: Boolean = providers.all { provider ->
+            (provider.mediaSource == MediaSource.LOCAL)
+        }
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
         refreshMedia(extras, resolver)
     }

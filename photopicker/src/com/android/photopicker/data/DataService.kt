@@ -62,7 +62,7 @@ interface DataService {
      * Sends a refresh media notification to the data source. This signal tells the data source
      * to refresh its cache.
      */
-    fun refreshMedia()
+    suspend fun refreshMedia()
 
     /**
      * Sends a refresh album media notification to the data source. This signal tells the data
@@ -71,5 +71,5 @@ interface DataService {
      * @param albumId the identifier for the album
      * @param providerAuthority the authority of the album's provider
      */
-    fun refreshAlbumMedia(albumId: String, providerAuthority: String)
+    suspend fun refreshAlbumMedia(albumId: String, providerAuthority: String)
 }

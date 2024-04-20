@@ -18,11 +18,13 @@
 package com.android.photopicker.core.glide
 
 import android.graphics.drawable.Drawable
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -57,7 +59,10 @@ fun loadMedia(
     GlideImage(
         model = media,
         contentDescription = stringResource(R.string.photopicker_media_item),
-        modifier = modifier,
+        // Always explicitly provide a default width and height to avoid cannot measure errors in
+        // headless tests. These default minimums are only overridden when the incoming
+        // corresponding constraint is 0, if a smaller size is specified, that will be used.
+        modifier = modifier.defaultMinSize(minWidth = 1.dp, minHeight = 1.dp),
         // TODO(b/323830032): Use a proper material theme color here.
         loading = placeholder(ColorPainter(Color.Black)),
         failure = placeholder(ColorPainter(Color.Black)),

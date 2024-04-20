@@ -24,5 +24,6 @@ enum class FeatureToken(val token: String) {
     CORE("CORE"),
     NAVIGATION_BAR("NAVIGATION_BAR"),
     PHOTO_GRID("PHOTO_GRID"),
+    PREVIEW("PREVIEW"),
     SELECTION_BAR("SELECTION_BAR"),
 }

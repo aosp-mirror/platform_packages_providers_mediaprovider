@@ -19,12 +19,15 @@ package com.android.photopicker.extensions
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
+import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_MEDIA
+import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_SELECTION
+import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.preview.PreviewFeature
 
 /**
  * Utility function for navigating to the [PhotopickerDestinations.PHOTO_GRID] route.
  *
- * This attempts to reclaim an existing BackStack entry, preserving any previous state that
- * existed.
+ * This attempts to reclaim an existing BackStack entry, preserving any previous state that existed.
  *
  * If the route is not currently on the BackStack, then this will navigate directly.
  */
@@ -47,4 +50,27 @@ fun NavController.navigateToPhotoGrid(navOptions: NavOptions? = null) {
         // Last resort; PHOTO_GRID isn't on the backstack, then navigate directly.
         this.navigate(PHOTO_GRID.route, navOptions)
     }
+}
+
+/** Utility function for navigating to the [PhotopickerDestinations.PREVIEW_SELECTION] route. */
+fun NavController.navigateToPreviewSelection(navOptions: NavOptions? = null) {
+    this.navigate(PREVIEW_SELECTION.route, navOptions)
+}
+
+/**
+ * Utility function for navigating to the [PhotopickerDestinations.PREVIEW_MEDIA] route.
+ *
+ * Additionally, this adds the relevant media data to the BackStackEntry for the route to use to
+ * avoid refetching it from the provider.
+ *
+ * @param media The media item that should be previewed in full resolution.
+ */
+fun NavController.navigateToPreviewMedia(media: Media, navOptions: NavOptions? = null) {
+    this.navigate(PREVIEW_MEDIA.route, navOptions)
+
+    // Media object must be parcellized and passed to the new route so it can be loaded.
+    // This back stack entry is guaranteed to exist since it was just navigated to.
+    this.getBackStackEntry(PREVIEW_MEDIA.route)
+        .savedStateHandle
+        .set(PreviewFeature.PREVIEW_MEDIA_KEY, media)
 }

@@ -20,6 +20,7 @@ import android.content.Context
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
+import org.mockito.ArgumentMatchers
 
 /**
  * Wrapper around Mockito's when method. "when" is a protected keyword in Kotlin, so this provides a
@@ -52,4 +53,32 @@ fun <Type> mockSystemService(
 ) {
     whenever(context.getSystemServiceName(classToMock)) { classToMock.simpleName }
     whenever(context.getSystemService(classToMock.simpleName)) { block() }
+}
+
+/**
+ * We can't use [org.mockito.ArgumentMatchers.eq] method directly for non-nullable Kotlin objects.
+ * This utility method checks for nullability of the result [org.mockito.ArgumentMatchers.eq] and
+ * returns the same value if found to be null.
+ *
+ * @param value The value that you wish to pass to eq
+ */
+fun <Type> nonNullableEq(
+    value: Type
+): Type {
+    return ArgumentMatchers.eq(value) ?: value
+}
+
+/**
+ * We can't use [org.mockito.ArgumentMatchers.any] method directly for non-nullable Kotlin objects.
+ * This utility method checks for nullability of the result [org.mockito.ArgumentMatchers.eq] and
+ * returns the same value if found to be null.
+ *
+ * @param typeClass The java class of the type that should match [org.mockito.ArgumentMatchers.any]
+ * @param defaultValue a non-null instance of the type [typeClass]
+ */
+fun <Type> nonNullableAny(
+    typeClass: Class<Type>,
+    defaultValue: Type
+): Type {
+    return ArgumentMatchers.any(typeClass) ?: defaultValue
 }

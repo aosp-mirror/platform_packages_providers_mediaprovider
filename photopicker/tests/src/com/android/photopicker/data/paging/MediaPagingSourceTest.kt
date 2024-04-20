@@ -20,15 +20,11 @@ import android.content.ContentResolver
 import androidx.paging.PagingSource.LoadParams
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.photopicker.core.user.UserProfile
-import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.MediaPagingSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
@@ -47,18 +43,7 @@ import src.com.android.photopicker.data.TestMediaProvider
 class MediaPagingSourceTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
-    private var userProfile: UserProfile = UserProfile(
-        identifier = 0,
-        profileType = UserProfile.ProfileType.PRIMARY
-    )
-    private var userStatus: StateFlow<UserStatus> = MutableStateFlow(
-        UserStatus(
-            activeUserProfile = userProfile,
-            allProfiles = listOf(userProfile),
-            activeContentResolver = contentResolver
-        )
-    )
-    private val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
+    private val availableProviders: List<Provider> = emptyList()
 
     @Mock
     private lateinit var mockMediaProviderClient: MediaProviderClient
@@ -71,9 +56,9 @@ class MediaPagingSourceTest {
     @Test
     fun testLoad() = runTest {
         val mediaPagingSource: MediaPagingSource = MediaPagingSource(
-            userStatus,
-            availableProviders,
-            mockMediaProviderClient
+            contentResolver = contentResolver,
+            availableProviders = availableProviders,
+            mediaProviderClient = mockMediaProviderClient
         )
 
         val pageKey: MediaPageKey = MediaPageKey()

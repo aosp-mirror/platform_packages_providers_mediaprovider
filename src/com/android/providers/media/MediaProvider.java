@@ -46,10 +46,10 @@ import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
-import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -57,8 +57,8 @@ import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
-import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
+import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -113,10 +113,6 @@ import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
@@ -3755,16 +3751,11 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        // TODO(b/195008831): Add test to verify that apps can't access
-        if (table == PICKER_INTERNAL_MEDIA_ALL) {
-            return mPickerDataLayer.fetchAllMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_MEDIA_LOCAL) {
-            return mPickerDataLayer.fetchLocalMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_ALL) {
-            return mPickerDataLayer.fetchAllAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
-            return mPickerDataLayer.fetchLocalAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_V2) {
+        if (PickerUriResolver.PICKER_INTERNAL_TABLES.contains(table)) {
+            return mPickerUriResolver.query(table, queryArgs, mPickerDbFacade.getLocalProvider(),
+                    mPickerSyncController.getCloudProvider(), mPickerDataLayer);
+        }
+        if (table == PICKER_INTERNAL_V2) {
             return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 

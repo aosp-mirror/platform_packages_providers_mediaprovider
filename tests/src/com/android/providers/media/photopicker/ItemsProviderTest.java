@@ -786,26 +786,91 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
-     * UserId, CancellationSignal)} to return only selected items from the media table for ids
-     * defined in the localId selection list.
+     * Tests {@link ItemsProvider#getItemsForPreselectedMedia(Category, List, String[], UserId,
+     * boolean, int, boolean, CancellationSignal)}  to return only selected items from the media
+     * table for ids defined in the localId selection list. Here the list is empty so the parameter
+     * is ignored and the list is returned without any selection.
+     */
+    @Test
+    public void testGetItemsImages_withLocalIdSelectionEmpty() throws Exception {
+        assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        try {
+            // get the item objects for the empty list.
+            final Cursor res = mItemsProvider.getItemsForPreselectedMedia(Category.DEFAULT,
+                    /* local id selection list */ new ArrayList<>(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* isLocal */ true, /* callingUid */ -1, /* shouldScreenSelectionUris */ false,
+                    /* cancellationSignal */ null);
+
+            assertThat(res).isNotNull();
+            // All images are returned and selection is ignored.
+            assertThat(res.getCount()).isEqualTo(10);
+            assertThatOnlyImages(res);
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getItemsForPreselectedMedia(Category, List, String[], UserId,
+     * boolean, int, boolean, CancellationSignal)}  to return only selected items from the media
+     * table for ids defined in the Id selection list. Here the list is empty and
+     * shouldScreenSelectionUris is set to true, hence an empty cursor should be returned.
+     */
+    @Test
+    public void testGetItemsImages_withIdSelectionEmpty_uriScreeningEnabled() throws Exception {
+        assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
+        try {
+            // get the item objects for the empty list.
+            final Cursor res = mItemsProvider.getItemsForPreselectedMedia(Category.DEFAULT,
+                    /* local id selection list */ new ArrayList<>(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* isLocal */ true, /* callingUid, test */ 100,
+                    /* shouldScreenSelectionUris */ true, /* cancellationSignal */ null);
+
+            assertThat(res).isNotNull();
+            // Since shouldScreenSelectionUris was enabled, no items should be returned.
+            assertThat(res.getCount()).isEqualTo(0);
+            assertThatOnlyImages(res);
+
+            // repeat above with isLocal param as false.
+
+            final Cursor res2 = mItemsProvider.getItemsForPreselectedMedia(Category.DEFAULT,
+                    /* local id selection list */ new ArrayList<>(),
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* isLocal */ false, /* callingUid */ 100, /* shouldScreenSelectionUris */ true,
+                    /* cancellationSignal */ null);
+
+            assertThat(res2).isNotNull();
+            // Since shouldScreenSelectionUris was enabled, no items should be returned.
+            assertThat(res2.getCount()).isEqualTo(0);
+            assertThatOnlyImages(res2);
+
+        } finally {
+            // clean up.
+            deleteAllFilesNoThrow();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getItemsForPreselectedMedia(Category, List, String[], UserId,
+     * boolean, int, boolean, CancellationSignal)} to return only selected items from the media
+     * table for ids defined in the localId selection list.
      */
     @Test
     public void testGetItemsImages_withLocalIdSelection() throws Exception {
         List<Uri> imageFilesUris = assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
         // Put the id of random items from the inserted set. say 4th and 6th item.
-        ArrayList<Long> inputIds = new ArrayList<>(1);
-        inputIds.add(ContentUris.parseId(imageFilesUris.get(4)));
-        inputIds.add(ContentUris.parseId(imageFilesUris.get(6)));
-        ArrayList<Integer> inputIdsAsIntegers =
-                (ArrayList<Integer>) inputIds.stream().map(
-                        (Long id) -> Integer.valueOf(Math.toIntExact(id))).collect(
-                        Collectors.toList());
+        List<Uri> inputUris = List.of(imageFilesUris.get(4), imageFilesUris.get(6));
+        List<Long> inputIds = List.of(ContentUris.parseId(imageFilesUris.get(4)),
+                ContentUris.parseId(imageFilesUris.get(6)));
         try {
             // get the item objects for the provided ids.
-            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
-                    /* local id selection list */ inputIdsAsIntegers,
-                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+            final Cursor res = mItemsProvider.getItemsForPreselectedMedia(Category.DEFAULT,
+                    /* local uri selection list */ inputUris,
+                    /* mimeType */ new String[]{"image/*"}, /* userId */ null, /* isLocal */ true,
+                    /* callingUid */ -1, /* shouldScreenSelectionUris */ false,
                     /* cancellationSignal */ null);
 
             // verify that the correct number of items are returned and that they have the correct
@@ -825,9 +890,9 @@ public class ItemsProviderTest {
     }
 
     /**
-     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
-     * UserId, CancellationSignal)} to return only selected items from the media table for ids
-     * defined in the localId selection list.
+     * Tests {@link ItemsProvider#getItemsForPreselectedMedia(Category, List, String[], UserId,
+     * boolean, int, boolean, CancellationSignal)} to return only selected items from the media
+     * table for ids defined in the localId selection list.
      */
     @Test
     public void testGetItemsImages_withLocalIdSelection_largeDataSet() throws Exception {
@@ -838,9 +903,10 @@ public class ItemsProviderTest {
                 Long::intValue).collect(Collectors.toList());
         try {
             // get the item objects for the provided ids.
-            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
-                    /* local id selection list */ inputIdsAsIntegers,
+            final Cursor res = mItemsProvider.getItemsForPreselectedMedia(Category.DEFAULT,
+                    /* local id selection list */ imageFilesUris,
                     /* mimeType */ new String[]{"image/*"}, /* userId */ null,
+                    /* isLocal */ true, /* callingUid */ -1, /* shouldScreenSelectionUris */ false,
                     /* cancellationSignal */ null);
 
             // verify that the correct number of items are returned and that they have the correct
@@ -852,32 +918,6 @@ public class ItemsProviderTest {
                 Item item = Item.fromCursor(res, UserId.CURRENT_USER);
                 assertTrue(inputIdsAsIntegers.contains(Integer.parseInt(item.getId())));
             }
-            assertThatOnlyImages(res);
-        } finally {
-            // clean up.
-            deleteAllFilesNoThrow();
-        }
-    }
-
-    /**
-     * Tests {@link ItemsProvider#getLocalItemsForSelection(Category, List, String[],
-     * UserId, CancellationSignal)} to return only selected items from the media table for ids
-     * defined in the localId selection list. Here the list is empty so the parameter is ignored and
-     * the list is returned without any selection.
-     */
-    @Test
-    public void testGetItemsImages_withLocalIdSelectionEmpty() throws Exception {
-        assertCreateNewImagesWithSameDateModifiedTimesAndReturnUri(10);
-        try {
-            // get the item objects for the empty list.
-            final Cursor res = mItemsProvider.getLocalItemsForSelection(Category.DEFAULT,
-                    /* local id selection list */ new ArrayList<>(),
-                    /* mimeType */ new String[]{"image/*"}, /* userId */ null,
-                    /* cancellationSignal */ null);
-
-            assertThat(res).isNotNull();
-            // All images are returned and selection is ignored.
-            assertThat(res.getCount()).isEqualTo(10);
             assertThatOnlyImages(res);
         } finally {
             // clean up.

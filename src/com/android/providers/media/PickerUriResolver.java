@@ -18,10 +18,19 @@ package com.android.providers.media;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.os.Process.SYSTEM_UID;
+import static android.provider.MediaStore.EXTRA_CALLING_PACKAGE_UID;
 
 import static com.android.providers.media.AccessChecker.isRedactionNeededForPickerUri;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_CLOUD_ID_SELECTION;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ID_SELECTION;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOULD_SCREEN_SELECTION_URIS;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
@@ -37,6 +46,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
+import android.os.Process;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
@@ -46,6 +56,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.metrics.NonUiEventLogger;
@@ -53,8 +64,11 @@ import com.android.providers.media.util.PermissionUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for Picker Uris, it handles (includes permission checks, incoming args
@@ -87,6 +101,13 @@ public class PickerUriResolver {
 
     public static final String LOCAL_PATH = "local";
     public static final String ALL_PATH = "all";
+    public static final List<Integer> PICKER_INTERNAL_TABLES = List.of(
+            PICKER_INTERNAL_MEDIA_ALL,
+            PICKER_INTERNAL_MEDIA_LOCAL,
+            PICKER_INTERNAL_ALBUMS_ALL,
+            PICKER_INTERNAL_ALBUMS_LOCAL);
+    // use this uid for when the uid is eventually going to be ignored or a test for invalid uid.
+    public static final Integer DEFAULT_UID = -1;
 
     private final Context mContext;
     private final PickerDbFacade mDbFacade;
@@ -148,6 +169,35 @@ public class PickerUriResolver {
                     AssetFileDescriptor.UNKNOWN_LENGTH);
         }
         return resolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal);
+    }
+
+    /**
+     * Returns result of the query operations that can be performed on the internal picker tables
+     * as a cursor.
+     *
+     * <p>This also caters to the filtering of queryArgs parameter for id selection if required for
+     * pre-selection.
+     */
+    public Cursor query(Integer table, Bundle queryArgs, String localProvider,
+            String cloudProvider, PickerDataLayer pickerDataLayer) {
+        Bundle screenedQueryArgs;
+        if (table == PICKER_INTERNAL_MEDIA_ALL || table == PICKER_INTERNAL_MEDIA_LOCAL) {
+            screenedQueryArgs = processUrisForSelection(queryArgs,
+                    localProvider,
+                    cloudProvider,
+                    /* isLocalOnly */ table == PICKER_INTERNAL_MEDIA_LOCAL);
+            if (table == PICKER_INTERNAL_MEDIA_ALL) {
+                return pickerDataLayer.fetchAllMedia(screenedQueryArgs);
+            } else if (table == PICKER_INTERNAL_MEDIA_LOCAL) {
+                return pickerDataLayer.fetchLocalMedia(screenedQueryArgs);
+            }
+        }
+        if (table == PICKER_INTERNAL_ALBUMS_ALL) {
+            return pickerDataLayer.fetchAllAlbums(queryArgs);
+        } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
+            return pickerDataLayer.fetchLocalAlbums(queryArgs);
+        }
+        return null;
     }
 
     public Cursor query(Uri uri, String[] projection, int callingPid, int callingUid,
@@ -292,6 +342,128 @@ public class PickerUriResolver {
         return builder.build();
     }
 
+    /**
+     * Filters URIs received for preSelection based on permission, authority and validity checks.
+     */
+    public Bundle processUrisForSelection(Bundle queryArgs, String localProvider,
+            String cloudProvider, boolean isLocalOnly) {
+
+        List<String> inputUrisAsStrings = queryArgs.getStringArrayList(QUERY_ID_SELECTION);
+        if (inputUrisAsStrings == null) {
+            // If no input selection is present then return;
+            return queryArgs;
+        }
+
+        boolean shouldScreenSelectionUris = queryArgs.getBoolean(
+                QUERY_SHOULD_SCREEN_SELECTION_URIS);
+
+        if (shouldScreenSelectionUris) {
+            Set<Uri> inputUris = screenArgsForPermissionCheckIfAny(queryArgs, inputUrisAsStrings);
+
+            SelectionIdsSegregationResult result = populateLocalAndCloudIdListsForSelection(
+                    inputUris, localProvider, cloudProvider, isLocalOnly);
+            if (!result.getLocalIds().isEmpty()) {
+                queryArgs.putStringArrayList(QUERY_LOCAL_ID_SELECTION, result.getLocalIds());
+            }
+            if (!result.getCloudIds().isEmpty()) {
+                queryArgs.putStringArrayList(QUERY_CLOUD_ID_SELECTION, result.getCloudIds());
+            }
+            if (!result.getCloudIds().isEmpty() || !result.getLocalIds().isEmpty()) {
+                Log.d(TAG, "Id selection has been enabled in the current query operation.");
+            } else {
+                Log.d(TAG, "Id selection has not been enabled in the current query operation.");
+            }
+        } else if (isLocalOnly) {
+            Set<Uri> inputUris = inputUrisAsStrings.stream().map(Uri::parse).collect(
+                    Collectors.toSet());
+
+            Log.d(TAG, "Local id selection has been enabled in the current query operation.");
+            queryArgs.putStringArrayList(QUERY_LOCAL_ID_SELECTION,
+                    new ArrayList<>(inputUris.stream().map(Uri::getLastPathSegment)
+                            .collect(Collectors.toList())));
+        } else {
+            Log.wtf(TAG, "Expected the uris to be local uris when screening is disabled");
+        }
+
+        return queryArgs;
+    }
+
+    private Set<Uri> screenArgsForPermissionCheckIfAny(Bundle queryArgs, List<String> inputUris) {
+        int callingUid = queryArgs.getInt(EXTRA_CALLING_PACKAGE_UID);
+
+        if (/* uid not found */ callingUid == 0 || /* uid is invalid */ callingUid == DEFAULT_UID) {
+            // if calling uid is absent or is invalid then throw an error
+            throw new IllegalArgumentException("Filtering Uris for Selection: "
+                    + "Uid absent or invalid");
+        }
+
+        Set<Uri> accessibleUris = new HashSet<>();
+        // perform checks and filtration.
+        for (String uriAsString : inputUris) {
+            Uri uriForSelection = Uri.parse(uriAsString);
+            try {
+                // verify if the calling package have permission to the requested uri.
+                checkUriPermission(uriForSelection, /* pid */ -1, callingUid);
+                accessibleUris.add(uriForSelection);
+            } catch (SecurityException se) {
+                Log.d(TAG,
+                        "Filtering Uris for Selection: package does not have permission for "
+                                + "the uri: "
+                                + uriAsString);
+            }
+        }
+        return accessibleUris;
+    }
+
+    private SelectionIdsSegregationResult populateLocalAndCloudIdListsForSelection(
+            Set<Uri> inputUris, String localProvider,
+            String cloudProvider, boolean isLocalOnly) {
+        ArrayList<String> localIds = new ArrayList<>();
+        ArrayList<String> cloudIds = new ArrayList<>();
+        for (Uri uriForSelection : inputUris) {
+            try {
+                // unwrap picker uri to get host and id.
+                Uri uri = PickerUriResolver.unwrapProviderUri(uriForSelection);
+                if (localProvider.equals(uri.getHost())) {
+                    // Adds the last segment (id) to localIds if the authority matches the
+                    // local authority.
+                    localIds.add(uri.getLastPathSegment());
+                } else if (!isLocalOnly && cloudProvider != null && cloudProvider.equals(
+                        uri.getHost())) {
+                    // Adds the last segment (id) to cloudIds if the authority matches the
+                    // current cloud authority.
+                    cloudIds.add(uri.getLastPathSegment());
+                } else {
+                    Log.d(TAG,
+                            "Filtering Uris for Selection: Unknown authority/host for the uri: "
+                                    + uriForSelection);
+                }
+            } catch (IllegalArgumentException illegalArgumentException) {
+                Log.d(TAG, "Filtering Uris for Selection: Input uri: " + uriForSelection
+                        + " is not valid.");
+            }
+        }
+        return new SelectionIdsSegregationResult(localIds, cloudIds);
+    }
+
+    private static class SelectionIdsSegregationResult {
+        private final ArrayList<String> mLocalIds;
+        private final ArrayList<String> mCloudIds;
+
+        SelectionIdsSegregationResult(ArrayList<String> localIds, ArrayList<String> cloudIds) {
+            mLocalIds = localIds;
+            mCloudIds = cloudIds;
+        }
+
+        public ArrayList<String> getLocalIds() {
+            return mLocalIds;
+        }
+
+        public ArrayList<String> getCloudIds() {
+            return mCloudIds;
+        }
+    }
+
     @VisibleForTesting
     static Uri unwrapProviderUri(Uri uri) {
         List<String> segments = uri.getPathSegments();
@@ -363,7 +535,7 @@ public class PickerUriResolver {
     }
 
     private boolean isSelf(int uid) {
-        return UserHandle.getAppId(android.os.Process.myUid()) == UserHandle.getAppId(uid);
+        return UserHandle.getAppId(Process.myUid()) == UserHandle.getAppId(uid);
     }
 
     private boolean canHandleUriInUser(Uri uri) {

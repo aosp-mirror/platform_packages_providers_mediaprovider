@@ -125,6 +125,7 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideDataService(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped userMonitor: UserMonitor,
         @ActivityRetainedScoped notificationService: NotificationService
     ): DataService {
@@ -137,6 +138,7 @@ class ActivityModule {
             dataService = DataServiceImpl(
                 userMonitor.userStatus,
                 scope,
+                dispatcher,
                 notificationService,
                 MediaProviderClient()
             )

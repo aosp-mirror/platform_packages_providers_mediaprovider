@@ -20,6 +20,7 @@
     <string name="photopicker_application_label" msgid="3482718304682270084">"মিডিয়া পিকার"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"মিডিয়া"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"বেছে নেওয়া হয়েছে"</string>
-    <!-- no translation found for photopicker_add_button_label (6805332693977632142) -->
+    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g>টি যোগ করুন"</string>
+    <!-- no translation found for photopicker_photos_nav_button_label (8716403708343738371) -->
     <skip />
 </resources>

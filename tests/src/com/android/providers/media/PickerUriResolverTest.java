@@ -21,9 +21,12 @@ import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.MediaStore.ACTION_PICK_IMAGES;
+import static android.provider.MediaStore.EXTRA_CALLING_PACKAGE_UID;
 
 import static androidx.test.InstrumentationRegistry.getContext;
 import static androidx.test.InstrumentationRegistry.getTargetContext;
+
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOULD_SCREEN_SELECTION_URIS;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -43,6 +46,7 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -56,6 +60,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
@@ -69,6 +74,8 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerUriResolverTest {
@@ -268,6 +275,144 @@ public class PickerUriResolverTest {
             assertThat(expected.getMessage()).isEqualTo("PhotoPicker Uris can only be accessed to"
                     + " read. Uri: " + sTestPickerUri);
         }
+    }
+
+    @Test
+    public void testProcessUrisForSelection_withoutPermissionOrAuthorityChecks() {
+        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
+                TEST_USER, ACTION_PICK_IMAGES);
+        Bundle queryArgs = new Bundle();
+        ArrayList<String> inputUris = new ArrayList<>();
+        inputUris.add(sTestPickerUri.toString());
+        queryArgs.putStringArrayList(PickerDataLayer.QUERY_ID_SELECTION, inputUris);
+
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,  /* cloudProvider */
+                null, /* isLocalOnly */true);
+
+        List<String> filteredList = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_LOCAL_ID_SELECTION);
+        assertThat(filteredList).isNotNull();
+        assertThat(filteredList.size()).isEqualTo(1);
+        assertThat(filteredList.get(0)).isEqualTo(sTestPickerUri.getLastPathSegment());
+
+        // clear data for local ids and cloud ids from queryArgs
+        queryArgs.remove(PickerDataLayer.QUERY_LOCAL_ID_SELECTION);
+        queryArgs.remove(PickerDataLayer.QUERY_CLOUD_ID_SELECTION);
+
+        // no items should be added to result if isLocalOnly is set to false.
+        // This is the default case.
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,  /* cloudProvider */
+                null, /* isLocalOnly */false);
+
+        List<String> filteredList2 = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_LOCAL_ID_SELECTION);
+        assertThat(filteredList2).isNull();
+    }
+
+    @Test
+    public void testProcessUrisForSelection_permissionChecks() {
+        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
+                TEST_USER, ACTION_PICK_IMAGES);
+
+        // the test uid can be any id but not the current id.
+        int testUid = Process.myUid() + 1;
+
+        // creating query args to mimic the case of preselection in photo picker
+        Bundle queryArgs = new Bundle();
+        ArrayList<String> inputUris = new ArrayList<>();
+        inputUris.add(sTestPickerUri.toString());
+        queryArgs.putStringArrayList(PickerDataLayer.QUERY_ID_SELECTION, inputUris);
+        queryArgs.putBoolean(QUERY_SHOULD_SCREEN_SELECTION_URIS, true);
+        queryArgs.putInt(EXTRA_CALLING_PACKAGE_UID, testUid);
+
+        // Case 1: should filter out uris if the incoming uid does not have the permission.
+
+        // ensure the permission check fails
+        updateReadUriPermissionForUid(sTestPickerUri, /* grant */ false, Process.myUid() + 1);
+
+        // Process the uris
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,  /* cloudProvider */
+                null, /* isLocalOnly */ true);
+
+        // verify that the local ids did not get populated
+        List<String> filteredList = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_LOCAL_ID_SELECTION);
+        assertThat(filteredList).isNull();
+
+        // Case 2: check local ids are populated when permission is present
+
+        // grant read permission
+        updateReadUriPermissionForUid(sTestPickerUri, /* grant */ true, Process.myUid() + 1);
+
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, /* cloudProvider */
+                null, /* isLocalOnly */true);
+
+        // verify that the local ids is populated with the input uri
+        List<String> filteredList2 = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_LOCAL_ID_SELECTION);
+        assertThat(filteredList2).isNotNull();
+        assertThat(filteredList2.size()).isEqualTo(1);
+        assertThat(filteredList2.get(0)).isEqualTo(sTestPickerUri.getLastPathSegment());
+    }
+
+    @Test
+    public void testProcessUrisForSelection_cloudAuthorityChecks() {
+        long testCloudId = 1234567890;
+        String testCloudAuthority = "com.test.cloud.authority";
+        Uri testCloudUri = getPickerUriForIdWithCustomAuthority(testCloudId,
+                TEST_USER, ACTION_PICK_IMAGES, testCloudAuthority);
+
+        // the test uid can be any id but not the current id.
+        int testUid = Process.myUid() + 1;
+
+        // creating query args to mimic the case of preselection in photo picker
+        Bundle queryArgs = new Bundle();
+        ArrayList<String> inputUris = new ArrayList<>();
+        inputUris.add(testCloudUri.toString());
+        queryArgs.putStringArrayList(PickerDataLayer.QUERY_ID_SELECTION, inputUris);
+        queryArgs.putBoolean(QUERY_SHOULD_SCREEN_SELECTION_URIS, true);
+        queryArgs.putInt(EXTRA_CALLING_PACKAGE_UID, testUid);
+
+        // grant read permission
+        updateReadUriPermissionForUid(testCloudUri, /* grant */ true, testUid);
+
+        // verify no items are added to result when null cloud authority is passed.
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, /* cloudProvider */
+                null, /* isLocalOnly */ false);
+
+        // verify that the cloud ids did not get populated
+        List<String> filteredList = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_CLOUD_ID_SELECTION);
+        assertThat(filteredList).isNull();
+
+        // verify no items are added to result when incorrect cloud authority is passed.
+        String inCorrectAuthority = "com.incorrect.authority";
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, /* isLocalOnly */
+                inCorrectAuthority, /* isLocalOnly */ false);
+
+        // verify that the local ids did not get populated
+        List<String> filteredList2 = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_CLOUD_ID_SELECTION);
+        assertThat(filteredList2).isNull();
+
+
+        // verify correct items are set when correct authority is passed
+        sTestPickerUriResolver.processUrisForSelection(queryArgs,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, /* cloudProvider */
+                testCloudAuthority, /* isLocalOnly */ false);
+
+        // verify that the cloud ids is populated with the input uri
+        List<String> filteredList3 = queryArgs.getStringArrayList(
+                PickerDataLayer.QUERY_CLOUD_ID_SELECTION);
+        assertThat(filteredList3).isNotNull();
+        assertThat(filteredList3.size()).isEqualTo(1);
+        assertThat(filteredList3.get(0)).isEqualTo(testCloudUri.getLastPathSegment());
     }
 
     @Test
@@ -539,9 +684,21 @@ public class PickerUriResolverTest {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
     }
 
+    private void updateReadUriPermissionForUid(Uri uri, boolean grant, int uid) {
+        final int permission = grant ? PERMISSION_GRANTED : PERMISSION_DENIED;
+        when(sCurrentContext.checkUriPermission(uri, -1 , uid,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION)).thenReturn(permission);
+    }
+
     private static Uri getPickerUriForId(long id, int user, String action) {
+        return getPickerUriForIdWithCustomAuthority(id, user, action,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+    }
+
+    private static Uri getPickerUriForIdWithCustomAuthority(long id, int user, String action,
+            String authority) {
         final Uri providerUri = PickerUriResolver
-                .getMediaUri(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .getMediaUri(authority)
                 .buildUpon()
                 .appendPath(String.valueOf(id))
                 .build();

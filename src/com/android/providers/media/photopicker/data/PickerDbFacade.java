@@ -61,7 +61,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * This is a facade that hides the complexities of executing some SQL statements on the picker db.
@@ -147,6 +146,7 @@ public class PickerDbFacade {
                     KEY_DATE_TAKEN_MS, KEY_DATE_TAKEN_MS, KEY_ID);
     private static final String WHERE_ALBUM_ID = KEY_ALBUM_ID  + " = ?";
     private static final String WHERE_LOCAL_ID_IN = KEY_LOCAL_ID  + " IN ";
+    private static final String WHERE_CLOUD_ID_IN = KEY_CLOUD_ID  + " IN ";
 
     // This where clause returns all rows for media items that are local-only and are marked as
     // favorite.
@@ -709,12 +709,14 @@ public class PickerDbFacade {
         public boolean mIsLocalOnly;
         private int mPageSize;
         private String mPageToken;
-
-        private List<Integer> mLocalIdSelection;
+        private final boolean mShouldScreenSelectionUris;
+        private List<String> mLocalPreSelectedIds;
+        private List<String> mCloudPreSelectedIds;
 
         private QueryFilter(int limit, long dateTakenBeforeMs, long dateTakenAfterMs, long id,
                 String albumId, long sizeBytes, String[] mimeTypes, boolean isFavorite,
-                boolean isVideo, boolean isLocalOnly, List<Integer> localIdSelection, int pageSize,
+                boolean isVideo, boolean isLocalOnly, boolean shouldScreenSelectionUris,
+                List<String> localPreSelectedIds, List<String> cloudPreSelectedIds, int pageSize,
                 String pageToken) {
             this.mLimit = limit;
             this.mDateTakenBeforeMs = dateTakenBeforeMs;
@@ -726,7 +728,9 @@ public class PickerDbFacade {
             this.mIsFavorite = isFavorite;
             this.mIsVideo = isVideo;
             this.mIsLocalOnly = isLocalOnly;
-            this.mLocalIdSelection = localIdSelection;
+            this.mShouldScreenSelectionUris = shouldScreenSelectionUris;
+            this.mLocalPreSelectedIds = localPreSelectedIds;
+            this.mCloudPreSelectedIds = cloudPreSelectedIds;
             this.mPageSize = pageSize;
             this.mPageToken = pageToken;
         }
@@ -755,8 +759,9 @@ public class PickerDbFacade {
         private boolean mIsLocalOnly = BOOLEAN_DEFAULT;
         private int mPageSize = INT_DEFAULT;
         private String mPageToken = STRING_DEFAULT;
-
-        private List<Integer> mLocalIdSelection = LIST_DEFAULT;
+        private boolean mShouldScreenSelectionUris = BOOLEAN_DEFAULT;
+        private List<String> mLocalPreSelectedIds = LIST_DEFAULT;
+        private List<String> mCloudPreSelectedIds = LIST_DEFAULT;
 
         public QueryFilterBuilder(int limit) {
             this.limit = limit;
@@ -805,10 +810,26 @@ public class PickerDbFacade {
         }
 
         /**
+         * Sets the shouldScreenSelectionUris parameter.
+         */
+        public QueryFilterBuilder setShouldScreenSelectionUris(boolean shouldScreenSelectionUris) {
+            this.mShouldScreenSelectionUris = shouldScreenSelectionUris;
+            return this;
+        }
+
+        /**
          * Sets the local id selection filter.
          */
-        public QueryFilterBuilder setLocalIdSelection(List<Integer> localIdSelection) {
-            this.mLocalIdSelection = localIdSelection;
+        public QueryFilterBuilder setLocalPreSelectedIds(List<String> localPreSelectedIds) {
+            this.mLocalPreSelectedIds = localPreSelectedIds;
+            return this;
+        }
+
+        /**
+         * Sets the cloud id selection filter.
+         */
+        public QueryFilterBuilder setCloudPreSelectionIds(List<String> cloudPreSelectedIds) {
+            this.mCloudPreSelectedIds = cloudPreSelectedIds;
             return this;
         }
 
@@ -859,7 +880,8 @@ public class PickerDbFacade {
 
         public QueryFilter build() {
             return new QueryFilter(limit, mDateTakenBeforeMs, mDateTakenAfterMs, id, albumId,
-                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly, mLocalIdSelection,
+                    sizeBytes, mimeTypes, isFavorite, mIsVideo, mIsLocalOnly,
+                    mShouldScreenSelectionUris, mLocalPreSelectedIds, mCloudPreSelectedIds,
                     mPageSize, mPageToken);
         }
     }
@@ -874,9 +896,19 @@ public class PickerDbFacade {
      * {@code limit}. They can also be filtered with {@code query}.
      */
     public Cursor queryMediaForUi(QueryFilter query) {
-        if (query.mIsLocalOnly && query.mLocalIdSelection != null
-                && !query.mLocalIdSelection.isEmpty()) {
-            return queryMediaForUiWithLocalIdSelection(query);
+        boolean isAnyIdsForSelectionPresent =
+                (query.mLocalPreSelectedIds != null && !query.mLocalPreSelectedIds.isEmpty()) || (
+                        query.mCloudPreSelectedIds != null
+                                && !query.mCloudPreSelectedIds.isEmpty());
+        if (isAnyIdsForSelectionPresent) {
+            Log.d(TAG, "Query is being performed with id selection");
+            return queryMediaForUiWithIdSelection(query);
+        } else if (query.mShouldScreenSelectionUris) {
+            Log.d(TAG, "No ids present for selection, returning empty cursor");
+            // If no ids are present for the query selection but the pre-selection is enabled
+            // (indicated by the flag mShouldScreenSelectionUris) then an empty cursor should be
+            // returned).
+            return new MatrixCursor(getCloudMediaProjectionLocked(), 0);
         }
 
         final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
@@ -896,25 +928,54 @@ public class PickerDbFacade {
     }
 
 
-    private Cursor queryMediaForUiWithLocalIdSelection(QueryFilter query) {
+    private Cursor queryMediaForUiWithIdSelection(QueryFilter query) {
         // Since 'WHERE IN' clause has an upper limit of items that can be included in the sql
         // statement and also there is an upper limit to the size of the sql statement.
         // Splitting the query into multiple smaller ones.
         // This query will now process 150 items in a batch.
-        List<List<Integer>> listOfSelectionArgsForLocalId = splitArrayList(
-                query.mLocalIdSelection,
-                /* number of ids per query */ 150);
         List<Cursor> resultCursor = new ArrayList<>();
+        List<String> localIds = query.mLocalPreSelectedIds == null ? null : new ArrayList<>(
+                query.mLocalPreSelectedIds);
+        List<String> cloudIds = query.mCloudPreSelectedIds == null ? null : new ArrayList<>(
+                query.mCloudPreSelectedIds);
 
-        for (List<Integer> selectionArgForLocalIdSelection : listOfSelectionArgsForLocalId) {
-            final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
-            query.mLocalIdSelection = selectionArgForLocalIdSelection;
-            final String[] selectionArgs = buildSelectionArgs(qb, query);
-            resultCursor.add(queryMediaForUi(qb, selectionArgs, query.mLimit, true,
-                    TABLE_MEDIA, /* cloud provider */null));
+        batchedQueryForIdSelection(query, resultCursor, null, localIds);
+        if (!query.mIsLocalOnly) {
+            batchedQueryForIdSelection(query, resultCursor, getCloudProvider(),
+                    cloudIds);
         }
 
-        return new MergeCursor(resultCursor.toArray(new Cursor[resultCursor.size()]));
+        Cursor[] resultCursorsAsArray = resultCursor.toArray(new Cursor[0]);
+        if (resultCursorsAsArray.length == 0) {
+            // If after query no cursor has been added to the result, then return an empty cursor.
+            return new MatrixCursor(getCloudMediaProjectionLocked(), 0);
+        }
+        return new MergeCursor(resultCursorsAsArray);
+    }
+
+    private void batchedQueryForIdSelection(QueryFilter query, List<Cursor> resultCursor,
+            String cloudAuthority, List<String> selectionIds) {
+        if (selectionIds == null || selectionIds.isEmpty()) {
+            return;
+        }
+        List<List<String>> listOfSelectionArgsForLocalId = splitArrayList(
+                selectionIds,
+                /* number of ids per query */ 150);
+
+        for (List<String> selectionArgForLocalPreSelectedIds : listOfSelectionArgsForLocalId) {
+            final SQLiteQueryBuilder qb = createVisibleMediaQueryBuilder();
+            if (cloudAuthority == null) {
+                query.mLocalPreSelectedIds = selectionArgForLocalPreSelectedIds;
+                query.mCloudPreSelectedIds = QueryFilterBuilder.LIST_DEFAULT;
+            } else {
+                query.mCloudPreSelectedIds = selectionArgForLocalPreSelectedIds;
+                query.mLocalPreSelectedIds = QueryFilterBuilder.LIST_DEFAULT;
+            }
+            final String[] selectionArgs = buildSelectionArgs(qb, query);
+            resultCursor.add(
+                    queryMediaForUi(qb, selectionArgs, query.mLimit, cloudAuthority == null,
+                            TABLE_MEDIA, /* cloud provider */cloudAuthority));
+        }
     }
 
     private static <T> List<List<T>> splitArrayList(List<T> list, int chunkSize) {
@@ -1378,20 +1439,31 @@ public class PickerDbFacade {
             selectArgs.add(query.mAlbumId);
         }
 
-        if (query.mLocalIdSelection != null && !query.mLocalIdSelection.isEmpty()) {
-            StringBuilder localIdSelectionPlaceholder = new StringBuilder("(");
-            for (int itr = 0; itr < query.mLocalIdSelection.size(); itr++) {
-                localIdSelectionPlaceholder.append("?,");
+        if (query.mLocalPreSelectedIds != QueryFilterBuilder.LIST_DEFAULT
+                || query.mCloudPreSelectedIds != QueryFilterBuilder.LIST_DEFAULT) {
+            List<String> selectionIds;
+            String whereCondition;
+            if (query.mLocalPreSelectedIds != QueryFilterBuilder.LIST_DEFAULT) {
+                selectionIds = query.mLocalPreSelectedIds;
+                whereCondition = WHERE_LOCAL_ID_IN;
+            } else {
+                selectionIds = query.mCloudPreSelectedIds;
+                whereCondition = WHERE_CLOUD_ID_IN;
             }
-            localIdSelectionPlaceholder.deleteCharAt(localIdSelectionPlaceholder.length() - 1);
-            localIdSelectionPlaceholder.append(")");
+            if (!selectionIds.isEmpty()) {
+                StringBuilder idSelectionPlaceholder = new StringBuilder("(");
+                for (int itr = 0; itr < selectionIds.size(); itr++) {
+                    idSelectionPlaceholder.append("?,");
+                }
+                idSelectionPlaceholder.deleteCharAt(idSelectionPlaceholder.length() - 1);
+                idSelectionPlaceholder.append(")");
 
-            // Append the where clause for local id selection to the query builder.
-            qb.appendWhereStandalone(WHERE_LOCAL_ID_IN + localIdSelectionPlaceholder);
+                // Append the where clause for id selection to the query builder.
+                qb.appendWhereStandalone(whereCondition + idSelectionPlaceholder);
 
-            // Add local ids to the selection args.
-            selectArgs.addAll(query.mLocalIdSelection.stream().map(
-                    String::valueOf).collect(Collectors.toList()));
+                // Add ids to the selection args.
+                selectArgs.addAll(selectionIds);
+            }
         }
 
         if (selectArgs.isEmpty()) {

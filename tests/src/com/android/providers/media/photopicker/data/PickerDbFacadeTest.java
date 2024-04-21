@@ -94,6 +94,7 @@ import org.mockito.Mock;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RunWith(AndroidJUnit4.class)
@@ -1984,6 +1985,113 @@ public class PickerDbFacadeTest {
                     LOCAL_ID + "1",
                     DATE_TAKEN_MS,
                     /* count */ 1);
+        }
+    }
+
+    @Test
+    public void testFetchItems_withIdSelection() {
+        Cursor localCursor1 = getMediaCursor(LOCAL_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, JPEG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor localCursor2 = getMediaCursor(LOCAL_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, JPEG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cloudCursor1 = getMediaCursor(CLOUD_ID + "1", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, JPEG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cloudCursor2 = getMediaCursor(CLOUD_ID + "2", DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, SIZE_BYTES, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        // Item Info:
+        // 2 items - local - one of them in favorite album
+        // 2 items - cloud - one in favorite album, one in video album
+        // Albums Info:
+        // Videos     - Merged Album - 1 Video File (1 cloud)
+        // Favorites  - Merged Album - 2 files (1 local + 1 cloud)
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(CLOUD_PROVIDER)) {
+            assertWriteOperation(operation, cloudCursor1, 1);
+            assertWriteOperation(operation, cloudCursor2, 1);
+            operation.setSuccess();
+        }
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginAddMediaOperation(LOCAL_PROVIDER)) {
+            assertWriteOperation(operation, localCursor1, 1);
+            assertWriteOperation(operation, localCursor2, 1);
+            operation.setSuccess();
+        }
+
+        PickerDbFacade.QueryFilterBuilder qfb =
+                new PickerDbFacade.QueryFilterBuilder(/* limit */ 1000);
+
+        // If mShouldScreenSelectionUris is set and no ids selection items are passed, an empty
+        // cursor should be returned.
+        qfb.setShouldScreenSelectionUris(true);
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertWithMessage("Unexpected number of rows on queryMediaForUi."
+                    + "No items should have been returned.")
+                    .that(cr.getCount()).isEqualTo(0);
+        }
+
+        // Setting one local id as an input for selection.
+        // 1 local item should be returned.
+        qfb.setLocalPreSelectedIds(List.of(LOCAL_ID + "2"));
+        qfb.setCloudPreSelectionIds(null);
+        qfb.setShouldScreenSelectionUris(false);
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertWithMessage("Unexpected number of rows on queryMediaForUi."
+                    + "Expected number of items is 1.")
+                    .that(cr.getCount()).isEqualTo(1);
+            cr.moveToNext();
+            assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
+                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                            LOCAL_ID + "2");
+        }
+
+        // Setting one cloud id as an input for selection, and disabling local only param.
+        // 1 cloud item should be returned.
+        qfb.setIsLocalOnly(false);
+        qfb.setLocalPreSelectedIds(null);
+        qfb.setCloudPreSelectionIds(List.of(CLOUD_ID + "1"));
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertWithMessage("Unexpected number of rows on queryMediaForUi."
+                    + "Expected number of items is 1.")
+                    .that(cr.getCount()).isEqualTo(1);
+            cr.moveToNext();
+            assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
+                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                            CLOUD_ID + "1");
+        }
+
+        // If local only is enabled and only cloud ids are present, then no items should be
+        // returned.
+        qfb.setIsLocalOnly(true);
+        qfb.setLocalPreSelectedIds(null);
+        qfb.setCloudPreSelectionIds(List.of(CLOUD_ID + "1"));
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertWithMessage("Unexpected number of rows on queryMediaForUi."
+                    + "Expected number of items is 0.")
+                    .that(cr.getCount()).isEqualTo(0);
+        }
+
+
+        // Setting one local id and one cloud id, 2 items should be returned.
+        qfb.setIsLocalOnly(false);
+        qfb.setLocalPreSelectedIds(List.of(LOCAL_ID + "2"));
+        qfb.setCloudPreSelectionIds(List.of(CLOUD_ID + "1"));
+        try (Cursor cr = mFacade.queryMediaForUi(qfb.build())) {
+            assertWithMessage("Unexpected number of rows on queryMediaForUi."
+                    + "Expected number of items is 2.")
+                    .that(cr.getCount()).isEqualTo(2);
+            cr.moveToNext();
+            assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
+                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                            LOCAL_ID + "2");
+            cr.moveToNext();
+            assertWithMessage("Unexpected value of MediaColumns.ID at cursor.")
+                    .that(cr.getString(cr.getColumnIndex(MediaColumns.ID))).isEqualTo(
+                            CLOUD_ID + "1");
         }
     }
 

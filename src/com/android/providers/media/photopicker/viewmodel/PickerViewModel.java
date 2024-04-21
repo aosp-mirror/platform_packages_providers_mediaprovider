@@ -676,30 +676,38 @@ public class PickerViewModel extends AndroidViewModel {
     public void getRemainingPreGrantedItems() {
         if (!isManagedSelectionEnabled() || mSelection.getPreGrantedUris() == null) return;
 
-        List<Uri> idsForItemsToBeFetched =
+        List<Uri> urisForItemsToBeFetched =
                 new ArrayList<>(mSelection.getPreGrantedUris());
-        idsForItemsToBeFetched.removeAll(mSelection.getSelectedItems().stream().map(
+        urisForItemsToBeFetched.removeAll(mSelection.getSelectedItems().stream().map(
                 Item::getContentUri).collect(Collectors.toSet()));
-        idsForItemsToBeFetched.removeAll(mSelection.getDeselectedUrisToBeRevoked());
+        urisForItemsToBeFetched.removeAll(mSelection.getDeselectedUrisToBeRevoked());
 
-        if (!idsForItemsToBeFetched.isEmpty()) {
+        if (!urisForItemsToBeFetched.isEmpty()) {
+            getItemDataForUris(urisForItemsToBeFetched, /* callingPackageUid */ -1,
+                    /* shouldScreenSelectionUris */ false);
+        }
+    }
+
+    private void getItemDataForUris(List<Uri> urisForItemsToBeFetched, int callingPackageUid,
+            boolean shouldScreenSelectionUris) {
+        if (!urisForItemsToBeFetched.isEmpty()) {
             UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
-                loadItemsWithLocalIdSelection(Category.DEFAULT, userId,
-                        idsForItemsToBeFetched.stream().map(Uri::getLastPathSegment)
-                                .map(Integer::valueOf).collect(Collectors.toList()));
+                loadItemsDataForPreSelection(Category.DEFAULT, userId,
+                        urisForItemsToBeFetched, callingPackageUid, shouldScreenSelectionUris);
                 // If new data has loaded then post value representing a successful operation.
                 mIsAllPreGrantedMediaLoaded.postValue(true);
-                Log.d(TAG, "Fetched " + idsForItemsToBeFetched.size()
+                Log.d(TAG, "Fetched " + urisForItemsToBeFetched.size()
                         + " items for required preGranted ids");
             }, TOKEN, 0);
         }
     }
 
-    private void loadItemsWithLocalIdSelection(Category category, UserId userId,
-            List<Integer> selectionArg) {
-        try (Cursor cursor = mItemsProvider.getLocalItemsForSelection(category, selectionArg,
-                mMimeTypeFilters, userId, mCancellationSignal)) {
+    private void loadItemsDataForPreSelection(Category category, UserId userId,
+            List<Uri> selectionArg, int callingPackageUid, boolean shouldScreenSelectionUris) {
+        try (Cursor cursor = mItemsProvider.getItemsForPreselectedMedia(category, selectionArg,
+                mMimeTypeFilters, userId, shouldShowOnlyLocalFeatures(), callingPackageUid,
+                shouldScreenSelectionUris, mCancellationSignal)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for pre granted URIs" + category
                         + ", either cursor is null or cursor count is zero");

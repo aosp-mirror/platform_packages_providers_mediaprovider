@@ -496,10 +496,9 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getLocalItemsForSelection(Category category,
-                @NonNull List<Integer> localIdSelection,
-                @Nullable String[] mimeTypes,
-                @Nullable UserId userId,
+        public Cursor getItemsForPreselectedMedia(Category category, @NonNull List<Uri>
+                preselectedUris, @Nullable String[] mimeTypes, @Nullable UserId userId,
+                boolean isLocalOnly, int callingPackageUid, boolean shouldScreenSelectionUris,
                 @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
             final String[] all_projection = new String[]{
                     ID,
@@ -521,10 +520,11 @@ public class PickerViewModelTest {
                     AUTHORITY,
             };
             final MatrixCursor c = new MatrixCursor(all_projection);
-
+            List<String> preSelectedIds = preselectedUris.stream().map(
+                    Uri::getLastPathSegment).toList();
             int itr = 1;
             for (Item item : mItemList) {
-                if (localIdSelection.contains(Integer.parseInt(item.getId()))) {
+                if (preSelectedIds.contains(item.getId())) {
                     c.addRow(new String[]{
                             item.getId(),
                             String.valueOf(itr),

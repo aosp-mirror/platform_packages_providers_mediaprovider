@@ -301,7 +301,8 @@ public final class MediaStore {
     public static final String EXTRA_ALBUM_ID = "album_id";
     /** {@hide} */
     public static final String EXTRA_ALBUM_AUTHORITY = "album_authority";
-
+    /** {@hide} */
+    public static final String EXTRA_CALLING_PACKAGE_UID = "calling_package_uid";
     /**
      * Only used for testing.
      * {@hide}

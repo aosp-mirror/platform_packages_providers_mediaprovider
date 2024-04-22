@@ -237,6 +237,11 @@ jobject ToJavaSelection(JNIEnv* env, const int page, const SelectionBoundary& st
             env->GetMethodID(selection_class, "<init>",
                              funcsig("V", "I", kBoundary, kBoundary, kList, kString).c_str());
 
+    // If rects is empty then it means that the text is empty as well.
+    if (rects.empty()) {
+        return nullptr;
+    }
+
     jobject java_rects = ToJavaList(env, rects, &ToJavaRect);
     return env->NewObject(selection_class, init, page, ToJavaBoundary(env, start),
                           ToJavaBoundary(env, stop), java_rects, env->NewStringUTF(text.c_str()));

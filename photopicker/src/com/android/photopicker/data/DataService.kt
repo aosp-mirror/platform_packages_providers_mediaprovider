@@ -53,6 +53,23 @@ interface DataService {
      */
     fun cloudMediaProviderDetails(authority: String): StateFlow<CloudMediaProviderDetails?>
 
-    /** @return an instance of [PagingSource]. */
+    /**
+     * @return a new instance of [PagingSource].
+     */
     fun mediaPagingSource(): PagingSource<MediaPageKey, Media>
+
+    /**
+     * Sends a refresh media notification to the data source. This signal tells the data source
+     * to refresh its cache.
+     */
+    suspend fun refreshMedia()
+
+    /**
+     * Sends a refresh album media notification to the data source. This signal tells the data
+     * source to refresh its cache.
+     *
+     * @param albumId the identifier for the album
+     * @param providerAuthority the authority of the album's provider
+     */
+    suspend fun refreshAlbumMedia(albumId: String, providerAuthority: String)
 }

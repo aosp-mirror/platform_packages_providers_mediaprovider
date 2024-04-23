@@ -46,10 +46,10 @@ import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
-import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -57,8 +57,8 @@ import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
-import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
+import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -113,10 +113,6 @@ import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
@@ -2514,6 +2510,7 @@ public class MediaProvider extends ContentProvider {
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
                 redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
+                Log.v(TAG, "Redaction ranges: " + Arrays.toString(redactionRanges));
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
@@ -3754,17 +3751,12 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        // TODO(b/195008831): Add test to verify that apps can't access
-        if (table == PICKER_INTERNAL_MEDIA_ALL) {
-            return mPickerDataLayer.fetchAllMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_MEDIA_LOCAL) {
-            return mPickerDataLayer.fetchLocalMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_ALL) {
-            return mPickerDataLayer.fetchAllAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
-            return mPickerDataLayer.fetchLocalAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_V2) {
-            return PickerUriResolverV2.query(uri, queryArgs);
+        if (PickerUriResolver.PICKER_INTERNAL_TABLES.contains(table)) {
+            return mPickerUriResolver.query(table, queryArgs, mPickerDbFacade.getLocalProvider(),
+                    mPickerSyncController.getCloudProvider(), mPickerDataLayer);
+        }
+        if (table == PICKER_INTERNAL_V2) {
+            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -4502,7 +4494,6 @@ public class MediaProvider extends ContentProvider {
 
             FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath, isFuseThread());
-            assertFileColumnsConsistent(match, uri, values);
 
             // Create result file
             File res = new File(values.getAsString(MediaColumns.DATA));
@@ -6499,6 +6490,15 @@ public class MediaProvider extends ContentProvider {
             final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+
+                // if calling package is not self and its target SDK version is greater than U,
+                // ignore the deleteparam and do not allow use by apps
+                if (!isCallingPackageSelf() && getCallingPackageTargetSdkVersion()
+                        > Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    deleteparam = null;
+                    Log.w(TAG, "Ignoring param:deletedata post U for external apps");
+                }
+
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     Cursor c = qb.query(helper, projection, userWhere, userWhereArgs,
                             null, null, null, null, null);
@@ -6892,6 +6892,8 @@ public class MediaProvider extends ContentProvider {
 
     @Nullable
     private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        // WRITE_MEDIA_STORAGE is a privileged permission which only MediaProvider and some other
+        // system apps have.
         getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                 "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
         final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -7205,7 +7207,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForPickerMediaInit(Bundle extras) {
         Log.i(TAG, "Received media init query for extras: " + extras);
         if (!checkPermissionShell(Binder.getCallingUid())
-                && !checkPermissionSelf(Binder.getCallingUid())) {
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker media init"));
         }

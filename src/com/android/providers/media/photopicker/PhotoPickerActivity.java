@@ -27,6 +27,7 @@ import static com.android.providers.media.photopicker.data.PickerResult.getPicke
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.annotation.SuppressLint;
 import android.annotation.UserIdInt;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -35,6 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.UserProperties;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -97,6 +99,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -240,14 +243,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         observeRefreshUiNotificationLiveData();
+
+        if (SdkLevel.isAtLeastV()) {
+            updateRecentsScreenshotSetting();
+        }
+
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
 
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
-            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
-                    intentAction);
+            mPickerViewModel.logPickerOpened(getCallingUid(), getCallingPackage(), intentAction);
+        }
+    }
+
+    private int getCallingUid() {
+        final String callingPackage = getCallingPackage();
+        try {
+            return getPackageManager().getPackageUid(callingPackage, /* flags= */ 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Returning calling uid as -1; callingPackage: " + callingPackage + ".", e);
+            return -1;
         }
     }
 
@@ -687,7 +704,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
         final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
-                mSelection.getSelectedItemsWithoutGrants());
+                mSelection.getNewlySelectedItems());
         if (!uris.isEmpty()) {
             ForegroundThread.getExecutor().execute(() -> {
                 // Handle grants in another thread to not block the UI.
@@ -700,7 +717,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // deselected them.
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getDeselectedItemsToBeRevoked()
+                            .stream().collect(Collectors.toList()));
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
@@ -1279,6 +1297,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus();
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOff();
@@ -1298,6 +1319,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1308,6 +1332,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         private void handleProfileAdded() {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1324,6 +1351,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
             // immediately, we need to check if it is ready before we reload the content.
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.waitForMediaProviderToBeAvailable(userId);
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOn();
@@ -1365,5 +1395,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
                         resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
+    }
+
+    @SuppressLint("NewApi")
+    private void updateRecentsScreenshotSetting() {
+        if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV())) return;
+        UserManagerState state = mPickerViewModel.getUserManagerState();
+        if (state == null) {
+            Log.e(TAG, "Can't update Recents screenshot setting, user manager state is null");
+            return;
+        }
+        for (UserId userId : state.getAllUserProfileIds()) {
+            if (state.getShowInQuietMode(userId) == UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
+                    && !state.isProfileOff(userId)) {
+                // Show blank screen in Recents to not leak existence of the profile which might
+                // be in a quiet mode after the app is moved to the background.
+                setRecentsScreenshotEnabled(false);
+                return;
+            }
+        }
+        setRecentsScreenshotEnabled(true);
     }
 }

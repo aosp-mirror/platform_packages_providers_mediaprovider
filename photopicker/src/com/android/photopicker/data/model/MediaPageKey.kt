@@ -21,7 +21,10 @@ package com.android.photopicker.data.model
  * item's picker ID and daten taken.
  */
 data class MediaPageKey(
-        /** This is the Picker ID auto-generated in Picker DB */
-        val pickerId: Long,
-        val dateTakenMillisLong: Long,
+        /**
+         * This is the Picker ID auto-generated in Picker DB. The default values represent the
+         * values of the first page key.
+         */
+        val pickerId: Long = Long.MAX_VALUE,
+        val dateTakenMillis: Long = Long.MAX_VALUE,
 )

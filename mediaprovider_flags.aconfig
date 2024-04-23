@@ -1,4 +1,5 @@
 package: "com.android.providers.media.flags"
+container: "com.android.mediaprovider"
 
 flag {
     name: "pick_ordered_images"
@@ -39,3 +40,12 @@ flag {
     description: "This flag will enable setting an accent color in the photopicker"
     bug: "303784053"
 }
+
+flag {
+    name: "picker_pre_selection"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable accepting of URIs for pre-selection as an intent extra."
+    bug: "333038370"
+}
+

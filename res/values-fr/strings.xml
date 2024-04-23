@@ -70,7 +70,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Vous n\'êtes pas autorisé à accéder à des données professionnelles depuis une appli personnelle"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Vous n\'êtes pas autorisé à accéder à des données à caractère personnel depuis une appli professionnelle"</string>
-    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Vous n\'êtes pas autorisé à accéder à des données <xliff:g id="PROFILE1">%1$s</xliff:g> depuis une appli <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Vous n\'avez pas l\'autorisation d\'accéder à des données <xliff:g id="PROFILE1">%1$s</xliff:g> depuis une appli <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Passer à <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Applis professionnelles en pause"</string>
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les applis <xliff:g id="PROFILE">%s</xliff:g> sont en veille"</string>

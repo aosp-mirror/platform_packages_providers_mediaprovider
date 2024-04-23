@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -39,8 +40,17 @@ class PreviewViewModelTest {
             mediaId = "id",
             pickerId = 1000L,
             authority = "a",
-            uri =
-                Uri.EMPTY.buildUpon()
+                mediaSource = MediaSource.LOCAL,
+                mediaUri = Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("id")
+                    }
+                    .build(),
+                glideLoadableUri = Uri.EMPTY.buildUpon()
                     .apply {
                         scheme("content")
                         authority("a")

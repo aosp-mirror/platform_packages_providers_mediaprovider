@@ -265,8 +265,11 @@ public class PickerDataLayerV2 {
                         PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
                         PickerSQLConstants.MediaResponse
                                 .AUTHORITY.getProjection(localAuthority, cloudAuthority),
+                        PickerSQLConstants.MediaResponse.MEDIA_SOURCE.getProjection(),
                         PickerSQLConstants.MediaResponse
-                                .URI.getProjection(localAuthority, cloudAuthority),
+                                .WRAPPED_URI.getProjection(localAuthority, cloudAuthority),
+                        PickerSQLConstants.MediaResponse
+                                .UNWRAPPED_URI.getProjection(localAuthority, cloudAuthority),
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection(),
                         PickerSQLConstants.MediaResponse.SIZE_IN_BYTES.getProjection(),
                         PickerSQLConstants.MediaResponse.MIME_TYPE.getProjection(),

@@ -56,6 +56,7 @@ import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItem
@@ -136,14 +137,23 @@ class MediaGridTest {
                                 mediaId = "$i",
                                 pickerId = i.toLong(),
                                 authority = "a",
-                                uri =
-                                    Uri.EMPTY.buildUpon()
-                                        .apply {
-                                            scheme("content")
-                                            authority("a")
-                                            path("$i")
-                                        }
-                                        .build(),
+                                mediaSource = MediaSource.LOCAL,
+                                mediaUri = Uri.EMPTY.buildUpon()
+                                    .apply {
+                                        scheme("content")
+                                        authority("media")
+                                        path("picker")
+                                        path("a")
+                                        path("$i")
+                                    }
+                                    .build(),
+                                glideLoadableUri = Uri.EMPTY.buildUpon()
+                                    .apply {
+                                        scheme("content")
+                                        authority("a")
+                                        path("$i")
+                                    }
+                                    .build(),
                                 dateTakenMillisLong =
                                     LocalDateTime.now()
                                         .minus(i.toLong(), ChronoUnit.DAYS)

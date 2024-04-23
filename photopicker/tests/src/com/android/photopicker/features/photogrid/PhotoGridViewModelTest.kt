@@ -22,6 +22,7 @@ import androidx.test.filters.SmallTest
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -39,14 +40,23 @@ class PhotoGridViewModelTest {
             mediaId = "id",
             pickerId = 1000L,
             authority = "a",
-            uri =
-                Uri.EMPTY.buildUpon()
-                    .apply {
-                        scheme("content")
-                        authority("a")
-                        path("id")
-                    }
-                    .build(),
+            mediaSource = MediaSource.LOCAL,
+            mediaUri = Uri.EMPTY.buildUpon()
+                .apply {
+                    scheme("content")
+                    authority("media")
+                    path("picker")
+                    path("a")
+                    path("id")
+                }
+                .build(),
+            glideLoadableUri = Uri.EMPTY.buildUpon()
+                .apply {
+                    scheme("content")
+                    authority("a")
+                    path("id")
+                }
+                .build(),
             dateTakenMillisLong = 123456789L,
             sizeInBytes = 1000L,
             mimeType = "image/png",

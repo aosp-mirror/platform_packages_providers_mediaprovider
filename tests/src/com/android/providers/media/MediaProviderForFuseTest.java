@@ -99,6 +99,51 @@ public class MediaProviderForFuseTest {
     }
 
     @Test
+    public void testTypicalChangeDirectory() throws Exception {
+        final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
+
+        // We can create our file
+        Truth.assertThat(sMediaProvider.insertFileIfNecessaryForFuse(
+                file.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                sTestDir.getPath(), sTestUid))).contains(file.getName());
+
+        // Touch on disk so we can rename below
+        file.createNewFile();
+
+        // We can write our file
+        FileOpenResult result = sMediaProvider.onFileOpenForFuse(
+                file.getPath(),
+                file.getPath(),
+                sTestUid,
+                0 /* tid */, 0 /* transforms_reason */,
+                true /* forWrite */, false /* redact */, false /* transcode_metrics */);
+        Truth.assertThat(result.status).isEqualTo(0);
+        Truth.assertThat(result.redactionRanges).isEqualTo(new long[0]);
+
+        File targetDir = Environment.getExternalStoragePublicDirectory(
+                         Environment.DIRECTORY_DOWNLOADS);
+        // Some tests delete top-level directories. Try to create DIRECTORY_DOWNLOADS to ensure
+        // targetDir always exists.
+        targetDir.mkdir();
+
+        // We can rename our file
+        final File renamed = new File(targetDir, "renamed" + System.nanoTime() + ".jpg");
+        Truth.assertThat(sMediaProvider.renameForFuse(
+                file.getPath(), renamed.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                sTestDir.getPath(), sTestUid))).doesNotContain(file.getName());
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                targetDir.getPath(), sTestUid))).contains(renamed.getName());
+
+        // And we can delete it
+        Truth.assertThat(sMediaProvider.deleteFileForFuse(
+                renamed.getPath(), sTestUid)).isEqualTo(0);
+        Truth.assertThat(Arrays.asList(sMediaProvider.getFilesInDirectoryForFuse(
+                targetDir.getPath(), sTestUid))).doesNotContain(renamed.getName());
+    }
+
+    @Test
     public void testTypical() throws Exception {
         final File file = new File(sTestDir, "test" + System.nanoTime() + ".jpg");
 

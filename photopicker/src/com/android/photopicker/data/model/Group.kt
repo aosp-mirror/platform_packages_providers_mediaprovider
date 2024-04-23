@@ -38,8 +38,7 @@ sealed interface Group {
                 val authority: String,
                 val dateTakenMillisLong: Long,
                 val displayName: String,
-                val coverId: String,
-                val coverAuthority: String,
                 val coverUri: Uri,
+                val coverMediaSource: MediaSource,
         ) : Group
 }

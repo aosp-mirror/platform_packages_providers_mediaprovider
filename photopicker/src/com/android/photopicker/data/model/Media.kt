@@ -32,23 +32,27 @@ sealed interface Media : GlideLoadable, Parcelable {
     /** This is the Picker ID auto-generated in Picker DB */
     val pickerId: Long
     val authority: String
-    val uri: Uri
+    val mediaSource: MediaSource
+    val mediaUri: Uri
+    val glideLoadableUri: Uri
     val dateTakenMillisLong: Long
     val sizeInBytes: Long
     val mimeType: String
     val standardMimeTypeExtension: Int
 
     override fun getSignature(resolution: Resolution): ObjectKey {
-        return ObjectKey("${uri}_$resolution")
+        return ObjectKey("${mediaUri}_$resolution")
     }
 
     override fun getLoadableUri(): Uri {
-        return uri
+        return glideLoadableUri
     }
 
     override fun getDataSource(): DataSource {
-        // TODO(b/303782563): Use MediaSource to determine datasource.
-        return DataSource.LOCAL
+        return when (mediaSource) {
+            MediaSource.LOCAL -> DataSource.LOCAL
+            MediaSource.REMOTE -> DataSource.REMOTE
+        }
     }
 
     override fun getTimestamp(): Long {
@@ -65,7 +69,9 @@ sealed interface Media : GlideLoadable, Parcelable {
         out.writeString(mediaId)
         out.writeLong(pickerId)
         out.writeString(authority)
-        out.writeString(uri.toString())
+        out.writeString(mediaSource.toString())
+        out.writeString(mediaUri.toString())
+        out.writeString(glideLoadableUri.toString())
         out.writeLong(dateTakenMillisLong)
         out.writeLong(sizeInBytes)
         out.writeString(mimeType)
@@ -77,7 +83,9 @@ sealed interface Media : GlideLoadable, Parcelable {
         override val mediaId: String,
         override val pickerId: Long,
         override val authority: String,
-        override val uri: Uri,
+        override val mediaSource: MediaSource,
+        override val mediaUri: Uri,
+        override val glideLoadableUri: Uri,
         override val dateTakenMillisLong: Long,
         override val sizeInBytes: Long,
         override val mimeType: String,
@@ -96,7 +104,9 @@ sealed interface Media : GlideLoadable, Parcelable {
                         /* mediaId=*/ parcel.readString() ?: "",
                         /* pickerId=*/ parcel.readLong(),
                         /* authority=*/ parcel.readString() ?: "",
-                        /* uri= */ Uri.parse(parcel.readString() ?: ""),
+                        /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
+                        /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),
+                        /* loadableUri= */ Uri.parse(parcel.readString() ?: ""),
                         /* dateTakenMillisLong=*/ parcel.readLong(),
                         /* sizeInBytes=*/ parcel.readLong(),
                         /* mimeType=*/ parcel.readString() ?: "",
@@ -117,7 +127,9 @@ sealed interface Media : GlideLoadable, Parcelable {
         override val mediaId: String,
         override val pickerId: Long,
         override val authority: String,
-        override val uri: Uri,
+        override val mediaSource: MediaSource,
+        override val mediaUri: Uri,
+        override val glideLoadableUri: Uri,
         override val dateTakenMillisLong: Long,
         override val sizeInBytes: Long,
         override val mimeType: String,
@@ -138,7 +150,9 @@ sealed interface Media : GlideLoadable, Parcelable {
                     /* mediaId=*/ parcel.readString() ?: "",
                     /* pickerId=*/ parcel.readLong(),
                     /* authority=*/ parcel.readString() ?: "",
-                    /* uri= */ Uri.parse(parcel.readString() ?: ""),
+                    /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
+                    /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),
+                    /* loadableUri= */ Uri.parse(parcel.readString() ?: ""),
                     /* dateTakenMillisLong=*/ parcel.readLong(),
                     /* sizeInBytes=*/ parcel.readLong(),
                     /* mimeType=*/ parcel.readString() ?: "",

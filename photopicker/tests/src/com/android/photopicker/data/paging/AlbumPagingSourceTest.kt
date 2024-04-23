@@ -23,7 +23,7 @@ import androidx.test.filters.SmallTest
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
-import com.android.photopicker.data.paging.MediaPagingSource
+import com.android.photopicker.data.paging.AlbumPagingSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -40,7 +40,7 @@ import src.com.android.photopicker.data.TestMediaProvider
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
-class MediaPagingSourceTest {
+class AlbumPagingSourceTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
     private val availableProviders: List<Provider> = emptyList()
@@ -55,14 +55,14 @@ class MediaPagingSourceTest {
 
     @Test
     fun testLoad() = runTest {
-        val mediaPagingSource = MediaPagingSource(
+        val albumPagingSource = AlbumPagingSource(
             contentResolver = contentResolver,
             availableProviders = availableProviders,
             mediaProviderClient = mockMediaProviderClient
         )
 
-        val pageKey: MediaPageKey = MediaPageKey()
-        val pageSize: Int = 10
+        val pageKey = MediaPageKey()
+        val pageSize = 10
         val params = LoadParams.Append<MediaPageKey>(
             key = pageKey,
             loadSize = pageSize,
@@ -70,12 +70,12 @@ class MediaPagingSourceTest {
         )
 
         backgroundScope.launch {
-            mediaPagingSource.load(params)
+            albumPagingSource.load(params)
         }
         advanceTimeBy(100)
 
         verify(mockMediaProviderClient, times(1))
-            .fetchMedia(
+            .fetchAlbums(
                 pageKey,
                 pageSize,
                 contentResolver,

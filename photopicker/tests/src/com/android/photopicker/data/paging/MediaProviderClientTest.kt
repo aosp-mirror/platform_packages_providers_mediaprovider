@@ -21,6 +21,7 @@ import androidx.paging.PagingSource.LoadResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.data.MediaProviderClient
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
@@ -128,5 +129,27 @@ class MediaProviderClientTest {
 
         assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", false))
             .isTrue()
+    }
+
+    @Test
+    fun testFetchAlbumPage() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+
+        val albumLoadResult: LoadResult<MediaPageKey, Group.Album> =
+                mediaProviderClient.fetchAlbums(
+                        pageKey = MediaPageKey(),
+                        pageSize = 5,
+                        contentResolver = testContentResolver,
+                        availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0))
+                )
+
+        assertThat(albumLoadResult is LoadResult.Page).isTrue()
+
+        val albums: List<Group.Album> = (albumLoadResult as LoadResult.Page).data
+
+        assertThat(albums.count()).isEqualTo(testContentProvider.albums.count())
+        for (index in albums.indices) {
+            assertThat(albums[index]).isEqualTo(testContentProvider.albums[index])
+        }
     }
 }

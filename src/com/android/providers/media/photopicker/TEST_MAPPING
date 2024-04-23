@@ -9,6 +9,16 @@
       ]
     }
   ],
+  "mediaprovider-mainline-presubmit": [
+    {
+      "name": "CtsPhotoPickerTest",
+      "options": [
+        {
+          "exclude-annotation": "androidx.test.filters.LargeTest"
+        }
+      ]
+    }
+  ],
   "presubmit": [
     {
       "name": "CtsPhotoPickerTest",

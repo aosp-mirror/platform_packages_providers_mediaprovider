@@ -21,6 +21,5 @@
     <string name="photopicker_media_item" msgid="3592234718212377636">"Медиа"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Выбрано"</string>
     <string name="photopicker_add_button_label" msgid="6805332693977632142">"Добавить <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
-    <!-- no translation found for photopicker_photos_nav_button_label (8716403708343738371) -->
-    <skip />
+    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Фото"</string>
 </resources>

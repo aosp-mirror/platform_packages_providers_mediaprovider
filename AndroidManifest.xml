@@ -92,7 +92,8 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
 
         <provider
             android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"

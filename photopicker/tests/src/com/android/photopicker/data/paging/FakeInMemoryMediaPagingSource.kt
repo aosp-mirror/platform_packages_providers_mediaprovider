@@ -23,6 +23,7 @@ import androidx.paging.PagingSource.LoadResult
 import androidx.paging.PagingState
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
@@ -46,8 +47,17 @@ class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
                         mediaId = "$i",
                         pickerId = i.toLong(),
                         authority = "a",
-                        uri =
-                            Uri.EMPTY.buildUpon()
+                        mediaSource = MediaSource.LOCAL,
+                        mediaUri = Uri.EMPTY.buildUpon()
+                                .apply {
+                                    scheme("content")
+                                    authority("media")
+                                    path("picker")
+                                    path("a")
+                                    path("$i")
+                                }
+                                .build(),
+                        glideLoadableUri = Uri.EMPTY.buildUpon()
                                 .apply {
                                     scheme("content")
                                     authority("a")

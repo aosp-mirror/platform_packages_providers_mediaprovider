@@ -69,6 +69,76 @@
             ]
         }
     ],
+    "mediaprovider-mainline-presubmit": [
+        {
+            "name": "MediaProviderTests",
+            "options": [
+                {
+                    // Ignore the tests with @RunOnlyOnPostsubmit annotation
+                    "exclude-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
+                },
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageCoreHostTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageHostTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageDeviceOnlyTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageBypassDatabaseOperationsTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageGeneralTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsScopedStorageRedactUriTest",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
+            "name": "CtsMediaProviderTranscodeTests",
+            "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        }
+    ],
     "presubmit": [
         {
             "name": "MediaProviderTests",

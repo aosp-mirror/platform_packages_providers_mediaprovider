@@ -37,7 +37,6 @@ class MediaPagingSource(
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
 ) : PagingSource<MediaPageKey, Media>() {
-
     companion object {
         val TAG: String = "PickerMediaPagingSource"
     }

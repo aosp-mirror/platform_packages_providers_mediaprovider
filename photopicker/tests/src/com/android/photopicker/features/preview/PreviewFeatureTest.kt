@@ -46,6 +46,7 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
@@ -130,14 +131,23 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             mediaId = "image_id",
             pickerId = 123456789L,
             authority = "a",
-            uri =
-                Uri.EMPTY.buildUpon()
-                    .apply {
-                        scheme("content")
-                        authority("a")
-                        path("image_id")
-                    }
-                    .build(),
+            mediaSource = MediaSource.LOCAL,
+            mediaUri = Uri.EMPTY.buildUpon()
+                .apply {
+                    scheme("content")
+                    authority("media")
+                    path("picker")
+                    path("a")
+                    path("image_id")
+                }
+                .build(),
+            glideLoadableUri = Uri.EMPTY.buildUpon()
+                .apply {
+                    scheme("content")
+                    authority("a")
+                    path("image_id")
+                }
+                .build(),
             dateTakenMillisLong = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) * 1000,
             sizeInBytes = 1000L,
             mimeType = "image/png",

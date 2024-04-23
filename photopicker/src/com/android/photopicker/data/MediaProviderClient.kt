@@ -61,7 +61,9 @@ open class MediaProviderClient {
         MEDIA_ID("id"),
         PICKER_ID("picker_id"),
         AUTHORITY("authority"),
-        URI("uri"),
+        MEDIA_SOURCE("media_source"),
+        MEDIA_URI("wrapped_uri"),
+        LOADABLE_URI("unwrapped_uri"),
         DATE_TAKEN("date_taken_millis"),
         SIZE("size_bytes"),
         MIME_TYPE("mime_type"),
@@ -179,8 +181,13 @@ open class MediaProviderClient {
                         cursor.getColumnIndexOrThrow(MediaResponse.PICKER_ID.key))
                 val authority: String = cursor.getString(
                         cursor.getColumnIndexOrThrow(MediaResponse.AUTHORITY.key))
-                val uri: Uri = Uri.parse(cursor.getString(
-                        cursor.getColumnIndexOrThrow(MediaResponse.URI.key)))
+                val mediaSource: MediaSource = MediaSource.valueOf(
+                        cursor.getString(
+                                cursor.getColumnIndexOrThrow(MediaResponse.MEDIA_SOURCE.key)))
+                val mediaUri: Uri = Uri.parse(cursor.getString(
+                        cursor.getColumnIndexOrThrow(MediaResponse.MEDIA_URI.key)))
+                val loadableUri: Uri = Uri.parse(cursor.getString(
+                        cursor.getColumnIndexOrThrow(MediaResponse.LOADABLE_URI.key)))
                 val dateTakenMillisLong: Long = cursor.getLong(
                         cursor.getColumnIndexOrThrow(MediaResponse.DATE_TAKEN.key))
                 val sizeInBytes: Long = cursor.getLong(
@@ -196,7 +203,9 @@ open class MediaProviderClient {
                             mediaId = mediaId,
                             pickerId = pickerId,
                             authority = authority,
-                            uri = uri,
+                            mediaSource = mediaSource,
+                            mediaUri = mediaUri,
+                            glideLoadableUri = loadableUri,
                             dateTakenMillisLong = dateTakenMillisLong,
                             sizeInBytes = sizeInBytes,
                             mimeType = mimeType,
@@ -209,7 +218,9 @@ open class MediaProviderClient {
                             mediaId = mediaId,
                             pickerId = pickerId,
                             authority = authority,
-                            uri = uri,
+                            mediaSource = mediaSource,
+                            mediaUri = mediaUri,
+                            glideLoadableUri = loadableUri,
                             dateTakenMillisLong = dateTakenMillisLong,
                             sizeInBytes = sizeInBytes,
                             mimeType = mimeType,

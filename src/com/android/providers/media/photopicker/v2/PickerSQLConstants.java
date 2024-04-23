@@ -32,6 +32,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 /**
  * Helper class that keeps track of Picker related Constants.
@@ -70,7 +71,9 @@ public class PickerSQLConstants {
     enum MediaResponse {
         MEDIA_ID(CloudMediaProviderContract.MediaColumns.ID),
         AUTHORITY(CloudMediaProviderContract.MediaColumns.AUTHORITY),
-        URI("uri"),
+        MEDIA_SOURCE("media_source"),
+        WRAPPED_URI("wrapped_uri"),
+        UNWRAPPED_URI("unwrapped_uri"),
         PICKER_ID(KEY_ID, "picker_id"),
         DATE_TAKEN_MS(KEY_DATE_TAKEN_MS, CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS),
         SIZE_IN_BYTES(KEY_SIZE_BYTES, CloudMediaProviderContract.MediaColumns.SIZE_BYTES),
@@ -117,10 +120,16 @@ public class PickerSQLConstants {
                             getAuthority(localAuthority, cloudAuthority),
                             mProjectedName
                     );
-                case URI:
+                case WRAPPED_URI:
                     return String.format(
                             DEFAULT_PROJECTION,
-                            getUri(localAuthority, cloudAuthority),
+                            getWrappedUri(localAuthority, cloudAuthority),
+                            mProjectedName
+                    );
+                case UNWRAPPED_URI:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getUnwrappedUri(localAuthority, cloudAuthority),
                             mProjectedName
                     );
                 default:
@@ -135,6 +144,12 @@ public class PickerSQLConstants {
                     return String.format(
                             DEFAULT_PROJECTION,
                             getMediaId(),
+                            mProjectedName
+                    );
+                case MEDIA_SOURCE:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getMediaSource(),
                             mProjectedName
                     );
                 default:
@@ -155,6 +170,15 @@ public class PickerSQLConstants {
             );
         }
 
+        private String getMediaSource() {
+            return String.format(
+                    "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
+                    KEY_CLOUD_ID,
+                    MediaSource.LOCAL,
+                    MediaSource.REMOTE
+            );
+        }
+
         private String getAuthority(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority
@@ -167,7 +191,7 @@ public class PickerSQLConstants {
             );
         }
 
-        private String getUri(
+        private String getWrappedUri(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority
         ) {
@@ -177,6 +201,20 @@ public class PickerSQLConstants {
                     "'content://%s/%s/%s/' || %s || '/media/' || %s",
                     MediaStore.AUTHORITY,
                     PickerUriResolver.PICKER_SEGMENT,
+                    MediaStore.MY_USER_ID,
+                    getAuthority(localAuthority, cloudAuthority),
+                    getMediaId()
+            );
+        }
+
+        private String getUnwrappedUri(
+                @Nullable String localAuthority,
+                @Nullable String cloudAuthority
+        ) {
+            // The format is:
+            // content://<cloud-provider-authority>/media/<media-id>
+            return String.format(
+                    "'content://%s@' || %s || '/media/' || %s",
                     MediaStore.MY_USER_ID,
                     getAuthority(localAuthority, cloudAuthority),
                     getMediaId()

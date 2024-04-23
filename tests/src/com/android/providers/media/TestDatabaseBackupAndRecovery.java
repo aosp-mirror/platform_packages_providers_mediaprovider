@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
@@ -93,5 +94,9 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
     @Override
     public void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
+    }
+
+    @Override
+    protected void waitForVolumeToBeAttached(Set<String> setupCompleteVolumes) {
     }
 }

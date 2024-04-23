@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -919,6 +920,13 @@ public class DatabaseBackupAndRecovery {
         }
         Log.d(TAG, "Backup is present for " + volumeName);
 
+        try {
+            waitForVolumeToBeAttached(mSetupCompleteVolumes);
+        } catch (Exception e) {
+            Log.e(TAG, "Volume not attached in given time. Cannot recover data.", e);
+            return;
+        }
+
         long rowsRecovered = 0;
         long dirtyRowsCount = 0;
         String[] backedUpFilePaths;
@@ -974,6 +982,25 @@ public class DatabaseBackupAndRecovery {
         }
 
         return false;
+    }
+
+    protected void waitForVolumeToBeAttached(Set<String> setupCompleteVolumes)
+            throws TimeoutException {
+        long time = 0;
+        // Wait of 10 seconds
+        long waitTimeInMilliseconds = 10000;
+        // Poll every 100 milliseconds
+        long pollTime = 100;
+        while (time <= waitTimeInMilliseconds) {
+            if (setupCompleteVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+                Log.i(TAG, "Found external primary volume attached.");
+                return;
+            }
+
+            SystemClock.sleep(pollTime);
+            time += pollTime;
+        }
+        throw new TimeoutException("Timed out waiting for external primary setup");
     }
 
     protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)

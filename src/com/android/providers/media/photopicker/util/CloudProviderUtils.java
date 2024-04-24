@@ -26,6 +26,7 @@ import static android.provider.MediaStore.GET_CLOUD_PROVIDER_CALL;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
 import static android.provider.MediaStore.PICKER_MEDIA_INIT_CALL;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
+import static android.provider.MediaStore.SET_CLOUD_PROVIDER_RESULT;
 
 import static com.android.providers.media.PickerUriResolver.getMediaCollectionInfoUri;
 
@@ -181,23 +182,21 @@ public class CloudProviderUtils {
             @Nullable String newCloudProvider) throws RemoteException {
         final Bundle input = new Bundle();
         input.putString(EXTRA_CLOUD_PROVIDER, newCloudProvider);
-        client.call(SET_CLOUD_PROVIDER_CALL, /* arg */ null, /* extras */ input);
-        return true;
+        final Bundle result =
+                client.call(SET_CLOUD_PROVIDER_CALL, /* arg */ null, /* extras */ input);
+        return result.getBoolean(SET_CLOUD_PROVIDER_RESULT, /* defaultValue= */ false);
     }
 
     /**
      * Fetch selected cloud provider from content provider.
-     * @param defaultAuthority is the default returned in case query result is null.
-     * @return fetched cloud provider authority if it is non-null.
-     *               Otherwise return defaultAuthority.
+     * @return fetched cloud provider authority.
      */
     @Nullable
     public static String fetchProviderAuthority(
-            @NonNull ContentProviderClient client,
-            @NonNull String defaultAuthority) throws RemoteException {
+            @NonNull ContentProviderClient client) throws RemoteException {
         final Bundle result = client.call(GET_CLOUD_PROVIDER_CALL, /* arg */ null,
                 /* extras */ null);
-        return result.getString(GET_CLOUD_PROVIDER_RESULT, defaultAuthority);
+        return result.getString(GET_CLOUD_PROVIDER_RESULT);
     }
 
     /**

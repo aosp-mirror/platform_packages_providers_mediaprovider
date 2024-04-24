@@ -51,7 +51,7 @@
                 android:layout_marginTop="@dimen/picker_empty_text_margin"
                 android:gravity="center_horizontal"
                 android:text="@string/picker_photos_empty_message"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="@dimen/picker_empty_text_size"
                 style="?android:attr/textAppearanceListItem"/>
 
@@ -73,7 +73,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:text="@string/picker_loading_photos_message"
-        android:textColor="?attr/colorOnSurface"
+        android:textColor="?android:attr/textColorPrimary"
         android:textSize="@dimen/picker_tab_loading_message_text_size"
         style="?android:attr/textAppearanceListItem"
         android:visibility="gone"/>

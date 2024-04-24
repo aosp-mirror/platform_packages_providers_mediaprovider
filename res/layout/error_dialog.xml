@@ -22,7 +22,7 @@
         android:textSize="24sp"
         android:layout_gravity="center_horizontal"
         android:gravity="center"
-        android:textColor="?attr/colorOnSurface"/>
+        android:textColor="?android:attr/textColorPrimary"/>
 
     <TextView
         android:id="@+id/message"
@@ -33,7 +33,7 @@
         android:layout_gravity="center_horizontal"
         android:gravity="center"
         android:textSize="16sp"
-        android:textColor="?attr/colorOnSurfaceVariant"/>
+        android:textColor="?android:attr/textColorSecondary"/>
 
     <Button
         android:id="@+id/okButton"

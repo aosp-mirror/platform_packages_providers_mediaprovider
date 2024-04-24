@@ -21,31 +21,25 @@
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">@android:color/system_neutral2_100</item>
         <item name="pickerHighlightColor">@android:color/system_accent1_100</item>
-        <item name="pickerHighlightTextColor">?attr/colorOnSurface</item>
+        <item name="pickerHighlightTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerProfileButtonColor">@android:color/system_accent1_100</item>
-        <item name="pickerDisabledProfileButtonColor">
-            ?androidprv:attr/materialColorSurfaceContainer
-        </item>
-        <item name="pickerProfileButtonTextColor">?attr/colorOnSurface</item>
-        <item name="pickerDisabledProfileButtonTextColor">
-            ?androidprv:attr/materialColorOutlineVariant
-        </item>
+        <item name="pickerDisabledProfileButtonColor">?android:attr/colorBackground</item>
+        <item name="pickerProfileButtonTextColor">?android:attr/textColorPrimary</item>
+        <item name="pickerDisabledProfileButtonTextColor">?android:attr/textColorTertiaryInverse</item>
         <item name="pickerSelectedTabBackgroundColor">@android:color/system_accent1_100</item>
-        <item name="pickerSelectedTabTextColor">?attr/colorOnSurface</item>
-        <item name="pickerTabBackgroundColor">?androidprv:attr/materialColorSurfaceContainer</item>
-        <item name="pickerTextColor">?attr/colorOnSurface</item>
+        <item name="pickerSelectedTabTextColor">?android:attr/textColorPrimary</item>
+        <item name="pickerTabBackgroundColor">?android:attr/colorBackground</item>
+        <item name="pickerTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerSelectedColor">@android:color/system_accent1_600</item>
         <item name="pickerProfileDialogButtonAndIconColor">@android:color/system_accent1_600</item>
-        <item name="pickerProfileDialogTitleColor">?attr/colorOnSurface</item>
-        <item name="pickerProfileDialogBodyColor">?attr/colorOnSurfaceVariant</item>
+        <item name="pickerProfileDialogTitleColor">?android:attr/textColorPrimary</item>
+        <item name="pickerProfileDialogBodyColor">?android:attr/textColorSecondary</item>
         <item name="pickerProfileDialogBackgroundColor">@color/surface_light</item>
         <!-- TODO(b/195009152): Final banner colors to be updated once received -->
-        <item name="pickerBannerBackgroundColor">
-            ?androidprv:attr/materialColorSurfaceContainer
-        </item>
-        <item name="pickerBannerStrokeColor">?androidprv:attr/materialColorSurfaceContainer</item>
-        <item name="pickerBannerPrimaryTextColor">?attr/colorOnSurfaceVariant</item>
-        <item name="pickerBannerSecondaryTextColor">?attr/colorOnSurface</item>
+        <item name="pickerBannerBackgroundColor">?android:attr/colorBackground</item>
+        <item name="pickerBannerStrokeColor">?android:attr/colorBackground</item>
+        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
         <item name="pickerBannerButtonTextColor">@android:color/system_accent1_600</item>
         <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
         <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>

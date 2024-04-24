@@ -35,6 +35,9 @@ import com.android.settingslib.widget.profileselector.R;
 
 import com.google.android.material.tabs.TabLayout;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * This fragment will display swipable "Personal" and "Work" tabs on the settings page.
  */
@@ -43,6 +46,8 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
     private SettingsViewModel mSettingsViewModel;
     @NonNull
     private TabLayout mTabLayout;
+    private static boolean sUserIdProvided = false;
+    private static List<Integer> sUserIdListToShowProfileTabs = new ArrayList<>();
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -60,8 +65,8 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
     }
 
     @Override
-    public Fragment createFragment(int tabPosition) {
-        final int userId = getTabUserId(tabPosition);
+    public Fragment createFragment(int tabUserIdOrPosition) {
+        final int userId = getTabUserId(tabUserIdOrPosition);
 
         return getCloudMediaSelectFragment(userId);
     }
@@ -109,15 +114,24 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
     /**
      * Create an instance of {@link SettingsProfileSelectFragment}.
      *
-     * @param selectedProfileTab is the tab id of the work/profile tab that should be selected when
-     *                           the user first lands on the settings page.
+     * @param selectedProfileTab is the tab position id or the tab's UserId that should be selected
+     *                           when the user first lands on the settings page.
      * @return A new {@link SettingsProfileSelectFragment} object.
      */
     @NonNull
-    public static SettingsProfileSelectFragment getProfileSelectFragment(int selectedProfileTab) {
+    public static SettingsProfileSelectFragment getProfileSelectFragment(int selectedProfileTab,
+            boolean userIdProvided, List<Integer> userIdListToShowProfileTabs) {
         final SettingsProfileSelectFragment fragment = new SettingsProfileSelectFragment();
         final Bundle extras = new Bundle();
-        extras.putInt(EXTRA_SHOW_FRAGMENT_TAB, selectedProfileTab);
+        if (userIdProvided) {
+            sUserIdProvided = true;
+            sUserIdListToShowProfileTabs = userIdListToShowProfileTabs;
+            extras.putInt(EXTRA_SHOW_FRAGMENT_USER_ID, selectedProfileTab);
+            extras.putIntegerArrayList(EXTRA_LIST_OF_USER_IDS,
+                    new ArrayList<>(userIdListToShowProfileTabs));
+        } else {
+            extras.putInt(EXTRA_SHOW_FRAGMENT_TAB, selectedProfileTab);
+        }
         fragment.setArguments(extras);
         return fragment;
     }
@@ -137,17 +151,24 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
     }
 
     @UserIdInt
-    private int getTabUserId(int tabPosition) {
+    private int getTabUserId(int tabUserIdOrPosition) {
+        if (sUserIdProvided) {
+            final int userId = tabUserIdOrPosition;
+            if (!sUserIdListToShowProfileTabs.contains(userId)) {
+                throw new IllegalArgumentException("Unidentified user id " + tabUserIdOrPosition);
+            }
+            return userId;
+        }
         int personalUser = ActivityManager.getCurrentUser();
         int managedUser = getManagedUser();
-        switch (tabPosition) {
+        switch (tabUserIdOrPosition) {
             case ProfileSelectFragment.PERSONAL_TAB:
                 return personalUser;
             case ProfileSelectFragment.WORK_TAB:
                 return managedUser;
             default:
-                // tabPosition should match one of the cases above.
-                throw new IllegalArgumentException("Unidentified tab id " + tabPosition);
+                // tabUserIdOrPosition should match one of the cases above.
+                throw new IllegalArgumentException("Unidentified tab id " + tabUserIdOrPosition);
         }
     }
 

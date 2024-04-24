@@ -20,6 +20,9 @@ import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PRO
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_CALL;
 import static android.provider.MediaStore.GET_CLOUD_PROVIDER_RESULT;
 import static android.provider.MediaStore.SET_CLOUD_PROVIDER_CALL;
+import static android.provider.MediaStore.SET_CLOUD_PROVIDER_RESULT;
+
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -32,6 +35,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -46,9 +50,15 @@ import androidx.annotation.Nullable;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.cloudproviders.CloudProviderNoIntentFilter;
+import com.android.providers.media.cloudproviders.CloudProviderSecondary;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.viewmodel.InstantTaskExecutorRule;
+import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -66,6 +76,9 @@ public class SettingsCloudMediaViewModelTest {
             List.of(PKG1 + ".cloud_provider_1", PKG2 + ".cloud_provider_2");
     private static final List<ResolveInfo> sAvailableProviders = getAvailableProviders();
     private static final List<String> sAllowlistedPackages = List.of(PKG1);
+
+    @Rule
+    public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
     @Mock
     private ConfigStore mConfigStore;
@@ -86,6 +99,10 @@ public class SettingsCloudMediaViewModelTest {
 
         mCloudMediaViewModel =
                 Mockito.spy(new SettingsCloudMediaViewModel(mContext, UserId.CURRENT_USER));
+
+        final ContentResolver resolver =
+                getInstrumentation().getTargetContext().getContentResolver();
+        doReturn(resolver).when(mContext).getContentResolver();
 
         doReturn(mPackageManager).when(mContext).getPackageManager();
         doReturn(mResources).when(mContext).getResources();
@@ -118,12 +135,16 @@ public class SettingsCloudMediaViewModelTest {
         final String resultCloudProvider =
                 mCloudMediaViewModel.getSelectedProviderAuthority();
         assertThat(resultCloudProvider).isEqualTo(expectedCloudProvider);
+
+        // Verify selected option preference key
+        final String resultSelectedOptionPreferenceKey =
+                mCloudMediaViewModel.getSelectedPreferenceKey();
+        assertThat(resultSelectedOptionPreferenceKey).isEqualTo(expectedCloudProvider);
     }
 
     @Test
     public void testLoadDataWithNoProvider() throws RemoteException {
-        final String expectedCloudProvider = SettingsCloudMediaViewModel.NONE_PREF_KEY;
-        setUpCurrentCloudProvider(expectedCloudProvider);
+        setUpCurrentCloudProvider(/* providerAuthority= */ null);
         setUpAvailableCloudProviders(new ArrayList<>());
         mCloudMediaViewModel.loadData(mConfigStore);
 
@@ -137,7 +158,13 @@ public class SettingsCloudMediaViewModelTest {
         // Verify selected cloud provider
         final String resultCloudProvider =
                 mCloudMediaViewModel.getSelectedProviderAuthority();
-        assertThat(resultCloudProvider).isEqualTo(expectedCloudProvider);
+        assertThat(resultCloudProvider).isNull();
+
+        // Verify selected option preference key
+        final String resultSelectedOptionPreferenceKey =
+                mCloudMediaViewModel.getSelectedPreferenceKey();
+        assertThat(resultSelectedOptionPreferenceKey)
+                .isEqualTo(SettingsCloudMediaViewModel.NONE_PREF_KEY);
     }
 
     @Test
@@ -155,10 +182,8 @@ public class SettingsCloudMediaViewModelTest {
 
         // Update cloud provider
         final String newCloudProvider = sProviderAuthorities.get(1);
-        final boolean success = mCloudMediaViewModel.updateSelectedProvider(newCloudProvider);
+        updateSelectedProvider(newCloudProvider);
 
-        // Verify selected cloud provider
-        assertThat(success).isTrue();
         final String resultNewCloudProvider =
                 mCloudMediaViewModel.getSelectedProviderAuthority();
         assertThat(resultNewCloudProvider).isEqualTo(newCloudProvider);
@@ -192,6 +217,111 @@ public class SettingsCloudMediaViewModelTest {
         final String resultCloudProvider =
                 mCloudMediaViewModel.getSelectedProviderAuthority();
         assertThat(resultCloudProvider).isEqualTo(expectedCloudProvider);
+    }
+
+    @Test
+    public void testLoadMediaCollectionInfo_NullProvider_MainThread() throws RemoteException {
+        clearSelectedProvider();
+        assertThat(mCloudMediaViewModel.getSelectedProviderAuthority()).isNull();
+
+        // Load media collection info in the main thread.
+        // {@link Instrumentation#runOnMainSync(Runnable)} waits for the runnable to complete.
+        getInstrumentation().runOnMainSync(mCloudMediaViewModel::loadMediaCollectionInfoAsync);
+
+        // Wait for any Foreground thread executions to complete before assertions.
+        ForegroundThread.waitForIdle();
+
+        assertThat(mCloudMediaViewModel.getCurrentProviderMediaCollectionInfo().getValue())
+                .isNull();
+    }
+
+    @Test
+    public void testLoadMediaCollectionInfo_NonNullProvider_FailingGetCollectionInfo_MainThread()
+            throws RemoteException {
+        final String cloudProvider = CloudProviderNoIntentFilter.AUTHORITY;
+        updateSelectedProvider(cloudProvider);
+        assertThat(mCloudMediaViewModel.getSelectedProviderAuthority()).isEqualTo(cloudProvider);
+
+        // Load media collection info in the main thread.
+        // {@link Instrumentation#runOnMainSync(Runnable)} waits for the runnable to complete.
+        getInstrumentation().runOnMainSync(mCloudMediaViewModel::loadMediaCollectionInfoAsync);
+
+        // Wait for any Foreground thread executions to complete before assertions.
+        ForegroundThread.waitForIdle();
+
+        final CloudProviderMediaCollectionInfo currentProviderMediaCollectionInfo =
+                mCloudMediaViewModel.getCurrentProviderMediaCollectionInfo().getValue();
+        assertThat(currentProviderMediaCollectionInfo).isNotNull();
+        assertThat(currentProviderMediaCollectionInfo.getAuthority()).isEqualTo(cloudProvider);
+        assertThat(currentProviderMediaCollectionInfo.getAccountName()).isNull();
+        assertThat(currentProviderMediaCollectionInfo.getAccountConfigurationIntent()).isNull();
+    }
+
+    @Test
+    public void testLoadMediaCollectionInfo_NonNullProvider_NonNullCollectionInfo_MainThread()
+            throws RemoteException {
+        final String cloudProvider = CloudProviderSecondary.AUTHORITY;
+        updateSelectedProvider(cloudProvider);
+        assertThat(mCloudMediaViewModel.getSelectedProviderAuthority()).isEqualTo(cloudProvider);
+
+        // Load media collection info in the main thread.
+        // {@link Instrumentation#runOnMainSync(Runnable)} waits for the runnable to complete.
+        getInstrumentation().runOnMainSync(mCloudMediaViewModel::loadMediaCollectionInfoAsync);
+
+        // Wait for any Foreground thread executions to complete before assertions.
+        ForegroundThread.waitForIdle();
+
+        final CloudProviderMediaCollectionInfo currentProviderMediaCollectionInfo =
+                mCloudMediaViewModel.getCurrentProviderMediaCollectionInfo().getValue();
+        assertThat(currentProviderMediaCollectionInfo).isNotNull();
+        assertThat(currentProviderMediaCollectionInfo.getAuthority()).isEqualTo(cloudProvider);
+        assertThat(currentProviderMediaCollectionInfo.getAccountName())
+                .isEqualTo(CloudProviderSecondary.ACCOUNT_NAME);
+        assertThat(currentProviderMediaCollectionInfo.getAccountConfigurationIntent()).isNotNull();
+    }
+
+    @Test
+    public void testLoadMediaCollectionInfo_NonNullProvider_NonNullCollectionInfo_NonMainThread()
+            throws RemoteException {
+        final String cloudProvider = CloudProviderSecondary.AUTHORITY;
+        updateSelectedProvider(cloudProvider);
+        assertThat(mCloudMediaViewModel.getSelectedProviderAuthority()).isEqualTo(cloudProvider);
+
+        // Load media collection info in a non-main thread.
+        DataLoaderThread.getExecutor().execute(mCloudMediaViewModel::loadMediaCollectionInfoAsync);
+        DataLoaderThread.waitForIdle();
+
+        // Wait for any Foreground thread executions to complete before assertions.
+        ForegroundThread.waitForIdle();
+
+        assertThat(mCloudMediaViewModel.getCurrentProviderMediaCollectionInfo().getValue())
+                .isNull();
+    }
+
+    private void clearSelectedProvider() throws RemoteException {
+        // Mock the 'set cloud provider' call result
+        final Bundle result = new Bundle();
+        result.putBoolean(SET_CLOUD_PROVIDER_RESULT, true);
+        doReturn(result).when(mContentProviderClient)
+                .call(eq(SET_CLOUD_PROVIDER_CALL), any(), any());
+
+        // Update the selected provider option to None
+        final boolean isClearSuccessful = mCloudMediaViewModel.updateSelectedProvider(
+                /* newPreferenceKey= */ SettingsCloudMediaViewModel.NONE_PREF_KEY);
+        assertThat(isClearSuccessful).isTrue();
+    }
+
+    private void updateSelectedProvider(@NonNull String providerAuthority) throws RemoteException {
+        // Mock the 'set cloud provider' call result
+        final Bundle result = new Bundle();
+        result.putBoolean(SET_CLOUD_PROVIDER_RESULT, true);
+        doReturn(result).when(mContentProviderClient)
+                .call(eq(SET_CLOUD_PROVIDER_CALL), any(), any());
+
+        // Update the selected provider option to the given provider
+        final boolean isUpdateSuccessful = mCloudMediaViewModel.updateSelectedProvider(
+                /* newPreferenceKey= */ providerAuthority);
+        assertThat(isUpdateSuccessful).isTrue();
     }
 
     private void setUpAvailableCloudProviders(@NonNull List<ResolveInfo> availableProviders) {

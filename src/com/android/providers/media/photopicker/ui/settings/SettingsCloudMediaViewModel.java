@@ -166,8 +166,7 @@ public class SettingsCloudMediaViewModel extends ViewModel {
                 throw new IllegalArgumentException("Could not get selected cloud provider"
                         + " because Media Provider client is null.");
             }
-            mSelectedProviderAuthority =
-                    fetchProviderAuthority(client, /* default */ NONE_PREF_KEY);
+            mSelectedProviderAuthority = fetchProviderAuthority(client);
         } catch (Exception e) {
             // Since displaying the current cloud provider is the core function of the Settings
             // page, if we're not able to fetch this info, there is no point in displaying this

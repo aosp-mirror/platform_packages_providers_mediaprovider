@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:text="@string/picker_personal_profile_label"
         android:layout_gravity="center_vertical"
-        android:textColor="?android:attr/textColorPrimary"
+        android:textColor="?attr/colorOnSurface"
         android:drawableStart="@drawable/ic_personal_mode"
         android:padding="8dp"/>
 </LinearLayout>

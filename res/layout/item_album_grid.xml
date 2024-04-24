@@ -67,7 +67,7 @@
         android:minHeight="@dimen/picker_album_item_count_height"
         android:layout_marginTop="@dimen/picker_album_item_count_margin"
         android:textAppearance="@android:style/TextAppearance.DeviceDefault.Small"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="?android:attr/textColorSecondary"
         android:visibility="gone"/>
 
 </LinearLayout>

@@ -25,25 +25,21 @@
         <item name="pickerProfileButtonColor">@android:color/system_accent1_100</item>
         <item name="pickerDisabledProfileButtonColor">@android:color/system_neutral1_700</item>
         <item name="pickerProfileButtonTextColor">?android:attr/textColorPrimaryInverse</item>
-        <item name="pickerDisabledProfileButtonTextColor">
-            ?androidprv:attr/materialColorOutline
-        </item>
+        <item name="pickerDisabledProfileButtonTextColor">?android:attr/textColorTertiary</item>
         <item name="pickerSelectedTabBackgroundColor">@android:color/system_accent1_100</item>
         <item name="pickerSelectedTabTextColor">?android:attr/textColorPrimaryInverse</item>
-        <item name="pickerTabBackgroundColor">?androidprv:attr/materialColorSurfaceContainer</item>
-        <item name="pickerTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="pickerTabBackgroundColor">?android:attr/colorBackground</item>
+        <item name="pickerTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerSelectedColor">@android:color/system_accent1_300</item>
         <item name="pickerProfileDialogButtonAndIconColor">@android:color/system_accent1_300</item>
-        <item name="pickerProfileDialogTitleColor">?attr/colorOnSurface</item>
-        <item name="pickerProfileDialogBodyColor">?attr/colorOnSurfaceVariant</item>
+        <item name="pickerProfileDialogTitleColor">?android:attr/textColorPrimary</item>
+        <item name="pickerProfileDialogBodyColor">?android:attr/textColorSecondary</item>
         <item name="pickerProfileDialogBackgroundColor">@android:color/system_neutral1_800</item>
         <!-- TODO(b/195009152): Final banner colors to be updated once received -->
-        <item name="pickerBannerBackgroundColor">
-            ?androidprv:attr/materialColorSurfaceContainer
-        </item>
+        <item name="pickerBannerBackgroundColor">?android:attr/colorBackground</item>
         <item name="pickerBannerStrokeColor">@android:color/system_neutral1_700</item>
-        <item name="pickerBannerPrimaryTextColor">?attr/colorOnSurfaceVariant</item>
-        <item name="pickerBannerSecondaryTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerBannerButtonTextColor">@android:color/system_accent1_300</item>
         <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
         <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>

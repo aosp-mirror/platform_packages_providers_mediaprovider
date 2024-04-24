@@ -23,6 +23,7 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.test.mock.MockContentProvider
 import com.android.photopicker.data.MediaProviderClient
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
@@ -53,12 +54,20 @@ val DEFAULT_MEDIA: List<Media> = listOf(
     createMediaImage(14),
 )
 
+val DEFAULT_ALBUMS: List<Group.Album> = listOf(
+        createAlbum("Favorites"),
+        createAlbum("Downloads"),
+        createAlbum("CloudAlbum"),
+)
+
 fun createMediaImage(pickerId: Long): Media {
     return Media.Image(
         mediaId = UUID.randomUUID().toString(),
         pickerId = pickerId,
         authority = "authority",
-        uri = Uri.parse("content://media/picker/authority/media/$pickerId"),
+        mediaSource = MediaSource.LOCAL,
+        mediaUri = Uri.parse("content://media/picker/authority/media/$pickerId"),
+        glideLoadableUri = Uri.parse("content://authority/media/$pickerId"),
         dateTakenMillisLong = Long.MAX_VALUE,
         sizeInBytes = 10,
         mimeType = "image/*",
@@ -66,9 +75,22 @@ fun createMediaImage(pickerId: Long): Media {
     )
 }
 
+fun createAlbum(albumId: String): Group.Album {
+    return Group.Album(
+        id = albumId,
+        pickerId = albumId.hashCode().toLong(),
+        authority = "authority",
+        dateTakenMillisLong = Long.MAX_VALUE,
+        displayName = albumId,
+        coverUri = Uri.parse("content://media/picker/authority/media/$albumId"),
+        coverMediaSource = MediaSource.LOCAL
+    )
+}
+
 class TestMediaProvider(
     var providers: List<Provider> = DEFAULT_PROVIDERS,
-    var media: List<Media> = DEFAULT_MEDIA
+    var media: List<Media> = DEFAULT_MEDIA,
+    var albums: List<Group.Album> = DEFAULT_ALBUMS
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
 
@@ -81,6 +103,7 @@ class TestMediaProvider(
         return when (uri.lastPathSegment) {
             "available_providers" -> getAvailableProviders()
             "media" -> getMedia()
+            "album" -> getAlbums()
             else -> throw UnsupportedOperationException("Could not recognize uri $uri")
         }
     }
@@ -128,7 +151,9 @@ class TestMediaProvider(
                 MediaProviderClient.MediaResponse.MEDIA_ID.key,
                 MediaProviderClient.MediaResponse.PICKER_ID.key,
                 MediaProviderClient.MediaResponse.AUTHORITY.key,
-                MediaProviderClient.MediaResponse.URI.key,
+                MediaProviderClient.MediaResponse.MEDIA_SOURCE.key,
+                MediaProviderClient.MediaResponse.MEDIA_URI.key,
+                MediaProviderClient.MediaResponse.LOADABLE_URI.key,
                 MediaProviderClient.MediaResponse.DATE_TAKEN.key,
                 MediaProviderClient.MediaResponse.SIZE.key,
                 MediaProviderClient.MediaResponse.MIME_TYPE.key,
@@ -143,12 +168,43 @@ class TestMediaProvider(
                         media.mediaId,
                         media.pickerId.toString(),
                         media.authority,
-                        media.uri.toString(),
+                        media.mediaSource.toString(),
+                        media.mediaUri.toString(),
+                        media.glideLoadableUri.toString(),
                         media.dateTakenMillisLong.toString(),
                         media.sizeInBytes.toString(),
                         media.mimeType,
                         media.standardMimeTypeExtension.toString(),
                         if (media is Media.Video) media.duration else "0"
+                    )
+                )
+        }
+        return cursor
+    }
+
+    private fun getAlbums(): Cursor {
+        val cursor = MatrixCursor(
+            arrayOf(
+                MediaProviderClient.AlbumResponse.ALBUM_ID.key,
+                MediaProviderClient.AlbumResponse.PICKER_ID.key,
+                MediaProviderClient.AlbumResponse.AUTHORITY.key,
+                MediaProviderClient.AlbumResponse.DATE_TAKEN.key,
+                MediaProviderClient.AlbumResponse.ALBUM_NAME.key,
+                MediaProviderClient.AlbumResponse.UNWRAPPED_COVER_URI.key,
+                MediaProviderClient.AlbumResponse.COVER_MEDIA_SOURCE.key,
+            )
+        )
+        albums.forEach {
+            album ->
+                cursor.addRow(
+                    arrayOf(
+                        album.id,
+                        album.pickerId.toString(),
+                        album.authority,
+                        album.dateTakenMillisLong.toString(),
+                        album.displayName,
+                        album.coverUri.toString(),
+                        album.coverMediaSource.toString(),
                     )
                 )
         }

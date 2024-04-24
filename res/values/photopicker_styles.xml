@@ -51,7 +51,7 @@
     <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
         <item name="pickerDragBarColor">#DADCE0</item>
-        <item name="pickerHighlightColor">?android:attr/colorAccent</item>
+        <item name="pickerHighlightColor">?attr/colorPrimary</item>
         <item name="pickerHighlightTextColor">@android:color/white</item>
         <item name="pickerProfileButtonColor">#E8F0FE</item>
         <item name="pickerDisabledProfileButtonColor">@android:color/white</item>
@@ -60,8 +60,8 @@
         <item name="pickerSelectedTabBackgroundColor">#E8F0FE</item>
         <item name="pickerSelectedTabTextColor">#185ABC</item>
         <item name="pickerTabBackgroundColor">@color/picker_background_color</item>
-        <item name="pickerTextColor">?android:attr/textColorPrimary</item>
-        <item name="pickerSelectedColor">?android:attr/colorAccent</item>
+        <item name="pickerTextColor">?attr/colorOnSurface</item>
+        <item name="pickerSelectedColor">?attr/colorPrimary</item>
         <item name="pickerProfileDialogButtonAndIconColor">#1A73E8</item>
         <item name="pickerProfileDialogTitleColor">#202124</item>
         <item name="pickerProfileDialogBodyColor">#5F6368</item>
@@ -69,9 +69,9 @@
         <!-- TODO(b/195009152): Final banner colors to be updated once received -->
         <item name="pickerBannerBackgroundColor">@color/picker_background_color</item>
         <item name="pickerBannerStrokeColor">@android:color/white</item>
-        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
-        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorPrimary</item>
-        <item name="pickerBannerButtonTextColor">?android:attr/colorAccent</item>
+        <item name="pickerBannerPrimaryTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="pickerBannerSecondaryTextColor">?attr/colorOnSurface</item>
+        <item name="pickerBannerButtonTextColor">?attr/colorPrimary</item>
         <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
         <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>

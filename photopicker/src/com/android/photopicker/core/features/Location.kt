@@ -32,4 +32,23 @@ enum class Location {
 
     /* CORE Locations */
     COMPOSE_TOP, // UI feature entrypoint at the top of the compose UI tree.
+
+    /* NAVIGATION_BAR */
+    NAVIGATION_BAR, // Where the navigation bar should be drawn (when it is active).
+
+    /*
+     * Where the navigation bar draws navigation buttons.
+     *
+     * Implementation notes:
+     *
+     * For consistency, features that register a navigation button should use the provided
+     * [NavigationBarButton] composable to ensure consistent behavior between navigable routes.
+     * A modifier is provided which will space elements consistently and should be applied
+     * to the [NavigationBarButton].
+     */
+    NAVIGATION_BAR_NAV_BUTTON,
+
+    /* SELECTION_BAR */
+    SELECTION_BAR, // Where the selection bar should be drawn (when it is active).
+    SELECTION_BAR_SECONDARY_ACTION, // Where the extra button is drawn on the selection bar.
 }

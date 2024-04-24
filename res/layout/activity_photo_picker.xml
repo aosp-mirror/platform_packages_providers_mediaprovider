@@ -63,7 +63,7 @@
             android:layout_marginTop="@dimen/picker_privacy_text_margin_top"
             android:gravity="center_horizontal"
             android:text="@string/picker_privacy_message"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="@dimen/picker_privacy_text_size"
             style="?android:attr/textAppearanceListItem"/>
 
@@ -111,7 +111,7 @@
                         app:tabRippleColor="@null"
                         app:tabSelectedTextColor="?attr/pickerSelectedTabTextColor"
                         app:tabTextAppearance="@style/PickerTabTextAppearance"
-                        app:tabTextColor="?android:attr/textColorSecondary" />
+                        app:tabTextColor="?attr/colorOnSurfaceVariant" />
 
                 </androidx.appcompat.widget.Toolbar>
 

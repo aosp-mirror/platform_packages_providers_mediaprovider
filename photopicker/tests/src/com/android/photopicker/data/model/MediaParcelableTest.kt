@@ -38,14 +38,23 @@ class MediaParcelableTest {
                 mediaId = "image_id",
                 pickerId = 123456789L,
                 authority = "authority",
-                uri =
-                    Uri.EMPTY.buildUpon()
-                        .apply {
-                            scheme("content")
-                            authority("a")
-                            path("image_id")
-                        }
-                        .build(),
+                mediaSource = MediaSource.LOCAL,
+                mediaUri = Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("image_id")
+                    }
+                    .build(),
+                glideLoadableUri = Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("a")
+                        path("image_id")
+                    }
+                    .build(),
                 dateTakenMillisLong = 987654321L,
                 sizeInBytes = 1000L,
                 mimeType = "image/png",
@@ -74,14 +83,23 @@ class MediaParcelableTest {
                 mediaId = "video_id",
                 pickerId = 123456789L,
                 authority = "authority",
-                uri =
-                    Uri.EMPTY.buildUpon()
-                        .apply {
-                            scheme("content")
-                            authority("a")
-                            path("video_id")
-                        }
-                        .build(),
+                mediaSource = MediaSource.LOCAL,
+                mediaUri = Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("video_id")
+                    }
+                    .build(),
+                glideLoadableUri = Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("a")
+                        path("video_id")
+                    }
+                    .build(),
                 dateTakenMillisLong = 987654321L,
                 sizeInBytes = 1000L,
                 mimeType = "video/mp4",

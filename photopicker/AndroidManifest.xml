@@ -78,4 +78,18 @@
     </activity-alias>
 
   </application>
+
+  <!--
+    Ensure that all CLOUD_MEDIA_PROVIDER packages are visible to this app.
+    Since Photopicker does not hold QUERY_ALL_PACKAGES, but it queries the
+    CloudMediaProviders directly when loading media, declare the intent
+    action that all CloudMediaProviders use to identify themselves so their
+    packages are visible to Photopicker.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+    </intent>
+  </queries>
+
 </manifest>

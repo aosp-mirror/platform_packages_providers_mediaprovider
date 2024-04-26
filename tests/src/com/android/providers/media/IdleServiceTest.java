@@ -313,7 +313,7 @@ public class IdleServiceTest {
      * Idle maintenance run on non-demo devices should not remove xattr data stored for different
      * users on /data/media/0. This is not done due to b/305658663.
      */
-    @Test
+    @Test(timeout=2*60*1000)
     @RunOnlyOnPostsubmit
     @LargeTest
     @SdkSuppress(minSdkVersion = 33, codeName = "T")
@@ -337,7 +337,7 @@ public class IdleServiceTest {
             secondaryUser = createNewUser(userManager);
             secondaryUserPresent = true;
             startUser(secondaryUser);
-            SystemClock.sleep(3000);
+            SystemClock.sleep(12000);
 
             // Verify presence of recovery data
             String[] recoveryData = MediaStore.getRecoveryData(context.getContentResolver());

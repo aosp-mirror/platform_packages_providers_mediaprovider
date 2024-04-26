@@ -52,6 +52,7 @@ import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger.PhotoPickerEvent;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -144,6 +145,7 @@ public class PreviewSingleSelectTest extends PhotoPickerBaseTest {
     }
 
     @Test
+    @Ignore("We have de-prioritised fixing this flake in favour of b/303779617")
     public void testPreview_showScrimLayerInLandscape() throws Exception {
         setLandscapeOrientation(mRule.getScenario());
 

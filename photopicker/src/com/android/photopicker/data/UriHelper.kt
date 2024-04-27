@@ -27,6 +27,7 @@ internal const val MEDIA_PROVIDER_AUTHORITY = MediaStore.AUTHORITY
 private const val UPDATE_PATH_SEGMENT = "update"
 private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
 private const val MEDIA_PATH_SEGMENT = "media"
+private const val ALBUM_PATH_SEGMENT = "album"
 
 private val pickerUri: Uri = Uri.Builder().apply {
     scheme(ContentResolver.SCHEME_CONTENT)
@@ -65,3 +66,9 @@ val MEDIA_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
     appendPath(UPDATE_PATH_SEGMENT)
 }.build()
 
+/**
+ * URI for album metadata.
+ */
+val ALBUM_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(ALBUM_PATH_SEGMENT)
+}.build()

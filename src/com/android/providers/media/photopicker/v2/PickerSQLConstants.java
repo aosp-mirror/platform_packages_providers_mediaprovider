@@ -25,6 +25,8 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_MI
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_SIZE_BYTES;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_STANDARD_MIME_TYPE_EXTENSION;
 
+import static java.util.Objects.requireNonNull;
+
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
@@ -32,6 +34,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.v2.model.MediaSource;
+
+import java.util.Arrays;
 
 /**
  * Helper class that keeps track of Picker related Constants.
@@ -65,12 +70,55 @@ public class PickerSQLConstants {
     }
 
     /**
+     * An enum that holds the DB columns names and projections for the Album SQL query response.
+     */
+    public enum AlbumResponse {
+        ALBUM_ID(CloudMediaProviderContract.AlbumColumns.ID),
+        PICKER_ID("picker_id"),
+        AUTHORITY("authority"),
+        DATE_TAKEN(CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS),
+        ALBUM_NAME(CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME),
+        UNWRAPPED_COVER_URI("unwrapped_cover_uri"),
+        COVER_MEDIA_SOURCE("media_source");
+
+        private final String mColumnName;
+
+        AlbumResponse(@NonNull String columnName) {
+            requireNonNull(columnName);
+            this.mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    /**
+     * @param columnName Input album column name.
+     * @return Corresponding enum AlbumResponse to the given column name.
+     * @throws IllegalArgumentException if the column name does not correspond to a AlbumResponse
+     * enum.
+     */
+    public static AlbumResponse mapColumnNameToAlbumResponseColumn(String columnName)
+            throws IllegalArgumentException {
+        for (AlbumResponse albumResponseColumn : AlbumResponse.values()) {
+            if (albumResponseColumn.getColumnName().equalsIgnoreCase(columnName)) {
+                return albumResponseColumn;
+            }
+        }
+        throw new IllegalArgumentException(columnName + " does not exist. Available data: "
+                + Arrays.toString(PickerSQLConstants.AlbumResponse.values()));
+    }
+
+    /**
      * An enum that holds the DB columns names and projections for the Media SQL query response.
      */
     enum MediaResponse {
         MEDIA_ID(CloudMediaProviderContract.MediaColumns.ID),
         AUTHORITY(CloudMediaProviderContract.MediaColumns.AUTHORITY),
-        URI("uri"),
+        MEDIA_SOURCE("media_source"),
+        WRAPPED_URI("wrapped_uri"),
+        UNWRAPPED_URI("unwrapped_uri"),
         PICKER_ID(KEY_ID, "picker_id"),
         DATE_TAKEN_MS(KEY_DATE_TAKEN_MS, CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS),
         SIZE_IN_BYTES(KEY_SIZE_BYTES, CloudMediaProviderContract.MediaColumns.SIZE_BYTES),
@@ -117,10 +165,16 @@ public class PickerSQLConstants {
                             getAuthority(localAuthority, cloudAuthority),
                             mProjectedName
                     );
-                case URI:
+                case WRAPPED_URI:
                     return String.format(
                             DEFAULT_PROJECTION,
-                            getUri(localAuthority, cloudAuthority),
+                            getWrappedUri(localAuthority, cloudAuthority),
+                            mProjectedName
+                    );
+                case UNWRAPPED_URI:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getUnwrappedUri(localAuthority, cloudAuthority),
                             mProjectedName
                     );
                 default:
@@ -135,6 +189,12 @@ public class PickerSQLConstants {
                     return String.format(
                             DEFAULT_PROJECTION,
                             getMediaId(),
+                            mProjectedName
+                    );
+                case MEDIA_SOURCE:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getMediaSource(),
                             mProjectedName
                     );
                 default:
@@ -155,6 +215,15 @@ public class PickerSQLConstants {
             );
         }
 
+        private String getMediaSource() {
+            return String.format(
+                    "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
+                    KEY_CLOUD_ID,
+                    MediaSource.LOCAL,
+                    MediaSource.REMOTE
+            );
+        }
+
         private String getAuthority(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority
@@ -167,7 +236,7 @@ public class PickerSQLConstants {
             );
         }
 
-        private String getUri(
+        private String getWrappedUri(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority
         ) {
@@ -177,6 +246,20 @@ public class PickerSQLConstants {
                     "'content://%s/%s/%s/' || %s || '/media/' || %s",
                     MediaStore.AUTHORITY,
                     PickerUriResolver.PICKER_SEGMENT,
+                    MediaStore.MY_USER_ID,
+                    getAuthority(localAuthority, cloudAuthority),
+                    getMediaId()
+            );
+        }
+
+        private String getUnwrappedUri(
+                @Nullable String localAuthority,
+                @Nullable String cloudAuthority
+        ) {
+            // The format is:
+            // content://<cloud-provider-authority>/media/<media-id>
+            return String.format(
+                    "'content://%s@' || %s || '/media/' || %s",
                     MediaStore.MY_USER_ID,
                     getAuthority(localAuthority, cloudAuthority),
                     getMediaId()

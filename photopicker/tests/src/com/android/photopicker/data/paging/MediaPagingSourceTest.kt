@@ -55,7 +55,7 @@ class MediaPagingSourceTest {
 
     @Test
     fun testLoad() = runTest {
-        val mediaPagingSource: MediaPagingSource = MediaPagingSource(
+        val mediaPagingSource = MediaPagingSource(
             contentResolver = contentResolver,
             availableProviders = availableProviders,
             mediaProviderClient = mockMediaProviderClient

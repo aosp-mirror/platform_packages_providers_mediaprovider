@@ -555,6 +555,23 @@ public class PickerSyncController {
     }
 
     /**
+     * @param defaultValue The default cloud provider authority to return if cloud provider cannot
+     *                     be fetched within the given timeout.
+     * @return {@link android.content.pm.ProviderInfo#authority authority} of the current
+     *         {@link CloudMediaProvider} or {@code null} if the {@link CloudMediaProvider}
+     *         integration is not enabled. This operation acquires a lock internally with a timeout.
+     */
+    @Nullable
+    public String getCloudProviderOrDefault(@Nullable String defaultValue) {
+        try {
+            return getCloudProviderWithTimeout();
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not get cloud provider, returning default value: " + defaultValue, e);
+            return defaultValue;
+        }
+    }
+
+    /**
      * @return {@link android.content.pm.ProviderInfo#authority authority} of the local provider.
      */
     @NonNull
@@ -1813,10 +1830,22 @@ public class PickerSyncController {
      * 3. Database has currently enabled cloud provider queries.
      */
     public boolean shouldQueryCloudMedia(List<String> providers) {
+        return shouldQueryCloudMedia(providers, getCloudProviderOrDefault(/* defaultValue */ null));
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current cloud provider is not null.
+     * 2. Current cloud provider is present in the given providers list.
+     * 3. Database has currently enabled cloud provider queries.
+     */
+    public boolean shouldQueryCloudMedia(
+            @NonNull List<String> providers,
+            @Nullable String cloudProvider) {
         try (CloseableReentrantLock ignored =
                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
-            String cloudProvider = getCloudProvider();
             return cloudProvider != null
+                    && cloudProvider.equals(getCloudProviderWithTimeout())
                     && providers.contains(cloudProvider)
                     && cloudProvider.equals(mDbFacade.getCloudProvider());
         } catch (UnableToAcquireLockException e) {

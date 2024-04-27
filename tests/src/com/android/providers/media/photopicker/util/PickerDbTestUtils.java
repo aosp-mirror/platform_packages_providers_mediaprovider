@@ -173,6 +173,31 @@ public class PickerDbTestUtils {
         return c;
     }
 
+    public static Cursor getAlbumCursor(String albumId, long dateTakenMs, String coverId,
+            String authority) {
+        String[] projectionKey = new String[]{
+                CloudMediaProviderContract.AlbumColumns.ID,
+                CloudMediaProviderContract.AlbumColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.AlbumColumns.DATE_TAKEN_MILLIS,
+                CloudMediaProviderContract.AlbumColumns.MEDIA_COVER_ID,
+                CloudMediaProviderContract.AlbumColumns.MEDIA_COUNT,
+                CloudMediaProviderContract.AlbumColumns.AUTHORITY,
+        };
+
+        String[] projectionValue = new String[]{
+                albumId,
+                albumId,
+                String.valueOf(dateTakenMs),
+                coverId,
+                "0",
+                authority,
+        };
+
+        MatrixCursor c = new MatrixCursor(projectionKey);
+        c.addRow(projectionValue);
+        return c;
+    }
+
     public static Cursor getAlbumMediaCursor(
             String id,
             long dateTakenMs,
@@ -224,9 +249,14 @@ public class PickerDbTestUtils {
 
     public static Cursor getCloudMediaCursor(String cloudId, String localId,
             long dateTakenMs) {
-        return getMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
-                SIZE_BYTES, MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION,
+        return getCloudMediaCursor(cloudId, localId, dateTakenMs, MP4_VIDEO_MIME_TYPE,
                 /* isFavorite */ false);
+    }
+
+    public static Cursor getCloudMediaCursor(String cloudId, String localId,
+            long dateTakenMs, String mimeType, boolean isFavorite) {
+        return getMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
+                SIZE_BYTES, mimeType, STANDARD_MIME_TYPE_EXTENSION, isFavorite);
     }
 
     public static String toMediaStoreUri(String localId) {

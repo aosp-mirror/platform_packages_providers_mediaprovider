@@ -83,7 +83,7 @@ open class MediaProviderClient {
 
     /** Contains all optional and mandatory keys for data in the Media query response. */
     enum class AlbumResponse(val key: String) {
-        ALBUM_ID("album_id"),
+        ALBUM_ID("id"),
         PICKER_ID("picker_id"),
         AUTHORITY("authority"),
         DATE_TAKEN("date_taken_millis"),

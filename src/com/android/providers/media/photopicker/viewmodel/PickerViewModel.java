@@ -1169,8 +1169,10 @@ public class PickerViewModel extends AndroidViewModel {
             final ProviderInfo providerInfo = packageManager.resolveContentProvider(
                     providerAuthority, /* flags= */ 0);
 
-            cloudProviderPackage = providerInfo.applicationInfo.packageName;
-            cloudProviderUid = providerInfo.applicationInfo.uid;
+            if (providerInfo != null && providerInfo.applicationInfo != null) {
+                cloudProviderPackage = providerInfo.applicationInfo.packageName;
+                cloudProviderUid = providerInfo.applicationInfo.uid;
+            }
         } catch (PackageManager.NameNotFoundException e) {
             Log.d(TAG, "Logging the ui event 'picker open with an active cloud provider' with its "
                     + "authority in place of the package name and a default uid.", e);

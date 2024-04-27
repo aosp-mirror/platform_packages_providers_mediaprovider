@@ -21,14 +21,18 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DA
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_VISIBLE;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_MIME_TYPE;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,20 +40,27 @@ import java.util.Objects;
  * Encapsulates all query arguments of a Media query i.e. query to fetch Media Items from Picker DB.
  */
 public class MediaQuery {
-    @NonNull
-    private Long mDateTakenMs;
-    @NonNull
-    private Long mPickerId;
-    @NonNull
-    private Integer mPageSize;
+    private long mDateTakenMs;
+    private long mPickerId;
+    protected int mPageSize;
     @NonNull
     private final List<String> mProviders;
+    // If this is not null or empty, only fetch the rows that match at least one of the
+    // given mime types.
+    @Nullable
+    protected List<String> mMimeTypes;
+    // If this is true, only fetch the rows from Picker Database where the IS_VISIBLE flag is on.
+    protected boolean mShouldDedupe;
 
     public MediaQuery(Bundle queryArgs) {
         mPickerId = queryArgs.getLong("picker_id", Long.MAX_VALUE);
         mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MAX_VALUE);
         mPageSize = queryArgs.getInt("page_size", Integer.MAX_VALUE);
         mProviders = queryArgs.getStringArrayList("providers");
+        mMimeTypes = queryArgs.getStringArrayList("mime_types");
+
+        // This is true by default.
+        mShouldDedupe = true;
 
         Objects.requireNonNull(mProviders);
     }
@@ -62,6 +73,18 @@ public class MediaQuery {
     @NonNull
     public List<String> getProviders() {
         return mProviders;
+    }
+
+    /**
+     * Create and return a bundle for extras for CMP queries made from Media Provider.
+     */
+    @NonNull
+    public Bundle prepareCMPQueryArgs() {
+        final Bundle queryArgs = new Bundle();
+        if (mMimeTypes != null) {
+            queryArgs.putStringArray(Intent.EXTRA_MIME_TYPES, mMimeTypes.toArray(new String[0]));
+        }
+        return queryArgs;
     }
 
     /**
@@ -82,7 +105,9 @@ public class MediaQuery {
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
-        queryBuilder.appendWhereStandalone(KEY_IS_VISIBLE + " = 1");
+        if (mShouldDedupe) {
+            queryBuilder.appendWhereStandalone(KEY_IS_VISIBLE + " = 1");
+        }
 
         if (cloudAuthority == null) {
             queryBuilder.appendWhereStandalone(KEY_CLOUD_ID + " IS NULL");
@@ -92,6 +117,7 @@ public class MediaQuery {
             queryBuilder.appendWhereStandalone(KEY_LOCAL_ID + " IS NULL");
         }
 
+        addMimeTypeClause(queryBuilder);
         addDateTakenClause(queryBuilder, reverseOrder);
     }
 
@@ -119,5 +145,24 @@ public class MediaQuery {
                         + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
                         + " AND " + KEY_ID + " <= " + mPickerId + ")");
         }
+    }
+
+    /**
+     * Adds the mime type filter clause(s) to the given query builder.
+     *
+     * @param queryBuilder SelectSQLiteQueryBuilder to add the where clause.
+     */
+    private void addMimeTypeClause(@NonNull SelectSQLiteQueryBuilder queryBuilder) {
+        if (mMimeTypes == null || mMimeTypes.isEmpty()) {
+            return;
+        }
+
+        List<String> whereClauses = new ArrayList<>();
+        for (String mimeType : mMimeTypes) {
+            if (!TextUtils.isEmpty(mimeType)) {
+                whereClauses.add(KEY_MIME_TYPE + " LIKE '" + mimeType.replace('*', '%') + "'");
+            }
+        }
+        queryBuilder.appendWhereStandalone(" ( " + TextUtils.join(" OR ", whereClauses) + " ) ");
     }
 }

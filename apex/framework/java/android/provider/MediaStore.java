@@ -1008,6 +1008,33 @@ public final class MediaStore {
             "android.provider.extra.MEDIA_CAPABILITIES_UID";
 
     /**
+     * The name of an optional intent-extra used to specify URIs for pre-selection in photo picker
+     * opened with {@link MediaStore#ACTION_PICK_IMAGES} in multi-select mode.
+     *
+     * <p>Only MediaStore content URI(s) of the item(s) received as a result of
+     * {@link MediaStore#ACTION_PICK_IMAGES} action are accepted. The value of this intent-extra
+     * should be an ArrayList of type parcelables. Default value is null. Maximum number of URIs
+     * that can be accepted is limited by the value passed in
+     * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} as part of the {@link MediaStore#ACTION_PICK_IMAGES}
+     * intent. In case the count of input URIs is greater than the limit then
+     * {@code IllegalArgumentException} is thrown.</p>
+     *
+     * <p>The provided list will be checked for permissions and authority. Any URI that is
+     * inaccessible, doesn't match the current authorities(local or cloud) or is invalid will be
+     * filtered out.</p>
+     *
+     * <p>The items corresponding to the URIs will appear selected when the photo picker is opened.
+     * In the case of {@link MediaStore#EXTRA_PICK_IMAGES_IN_ORDER} the chronological order of the
+     * input list will be used for ordered selection of the pre-selected items.</p>
+     *
+     * <p>This is not a mechanism to revoke permissions for items, i.e. de-selection of a
+     * pre-selected item by the user will not result in revocation of the grant.</p>
+     */
+    @FlaggedApi("com.android.providers.media.flags.picker_pre_selection")
+    public static final String EXTRA_PICKER_PRE_SELECTION_URIS =
+            "android.provider.extra.PICKER_PRE_SELECTION_URIS";
+
+    /**
      * Flag used to set file mode in bundle for opening a document.
      *
      * @hide

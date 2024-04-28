@@ -478,6 +478,47 @@ public class SelectionTest {
         assertThat(mSelection.getNewlySelectedItems()).contains(item3);
     }
 
+    @Test
+    public void test_getSelectedItemsUris_correctValuesReturned() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+
+        mSelection.addSelectedItem(item1);
+        mSelection.addSelectedItem(item2);
+
+        assertThat(mSelection.getSelectedItemsUris().size()).isEqualTo(2);
+        assertThat(mSelection.getSelectedItemsUris().contains(item1.getContentUri())).isTrue();
+        assertThat(mSelection.getSelectedItemsUris().contains(item2.getContentUri())).isTrue();
+    }
+
+    @Test
+    public void test_addingPreGrantedItemToSelection_addsToPreGrantedSet() {
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+
+        item1.setPreGranted();
+        mSelection.addSelectedItem(item1);
+        mSelection.addSelectedItem(item2);
+
+        // assert that if a preGranted item is added to selection it also populates the preGranted
+        // set and remains in this set even when de-selected.
+
+        assertThat(mSelection.getPreGrantedUris()).isNotNull();
+        assertThat(mSelection.getPreGrantedUris().size()).isEqualTo(1);
+        assertThat(mSelection.getPreGrantedUris().contains(item1.getContentUri())).isTrue();
+
+        mSelection.removeSelectedItem(item1);
+
+        assertThat(mSelection.getPreGrantedUris()).isNotNull();
+        assertThat(mSelection.getPreGrantedUris().size()).isEqualTo(1);
+        assertThat(mSelection.getPreGrantedUris().contains(item1.getContentUri())).isTrue();
+    }
+
+
     private static Item generateFakeImageItem(String id) {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
                 * DateUtils.DAY_IN_MILLIS;

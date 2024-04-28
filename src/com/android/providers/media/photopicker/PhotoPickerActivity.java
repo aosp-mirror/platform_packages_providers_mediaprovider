@@ -278,13 +278,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Warning: This method is needed for tests, we are not customizing anything here.
-     * Allowing ourselves to control ViewModel creation helps us mock the ViewModel for test.
+     * Gets PickerViewModel instance populated with the current calling package's uid.
+     *
+     * This method is also needed for tests, allowing ourselves to control ViewModel creation
+     * helps us mock the ViewModel for test.
      */
     @VisibleForTesting
     @NonNull
     protected PickerViewModel getOrCreateViewModel() {
-        return mViewModelProvider.get(PickerViewModel.class);
+        PickerViewModel viewModel =  mViewModelProvider.get(PickerViewModel.class);
+        // populate calling package UID in PickerViewModel instance.
+        try {
+            if (getCallingPackage() != null) {
+                viewModel.setCallingPackageUid(
+                        getPackageManager().getPackageUid(getCallingPackage(), 0));
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+            // no-op since the default value is -1.
+        }
+        return viewModel;
     }
 
     @Override

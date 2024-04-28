@@ -78,8 +78,14 @@ public class PickerDataLayer {
 
     public static final String QUERY_DATE_TAKEN_BEFORE_MS = "android:query-date-taken-before-ms";
 
+    public static final String QUERY_ID_SELECTION = "android:query-id-selection";
     public static final String QUERY_LOCAL_ID_SELECTION = "android:query-local-id-selection";
-
+    public static final String QUERY_CLOUD_ID_SELECTION = "android:query-cloud-id-selection";
+    // This should be used to indicate if the ids passed in the query arguments should be checked
+    // for permission and authority or not. This shall be used for pre-selection uris passed in
+    // picker db query operations.
+    public static final String QUERY_SHOULD_SCREEN_SELECTION_URIS =
+            "android:query-should-screen-selection-uris";
     public static final String QUERY_ROW_ID = "android:query-row-id";
 
     @NonNull

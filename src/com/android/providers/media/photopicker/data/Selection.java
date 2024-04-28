@@ -82,10 +82,10 @@ public class Selection {
     }
 
     /**
-     * @return A {@link Set} of selected {@link Item} ids.
+     * @return A {@link Set} of selected uris.
      */
-    public Set<String> getSelectedItemsIds() {
-        return mSelectedItems.values().stream().map(Item::getId).collect(
+    public Set<Uri> getSelectedItemsUris() {
+        return mSelectedItems.values().stream().map(Item::getContentUri).collect(
                 Collectors.toSet());
     }
 
@@ -176,12 +176,19 @@ public class Selection {
      * Add the selected {@code item} into {@link #mSelectedItems}.
      */
     public void addSelectedItem(Item item) {
-        if (item.isPreGranted() && mItemGrantRevocationMap.containsKey(item.getContentUri())) {
-            mItemGrantRevocationMap.remove(item.getContentUri());
-        }
         if (mIsSelectionOrdered) {
             mSelectedItemsOrder.put(
                     item.getContentUri(), new MutableLiveData(getTotalItemsCount() + 1));
+        }
+        if (item.isPreGranted()) {
+            if (mPreGrantedUris == null) {
+                mPreGrantedUris = new HashSet<>();
+            }
+            mPreGrantedUris.add(item.getContentUri());
+            setTotalNumberOfPreGrantedItems(mPreGrantedUris.size());
+            if (mItemGrantRevocationMap.containsKey(item.getContentUri())) {
+                mItemGrantRevocationMap.remove(item.getContentUri());
+            }
         }
         mSelectedItems.put(item.getContentUri(), item);
         mSelectedItemSize.postValue(getTotalItemsCount());

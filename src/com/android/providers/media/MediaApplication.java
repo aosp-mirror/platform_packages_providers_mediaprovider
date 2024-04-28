@@ -64,6 +64,8 @@ public class MediaApplication extends Application {
      */
     private static final boolean sIsUiProcess;
 
+    private static final boolean sIsTestProcess;
+
     static {
         final String processName = getProcessName();
         sIsUiProcess = processName.endsWith(":PhotoPicker");
@@ -75,7 +77,7 @@ public class MediaApplication extends Application {
         // For this - we may check the process. Since process names on Android usually match the
         // package name of the corresponding package, and the package names of our test end with
         // ".test" (e.g. "com.android.providers.media.tests") - that's what we are checking for.
-        final boolean isTestProcess = processName.endsWith(".tests");
+        sIsTestProcess = processName.endsWith(".tests");
 
         // Only need to load fuse lib in the primary process.
         if (!sIsUiProcess) {
@@ -83,7 +85,7 @@ public class MediaApplication extends Application {
                 System.loadLibrary("fuse_jni");
             } catch (UnsatisfiedLinkError e) {
 
-                if (isTestProcess) {
+                if (sIsTestProcess) {
                     // We are "in a test", which does not ship out native lib - log a warning and
                     // carry on.
                     Log.w(TAG, "Could not load fuse_jni.so in a test (" + processName + ")", e);
@@ -110,7 +112,7 @@ public class MediaApplication extends Application {
         final File persistentDir = this.getDir("logs", Context.MODE_PRIVATE);
         Logging.initPersistent(persistentDir);
 
-        if (isPrimaryProcess()) {
+        if (!sIsUiProcess && !sIsTestProcess) {
             maybeEnablePhotoPickerSettingsActivity();
             configStore.addOnChangeListener(
                     BackgroundThread.getExecutor(), this::maybeEnablePhotoPickerSettingsActivity);
@@ -130,16 +132,6 @@ public class MediaApplication extends Application {
         }
         throw new IllegalStateException("Neither a MediaApplication instance nor a MediaProvider "
                 + "instance has been created yet.");
-    }
-
-    /** Check if this process is the primary MediaProvider's process. */
-    public static boolean isPrimaryProcess() {
-        return !sIsUiProcess;
-    }
-
-    /** Check if this process is the MediaProvider's UI (PhotoPicker) process. */
-    public static boolean isUiProcess() {
-        return sIsUiProcess;
     }
 
     /** Retrieve {@link ConfigStore} instance. */

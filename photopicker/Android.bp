@@ -20,6 +20,7 @@ android_library {
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
         "androidx.compose.material3_material3-window-size-class",
+        "androidx.compose.material_material-icons-extended",
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui",
         "androidx.core_core-ktx",
@@ -64,6 +65,10 @@ android_app {
     static_libs: [
         "PhotopickerLib",
     ],
+    optimize: {
+        // Needed for removing unused icons from material-icons-extended
+        shrink_resources: true,
+    },
     plugins: [],
     kotlincflags: ["-Xjvm-default=all"],
     certificate: "media",

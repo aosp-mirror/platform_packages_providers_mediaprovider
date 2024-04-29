@@ -42,6 +42,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,7 +74,7 @@ private val MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH = 150.dp
 private val MEASUREMENT_SELECTION_BAR_PADDING = 12.dp
 
 /**
- * Entrypoint for the [PhotopickerDestinations.PREVIEW_SELECTION] route.
+ * Entry point for the [PhotopickerDestinations.PREVIEW_SELECTION] route.
  *
  * This composable will snapshot the current selection when created so that photos are not removed
  * from the list of preview-able photos.
@@ -103,7 +105,7 @@ fun PreviewSelection(viewModel: PreviewViewModel = hiltViewModel()) {
 }
 
 /**
- * Entrypoint for the [PhotopickerDestinations.PREVIEW_MEDIA] route.
+ * Entry point for the [PhotopickerDestinations.PREVIEW_MEDIA] route.
  *
  * @param previewItemFlow - A [StateFlow] from the navBackStackEntry savedStateHandler which uses
  *   the [PreviewFeature.PREVIEW_MEDIA_KEY] to retrieve the passed [Media] item to preview.
@@ -114,16 +116,23 @@ fun PreviewMedia(
 ) {
     val media by previewItemFlow.collectAsStateWithLifecycle()
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
-    // create a local variable for the when block so the compiler
-    // doesn't complain about the delegate.
+    // create a local variable for the when block so the compiler doesn't complain about the
+    // delegate.
     val localMedia = media
 
     Box {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-            when (localMedia) {
-                is Media.Image -> ImageUi(localMedia)
-                is Media.Video -> VideoUi(localMedia)
-                null -> {}
+            Box(
+                modifier = Modifier.padding(vertical = 50.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Preview session state to keep track if the video player's audio is muted.
+                var audioIsMuted by remember { mutableStateOf(true) }
+                when (localMedia) {
+                    is Media.Image -> ImageUi(localMedia)
+                    is Media.Video -> VideoUi(localMedia, audioIsMuted, { audioIsMuted = it })
+                    null -> {}
+                }
             }
         }
 
@@ -162,33 +171,43 @@ fun PreviewMedia(
  */
 @Composable
 private fun Preview(selection: Set<Media>) {
+
     val viewModel: PreviewViewModel = hiltViewModel()
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
 
+    // Preview session state to keep track if the video player's audio is muted.
+    var audioIsMuted by remember { mutableStateOf(true) }
+
     // Page count equal to size of selection
     val state = rememberPagerState { selection.size }
     Box(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(state = state, modifier = Modifier.fillMaxSize()) { page ->
+        HorizontalPager(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+        ) { page ->
             val media = selection.elementAt(page)
 
             when (media) {
                 is Media.Image -> ImageUi(media)
-                is Media.Video -> VideoUi(media)
+                is Media.Video -> VideoUi(media, audioIsMuted, { audioIsMuted = it })
             }
         }
 
         // Bottom row of action buttons
         Row(
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp),
+            modifier =
+                Modifier.align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(MEASUREMENT_SELECTION_BAR_PADDING),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             FilledTonalButton(
                 modifier =
                     Modifier.widthIn(
-                        // Apply a min width to prevent the button resizing when the label changes.
-                        min = MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH
+                        // Apply a min width to prevent the button re-sizing when the label changes.
+                        min = MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH,
                     ),
                 onClick = { viewModel.toggleInSelection(selection.elementAt(state.currentPage)) },
             ) {
@@ -223,17 +242,6 @@ private fun Preview(selection: Set<Media>) {
             }
         }
     }
-}
-
-/**
- * Composable that displays [Media.Video]
- *
- * @param video
- */
-@Composable
-private fun VideoUi(@Suppress("UNUSED_PARAMETER") video: Media.Video) {
-    // TODO(b/323833427): Implement remote video preview.
-    Text("Videos coming soon!")
 }
 
 /**

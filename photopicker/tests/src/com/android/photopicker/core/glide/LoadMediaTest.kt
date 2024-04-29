@@ -102,7 +102,7 @@ class LoadMediaTest {
                 return Uri.EMPTY.buildUpon()
                     .apply {
                         scheme("content")
-                        authority(provider.AUTHORITY)
+                        authority(MockContentProviderWrapper.AUTHORITY)
                         path("${CloudMediaProviderContract.URI_PATH_MEDIA}/1234")
                     }
                     .build()

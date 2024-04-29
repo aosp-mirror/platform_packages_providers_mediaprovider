@@ -18,7 +18,6 @@ package com.android.photopicker.features.photogrid
 
 import android.content.ContentProvider
 import android.content.ContentResolver
-import android.content.Context
 import android.content.Intent
 import android.provider.MediaStore
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -113,8 +112,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
     @Mock lateinit var mockContentProvider: ContentProvider
-
-    @BindValue val context: Context = getTestableContext()
 
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager

@@ -16,7 +16,6 @@
 
 package com.android.photopicker.features.selectionbar
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
@@ -101,8 +100,6 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    @BindValue val context: Context = getTestableContext()
-
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
@@ -114,22 +111,24 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             pickerId = 1L,
             authority = "a",
             mediaSource = MediaSource.LOCAL,
-            mediaUri = Uri.EMPTY.buildUpon()
-                .apply {
-                    scheme("content")
-                    authority("media")
-                    path("picker")
-                    path("a")
-                    path("1")
-                }
-                .build(),
-            glideLoadableUri = Uri.EMPTY.buildUpon()
-                .apply {
-                    scheme("content")
-                    authority("a")
-                    path("1")
-                }
-                .build(),
+            mediaUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("1")
+                    }
+                    .build(),
+            glideLoadableUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("a")
+                        path("1")
+                    }
+                    .build(),
             dateTakenMillisLong = 123456789L,
             sizeInBytes = 1000L,
             mimeType = "image/png",

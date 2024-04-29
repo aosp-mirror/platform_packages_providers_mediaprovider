@@ -37,6 +37,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import org.mockito.Mockito.mock
 
 /**
  * A basic Hilt test module that resolves common injected dependencies. Tests can install extend and
@@ -55,6 +56,15 @@ import kotlinx.coroutines.CoroutineScope
 @Module
 @DisableInstallInCheck
 abstract class PhotopickerTestModule {
+
+    @Singleton
+    @Provides
+    fun provideTestMockContext(): Context {
+        // Always provide a Mocked Context object to injected dependencies, to ensure that the
+        // device state never leaks into the test environment. Feature tests can obtain this mock
+        // by injecting a context object.
+        return mock(Context::class.java)
+    }
 
     @Singleton
     @Provides

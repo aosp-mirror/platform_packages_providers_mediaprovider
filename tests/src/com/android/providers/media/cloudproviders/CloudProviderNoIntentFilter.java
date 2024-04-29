@@ -30,6 +30,9 @@ import java.io.FileNotFoundException;
  * Implements a placeholder {@link CloudMediaProvider}.
  */
 public class CloudProviderNoIntentFilter extends CloudMediaProvider {
+    public static final String AUTHORITY =
+            "com.android.providers.media.photopicker.tests.cloud_no_intent_filter";
+
     @Override
     public boolean onCreate() {
         return true;

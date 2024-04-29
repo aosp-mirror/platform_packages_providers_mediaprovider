@@ -41,7 +41,6 @@ import static com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -453,15 +452,24 @@ public class PickerViewModel extends AndroidViewModel {
         // Clear the existing content - selection, photos grid, albums grid, banners
         mSelection.clearSelectedItems();
 
+        final List<Item> itemsList = new ArrayList<>();
+        itemsList.add(Item.EMPTY_VIEW);
         if (mItemsResult != null) {
             DataLoaderThread.getHandler().postDelayed(() ->
-                    mItemsResult.postValue(new PaginatedItemsResult(List.of(Item.EMPTY_VIEW),
-                            ACTION_CLEAR_GRID)), TOKEN, DELAY_MILLIS);
+                    mItemsResult.postValue(new PaginatedItemsResult(itemsList, ACTION_CLEAR_GRID)),
+                    TOKEN,
+                    DELAY_MILLIS
+            );
         }
 
+        final List<Category> categoryList = new ArrayList<>();
+        categoryList.add(Category.EMPTY_VIEW);
         if (mCategoryList != null) {
             DataLoaderThread.getHandler().postDelayed(() ->
-                    mCategoryList.postValue(List.of(Category.EMPTY_VIEW)), TOKEN, DELAY_MILLIS);
+                    mCategoryList.postValue(categoryList),
+                    TOKEN,
+                    DELAY_MILLIS
+            );
         }
 
         mBannerManager.hideAllBanners();
@@ -477,14 +485,12 @@ public class PickerViewModel extends AndroidViewModel {
      */
     public void initialisePreGrantsIfNecessary(Selection selection, Bundle intentExtras,
             String[] mimeTypeFilters) {
-        if (isManagedSelectionEnabled() && selection.getPreGrantedItems() == null) {
+        if (isManagedSelectionEnabled() && selection.getPreGrantedUris() == null) {
             DataLoaderThread.getHandler().postDelayed(() -> {
-                Set<String> preGrantedItems = mItemsProvider.fetchReadGrantedItemsUrisForPackage(
-                                intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters)
-                        .stream().map((Uri uri) -> String.valueOf(ContentUris.parseId(uri)))
-                        .collect(Collectors.toSet());
-                selection.setPreGrantedItemSet(preGrantedItems);
-                logPickerChoiceInitGrantsCount(preGrantedItems.size(), intentExtras);
+                List<Uri> preGrantedUris = mItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                                intentExtras.getInt(Intent.EXTRA_UID), mimeTypeFilters);
+                selection.setPreGrantedItems(preGrantedUris);
+                logPickerChoiceInitGrantsCount(preGrantedUris.size(), intentExtras);
             }, TOKEN, DELAY_MILLIS);
         }
     }
@@ -613,20 +619,19 @@ public class PickerViewModel extends AndroidViewModel {
                 return items;
             }
 
-            Set<String> preGrantedItems = new HashSet<>(0);
-            Set<String> deSelectedPreGrantedItems = new HashSet<>(0);
-            if (isManagedSelectionEnabled() && mSelection.getPreGrantedItems() != null) {
-                preGrantedItems = mSelection.getPreGrantedItems();
-                deSelectedPreGrantedItems = new HashSet<>(
-                        mSelection.getPreGrantedItemIdsToBeRevoked());
+            Set<Uri> preGrantedUris = new HashSet<>(0);
+            Set<Uri> deSelectedPreGrantedUris = new HashSet<>(0);
+            if (isManagedSelectionEnabled() && mSelection.getPreGrantedUris() != null) {
+                preGrantedUris = mSelection.getPreGrantedUris();
+                deSelectedPreGrantedUris = mSelection.getDeselectedUrisToBeRevoked();
             }
             while (cursor.moveToNext()) {
                 // TODO(b/188394433): Return userId in the cursor so that we do not need to pass it
                 //  here again.
                 final Item item = Item.fromCursor(cursor, userId);
-                if (preGrantedItems.contains(item.getId())) {
+                if (preGrantedUris.contains(item.getContentUri())) {
                     item.setPreGranted();
-                    if (!deSelectedPreGrantedItems.contains(item.getId())) {
+                    if (!deSelectedPreGrantedUris.contains(item.getContentUri())) {
                         mSelection.addSelectedItem(item);
                     }
                 }
@@ -669,31 +674,40 @@ public class PickerViewModel extends AndroidViewModel {
      * issue by selectively loading those items and adding them to the selection list.</p>
      */
     public void getRemainingPreGrantedItems() {
-        if (!isManagedSelectionEnabled() || mSelection.getPreGrantedItems() == null) return;
+        if (!isManagedSelectionEnabled() || mSelection.getPreGrantedUris() == null) return;
 
-        List<String> idsForItemsToBeFetched =
-                new ArrayList<>(mSelection.getPreGrantedItems());
-        idsForItemsToBeFetched.removeAll(mSelection.getSelectedItemsIds());
-        idsForItemsToBeFetched.removeAll(mSelection.getPreGrantedItemIdsToBeRevoked());
+        List<Uri> urisForItemsToBeFetched =
+                new ArrayList<>(mSelection.getPreGrantedUris());
+        urisForItemsToBeFetched.removeAll(mSelection.getSelectedItems().stream().map(
+                Item::getContentUri).collect(Collectors.toSet()));
+        urisForItemsToBeFetched.removeAll(mSelection.getDeselectedUrisToBeRevoked());
 
-        if (!idsForItemsToBeFetched.isEmpty()) {
+        if (!urisForItemsToBeFetched.isEmpty()) {
+            getItemDataForUris(urisForItemsToBeFetched, /* callingPackageUid */ -1,
+                    /* shouldScreenSelectionUris */ false);
+        }
+    }
+
+    private void getItemDataForUris(List<Uri> urisForItemsToBeFetched, int callingPackageUid,
+            boolean shouldScreenSelectionUris) {
+        if (!urisForItemsToBeFetched.isEmpty()) {
             UserId userId = getCurrentUserProfileId();
             DataLoaderThread.getHandler().postDelayed(() -> {
-                loadItemsWithLocalIdSelection(Category.DEFAULT, userId,
-                        idsForItemsToBeFetched.stream().map(Integer::valueOf).collect(
-                                Collectors.toList()));
+                loadItemsDataForPreSelection(Category.DEFAULT, userId,
+                        urisForItemsToBeFetched, callingPackageUid, shouldScreenSelectionUris);
                 // If new data has loaded then post value representing a successful operation.
                 mIsAllPreGrantedMediaLoaded.postValue(true);
-                Log.d(TAG, "Fetched " + idsForItemsToBeFetched.size()
+                Log.d(TAG, "Fetched " + urisForItemsToBeFetched.size()
                         + " items for required preGranted ids");
             }, TOKEN, 0);
         }
     }
 
-    private void loadItemsWithLocalIdSelection(Category category, UserId userId,
-            List<Integer> selectionArg) {
-        try (Cursor cursor = mItemsProvider.getLocalItemsForSelection(category, selectionArg,
-                mMimeTypeFilters, userId, mCancellationSignal)) {
+    private void loadItemsDataForPreSelection(Category category, UserId userId,
+            List<Uri> selectionArg, int callingPackageUid, boolean shouldScreenSelectionUris) {
+        try (Cursor cursor = mItemsProvider.getItemsForPreselectedMedia(category, selectionArg,
+                mMimeTypeFilters, userId, shouldShowOnlyLocalFeatures(), callingPackageUid,
+                shouldScreenSelectionUris, mCancellationSignal)) {
             if (cursor == null || cursor.getCount() == 0) {
                 Log.d(TAG, "Didn't receive any items for pre granted URIs" + category
                         + ", either cursor is null or cursor count is zero");
@@ -1144,8 +1158,10 @@ public class PickerViewModel extends AndroidViewModel {
             final ProviderInfo providerInfo = packageManager.resolveContentProvider(
                     providerAuthority, /* flags= */ 0);
 
-            cloudProviderPackage = providerInfo.applicationInfo.packageName;
-            cloudProviderUid = providerInfo.applicationInfo.uid;
+            if (providerInfo != null && providerInfo.applicationInfo != null) {
+                cloudProviderPackage = providerInfo.applicationInfo.packageName;
+                cloudProviderUid = providerInfo.applicationInfo.uid;
+            }
         } catch (PackageManager.NameNotFoundException e) {
             Log.d(TAG, "Logging the ui event 'picker open with an active cloud provider' with its "
                     + "authority in place of the package name and a default uid.", e);

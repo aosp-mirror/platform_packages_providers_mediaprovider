@@ -156,14 +156,16 @@ class MediaProviderClientTest {
     fun testFetchAlbumMediaPage() = runTest {
         val mediaProviderClient = MediaProviderClient()
         val albumId = testContentProvider.albumMedia.keys.elementAt(0)
+        val albumAuthority = "authority"
 
         val mediaLoadResult: LoadResult<MediaPageKey, Media> =
             mediaProviderClient.fetchAlbumMedia(
                 albumId = albumId,
+                albumAuthority = albumAuthority,
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0))
+                availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0))
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()

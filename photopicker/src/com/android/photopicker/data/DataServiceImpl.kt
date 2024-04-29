@@ -27,6 +27,7 @@ import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.data.paging.AlbumMediaPagingSource
 import com.android.photopicker.data.paging.AlbumPagingSource
 import com.android.photopicker.data.paging.MediaPagingSource
 import kotlinx.coroutines.CoroutineDispatcher
@@ -76,9 +77,18 @@ class DataServiceImpl(
     private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
     private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
+    // Keep track of the album grid media paging sources so that we can invalidate
+    // them in case the underlying data changes or re-use them if the user re-opens the same album
+    // again.
+    private val albumMediaPagingSources:
+            MutableMap<String, MutableMap<String, AlbumMediaPagingSource>> = mutableMapOf()
+
     // An internal lock to allow thread-safe updates to the [MediaPagingSource] and
     // [AlbumPagingSource].
     private val mediaPagingSourceMutex = Mutex()
+
+    // An internal lock to allow thread-safe updates to the [AlbumMediaPagingSource].
+    private val albumMediaPagingSourceMutex = Mutex()
 
     /**
      * Callback flow that listens to changes in the available providers and emits updated list of
@@ -129,6 +139,7 @@ class DataServiceImpl(
             availableProviders.collect { providers: List<Provider> ->
                 // Send refresh media request after the available providers are available.
                 refreshMedia(providers)
+
                 mediaPagingSourceMutex.withLock {
                     mediaPagingSources.forEach {
                         mediaPagingSource -> mediaPagingSource.invalidate()
@@ -139,6 +150,15 @@ class DataServiceImpl(
 
                     mediaPagingSources.clear()
                     albumPagingSources.clear()
+                }
+
+                albumMediaPagingSourceMutex.withLock {
+                    albumMediaPagingSources.values.forEach {
+                        albumMediaPagingSourceMap -> albumMediaPagingSourceMap.values.forEach {
+                            albumMediaPagingSource -> albumMediaPagingSource.invalidate()
+                        }
+                    }
+                    albumMediaPagingSources.clear()
                 }
             }
         }
@@ -203,8 +223,40 @@ class DataServiceImpl(
         mediaProviderClient.fetchAvailableProviders(resolver)
     }
 
-    override fun albumMediaPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    override fun albumMediaPagingSource(album: Album):
+            PagingSource<MediaPageKey, Media> = runBlocking {
+        albumMediaPagingSourceMutex.withLock {
+            val albumMap = albumMediaPagingSources.getOrDefault(album.authority, mutableMapOf())
+
+            if (!albumMap.containsKey(album.id) || albumMap.get(album.id)!!.invalid) {
+                val availableProviders: List<Provider> = availableProviders.value
+                val contentResolver: ContentResolver = _activeContentResolver.value
+
+                // TODO this is temporarily here till UI calls refresh album media on page creation.
+                scope.launch {
+                    for (provider in availableProviders) {
+                        refreshAlbumMedia(album.id, provider.authority)
+                    }
+                }
+
+                Log.v(DataService.TAG, "Created an album media paging source that queries " +
+                        "$availableProviders")
+
+                val albumMediaPagingSource = AlbumMediaPagingSource(
+                        album.id,
+                        album.authority,
+                        contentResolver,
+                        availableProviders,
+                        mediaProviderClient
+                )
+
+                albumMap.put(album.id, albumMediaPagingSource)
+                albumMediaPagingSources.put(album.authority, albumMap)
+            }
+
+            albumMap.get(album.id)!!
+        }
+    }
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {

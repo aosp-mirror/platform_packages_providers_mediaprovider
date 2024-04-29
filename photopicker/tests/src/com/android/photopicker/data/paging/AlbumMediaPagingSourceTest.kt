@@ -57,8 +57,10 @@ class AlbumMediaPagingSourceTest {
     @Test
     fun testLoad() = runTest {
         val albumId = "test-album-id"
+        val albumAuthority = availableProviders[0].authority
         val albumMediaPagingSource = AlbumMediaPagingSource(
             albumId = albumId,
+            albumAuthority = albumAuthority,
             contentResolver = contentResolver,
             availableProviders = availableProviders,
             mediaProviderClient = mockMediaProviderClient
@@ -80,6 +82,7 @@ class AlbumMediaPagingSourceTest {
         verify(mockMediaProviderClient, times(1))
             .fetchAlbumMedia(
                 albumId,
+                albumAuthority,
                 pageKey,
                 pageSize,
                 contentResolver,

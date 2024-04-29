@@ -16,8 +16,11 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_FAVORITE;
+import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -36,10 +39,10 @@ public class FavoritesMediaQuery extends MediaQuery {
         super(queryArgs);
 
         mPageSize = pageSize;
+    }
 
-        // Don't remove duplicates because it is possible that the duplicate row is marked as
-        // favorite.
-        mShouldDedupe = false;
+    public FavoritesMediaQuery(@NonNull Bundle queryArgs) {
+        super(queryArgs);
     }
 
     @Override
@@ -47,10 +50,47 @@ public class FavoritesMediaQuery extends MediaQuery {
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
-            boolean reverseOrder
-    ) {
+            boolean reverseOrder) {
         super.addWhereClause(queryBuilder, localAuthority, cloudAuthority, reverseOrder);
 
-        queryBuilder.appendWhereStandalone(KEY_IS_FAVORITE + " = 1");
+        final String localFavoriteMediaWhereClause =
+                getLocalFavoriteMediaWhereClause(queryBuilder, cloudAuthority);
+        final String cloudFavoriteMediaWhereClause = getCloudFavoriteMediaWhereClause();
+
+        final String favoriteMediaWhereClause = (localFavoriteMediaWhereClause
+                + " OR " + cloudFavoriteMediaWhereClause);
+        queryBuilder.appendWhereStandalone(favoriteMediaWhereClause);
+    }
+
+    private String getLocalFavoriteMediaWhereClause(
+            @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @Nullable String cloudAuthority) {
+        if (cloudAuthority == null) {
+            return "(" + KEY_IS_FAVORITE + " = 1 AND " + KEY_CLOUD_ID + " IS NULL)";
+        } else {
+            // Select all the deduped local media items that have been marked as favorite in the
+            // local media provider or the cloud media provider.
+            final String[] columns = new String[1];
+            columns[0] = KEY_LOCAL_ID;
+            final String localMediaWhereClause = KEY_LOCAL_ID + " IS NOT NULL";
+            final String favoriteMediaWhereClause = KEY_IS_FAVORITE + " = 1";
+
+            final String innerQuery = SQLiteQueryBuilder.buildQueryString(
+                    /* distinct */ true,
+                    /* tables */ queryBuilder.getTables(),
+                    /* columns */ columns,
+                    /* where */ (localMediaWhereClause + " AND " + favoriteMediaWhereClause),
+                    /* groupBy */ null,
+                    /* having */ null,
+                    /* orderBy */ null,
+                    /* limit */ null
+            );
+
+            return "(" + KEY_LOCAL_ID + " IN (" + innerQuery + "))";
+        }
+    }
+
+    private String getCloudFavoriteMediaWhereClause() {
+        return "(" + KEY_IS_FAVORITE + " = 1 AND " + KEY_LOCAL_ID + " IS NULL)";
     }
 }

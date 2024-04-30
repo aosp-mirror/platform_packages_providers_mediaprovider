@@ -28,6 +28,7 @@ import android.net.Uri;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents the bounds of links as a {@code List<List<Rect>>}, where
@@ -118,7 +119,8 @@ public class LinkRects extends ListOfList<Rect> {
                     boundIndex++) {
                 bounds.add(mRects.get(boundIndex));
             }
-            boundedLinks.add(new PdfPageLinkContent(bounds.stream().map(RectF::new).toList(),
+            boundedLinks.add(new PdfPageLinkContent(
+                    bounds.stream().map(RectF::new).collect(Collectors.toList()),
                     Uri.parse(mUrls.get(index))));
         }
 

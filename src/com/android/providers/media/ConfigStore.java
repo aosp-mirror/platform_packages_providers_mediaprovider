@@ -258,6 +258,28 @@ public interface ConfigStore {
         writer.println("  transcodeCompatStale=" + getTranscodeCompatStale());
     }
 
+    static ConfigStore getDefaultConfigStore() {
+        return new ConfigStore() {
+            @NonNull
+            @Override
+            public List<String> getTranscodeCompatManifest() {
+                return Collections.emptyList();
+            }
+
+            @NonNull
+            @Override
+            public List<String> getTranscodeCompatStale() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void addOnChangeListener(@NonNull Executor executor,
+                    @NonNull Runnable listener) {
+                // Do nothing
+            }
+        };
+    }
+
     /**
      * Implementation of the {@link ConfigStore} that reads "real" configs from
      * {@link android.provider.DeviceConfig}. Meant to be used by the "production" code.

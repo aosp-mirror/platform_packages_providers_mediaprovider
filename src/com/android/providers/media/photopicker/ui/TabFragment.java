@@ -439,7 +439,7 @@ public abstract class TabFragment extends Fragment {
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             animateAndShowBottomBar(context, selectedItemListSize);
             if (selectedItemListSize == 0) {
-                mViewSelectedButton.setVisibility(View.GONE);
+                mViewSelectedButton.setVisibility(View.INVISIBLE);
                 // Update the add button to show "Allow none".
                 mAddButton.setText(R.string.picker_add_button_allow_none_option);
             }
@@ -672,7 +672,6 @@ public abstract class TabFragment extends Fragment {
         if (!mUserManagerState.isMultiUserProfiles()) {
             return;
         }
-
 
         updateProfileButtonAndProfileMenuButtonContent();
         updateProfileButtonAndProfileMenuButtonColor();

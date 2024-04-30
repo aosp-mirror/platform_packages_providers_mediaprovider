@@ -81,6 +81,7 @@ import com.android.providers.media.util.SQLiteQueryBuilder;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -113,7 +114,7 @@ public class MediaProviderTest {
     private static ContentResolver sIsolatedResolver;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUpBeforeClass() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
@@ -124,7 +125,10 @@ public class MediaProviderTest {
                         // MANAGE_USERS permission for MediaProvider module.
                         Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
+    }
 
+    @Before
+    public void setUp() {
         resetIsolatedContext();
     }
 

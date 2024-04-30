@@ -23,6 +23,7 @@ import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents text selection on a particular page of a PDF coming from the JNI layer.
@@ -80,7 +81,7 @@ public class PageSelection {
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public android.graphics.pdf.models.selection.PageSelection convert() {
         PdfPageTextContent selectedTextContent = new PdfPageTextContent(mText,
-                mBounds.stream().map(RectF::new).toList());
+                mBounds.stream().map(RectF::new).collect(Collectors.toList()));
         return new android.graphics.pdf.models.selection.PageSelection(mPage, mLeft.convert(),
                 mRight.convert(),
                 /* selectedContents = */ List.of(selectedTextContent));

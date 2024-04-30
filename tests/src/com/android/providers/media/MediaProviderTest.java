@@ -265,7 +265,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -294,7 +294,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -308,7 +308,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -436,7 +436,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -541,7 +541,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -563,7 +563,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */

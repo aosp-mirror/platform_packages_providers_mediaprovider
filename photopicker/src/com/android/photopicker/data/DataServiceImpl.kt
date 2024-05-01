@@ -203,7 +203,7 @@ class DataServiceImpl(
         mediaProviderClient.fetchAvailableProviders(resolver)
     }
 
-    override fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
+    override fun albumMediaPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
         throw NotImplementedError("This method is not implemented yet.")
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {

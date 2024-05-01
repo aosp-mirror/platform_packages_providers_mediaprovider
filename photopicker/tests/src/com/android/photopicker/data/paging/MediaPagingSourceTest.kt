@@ -35,7 +35,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
-import src.com.android.photopicker.data.TestMediaProvider
+import com.android.photopicker.data.TestMediaProvider
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)

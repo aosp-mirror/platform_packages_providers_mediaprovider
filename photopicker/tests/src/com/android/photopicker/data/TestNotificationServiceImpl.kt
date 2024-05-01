@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package src.com.android.photopicker.data
+package com.android.photopicker.data
 
 import android.content.ContentResolver
 import android.content.UriMatcher
 import android.database.ContentObserver
 import android.net.Uri
-import com.android.photopicker.data.NotificationService
 
 /**
  * Test implementation of Notification Service. It registers the observers in memory. Test writers

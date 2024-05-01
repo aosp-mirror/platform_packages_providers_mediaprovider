@@ -46,8 +46,6 @@ import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import src.com.android.photopicker.data.TestMediaProvider
-import src.com.android.photopicker.data.TestNotificationServiceImpl
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)

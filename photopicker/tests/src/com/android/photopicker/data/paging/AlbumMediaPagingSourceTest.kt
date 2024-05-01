@@ -22,8 +22,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
-import com.android.photopicker.data.paging.AlbumPagingSource
+import com.android.photopicker.data.paging.AlbumMediaPagingSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -40,10 +41,10 @@ import com.android.photopicker.data.TestMediaProvider
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
-class AlbumPagingSourceTest {
+class AlbumMediaPagingSourceTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
-    private val availableProviders: List<Provider> = emptyList()
+    private val availableProviders: List<Provider> = listOf(Provider("auth", MediaSource.LOCAL, 0))
 
     @Mock
     private lateinit var mockMediaProviderClient: MediaProviderClient
@@ -55,7 +56,9 @@ class AlbumPagingSourceTest {
 
     @Test
     fun testLoad() = runTest {
-        val albumPagingSource = AlbumPagingSource(
+        val albumId = "test-album-id"
+        val albumMediaPagingSource = AlbumMediaPagingSource(
+            albumId = albumId,
             contentResolver = contentResolver,
             availableProviders = availableProviders,
             mediaProviderClient = mockMediaProviderClient
@@ -70,16 +73,17 @@ class AlbumPagingSourceTest {
         )
 
         backgroundScope.launch {
-            albumPagingSource.load(params)
+            albumMediaPagingSource.load(params)
         }
         advanceTimeBy(100)
 
         verify(mockMediaProviderClient, times(1))
-            .fetchAlbums(
+            .fetchAlbumMedia(
+                albumId,
                 pageKey,
                 pageSize,
                 contentResolver,
-                emptyList()
+                availableProviders
             )
     }
 }

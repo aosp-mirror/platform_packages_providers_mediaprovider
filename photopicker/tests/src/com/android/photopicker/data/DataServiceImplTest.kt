@@ -24,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
@@ -216,8 +217,8 @@ class DataServiceImplTest {
         assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
 
         // A new user becomes active.
-        userStatusFlow.update { userStatus: UserStatus ->
-            userStatus.copy (
+        userStatusFlow.update {
+            it.copy (
                 allProfiles = listOf(userProfilePrimary, userProfileManaged)
             )
         }
@@ -244,8 +245,8 @@ class DataServiceImplTest {
                 ),
         )
 
-        userStatusFlow.update { userStatus: UserStatus ->
-            userStatus.copy (
+        userStatusFlow.update {
+            it.copy (
                 activeUserProfile = userProfileManaged,
                 activeContentResolver = updatedContentResolver
             )
@@ -326,8 +327,8 @@ class DataServiceImplTest {
             ),
         )
 
-        userStatusFlow.update { userStatus: UserStatus ->
-            userStatus.copy (
+        userStatusFlow.update {
+            it.copy (
                 activeUserProfile = userProfileManaged,
                 activeContentResolver = updatedContentResolver
             )
@@ -392,8 +393,8 @@ class DataServiceImplTest {
             ),
         )
 
-        userStatusFlow.update { userStatus: UserStatus ->
-            userStatus.copy (
+        userStatusFlow.update {
+            it.copy (
                     activeContentResolver = updatedContentResolver
             )
         }
@@ -410,5 +411,219 @@ class DataServiceImplTest {
         val secondMediaPagingSource: PagingSource<MediaPageKey, Media> =
                 dataService.mediaPagingSource()
         assertThat(secondMediaPagingSource.invalid).isFalse()
+    }
+
+    @Test
+    fun testAlbumPagingSourceInvalidation() = runTest {
+        val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        val dataService: DataService = DataServiceImpl(
+            userStatus = userStatusFlow,
+            scope = this.backgroundScope,
+            notificationService = notificationService,
+            mediaProviderClient = mediaProviderClient,
+            dispatcher = StandardTestDispatcher(this.testScheduler)
+        )
+
+        // Check initial available provider emissions
+        val emissions = mutableListOf<List<Provider>>()
+        this.backgroundScope.launch {
+            dataService.availableProviders.toList(emissions)
+        }
+        advanceTimeBy(100)
+
+        assertThat(emissions.count()).isEqualTo(2)
+        assertThat(emissions[0]).isEqualTo(emptyList<Provider>())
+
+        val firstAlbumPagingSource: PagingSource<MediaPageKey, Group.Album> =
+            dataService.albumPagingSource()
+        assertThat(firstAlbumPagingSource.invalid).isFalse()
+
+        // The active user changes
+        val updatedContentProvider = TestMediaProvider()
+        val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
+        updatedContentProvider.providers = mutableListOf(
+            Provider(
+                authority = "local_authority",
+                mediaSource = MediaSource.LOCAL,
+                uid = 0
+            ),
+            Provider(
+                authority = "cloud_authority",
+                mediaSource = MediaSource.REMOTE,
+                uid = 0
+            ),
+        )
+
+        userStatusFlow.update {
+            it.copy (
+                activeContentResolver = updatedContentResolver
+            )
+        }
+        advanceTimeBy(100)
+
+        // Since the active user has changed, this should trigger a refetch of the active providers.
+        assertThat(emissions.count()).isEqualTo(3)
+
+        // Check that the previously created MediaPagingSource has been invalidated.
+        assertThat(firstAlbumPagingSource.invalid).isTrue()
+
+        // Check that the new MediaPagingSource instance is still valid.
+        val secondAlbumPagingSource: PagingSource<MediaPageKey, Group.Album> =
+            dataService.albumPagingSource()
+        assertThat(secondAlbumPagingSource.invalid).isFalse()
+    }
+
+    @Test
+    fun testAlbumMediaPagingSourceCacheUpdates() = runTest {
+        testContentProvider.lastRefreshMediaRequest = null
+
+        val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val dataService: DataService = DataServiceImpl(
+            userStatus = userStatusFlow,
+            scope = this.backgroundScope,
+            notificationService = notificationService,
+            mediaProviderClient = mediaProviderClient,
+            dispatcher = StandardTestDispatcher(this.testScheduler)
+        )
+        advanceTimeBy(100)
+
+        // Fetch album media the first time
+        val albumId = testContentProvider.albumMedia.keys.first()
+        val album = Group.Album(
+            id = albumId,
+            pickerId = Long.MAX_VALUE,
+            authority = testContentProvider.providers[0].authority,
+            dateTakenMillisLong = Long.MAX_VALUE,
+            displayName = "album",
+            coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
+            coverMediaSource = testContentProvider.providers[0].mediaSource
+        )
+
+        val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+            dataService.albumMediaPagingSource(album)
+
+        // Check the album media paging source is valid
+        assertThat(firstAlbumMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache refresh request was received
+        val albumMediaRefreshRequestExtras = testContentProvider.lastRefreshMediaRequest
+        assertThat(albumMediaRefreshRequestExtras).isNotNull()
+
+        // Fetch the album media again
+        val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+
+        // Check the previous album media source was reused because it was not marked as invalid.
+        assertThat(secondAlbumMediaPagingSource.invalid).isFalse()
+        assertThat(secondAlbumMediaPagingSource).isEqualTo(firstAlbumMediaPagingSource)
+
+        // Check that a cache refresh request was not received the second time
+        assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
+        assertThat(testContentProvider.lastRefreshMediaRequest)
+            .isEqualTo(albumMediaRefreshRequestExtras)
+
+        // Mark the paging source as invalid
+        secondAlbumMediaPagingSource.invalidate()
+
+        // Fetch the album media again
+        val thirdAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+
+        // Check the previous album media source was not reused because it was invalidated.
+        assertThat(secondAlbumMediaPagingSource.invalid).isTrue()
+        assertThat(thirdAlbumMediaPagingSource.invalid).isFalse()
+        assertThat(thirdAlbumMediaPagingSource).isNotEqualTo(secondAlbumMediaPagingSource)
+
+        // Check that a cache refresh request was not received the third time either
+        assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
+        assertThat(testContentProvider.lastRefreshMediaRequest)
+            .isEqualTo(albumMediaRefreshRequestExtras)
+    }
+
+    @Test
+    fun testAlbumMediaPagingSourceInvalidation() = runTest {
+        val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        val dataService: DataService = DataServiceImpl(
+            userStatus = userStatusFlow,
+            scope = this.backgroundScope,
+            notificationService = notificationService,
+            mediaProviderClient = mediaProviderClient,
+            dispatcher = StandardTestDispatcher(this.testScheduler)
+        )
+
+        // Check initial available provider emissions
+        val emissions = mutableListOf<List<Provider>>()
+        this.backgroundScope.launch {
+            dataService.availableProviders.toList(emissions)
+        }
+        advanceTimeBy(100)
+
+        assertThat(emissions.count()).isEqualTo(2)
+        assertThat(emissions[0]).isEqualTo(emptyList<Provider>())
+
+        // Fetch album media the first time
+        val albumId = testContentProvider.albumMedia.keys.first()
+        val album = Group.Album(
+            id = albumId,
+            pickerId = Long.MAX_VALUE,
+            authority = testContentProvider.providers[0].authority,
+            dateTakenMillisLong = Long.MAX_VALUE,
+            displayName = "album",
+            coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
+            coverMediaSource = testContentProvider.providers[0].mediaSource
+        )
+
+        val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+
+        // Check the album media paging source is valid
+        assertThat(firstAlbumMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache refresh request was received
+        val firstAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(firstAlbumMediaRefreshRequest).isNotNull()
+
+        // The active user changes
+        val updatedContentProvider = TestMediaProvider()
+        val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
+        updatedContentProvider.providers = mutableListOf(
+            Provider(
+                authority = testContentProvider.providers[0].authority,
+                mediaSource = MediaSource.LOCAL,
+                uid = 0
+            ),
+            Provider(
+                authority = "cloud_authority",
+                mediaSource = MediaSource.REMOTE,
+                uid = 0
+            ),
+        )
+
+        userStatusFlow.update {
+            it.copy (
+                activeContentResolver = updatedContentResolver
+            )
+        }
+        advanceTimeBy(100)
+
+        // Since the active user has changed, this should trigger a re-fetch of the active providers.
+        assertThat(emissions.count()).isEqualTo(3)
+
+        // Fetch the album media again
+        val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+
+        // Check that previous album media source was marked as invalid.
+        assertThat(firstAlbumMediaPagingSource.invalid).isTrue()
+        assertThat(secondAlbumMediaPagingSource.invalid).isFalse()
+        assertThat(secondAlbumMediaPagingSource).isNotEqualTo(firstAlbumMediaPagingSource)
+
+        // Check that a cache refresh request was received again because the album media paging
+        // source cache was cleared.
+        val secondAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(secondAlbumMediaPagingSource).isNotNull()
+        assertThat(secondAlbumMediaPagingSource).isNotEqualTo(secondAlbumMediaRefreshRequest)
     }
 }

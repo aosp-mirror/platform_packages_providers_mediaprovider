@@ -408,7 +408,7 @@ struct fuse {
 
     // LevelDb Connection Map
     std::map<std::string, leveldb::DB*> level_db_connection_map;
-    std::mutex level_db_mutex;
+    std::recursive_mutex level_db_mutex;
 };
 
 struct OpenInfo {
@@ -2690,8 +2690,9 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(INFO) << "ReadFilePathsFromLevelDb: Missing leveldb connection, attempting setup.";
-        SetupLevelDbInstances();
+        fuse->level_db_mutex.unlock();
+        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection";
+        return file_paths;
     }
 
     leveldb::Iterator* it =

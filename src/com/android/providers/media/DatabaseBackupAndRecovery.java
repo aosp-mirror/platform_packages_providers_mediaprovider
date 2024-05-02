@@ -73,9 +73,6 @@ import java.util.stream.Collectors;
  */
 public class DatabaseBackupAndRecovery {
 
-    private static final String UPPER_FS_RECOVERY_DIRECTORY_PATH =
-            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
-
     private static final String LOWER_FS_RECOVERY_DIRECTORY_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery";
 
@@ -86,11 +83,11 @@ public class DatabaseBackupAndRecovery {
     private static final String OWNER_RELATION_LOWER_FS_BACKUP_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery/leveldb-ownership";
 
-    private static final String INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH =
-            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-internal";
+    private static final String INTERNAL_VOLUME_LOWER_FS_BACKUP_PATH =
+            LOWER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-internal";
 
-    private static final String EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH =
-            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-external_primary";
+    private static final String EXTERNAL_PRIMARY_VOLUME_LOWER_FS_BACKUP_PATH =
+            LOWER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-external_primary";
 
     /**
      * Every LevelDB table name starts with this prefix.
@@ -265,9 +262,9 @@ public class DatabaseBackupAndRecovery {
                 ? MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY
                 : MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
         try {
-            if (!new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).exists()) {
-                new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
-                Log.v(TAG, "Created recovery directory:" + UPPER_FS_RECOVERY_DIRECTORY_PATH);
+            if (!new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).exists()) {
+                new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
+                Log.v(TAG, "Created recovery directory:" + LOWER_FS_RECOVERY_DIRECTORY_PATH);
             }
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
@@ -469,7 +466,7 @@ public class DatabaseBackupAndRecovery {
 
     protected void deleteBackupForVolume(String volumeName) {
         File dbFilePath = new File(
-                String.format(Locale.ROOT, "%s/%s.db", UPPER_FS_RECOVERY_DIRECTORY_PATH,
+                String.format(Locale.ROOT, "%s/%s.db", LOWER_FS_RECOVERY_DIRECTORY_PATH,
                         volumeName));
         if (dbFilePath.exists()) {
             dbFilePath.delete();
@@ -976,9 +973,9 @@ public class DatabaseBackupAndRecovery {
 
     protected boolean isBackupPresent(String volumeName) {
         if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
-            return new File(INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH).exists();
+            return new File(INTERNAL_VOLUME_LOWER_FS_BACKUP_PATH).exists();
         } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            return new File(EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH).exists();
+            return new File(EXTERNAL_PRIMARY_VOLUME_LOWER_FS_BACKUP_PATH).exists();
         }
 
         return false;
@@ -1044,7 +1041,7 @@ public class DatabaseBackupAndRecovery {
      * Returns list of backed up files from external storage.
      */
     protected List<File> getBackupFiles() {
-        return Arrays.asList(new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).listFiles());
+        return Arrays.asList(new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).listFiles());
     }
 
     /**

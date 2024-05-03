@@ -27,6 +27,7 @@ import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.data.paging.AlbumPagingSource
 import com.android.photopicker.data.paging.MediaPagingSource
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -70,10 +71,14 @@ class DataServiceImpl(
     private val _activeContentResolver = MutableStateFlow<ContentResolver>(
             userStatus.value.activeContentResolver)
 
-    private var mediaPagingSource: MediaPagingSource? = null
-    // An internal lock to allow thread-safe updates to the media paging source
-    private val mediaPagingSourceMutex = Mutex()
+    // Keep track of the photo grid media and album grid paging source so that we can invalidate
+    // them in case the underlying data changes.
+    private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
+    private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
+    // An internal lock to allow thread-safe updates to the [MediaPagingSource] and
+    // [AlbumPagingSource].
+    private val mediaPagingSourceMutex = Mutex()
 
     /**
      * Callback flow that listens to changes in the available providers and emits updated list of
@@ -125,7 +130,15 @@ class DataServiceImpl(
                 // Send refresh media request after the available providers are available.
                 refreshMedia(providers)
                 mediaPagingSourceMutex.withLock {
-                    mediaPagingSource?.invalidate()
+                    mediaPagingSources.forEach {
+                        mediaPagingSource -> mediaPagingSource.invalidate()
+                    }
+                    albumPagingSources.forEach {
+                        albumPagingSource -> albumPagingSource.invalidate()
+                    }
+
+                    mediaPagingSources.clear()
+                    albumPagingSources.clear()
                 }
             }
         }
@@ -190,11 +203,27 @@ class DataServiceImpl(
         mediaProviderClient.fetchAvailableProviders(resolver)
     }
 
-    override fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
+    override fun albumMediaPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
         throw NotImplementedError("This method is not implemented yet.")
 
-    override fun albumPagingSource(): PagingSource<MediaPageKey, Album> =
-        throw NotImplementedError("This method is not implemented yet.")
+    override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
+        mediaPagingSourceMutex.withLock {
+            val availableProviders: List<Provider> = availableProviders.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
+
+            Log.v(DataService.TAG, "Created an album paging source that queries " +
+                "$availableProviders")
+
+            val albumPagingSource = AlbumPagingSource(
+                contentResolver,
+                availableProviders,
+                mediaProviderClient
+            )
+
+            albumPagingSources.add(albumPagingSource)
+            albumPagingSource
+        }
+    }
 
     override fun cloudMediaProviderDetails(
         authority: String
@@ -206,16 +235,16 @@ class DataServiceImpl(
             val availableProviders: List<Provider> = availableProviders.value
             val contentResolver: ContentResolver = _activeContentResolver.value
 
-            Log.v(DataService.TAG, "Created a paging source that queries $availableProviders")
+            Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
 
-            val immutableMediaPagingSource = MediaPagingSource(
-                    contentResolver,
-                    availableProviders,
-                    mediaProviderClient
+            val mediaPagingSource = MediaPagingSource(
+                contentResolver,
+                availableProviders,
+                mediaProviderClient
             )
 
-            mediaPagingSource = immutableMediaPagingSource
-            immutableMediaPagingSource
+            mediaPagingSources.add(mediaPagingSource)
+            mediaPagingSource
         }
     }
 
@@ -229,12 +258,12 @@ class DataServiceImpl(
     ) {
         if (availableProviders.isNotEmpty()) {
             mediaProviderClient.refreshMedia(
-                    availableProviders,
-                    _activeContentResolver.value
+                availableProviders,
+                _activeContentResolver.value
             )
         } else {
             Log.w(DataService.TAG,
-                    "Cannot refresh media when there are no providers available")
+                "Cannot refresh media when there are no providers available")
         }
     }
 

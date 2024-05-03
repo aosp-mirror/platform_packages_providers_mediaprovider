@@ -104,7 +104,8 @@ public class MediaApplication extends Application {
         synchronized (MediaApplication.class) {
             sInstance = this;
             if (sConfigStore == null) {
-                sConfigStore = new ConfigStore.ConfigStoreImpl(getResources());
+                sConfigStore = sIsTestProcess ? ConfigStore.getDefaultConfigStore() :
+                        new ConfigStore.ConfigStoreImpl(getResources());
             }
             configStore = sConfigStore;
         }
@@ -141,7 +142,8 @@ public class MediaApplication extends Application {
             // Normally ConfigStore would be created in onCreate() above, but in some cases the
             // framework may create ContentProvider-s *before* the Application#onCreate() is called.
             // In this case we use the MediaProvider instance to create the ConfigStore.
-            sConfigStore = new ConfigStore.ConfigStoreImpl(getAppContext().getResources());
+            sConfigStore = sIsTestProcess ? ConfigStore.getDefaultConfigStore() :
+                    new ConfigStore.ConfigStoreImpl(getAppContext().getResources());
         }
         return sConfigStore;
     }

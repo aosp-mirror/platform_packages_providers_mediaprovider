@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package src.com.android.photopicker.data
+package com.android.photopicker.data
 
 import android.database.Cursor
 import android.database.MatrixCursor
@@ -22,7 +22,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.test.mock.MockContentProvider
-import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
@@ -55,9 +54,15 @@ val DEFAULT_MEDIA: List<Media> = listOf(
 )
 
 val DEFAULT_ALBUMS: List<Group.Album> = listOf(
-        createAlbum("Favorites"),
-        createAlbum("Downloads"),
-        createAlbum("CloudAlbum"),
+    createAlbum("Favorites"),
+    createAlbum("Downloads"),
+    createAlbum("CloudAlbum"),
+)
+
+val DEFAULT_ALBUM_NAME = "album_id"
+
+val DEFAULT_ALBUM_MEDIA: Map<String, List<Media>> = mapOf(
+    DEFAULT_ALBUM_NAME to DEFAULT_MEDIA
 )
 
 fun createMediaImage(pickerId: Long): Media {
@@ -90,7 +95,8 @@ fun createAlbum(albumId: String): Group.Album {
 class TestMediaProvider(
     var providers: List<Provider> = DEFAULT_PROVIDERS,
     var media: List<Media> = DEFAULT_MEDIA,
-    var albums: List<Group.Album> = DEFAULT_ALBUMS
+    var albums: List<Group.Album> = DEFAULT_ALBUMS,
+    var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
 
@@ -104,7 +110,15 @@ class TestMediaProvider(
             "available_providers" -> getAvailableProviders()
             "media" -> getMedia()
             "album" -> getAlbums()
-            else -> throw UnsupportedOperationException("Could not recognize uri $uri")
+            else -> {
+                val pathSegments: MutableList<String> = uri.getPathSegments()
+                if (pathSegments.size == 4 && pathSegments[2].equals("album")) {
+                    // Album media query
+                    return getAlbumMedia(pathSegments[3])
+                } else {
+                    throw UnsupportedOperationException("Could not recognize uri $uri")
+                }
+            }
         }
     }
 
@@ -145,7 +159,7 @@ class TestMediaProvider(
         return cursor
     }
 
-    private fun getMedia(): Cursor {
+    private fun getMedia(mediaItems: List<Media> = media): Cursor {
         val cursor = MatrixCursor(
             arrayOf(
                 MediaProviderClient.MediaResponse.MEDIA_ID.key,
@@ -161,21 +175,21 @@ class TestMediaProvider(
                 MediaProviderClient.MediaResponse.DURATION.key,
             )
         )
-        media.forEach {
-            media ->
+        mediaItems.forEach {
+            mediaItem ->
                 cursor.addRow(
                     arrayOf(
-                        media.mediaId,
-                        media.pickerId.toString(),
-                        media.authority,
-                        media.mediaSource.toString(),
-                        media.mediaUri.toString(),
-                        media.glideLoadableUri.toString(),
-                        media.dateTakenMillisLong.toString(),
-                        media.sizeInBytes.toString(),
-                        media.mimeType,
-                        media.standardMimeTypeExtension.toString(),
-                        if (media is Media.Video) media.duration else "0"
+                        mediaItem.mediaId,
+                        mediaItem.pickerId.toString(),
+                        mediaItem.authority,
+                        mediaItem.mediaSource.toString(),
+                        mediaItem.mediaUri.toString(),
+                        mediaItem.glideLoadableUri.toString(),
+                        mediaItem.dateTakenMillisLong.toString(),
+                        mediaItem.sizeInBytes.toString(),
+                        mediaItem.mimeType,
+                        mediaItem.standardMimeTypeExtension.toString(),
+                        if (mediaItem is Media.Video) mediaItem.duration else "0"
                     )
                 )
         }
@@ -210,6 +224,11 @@ class TestMediaProvider(
         }
         return cursor
     }
+
+    private fun getAlbumMedia(albumId: String): Cursor? {
+        return getMedia(albumMedia.getOrDefault(albumId, emptyList()))
+    }
+
 
     private fun initMedia(extras: Bundle?) {
         lastRefreshMediaRequest = extras

@@ -99,7 +99,8 @@
             android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
             android:process=":PhotoPicker"
             android:authorities="com.android.providers.media.remote_video_preview"
-            android:exported="false" />
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+            android:exported="true" />
 
         <!-- Don't initialise WorkManager by default at startup -->
         <provider

@@ -34,7 +34,9 @@ import android.test.mock.MockContentProvider
  */
 class MockContentProviderWrapper(val provider: ContentProvider) : MockContentProvider() {
 
-    val AUTHORITY = "MOCK_CONTENT_PROVIDER"
+    companion object {
+        val AUTHORITY = "MOCK_CONTENT_PROVIDER"
+    }
 
     /** Pass calls to the wrapped provider. */
     override fun openTypedAssetFile(
@@ -44,5 +46,10 @@ class MockContentProviderWrapper(val provider: ContentProvider) : MockContentPro
         cancellationSignal: CancellationSignal?
     ): AssetFileDescriptor? {
         return provider.openTypedAssetFile(uri, mimetype, opts, cancellationSignal)
+    }
+
+    /** Pass calls to the wrapped provider. */
+    override fun call(authority: String, method: String, arg: String?, extras: Bundle?): Bundle? {
+        return provider.call(authority, method, arg, extras)
     }
 }

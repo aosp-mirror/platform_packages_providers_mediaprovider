@@ -34,6 +34,7 @@ import com.android.photopicker.data.model.Provider
  */
 class AlbumMediaPagingSource(
     private val albumId: String,
+    private val albumAuthority: String,
     private val contentResolver: ContentResolver,
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
@@ -56,6 +57,7 @@ class AlbumMediaPagingSource(
 
             mediaProviderClient.fetchAlbumMedia(
                 albumId,
+                albumAuthority,
                 pageKey,
                 pageSize,
                 contentResolver,

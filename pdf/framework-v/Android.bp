@@ -49,7 +49,7 @@ java_sdk_library {
         "//packages/providers/MediaProvider:__subpackages__",
         "//cts/tests/pdf:__subpackages__",
     ],
-    min_sdk_version: "34",
+    min_sdk_version: "VanillaIceCream",
     jarjar_rules: "jarjar-rules-v.txt",
 }
 

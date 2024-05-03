@@ -26,6 +26,7 @@ import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.MediaPagingSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -58,7 +59,8 @@ class MediaPagingSourceTest {
         val mediaPagingSource = MediaPagingSource(
             contentResolver = contentResolver,
             availableProviders = availableProviders,
-            mediaProviderClient = mockMediaProviderClient
+            mediaProviderClient = mockMediaProviderClient,
+            dispatcher = StandardTestDispatcher(this.testScheduler)
         )
 
         val pageKey: MediaPageKey = MediaPageKey()

@@ -25,6 +25,8 @@ import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 
 /**
  * This [PagingSource] class is responsible to providing paginated album media data from Picker
@@ -38,6 +40,7 @@ class AlbumMediaPagingSource(
     private val contentResolver: ContentResolver,
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
+    private val dispatcher: CoroutineDispatcher,
 ) : PagingSource<MediaPageKey, Media>() {
     companion object {
         val TAG: String = "PickerAlbumMediaPagingSource"
@@ -46,26 +49,29 @@ class AlbumMediaPagingSource(
     override suspend fun load(
             params: LoadParams<MediaPageKey>
     ): LoadResult<MediaPageKey, Media> {
-        val pageKey = params.key ?: MediaPageKey()
-        val pageSize = params.loadSize
+        // Switch to the background thread from the main thread using [withContext].
+        return withContext(dispatcher) {
+            val pageKey = params.key ?: MediaPageKey()
+            val pageSize = params.loadSize
 
-        return try {
+            try {
 
-            if (availableProviders.isEmpty()) {
-                throw IllegalArgumentException("No available providers found.")
+                if (availableProviders.isEmpty()) {
+                    throw IllegalArgumentException("No available providers found.")
+                }
+
+                mediaProviderClient.fetchAlbumMedia(
+                        albumId,
+                        albumAuthority,
+                        pageKey,
+                        pageSize,
+                        contentResolver,
+                        availableProviders
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not fetch page from MediaProvider for album $albumId", e)
+                LoadResult.Error(e)
             }
-
-            mediaProviderClient.fetchAlbumMedia(
-                albumId,
-                albumAuthority,
-                pageKey,
-                pageSize,
-                contentResolver,
-                availableProviders
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Could not fetch page from MediaProvider for album $albumId", e)
-            LoadResult.Error(e)
         }
     }
 

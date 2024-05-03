@@ -57,6 +57,7 @@ import kotlinx.coroutines.sync.withLock
  *
  * @param userStatus A [StateFlow] with the current active user's details.
  * @param scope The [CoroutineScope] the data flows will be shared in.
+ * @param dispatcher A [CoroutineDispatcher] to run the coroutines in.
  * @param notificationService An instance of [NotificationService] responsible to listen to data
  * change notifications.
  * @param mediaProviderClient An instance of [MediaProviderClient] responsible to get data from
@@ -247,7 +248,8 @@ class DataServiceImpl(
                         album.authority,
                         contentResolver,
                         availableProviders,
-                        mediaProviderClient
+                        mediaProviderClient,
+                        dispatcher
                 )
 
                 albumMap.put(album.id, albumMediaPagingSource)
@@ -269,7 +271,8 @@ class DataServiceImpl(
             val albumPagingSource = AlbumPagingSource(
                 contentResolver,
                 availableProviders,
-                mediaProviderClient
+                mediaProviderClient,
+                dispatcher
             )
 
             albumPagingSources.add(albumPagingSource)
@@ -292,7 +295,8 @@ class DataServiceImpl(
             val mediaPagingSource = MediaPagingSource(
                 contentResolver,
                 availableProviders,
-                mediaProviderClient
+                mediaProviderClient,
+                dispatcher
             )
 
             mediaPagingSources.add(mediaPagingSource)

@@ -27,11 +27,15 @@ import java.util.ArrayList;
  * Database.
  */
 public class VideoMediaQuery extends MediaQuery {
-    public VideoMediaQuery(
-            @NonNull Bundle queryArgs, int pageSize) {
-        super(queryArgs);
+    public VideoMediaQuery(@NonNull Bundle queryArgs, int pageSize) {
+        this(queryArgs);
 
         mPageSize = pageSize;
+    }
+
+    public VideoMediaQuery(@NonNull Bundle queryArgs) {
+        super(queryArgs);
+
         if (mMimeTypes == null) {
             mMimeTypes = new ArrayList<String>();
         }

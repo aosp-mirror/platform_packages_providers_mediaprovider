@@ -201,6 +201,8 @@ class LocalUriMatcher {
 
         mPickerInternalV2.addURI(
                 auth, PickerUriResolverV2.BASE_PICKER_PATH + "*", PICKER_INTERNAL_V2);
+        mPickerInternalV2.addURI(
+                auth, PickerUriResolverV2.BASE_PICKER_PATH + "*/*", PICKER_INTERNAL_V2);
 
         mHidden.addURI(auth, "media_grants", MEDIA_GRANTS);
         mHidden.addURI(auth, "*", VOLUMES_ID);

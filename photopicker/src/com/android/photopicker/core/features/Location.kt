@@ -48,6 +48,8 @@ enum class Location {
      */
     NAVIGATION_BAR_NAV_BUTTON,
 
+    PROFILE_SELECTOR, // Where the profile switcher button is drawn
+
     /* SELECTION_BAR */
     SELECTION_BAR, // Where the selection bar should be drawn (when it is active).
     SELECTION_BAR_SECONDARY_ACTION, // Where the extra button is drawn on the selection bar.

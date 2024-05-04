@@ -26,6 +26,7 @@ import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.AlbumPagingSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -35,7 +36,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
-import src.com.android.photopicker.data.TestMediaProvider
+import com.android.photopicker.data.TestMediaProvider
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
@@ -58,7 +59,8 @@ class AlbumPagingSourceTest {
         val albumPagingSource = AlbumPagingSource(
             contentResolver = contentResolver,
             availableProviders = availableProviders,
-            mediaProviderClient = mockMediaProviderClient
+            mediaProviderClient = mockMediaProviderClient,
+            dispatcher = StandardTestDispatcher(this.testScheduler)
         )
 
         val pageKey = MediaPageKey()

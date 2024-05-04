@@ -20,4 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"Ընտրել"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"Չեղարկել ընտրությունը"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Նախադիտել"</string>
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Տեսանյութի նվագարկման սխալ"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Ստուգեք ձեր ինտերնետ կապը և նորից փորձեք"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Նորից փորձել"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Տեսանյութը հնարավոր չէ նվագարկել"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"Նվագարկել"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Դադարեցնել"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Անջատել ձայնը"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Միացնել ձայնը"</string>
 </resources>

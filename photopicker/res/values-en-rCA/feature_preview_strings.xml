@@ -20,4 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"Select"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"Deselect"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Preview"</string>
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Trouble playing video"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Check your internet connection and try again"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Retry"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Cannot play video"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"Play"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Pause"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Mute Volume"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Unmute Volume"</string>
 </resources>

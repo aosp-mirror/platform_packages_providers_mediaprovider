@@ -20,4 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"Izberi"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"Počisti izbiro"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Predogled"</string>
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Težave pri predvajanju videoposnetka"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Preverite internetno povezavo in poskusite znova"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Poskusi znova"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Videoposnetka ni mogoče predvajati"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"Predvajanje"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Začasna zaustavitev"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Izklop zvoka"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Vklop zvoka"</string>
 </resources>

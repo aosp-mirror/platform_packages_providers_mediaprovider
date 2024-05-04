@@ -347,7 +347,20 @@ public abstract class TabFragment extends Fragment {
         if (crossProfileAllowed != null) {
             crossProfileAllowed.observe(this, crossProfileAllowedStatus -> {
                 setUpProfileButtonAndProfileMenuButton();
-                // Todo(b/318339948): need to put log metrics like present above;
+                if (mIsProfileButtonVisible) {
+                    boolean isDisabled = true;
+                    UserId userIdToSwitch = getUserToSwitchFromProfileButton();
+                    if (userIdToSwitch != null) {
+                        isDisabled = !canSwitchToUser(userIdToSwitch);
+                    }
+                    if (isDisabled) {
+                        mPickerViewModel.logProfileSwitchButtonDisabled();
+                    } else {
+                        mPickerViewModel.logProfileSwitchButtonEnabled();
+                    }
+                } else if (mIsProfileMenuButtonVisible) {
+                    mPickerViewModel.logProfileSwitchMenuButtonVisible();
+                }
             });
         }
 
@@ -426,7 +439,7 @@ public abstract class TabFragment extends Fragment {
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             animateAndShowBottomBar(context, selectedItemListSize);
             if (selectedItemListSize == 0) {
-                mViewSelectedButton.setVisibility(View.GONE);
+                mViewSelectedButton.setVisibility(View.INVISIBLE);
                 // Update the add button to show "Allow none".
                 mAddButton.setText(R.string.picker_add_button_allow_none_option);
             }
@@ -508,6 +521,7 @@ public abstract class TabFragment extends Fragment {
 
     @RequiresApi(Build.VERSION_CODES.S)
     private void onClickProfileMenuButton(View view) {
+        mPickerViewModel.logProfileSwitchMenuButtonClick();
         initialiseProfileMenuWindow();
         View profileMenuView = LayoutInflater.from(requireContext()).inflate(
                 R.layout.profile_menu_layout, null);
@@ -659,7 +673,6 @@ public abstract class TabFragment extends Fragment {
             return;
         }
 
-
         updateProfileButtonAndProfileMenuButtonContent();
         updateProfileButtonAndProfileMenuButtonColor();
     }
@@ -718,8 +731,7 @@ public abstract class TabFragment extends Fragment {
 
     @RequiresApi(Build.VERSION_CODES.S)
     private void onClickProfileButtonGeneric() {
-        // todo add logs like above
-
+        mPickerViewModel.logProfileSwitchButtonClick();
         UserId userIdToSwitch = getUserToSwitchFromProfileButton();
         if (userIdToSwitch != null) {
             if (canSwitchToUser(userIdToSwitch)) {

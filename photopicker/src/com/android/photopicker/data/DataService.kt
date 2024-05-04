@@ -40,7 +40,7 @@ interface DataService {
     val availableProviders: StateFlow<List<Provider>>
 
     /** @return an instance of [PagingSource]. */
-    fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media>
+    fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media>
 
     /** @return an instance of [PagingSource]. */
     fun albumPagingSource(): PagingSource<MediaPageKey, Album>

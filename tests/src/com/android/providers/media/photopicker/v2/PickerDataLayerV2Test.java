@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.ALBUM_ID;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_1;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_2;
@@ -33,7 +34,9 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOC
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.MP4_VIDEO_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.STANDARD_MIME_TYPE_EXTENSION;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddAlbumMediaOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCursor;
@@ -374,6 +377,7 @@ public class PickerDataLayerV2Test {
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, DATE_TAKEN_MS, /* pageSize */ 2,
@@ -407,6 +411,7 @@ public class PickerDataLayerV2Test {
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
@@ -447,6 +452,7 @@ public class PickerDataLayerV2Test {
         assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
@@ -485,6 +491,7 @@ public class PickerDataLayerV2Test {
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
         try (Cursor cr = PickerDataLayerV2.queryMedia(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
@@ -674,7 +681,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             // Verify that merged albums are not displayed by default when cloud albums are
@@ -682,6 +689,259 @@ public class PickerDataLayerV2Test {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
                     .that(cr).isNull();
+        }
+    }
+
+    @Test
+    public void testFavoritesAlbumMediaWithCloudDisabled() {
+        Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, DATE_TAKEN_MS,
+                GIF_IMAGE_MIME_TYPE, /* isFavorite */ true);
+        Cursor cursor2 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor3 = getMediaCursor(CLOUD_ID_2, DATE_TAKEN_MS - 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, GIF_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cursor4 = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor4, 1);
+
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        LOCAL_PROVIDER),
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(1);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, GIF_IMAGE_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testFavoritesAlbumMediaWithLocalAndCloudItems() {
+        Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, DATE_TAKEN_MS,
+                GIF_IMAGE_MIME_TYPE, /* isFavorite */ true);
+        Cursor cursor2 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor3 = getMediaCursor(CLOUD_ID_2, DATE_TAKEN_MS - 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, GIF_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cursor4 = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor4, 1);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        LOCAL_PROVIDER),
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(3);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, GIF_IMAGE_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS, GIF_IMAGE_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, CLOUD_ID_2, CLOUD_PROVIDER, DATE_TAKEN_MS - 1,
+                    GIF_IMAGE_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testVideosMergedAlbumMediaWithCloudDisabled() {
+        Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, DATE_TAKEN_MS,
+                MP4_VIDEO_MIME_TYPE, /* isFavorite */ true);
+        Cursor cursor2 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor3 = getMediaCursor(CLOUD_ID_2, DATE_TAKEN_MS - 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cursor4 = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor4, 1);
+
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        LOCAL_PROVIDER),
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(1);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testVideosMergedAlbumMedia() {
+        Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, DATE_TAKEN_MS,
+                MP4_VIDEO_MIME_TYPE, /* isFavorite */ true);
+        Cursor cursor2 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor3 = getMediaCursor(CLOUD_ID_2, DATE_TAKEN_MS - 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+        Cursor cursor4 = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                GIF_IMAGE_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
+
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor4, 1);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        LOCAL_PROVIDER),
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(2);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, CLOUD_ID_2, CLOUD_PROVIDER, DATE_TAKEN_MS - 1,
+                    MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testLocalAlbumMediaQuery() {
+        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS + 1);
+        Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_2, /* cloudId */ null, DATE_TAKEN_MS);
+        Cursor cursor3 = getAlbumMediaCursor(/* localId */ null, CLOUD_ID_1, DATE_TAKEN_MS);
+
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        LOCAL_PROVIDER),
+                ALBUM_ID)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(2);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS + 1,
+                    MP4_VIDEO_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS,
+                    MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testCloudAlbumMediaQuery() {
+        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS + 1);
+        Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_2, /* cloudId */ null, DATE_TAKEN_MS);
+        Cursor cursor3 = getAlbumMediaCursor(/* localId */ null, CLOUD_ID_1, DATE_TAKEN_MS);
+
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        CLOUD_PROVIDER),
+                ALBUM_ID)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(1);
+
+            cr.moveToFirst();
+            assertMediaCursor(cr, CLOUD_ID_1, CLOUD_PROVIDER, DATE_TAKEN_MS,
+                    MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testCloudAlbumMediaQueryWhenCloudIsDisabled() {
+        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS + 1);
+        Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_2, /* cloudId */ null, DATE_TAKEN_MS);
+        Cursor cursor3 = getAlbumMediaCursor(/* localId */ null, CLOUD_ID_1, DATE_TAKEN_MS);
+
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
+
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        try (Cursor cr = PickerDataLayerV2.queryAlbumMedia(
+                mMockContext, getAlbumMediaQueryExtras(
+                        Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER)),
+                        CLOUD_PROVIDER),
+                ALBUM_ID)) {
+
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(0);
         }
     }
 
@@ -708,7 +968,7 @@ public class PickerDataLayerV2Test {
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -745,7 +1005,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -783,7 +1043,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -805,7 +1065,7 @@ public class PickerDataLayerV2Test {
     }
 
     @Test
-    public void testLocalFavoritessAlbum() {
+    public void testLocalFavoritesAlbum() {
         Cursor cursor1 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, JPEG_IMAGE_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
@@ -815,15 +1075,19 @@ public class PickerDataLayerV2Test {
         Cursor cursor3 = getMediaCursor(LOCAL_ID_3, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, PNG_IMAGE_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor4 = getMediaCursor(CLOUD_ID_1, DATE_TAKEN_MS + 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, PNG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
 
         assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
         assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
         assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor4, 1);
 
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -839,7 +1103,7 @@ public class PickerDataLayerV2Test {
     }
 
     @Test
-    public void testCloudFavoritessAlbum() {
+    public void testCloudFavoritesAlbum() {
         Cursor cursor1 = getMediaCursor(CLOUD_ID_1, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, JPEG_IMAGE_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ true);
@@ -849,15 +1113,19 @@ public class PickerDataLayerV2Test {
         Cursor cursor3 = getMediaCursor(CLOUD_ID_3, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 2, PNG_IMAGE_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor4 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS + 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, PNG_IMAGE_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
 
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
         assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor4, 1);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -896,7 +1164,7 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -906,7 +1174,7 @@ public class PickerDataLayerV2Test {
             cr.moveToFirst();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-                    CLOUD_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_1);
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_1);
 
             cr.moveToNext();
             // Videos album will be displayed by default
@@ -932,7 +1200,7 @@ public class PickerDataLayerV2Test {
                 DATE_TAKEN_MS, LOCAL_ID_2, LOCAL_PROVIDER);
         mLocalProvider.setQueryResult(cursor2);
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -965,7 +1233,7 @@ public class PickerDataLayerV2Test {
         Cursor cursor2 = getAlbumCursor("CloudAlbum", DATE_TAKEN_MS, CLOUD_ID_1, CLOUD_PROVIDER);
         mCloudProvider.setQueryResult(cursor2);
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -1008,7 +1276,7 @@ public class PickerDataLayerV2Test {
         Cursor cursor3 = getAlbumCursor("CloudAlbum", DATE_TAKEN_MS, CLOUD_ID_1, CLOUD_PROVIDER);
         mCloudProvider.setQueryResult(cursor3);
 
-        try (Cursor cr = PickerDataLayerV2.queryAlbum(
+        try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
@@ -1358,6 +1626,18 @@ public class PickerDataLayerV2Test {
                 providers
         );
         extras.putStringArrayList("mime_types", mimeTypes);
+        return extras;
+    }
+
+    private Bundle getAlbumMediaQueryExtras(Long pickerId, Long dateTakenMillis, int pageSize,
+            ArrayList<String> providers, String albumAuthority) {
+        Bundle extras = getMediaQueryExtras(
+                pickerId,
+                dateTakenMillis,
+                pageSize,
+                providers
+        );
+        extras.putString("album_authority", albumAuthority);
         return extras;
     }
 }

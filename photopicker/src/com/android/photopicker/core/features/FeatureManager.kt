@@ -23,6 +23,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
+import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
@@ -69,6 +70,7 @@ class FeatureManager(
                 SelectionBarFeature.Registration,
                 NavigationBarFeature.Registration,
                 PreviewFeature.Registration,
+                ProfileSelectorFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */

@@ -24,6 +24,8 @@ import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.withContext
 
 /**
  * This [PagingSource] class is responsible to providing paginated album data from Picker
@@ -35,6 +37,7 @@ class AlbumPagingSource(
     private val contentResolver: ContentResolver,
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
+    private val dispatcher: CoroutineDispatcher,
 ) : PagingSource<MediaPageKey, Album>() {
     companion object {
         val TAG: String = "PickerAlbumPagingSource"
@@ -43,23 +46,26 @@ class AlbumPagingSource(
     override suspend fun load(
             params: LoadParams<MediaPageKey>
     ): LoadResult<MediaPageKey, Album> {
-        val pageKey = params.key ?: MediaPageKey()
-        val pageSize = params.loadSize
+        // Switch to the background thread from the main thread using [withContext].
+        return withContext(dispatcher) {
+            val pageKey = params.key ?: MediaPageKey()
+            val pageSize = params.loadSize
 
-        return try {
-            if (availableProviders.isEmpty()) {
-                throw IllegalArgumentException("No available providers found.")
+            try {
+                if (availableProviders.isEmpty()) {
+                    throw IllegalArgumentException("No available providers found.")
+                }
+
+                mediaProviderClient.fetchAlbums(
+                        pageKey,
+                        pageSize,
+                        contentResolver,
+                        availableProviders
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Could not fetch page from Media provider", e)
+                LoadResult.Error(e)
             }
-
-            mediaProviderClient.fetchAlbums(
-                    pageKey,
-                    pageSize,
-                    contentResolver,
-                    availableProviders
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Could not fetch page from Media provider", e)
-            LoadResult.Error(e)
         }
     }
     override fun getRefreshKey(state: PagingState<MediaPageKey, Album>): MediaPageKey? = null

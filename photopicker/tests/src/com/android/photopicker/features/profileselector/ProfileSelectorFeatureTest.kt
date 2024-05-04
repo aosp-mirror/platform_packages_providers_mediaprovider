@@ -14,48 +14,39 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.photogrid
+package com.android.photopicker.features.profileselector
 
-import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
-import android.provider.MediaStore
+import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
-import com.android.photopicker.core.ApplicationModule
-import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -69,8 +60,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
@@ -83,13 +72,12 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
-    ApplicationModule::class,
     ConcurrencyModule::class,
     ViewModelModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
-class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
+class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
@@ -112,36 +100,34 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    /**
-     * PhotoGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
-     * Replace the injected ContentResolver binding in [ApplicationModule] with this test value.
-     */
-    @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
-    private lateinit var provider: MockContentProviderWrapper
-    @Mock lateinit var mockContentProvider: ContentProvider
+    @Inject lateinit var events: Events
+    @Inject lateinit var selection: Selection<Media>
+    @Inject lateinit var featureManager: FeatureManager
+    @Inject lateinit var userHandle: UserHandle
 
+    val contentResolver: ContentResolver = MockContentResolver()
+
+    // Needed for UserMonitor
+    @Inject lateinit var mockContext: Context
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-    @Inject lateinit var mockContext: Context
-    @Inject lateinit var selection: Selection<Media>
-    @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var events: Events
+    private val USER_HANDLE_MANAGED: UserHandle
+    private val USER_ID_MANAGED: Int = 10
+
+    init {
+
+        val parcel2 = Parcel.obtain()
+        parcel2.writeInt(USER_ID_MANAGED)
+        parcel2.setDataPosition(0)
+        USER_HANDLE_MANAGED = UserHandle(parcel2)
+        parcel2.recycle()
+    }
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-
         hiltRule.inject()
-
-        // Stub out the content resolver for Glide
-        provider = MockContentProviderWrapper(mockContentProvider)
-        contentResolver = ContentResolver.wrap(provider)
-
-        // Return a resource png so that glide actually has something to load
-        whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
-            getTestableContext().getResources().openRawResourceFd(R.drawable.android)
-        }
         // Stubs for UserMonitor
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
         whenever(mockContext.contentResolver) { contentResolver }
@@ -161,37 +147,15 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testPhotoGridIsAlwaysEnabled() {
-
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
-        assertWithMessage("PhotoGridFeature is not always enabled for TEST_ACTION")
-            .that(PhotoGridFeature.Registration.isEnabled(configOne))
-            .isEqualTo(true)
-
-        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
-        assertWithMessage("PhotoGridFeature is not always enabled")
-            .that(PhotoGridFeature.Registration.isEnabled(configTwo))
-            .isEqualTo(true)
-
-        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
-        assertWithMessage("PhotoGridFeature is not always enabled")
-            .that(PhotoGridFeature.Registration.isEnabled(configThree))
-            .isEqualTo(true)
-    }
-
-    @Test
-    fun testPhotoGridIsTheInitialRoute() {
-
-        // Explicitly create a new feature manager that uses the same production feature
-        // registrations to ensure this test will fail if the default production behavior changes.
-        val featureManager =
-            FeatureManager(
-                registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
-                scope = testBackgroundScope,
-                configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
-            )
-
+    fun testProfileSelectorIsShownWithMultipleProfiles() =
         mainScope.runTest {
+
+            // Initial setup state: Two profiles (Personal/Work), both enabled
+            whenever(mockUserManager.userProfiles) { listOf(userHandle, USER_HANDLE_MANAGED) }
+            whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
+            whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
+            whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { userHandle }
+
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -199,81 +163,76 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     events = events,
                 )
             }
-
-            advanceUntilIdle()
-
-            val route = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Initial route is not the PhotoGridFeature")
-                .that(route)
-                .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
-        }
-    }
-
-    @Test
-    fun testPhotosCanBeSelected() {
-
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-        val selectedString = resources.getString(R.string.photopicker_item_selected)
-
-        mainScope.runTest {
-            composeTestRule.setContent {
-                callPhotopickerMain(
-                    featureManager = featureManager,
-                    selection = selection,
-                    events = events,
-                )
-            }
-
-            assertWithMessage("Expected selection to initially be empty.")
-                .that(selection.snapshot().size)
-                .isEqualTo(0)
-
-            // Wait for the PhotoGridViewModel to load data and for the UI to update.
-            advanceTimeBy(100)
-            composeTestRule.waitForIdle()
-
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
-                .onFirst()
+                .onNode(
+                    hasContentDescription(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_profile_switch_button_description)
+                    )
+                )
+                .assertIsDisplayed()
+        }
+
+    @Test
+    fun testProfileSelectorIsNotShownOnlyOneProfile() =
+        mainScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+            composeTestRule
+                .onNode(
+                    hasContentDescription(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_profile_switch_button_description)
+                    )
+                )
+                .assertIsNotDisplayed()
+        }
+
+    @Test
+    fun testAvailableProfilesAreDisplayed() =
+        mainScope.runTest {
+            val resources = getTestableContext().getResources()
+
+            // Initial setup state: Two profiles (Personal/Work), both enabled
+            whenever(mockUserManager.userProfiles) { listOf(userHandle, USER_HANDLE_MANAGED) }
+            whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
+            whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
+            whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { userHandle }
+
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+            composeTestRule
+                .onNode(
+                    hasContentDescription(
+                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                    )
+                )
+                .assertIsDisplayed()
+                .assert(hasClickAction())
                 .performClick()
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
-
-            // Ensure the selected semantics got applied to the selected node.
-            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
-            // Ensure the click handler correctly ran by checking the selection snapshot.
-            assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
-                .isEqualTo(1)
-        }
-    }
-
-    @Test
-    fun testPhotosAreDisplayed() {
-
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
-        mainScope.runTest {
-            composeTestRule.setContent {
-                callPhotopickerMain(
-                    featureManager = featureManager,
-                    selection = selection,
-                    events = events,
-                )
-            }
-
-            // Wait for the PhotoGridViewModel to load data and for the UI to update.
-            advanceTimeBy(100)
-            composeTestRule.waitForIdle()
-
+            // Ensure personal profile option exists
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
-                .onFirst()
+                .onNode(hasText(resources.getString(R.string.photopicker_profile_primary_label)))
+                .assert(hasClickAction())
+                .assertIsDisplayed()
+
+            // Ensure managed profile option exists
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_profile_managed_label)))
                 .assert(hasClickAction())
                 .assertIsDisplayed()
         }
-    }
 }

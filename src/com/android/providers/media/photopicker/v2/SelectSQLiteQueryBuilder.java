@@ -31,6 +31,10 @@ import java.util.List;
  * This is a thin wrapper around {@link android.database.sqlite.SQLiteQueryBuilder}.
  */
 public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQueryBuilder> {
+    @NonNull
+    private SQLiteDatabase mDatabase;
+    @NonNull
+    private String mTables;
     @Nullable
     private String[] mProjection;
     @Nullable
@@ -42,6 +46,15 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
 
     public SelectSQLiteQueryBuilder(@NonNull SQLiteDatabase database) {
         super(database);
+
+        mDatabase = database;
+    }
+
+    @Override
+    public SelectSQLiteQueryBuilder setTables(@Nullable String inTables) {
+        super.setTables(inTables);
+        mTables = inTables;
+        return this;
     }
 
     /**
@@ -133,6 +146,20 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
                 mSortOrder,
                 buildLimitClause()
         );
+    }
+
+    /**
+     * @return The SQLiteDatabase instance this query will run on.
+     */
+    public SQLiteDatabase getDatabase() {
+        return mDatabase;
+    }
+
+    /**
+     * @return The SQLiteDatabase instance this query will run on.
+     */
+    public String getTables() {
+        return mTables;
     }
 
     /**

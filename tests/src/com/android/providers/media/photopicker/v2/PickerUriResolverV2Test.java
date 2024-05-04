@@ -42,7 +42,7 @@ public class PickerUriResolverV2Test {
     @Test
     public void testAlbumContentQuery() {
         assertEquals(PickerUriResolverV2.sUriMatcher.match(
-                Uri.parse("content://media/picker_internal/v2/album_content")),
+                Uri.parse("content://media/picker_internal/v2/album/album_id")),
                 PickerUriResolverV2.PICKER_INTERNAL_ALBUM_CONTENT
         );
     }

@@ -370,9 +370,27 @@ public class LocalUriMatcherTest {
                 /* isCallerPhotoPicker */ true)
         );
 
-        // Don't allow if the caller is Photo Picker
+        // Don't allow if the caller is not Photo Picker
         assertEquals(UriMatcher.NO_MATCH, mMatcher.matchUri(
                 uri,
+                /* allowHidden */ true,
+                /* isCallerPhotoPicker */ false)
+        );
+
+        Uri albumMediauri = assembleTestUri(new String[] {
+                "picker_internal", "v2", "album/album_id"
+        });
+
+        // Allow if the caller is Photo Picker
+        assertEquals(match, mMatcher.matchUri(
+                albumMediauri,
+                /* allowHidden */ false,
+                /* isCallerPhotoPicker */ true)
+        );
+
+        // Don't allow if the caller is not Photo Picker
+        assertEquals(UriMatcher.NO_MATCH, mMatcher.matchUri(
+                albumMediauri,
                 /* allowHidden */ true,
                 /* isCallerPhotoPicker */ false)
         );

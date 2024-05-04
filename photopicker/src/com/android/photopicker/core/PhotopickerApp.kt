@@ -16,14 +16,19 @@
 
 package com.android.photopicker.core
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,11 +43,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
+
+private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is
@@ -78,7 +86,10 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 windowInsets = WindowInsets.systemBars,
             ) {
-                Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomEnd) {
+                Box(
+                    modifier = Modifier.fillMaxHeight(),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
                     PhotopickerMain()
                     LocalFeatureManager.current.composeLocation(
                         Location.SELECTION_BAR,
@@ -133,12 +144,29 @@ fun PhotopickerMain() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
-            // The navigation bar is drawn above the navigation graph
-            LocalFeatureManager.current.composeLocation(
-                Location.NAVIGATION_BAR,
-                maxSlots = 1,
-                modifier = Modifier,
-            )
+            // The navigation bar and profile switcher are drawn above the navigation graph
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .padding(horizontal = MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LocalFeatureManager.current.composeLocation(
+                    Location.PROFILE_SELECTOR,
+                    maxSlots = 1,
+                    // Weight should match the overflow menu slot so they are the same size.
+                    modifier = Modifier.weight(1f),
+                )
+                LocalFeatureManager.current.composeLocation(
+                    Location.NAVIGATION_BAR,
+                    maxSlots = 1,
+                    modifier = Modifier,
+                )
+                // Placeholder for overflow menu
+                // Weight should match the profile switcher slot so they are the same size.
+                Spacer(Modifier.weight(1f))
+            }
             // Initialize the navigation graph.
             PhotopickerNavGraph()
         }

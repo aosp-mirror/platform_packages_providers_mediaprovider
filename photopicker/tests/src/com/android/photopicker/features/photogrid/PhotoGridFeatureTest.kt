@@ -20,6 +20,9 @@ import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.UserHandle
+import android.os.UserManager
 import android.provider.MediaStore
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
@@ -50,6 +53,7 @@ import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
+import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
@@ -73,6 +77,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.anyString
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -114,8 +120,10 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     private lateinit var provider: MockContentProviderWrapper
     @Mock lateinit var mockContentProvider: ContentProvider
 
-    @BindValue val context: Context = getTestableContext()
+    @Mock lateinit var mockUserManager: UserManager
+    @Mock lateinit var mockPackageManager: PackageManager
 
+    @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
@@ -133,6 +141,22 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
         // Return a resource png so that glide actually has something to load
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
+        }
+        // Stubs for UserMonitor
+        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockContext.contentResolver) { contentResolver }
+        whenever(mockContext.packageManager) { mockPackageManager }
+        whenever(mockContext.packageName) { "com.android.photopicker" }
+
+        // Recursively return the same mockContext for all user packages to keep the stubing simple.
+        whenever(
+            mockContext.createPackageContextAsUser(
+                anyString(),
+                anyInt(),
+                any(UserHandle::class.java)
+            )
+        ) {
+            mockContext
         }
     }
 

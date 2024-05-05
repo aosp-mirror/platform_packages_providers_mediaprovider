@@ -25,5 +25,28 @@
   <!-- Button label for the "Preview" button in the selection bar -->
   <string name="photopicker_preview_button_label" translation_description="Button label to navigate to a screen and preview the selected media.">Preview</string>
 
+  <!-- Dialog title for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_title" translation_description="Dialog title for when a video cannot be played.">Trouble playing video</string>
+
+  <!-- Dialog message for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_message" translation_description="Dialog message for when a video cannot be played due to an internet connection issue.">Check your internet connection and try again</string>
+
+  <!-- Dialog message for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_retry_button_label" translation_description="Button label to allow a user to attempt to play a video again after an error.">Retry</string>
+
+  <!-- Snackbar message for Preview video errors -->
+  <string name="photopicker_preview_video_error_snackbar" translation_description="Snackbar message shown to the user when the requested video cannot be played.">Cannot play video</string>
+
+  <!-- A11y description for the Play button -->
+  <string name="photopicker_video_play_button_description" translation_description="Accessibility description for a video player Play button">Play</string>
+
+  <!-- A11y description for the Pause button -->
+  <string name="photopicker_video_pause_button_description" translation_description="Accessibility description for a video player Pause button">Pause</string>
+
+  <!-- A11y description for the Mute button -->
+  <string name="photopicker_video_mute_button_description" translation_description="Accessibility description for a video player volume Mute button">Mute Volume</string>
+
+  <!-- A11y description for the Unmute button -->
+  <string name="photopicker_video_unmute_button_description" translation_description="Accessibility description for a video player volume Unmute button">Unmute Volume</string>
 
 </resources>

@@ -18,7 +18,6 @@ package com.android.photopicker.features.navigationbar
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -49,8 +48,8 @@ private val MEASUREMENT_SPACER_SIZE = 6.dp
 fun NavigationBar(modifier: Modifier) {
 
     Row(
-        // Consume the incoming modifier, and ensure the bar always fills the full width.
-        modifier = modifier.fillMaxWidth(),
+        // Consume the incoming modifier
+        modifier = modifier,
         horizontalArrangement = Arrangement.Center,
     ) {
         // Buttons are provided by registered features, so request for the features to fill this

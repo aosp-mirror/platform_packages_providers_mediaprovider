@@ -49,6 +49,12 @@ open class MediaProviderClient {
         PROVIDERS("providers"),
     }
 
+    /** Contains all mandatory keys required to make an Album Media query that are not present in
+     * [MediaQuery] already. */
+    private enum class AlbumMediaQuery(val key: String) {
+        ALBUM_AUTHORITY("album_authority"),
+    }
+
     /** Contains all optional and mandatory keys for data in the Available Providers query
      * response.
      */
@@ -144,7 +150,7 @@ open class MediaProviderClient {
                         data = cursor.getListOfMedia(),
                         prevKey = cursor.getPrevPageKey(),
                         nextKey = cursor.getNextPageKey())
-            } ?: throw IllegalStateException("Received a null response from Content Provider")
+                } ?: throw IllegalStateException("Received a null response from Content Provider")
             }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch media", e)
@@ -183,10 +189,52 @@ open class MediaProviderClient {
                         data = cursor.getListOfAlbums(),
                         prevKey = cursor.getPrevPageKey(),
                         nextKey = cursor.getNextPageKey())
-            } ?: throw IllegalStateException("Received a null response from Content Provider")
+                } ?: throw IllegalStateException("Received a null response from Content Provider")
             }
         } catch (e: RuntimeException) {
-            throw RuntimeException("Could not fetch media", e)
+            throw RuntimeException("Could not fetch albums", e)
+        }
+    }
+
+    /**
+     * Fetch a list of [Media] from MediaProvider for the given page key.
+     */
+    fun fetchAlbumMedia(
+            albumId: String,
+            albumAuthority: String,
+            pageKey: MediaPageKey,
+            pageSize: Int,
+            contentResolver: ContentResolver,
+            availableProviders: List<Provider>,
+    ): LoadResult<MediaPageKey, Media> {
+        val input: Bundle = bundleOf (
+                AlbumMediaQuery.ALBUM_AUTHORITY.key to albumAuthority,
+                MediaQuery.PICKER_ID.key to pageKey.pickerId,
+                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
+                MediaQuery.PAGE_SIZE.key to pageSize,
+                MediaQuery.PROVIDERS.key to ArrayList<String>().apply {
+                    availableProviders.forEach { provider ->
+                        add(provider.authority)
+                    }
+                }
+        )
+
+        try {
+            return contentResolver.query(
+                    getAlbumMediaUri(albumId),
+                    /* projection */ null,
+                    input,
+                    /* cancellationSignal */ null // TODO
+            ).use {
+                cursor -> cursor?.let {
+                LoadResult.Page(
+                        data = cursor.getListOfMedia(),
+                        prevKey = cursor.getPrevPageKey(),
+                        nextKey = cursor.getNextPageKey())
+                } ?: throw IllegalStateException("Received a null response from Content Provider")
+            }
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch album media", e)
         }
     }
 

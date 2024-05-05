@@ -43,7 +43,8 @@ class TestDataServiceImpl() : DataService {
 
     override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
 
-    override fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
+    override fun albumMediaPagingSource(album: Album):
+            PagingSource<MediaPageKey, Media> =
         throw NotImplementedError("This method is not implemented yet.")
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> =

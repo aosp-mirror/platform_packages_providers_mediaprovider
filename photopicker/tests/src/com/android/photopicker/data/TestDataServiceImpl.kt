@@ -43,8 +43,10 @@ import kotlinx.coroutines.flow.StateFlow
 class TestDataServiceImpl() : DataService {
     override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
 
-    override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
+        // reusing media paging source.
+        return FakeInMemoryMediaPagingSource()
+    }
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> {
         return FakeInMemoryAlbumPagingSource()

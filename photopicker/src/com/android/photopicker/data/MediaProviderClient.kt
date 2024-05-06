@@ -49,6 +49,12 @@ open class MediaProviderClient {
         PROVIDERS("providers"),
     }
 
+    /** Contains all mandatory keys required to make an Album Media query that are not present in
+     * [MediaQuery] already. */
+    private enum class AlbumMediaQuery(val key: String) {
+        ALBUM_AUTHORITY("album_authority"),
+    }
+
     /** Contains all optional and mandatory keys for data in the Available Providers query
      * response.
      */
@@ -195,12 +201,14 @@ open class MediaProviderClient {
      */
     fun fetchAlbumMedia(
             albumId: String,
+            albumAuthority: String,
             pageKey: MediaPageKey,
             pageSize: Int,
             contentResolver: ContentResolver,
             availableProviders: List<Provider>,
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle = bundleOf (
+                AlbumMediaQuery.ALBUM_AUTHORITY.key to albumAuthority,
                 MediaQuery.PICKER_ID.key to pageKey.pickerId,
                 MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
                 MediaQuery.PAGE_SIZE.key to pageSize,

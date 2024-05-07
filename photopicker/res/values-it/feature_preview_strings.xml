@@ -20,20 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"Seleziona"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"Deseleziona"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Anteprima"</string>
-    <!-- no translation found for photopicker_preview_dialog_error_title (3285599941790002206) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_message (1945612118302563356) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_retry_button_label (6246977209614737255) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_video_error_snackbar (5090849265316922614) -->
-    <skip />
-    <!-- no translation found for photopicker_video_play_button_description (5708220946927401230) -->
-    <skip />
-    <!-- no translation found for photopicker_video_pause_button_description (7283388320356598588) -->
-    <skip />
-    <!-- no translation found for photopicker_video_mute_button_description (982357994508317757) -->
-    <skip />
-    <!-- no translation found for photopicker_video_unmute_button_description (8194626942498103715) -->
-    <skip />
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Errore durante la riproduzione del video"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Controlla la connessione a internet e riprova"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Riprova"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Impossibile riprodurre il video"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"Riproduci"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Metti in pausa"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Disattiva volume"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Riattiva audio del volume"</string>
 </resources>

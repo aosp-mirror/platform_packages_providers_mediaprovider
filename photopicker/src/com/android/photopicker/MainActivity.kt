@@ -27,7 +27,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -97,6 +96,7 @@ class MainActivity : Hilt_MainActivity() {
         // Begin listening for events before starting the UI.
         listenForEvents()
 
+
         // In single select sessions, the activity needs to end after a media object is selected,
         // so register a listener to the selection so the activity can handle calling
         // [onMediaSelectionConfirmed] itself. For multi-select, the activity has to wait to receive
@@ -106,7 +106,6 @@ class MainActivity : Hilt_MainActivity() {
         setContent {
             val photopickerConfiguration by
                 configurationManager.configuration.collectAsStateWithLifecycle()
-
             // Provide values to the entire compose stack.
             CompositionLocalProvider(
                 LocalFeatureManager provides featureManager.get(),
@@ -114,7 +113,9 @@ class MainActivity : Hilt_MainActivity() {
                 LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
             ) {
-                PhotopickerTheme { PhotopickerAppWithBottomSheet(onDismissRequest = ::finish) }
+                PhotopickerTheme(intent = photopickerConfiguration.intent) {
+                    PhotopickerAppWithBottomSheet(onDismissRequest = ::finish)
+                }
             }
         }
     }
@@ -142,7 +143,6 @@ class MainActivity : Hilt_MainActivity() {
 
     /** Setup an [Event] listener for the [MainActivity] to monitor the event bus. */
     private fun listenForEvents() {
-
         lifecycleScope.launch {
             events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
                 ->

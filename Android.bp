@@ -93,8 +93,6 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
-
     lint: {
         strict_updatability_linting: true,
         baseline_filename: "lint-baseline.xml",
@@ -175,6 +173,7 @@ sh_binary {
 aconfig_declarations {
     name: "mediaprovider_flags",
     package: "com.android.providers.media.flags",
+    container: "com.android.mediaprovider",
     srcs: ["mediaprovider_flags.aconfig"],
 }
 

@@ -94,8 +94,6 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
-
     lint: {
         baseline_filename: "lint-baseline.xml",
     },

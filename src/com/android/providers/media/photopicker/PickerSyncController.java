@@ -72,6 +72,7 @@ import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -875,6 +876,8 @@ public class PickerSyncController {
             final int writeCount = operation.execute(null /* cursor */);
             operation.setSuccess();
 
+            PickerNotificationSender.notifyMediaChange(mContext);
+
             Log.i(TAG, "SyncReset. isLocal:" + isLocal + ". authority: " + authority
                     +  ". result count: " + writeCount);
         } finally {
@@ -1536,6 +1539,10 @@ public class PickerSyncController {
                     }
                 }
 
+                // Only send a media update notification if the media table is getting updated.
+                if (albumId == null) {
+                    PickerNotificationSender.notifyMediaChange(mContext);
+                }
             } while (nextPageToken != null);
 
             Log.i(

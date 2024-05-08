@@ -46,27 +46,33 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataServiceImplTest {
+    companion object {
+        private val mediaUpdateUri =
+            Uri.parse("content://media/picker_internal/v2/media/update")
+        private val availableProvidersUpdateUri =
+            Uri.parse("content://media/picker_internal/v2/available_providers/update")
+        private val userProfilePrimary: UserProfile = UserProfile(
+            identifier = 0,
+            profileType = UserProfile.ProfileType.PRIMARY
+        )
+        private val userProfileManaged: UserProfile = UserProfile(
+            identifier = 10,
+            profileType = UserProfile.ProfileType.MANAGED
+        )
+    }
 
     private lateinit var testContentProvider: TestMediaProvider
     private lateinit var testContentResolver: ContentResolver
     private lateinit var notificationService: TestNotificationServiceImpl
     private lateinit var mediaProviderClient: MediaProviderClient
-    private val userProfilePrimary: UserProfile = UserProfile(
-        identifier = 0,
-        profileType = UserProfile.ProfileType.PRIMARY
-    )
-    private val userProfileManaged: UserProfile = UserProfile(
-            identifier = 10,
-            profileType = UserProfile.ProfileType.MANAGED
-    )
     private lateinit var userStatus: UserStatus
-
 
     @Before
     fun setup() {
@@ -171,8 +177,7 @@ class DataServiceImplTest {
             ),
         )
 
-        notificationService.dispatchChangeToObservers(
-            Uri.parse("content://media/picker_internal/v2/available_providers/update"))
+        notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
 
         advanceTimeBy(100)
 
@@ -254,7 +259,8 @@ class DataServiceImplTest {
 
         advanceTimeBy(100)
 
-        // Since the active user has changed, this should trigger a refetch of the active providers.
+        // Since the active user has changed, this should trigger a re-fetch of the active
+        // providers.
         assertThat(emissions.count()).isEqualTo(3)
 
         // The first emission will be an empty list.
@@ -277,7 +283,7 @@ class DataServiceImplTest {
     }
 
     @Test
-    fun testAvailableProviderContentObserverWhenUserChanges() = runTest {
+    fun testContentObserverRegistrationWhenUserChanges() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
         val mockNotificationService = mock(NotificationService::class.java)
 
@@ -302,11 +308,19 @@ class DataServiceImplTest {
         val defaultContentObserver: ContentObserver = object : ContentObserver(/* handler */ null) {
             override fun onChange(selfChange: Boolean, uri: Uri?) { }
         }
+
         verify(mockNotificationService)
             .registerContentObserverCallback(
                 nonNullableEq(testContentResolver),
-                nonNullableEq(Uri.parse(
-                        "content://media/picker_internal/v2/available_providers/update")),
+                nonNullableEq(availableProvidersUpdateUri),
+                ArgumentMatchers.eq(true),
+                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+            )
+
+        verify(mockNotificationService)
+            .registerContentObserverCallback(
+                nonNullableEq(testContentResolver),
+                nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
                 nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
             )
@@ -336,7 +350,7 @@ class DataServiceImplTest {
 
         advanceTimeBy(100)
 
-        verify(mockNotificationService)
+        verify(mockNotificationService, times(2))
             .unregisterContentObserverCallback(
                 nonNullableEq(testContentResolver),
                 nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
@@ -345,8 +359,15 @@ class DataServiceImplTest {
         verify(mockNotificationService)
             .registerContentObserverCallback(
                 nonNullableEq(updatedContentResolver),
-                nonNullableEq(Uri.parse(
-                        "content://media/picker_internal/v2/available_providers/update")),
+                nonNullableEq(availableProvidersUpdateUri),
+                ArgumentMatchers.eq(true),
+                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+            )
+
+        verify(mockNotificationService)
+            .registerContentObserverCallback(
+                nonNullableEq(updatedContentResolver),
+                nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
                 nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
             )
@@ -401,7 +422,8 @@ class DataServiceImplTest {
 
         advanceTimeBy(1000)
 
-        // Since the active user has changed, this should trigger a refetch of the active providers.
+        // Since the active user has changed, this should trigger a re-fetch of the active
+        // providers.
         assertThat(emissions.count()).isEqualTo(3)
 
         // Check that the previously created MediaPagingSource has been invalidated.
@@ -462,7 +484,8 @@ class DataServiceImplTest {
         }
         advanceTimeBy(100)
 
-        // Since the active user has changed, this should trigger a refetch of the active providers.
+        // Since the active user has changed, this should trigger a re-fetch of the active
+        // providers.
         assertThat(emissions.count()).isEqualTo(3)
 
         // Check that the previously created MediaPagingSource has been invalidated.
@@ -625,5 +648,44 @@ class DataServiceImplTest {
         val secondAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
         assertThat(secondAlbumMediaPagingSource).isNotNull()
         assertThat(secondAlbumMediaPagingSource).isNotEqualTo(secondAlbumMediaRefreshRequest)
+    }
+
+    @Test
+    fun testOnUpdateMediaNotification() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        val dataService: DataService = DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler)
+        )
+        advanceTimeBy(100)
+
+        val firstMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.mediaPagingSource()
+        assertThat(firstMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache refresh request was received
+        val firstMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(firstMediaRefreshRequest).isNotNull()
+
+        // Send a media update notification
+        notificationService.dispatchChangeToObservers(mediaUpdateUri)
+        advanceTimeBy(100)
+
+        // Check that the first media paging source was marked as invalid
+        assertThat(firstMediaPagingSource.invalid).isTrue()
+
+        // Check that the a new PagingSource instance was created which is still valid
+        val secondMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.mediaPagingSource()
+        assertThat(secondMediaPagingSource).isNotEqualTo(firstMediaPagingSource)
+        assertThat(secondMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache update request was not received a second time
+        val lastMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(lastMediaRefreshRequest).isEqualTo(firstMediaRefreshRequest)
     }
 }

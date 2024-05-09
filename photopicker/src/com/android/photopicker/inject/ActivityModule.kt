@@ -254,6 +254,7 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
+        @ActivityRetainedScoped configurationManager: ConfigurationManager,
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped handle: UserHandle,
@@ -265,7 +266,8 @@ class ActivityModule {
                 UserMonitor.TAG,
                 "UserMonitor requested but not yet initialized. Initializing UserMonitor."
             )
-            userMonitor = UserMonitor(context, scope, dispatcher, handle)
+            userMonitor =
+                UserMonitor(context, configurationManager.configuration, scope, dispatcher, handle)
             return userMonitor
         }
     }

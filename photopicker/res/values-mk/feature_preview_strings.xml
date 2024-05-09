@@ -20,20 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"Избери"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"Поништи го изборот"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Прикажи"</string>
-    <!-- no translation found for photopicker_preview_dialog_error_title (3285599941790002206) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_message (1945612118302563356) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_retry_button_label (6246977209614737255) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_video_error_snackbar (5090849265316922614) -->
-    <skip />
-    <!-- no translation found for photopicker_video_play_button_description (5708220946927401230) -->
-    <skip />
-    <!-- no translation found for photopicker_video_pause_button_description (7283388320356598588) -->
-    <skip />
-    <!-- no translation found for photopicker_video_mute_button_description (982357994508317757) -->
-    <skip />
-    <!-- no translation found for photopicker_video_unmute_button_description (8194626942498103715) -->
-    <skip />
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Проблем со пуштањето на видеото"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Проверете ја интернет-врската и обидете се повторно"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Обиди се пак"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Видеото не може да се пушти"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"Пушти"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Паузирај"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Исклучете го звукот"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Вклучете го звукот"</string>
 </resources>

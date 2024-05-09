@@ -83,6 +83,14 @@
             ]
         },
         {
+            "name": "CtsMediaProviderTestCases",
+            "options": [
+                {
+                    "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
+        },
+        {
             "name": "CtsScopedStorageCoreHostTest",
             "options": [
                 {
@@ -164,10 +172,10 @@
             ]
         },
         {
-            "name": "CtsProviderTestCases",
+            "name": "CtsMediaProviderTestCases",
             "options": [
                 {
-                    "include-filter": "android.provider.cts.media."
+                    "exclude-annotation": "androidx.test.filters.FlakyTest"
                 }
             ]
         },

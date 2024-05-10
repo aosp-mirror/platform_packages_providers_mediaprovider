@@ -45,10 +45,10 @@ import com.android.providers.media.MediaProviderStatsLog;
 public class Metrics {
     public static void logScan(@NonNull String volumeName, int reason, long itemCount,
             long durationMillis, int insertCount, int updateCount, int deleteCount) {
-        Logging.logPersistent(String.format(
+        Logging.logPersistent(
                 "Scanned %s due to %s, found %d items in %dms, %d inserts %d updates %d deletes",
                 volumeName, translateReason(reason), itemCount, durationMillis, insertCount,
-                updateCount, deleteCount));
+                updateCount, deleteCount);
 
         final float normalizedDurationMillis = ((float) durationMillis) / itemCount;
         final float normalizedInsertCount = ((float) insertCount) / itemCount;
@@ -90,9 +90,9 @@ public class Metrics {
 
     public static void logPermissionGranted(@NonNull String volumeName, int uid, String packageName,
             int itemCount) {
-        Logging.logPersistent(String.format(
+        Logging.logPersistent(
                 "Granted permission to %3$d items on %1$s to %2$s",
-                volumeName, packageName, itemCount));
+                volumeName, packageName, itemCount);
 
         MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_REQUESTED,
                 translateVolumeName(volumeName), uid, itemCount,
@@ -101,9 +101,9 @@ public class Metrics {
 
     public static void logPermissionDenied(@NonNull String volumeName, int uid, String packageName,
             int itemCount) {
-        Logging.logPersistent(String.format(
+        Logging.logPersistent(
                 "Denied permission to %3$d items on %1$s to %2$s",
-                volumeName, packageName, itemCount));
+                volumeName, packageName, itemCount);
 
         MediaProviderStatsLog.write(MEDIA_PROVIDER_PERMISSION_REQUESTED,
                 translateVolumeName(volumeName), uid, itemCount,
@@ -112,9 +112,9 @@ public class Metrics {
 
     public static void logSchemaChange(@NonNull String volumeName, int versionFrom, int versionTo,
             long itemCount, long durationMillis, @NonNull String databaseUuid) {
-        Logging.logPersistent(String.format(
+        Logging.logPersistent(
                 "Changed schema version on %s from %d to %d, %d items taking %dms UUID %s",
-                volumeName, versionFrom, versionTo, itemCount, durationMillis, databaseUuid));
+                volumeName, versionFrom, versionTo, itemCount, durationMillis, databaseUuid);
 
         final float normalizedDurationMillis = ((float) durationMillis) / itemCount;
 
@@ -125,9 +125,9 @@ public class Metrics {
 
     public static void logIdleMaintenance(@NonNull String volumeName, long itemCount,
             long durationMillis, int staleThumbnails, int expiredMedia) {
-        Logging.logPersistent(String.format(
+        Logging.logPersistent(
                 "Idle maintenance on %s, %d items taking %dms, %d stale, %d expired",
-                volumeName, itemCount, durationMillis, staleThumbnails, expiredMedia));
+                volumeName, itemCount, durationMillis, staleThumbnails, expiredMedia);
 
         final float normalizedDurationMillis = ((float) durationMillis) / itemCount;
         final float normalizedStaleThumbnails = ((float) staleThumbnails) / itemCount;

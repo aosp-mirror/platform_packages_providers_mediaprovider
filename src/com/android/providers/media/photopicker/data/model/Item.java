@@ -21,16 +21,16 @@ import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIM
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO;
 
+import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorInt;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
-import android.provider.CloudMediaProviderContract;
-import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
@@ -38,13 +38,23 @@ import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.glide.GlideLoadable;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
 import com.android.providers.media.util.MimeUtils;
 
+import java.util.Objects;
+
 /**
- * Base class representing one single entity/item in the PhotoPicker.
+ * Base class for representing a single media item (a picture, a video, etc.) in the PhotoPicker.
  */
 public class Item {
+    public static final Item EMPTY_VIEW = new Item("EMPTY_VIEW");
+    public static final String ROW_ID = "row_id";
+
+    /**
+     * This id represents the cloud id or the local id of the media, with priority given to cloud id
+     * if present.
+     */
     private String mId;
     private long mDateTaken;
     private long mGenerationModified;
@@ -54,9 +64,13 @@ public class Item {
     private boolean mIsImage;
     private boolean mIsVideo;
     private int mSpecialFormat;
-    private boolean mIsDate;
 
-    private Item() {}
+    private boolean mIsPreGranted;
+
+    /**
+     * This is the row id for the item in the db.
+     */
+    private int mRowId;
 
     public Item(@NonNull Cursor cursor, @NonNull UserId userId) {
         updateFromCursor(cursor, userId);
@@ -73,6 +87,10 @@ public class Item {
         mUri = uri;
         mSpecialFormat = specialFormat;
         parseMimeType();
+    }
+
+    private Item(String id) {
+        this(id, null, 0, 0, 0, null, 0);
     }
 
     public String getId() {
@@ -103,10 +121,6 @@ public class Item {
         return mSpecialFormat == _SPECIAL_FORMAT_MOTION_PHOTO;
     }
 
-    public boolean isDate() {
-        return mIsDate;
-    }
-
     public Uri getContentUri() {
         return mUri;
     }
@@ -132,23 +146,22 @@ public class Item {
         return mSpecialFormat;
     }
 
-    public static Item fromCursor(Cursor cursor, UserId userId) {
-        assert(cursor != null);
-        final Item item = new Item(cursor, userId);
-        return item;
+    public int getRowId() {
+        return mRowId;
     }
 
     /**
-     * Return the date item. If dateTaken is 0, it is a recent item.
-     * @param dateTaken the time of date taken. The unit is in milliseconds
-     *                  since January 1, 1970 00:00:00.0 UTC.
-     * @return the item with date type
+     * Setting this represents that the item has READ_GRANT for the current package.
      */
-    public static Item createDateItem(long dateTaken) {
-        final Item item = new Item();
-        item.mIsDate = true;
-        item.mDateTaken = dateTaken;
-        return item;
+    public void setPreGranted() {
+        mIsPreGranted = true;
+    }
+    public boolean isPreGranted() {
+        return mIsPreGranted;
+    }
+
+    public static Item fromCursor(@NonNull Cursor cursor, UserId userId) {
+        return new Item(requireNonNull(cursor), userId);
     }
 
     /**
@@ -166,6 +179,7 @@ public class Item {
         mDuration = getCursorLong(cursor, MediaColumns.DURATION_MILLIS);
         mSpecialFormat = getCursorInt(cursor, MediaColumns.STANDARD_MIME_TYPE_EXTENSION);
         mUri = ItemsProvider.getItemsUri(mId, authority, userId);
+        mRowId = getCursorInt(cursor, ROW_ID);
 
         parseMimeType();
     }
@@ -219,4 +233,34 @@ public class Item {
             return mId.compareTo(anotherItem.getId());
         }
     }
+
+    /**
+     * @return {@code true} iff this item is local (available on device), {@code false} otherwise.
+     */
+    public boolean isLocal() {
+        return LOCAL_PICKER_PROVIDER_AUTHORITY.equals(mUri.getAuthority());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof Item)) return false;
+
+        Item other = (Item) obj;
+        return mUri.equals(other.mUri);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(mUri);
+    }
+
+    /**
+     * Convert this item into a loadable object for Glide.
+     *
+     * @return {@link GlideLoadable} that represents the relevant loadable data for this item.
+     */
+    public GlideLoadable toGlideLoadable() {
+        return new GlideLoadable(mUri, String.valueOf(getGenerationModified()));
+    }
+
 }

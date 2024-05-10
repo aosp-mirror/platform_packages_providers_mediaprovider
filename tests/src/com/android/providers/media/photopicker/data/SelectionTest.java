@@ -16,29 +16,22 @@
 
 package com.android.providers.media.photopicker.data;
 
+import static com.android.providers.media.photopicker.data.model.ModelTestUtils.generateJpegItem;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.when;
 
-import android.app.Application;
-import android.content.Context;
 import android.content.Intent;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
-import androidx.test.InstrumentationRegistry;
-
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.data.model.ItemTest;
 import com.android.providers.media.photopicker.viewmodel.InstantTaskExecutorRule;
-import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 
@@ -48,18 +41,9 @@ public class SelectionTest {
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
-    @Mock
-    private Application mApplication;
-
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mSelection = new PickerViewModel(mApplication).getSelection();
-        });
+        mSelection = new Selection();
     }
 
     @Test
@@ -78,6 +62,22 @@ public class SelectionTest {
     }
 
     @Test
+    public void testAddSelectedItem_orderedSelection() {
+        try {
+            enableOrderedSelection();
+            final Item item1 = generateFakeImageItem("1");
+            final Item item2 = generateFakeImageItem("2");
+
+            mSelection.addSelectedItem(item1);
+            mSelection.addSelectedItem(item2);
+            assertThat(mSelection.getSelectedItemOrder(item1).getValue().intValue()).isEqualTo(1);
+            assertThat(mSelection.getSelectedItemOrder(item2).getValue().intValue()).isEqualTo(2);
+        } finally {
+            disableOrderedSelection();
+        }
+    }
+
+    @Test
     public void testDeleteSelectedItem() {
         final String id = "1";
         final Item item = generateFakeImageItem(id);
@@ -89,6 +89,56 @@ public class SelectionTest {
 
         mSelection.removeSelectedItem(item);
         assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(0);
+    }
+
+    @Test
+    public void testDeleteSelectedItem_orderedSelection() {
+        try {
+            enableOrderedSelection();
+            final Item item1 = generateFakeImageItem("1");
+            final Item item2 = generateFakeImageItem("2");
+            final Item item3 = generateFakeImageItem("3");
+
+            mSelection.addSelectedItem(item1);
+            mSelection.addSelectedItem(item2);
+            mSelection.addSelectedItem(item3);
+
+            assertThat(mSelection.getSelectedItemOrder(item1).getValue().intValue()).isEqualTo(1);
+            assertThat(mSelection.getSelectedItemOrder(item2).getValue().intValue()).isEqualTo(2);
+            assertThat(mSelection.getSelectedItemOrder(item3).getValue().intValue()).isEqualTo(3);
+
+            mSelection.removeSelectedItem(item1);
+
+            assertThat(mSelection.getSelectedItemOrder(item2).getValue().intValue()).isEqualTo(1);
+            assertThat(mSelection.getSelectedItemOrder(item3).getValue().intValue()).isEqualTo(2);
+
+            mSelection.removeSelectedItem(item3);
+
+            assertThat(mSelection.getSelectedItemOrder(item2).getValue().intValue()).isEqualTo(1);
+        } finally {
+            disableOrderedSelection();
+        }
+    }
+
+    @Test
+    public void testGetSelectedItems_orderedSelection() {
+        try {
+            enableOrderedSelection();
+            final Item item1 = generateFakeImageItem("1");
+            final Item item2 = generateFakeImageItem("2");
+            final Item item3 = generateFakeImageItem("3");
+
+            mSelection.addSelectedItem(item1);
+            mSelection.addSelectedItem(item2);
+            mSelection.addSelectedItem(item3);
+
+            List<Item> itemsSorted = mSelection.getSelectedItems();
+            assertThat(itemsSorted.get(0).getId()).isEqualTo("1");
+            assertThat(itemsSorted.get(1).getId()).isEqualTo("2");
+            assertThat(itemsSorted.get(2).getId()).isEqualTo("3");
+        } finally {
+            disableOrderedSelection();
+        }
     }
 
     @Test
@@ -138,8 +188,8 @@ public class SelectionTest {
         final String id3 = "3";
         final Item item3 = generateFakeImageItem(id3);
         final String id4 = "4";
-        final Item item4SameDateTakenAsItem3 = ItemTest.generateItem(id4, "image/jpeg",
-                item3.getDateTaken(), /* generationModified= */ 1L, /* duration */ 1000);
+        final Item item4SameDateTakenAsItem3 =
+                generateJpegItem(id4, item3.getDateTaken(), /* generationModified */ 1L);
 
         mSelection.addSelectedItem(item1);
         mSelection.addSelectedItem(item2);
@@ -177,6 +227,39 @@ public class SelectionTest {
 
         // Verify that the item list has expected element.
         assertThat(itemsForPreview.get(0).getId()).isEqualTo(id1);
+    }
+
+    @Test
+    public void testParseValuesFromIntent_orderedSelection() {
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+
+        mSelection.parseSelectionValuesFromIntent(intent);
+
+        assertThat(mSelection.isSelectionOrdered()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromIntent_InvalidOrderedSelectionGetContent_throwsException() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+
+        try {
+            mSelection.parseSelectionValuesFromIntent(intent);
+            fail("Ordered selection not allowed for GET_CONTENT");
+        } catch (IllegalArgumentException expected) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromIntent_OrderedSelectionDisabledInPermissionMode() {
+        final Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+
+        mSelection.parseSelectionValuesFromIntent(intent);
+
+        assertThat(mSelection.isSelectionOrdered()).isFalse();
     }
 
     @Test
@@ -290,7 +373,18 @@ public class SelectionTest {
         final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
                 * DateUtils.DAY_IN_MILLIS;
 
-        return ItemTest.generateItem(id, "image/jpeg", dateTakenMs,
-                /* generationModified= */ 1L, /* duration= */ 1000L);
+        return generateJpegItem(id, dateTakenMs, /* generationModified */ 1L);
+    }
+
+    private void enableOrderedSelection() {
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, true);
+        mSelection.parseSelectionValuesFromIntent(intent);
+    }
+
+    private void disableOrderedSelection() {
+        final Intent intent = new Intent();
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, false);
+        mSelection.parseSelectionValuesFromIntent(intent);
     }
 }

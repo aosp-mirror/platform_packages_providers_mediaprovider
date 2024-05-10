@@ -29,9 +29,9 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.File;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
@@ -110,11 +110,10 @@ public class SpecialFormatDetector {
         bitmapOptions.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(file.getAbsolutePath(), bitmapOptions);
 
-        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/gif")) {
+        if ("image/gif".equalsIgnoreCase(bitmapOptions.outMimeType)) {
             return FileColumns._SPECIAL_FORMAT_GIF;
         }
-        if (bitmapOptions.outMimeType.equalsIgnoreCase("image/webp") &&
-                isAnimatedWebp(file)) {
+        if ("image/webp".equalsIgnoreCase(bitmapOptions.outMimeType) && isAnimatedWebp(file)) {
             return FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP;
         }
         return FileColumns._SPECIAL_FORMAT_NONE;
@@ -143,7 +142,7 @@ public class SpecialFormatDetector {
             return false;
         }
 
-        Trace.beginSection("motionPhotoDetectionUsingXpp");
+        Trace.beginSection("FormatDetector.motionPhotoDetectionUsingXpp");
         try {
             return isMotionPhoto(xpp);
         } finally {

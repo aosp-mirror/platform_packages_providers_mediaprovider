@@ -7,17 +7,19 @@ apex {
     name: "com.android.mediaprovider",
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
-    apps: ["MediaProvider"],
+    apps: ["MediaProvider", "PdfViewer"],
     compat_configs: ["media-provider-platform-compat-config"],
 }
 
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
+    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
-    prebuilts: [
-        "current_sdkinfo",
-        "privapp_allowlist_com.android.providers.media.module.xml"
+    sh_binaries: [
+        // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
+        "media_provider",
     ],
+    prebuilts: ["current_sdkinfo"],
     key: "com.android.mediaprovider.key",
     certificate: ":com.android.mediaprovider.certificate",
     file_contexts: ":com.android.mediaprovider-file_contexts",
@@ -50,7 +52,11 @@ sdk {
 // Encapsulate the contributions made by the com.android.mediaprovider to the bootclasspath.
 bootclasspath_fragment {
     name: "com.android.mediaprovider-bootclasspath-fragment",
-    contents: ["framework-mediaprovider"],
+    contents: [
+        "framework-mediaprovider",
+        "framework-pdf",
+        "framework-pdf-v",
+    ],
     apex_available: ["com.android.mediaprovider"],
 
     // The bootclasspath_fragments that provide APIs on which this depends.
@@ -79,6 +85,7 @@ bootclasspath_fragment {
         // modules. That can include private classes that are not part of the
         // API.
         split_packages: [
+            "android.graphics.pdf",
             "android.provider",
         ],
     },

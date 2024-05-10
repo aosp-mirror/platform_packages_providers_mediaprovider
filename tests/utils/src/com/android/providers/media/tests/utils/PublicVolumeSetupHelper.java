@@ -52,6 +52,12 @@ public class PublicVolumeSetupHelper {
         // Poll twice to avoid using previous mount status
         pollForCondition(() -> isPublicVolumeMounted(), "Timed out while waiting for"
                 + " the public volume to mount");
+    }
+
+    /**
+     * Polls for external storage to be mounted.
+     */
+    public static void pollForExternalStorageStateMounted() throws Exception {
         pollForCondition(() -> isExternalStorageStateMounted(), "Timed out while"
                 + " waiting for ExternalStorageState to be MEDIA_MOUNTED");
     }
@@ -69,6 +75,8 @@ public class PublicVolumeSetupHelper {
         executeShellCommand("sm set-virtual-disk true");
 
         partitionPublicVolume();
+
+        pollForExternalStorageStateMounted();
     }
 
     private static boolean isExternalStorageStateMounted() {

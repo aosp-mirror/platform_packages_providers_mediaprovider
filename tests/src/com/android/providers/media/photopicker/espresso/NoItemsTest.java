@@ -22,7 +22,6 @@ import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withParent;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.hamcrest.Matchers.allOf;
@@ -34,12 +33,13 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import android.provider.MediaStore;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class NoItemsTest extends PhotoPickerBaseTest {
 
@@ -59,7 +59,7 @@ public class NoItemsTest extends PhotoPickerBaseTest {
                 PhotoPickerBaseTest.getSingleSelectionIntent())) {
             final int pickerTabRecyclerViewId = R.id.picker_tab_recyclerview;
 
-            onView(withId(pickerTabRecyclerViewId)).check(matches(not(isDisplayed())));
+            onView(allOf(withId(pickerTabRecyclerViewId))).check(matches(not(isDisplayed())));
             onView(withId(android.R.id.empty)).check(matches(isDisplayed()));
             onView(withText(R.string.picker_photos_empty_message)).check(matches(isDisplayed()));
 
@@ -67,7 +67,7 @@ public class NoItemsTest extends PhotoPickerBaseTest {
             onView(allOf(withText(R.string.picker_albums),
                     isDescendantOfA(withId(R.id.tab_layout)))).perform(click());
 
-            onView(withId(pickerTabRecyclerViewId)).check(matches(not(isDisplayed())));
+            onView(allOf(withId(pickerTabRecyclerViewId))).check(matches(not(isDisplayed())));
             onView(withId(android.R.id.empty)).check(matches(isDisplayed()));
             onView(withText(R.string.picker_albums_empty_message)).check(matches(isDisplayed()));
         }

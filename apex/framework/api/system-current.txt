@@ -6,6 +6,7 @@ package android.provider {
     method @NonNull @WorkerThread public static android.net.Uri scanFile(@NonNull android.content.ContentResolver, @NonNull java.io.File);
     method @WorkerThread public static void scanVolume(@NonNull android.content.ContentResolver, @NonNull String);
     method @WorkerThread public static void waitForIdle(@NonNull android.content.ContentResolver);
+    field public static final String ACTION_USER_SELECT_IMAGES_FOR_APP = "android.provider.action.USER_SELECT_IMAGES_FOR_APP";
     field public static final String AUTHORITY_LEGACY = "media_legacy";
     field @NonNull public static final android.net.Uri AUTHORITY_LEGACY_URI;
     field public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";

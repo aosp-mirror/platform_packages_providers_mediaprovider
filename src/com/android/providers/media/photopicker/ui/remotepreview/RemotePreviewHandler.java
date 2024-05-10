@@ -32,7 +32,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.os.SystemProperties;
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PlaybackState;
 import android.provider.ICloudMediaSurfaceController;
 import android.provider.ICloudMediaSurfaceStateChangedCallback;
@@ -42,9 +41,12 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.android.providers.media.photopicker.PickerSyncController;
+import androidx.annotation.NonNull;
+
+import com.android.providers.media.photopicker.RemoteVideoPreviewProvider;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.ui.PreviewAdapter.OnCreateSurfaceController;
 import com.android.providers.media.photopicker.ui.PreviewVideoHolder;
 
 import java.util.Map;
@@ -73,20 +75,16 @@ public final class RemotePreviewHandler {
     private final ItemPreviewState mCurrentPreviewState = new ItemPreviewState();
     private final PlayerControlsVisibilityStatus mPlayerControlsVisibilityStatus =
             new PlayerControlsVisibilityStatus();
+    private final OnCreateSurfaceController mOnCreateSurfaceController;
 
     private boolean mIsInBackground = false;
     private int mSurfaceCounter = 0;
 
-    /**
-     * Returns {@code true} if remote preview is enabled.
-     */
-    public static boolean isRemotePreviewEnabled() {
-        return SystemProperties.getBoolean("sys.photopicker.remote_preview", true);
-    }
-
-    public RemotePreviewHandler(Context context, MuteStatus muteStatus) {
+    public RemotePreviewHandler(Context context, MuteStatus muteStatus,
+            @NonNull OnCreateSurfaceController onCreateSurfaceController) {
         mContext = context;
         mMuteStatus = muteStatus;
+        mOnCreateSurfaceController = onCreateSurfaceController;
     }
 
     /**
@@ -208,9 +206,11 @@ public final class RemotePreviewHandler {
 
         SurfaceControllerProxy controller = null;
         try {
+            mOnCreateSurfaceController.logStart(authority);
             controller = createController(authority, localControllerFallback);
             if (controller != null) {
                 mControllers.put(authority, controller);
+                mOnCreateSurfaceController.logEnd(authority);
             }
         } catch (RuntimeException e) {
             Log.e(TAG, "Could not create SurfaceController.", e);
@@ -235,12 +235,13 @@ public final class RemotePreviewHandler {
                 + ". localControllerFallback: " + localControllerFallback);
         Bundle extras = new Bundle();
         extras.putBoolean(EXTRA_LOOPING_PLAYBACK_ENABLED, true);
-        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, mMuteStatus.isVolumeMuted());
+        // Only start audio after audio focus gain
+        extras.putBoolean(EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED, true);
         extras.putBinder(EXTRA_SURFACE_STATE_CALLBACK, mSurfaceStateChangedCallbackWrapper);
 
         if (localControllerFallback) {
             extras.putString(EXTRA_AUTHORITY, authority);
-            authority = PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+            authority = RemoteVideoPreviewProvider.AUTHORITY;
         }
 
         final Bundle surfaceControllerBundle = mContext.getContentResolver().call(

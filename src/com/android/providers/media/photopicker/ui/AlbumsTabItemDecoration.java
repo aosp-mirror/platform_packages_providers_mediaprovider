@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
+
 import android.content.Context;
 import android.graphics.Rect;
 import android.view.View;
@@ -44,15 +46,38 @@ public class AlbumsTabItemDecoration extends RecyclerView.ItemDecoration {
     @Override
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
             RecyclerView.State state) {
+        final int adapterPosition = parent.getChildAdapterPosition(view);
+        if (adapterPosition == RecyclerView.NO_POSITION) {
+            outRect.setEmpty();
+            return;
+        }
+
+        final int itemViewType = parent.getAdapter().getItemViewType(adapterPosition);
+
+        // The banners don't have spacing
+        if (itemViewType == ITEM_TYPE_BANNER) {
+            outRect.setEmpty();
+            return;
+        }
+
         final GridLayoutManager.LayoutParams lp =
                 (GridLayoutManager.LayoutParams) view.getLayoutParams();
         final GridLayoutManager layoutManager = (GridLayoutManager) parent.getLayoutManager();
         final int column = lp.getSpanIndex();
         final int spanCount = layoutManager.getSpanCount();
 
-        final int adapterPosition = parent.getChildAdapterPosition(view);
         // the top gap of the album items on the first row is mSpacing
-        if (adapterPosition < spanCount) {
+        /**
+         * {@link adapterPosition} for album items =
+         *         {@link TabAdapter#getBannerCount()} + {@link column}
+         *         + ((album item row index) * {@link spanCount}).
+         *
+         * Since {@link TabAdapter#getBannerCount()} only returns a 1 or 0,
+         * and {@link spanCount} > 1,
+         * for the first row of album items, {@link adapterPosition} <= {@link column} + 1,
+         * whereas for the further rows, {@link adapterPosition} > {@link column} + 1.
+         */
+        if (adapterPosition <= column + 1) {
             outRect.top = mSpacing;
         } else {
             outRect.top = mTopSpacing;

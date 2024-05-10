@@ -34,6 +34,7 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.UserCache;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -86,24 +87,6 @@ public class VolumeCache {
         }
     }
 
-    /**
-     * @return List of paths to unreliable volumes if any, an empty list otherwise
-     */
-    public @NonNull List<File> getUnreliableVolumePath() throws FileNotFoundException {
-        List<File> unreliableVolumes = new ArrayList<>();
-        synchronized (mLock) {
-            for (MediaVolume volume : mExternalVolumes){
-                final File volPath = volume.getPath();
-                if (volPath != null && volPath.getPath() != null
-                        && !volPath.getPath().startsWith("/storage/")){
-                    unreliableVolumes.add(volPath);
-                }
-            }
-        }
-
-        return unreliableVolumes;
-    }
-
     public @NonNull MediaVolume findVolume(@NonNull String volumeName, @NonNull UserHandle user)
             throws FileNotFoundException {
         synchronized (mLock) {
@@ -124,7 +107,9 @@ public class VolumeCache {
                 MediaVolume volume = findVolume(volumeName, user);
                 return volume.getPath();
             } catch (FileNotFoundException e) {
-                Log.w(TAG, "getVolumePath for unknown volume: " + volumeName);
+                if (!MediaStore.isKnownVolume(volumeName)) {
+                    Log.w(TAG, "getVolumePath for unknown volume: " + volumeName);
+                }
                 // Try again by using FileUtils below
             }
 
@@ -191,9 +176,13 @@ public class VolumeCache {
                 final Uri uri = MediaStore.Files.getContentUri(volumeName);
                 final StorageVolume storageVolume = sm.getStorageVolume(uri);
                 MediaVolume volume = MediaVolume.fromStorageVolume(storageVolume);
-                mExternalVolumes.add(volume);
-                mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(userContext,
+                if (volume.getPath() != null) {
+                    mExternalVolumes.add(volume);
+                    mCachedVolumeScanPaths.put(volume, FileUtils.getVolumeScanPaths(userContext,
                             volume.getName()));
+                } else {
+                    Log.w(TAG, "Volume:" + volumeName + " has NULL path.");
+                }
             } catch (IllegalStateException | FileNotFoundException e) {
                 Log.wtf(TAG, "Failed to update volume " + volumeName, e);
             }

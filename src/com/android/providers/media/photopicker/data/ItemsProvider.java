@@ -16,38 +16,57 @@
 
 package com.android.providers.media.photopicker.data;
 
-import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
+import static android.content.ContentResolver.QUERY_ARG_LIMIT;
+import static android.database.DatabaseUtils.dumpCursorToString;
+import static android.provider.MediaStore.AUTHORITY;
+import static android.provider.MediaStore.MediaColumns.DATA;
 
-import android.annotation.NonNull;
-import android.annotation.Nullable;
+import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
+import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
+import static com.android.providers.media.util.FileUtils.getContentUriForPath;
+
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.RemoteException;
+import android.os.Trace;
 import android.os.UserHandle;
-import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
-import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Provides image and video items from {@link MediaStore} collection to the Photo Picker.
  */
 public class ItemsProvider {
-
     private static final String TAG = ItemsProvider.class.getSimpleName();
+    private static final boolean DEBUG = true;
+    private static final boolean DEBUG_DUMP_CURSORS = false;
 
     private final Context mContext;
 
@@ -55,35 +74,118 @@ public class ItemsProvider {
         mContext = context;
     }
 
+    private static final Uri URI_MEDIA_ALL;
+    private static final Uri URI_MEDIA_LOCAL;
+    private static final Uri URI_ALBUMS_ALL;
+    private static final Uri URI_ALBUMS_LOCAL;
+
+    private static final String MEDIA_GRANTS_URI_PATH = "content://media/media_grants";
+    public static final String EXTRA_MIME_TYPE_SELECTION = "media_grant_mime_type_selection";
+
+
+    static {
+        final Uri media = PICKER_INTERNAL_URI.buildUpon()
+                .appendPath(PickerUriResolver.MEDIA_PATH).build();
+        URI_MEDIA_ALL = media.buildUpon().appendPath(PickerUriResolver.ALL_PATH).build();
+        URI_MEDIA_LOCAL = media.buildUpon().appendPath(PickerUriResolver.LOCAL_PATH).build();
+
+        final Uri albums = PICKER_INTERNAL_URI.buildUpon()
+                .appendPath(PickerUriResolver.ALBUM_PATH).build();
+        URI_ALBUMS_ALL = albums.buildUpon().appendPath(PickerUriResolver.ALL_PATH).build();
+        URI_ALBUMS_LOCAL = albums.buildUpon().appendPath(PickerUriResolver.LOCAL_PATH).build();
+    }
+
     /**
-     * Returns a {@link Cursor} to all images/videos based on the param passed for
-     * {@code categoryType}, {@code offset}, {@code limit}, {@code mimeType} and {@code userId}.
+     * Returns a {@link Cursor} to all(local + cloud) images/videos based on the param passed for
+     * {@code category}, {@code limit}, {@code mimeTypes} and {@code userId}.
      *
      * <p>
-     * By default the returned {@link Cursor} sorts by latest date taken.
+     * By default, the returned {@link Cursor} sorts by latest date taken.
      *
-     * @param category the category of items to return. May be cloud, local or merged albums like
-     * favorites or videos.
-     * @param offset the offset after which to return items.
-     * @param limit the limit of number of items to return.
-     * @param mimeType the mime type of item. {@code null} returns all images/videos that are
+     * @param category  the category of items to return. May be cloud, local or merged albums like
+     *                  favorites or videos.
+     * @param pagingParameters parameters to represent the page for which the items need to be
+     *                            returned.
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
+     *                 scanned by {@link MediaStore}.
+     * @param userId the {@link UserId} of the user to get items as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}
+     *
+     * @return {@link Cursor} to images/videos on external storage that are scanned by
+     * {@link MediaStore} or returned by cloud provider. The returned cursor is filtered based on
+     * params passed, it {@code null} if there are no such images/videos. The Cursor for each item
+     * contains {@link android.provider.CloudMediaProviderContract.MediaColumns}
+     */
+    @Nullable
+    public Cursor getAllItems(Category category, PaginationParameters pagingParameters,
+            @Nullable String[] mimeTypes,
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+        Trace.beginSection("ItemsProvider.getAllItems");
+        try {
+            return queryMedia(URI_MEDIA_ALL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    /**
+     * Returns a {@link Cursor} to local images/videos based on the param passed for
+     * {@code category}, {@code limit}, {@code mimeTypes} and {@code userId}.
+     *
+     * <p>
+     * By default, the returned {@link Cursor} sorts by latest date taken.
+     *
+     * @param category  the category of items to return. May be local or merged albums like
+     *                  favorites or videos.
+     * @param pagingParameters parameters to represent the page for which the items need to be
+     *                            returned.
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
      *                 scanned by {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get items as.
      *               {@code null} defaults to {@link UserId#CURRENT_USER}
      *
      * @return {@link Cursor} to images/videos on external storage that are scanned by
      * {@link MediaStore}. The returned cursor is filtered based on params passed, it {@code null}
-     * if there are no such images/videos. The Cursor for each item contains {@link ItemColumns}
+     * if there are no such images/videos. The Cursor for each item contains
+     * {@link android.provider.CloudMediaProviderContract.MediaColumns}
+     *
+     * NOTE: We don't validate the given category is a local album. The behavior is undefined if
+     * this method is called with a non-local album.
      */
     @Nullable
-    public Cursor getItems(Category category, int offset,
-            int limit, @Nullable String mimeType, @Nullable UserId userId) throws
-            IllegalArgumentException {
-        if (userId == null) {
-            userId = UserId.CURRENT_USER;
+    public Cursor getLocalItems(Category category, PaginationParameters pagingParameters,
+            @Nullable String[] mimeTypes,
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+        Trace.beginSection("ItemsProvider.getLocalItems");
+        try {
+            return queryMedia(URI_MEDIA_LOCAL, pagingParameters, mimeTypes, category, userId,
+                    cancellationSignal);
+        } finally {
+            Trace.endSection();
         }
+    }
 
-        return queryMedia(limit, mimeType, category, userId);
+    /**
+     * Gets cursor for items corresponding to the ids passed as an argument.
+     *
+     * @param category  the category of items to return.
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
+     *                 scanned by {@link MediaStore}.
+     * @param userId the {@link UserId} of the user to get items as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}
+     * @param localIdSelection list of ids for which the item objects are required
+     */
+    public Cursor getLocalItemsForSelection(Category category,
+            @NonNull List<Integer> localIdSelection,
+            @Nullable String[] mimeTypes,
+            @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+        Objects.requireNonNull(localIdSelection);
+        return queryMedia(URI_MEDIA_LOCAL, new PaginationParameters(), mimeTypes, category, userId,
+                localIdSelection, cancellationSignal);
     }
 
     /**
@@ -92,33 +194,78 @@ public class ItemsProvider {
      * * A constant list of local categories for on-device images/videos: {@link Category}
      * * Albums provided by selected cloud provider
      *
-     * @param mimeType the mime type of item. {@code null} returns all images/videos that are
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
      *                 scanned by {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get categories as.
      *               {@code null} defaults to {@link UserId#CURRENT_USER}.
      *
-     * @return {@link Cursor} for each category would contain the following columns in
-     * their relative order:
-     * categoryName: {@link CategoryColumns#NAME} The name of the category,
-     * categoryCoverId: {@link CategoryColumns#COVER_ID} The id for the cover of
-     *                   the category. By default this will be the most recent image/video in that
-     *                   category,
-     * categoryNumberOfItems: {@link CategoryColumns#NUMBER_OF_ITEMS} number of image/video items
-     *                        in the category,
+     * @return {@link Cursor} for each category would contain {@link AlbumColumns#ALL_PROJECTION}
+      * in the relative order.
      */
     @Nullable
-    public Cursor getCategories(@Nullable String mimeType, @Nullable UserId userId) {
+    public Cursor getAllCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
+        Trace.beginSection("ItemsProvider.getAllCategories");
+        try {
+            return queryAlbums(URI_ALBUMS_ALL, mimeTypes, userId, cancellationSignal);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    /**
+     * Returns a {@link Cursor} to all non-empty categories in which images/videos are categorised.
+     * This includes a constant list of local categories for on-device images/videos.
+     *
+     * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
+     *                 scanned by {@link MediaStore}.
+     * @param userId the {@link UserId} of the user to get categories as.
+     *               {@code null} defaults to {@link UserId#CURRENT_USER}.
+     *
+     * @return {@link Cursor} for each category would contain {@link AlbumColumns#ALL_PROJECTION}
+     * in the relative order.
+     */
+    @Nullable
+    public Cursor getLocalCategories(@Nullable String[] mimeTypes, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
+        Trace.beginSection("ItemsProvider.getLocalCategories");
+        try {
+            return queryAlbums(URI_ALBUMS_LOCAL, mimeTypes, userId, cancellationSignal);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    @Nullable
+    private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            @Nullable CancellationSignal cancellationSignal) {
+        return queryMedia(uri, paginationParameters, mimeTypes, category, userId, null,
+                cancellationSignal);
+    }
+
+    @Nullable
+    private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
+            String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
+            List<Integer> localIdSelection,
+            @Nullable CancellationSignal cancellationSignal)
+            throws IllegalStateException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
         }
 
-        return queryAlbums(mimeType, userId);
-    }
+        if (DEBUG) {
+            Log.d(TAG, "queryMedia() uri=" + uri
+                    + " cat=" + category
+                    + " mimeTypes=" + Arrays.toString(mimeTypes)
+                    + " limit=" + paginationParameters.getPageSize()
+                    + " date_taken_before_ms = " + paginationParameters.getDateBeforeMs()
+                    + " row_id = " + paginationParameters.getRowId());
+        }
+        Trace.beginSection("ItemsProvider.queryMedia");
 
-    private Cursor queryMedia(int limit, @Nullable String mimeType,
-            @NonNull Category category, @NonNull UserId userId)
-            throws IllegalStateException {
         final Bundle extras = new Bundle();
+        Cursor result = null;
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
             if (client == null) {
@@ -126,26 +273,61 @@ public class ItemsProvider {
                         + MediaStore.AUTHORITY);
                 return null;
             }
-            extras.putInt(MediaStore.QUERY_ARG_LIMIT, limit);
-            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            extras.putInt(QUERY_ARG_LIMIT, paginationParameters.getPageSize());
+            if (mimeTypes != null) {
+                extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
+            }
             extras.putString(MediaStore.QUERY_ARG_ALBUM_ID, category.getId());
             extras.putString(MediaStore.QUERY_ARG_ALBUM_AUTHORITY, category.getAuthority());
 
-            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
-                    .appendPath(PickerUriResolver.MEDIA_PATH).build();
+            if (paginationParameters.getRowId() >= 0
+                    && paginationParameters.getDateBeforeMs() > Long.MIN_VALUE) {
+                extras.putInt(QUERY_ROW_ID, paginationParameters.getRowId());
+                extras.putLong(QUERY_DATE_TAKEN_BEFORE_MS, paginationParameters.getDateBeforeMs());
+            }
+            if (localIdSelection != null) {
+                extras.putIntegerArrayList(QUERY_LOCAL_ID_SELECTION,
+                        (ArrayList<Integer>) localIdSelection);
+            }
 
-            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+            result = client.query(uri, /* projection */ null, extras,
+                    /* cancellationSignal */ cancellationSignal);
+            return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
             Log.e(TAG, "Failed to query merged media with extras: "
                     + extras + ". userId = " + userId, ignored);
             return null;
+        } finally {
+            Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "queryMedia()'s result is null");
+                } else {
+                    Log.d(TAG, "queryMedia() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
     @Nullable
-    private Cursor queryAlbums(@Nullable String mimeType, @NonNull UserId userId) {
+    private Cursor queryAlbums(@NonNull Uri uri, @Nullable String[] mimeTypes,
+                @Nullable UserId userId, @Nullable CancellationSignal cancellationSignal) {
+        if (userId == null) {
+            userId = UserId.CURRENT_USER;
+        }
+
+        if (DEBUG) {
+            Log.d(TAG, "queryAlbums() uri=" + uri
+                    + " mimeTypes=" + Arrays.toString(mimeTypes));
+        }
+        Trace.beginSection("ItemsProvider.queryAlbums");
+
         final Bundle extras = new Bundle();
+        Cursor result = null;
         try (ContentProviderClient client = userId.getContentResolver(mContext)
                 .acquireUnstableContentProviderClient(MediaStore.AUTHORITY)) {
             if (client == null) {
@@ -153,17 +335,30 @@ public class ItemsProvider {
                         + MediaStore.AUTHORITY);
                 return null;
             }
-            extras.putString(MediaStore.QUERY_ARG_MIME_TYPE, mimeType);
+            if (mimeTypes != null) {
+                extras.putStringArray(MediaStore.QUERY_ARG_MIME_TYPE, mimeTypes);
+            }
 
-            final Uri uri = PickerUriResolver.PICKER_INTERNAL_URI.buildUpon()
-                    .appendPath(PickerUriResolver.ALBUM_PATH).build();
-
-            return client.query(uri, /* projection */ null, extras, /* cancellationSignal */ null);
+            result = client.query(uri, /* projection */ null, extras,
+                    /* cancellationSignal */ cancellationSignal);
+            return result;
         } catch (RemoteException | NameNotFoundException ignored) {
             // Do nothing, return null.
             Log.w(TAG, "Failed to query merged albums with extras: "
                     + extras + ". userId = " + userId, ignored);
             return null;
+        } finally {
+            Trace.endSection();
+            if (DEBUG) {
+                if (result == null) {
+                    Log.d(TAG, "queryAlbums()'s result is null");
+                } else {
+                    Log.d(TAG, "queryAlbums() loaded " + result.getCount() + " items");
+                    if (DEBUG_DUMP_CURSORS) {
+                        Log.v(TAG, dumpCursorToString(result));
+                    }
+                }
+            }
         }
     }
 
@@ -216,5 +411,66 @@ public class ItemsProvider {
     private static boolean uriHasUserId(Uri uri) {
         if (uri == null) return false;
         return !TextUtils.isEmpty(uri.getUserInfo());
+    }
+
+    /**
+     * Fetches file Uris for items having {@link com.android.providers.media.MediaGrants} for the
+     * given package. Returns an empty list if no grants are present.
+     */
+    @NonNull
+    public List<Uri> fetchReadGrantedItemsUrisForPackage(int packageUid, String[] mimeTypes) {
+        final ContentResolver resolver = mContext.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            assert client != null;
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            extras.putStringArray(EXTRA_MIME_TYPE_SELECTION, mimeTypes);
+            List<Uri> filesUriList = new ArrayList<>();
+            try (Cursor c = client.query(Uri.parse(MEDIA_GRANTS_URI_PATH),
+                    /* projection= */ null,
+                    /* queryArgs= */ extras,
+                    null)) {
+                while (c.moveToNext()) {
+                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
+                    final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
+                    filesUriList.add(getContentUriForPath(
+                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                }
+            }
+            return filesUriList;
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Sends a data init notification to the MP process.
+     */
+    public void initPhotoPickerData(@Nullable String albumId,
+            @Nullable String albumAuthority,
+            boolean initLocalOnlyData,
+            @Nullable UserId userId) {
+        if (userId == null) {
+            Log.e(TAG, "Could not determine the current active user id in Picker. "
+                    + "Init media call cannot go through.");
+            return;
+        }
+
+        try (ContentProviderClient client = getContentProviderClient(userId)) {
+            if (client == null) {
+                throw new IllegalStateException("ContentProviderClient is null.");
+            }
+            sendInitPhotoPickerDataNotification(client, albumId, albumAuthority, initLocalOnlyData);
+        } catch (RuntimeException | NameNotFoundException | RemoteException e) {
+            Log.e(TAG, "Could not send init media call to Media Provider", e);
+        }
+    }
+
+    @Nullable
+    private ContentProviderClient getContentProviderClient(@NonNull UserId userId)
+            throws NameNotFoundException {
+        return userId
+                .getContentResolver(mContext)
+                .acquireContentProviderClient(AUTHORITY);
     }
 }

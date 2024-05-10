@@ -22,6 +22,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
+import com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService;
+
 public class MediaReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -29,7 +31,7 @@ public class MediaReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
             // Register our idle maintenance service
             IdleService.scheduleIdlePass(context);
-
+            StableUriIdleMaintenanceService.scheduleIdlePass(context);
         } else {
             // All other operations are heavier-weight, so redirect them through
             // service to ensure they have breathing room to finish

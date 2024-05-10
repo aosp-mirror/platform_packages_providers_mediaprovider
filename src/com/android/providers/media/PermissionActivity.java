@@ -16,11 +16,11 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.MediaProvider.AUDIO_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.AUDIO_PLAYLISTS_ID;
-import static com.android.providers.media.MediaProvider.FILES_ID;
-import static com.android.providers.media.MediaProvider.IMAGES_MEDIA_ID;
-import static com.android.providers.media.MediaProvider.VIDEO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.AUDIO_PLAYLISTS_ID;
+import static com.android.providers.media.LocalUriMatcher.FILES_ID;
+import static com.android.providers.media.LocalUriMatcher.IMAGES_MEDIA_ID;
+import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
 import static com.android.providers.media.MediaProvider.collectUris;
 import static com.android.providers.media.util.DatabaseUtils.getAsBoolean;
 import static com.android.providers.media.util.Logging.TAG;
@@ -77,7 +77,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.MediaProvider.LocalUriMatcher;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.StringUtils;
 
@@ -243,10 +242,6 @@ public class PermissionActivity extends Activity {
         } else {
             Log.w(TAG, "Couldn't find message element");
         }
-
-        final WindowManager.LayoutParams params = actionDialog.getWindow().getAttributes();
-        params.width = getResources().getDimensionPixelSize(R.dimen.permission_dialog_width);
-        actionDialog.getWindow().setAttributes(params);
 
         // Hunt around to find the title of our newly created dialog so we can
         // adjust accessibility focus once descriptions have been loaded
@@ -479,7 +474,7 @@ public class PermissionActivity extends Activity {
 
         // if verb is write, check ACCESS_MEDIA_LOCATION permission
         if (TextUtils.equals(verb, VERB_WRITE) && !checkPermissionAccessMediaLocation(context, pid,
-                uid, packageName, attributionTag)) {
+                uid, packageName, attributionTag, isTargetSdkAtLeastT)) {
             Log.d(TAG, "No permission ACCESS_MEDIA_LOCATION");
             return true;
         }
@@ -641,7 +636,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveTitleText() {
         final String resName = "permission_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);
@@ -659,7 +654,7 @@ public class PermissionActivity extends Activity {
     private @Nullable CharSequence resolveProgressMessageText() {
         final String resName = "permission_progress_" + verb + "_" + data;
         final int resId = getResources().getIdentifier(resName, "string",
-                getResources().getResourcePackageName(R.string.app_label));
+                getResources().getResourcePackageName(R.string.picker_app_label));
         if (resId != 0) {
             final int count = uris.size();
             final CharSequence text = StringUtils.getICUFormatString(getResources(), count, resId);

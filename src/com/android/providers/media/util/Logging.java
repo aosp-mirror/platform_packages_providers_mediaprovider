@@ -34,9 +34,8 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.Optional;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 public class Logging {
@@ -53,7 +52,7 @@ public class Logging {
     private static final int PERSISTENT_COUNT = 4;
     private static final long PERSISTENT_AGE = DateUtils.WEEK_IN_MILLIS;
     private static final SimpleDateFormat DATE_FORMAT =
-            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.ROOT);
     private static final Object LOCK = new Object();
 
     @GuardedBy("LOCK")
@@ -77,7 +76,10 @@ public class Logging {
     /**
      * Write the given message to persistent logs.
      */
-    public static void logPersistent(@NonNull String msg) {
+    public static void logPersistent(@NonNull String format, @Nullable Object ... args) {
+        final String msg = (args == null || args.length == 0)
+                ? format : String.format(Locale.ROOT, format, args);
+
         Log.i(TAG, msg);
 
         synchronized (LOCK) {

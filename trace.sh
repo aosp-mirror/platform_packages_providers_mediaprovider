@@ -1,1 +1,3 @@
-./external/chromium-trace/systrace.py -b 128768 -a com.google.android.providers.media.module,com.android.providers.media.module binder_driver
+$ANDROID_BUILD_TOP/external/perfetto/tools/record_android_trace \
+  -c $ANDROID_BUILD_TOP/packages/providers/MediaProvider/perfetto_config.pbtx \
+  -o /tmp/perfetto-traces/$(date +"%d-%m-%Y_%H-%M-%S").perfetto-trace

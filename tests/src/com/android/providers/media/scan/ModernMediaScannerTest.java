@@ -34,8 +34,6 @@ import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalV
 import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
 import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
-import static com.android.providers.media.util.FileUtils.isDirectoryHidden;
-import static com.android.providers.media.util.FileUtils.isFileHidden;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -73,8 +71,8 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
 import com.android.providers.media.tests.utils.Timer;
 import com.android.providers.media.util.FileUtils;
 
@@ -198,8 +196,14 @@ public class ModernMediaScannerTest {
         assertEquals(270,
                 (int) parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_270).get());
 
-        // We can't represent this as an orientation
-        assertFalse(parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).isPresent());
+        assertEquals(0,
+                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_HORIZONTAL).get());
+        assertEquals(90,
+                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).get());
+        assertEquals(180,
+                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_VERTICAL).get());
+        assertEquals(270,
+                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSVERSE).get());
     }
 
     @Test
@@ -527,55 +531,6 @@ public class ModernMediaScannerTest {
         }
     }
 
-    private static void assertDirectoryHidden(File file) {
-        assertTrue(file.getAbsolutePath(), isDirectoryHidden(file));
-    }
-
-    private static void assertDirectoryNotHidden(File file) {
-        assertFalse(file.getAbsolutePath(), isDirectoryHidden(file));
-    }
-
-    @Test
-    public void testIsDirectoryHidden() throws Exception {
-        for (String prefix : new String[] {
-                "/storage/emulated/0",
-                "/storage/0000-0000",
-        }) {
-            assertDirectoryNotHidden(new File(prefix));
-            assertDirectoryNotHidden(new File(prefix + "/meow"));
-
-            assertDirectoryHidden(new File(prefix + "/.meow"));
-        }
-
-
-        final File nomediaFile = new File("storage/emulated/0/Download/meow", ".nomedia");
-        try {
-            assertTrue(nomediaFile.getParentFile().mkdirs());
-            assertTrue(nomediaFile.createNewFile());
-
-            assertDirectoryHidden(nomediaFile.getParentFile());
-
-            assertTrue(nomediaFile.delete());
-
-            assertDirectoryNotHidden(nomediaFile.getParentFile());
-        } finally {
-            nomediaFile.delete();
-            nomediaFile.getParentFile().delete();
-        }
-    }
-
-    @Test
-    public void testIsFileHidden() throws Exception {
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/IMG1024.JPG")));
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.pending-1577836800-IMG1024.JPG")));
-        assertFalse(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.trashed-1577836800-IMG1024.JPG")));
-        assertTrue(isFileHidden(
-                new File("/storage/emulated/0/DCIM/.IMG1024.JPG")));
-    }
-
     @Test
     public void testIsZero() throws Exception {
         assertFalse(ModernMediaScanner.isZero(""));
@@ -779,24 +734,6 @@ public class ModernMediaScannerTest {
         assertThat(mModern.scanFile(image, REASON_UNKNOWN)).isNull();
     }
 
-    @Test
-    public void testScanFileAndUpdateOwnerPackageName() throws Exception {
-        final File image = new File(mDir, "image.jpg");
-        final String thisPackageName = InstrumentationRegistry.getContext().getPackageName();
-        stage(R.raw.test_image, image);
-
-        assertQueryCount(0, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        // scanning the image file inserts new database entry with OWNER_PACKAGE_NAME as
-        // thisPackageName.
-        assertNotNull(mModern.scanFile(image, REASON_UNKNOWN, thisPackageName));
-        try (Cursor cursor = mIsolatedResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] {MediaColumns.OWNER_PACKAGE_NAME}, null, null, null)) {
-            assertEquals(1, cursor.getCount());
-            cursor.moveToNext();
-            assertEquals(thisPackageName, cursor.getString(0));
-        }
-    }
-
     /**
      * Verify fix for obscure bug which would cause us to delete files outside a
      * directory that share a common prefix.
@@ -927,8 +864,8 @@ public class ModernMediaScannerTest {
 
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         mModern.scanFile(dir, REASON_UNKNOWN);
-        try {
-            mIsolatedResolver.openFileDescriptor(uri, "w", null);
+        try (ParcelFileDescriptor fd = mIsolatedResolver.openFileDescriptor(uri, "w", null)) {
+            assertThat(fd).isNotNull();
         } catch (FileNotFoundException e) {
             throw new AssertionError("Can't open uri " + uri, e);
         }

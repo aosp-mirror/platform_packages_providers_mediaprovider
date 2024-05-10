@@ -17,36 +17,66 @@
 package com.android.providers.media.photopicker.viewmodel;
 
 import static android.provider.CloudMediaProviderContract.AlbumColumns;
-import static android.provider.CloudMediaProviderContract.MediaColumns;
+import static android.provider.CloudMediaProviderContract.MediaColumns.AUTHORITY;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DATA;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DATE_TAKEN_MILLIS;
+import static android.provider.CloudMediaProviderContract.MediaColumns.DURATION_MILLIS;
+import static android.provider.CloudMediaProviderContract.MediaColumns.HEIGHT;
+import static android.provider.CloudMediaProviderContract.MediaColumns.ID;
+import static android.provider.CloudMediaProviderContract.MediaColumns.IS_FAVORITE;
+import static android.provider.CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI;
+import static android.provider.CloudMediaProviderContract.MediaColumns.MIME_TYPE;
+import static android.provider.CloudMediaProviderContract.MediaColumns.ORIENTATION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.SIZE_BYTES;
+import static android.provider.CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.MediaColumns.WIDTH;
+
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+
+import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
+import static com.android.providers.media.photopicker.data.model.Item.ROW_ID;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.net.Uri;
-import android.provider.CloudMediaProviderContract;
+import android.os.CancellationSignal;
+import android.provider.MediaStore;
 import android.text.format.DateUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
-import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.PaginationParameters;
+import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
-import com.android.providers.media.photopicker.data.model.ItemTest;
+import com.android.providers.media.photopicker.data.model.ModelTestUtils;
 import com.android.providers.media.photopicker.data.model.UserId;
-import com.android.providers.media.util.ForegroundThread;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,18 +86,19 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerViewModelTest {
-
-    private static final String FAKE_IMAGE_MIME_TYPE = "image/jpg";
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
-
-    private static final Category FAKE_CATEGORY =
-            new Category(FAKE_ID, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
-                    FAKE_CATEGORY_NAME, Uri.parse("content://media/foo"), 0, true);
+    private static final Context sTargetContext = getInstrumentation().getTargetContext();
+    private static final String TEST_PACKAGE_NAME = "com.android.providers.media.tests";
+    private static final String CMP_AUTHORITY = "authority";
+    private static final String CMP_ACCOUNT_NAME = "account_name";
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -77,176 +108,70 @@ public class PickerViewModelTest {
 
     private PickerViewModel mPickerViewModel;
     private TestItemsProvider mItemsProvider;
+    private TestConfigStore mConfigStore;
+    private BannerManager mBannerManager;
+    private BannerController mBannerController;
+
+    public PickerViewModelTest() {
+    }
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        final Context context = InstrumentationRegistry.getTargetContext();
-        when(mApplication.getApplicationContext()).thenReturn(context);
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            mPickerViewModel = new PickerViewModel(mApplication);
+        when(mApplication.getApplicationContext()).thenReturn(sTargetContext);
+        mConfigStore = new TestConfigStore();
+        mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(TEST_PACKAGE_NAME);
+        mConfigStore.enablePickerChoiceManagedSelectionEnabled();
+
+        getInstrumentation().runOnMainSync(() -> {
+            mPickerViewModel = new PickerViewModel(mApplication) {
+                @Override
+                protected void initConfigStore() {
+                    setConfigStore(mConfigStore);
+                }
+            };
         });
-        mItemsProvider = new TestItemsProvider(context);
+        mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
-        UserIdManager userIdManager = mock(UserIdManager.class);
+        final UserIdManager userIdManager = mock(UserIdManager.class);
         when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
         mPickerViewModel.setUserIdManager(userIdManager);
+
+        mBannerManager = BannerTestUtils.getTestCloudBannerManager(sTargetContext, userIdManager,
+                mConfigStore);
+        mPickerViewModel.setBannerManager(mBannerManager);
+
+        // Set default banner manager values
+        mBannerController = mBannerManager.getBannerControllersPerUser().get(
+                UserId.CURRENT_USER.getIdentifier());
+        assertNotNull(mBannerController);
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority= */ null, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
     }
 
     @Test
-    public void testGetItems_noItems() throws Exception {
+    public void testGetItems_noItems() {
         final int itemCount = 0;
         mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateItems();
-        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
+        mPickerViewModel.getPaginatedItemsForAction(
+                ACTION_CLEAR_AND_UPDATE_LIST, null);
+        // We use DataLoader thread to execute the loadItems in updateItems(), wait for the thread
         // idle
-        ForegroundThread.waitForIdle();
+        DataLoaderThread.waitForIdle();
 
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
+        final List<Item> itemList = Objects.requireNonNull(
+                mPickerViewModel.getPaginatedItemsForAction(
+                        ACTION_VIEW_CREATED,
+                        new PaginationParameters()).getValue()).getItems();
 
         // No date headers, the size should be 0
         assertThat(itemList.size()).isEqualTo(itemCount);
     }
 
     @Test
-    public void testGetItems_hasRecentItem() throws Exception {
-        final int itemCount = 1;
-        final List<Item> fakeItemList = generateFakeImageItemList(itemCount);
-        final Item fakeItem = fakeItemList.get(0);
-        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateItems();
-        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
-        // idle
-        ForegroundThread.waitForIdle();
-
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
-
-        // Original one item + 1 Recent item
-        assertThat(itemList.size()).isEqualTo(itemCount + 1);
-        // Check the first item is recent item
-        final Item recentItem = itemList.get(0);
-        assertThat(recentItem.isDate()).isTrue();
-        assertThat(recentItem.getDateTaken()).isEqualTo(0);
-        // Check the second item is fakeItem
-        final Item firstPhotoItem = itemList.get(1);
-        assertThat(firstPhotoItem.getId()).isEqualTo(fakeItem.getId());
-    }
-
-    @Test
-    public void testGetItems_exceedMinCount_notSameDay_hasRecentItemAndOneDateItem()
-            throws Exception {
-        final int itemCount = 13;
-        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateItems();
-        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
-        // idle
-        ForegroundThread.waitForIdle();
-
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
-
-        // Original item count + 1 Recent item + 1 date item
-        assertThat(itemList.size()).isEqualTo(itemCount + 2);
-        assertThat(itemList.get(0).isDate()).isTrue();
-        assertThat(itemList.get(0).getDateTaken()).isEqualTo(0);
-        // The index 13 is the next date header because the minimum item count in recent section is
-        // 12
-        assertThat(itemList.get(13).isDate()).isTrue();
-        assertThat(itemList.get(13).getDateTaken()).isNotEqualTo(0);
-    }
-
-    /**
-     * Test that The total number in `Recent` may exceed the minimum count. If the photo items are
-     * taken on same day, they should not be split apart.
-     */
-    @Test
-    public void testGetItems_exceedMinCount_sameDay_hasRecentItemNoDateItem() throws Exception {
-        final int originalItemCount = 12;
-        final String lastItemId = "13";
-        final List<Item> fakeItemList = generateFakeImageItemList(originalItemCount);
-        final long dateTakenMs = fakeItemList.get(originalItemCount - 1).getDateTaken();
-        final long generationModified = 1L;
-        final Item lastItem = ItemTest.generateItem(lastItemId, FAKE_IMAGE_MIME_TYPE,
-                dateTakenMs, generationModified, /* duration= */ 1000L);
-        fakeItemList.add(lastItem);
-        final int itemCount = fakeItemList.size();
-        mItemsProvider.setItems(fakeItemList);
-        mPickerViewModel.updateItems();
-        // We use ForegroundThread to execute the loadItems in updateItems(), wait for the thread
-        // idle
-        ForegroundThread.waitForIdle();
-
-        final List<Item> itemList = mPickerViewModel.getItems().getValue();
-
-        // Original item count + 1 new Recent item
-        assertThat(itemList.size()).isEqualTo(itemCount + 1);
-        assertThat(itemList.get(0).isDate()).isTrue();
-        assertThat(itemList.get(0).getDateTaken()).isEqualTo(0);
-    }
-
-    @Test
-    public void testGetCategoryItems() throws Exception {
-        final int itemCount = 3;
-        final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);
-        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems();
-        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
-        // thread idle
-        ForegroundThread.waitForIdle();
-
-        final List<Item> itemList = categoryItems.getValue();
-
-        // Original item count + 3 date items
-        assertThat(itemList.size()).isEqualTo(itemCount + 3);
-        // Test the first item is date item
-        final Item firstDateItem = itemList.get(0);
-        assertThat(firstDateItem.isDate()).isTrue();
-        assertThat(firstDateItem.getDateTaken()).isNotEqualTo(0);
-        // Test the third item is date item and the dateTaken is larger than previous date item
-        final Item secondDateItem = itemList.get(2);
-        assertThat(secondDateItem.isDate()).isTrue();
-        assertThat(secondDateItem.getDateTaken()).isGreaterThan(firstDateItem.getDateTaken());
-        // Test the fifth item is date item and the dateTaken is larger than previous date item
-        final Item thirdDateItem = itemList.get(4);
-        assertThat(thirdDateItem.isDate()).isTrue();
-        assertThat(thirdDateItem.getDateTaken()).isGreaterThan(secondDateItem.getDateTaken());
-    }
-
-    @Test
-    public void testGetCategoryItems_dataIsUpdated() throws Exception {
-        final int itemCount = 3;
-        final LiveData<List<Item>> categoryItems = mPickerViewModel.getCategoryItems(FAKE_CATEGORY);
-        mItemsProvider.setItems(generateFakeImageItemList(itemCount));
-        mPickerViewModel.updateCategoryItems();
-        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
-        // thread idle
-        ForegroundThread.waitForIdle();
-
-        final List<Item> itemList = categoryItems.getValue();
-
-        // Original item count + 3 date items
-        assertThat(itemList.size()).isEqualTo(itemCount + 3);
-
-        final int updatedItemCount = 5;
-        mItemsProvider.setItems(generateFakeImageItemList(updatedItemCount));
-
-        // trigger updateCategoryItems and wait the idle
-        mPickerViewModel.updateCategoryItems();
-
-        // We use ForegroundThread to execute the loadItems in updateCategoryItems(), wait for the
-        // thread idle
-        ForegroundThread.waitForIdle();
-
-        // Get the result again to check the result is as expected
-        final List<Item> updatedItemList = categoryItems.getValue();
-
-        // Original item count + 5 date items
-        assertThat(updatedItemList.size()).isEqualTo(updatedItemCount + 5);
-    }
-
-    @Test
     public void testGetCategories() throws Exception {
-        final Context context = InstrumentationRegistry.getTargetContext();
         final int categoryCount = 2;
         try (final Cursor fakeCursor = generateCursorForFakeCategories(categoryCount)) {
             fakeCursor.moveToFirst();
@@ -258,36 +183,94 @@ public class PickerViewModelTest {
             // move the cursor to original position
             fakeCursor.moveToPosition(-1);
             mPickerViewModel.updateCategories();
-            // We use ForegroundThread to execute the loadCategories in updateCategories(), wait for
+            // We use DataLoaderThread to execute the loadCategories in updateCategories(), wait for
             // the thread idle
-            ForegroundThread.waitForIdle();
+            DataLoaderThread.waitForIdle();
 
             final List<Category> categoryList = mPickerViewModel.getCategories().getValue();
 
             assertThat(categoryList.size()).isEqualTo(categoryCount);
             // Verify the first category
             final Category firstCategory = categoryList.get(0);
-            assertThat(firstCategory.getDisplayName(context)).isEqualTo(
-                    fakeFirstCategory.getDisplayName(context));
+            assertThat(firstCategory.getDisplayName(sTargetContext)).isEqualTo(
+                    fakeFirstCategory.getDisplayName(sTargetContext));
             assertThat(firstCategory.getItemCount()).isEqualTo(fakeFirstCategory.getItemCount());
             assertThat(firstCategory.getCoverUri()).isEqualTo(fakeFirstCategory.getCoverUri());
             // Verify the second category
             final Category secondCategory = categoryList.get(1);
-            assertThat(secondCategory.getDisplayName(context)).isEqualTo(
-                    fakeSecondCategory.getDisplayName(context));
+            assertThat(secondCategory.getDisplayName(sTargetContext)).isEqualTo(
+                    fakeSecondCategory.getDisplayName(sTargetContext));
             assertThat(secondCategory.getItemCount()).isEqualTo(fakeSecondCategory.getItemCount());
             assertThat(secondCategory.getCoverUri()).isEqualTo(fakeSecondCategory.getCoverUri());
         }
     }
 
+    @Test
+    public void test_getItems_correctItemsReturned() {
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+        mItemsProvider.setItems(expectedItems);
+
+        LiveData<PickerViewModel.PaginatedItemsResult> testItems =
+                mPickerViewModel.getPaginatedItemsForAction(
+                        ACTION_VIEW_CREATED,
+                        new PaginationParameters());
+        DataLoaderThread.waitForIdle();
+
+        assertThat(testItems).isNotNull();
+        assertThat(testItems.getValue()).isNotNull();
+        assertThat(testItems.getValue().getItems().size()).isEqualTo(numberOfTestItems);
+
+        for (int itr = 0; itr < numberOfTestItems; itr++) {
+            // Assert that all test and expected items are equal.
+            assertThat(testItems.getValue().getItems().get(itr).compareTo(
+                    expectedItems.get(itr))).isEqualTo(0);
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void test_getRemainingPreGrantedItems_correctItemsLoaded() {
+        // Enable managed selection for this test.
+        Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        intent.putExtra(Intent.EXTRA_UID, 0);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+        for (Item item : expectedItems) {
+            item.setPreGranted();
+        }
+        mItemsProvider.setItems(expectedItems);
+        List<String> preGrantedItems = List.of(expectedItems.get(0).getId(),
+                expectedItems.get(1).getId(),
+                expectedItems.get(2).getId());
+        Selection selection = mPickerViewModel.getSelection();
+        // Add 3 item ids is preGranted set.
+        selection.setPreGrantedItemSet(new HashSet<>(preGrantedItems));
+
+        // adding 1 item in selection item set.
+        selection.addSelectedItem(expectedItems.get(1));
+
+        // revoking grant for 1 id.
+        selection.removeSelectedItem(expectedItems.get(0));
+
+        // since only one item is added in selection set, the size should be one.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(1);
+
+        // Since out of 3 one grant was removed, so there would be one item loaded when remaining
+        // grants are loaded.
+        mPickerViewModel.getRemainingPreGrantedItems();
+        DataLoaderThread.waitForIdle();
+
+        // Now the selection set should have 2 items.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(2);
+    }
 
     private static Item generateFakeImageItem(String id) {
-        final long dateTakenMs = System.currentTimeMillis() + Long.parseLong(id)
-                * DateUtils.DAY_IN_MILLIS;
-        final long generationModified = 1L;
-
-        return ItemTest.generateItem(id, FAKE_IMAGE_MIME_TYPE, dateTakenMs, generationModified,
-                /* duration= */ 1000L);
+        final long dateTakenMs = System.currentTimeMillis()
+                + Long.parseLong(id) * DateUtils.DAY_IN_MILLIS;
+        return ModelTestUtils.generateJpegItem(id, dateTakenMs, /* generationModified */ 1L);
     }
 
     private static List<Item> generateFakeImageItemList(int num) {
@@ -309,7 +292,7 @@ public class PickerViewModelTest {
                     FAKE_ID + String.valueOf(i),
                     itemCount + i,
                     PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
-                    });
+            });
         }
         return cursor;
     }
@@ -324,14 +307,37 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getItems(Category category, int offset,
-                int limit, @Nullable String mimeType, @Nullable UserId userId) throws
+        public Cursor getAllItems(Category category,
+                PaginationParameters paginationParameters, @Nullable String[] mimeType,
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws
                 IllegalArgumentException, IllegalStateException {
-            final MatrixCursor c = new MatrixCursor(MediaColumns.ALL_PROJECTION);
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
 
+            int itr = 1;
             for (Item item : mItemList) {
-                c.addRow(new String[] {
+                c.addRow(new String[]{
                         item.getId(),
+                        String.valueOf(itr),
                         String.valueOf(item.getDateTaken()),
                         String.valueOf(item.getGenerationModified()),
                         item.getMimeType(),
@@ -340,16 +346,127 @@ public class PickerViewModelTest {
                         null, // media_store_uri
                         String.valueOf(item.getDuration()),
                         "0", // is_favorite
+                        String.valueOf(800), // width
+                        String.valueOf(500), // height
+                        String.valueOf(0), // orientation
                         "/storage/emulated/0/foo",
                         PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
                 });
+                itr++;
             }
 
             return c;
         }
 
+        @Override
+        public Cursor getLocalItems(Category category,
+                PaginationParameters paginationParameters, @Nullable String[] mimeType,
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws
+                IllegalArgumentException, IllegalStateException {
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
+
+            int itr = 1;
+            for (Item item : mItemList) {
+                c.addRow(new String[]{
+                        item.getId(),
+                        String.valueOf(itr),
+                        String.valueOf(item.getDateTaken()),
+                        String.valueOf(item.getGenerationModified()),
+                        item.getMimeType(),
+                        String.valueOf(item.getSpecialFormat()),
+                        "1", // size_bytes
+                        null, // media_store_uri
+                        String.valueOf(item.getDuration()),
+                        "0", // is_favorite
+                        String.valueOf(800), // width
+                        String.valueOf(500), // height
+                        String.valueOf(0), // orientation
+                        "/storage/emulated/0/foo",
+                        PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                });
+                itr++;
+            }
+
+            return c;
+        }
+
+        @Override
+        public Cursor getLocalItemsForSelection(Category category,
+                @NonNull List<Integer> localIdSelection,
+                @Nullable String[] mimeTypes,
+                @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
+            final String[] all_projection = new String[]{
+                    ID,
+                    // This field is unique to the cursor received by the pickerVIewModel.
+                    // It is not a part of cloud provider contract.
+                    ROW_ID,
+                    DATE_TAKEN_MILLIS,
+                    SYNC_GENERATION,
+                    MIME_TYPE,
+                    STANDARD_MIME_TYPE_EXTENSION,
+                    SIZE_BYTES,
+                    MEDIA_STORE_URI,
+                    DURATION_MILLIS,
+                    IS_FAVORITE,
+                    WIDTH,
+                    HEIGHT,
+                    ORIENTATION,
+                    DATA,
+                    AUTHORITY,
+            };
+            final MatrixCursor c = new MatrixCursor(all_projection);
+
+            int itr = 1;
+            for (Item item : mItemList) {
+                if (localIdSelection.contains(Integer.parseInt(item.getId()))) {
+                    c.addRow(new String[]{
+                            item.getId(),
+                            String.valueOf(itr),
+                            String.valueOf(item.getDateTaken()),
+                            String.valueOf(item.getGenerationModified()),
+                            item.getMimeType(),
+                            String.valueOf(item.getSpecialFormat()),
+                            "1", // size_bytes
+                            null, // media_store_uri
+                            String.valueOf(item.getDuration()),
+                            "0", // is_favorite
+                            String.valueOf(800), // width
+                            String.valueOf(500), // height
+                            String.valueOf(0), // orientation
+                            "/storage/emulated/0/foo",
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                    });
+                    itr++;
+                }
+            }
+            return c;
+
+        }
+
         @Nullable
-        public Cursor getCategories(@Nullable String mimeType, @Nullable UserId userId) {
+        public Cursor getAllCategories(@Nullable String[] mimeType, @Nullable UserId userId,
+                @Nullable CancellationSignal cancellationSignal) {
             if (mCategoriesCursor != null) {
                 return mCategoriesCursor;
             }
@@ -368,31 +485,253 @@ public class PickerViewModelTest {
     }
 
     @Test
-    public void testParseValuesFromIntent_noMimeType_defaultFalse() {
-        final Intent intent = new Intent();
+    public void testParseValuesFromPickImagesIntent_noMimeType_defaultFalse() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_noMimeType_defaultFalse() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.setType("*/*");
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
     }
 
     @Test
     public void testParseValuesFromIntent_validMimeType() {
-        final Intent intent = new Intent();
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
         intent.setType("image/png");
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isTrue();
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
     }
 
     @Test
-    public void testParseValuesFromIntent_ignoreInvalidMimeType() {
-        final Intent intent = new Intent();
-        intent.setType("audio/*");
+    public void testParseValuesFromPickImagesIntent_validExtraMimeType() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/gif", "video/*"});
 
         mPickerViewModel.parseValuesFromIntent(intent);
 
-        assertThat(mPickerViewModel.hasMimeTypeFilter()).isFalse();
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_invalidExtraMimeType() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"audio/*", "video/*"});
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("Photo Picker does not support non-media mime type filters");
+        } catch (IllegalArgumentException expected) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyTrue() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_localOnlyFalse() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_validExtraMimeType() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/gif", "video/*"});
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_invalidExtraMimeType() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"audio/*", "video/*"});
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // non-media filters for GET_CONTENT show all images and videos
+        assertThat(mPickerViewModel.hasMimeTypeFilters()).isFalse();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyTrue() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"video/*"});
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_localOnlyFalse() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"video/*"});
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+    }
+
+    @Test
+    public void testShouldShowOnlyLocalFeatures() {
+        mConfigStore.enableCloudMediaFeature();
+
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isTrue();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+
+        intent.removeExtra(Intent.EXTRA_LOCAL_ONLY);
+        mPickerViewModel.parseValuesFromIntent(intent);
+        assertThat(mPickerViewModel.isLocalOnly()).isFalse();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isFalse();
+
+        mConfigStore.disableCloudMediaFeature();
+        assertThat(mPickerViewModel.shouldShowOnlyLocalFeatures()).isTrue();
+    }
+
+    @Test
+    public void testRefreshUiNotifications() throws InterruptedException {
+        final LiveData<Boolean> shouldRefreshUi = mPickerViewModel.shouldRefreshUiLiveData();
+        assertFalse(shouldRefreshUi.getValue());
+
+        final ContentResolver contentResolver = sTargetContext.getContentResolver();
+        contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
+
+        TimeUnit.MILLISECONDS.sleep(100);
+        assertTrue(shouldRefreshUi.getValue());
+
+        mPickerViewModel.resetAllContentInCurrentProfile();
+        assertFalse(shouldRefreshUi.getValue());
+    }
+
+    @Test
+    public void testDismissChooseAppBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        mBannerController.onChangeCloudMediaInfo(
+                /* cmpAuthority= */ null, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowChooseAppBanner());
+        assertTrue(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() -> mPickerViewModel.onUserDismissedChooseAppBanner());
+        assertFalse(mBannerController.shouldShowChooseAppBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAppBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissCloudMediaAvailableBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertTrue(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedCloudMediaAvailableBanner());
+        assertFalse(mBannerController.shouldShowCloudMediaAvailableBanner());
+        assertFalse(mPickerViewModel.shouldShowCloudMediaAvailableBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissAccountUpdatedBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, CMP_ACCOUNT_NAME);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowAccountUpdatedBanner());
+        assertTrue(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedAccountUpdatedBanner());
+        assertFalse(mBannerController.shouldShowAccountUpdatedBanner());
+        assertFalse(mPickerViewModel.shouldShowAccountUpdatedBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testDismissChooseAccountBanner() {
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+        assertTrue(mBannerController.shouldShowChooseAccountBanner());
+        assertTrue(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+
+        // Assert no change on dismiss when the banner is already hidden
+        getInstrumentation().runOnMainSync(() ->
+                mPickerViewModel.onUserDismissedChooseAccountBanner());
+        assertFalse(mBannerController.shouldShowChooseAccountBanner());
+        assertFalse(mPickerViewModel.shouldShowChooseAccountBannerLiveData().getValue());
+    }
+
+    @Test
+    public void testGetCloudMediaProviderAuthorityLiveData() {
+        assertNull(mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+
+        mBannerController.onChangeCloudMediaInfo(CMP_AUTHORITY, /* cmpAccountName= */ null);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(CMP_AUTHORITY,
+                mPickerViewModel.getCloudMediaProviderAuthorityLiveData().getValue());
+    }
+
+    @Test
+    public void testGetChooseCloudMediaAccountActivityIntent() {
+        assertNull(mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+
+        final Intent testIntent = new Intent();
+        mBannerController.setChooseCloudMediaAccountActivityIntent(testIntent);
+        mBannerManager.maybeInitialiseAndSetBannersForCurrentUser();
+
+        assertEquals(testIntent,
+                mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
     }
 }

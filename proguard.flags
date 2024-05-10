@@ -15,6 +15,8 @@
 -keep public final class com.android.providers.media.FileOpenResult { *; }
 -keep public final class com.android.providers.media.FdAccessResult { *; }
 -keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public final class com.android.providers.media.leveldb.LevelDBResult { *; }
+-keep public final class com.android.providers.media.leveldb.LevelDBEntry { *; }
 -keep class * extends com.bumptech.glide.module.AppGlideModule {
  <init>(...);
 }

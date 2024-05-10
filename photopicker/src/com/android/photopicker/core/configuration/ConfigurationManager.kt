@@ -19,6 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
+import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -132,7 +133,19 @@ class ConfigurationManager(
      */
     fun setIntent(intent: Intent?) {
         Log.d(TAG, "New intent received: $intent : Configuration will now update.")
-        _configuration.update { it.copy(action = intent?.getAction() ?: "", intent = intent) }
+
+        // Check for [MediaStore.EXTRA_PICK_IMAGES_MAX] and update the selection limit accordingly.
+        val selectionLimit =
+            intent?.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
+                ?: DEFAULT_SELECTION_LIMIT
+
+        _configuration.update {
+            it.copy(
+                action = intent?.getAction() ?: "",
+                intent = intent,
+                selectionLimit = selectionLimit,
+            )
+        }
     }
 
     /** Assembles an initial configuration upon activity launch. */

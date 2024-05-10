@@ -24,12 +24,14 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import androidx.annotation.NonNull;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
 
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 /**
  * ViewHolder of a video item within the {@link ViewPager2}
@@ -37,6 +39,7 @@ import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
 public class PreviewVideoHolder extends BaseViewHolder {
 
     private final ImageLoader mImageLoader;
+    private final PreviewAdapter.OnVideoPreviewClickListener mOnVideoPreviewClickListener;
     private final ImageView mImageView;
     private final SurfaceView mSurfaceView;
     private final AspectRatioFrameLayout mPlayerFrame;
@@ -44,26 +47,23 @@ public class PreviewVideoHolder extends BaseViewHolder {
     private final View mPlayerControlsRoot;
     private final ImageButton mPlayPauseButton;
     private final ImageButton mMuteButton;
+    private final CircularProgressIndicator mCircularProgressIndicator;
 
     PreviewVideoHolder(Context context, ViewGroup parent, ImageLoader imageLoader,
-            boolean enabledCloudMediaPreview) {
-        super(context, parent, enabledCloudMediaPreview ? R.layout.item_cloud_video_preview
-                : R.layout.item_video_preview);
+            @NonNull PreviewAdapter.OnVideoPreviewClickListener onVideoPreviewClickListener) {
+        super(context, parent, R.layout.item_video_preview);
 
         mImageLoader = imageLoader;
+        mOnVideoPreviewClickListener = onVideoPreviewClickListener;
         mImageView = itemView.findViewById(R.id.preview_video_image);
-        mSurfaceView = enabledCloudMediaPreview ? itemView.findViewById(R.id.preview_player_view)
-                : null;
-        mPlayerFrame = enabledCloudMediaPreview ?
-                itemView.findViewById(R.id.preview_player_frame) : null;
-        mPlayerContainer = enabledCloudMediaPreview ?
-                itemView.findViewById(R.id.preview_player_container) : null;
-        mPlayerControlsRoot = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.preview_player_controls) : null;
-        mPlayPauseButton = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.exo_play_pause) : null;
-        mMuteButton = enabledCloudMediaPreview ? itemView.findViewById(
-                R.id.preview_mute) : null;
+        mSurfaceView = itemView.findViewById(R.id.preview_player_view);
+        mPlayerFrame = itemView.findViewById(R.id.preview_player_frame);
+        mPlayerContainer = itemView.findViewById(R.id.preview_player_container);
+        mPlayerControlsRoot = itemView.findViewById(R.id.preview_player_controls);
+        mPlayPauseButton = itemView.findViewById(R.id.exo_play_pause);
+        mMuteButton = itemView.findViewById(R.id.preview_mute);
+        mCircularProgressIndicator = itemView.findViewById(R.id.preview_progress_indicator);
+
     }
 
     @Override
@@ -102,5 +102,16 @@ public class PreviewVideoHolder extends BaseViewHolder {
 
     public ImageButton getMuteButton() {
         return mMuteButton;
+    }
+
+    public CircularProgressIndicator getCircularProgressIndicator() {
+        return mCircularProgressIndicator;
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the mute / unmute button in a video preview
+     */
+    public void logMuteButtonClick() {
+        mOnVideoPreviewClickListener.logMuteButtonClick();
     }
 }

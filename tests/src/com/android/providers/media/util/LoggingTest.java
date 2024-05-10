@@ -55,11 +55,31 @@ public class LoggingTest {
         final String nonce = String.valueOf(System.nanoTime());
         Logging.logPersistent(nonce);
 
+        assertLoggedMessageContains(nonce);
+    }
+
+    @Test
+    public void testFormat() throws Exception {
+        final long nonce = System.nanoTime();
+        Logging.logPersistent("%d", nonce);
+
+        assertLoggedMessageContains(String.valueOf(nonce));
+    }
+
+    private void assertLoggedMessageContains(String nonce) {
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         final PrintWriter pw = new PrintWriter(os, true);
         Logging.dumpPersistent(pw);
 
         assertTrue(os.toString().contains(nonce));
+    }
+
+    @Test
+    public void testNoFormat() throws Exception {
+        String s = "!@#$%^";
+        Logging.logPersistent(s);
+
+        assertLoggedMessageContains(s);
     }
 
     @Test

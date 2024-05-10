@@ -16,6 +16,9 @@
 
 package com.android.providers.media.util;
 
+import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.content.Context;
@@ -24,6 +27,7 @@ import android.content.res.Resources.NotFoundException;
 import android.icu.text.MessageFormat;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -112,4 +116,32 @@ public class StringUtils {
 
       return verifiedPaths;
   }
+
+    /**
+     * Returns string description of {@link PackageManager}-s component state.
+     */
+    @NonNull
+    public static String componentStateToString(int componentState) {
+        final String componentStateAsString;
+        switch (componentState) {
+            case COMPONENT_ENABLED_STATE_DISABLED:
+                componentStateAsString = "STATE_DISABLED";
+                break;
+            case COMPONENT_ENABLED_STATE_ENABLED:
+                componentStateAsString = "STATE_ENABLED";
+                break;
+            default:
+                componentStateAsString = "Unknown";
+                break;
+        }
+        return String.format("%s ( %d )", componentStateAsString, componentState);
+    }
+
+    /**
+     * Returns true if dateExpires is empty string or has null value.
+     */
+    public static boolean isNullOrEmpty(String dateExpires) {
+        return dateExpires == null || dateExpires.trim().isEmpty()
+                || dateExpires.trim().equalsIgnoreCase("null");
+    }
 }

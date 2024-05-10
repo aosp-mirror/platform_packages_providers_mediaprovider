@@ -52,6 +52,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -520,7 +521,7 @@ public class PermissionActivityTest {
     }
 
     private static boolean checkPermission(@NonNull String op, int pid, int uid,
-            @NonNull String packageName, boolean expected) {
+            @NonNull String packageName, boolean expected) throws Exception {
         final Context context = getContext();
 
         if (TextUtils.equals(op, OP_READ_EXTERNAL_STORAGE)) {
@@ -542,8 +543,12 @@ public class PermissionActivityTest {
             return expected == checkPermissionManageMedia(context, pid, uid, packageName,
                     /* attributionTag= */ null);
         } else if (TextUtils.equals(op, OP_ACCESS_MEDIA_LOCATION)) {
+            final int targetSdk = context.getPackageManager()
+                    .getApplicationInfo(packageName, 0).targetSdkVersion;
+
             return expected == checkPermissionAccessMediaLocation(context, pid, uid,
-                    packageName, /* attributionTag= */ null);
+                    packageName, /* attributionTag= */ null,
+                    targetSdk >= Build.VERSION_CODES.TIRAMISU);
         } else {
             throw new IllegalArgumentException("checkPermission is not supported for op: " + op);
         }

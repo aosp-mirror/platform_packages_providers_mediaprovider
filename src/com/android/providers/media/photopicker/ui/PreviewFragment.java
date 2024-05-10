@@ -48,6 +48,7 @@ import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Displays a selected items in one up view. Supports deselecting items.
@@ -69,6 +70,7 @@ public class PreviewFragment extends Fragment {
     }
 
     private Selection mSelection;
+    private PickerViewModel mPickerViewModel;
     private ViewPager2Wrapper mViewPager2Wrapper;
     private boolean mShouldShowGifBadge;
     private boolean mShouldShowMotionPhotoBadge;
@@ -100,10 +102,9 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
-        mSelection = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
-                .getSelection();
-        mMuteStatus = new ViewModelProvider(requireActivity()).get(PickerViewModel.class)
-                .getMuteStatus();
+        mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mSelection = mPickerViewModel.getSelection();
+        mMuteStatus = mPickerViewModel.getMuteStatus();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
     }
 
@@ -114,11 +115,7 @@ public class PreviewFragment extends Fragment {
         final List<Item> selectedItemsList = mSelection.getSelectedItemsForPreview();
         final int selectedItemsListSize = selectedItemsList.size();
 
-        if (selectedItemsListSize <= 0) {
-            // This can happen if we lost PickerViewModel to optimize memory.
-            Log.e(TAG, "No items to preview. Returning back to photo grid");
-            requireActivity().getSupportFragmentManager().popBackStack();
-        } else if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
+        if (selectedItemsListSize > 1 && !mSelection.canSelectMultiple()) {
             // This should never happen
             throw new IllegalStateException("Found more than one preview items in single select"
                     + " mode. Selected items count: " + selectedItemsListSize);
@@ -130,10 +127,40 @@ public class PreviewFragment extends Fragment {
             throw new IllegalStateException("Expected to find ViewPager2 in " + view
                     + ", but found null");
         }
-        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus);
+        mViewPager2Wrapper = new ViewPager2Wrapper(viewPager, selectedItemsList, mMuteStatus,
+                mOnCreateSurfaceController, mPickerViewModel::logVideoPreviewMuteButtonClick);
 
         setUpPreviewLayout(view, getArguments());
         setupScrimLayerAndBottomBar(view);
+        // Don't add any code post this line. The lazy loading setup should be the last thing we do
+        // to avoid the UI getting overwritten.
+        setUpUIForLazyLoading(view, selectedItemsListSize);
+    }
+
+    private void setUpUIForLazyLoading(View view, int selectedItemsListSize) {
+        final Button selectedCheckButton = view.findViewById(R.id.preview_selected_check_button);
+        Objects.requireNonNull(selectedCheckButton);
+        if (selectedItemsListSize == 0) {
+            // This can happen in two cases -
+            // 1. ACTION_USER_SELECT_IMAGES_FOR_APP launched the Photo Picker UI, and we are waiting
+            //    for items that's not preloaded due to pagination
+            // 2. PreviewFragment was launched from SavedPreference state but PickerViewModel was
+            //    killed and hence there is no selected items.
+            // In both these cases, user will see a blank UI with only Add/Allow button
+            selectedCheckButton.setVisibility(View.GONE);
+            Log.i(TAG, "No items to preview yet" + selectedCheckButton.getVisibility());
+        }
+
+        if (mPickerViewModel.isManagedSelectionEnabled()) {
+            mPickerViewModel.getIsAllPreGrantedMediaLoaded().observe(this, (isLoadComplete) -> {
+                if (!isLoadComplete) return;
+
+                selectedCheckButton.setVisibility(View.VISIBLE);
+
+                mSelection.prepareSelectedItemsForPreviewAll();
+                mViewPager2Wrapper.updateList(mSelection.getSelectedItemsForPreview());
+            });
+        }
     }
 
     private void setupScrimLayerAndBottomBar(View fragmentView) {
@@ -200,7 +227,7 @@ public class PreviewFragment extends Fragment {
             // For preview on long press, we always preview only one item.
             // Selection#getSelectedItemsForPreview is guaranteed to return only one item. Hence,
             // we can always use position=0 as current position.
-            updateSelectButtonText(addOrSelectButton,
+            updateSelectButtonTextAndVisibility(addOrSelectButton,
                     mSelection.isItemSelected(mViewPager2Wrapper.getItemAt(/* position */ 0)));
             addOrSelectButton.setOnClickListener(v -> onClickSelectButton(addOrSelectButton));
         }
@@ -232,9 +259,20 @@ public class PreviewFragment extends Fragment {
         mViewPager2Wrapper.addOnPageChangeCallback(new OnPageChangeCallback(selectedCheckButton));
 
         // Update add button text to include number of items selected.
-        mSelection.getSelectedItemCount().observe(this, selectedItemCount -> {
-            viewSelectedAddButton.setText(generateAddButtonString(getContext(), selectedItemCount));
-        });
+        mSelection
+                .getSelectedItemCount()
+                .observe(
+                        this,
+                        selectedItemCount -> {
+                            viewSelectedAddButton.setText(
+                                    generateAddButtonString(
+                                            /* context= */ getContext(),
+                                            /* size= */ selectedItemCount,
+                                            /* isUserSelectForApp= */ mPickerViewModel
+                                                    .isUserSelectForApp(),
+                                            /* isManagedSelectionEnabled */
+                                            mPickerViewModel.isManagedSelectionEnabled()));
+                        });
 
         selectedCheckButton.setOnClickListener(
                 v -> onClickSelectedCheckButton(selectedCheckButton));
@@ -276,7 +314,7 @@ public class PreviewFragment extends Fragment {
 
     private void onClickSelectButton(@NonNull Button selectButton) {
         final boolean isSelectedNow = updateSelectionAndGetState();
-        updateSelectButtonText(selectButton, isSelectedNow);
+        updateSelectButtonTextAndVisibility(selectButton, isSelectedNow);
     }
 
     private void onClickSelectedCheckButton(@NonNull Button selectedCheckButton) {
@@ -328,9 +366,11 @@ public class PreviewFragment extends Fragment {
         }
     }
 
-    private static void updateSelectButtonText(@NonNull Button selectButton,
+    private void updateSelectButtonTextAndVisibility(@NonNull Button selectButton,
             boolean isSelected) {
         selectButton.setText(isSelected ? R.string.deselect : R.string.select);
+        selectButton.setVisibility(
+                (isSelected || mSelection.isSelectionAllowed()) ? View.VISIBLE : View.GONE);
     }
 
     private static void updateSelectedCheckButtonStateAndText(@NonNull Button selectedCheckButton,
@@ -378,9 +418,30 @@ public class PreviewFragment extends Fragment {
     }
 
     // TODO: There is a same method in TabFragment. To find a way to reuse it.
-    private static String generateAddButtonString(@NonNull Context context, int size) {
+    private static String generateAddButtonString(
+            @NonNull Context context, int size, boolean isUserSelectForApp,
+            boolean isManagedSelection) {
+        if (isManagedSelection && size == 0) {
+            return context.getString(R.string.picker_add_button_allow_none_option);
+        }
         final String sizeString = NumberFormat.getInstance(Locale.getDefault()).format(size);
-        final String template = context.getString(R.string.picker_add_button_multi_select);
+        final String template =
+                isUserSelectForApp
+                        ? context.getString(R.string.picker_add_button_multi_select_permissions)
+                        : context.getString(R.string.picker_add_button_multi_select);
         return TextUtils.expandTemplate(template, sizeString).toString();
     }
+
+    private final PreviewAdapter.OnCreateSurfaceController mOnCreateSurfaceController =
+            new PreviewAdapter.OnCreateSurfaceController() {
+                @Override
+                public void logStart(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerStart(authority);
+                }
+
+                @Override
+                public void logEnd(String authority) {
+                    mPickerViewModel.logCreateSurfaceControllerEnd(authority);
+                }
+            };
 }

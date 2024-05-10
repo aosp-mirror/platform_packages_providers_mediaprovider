@@ -27,7 +27,7 @@ import android.provider.CloudMediaProviderContract;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.scan.MediaScannerTest.IsolatedContext;
+import com.android.providers.media.IsolatedContext;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -364,7 +364,7 @@ public class PickerDatabaseHelperTest {
             values = getBasicContentValues();
             values.put(KEY_DATE_TAKEN_MS, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
-            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(-1);
+            assertThat(db.insert(MEDIA_TABLE, null, values)).isEqualTo(1);
 
             // date_taken_ms=NULL for Album Media
             values = getBasicContentValues();
@@ -376,7 +376,7 @@ public class PickerDatabaseHelperTest {
             values = getBasicContentValues();
             values.put(KEY_DATE_TAKEN_MS, -1);
             values.put(KEY_CLOUD_ID, CLOUD_ID);
-            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(-1);
+            assertThat(db.insert(ALBUM_MEDIA_TABLE, null, values)).isEqualTo(1);
         }
     }
 

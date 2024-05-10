@@ -22,7 +22,6 @@ import android.os.Parcelable;
 import android.os.UserHandle;
 import android.os.storage.StorageVolume;
 import android.provider.MediaStore;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -90,7 +89,7 @@ public final class MediaVolume implements Parcelable {
         return mId;
     }
 
-    public boolean isExternallyManaged() {
+    private boolean isExternallyManaged() {
         return mExternallyManaged;
     }
 
@@ -139,6 +138,19 @@ public final class MediaVolume implements Parcelable {
 
     public boolean isVisibleToUser(UserHandle user) {
         return mUser == null || user.equals(mUser);
+    }
+
+    /**
+     * Should skip default dir creating for externally managed volumes and for unreliable
+     * public volumes.
+     */
+    public boolean shouldSkipDefaultDirCreation() {
+        return isExternallyManaged() || isUnreliablePublicVolume();
+    }
+
+    private boolean isUnreliablePublicVolume() {
+        return isPublicVolume() && getPath() != null
+                && getPath().getAbsolutePath().startsWith("/mnt/");
     }
 
     /**

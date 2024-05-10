@@ -25,17 +25,19 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeLeftAndWait;
 import static com.android.providers.media.photopicker.espresso.CustomSwipeAction.swipeRightAndWait;
+import static com.android.providers.media.photopicker.espresso.OverflowMenuUtils.assertOverflowMenuNotShown;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.longClickItem;
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.providers.media.R;
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+@RunOnlyOnPostsubmit
 public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
     @Rule
@@ -75,6 +77,9 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
             // Verify Motion Photo icon is not shown for animated webp preview
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 
@@ -95,6 +100,9 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
 
             // Verify Motion Photo icon is not shown for non-animated webp preview
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(doesNotExist());
+
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 
@@ -111,16 +119,16 @@ public class SpecialFormatMultiSelectTest extends SpecialFormatBaseTest {
             onView(withId(PREVIEW_MOTION_PHOTO_ID)).check(matches(isDisplayed()));
             onView(withId(R.id.preview_imageView)).check(matches(isDisplayed()));
             onView(withId(PREVIEW_GIF_ID)).check(doesNotExist());
+            // Verify the overflow menu is not shown for PICK_IMAGES intent
+            assertOverflowMenuNotShown();
         }
     }
 
     @Test
-    @Ignore("Enable after b/218806007 is fixed")
     public void testPreview_multiSelect_navigation() throws Exception {
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
         // Select items
-        clickItem(PICKER_TAB_RECYCLERVIEW_ID, IMAGE_1_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, GIF_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, ANIMATED_WEBP_POSITION, ICON_THUMBNAIL_ID);
         clickItem(PICKER_TAB_RECYCLERVIEW_ID, MOTION_PHOTO_POSITION, ICON_THUMBNAIL_ID);

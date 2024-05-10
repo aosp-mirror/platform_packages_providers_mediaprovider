@@ -19,16 +19,24 @@ package com.android.providers.media.util;
 import android.content.ClipDescription;
 import android.mtp.MtpConstants;
 import android.provider.MediaStore.Files.FileColumns;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.io.File;
 import java.util.Locale;
-import java.util.Objects;
 
 public class MimeUtils {
+    private static final String TAG = "MimeUtils";
+    private static final String ALL_IMAGES_MIME_TYPE = "image/*";
+    private static final String ALL_VIDEOS_MIME_TYPE = "video/*";
+    @VisibleForTesting
+    static final String DEFAULT_IMAGE_FILE_EXTENSION = ".jpg";
+    @VisibleForTesting
+    static final String DEFAULT_VIDEO_FILE_EXTENSION = ".mp4";
 
     /**
      * Resolve the MIME type of the given file, returning
@@ -105,9 +113,29 @@ public class MimeUtils {
         return StringUtils.startsWithIgnoreCase(mimeType, "video/");
     }
 
+    /**
+     * Check whether a mime type is all videos
+     * @param mimeType the mime type {@link String} to be checked
+     * @return {@code true} if the given mime type is {@link ALL_VIDEOS_MIME_TYPE},
+     * {@code false} otherwise
+     */
+    public static boolean isAllVideosMimeType(@Nullable String mimeType) {
+        return ALL_VIDEOS_MIME_TYPE.equalsIgnoreCase(mimeType);
+    }
+
     public static boolean isImageMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
         return StringUtils.startsWithIgnoreCase(mimeType, "image/");
+    }
+
+    /**
+     * Check whether a mime type is all images
+     * @param mimeType the mime type {@link String} to be checked
+     * @return {@code true} if the given mime type is {@link ALL_IMAGES_MIME_TYPE},
+     * {@code false} otherwise
+     */
+    public static boolean isAllImagesMimeType(@Nullable String mimeType) {
+        return ALL_IMAGES_MIME_TYPE.equalsIgnoreCase(mimeType);
     }
 
     public static boolean isImageOrVideoMediaType(int mediaType) {
@@ -216,5 +244,37 @@ public class MimeUtils {
             default:
                 return false;
         }
+    }
+
+    /**
+     * Get the file extension from the mime type.
+     *
+     * @param mimeType A MIME type (i.e. text/plain)
+     *
+     * @return -
+     *      {@link MimeTypeMap#getExtensionFromMimeType} if not {@code null} or
+     *      {@link #DEFAULT_IMAGE_FILE_EXTENSION} if the mimeType is {@link #isImageMimeType} or
+     *      {@link #DEFAULT_VIDEO_FILE_EXTENSION} if the mimeType is {@link #isVideoMimeType} or
+     *      {@code ""} otherwise.
+     */
+    @NonNull
+    public static String getExtensionFromMimeType(@Nullable String mimeType) {
+        final String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        if (extension != null) {
+            return "." + extension;
+        }
+
+        Log.d(TAG, "No extension found for the mime type " + mimeType
+                + ", returning the default file extension.");
+        // TODO(b/269614462): Eliminate the image and video extension hard codes for picker uri
+        //  display names
+        if (isImageMimeType(mimeType)) {
+            return DEFAULT_IMAGE_FILE_EXTENSION;
+        }
+        if (isVideoMimeType(mimeType)) {
+            return DEFAULT_VIDEO_FILE_EXTENSION;
+        }
+
+        return "";
     }
 }

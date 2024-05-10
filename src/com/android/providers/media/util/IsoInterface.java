@@ -48,6 +48,7 @@ public class IsoInterface {
     private static final String TAG = "IsoInterface";
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
 
+    public static final int BOX_ILST = 0x696c7374;
     public static final int BOX_FTYP = 0x66747970;
     public static final int BOX_HDLR = 0x68646c72;
     public static final int BOX_UUID = 0x75756964;
@@ -96,7 +97,7 @@ public class IsoInterface {
 
     private static class Box {
         public final int type;
-        public final long[] range;
+        public long[] range;
         public UUID uuid;
         public byte[] data;
         public List<Box> children;
@@ -132,7 +133,7 @@ public class IsoInterface {
         return new UUID(high, low);
     }
 
-    private static @Nullable Box parseNextBox(@NonNull FileDescriptor fd, long end,
+    private static @Nullable Box parseNextBox(@NonNull FileDescriptor fd, long end, int parentType,
             @NonNull String prefix) throws ErrnoException, IOException {
         final long pos = Os.lseek(fd, 0, OsConstants.SEEK_CUR);
 
@@ -210,6 +211,9 @@ public class IsoInterface {
                 box.headerSize += 4;
             }
             Os.lseek(fd, pos + box.headerSize, OsConstants.SEEK_SET);
+        } else if (type == BOX_XYZ && parentType == BOX_ILST) {
+            box.range = new long[] {box.range[0], headerSize,
+                    box.range[0] + headerSize, box.range[1] - headerSize};
         }
 
         if (LOGV) {
@@ -222,7 +226,7 @@ public class IsoInterface {
             box.children = new ArrayList<>();
 
             Box child;
-            while ((child = parseNextBox(fd, pos + len, prefix + "  ")) != null) {
+            while ((child = parseNextBox(fd, pos + len, type, prefix + "  ")) != null) {
                 box.children.add(child);
             }
         }
@@ -252,7 +256,7 @@ public class IsoInterface {
             final long end = Os.lseek(fd, 0, OsConstants.SEEK_END);
             Os.lseek(fd, 0, OsConstants.SEEK_SET);
             Box box;
-            while ((box = parseNextBox(fd, end, "")) != null) {
+            while ((box = parseNextBox(fd, end, -1, "")) != null) {
                 mRoots.add(box);
             }
         } catch (ErrnoException e) {
@@ -291,9 +295,11 @@ public class IsoInterface {
     public @NonNull long[] getBoxRanges(int type) {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
-            if (box.type == type) {
-                res.add(box.range[0] + box.headerSize);
-                res.add(box.range[0] + box.range[1]);
+            for (int i = 0; i < box.range.length; i += 2) {
+                if (box.type == type) {
+                    res.add(box.range[i] + box.headerSize);
+                    res.add(box.range[i] + box.range[i + 1]);
+                }
             }
         }
         return res.toArray();
@@ -302,9 +308,11 @@ public class IsoInterface {
     public @NonNull long[] getBoxRanges(@NonNull UUID uuid) {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
-            if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
-                res.add(box.range[0] + box.headerSize);
-                res.add(box.range[0] + box.range[1]);
+            for (int i = 0; i < box.range.length; i += 2) {
+                if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+                    res.add(box.range[i] + box.headerSize);
+                    res.add(box.range[i] + box.range[i + 1]);
+                }
             }
         }
         return res.toArray();

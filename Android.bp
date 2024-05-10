@@ -13,19 +13,27 @@ android_app {
         "androidx.core_core",
         "androidx.legacy_legacy-support-core-ui",
         "androidx.lifecycle_lifecycle-extensions",
+        "androidx.preference_preference",
         "androidx.recyclerview_recyclerview",
         "com.google.android.material_material",
         "guava",
         "modules-utils-build",
         "modules-utils-uieventlogger-interface",
         "glide-prebuilt",
+        "glide-integration-recyclerview-prebuilt",
+        "glide-integration-webpdecoder-prebuilt",
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
         "glide-annotation-and-compiler-prebuilt",
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "androidx.work_work-runtime",
         "exoplayer-mediaprovider-ui",
+        "modules-utils-shell-command-handler",
+        "SettingsLibProfileSelector",
+        "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     libs: [
@@ -36,6 +44,7 @@ android_app {
         "framework-mediaprovider.impl",
         "framework-media.stubs.module_lib",
         "framework-statsd",
+        "keepanno-annotations",
     ],
 
     jni_libs: [
@@ -54,6 +63,7 @@ android_app {
         shrink: true,
         optimize: false,
         obfuscate: false,
+        shrink_resources: true,
         proguard_flags_files: ["proguard.flags"],
     },
 
@@ -67,6 +77,7 @@ android_app {
 
     certificate: "media",
     privileged: true,
+    privapp_allowlist: ":privapp_allowlist_com.android.providers.media.module.xml",
 
     aaptflags: ["--custom-package com.android.providers.media"],
 
@@ -82,14 +93,14 @@ android_app {
         ],
     },
 
-    required: [
-        "preinstalled-packages-com.android.providers.media.module.xml",
-        "privapp_allowlist_com.android.providers.media.module.xml",
-    ],
-
     lint: {
         strict_updatability_linting: true,
+        baseline_filename: "lint-baseline.xml",
     },
+
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -108,7 +119,6 @@ filegroup {
 java_library {
     name: "mediaprovider-database",
     srcs: [
-        "src/com/android/providers/media/DatabaseHelper.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",
@@ -130,6 +140,9 @@ java_library {
         "framework-annotations-lib",
         "framework-mediaprovider",
     ],
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 platform_compat_config {
@@ -150,4 +163,25 @@ prebuilt_etc {
     name: "preinstalled-packages-com.android.providers.media.module.xml",
     src: "preinstalled-packages-com.android.providers.media.module.xml",
     sub_dir: "sysconfig",
+}
+
+sh_binary {
+    name: "media_provider",
+    src: "cli/media_provider_cli_wrapper.sh",
+}
+
+aconfig_declarations {
+    name: "mediaprovider_flags",
+    package: "com.android.providers.media.flags",
+    container: "com.android.mediaprovider",
+    srcs: ["mediaprovider_flags.aconfig"],
+}
+
+java_aconfig_library {
+    name: "mediaprovider_flags_java_lib",
+    aconfig_declarations: "mediaprovider_flags",
+    min_sdk_version: "30",
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }

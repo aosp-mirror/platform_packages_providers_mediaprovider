@@ -18,7 +18,6 @@ package com.android.providers.media.client;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.ContentProviderOperation;
@@ -27,9 +26,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.ContentObserver;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Environment;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.util.Log;
@@ -39,6 +36,7 @@ import androidx.test.filters.LargeTest;
 import androidx.test.runner.AndroidJUnit4;
 import androidx.test.uiautomator.UiDevice;
 
+import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.tests.utils.Timer;
 
 import org.junit.Test;
@@ -65,6 +63,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
+@RunOnlyOnPostsubmit
 public class PerformanceTest {
     private static final String TAG = "PerformanceTest";
 
@@ -386,7 +385,7 @@ public class PerformanceTest {
                 if (asSet(uris).size() == 1 && (flags & this.flags) == this.flags) {
                     latch.countDown();
                 }
-            } else if (flags == this.flags) {
+            } else if ((flags & this.flags) == this.flags) {
                 // NotifyChange for bulk operations will be sent in batches.
                 final int receivedCount = asSet(uris).size();
 

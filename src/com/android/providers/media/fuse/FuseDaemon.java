@@ -28,6 +28,7 @@ import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Objects;
 
 /**
@@ -35,8 +36,8 @@ import java.util.Objects;
  */
 public final class FuseDaemon extends Thread {
     public static final String TAG = "FuseDaemonThread";
-    private static final int POLL_INTERVAL_MS = 1000;
-    private static final int POLL_COUNT = 5;
+    private static final int POLL_INTERVAL_MS = 100;
+    private static final int POLL_COUNT = 50;
 
     private final Object mLock = new Object();
     private final MediaProvider mMediaProvider;
@@ -205,6 +206,129 @@ public final class FuseDaemon extends Thread {
         }
     }
 
+    /**
+     * Sets up volume's database backup to external storage to recover during a rollback.
+     */
+    public void setupVolumeDbBackup() throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_setup_volume_db_backup(mPtr);
+        }
+    }
+
+    /**
+     * Sets up public volume's database backup to external storage to recover during a rollback.
+     */
+    public void setupPublicVolumeDbBackup(String volumeName) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_setup_public_volume_db_backup(mPtr, volumeName);
+        }
+    }
+
+    /**
+     * Deletes entry for given key from external storage.
+     */
+    public void deleteDbBackup(String key) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_delete_db_backup(mPtr, key);
+        }
+    }
+
+    /**
+     * Backs up given key-value pair in external storage for provided volume.
+     */
+    public void backupVolumeDbData(String volumeName, String key, String value) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_backup_volume_db_data(mPtr, volumeName, key, value);
+        }
+    }
+
+    /**
+     * Reads backed up file paths for given volume from external storage.
+     */
+    public String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_backed_up_file_paths(mPtr, volumeName, lastReadValue, limit);
+        }
+    }
+
+    /**
+     * Reads backed up data for given file from external storage.
+     */
+    public String readBackedUpData(String filePath) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_backed_up_data(mPtr, filePath);
+        }
+    }
+
+    /**
+     * Reads owner id for given owner package identifier from external storage.
+     */
+    public String readFromOwnershipBackup(String ownerPackageIdentifier) throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_ownership(mPtr, ownerPackageIdentifier);
+        }
+    }
+
+    /**
+     * Creates owner id to owner package identifier and vice versa relation in external storage.
+     */
+    public void createOwnerIdRelation(String ownerId, String ownerPackageIdentifier)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_create_owner_id_relation(mPtr, ownerId, ownerPackageIdentifier);
+        }
+    }
+
+    /**
+     * Removes owner id to owner package identifier and vice versa relation in external storage.
+     */
+    public void removeOwnerIdRelation(String ownerId, String ownerPackageIdentifier)
+            throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            native_remove_owner_id_relation(mPtr, ownerId, ownerPackageIdentifier);
+        }
+    }
+
+    /**
+     * Reads all owner id relations from external storage.
+     */
+    public HashMap<String, String> readOwnerIdRelations() throws IOException {
+        synchronized (mLock) {
+            if (mPtr == 0) {
+                throw new IOException("FUSE daemon unavailable");
+            }
+            return native_read_owner_relations(mPtr);
+        }
+    }
+
     private native long native_new(MediaProvider mediaProvider);
 
     // Takes ownership of the passed in file descriptor!
@@ -220,5 +344,19 @@ public final class FuseDaemon extends Thread {
     private native boolean native_is_started(long daemon);
     private native FdAccessResult native_check_fd_access(long daemon, int fd, int uid);
     private native void native_initialize_device_id(long daemon, String path);
+    private native void native_setup_volume_db_backup(long daemon);
+    private native void native_setup_public_volume_db_backup(long daemon, String volumeName);
+    private native void native_delete_db_backup(long daemon, String key);
+    private native void native_backup_volume_db_data(long daemon, String volumeName, String key,
+            String value);
+    private native String[] native_read_backed_up_file_paths(long daemon, String volumeName,
+            String lastReadValue, int limit);
+    private native String native_read_backed_up_data(long daemon, String key);
+    private native String native_read_ownership(long daemon, String ownerPackageIdentifier);
+    private native void native_create_owner_id_relation(long daemon, String ownerId,
+            String ownerPackageIdentifier);
+    private native void native_remove_owner_id_relation(long daemon, String ownerId,
+            String ownerPackageIdentifier);
+    private native HashMap<String, String> native_read_owner_relations(long daemon);
     public static native boolean native_is_fuse_thread();
 }

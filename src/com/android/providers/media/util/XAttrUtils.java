@@ -62,7 +62,7 @@ public class XAttrUtils {
 
     public static Optional<FileAccessAttributes> getFileAttributesFromXAttr(String path,
             String key) {
-        Trace.beginSection("getFileAttributesFromXAttr");
+        Trace.beginSection("XAttrUtils.getFileAttributesFromXAttr");
         String relativePathWithDisplayName = DATA_MEDIA_XATTR_DIRECTORY_PATH + "/"
                 + extractRelativePath(path) + extractDisplayName(path);
         try {

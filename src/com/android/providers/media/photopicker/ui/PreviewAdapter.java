@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Adapter for Preview RecyclerView to preview all images and videos.
  */
-class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
+public class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private static final int ITEM_TYPE_IMAGE = 1;
     private static final int ITEM_TYPE_VIDEO = 2;
@@ -41,13 +41,15 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     private List<Item> mItemList = new ArrayList<>();
     private final ImageLoader mImageLoader;
     private final RemotePreviewHandler mRemotePreviewHandler;
-    private final PlaybackHandler mPlaybackHandler;
-    private final boolean mIsRemotePreviewEnabled = RemotePreviewHandler.isRemotePreviewEnabled();
+    private final OnVideoPreviewClickListener mOnVideoPreviewClickListener;
 
-    PreviewAdapter(Context context, MuteStatus muteStatus) {
+    PreviewAdapter(Context context, MuteStatus muteStatus,
+            @NonNull OnCreateSurfaceController onCreateSurfaceController,
+            @NonNull OnVideoPreviewClickListener onVideoPreviewClickListener) {
         mImageLoader = new ImageLoader(context);
-        mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus);
-        mPlaybackHandler = new PlaybackHandler(context, muteStatus);
+        mRemotePreviewHandler = new RemotePreviewHandler(context, muteStatus,
+                onCreateSurfaceController);
+        mOnVideoPreviewClickListener = onVideoPreviewClickListener;
     }
 
     @NonNull
@@ -55,10 +57,9 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     public BaseViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
         if (viewType == ITEM_TYPE_IMAGE) {
             return new PreviewImageHolder(viewGroup.getContext(), viewGroup, mImageLoader);
-        } else {
-            return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader,
-                    mIsRemotePreviewEnabled);
         }
+        return new PreviewVideoHolder(viewGroup.getContext(), viewGroup, mImageLoader,
+                mOnVideoPreviewClickListener);
     }
 
     @Override
@@ -76,17 +77,8 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
         final Item item = (Item) holder.itemView.getTag();
         if (item.isVideo()) {
-            // TODO(b/222506900): Refactor thumbnail show / hide logic to be handled from a single
-            // place. Currently, we show the thumbnail here and hide it when playback starts in
-            // PlaybackHandler/RemotePreviewHandler.
             PreviewVideoHolder videoHolder = (PreviewVideoHolder) holder;
-
-            if (mIsRemotePreviewEnabled) {
-                mRemotePreviewHandler.onViewAttachedToWindow(videoHolder, item);
-                return;
-            }
-
-            mPlaybackHandler.onViewAttachedToWindow(holder.itemView);
+            mRemotePreviewHandler.onViewAttachedToWindow(videoHolder, item);
         }
     }
 
@@ -106,28 +98,16 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     }
 
     void onHandlePageSelected(View itemView) {
-        if (mIsRemotePreviewEnabled) {
-            final Item item = (Item) itemView.getTag();
-            mRemotePreviewHandler.onHandlePageSelected(item);
-            return;
-        }
-
-        mPlaybackHandler.handleVideoPlayback(itemView);
+        final Item item = (Item) itemView.getTag();
+        mRemotePreviewHandler.onHandlePageSelected(item);
     }
 
     void onStop() {
-        if (mIsRemotePreviewEnabled) {
-            mRemotePreviewHandler.onStop();
-            return;
-        }
-
-        mPlaybackHandler.releaseResources();
+        mRemotePreviewHandler.onStop();
     }
 
     void onDestroy() {
-        if (mIsRemotePreviewEnabled) {
-            mRemotePreviewHandler.onDestroy();
-        }
+        mRemotePreviewHandler.onDestroy();
     }
 
     Item getItem(int position) {
@@ -137,5 +117,26 @@ class PreviewAdapter extends RecyclerView.Adapter<BaseViewHolder> {
     void updateItemList(List<Item> itemList) {
         mItemList = itemList;
         notifyDataSetChanged();
+    }
+
+    interface OnVideoPreviewClickListener {
+        void logMuteButtonClick();
+    }
+
+    /**
+     * Log metrics related to the surface controller creation
+     */
+    public interface OnCreateSurfaceController {
+        /**
+         * Log metrics to notify create surface controller triggered
+         * @param authority the authority of the provider
+         */
+        void logStart(String authority);
+
+        /**
+         * Log metrics to notify create surface controller ended
+         * @param authority the authority of the provider
+         */
+        void logEnd(String authority);
     }
 }

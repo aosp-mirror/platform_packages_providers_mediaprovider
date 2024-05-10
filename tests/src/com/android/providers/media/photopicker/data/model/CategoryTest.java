@@ -23,8 +23,8 @@ import static com.google.common.truth.Truth.assertThat;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.net.Uri;
-import android.provider.CloudMediaProviderContract;
+import android.os.Bundle;
+import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
@@ -34,11 +34,11 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.List;
-
 @RunWith(AndroidJUnit4.class)
 public class CategoryTest {
 
+    private static final String LOCAL_PROVIDER_AUTHORITY =
+            "com.android.providers.media.photopicker";
     @Test
     public void testConstructor() {
         final Context context = InstrumentationRegistry.getTargetContext();
@@ -54,10 +54,11 @@ public class CategoryTest {
         final Category category = Category.fromCursor(cursor, UserId.CURRENT_USER);
 
         assertThat(category.getDisplayName(context)).isEqualTo(categoryName);
+        assertThat(category.getAuthority()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
         assertThat(category.isLocal()).isEqualTo(categoryIsLocal);
         assertThat(category.getItemCount()).isEqualTo(itemCount);
         assertThat(category.getCoverUri()).isEqualTo(ItemsProvider.getItemsUri(coverId,
-                        /* authority */ "foo", UserId.CURRENT_USER));
+                        /* authority */ LOCAL_PROVIDER_AUTHORITY, UserId.CURRENT_USER));
         assertThat(category.getId()).isEqualTo(categoryId);
     }
 
@@ -65,7 +66,10 @@ public class CategoryTest {
             String coverId, int itemCount, boolean isLocal) {
         final MatrixCursor cursor = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
         cursor.addRow(new Object[] {categoryId, 1, categoryName, coverId, itemCount,
-                                    "foo"});
+                LOCAL_PROVIDER_AUTHORITY});
+        Bundle extras = new Bundle();
+        extras.putString(MediaStore.EXTRA_LOCAL_PROVIDER, LOCAL_PROVIDER_AUTHORITY);
+        cursor.setExtras(extras);
         return cursor;
     }
 }

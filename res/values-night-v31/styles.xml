@@ -14,7 +14,8 @@
      limitations under the License.
 -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:androidprv="http://schemas.android.com/apk/prv/res/android">
 
     <style name="PickerMaterialTheme" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="materialAlertDialogTheme">@style/ProfileDialogTheme</item>
@@ -31,9 +32,17 @@
         <item name="pickerTextColor">?android:attr/textColorSecondary</item>
         <item name="pickerSelectedColor">@android:color/system_accent1_300</item>
         <item name="pickerProfileDialogButtonAndIconColor">@android:color/system_accent1_300</item>
-        <item name="pickerProfileDialogTitleColor">?android:attr/textColorPrimaryInverse</item>
-        <item name="pickerProfileDialogBodyColor">?android:attr/textColorSecondaryInverse</item>
+        <item name="pickerProfileDialogTitleColor">?android:attr/textColorPrimary</item>
+        <item name="pickerProfileDialogBodyColor">?android:attr/textColorSecondary</item>
         <item name="pickerProfileDialogBackgroundColor">@android:color/system_neutral1_800</item>
+        <!-- TODO(b/195009152): Final banner colors to be updated once received -->
+        <item name="pickerBannerBackgroundColor">?android:attr/colorBackground</item>
+        <item name="pickerBannerStrokeColor">@android:color/system_neutral1_700</item>
+        <item name="pickerBannerPrimaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerSecondaryTextColor">?android:attr/textColorSecondary</item>
+        <item name="pickerBannerButtonTextColor">@android:color/system_accent1_300</item>
+        <item name="categoryDefaultThumbnailColor">?attr/colorOnSurfaceVariant</item>
+        <item name="categoryDefaultThumbnailCircleColor">?attr/colorSurfaceVariant</item>
     </style>
 
 </resources>

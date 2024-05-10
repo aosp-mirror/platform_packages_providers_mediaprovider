@@ -29,6 +29,7 @@ java_sdk_library {
     ],
     static_libs: [
         "pdf_viewer_flags_java_lib",
+        "pdf-statsd",
     ],
     libs: [
         "androidx.annotation_annotation",
@@ -83,4 +84,31 @@ java_aconfig_library {
     ],
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
 
+}
+
+// To generate the Stats log classes for the Android Pdf.
+genrule {
+    name: "statslog-pdf-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider" +
+        " --javaPackage android.graphics.pdf --javaClass PdfStatsLog" +
+        " --minApiLevel 30",
+    out: ["android/graphics/pdf/PdfStatsLog.java"],
+}
+
+// To disable NewApi checks on the generated PdfStatsLog.
+java_library {
+    name: "pdf-statsd",
+    sdk_version: "module_current",
+    min_sdk_version: "30",
+    srcs: [
+        ":statslog-pdf-java-gen",
+    ],
+    libs: [
+        // To add StatsLog as a dependency of the generated file.
+        "framework-statsd.stubs.module_lib",
+    ],
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }

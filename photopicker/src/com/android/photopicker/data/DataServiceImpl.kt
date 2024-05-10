@@ -101,10 +101,22 @@ class DataServiceImpl(
     private var availableProviderCallbackFlow: Flow<List<Provider>>? = null
 
     /**
+     * Callback flow that listens to changes in media and emits a [Unit] when change is observed.
+     */
+    private var mediaUpdateCallbackFlow: Flow<Unit>? = null
+
+    /**
      * Saves the current job that collects the [availableProviderCallbackFlow].
-     * Cancel this job when there is a change in the [availableProviderCallbackFlow]
+     * Cancel this job when there is a change in the [_activeContentResolver]
      */
     private var availableProviderCollectJob: Job? = null
+
+    /**
+     * Saves the current job that collects the [mediaUpdateCallbackFlow].
+     * Cancel this job when there is a change in the [_activeContentResolver]
+     */
+    private var mediaUpdateCollectJob: Job? = null
+
 
     /**
      * Internal [StateFlow] that emits when the [availableProviderCallbackFlow] emits a new list of
@@ -178,7 +190,24 @@ class DataServiceImpl(
 
                 availableProviderCollectJob = scope.launch(dispatcher) {
                     availableProviderCallbackFlow?.collect { providers: List<Provider> ->
+                        Log.d(DataService.TAG, "Available providers update notification " +
+                                "received")
                         _availableProviders.update { providers }
+                    }
+                }
+
+                // Stop collecting media updates from previously initialized callback flow.
+                mediaUpdateCollectJob?.cancel()
+                mediaUpdateCallbackFlow = initMediaUpdateFlow(activeContentResolver)
+
+                mediaUpdateCollectJob = scope.launch(dispatcher) {
+                    mediaUpdateCallbackFlow?.collect {
+                        Log.d(DataService.TAG, "Media update notification received")
+                        mediaPagingSourceMutex.withLock {
+                            mediaPagingSources.forEach {
+                                mediaPagingSource -> mediaPagingSource.invalidate()
+                            }
+                        }
                     }
                 }
             }
@@ -226,6 +255,34 @@ class DataServiceImpl(
         // Fetch the available providers again when a change is detected.
         mediaProviderClient.fetchAvailableProviders(resolver)
     }
+
+    /**
+     * Creates a callback flow that emits a [Unit] when an update in media is observed using
+     * [ContentObserver] notifications.
+     */
+    private fun initMediaUpdateFlow(resolver: ContentResolver): Flow<Unit> = callbackFlow<Unit> {
+            val observer = object : ContentObserver(/* handler */ null) {
+                override fun onChange(selfChange: Boolean, uri: Uri?) {
+                    trySend(Unit)
+                }
+            }
+
+            // Register the content observer callback.
+            notificationService.registerContentObserverCallback(
+                resolver,
+                MEDIA_CHANGE_NOTIFICATION_URI,
+                /* notifyForDescendants */ true,
+                observer
+            )
+
+            // Unregister when the flow is closed.
+            awaitClose {
+                notificationService.unregisterContentObserverCallback(
+                    resolver,
+                    observer
+                )
+            }
+        }
 
     override fun albumMediaPagingSource(album: Album):
             PagingSource<MediaPageKey, Media> = runBlocking {

@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
-package android.graphics.pdf;
+package com.android.providers.media.leveldb;
 
-import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
+/**
+ * Represents a leveldb entry which has a key and a value as string data type.
+ */
+public final class LevelDBEntry {
+    private final String mKey;
+    private final String mValue;
 
-public class PlaceholderTest {
+    public LevelDBEntry(String key, String value) {
+        this.mKey = key;
+        this.mValue = value;
+    }
 
-    @Test
-    public void test_placeholderSetup() {
-        assertTrue(true);
+    public String getKey() {
+        return mKey;
+    }
+
+    public String getValue() {
+        return mValue;
     }
 }

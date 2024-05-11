@@ -83,7 +83,7 @@ void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int cl
     pdfClient_utils::AnnotHider annot_hider(page_.get(), types);
     int renderFlags = FPDF_REVERSE_BYTE_ORDER;
     if (render_mode == RENDER_MODE_FOR_DISPLAY) {
-        renderFlags |= FPDF_LCD_TEXT;
+        renderFlags |= FPDF_LCD_TEXT | FPDF_ANNOT;
     } else if (render_mode == RENDER_MODE_FOR_PRINT) {
         renderFlags |= FPDF_PRINTING;
     }

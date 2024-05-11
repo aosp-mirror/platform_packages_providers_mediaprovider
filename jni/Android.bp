@@ -30,7 +30,7 @@ cc_library_shared {
         "MediaProviderWrapper.cpp",
         "ReaddirHelper.cpp",
         "RedactionInfo.cpp",
-        "node.cpp"
+        "node.cpp",
     ],
 
     header_libs: [
@@ -44,7 +44,7 @@ cc_library_shared {
         "leveldb",
         "liblog",
         "libfuse",
-        "libandroid"
+        "libandroid",
     ],
 
     static_libs: [
@@ -76,15 +76,60 @@ cc_library_shared {
     ],
 }
 
+cc_library_shared {
+    name: "libleveldb_jni",
+
+    srcs: [
+        "com_android_providers_media_leveldb_LevelDBInstance.cpp",
+    ],
+
+    header_libs: [
+        "libnativehelper_header_only",
+    ],
+
+    apex_available: ["com.android.mediaprovider"],
+
+    shared_libs: [
+        "leveldb",
+        "liblog",
+        "libandroid",
+    ],
+
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+        "-Wthread-safety",
+    ],
+
+    tidy: true,
+    tidy_checks: [
+        "-google-runtime-int",
+        "-performance-no-int-to-ptr",
+    ],
+
+    sdk_version: "current",
+    stl: "c++_static",
+    min_sdk_version: "30",
+}
+
 cc_test {
     name: "fuse_node_test",
-    test_suites: ["device-tests", "mts-mediaprovider"],
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
     test_config: "fuse_node_test.xml",
 
     compile_multilib: "both",
     multilib: {
-        lib32: { suffix: "32", },
-        lib64: { suffix: "64", },
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
     },
 
     srcs: [
@@ -115,13 +160,20 @@ cc_test {
 
 cc_test {
     name: "RedactionInfoTest",
-    test_suites: ["device-tests", "mts-mediaprovider"],
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
     test_config: "RedactionInfoTest.xml",
 
     compile_multilib: "both",
     multilib: {
-        lib32: { suffix: "32", },
-        lib64: { suffix: "64", },
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
     },
 
     srcs: [
@@ -147,13 +199,20 @@ cc_test {
 
 cc_test {
     name: "FuseUtilsTest",
-    test_suites: ["device-tests", "mts-mediaprovider"],
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
     test_config: "FuseUtilsTest.xml",
 
     compile_multilib: "both",
     multilib: {
-        lib32: { suffix: "32", },
-        lib64: { suffix: "64", },
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
     },
 
     srcs: [

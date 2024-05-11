@@ -55,6 +55,7 @@ import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.util.MimeUtils;
 
 import java.io.PrintWriter;
@@ -225,6 +226,7 @@ public class PickerDbFacade {
         try (CloseableReentrantLock ignored = mPickerSyncLockManager
                 .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             mCloudProvider = authority;
+            PickerNotificationSender.notifyMediaChange(mContext);
         }
     }
 
@@ -238,6 +240,7 @@ public class PickerDbFacade {
         try (CloseableReentrantLock ignored =
                      mPickerSyncLockManager.tryLock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
             mCloudProvider = authority;
+            PickerNotificationSender.notifyMediaChange(mContext);
         }
     }
 

@@ -51,6 +51,7 @@ android_app {
     jni_libs: [
         "libfuse_jni",
         "libfuse",
+        "libleveldb_jni",
     ],
 
     resource_dirs: [

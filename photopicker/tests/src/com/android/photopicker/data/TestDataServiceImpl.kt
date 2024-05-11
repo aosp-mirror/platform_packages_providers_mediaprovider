@@ -62,6 +62,6 @@ class TestDataServiceImpl() : DataService {
     override suspend fun refreshMedia() =
         throw NotImplementedError("This method is not implemented yet.")
 
-    override suspend fun refreshAlbumMedia(albumId: String, providerAuthority: String) =
+    override suspend fun refreshAlbumMedia(album: Album) =
         throw NotImplementedError("This method is not implemented yet.")
 }

@@ -54,7 +54,10 @@ import java.util.List;
 
 /**
  * <p>
- * This class enables rendering a PDF document. This class is not thread safe.
+ * This class enables rendering a PDF document and selecting, searching, fast scrolling,
+ * annotations, etc. from Android V. This class is thread safe and can be called by
+ * multiple threads however only one thread will be executed at a time as the access is
+ * synchronized by internal locking.
  * <p>
  * If you want to render a PDF, you create a renderer and for every page you want
  * to render, you open the page, render it, and close the page. After you are done

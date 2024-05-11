@@ -27,12 +27,24 @@ android_test {
     min_sdk_version: "30",
     sdk_version: "module_current",
     target_sdk_version: "35",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
     static_libs: [
         "androidx.test.runner",
+        "mockito-target-extended-minus-junit4",
         "truth",
+        "services.core",
+        "androidx.test.ext.truth",
+    ],
+    jni_libs: [
+        // Required for ExtendedMockito
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
     ],
     libs: [
         "android.test.base",
+        "android.test.mock",
         "android.test.runner",
         "framework-pdf.impl",
     ],

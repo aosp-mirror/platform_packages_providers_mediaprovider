@@ -18,7 +18,8 @@ package com.android.providers.media.photopicker.v2.model;
 
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ALBUM_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
+
+import static java.util.Objects.requireNonNull;
 
 import android.os.Bundle;
 
@@ -42,14 +43,20 @@ public class AlbumMediaQuery extends MediaQuery {
             @NonNull String albumId) {
         super(queryArgs);
 
-        mAlbumAuthority = queryArgs.getString("album_authority");
-        mAlbumId = albumId;
+        mAlbumAuthority = requireNonNull(queryArgs.getString("album_authority"));
+        mAlbumId = requireNonNull(albumId);
 
         // IS_VISIBLE column is not present in album_media table, so we should not add a where
         // clause that filters on this value.
         mShouldDedupe = false;
     }
 
+    @NonNull
+    public String getAlbumId() {
+        return mAlbumId;
+    }
+
+    @NonNull
     public String getAlbumAuthority() {
         return mAlbumAuthority;
     }
@@ -65,14 +72,8 @@ public class AlbumMediaQuery extends MediaQuery {
 
         queryBuilder.appendWhereStandalone(KEY_ALBUM_ID + " = '" + mAlbumId + "'");
 
-        // It's possible that both local and cloud providers have albums with the same album id.
-        // This is why we may need to add more where clause(s) to identify and fetch the correct
-        // album's media items.
-        if (localAuthority != null && !localAuthority.equals(mAlbumAuthority)) {
-            queryBuilder.appendWhereStandalone(KEY_LOCAL_ID + " IS NULL");
-        }
-
-        if (cloudAuthority != null && !cloudAuthority.equals(mAlbumAuthority)) {
+        // Don't include cloud items if the album authority is not equal to the cloud authority.
+        if (!mAlbumAuthority.equals(cloudAuthority)) {
             queryBuilder.appendWhereStandalone(KEY_CLOUD_ID + " IS NULL");
         }
     }

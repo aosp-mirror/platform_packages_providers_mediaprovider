@@ -145,7 +145,9 @@ public class PickerDataLayerV2 {
             Log.e(TAG, "No albums available");
             return null;
         } else {
-            return new MergeCursor(cursors.toArray(new Cursor[cursors.size()]));
+            Cursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[0]));
+            Log.i(TAG, "Returning " + mergeCursor.getCount() + " albums metadata");
+            return mergeCursor;
         }
     }
 
@@ -236,8 +238,8 @@ public class PickerDataLayerV2 {
                             PickerSQLConstants.Table.MEDIA,
                             localAuthority,
                             cloudAuthority
-                    ),
-                    /* selectionArgs */ null
+                        ),
+                        /* selectionArgs */ null
                 );
 
                 Bundle extraArgs = new Bundle();
@@ -268,6 +270,7 @@ public class PickerDataLayerV2 {
                 database.setTransactionSuccessful();
 
                 pageData.setExtras(extraArgs);
+                Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
                 return pageData;
             } finally {
                 database.endTransaction();
@@ -719,6 +722,8 @@ public class PickerDataLayerV2 {
                 database.setTransactionSuccessful();
 
                 pageData.setExtras(extraArgs);
+                Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
+                        + query.getAlbumId());
                 return pageData;
             } finally {
                 database.endTransaction();
@@ -811,6 +816,8 @@ public class PickerDataLayerV2 {
                 database.setTransactionSuccessful();
 
                 pageData.setExtras(extraArgs);
+                Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
+                        + albumId);
                 return pageData;
             } finally {
                 database.endTransaction();

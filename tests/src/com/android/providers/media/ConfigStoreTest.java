@@ -71,6 +71,6 @@ public class ConfigStoreTest {
         assertTrue(mConfigStore.shouldPickerPreloadForPickImages());
         assertFalse(mConfigStore.shouldPickerRespectPreloadArgumentForPickImages());
         assertFalse(mConfigStore.shouldTranscodeDefault());
-        assertFalse(mConfigStore.isPrivateSpaceInPhotoPickerEnabled());
+        assertTrue(mConfigStore.isPrivateSpaceInPhotoPickerEnabled());
     }
 }

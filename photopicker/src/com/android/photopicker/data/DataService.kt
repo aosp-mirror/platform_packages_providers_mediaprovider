@@ -39,7 +39,10 @@ interface DataService {
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
 
-    /** @return an instance of [PagingSource]. */
+    /**
+     * @param album This method creates and returns a paging source for media of the given album.
+     * @return an instance of [PagingSource].
+     */
     fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media>
 
     /** @return an instance of [PagingSource]. */
@@ -65,11 +68,8 @@ interface DataService {
     suspend fun refreshMedia()
 
     /**
-     * Sends a refresh album media notification to the data source. This signal tells the data
-     * source to refresh its cache.
-     *
-     * @param albumId the identifier for the album
-     * @param providerAuthority the authority of the album's provider
+     * @param album This method sends a refresh notification for the media of the given
+     * [Group.Album] to the data source. This signal tells the data source to refresh its cache.
      */
-    suspend fun refreshAlbumMedia(albumId: String, providerAuthority: String)
+    suspend fun refreshAlbumMedia(album: Album)
 }

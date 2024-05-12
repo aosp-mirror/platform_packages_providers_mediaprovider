@@ -20,20 +20,12 @@
     <string name="photopicker_select_button_label" msgid="770981849239352214">"ಆಯ್ಕೆ ಮಾಡಿ"</string>
     <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"ಆಯ್ಕೆ ರದ್ದುಮಾಡಿ"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"ಪೂರ್ವವೀಕ್ಷಣೆ"</string>
-    <!-- no translation found for photopicker_preview_dialog_error_title (3285599941790002206) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_message (1945612118302563356) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_dialog_error_retry_button_label (6246977209614737255) -->
-    <skip />
-    <!-- no translation found for photopicker_preview_video_error_snackbar (5090849265316922614) -->
-    <skip />
-    <!-- no translation found for photopicker_video_play_button_description (5708220946927401230) -->
-    <skip />
-    <!-- no translation found for photopicker_video_pause_button_description (7283388320356598588) -->
-    <skip />
-    <!-- no translation found for photopicker_video_mute_button_description (982357994508317757) -->
-    <skip />
-    <!-- no translation found for photopicker_video_unmute_button_description (8194626942498103715) -->
-    <skip />
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"ವೀಡಿಯೊ ಪ್ಲೇ ಮಾಡಲು ಸಮಸ್ಯೆಯಾಗಿದೆ"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"ನಿಮ್ಮ ಇಂಟರ್‌ನೆಟ್ ಕನೆಕ್ಷನ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಹಾಗೂ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"ಮರುಪ್ರಯತ್ನಿಸಿ"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"ವೀಡಿಯೊ ಪ್ಲೇ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"ಪ್ಲೇ ಮಾಡಿ"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"ವಿರಾಮಗೊಳಿಸಿ"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"ವಾಲ್ಯೂಮ್ ಅನ್ನು ಮ್ಯೂಟ್ ಮಾಡಿ"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"ವಾಲ್ಯೂಮ್ ಅನ್‌ಮ್ಯೂಟ್ ಮಾಡಿ"</string>
 </resources>

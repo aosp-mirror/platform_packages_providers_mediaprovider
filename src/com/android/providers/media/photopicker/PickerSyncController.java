@@ -72,6 +72,7 @@ import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -746,7 +747,6 @@ public class PickerSyncController {
                     if (!resetAllMedia(authority, isLocal)) {
                         return false;
                     }
-                    enablePickerCloudMediaQueries(authority, isLocal);
 
                     // Cache collection id with default generation id to prevent DB reset if full
                     // sync resumes the next time sync is triggered.
@@ -756,6 +756,8 @@ public class PickerSyncController {
                     // Fall through to run full sync
                 case SYNC_TYPE_MEDIA_FULL:
                     NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
+
+                    enablePickerCloudMediaQueries(authority, isLocal);
 
                     // Send UI refresh notification for any active picker sessions, as the
                     // UI data might be stale if a full sync needs to be run.
@@ -873,6 +875,8 @@ public class PickerSyncController {
                      mDbFacade.beginResetMediaOperation(authority)) {
             final int writeCount = operation.execute(null /* cursor */);
             operation.setSuccess();
+
+            PickerNotificationSender.notifyMediaChange(mContext);
 
             Log.i(TAG, "SyncReset. isLocal:" + isLocal + ". authority: " + authority
                     +  ". result count: " + writeCount);
@@ -1535,6 +1539,10 @@ public class PickerSyncController {
                     }
                 }
 
+                // Only send a media update notification if the media table is getting updated.
+                if (albumId == null) {
+                    PickerNotificationSender.notifyMediaChange(mContext);
+                }
             } while (nextPageToken != null);
 
             Log.i(

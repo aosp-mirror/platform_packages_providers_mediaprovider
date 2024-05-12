@@ -33,7 +33,14 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 public class PickerUriResolverV2 {
-    public static final String BASE_PICKER_PATH = "picker_internal/v2/";
+    public static final String PICKER_INTERNAL_PATH_SEGMENT = "picker_internal";
+    public static final String PICKER_V2_PATH_SEGMENT = "v2";
+    public static final String BASE_PICKER_PATH =
+            PICKER_INTERNAL_PATH_SEGMENT + "/" + PICKER_V2_PATH_SEGMENT + "/";
+    public static final String MEDIA_PATH_SEGMENT = "media";
+    public static final String ALBUM_PATH_SEGMENT = "album";
+    public static final String UPDATE_PATH_SEGMENT = "update";
+
     static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static final int PICKER_INTERNAL_MEDIA = 1;
     static final int PICKER_INTERNAL_ALBUM = 2;
@@ -51,11 +58,13 @@ public class PickerUriResolverV2 {
     private @interface PickerQuery {}
 
     static {
-        sUriMatcher.addURI(MediaStore.AUTHORITY, BASE_PICKER_PATH + "media", PICKER_INTERNAL_MEDIA);
-        sUriMatcher.addURI(MediaStore.AUTHORITY, BASE_PICKER_PATH + "album", PICKER_INTERNAL_ALBUM);
+        sUriMatcher.addURI(MediaStore.AUTHORITY, BASE_PICKER_PATH + MEDIA_PATH_SEGMENT,
+                PICKER_INTERNAL_MEDIA);
+        sUriMatcher.addURI(MediaStore.AUTHORITY, BASE_PICKER_PATH + ALBUM_PATH_SEGMENT,
+                PICKER_INTERNAL_ALBUM);
         sUriMatcher.addURI(
                 MediaStore.AUTHORITY,
-                BASE_PICKER_PATH + "album/*",
+                BASE_PICKER_PATH + ALBUM_PATH_SEGMENT + "/*",
                 PICKER_INTERNAL_ALBUM_CONTENT
         );
         sUriMatcher.addURI(
@@ -69,20 +78,25 @@ public class PickerUriResolverV2 {
      * Redirect a Picker internal query to the right {@link PickerDataLayerV2} method to serve the
      * request.
      */
-    @NonNull
-    public static Cursor query(Context appContext, @NonNull Uri uri, @Nullable Bundle queryArgs) {
+    @Nullable
+    public static Cursor query(
+            @NonNull Context appContext,
+            @NonNull Uri uri,
+            @Nullable Bundle queryArgs) {
         @PickerQuery
         final int query = sUriMatcher.match(uri);
 
         switch (query) {
             case PICKER_INTERNAL_MEDIA:
-                return PickerDataLayerV2.queryMedia(appContext, queryArgs);
+                return PickerDataLayerV2.queryMedia(appContext, requireNonNull(queryArgs));
             case PICKER_INTERNAL_ALBUM:
-                return PickerDataLayerV2.queryAlbums(appContext, queryArgs);
+                return PickerDataLayerV2.queryAlbums(appContext, requireNonNull(queryArgs));
             case PICKER_INTERNAL_ALBUM_CONTENT:
                 final String albumId = uri.getLastPathSegment();
-                requireNonNull(albumId);
-                return PickerDataLayerV2.queryAlbumMedia(appContext, queryArgs, albumId);
+                return PickerDataLayerV2.queryAlbumMedia(
+                        appContext,
+                        requireNonNull(queryArgs),
+                        requireNonNull(albumId));
             case PICKER_INTERNAL_AVAILABLE_PROVIDERS:
                 return PickerDataLayerV2.queryAvailableProviders(appContext);
             default:

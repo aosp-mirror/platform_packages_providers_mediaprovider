@@ -39,6 +39,8 @@ open class MediaProviderClient {
         private const val TAG = "MediaProviderClient"
         private const val MEDIA_INIT_CALL_METHOD: String = "picker_media_init"
         private const val EXTRA_LOCAL_ONLY = "is_local_only"
+        private const val EXTRA_ALBUM_ID = "album_id"
+        private const val EXTRA_ALBUM_AUTHORITY = "album_authority"
     }
 
     /** Contains all optional and mandatory keys required to make a Media query */
@@ -239,7 +241,7 @@ open class MediaProviderClient {
     }
 
     /**
-     * Send a refresh [Media] request to MediaProvider. This is a signal for MediaProvider to
+     * Send a refresh media request to MediaProvider. This is a signal for MediaProvider to
      * refresh its cache, if required.
      */
     fun refreshMedia(providers: List<Provider>, resolver: ContentResolver) {
@@ -252,7 +254,28 @@ open class MediaProviderClient {
         val initLocalOnlyMedia: Boolean = providers.all { provider ->
             (provider.mediaSource == MediaSource.LOCAL)
         }
+
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
+        refreshMedia(extras, resolver)
+    }
+
+    /**
+     * Send a refresh album media request to MediaProvider. This is a signal for MediaProvider to
+     * refresh its cache for the given album media, if required.
+     */
+    fun refreshAlbumMedia(
+            albumId: String,
+            albumAuthority: String,
+            providers: List<Provider>,
+            resolver: ContentResolver
+    ) {
+        val extras = Bundle()
+        val initLocalOnlyMedia: Boolean = providers.all { provider ->
+            (provider.mediaSource == MediaSource.LOCAL)
+        }
+        extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
+        extras.putString(EXTRA_ALBUM_ID, albumId)
+        extras.putString(EXTRA_ALBUM_AUTHORITY, albumAuthority)
         refreshMedia(extras, resolver)
     }
 

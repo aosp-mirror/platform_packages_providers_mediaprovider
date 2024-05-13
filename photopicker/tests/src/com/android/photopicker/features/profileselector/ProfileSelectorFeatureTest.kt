@@ -32,6 +32,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.Background
@@ -61,13 +62,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
-import org.mockito.Mockito.any
-import org.mockito.Mockito.anyInt
-import org.mockito.Mockito.anyString
+import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -128,22 +129,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         hiltRule.inject()
-        // Stubs for UserMonitor
-        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockContext.contentResolver) { contentResolver }
-        whenever(mockContext.packageManager) { mockPackageManager }
-        whenever(mockContext.packageName) { "com.android.photopicker" }
-
-        // Recursively return the same mockContext for all user packages to keep the stubing simple.
-        whenever(
-            mockContext.createPackageContextAsUser(
-                anyString(),
-                anyInt(),
-                any(UserHandle::class.java)
-            )
-        ) {
-            mockContext
-        }
+        setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
     }
 
     @Test
@@ -196,8 +182,83 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
-    fun testAvailableProfilesAreDisplayed() =
+    fun testAvailableProfilesAreDisplayedPostV() =
         mainScope.runTest {
+            assumeTrue(SdkLevel.isAtLeastV())
+            val resources = getTestableContext().getResources()
+
+            // Initial setup state: Two profiles (Personal/Work), both enabled
+            whenever(mockUserManager.userProfiles) { listOf(userHandle, USER_HANDLE_MANAGED) }
+            whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
+            whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
+            whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { userHandle }
+
+            // Create mock user contexts for both profiles
+            val mockPersonalContext = mock(Context::class.java)
+            val mockManagedContext = mock(Context::class.java)
+
+            // And mock user managers for each profile
+            val personalProfileUserManager = mock(UserManager::class.java)
+            val managedProfileUserManager = mock(UserManager::class.java)
+            mockSystemService(mockPersonalContext, UserManager::class.java) {
+                personalProfileUserManager
+            }
+            mockSystemService(mockManagedContext, UserManager::class.java) {
+                managedProfileUserManager
+            }
+
+            // Mock the apis that return profile content, for each profile.
+            whenever(personalProfileUserManager.getProfileLabel()) {
+                resources.getString(R.string.photopicker_profile_primary_label)
+            }
+            whenever(personalProfileUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(managedProfileUserManager.getProfileLabel()) {
+                resources.getString(R.string.photopicker_profile_managed_label)
+            }
+            whenever(managedProfileUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+
+            // Mock the user contexts for each profile off the main test context.
+            whenever(mockContext.createContextAsUser(userHandle, 0)) { mockPersonalContext }
+            whenever(mockContext.createContextAsUser(USER_HANDLE_MANAGED, 0)) { mockManagedContext }
+
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+            composeTestRule
+                .onNode(
+                    hasContentDescription(
+                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                    )
+                )
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+                .performClick()
+
+            // Ensure personal profile option exists
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_profile_primary_label)))
+                .assert(hasClickAction())
+                .assertIsDisplayed()
+
+            // Ensure managed profile option exists
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_profile_managed_label)))
+                .assert(hasClickAction())
+                .assertIsDisplayed()
+        }
+
+    @Test
+    fun testAvailableProfilesAreDisplayedPreV() =
+        mainScope.runTest {
+            assumeFalse(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 
             // Initial setup state: Two profiles (Personal/Work), both enabled

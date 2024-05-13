@@ -16,7 +16,7 @@
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-    <!-- Label to show to user for this package and for Photo picker. -->
+  <!-- Label to show to user for this package and for Photo picker. -->
   <string name="photopicker_application_label" translation_description="Label for the application that handles picking media files to share with other apps. [CHAR_LIMIT=NONE]">Media Picker</string>
 
   <!-- Content description for an individual piece of media in the photopicker's media grid -->

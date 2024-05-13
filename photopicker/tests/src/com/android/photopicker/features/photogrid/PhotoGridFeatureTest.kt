@@ -21,7 +21,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -53,7 +52,6 @@ import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
@@ -77,8 +75,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.any
-import org.mockito.Mockito.anyInt
-import org.mockito.Mockito.anyString
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -142,22 +138,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
         }
-        // Stubs for UserMonitor
-        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockContext.contentResolver) { contentResolver }
-        whenever(mockContext.packageManager) { mockPackageManager }
-        whenever(mockContext.packageName) { "com.android.photopicker" }
-
-        // Recursively return the same mockContext for all user packages to keep the stubing simple.
-        whenever(
-            mockContext.createPackageContextAsUser(
-                anyString(),
-                anyInt(),
-                any(UserHandle::class.java)
-            )
-        ) {
-            mockContext
-        }
+        setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
     }
 
     @Test

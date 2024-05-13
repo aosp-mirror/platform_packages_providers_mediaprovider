@@ -6,13 +6,16 @@ android_test {
     srcs: ["src/**/*.kt"],
     compile_multilib: "both",
     certificate: "media",
-    sdk_version: "module_current",
+    sdk_version: "core_current",
     min_sdk_version: "30",
     libs: [
         "android.test.mock",
-        "framework-configinfrastructure",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        // Include stubs for @TestApi methods
+        "android_test_stubs_current",
+        "framework-res",
     ],
     resource_dirs: ["res"],
     static_libs: [

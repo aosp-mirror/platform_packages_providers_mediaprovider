@@ -73,7 +73,9 @@ class MainActivity : Hilt_MainActivity() {
         enableEdgeToEdge()
         // Set the action before allowing FeatureManager to be initialized, so that it receives
         // the correct config with this activity's action.
-        configurationManager.setAction(getIntent()?.getAction() ?: "")
+        getIntent()?.let {
+            configurationManager.setIntent(it)
+        }
 
         // Begin listening for events before starting the UI.
         listenForEvents()

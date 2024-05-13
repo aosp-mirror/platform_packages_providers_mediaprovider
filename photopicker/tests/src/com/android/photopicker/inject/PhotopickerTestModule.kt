@@ -98,11 +98,18 @@ abstract class PhotopickerTestModule {
     @Provides
     fun createUserMonitor(
         context: Context,
+        configurationManager: ConfigurationManager,
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         userHandle: UserHandle,
     ): UserMonitor {
-        return UserMonitor(context, scope, dispatcher, userHandle)
+        return UserMonitor(
+            context,
+            configurationManager.configuration,
+            scope,
+            dispatcher,
+            userHandle
+        )
     }
 
     @Singleton

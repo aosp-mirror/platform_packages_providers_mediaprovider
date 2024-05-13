@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
@@ -176,7 +177,7 @@ class ConfigurationManagerTest {
      * expected action.
      */
     @Test
-    fun testSetActionUpdatesConfiguration() {
+    fun testSetIntentUpdatesConfiguration() {
 
         runTest {
             val configurationManager =
@@ -192,13 +193,13 @@ class ConfigurationManagerTest {
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
 
             advanceTimeBy(100)
-            configurationManager.setAction("TEST_ACTION")
+            configurationManager.setIntent(Intent("TEST_ACTION"))
             advanceTimeBy(100)
 
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
-            assertThat(emissions.last())
-                .isEqualTo(expectedConfiguration.copy(action = "TEST_ACTION"))
+            assertThat(emissions.last().action).isEqualTo("TEST_ACTION")
+            assertThat(emissions.last().intent).isNotNull()
         }
     }
 }

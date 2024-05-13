@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
@@ -120,18 +121,18 @@ class ConfigurationManager(
     }
 
     /**
-     * Sets the current action Photopicker is running under.
+     * Sets the current intent & action Photopicker is running under.
      *
      * Since [ConfigurationManager] is bound to the [ActivityRetainedComponent] it does not have a
      * reference to the currently running Activity (if there is one.). This allows the activity to
-     * set the current Action externally once the activity is available.
+     * set the current Intent externally once the activity is available.
      *
      * If Photopicker is running inside of an activity, it's important that this method is called
      * before the FeatureManager is started to prevent the feature manager being re-initialized.
      */
-    fun setAction(action: String) {
-        Log.d(TAG, "New action received: $action : Configuration will now update.")
-        _configuration.update { it.copy(action = action) }
+    fun setIntent(intent: Intent?) {
+        Log.d(TAG, "New intent received: $intent : Configuration will now update.")
+        _configuration.update { it.copy(action = intent?.getAction() ?: "", intent = intent) }
     }
 
     /** Assembles an initial configuration upon activity launch. */

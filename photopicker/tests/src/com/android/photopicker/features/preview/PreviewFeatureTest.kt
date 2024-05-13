@@ -22,7 +22,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.UserHandle
 import android.os.UserManager
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_PERMANENT_FAILURE
 import android.provider.CloudMediaProvider.CloudMediaSurfaceStateChangedCallback.PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE
@@ -75,7 +74,6 @@ import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.capture
-import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
@@ -243,23 +241,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
         }
-
-        // Stubs for UserMonitor
-        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockContext.packageManager) { mockPackageManager }
-        whenever(mockContext.contentResolver) { contentResolver }
-        whenever(mockContext.packageName) { "com.android.photopicker" }
-
-        // Recursively return the same mockContext for all user packages to keep the stubing simple.
-        whenever(
-            mockContext.createPackageContextAsUser(
-                anyString(),
-                anyInt(),
-                any(UserHandle::class.java)
-            )
-        ) {
-            mockContext
-        }
+        setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
 
         // Setup a proxy to call the mocked controller, since IBinder uses onTransact under the hood
         // and that is more complicated to verify.

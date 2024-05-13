@@ -18,9 +18,15 @@ package com.android.photopicker.tests.utils.mockito
 
 import android.content.Context
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
-import org.mockito.ArgumentMatchers
+
+/**
+ * Wrapper around Mockito's when method. "when" is a protected keyword in Kotlin, so this provides a
+ * convenient wrapper to use.
+ */
+fun <Type> whenever(mock: Type) = Mockito.`when`(mock)
 
 /**
  * Wrapper around Mockito's when method. "when" is a protected keyword in Kotlin, so this provides a
@@ -62,9 +68,7 @@ fun <Type> mockSystemService(
  *
  * @param value The value that you wish to pass to eq
  */
-fun <Type> nonNullableEq(
-    value: Type
-): Type {
+fun <Type> nonNullableEq(value: Type): Type {
     return ArgumentMatchers.eq(value) ?: value
 }
 
@@ -76,9 +80,6 @@ fun <Type> nonNullableEq(
  * @param typeClass The java class of the type that should match [org.mockito.ArgumentMatchers.any]
  * @param defaultValue a non-null instance of the type [typeClass]
  */
-fun <Type> nonNullableAny(
-    typeClass: Class<Type>,
-    defaultValue: Type
-): Type {
+fun <Type> nonNullableAny(typeClass: Class<Type>, defaultValue: Type): Type {
     return ArgumentMatchers.any(typeClass) ?: defaultValue
 }

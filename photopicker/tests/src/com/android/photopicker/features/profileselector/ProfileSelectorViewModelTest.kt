@@ -17,7 +17,10 @@
 package com.android.photopicker.features.profileselector
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.content.pm.UserProperties
 import android.net.Uri
 import android.os.Parcel
 import android.os.UserHandle
@@ -25,6 +28,10 @@ import android.os.UserManager
 import android.test.mock.MockContentResolver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import androidx.test.platform.app.InstrumentationRegistry
+import com.android.photopicker.R
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
@@ -46,6 +53,7 @@ import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.MockitoAnnotations
 
@@ -114,14 +122,36 @@ class ProfileSelectorViewModelTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+            UserProperties.Builder()
+                .setCrossProfileContentSharingStrategy(
+                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                )
+                .build()
+        }
 
         // Stubs for UserMonitor
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.contentResolver) { mockContentResolver }
         whenever(mockContext.createPackageContextAsUser(any(), anyInt(), any())) { mockContext }
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            mockContext
+        }
+        whenever(mockUserManager.getUserBadge()) {
+            InstrumentationRegistry.getInstrumentation()
+                .getContext()
+                .getResources()
+                .getDrawable(R.drawable.android, /* theme= */ null)
+        }
+        whenever(mockUserManager.getProfileLabel()) { "label" }
+        val mockResolveInfo = mock(ResolveInfo::class.java)
+        whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
+        whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
+            listOf(mockResolveInfo)
+        }
     }
 
-		/** Ensure the view model exposes the correct values via flows for the UI to consume */
+    /** Ensure the view model exposes the correct values via flows for the UI to consume */
     @Test
     fun testExposesUserProfileFlowsForUi() {
 
@@ -141,6 +171,10 @@ class ProfileSelectorViewModelTest {
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = testActionPickImagesConfiguration,
+                        ),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -181,6 +215,10 @@ class ProfileSelectorViewModelTest {
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = testActionPickImagesConfiguration,
+                        ),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY

@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
 import android.os.SystemProperties
 
 /** Check system properties to determine if the device is considered debuggable */
@@ -30,6 +31,7 @@ private val buildIsDebuggable = SystemProperties.getInt("ro.debuggable", 0) == 1
  */
 data class PhotopickerConfiguration(
     val action: String,
+    val intent: Intent? = null,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
 )

@@ -20,7 +20,6 @@ import android.content.ContentResolver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.photopicker.data.model.Group
@@ -245,15 +244,13 @@ open class MediaProviderClient {
      * refresh its cache, if required.
      */
     fun refreshMedia(providers: List<Provider>, resolver: ContentResolver) {
-        if (providers.isEmpty()) {
-            Log.e(TAG, "List of providers is empty. Ignoring refresh media request.")
-            return
-        }
-
         val extras = Bundle()
-        val initLocalOnlyMedia: Boolean = providers.all { provider ->
-            (provider.mediaSource == MediaSource.LOCAL)
-        }
+
+        // TODO(b/340246010): Currently, we trigger sync for all providers. This is because
+        //  the UI is responsible for triggering syncs which is sometimes required to enable
+        //  providers. This should be changed to triggering syncs for specific providers once the
+        //  backend takes responsibility for the sync triggers.
+        val initLocalOnlyMedia = false
 
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
         refreshMedia(extras, resolver)

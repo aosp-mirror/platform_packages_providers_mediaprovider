@@ -54,6 +54,8 @@ import org.mockito.Mockito.verify
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataServiceImplTest {
     companion object {
+        private val albumMediaUpdateUri =
+            Uri.parse("content://media/picker_internal/v2/album/update")
         private val mediaUpdateUri =
             Uri.parse("content://media/picker_internal/v2/media/update")
         private val availableProvidersUpdateUri =
@@ -314,7 +316,7 @@ class DataServiceImplTest {
                 nonNullableEq(testContentResolver),
                 nonNullableEq(availableProvidersUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
             )
 
         verify(mockNotificationService)
@@ -322,7 +324,15 @@ class DataServiceImplTest {
                 nonNullableEq(testContentResolver),
                 nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+            )
+
+        verify(mockNotificationService)
+            .registerContentObserverCallback(
+                nonNullableEq(testContentResolver),
+                nonNullableEq(albumMediaUpdateUri),
+                ArgumentMatchers.eq(true),
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
             )
 
         // Change the active user
@@ -350,10 +360,10 @@ class DataServiceImplTest {
 
         advanceTimeBy(100)
 
-        verify(mockNotificationService, times(2))
+        verify(mockNotificationService, times(3))
             .unregisterContentObserverCallback(
                 nonNullableEq(testContentResolver),
-                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
             )
 
         verify(mockNotificationService)
@@ -361,7 +371,7 @@ class DataServiceImplTest {
                 nonNullableEq(updatedContentResolver),
                 nonNullableEq(availableProvidersUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
             )
 
         verify(mockNotificationService)
@@ -369,7 +379,15 @@ class DataServiceImplTest {
                 nonNullableEq(updatedContentResolver),
                 nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny<ContentObserver>(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+            )
+
+        verify(mockNotificationService)
+            .registerContentObserverCallback(
+                nonNullableEq(updatedContentResolver),
+                nonNullableEq(albumMediaUpdateUri),
+                ArgumentMatchers.eq(true),
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
             )
     }
 
@@ -687,5 +705,62 @@ class DataServiceImplTest {
         // Check that a cache update request was not received a second time
         val lastMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
         assertThat(lastMediaRefreshRequest).isEqualTo(firstMediaRefreshRequest)
+    }
+
+    @Test
+    fun testOnUpdateAlbumMediaNotification() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        val dataService: DataService = DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler)
+        )
+        advanceTimeBy(100)
+
+        // Fetch album media the first time
+        val album = Group.Album(
+                id = testContentProvider.albumMedia.keys.first(),
+                pickerId = Long.MAX_VALUE,
+                authority = testContentProvider.providers[0].authority,
+                dateTakenMillisLong = Long.MAX_VALUE,
+                displayName = "album",
+                coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
+                coverMediaSource = testContentProvider.providers[0].mediaSource
+        )
+
+        val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+
+        // Check the album media paging source is valid
+        assertThat(firstAlbumMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache refresh request was received
+        val firstAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(firstAlbumMediaRefreshRequest).isNotNull()
+
+        // Send a media update notification
+        val albumUpdateUri: Uri = albumMediaUpdateUri.buildUpon().apply {
+            appendPath(album.authority)
+            appendPath(album.id)
+        }.build()
+
+        notificationService.dispatchChangeToObservers(albumUpdateUri)
+        advanceTimeBy(100)
+
+        // Check that the first media paging source was marked as invalid
+        assertThat(firstAlbumMediaPagingSource.invalid).isTrue()
+
+        // Check that the a new PagingSource instance was created which is still valid
+        val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
+                dataService.albumMediaPagingSource(album)
+        assertThat(secondAlbumMediaPagingSource).isNotEqualTo(firstAlbumMediaPagingSource)
+        assertThat(secondAlbumMediaPagingSource.invalid).isFalse()
+
+        // Check that a cache update request was not received a second time
+        val lastAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
+        assertThat(lastAlbumMediaRefreshRequest).isEqualTo(firstAlbumMediaRefreshRequest)
     }
 }

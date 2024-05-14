@@ -25,9 +25,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -46,7 +48,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
@@ -54,18 +55,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
+import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItem
+import com.android.photopicker.extensions.toMediaGridItemFromAlbum
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
+
 
 /** The number of grid cells per row for Phone / narrow layouts */
 private val CELLS_PER_ROW = 3
+
 /** The number of grid cells per row for Tablet / expanded layouts */
 private val CELLS_PER_ROW_EXPANDED = 4
 
@@ -88,24 +96,31 @@ private val MEASUREMENT_SELECTED_ICON_OFFSET = 4.dp
 private val MEASUREMENT_SELECTED_ICON_BORDER = 2.dp
 
 /** The radius to use for the corners of grid cells that are selected */
-private val MEASUREMENT_SELECTED_CORDER_RADIUS = 16.dp
+private val MEASUREMENT_SELECTED_CORNER_RADIUS = 16.dp
 
 /** The padding to use around the default separator's content. */
 private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 
+/** The radius to use for the corners of grid cells that are selected */
+private val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+
 /**
- * Composable for creating a MediaGrid from a [PagingData] source of data that implements [Media]
+ * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
+ * [Media] or [Album]
  *
  * The mediaGrid uses a custom wrapper class to distinguish between individual grid cells and
  * horizontal separators. In order to convert a [Media] into a [MediaGridItem] use the flow
- * extension method [toMediaGridItem]. Additionally, to insert separators, the [Flow] extension
- * method [insertMonthSeparators] will separate list items by month.
+ * extension method [toMediaGridItemFromMedia] and to convert an [Album] into a [MediaGridItem]
+ * use the flow extension method [toMediaGridItemFromAlbum].
+ * Additionally, to insert separators, the [Flow] extension method [insertMonthSeparators] will
+ * separate list items by month.
  *
  * @param items The LazyPagingItems that have been collected. See [collectAsLazyPagingItems] to
  *   transform a PagingData flow into the correct format for this composable.
  * @param isExpandedScreen Whether the device is using an expanded screen size. This impacts the
  *   default number of cells shown per row. Has no effect if columns parameter is set directly.
- * @param columns An override to use a provided number of cells per row.
+ * @param columns number of cells per row.
+ * @param gridCellPadding padding for the grid elements from the wall and individual items
  * @param modifier A modifier to apply to the top level [LazyVerticalGrid] this composable creates.
  * @param state the [LazyGridState] to use with this Lazy resource.
  * @param contentPadding [ContentPadding] values that will be applies to the [LazyVerticalGrid].
@@ -121,12 +136,12 @@ private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 fun mediaGrid(
     items: LazyPagingItems<MediaGridItem>,
     selection: Set<Media>,
-    onItemClick: (item: Media) -> Unit,
-    onItemLongPress: (item: Media) -> Unit = {},
+    onItemClick: (item: MediaGridItem) -> Unit,
+    onItemLongPress: (item: MediaGridItem) -> Unit = {},
     isExpandedScreen: Boolean = false,
-    columns: GridCells =
-        if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
-        else GridCells.Fixed(CELLS_PER_ROW),
+    columns: GridCells = if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
+    else GridCells.Fixed(CELLS_PER_ROW),
+    gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
     contentPadding: PaddingValues = PaddingValues(MEASUREMENT_DEFAULT_CONTENT_PADDING),
@@ -135,33 +150,43 @@ fun mediaGrid(
         ::defaultBuildSpan,
     contentTypeFactory: (item: MediaGridItem?) -> Int = ::defaultBuildContentType,
     contentItemFactory:
-        @Composable (
-            item: MediaGridItem.MediaItem,
-            isSelected: Boolean,
-            onClick: ((item: Media) -> Unit)?,
-            onLongPress: ((item: Media) -> Unit)?,
-        ) -> Unit =
-        { item, isSelected, onClick, onLongPress,
+    @Composable (
+        item: MediaGridItem,
+        isSelected: Boolean,
+        onClick: ((item: MediaGridItem) -> Unit)?,
+        onLongPress: ((item: MediaGridItem) -> Unit)?,
+    ) -> Unit =
+        {
+                item, isSelected, onClick, onLongPress,
             ->
-            defaultBuildItem(item.media, isSelected, onClick, onLongPress)
+            when (item) {
+                is MediaGridItem.MediaItem -> defaultBuildMediaItem(
+                    item,
+                    isSelected,
+                    onClick,
+                    onLongPress
+                )
+
+                is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick)
+                else -> {}
+            }
         },
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
     },
 ) {
-
     LazyVerticalGrid(
         columns = columns,
         modifier = modifier,
         state = state,
         contentPadding = contentPadding,
         userScrollEnabled = userScrollEnabled,
-        horizontalArrangement = Arrangement.spacedBy(MEASUREMENT_CELL_SPACING),
-        verticalArrangement = Arrangement.spacedBy(MEASUREMENT_CELL_SPACING),
+        horizontalArrangement = Arrangement.spacedBy(gridCellPadding),
+        verticalArrangement = Arrangement.spacedBy(gridCellPadding),
     ) {
         items(
             count = items.itemCount,
-            key = { index -> keyFactory(items.peek(index), index) },
+            key = { index -> MediaGridItem.keyFactory(items.peek(index), index) },
             span = { index -> spanFactory(items.peek(index), isExpandedScreen) },
             contentType = { index -> contentTypeFactory(items.peek(index)) },
         ) { index ->
@@ -175,39 +200,19 @@ fun mediaGrid(
                             onItemClick,
                             onItemLongPress,
                         )
+
+                    is MediaGridItem.AlbumItem ->
+                        contentItemFactory(
+                            item,
+                            /* isSelected */ false,
+                            onItemClick,
+                            onItemLongPress,
+                        )
+
                     is MediaGridItem.SeparatorItem -> contentSeparatorFactory(item)
                 }
             }
         }
-    }
-}
-
-/**
- * Assembles a key for a [MediaGridItem]. This key must be always be stable and unique in the grid.
- *
- * @return a Unique, stable key that represents one item in the grid.
- */
-private fun keyFactory(item: MediaGridItem?, index: Int): String {
-    return when (item) {
-        is MediaGridItem.MediaItem -> "${item.media.pickerId}"
-        is MediaGridItem.SeparatorItem -> "${item.label}_$index"
-        null -> "$index"
-    }
-}
-
-/**
- * Default builder for generating a contentType signature for a grid item.
- *
- * ContentType is used to signify re-use of containers to increase the efficiency of the Grid
- * loading. Each subtype of MediaGridItem should return a distinct value to ensure optimal re-use.
- *
- * @return The contentType signature of the provided item.
- */
-private fun defaultBuildContentType(item: MediaGridItem?): Int {
-    return when (item) {
-        is MediaGridItem.MediaItem -> 1
-        is MediaGridItem.SeparatorItem -> 2
-        null -> 0
     }
 }
 
@@ -218,7 +223,9 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
         is MediaGridItem.SeparatorItem ->
             if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
             else GridItemSpan(CELLS_PER_ROW)
-        null -> GridItemSpan(1)
+
+        is MediaGridItem.AlbumItem -> GridItemSpan(1)
+        else -> GridItemSpan(1)
     }
 }
 
@@ -227,122 +234,197 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
  * GridCell, and provides animations and an icon for the selected state.
  */
 @Composable
-private fun defaultBuildItem(
-    item: Media,
+private fun defaultBuildMediaItem(
+    item: MediaGridItem,
     isSelected: Boolean,
-    onClick: ((item: Media) -> Unit)?,
-    onLongPress: ((item: Media) -> Unit)?,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+    onLongPress: ((item: MediaGridItem) -> Unit)?,
 ) {
+    when (item) {
+        is MediaGridItem.MediaItem -> {
+            // Padding is animated based on the selected state of the item. When the item is
+            // selected, it should shrink in the cell and provide a surface background.
+            val padding by
+            animateDpAsState(
+                if (isSelected) {
+                    MEASUREMENT_SELECTED_INTERNAL_PADDING
+                } else {
+                    MEASUREMENT_NOT_SELECTED_INTERNAL_PADDING
+                }
+            )
 
-    // Padding is animated based on the selected state of the item. When the item is selected,
-    // it should shrink in the cell and provide a surface background.
-    val padding by
-        animateDpAsState(
-            if (isSelected) {
-                MEASUREMENT_SELECTED_INTERNAL_PADDING
-            } else {
-                MEASUREMENT_NOT_SELECTED_INTERNAL_PADDING
-            }
-        )
+            // Modifier for the image itself, which uses the animated padding defined above.
+            val baseModifier = Modifier.fillMaxSize().padding(padding)
 
-    // Modifier for the image itself, which uses the animated padding defined above.
-    val baseModifier = Modifier.fillMaxSize().padding(padding)
+            // Additionally, selected items get rounded corners, so that is added to the
+            // baseModifier
+            val selectedModifier =
+                baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
-    // Additionally, selected items get rounded corners, so that is added to the baseModifier
-    val selectedModifier = baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORDER_RADIUS))
-
-    // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
-    Box(
-        // Apply semantics for the click handlers
-        Modifier.semantics(mergeDescendants = true) {
-                onClick(
-                    action = {
-                        onClick?.invoke(item)
-                        /* eventHandled= */ true
-                    }
-                )
-                onLongClick(
-                    action = {
-                        onLongPress?.invoke(item)
-                        /* eventHandled= */ true
-                    }
-                )
-            }
-            .aspectRatio(1f)
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick?.invoke(item) },
-                    onLongPress = { onLongPress?.invoke(item) }
-                )
-            }
-    ) {
-
-        // A background surface that is shown behind selected images.
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        ) {
-
-            // Container for the image and selected icon
-            Box {
-
-                // Load the media item through the Glide entrypoint.
-                loadMedia(
-                    media = item,
-                    resolution = Resolution.THUMBNAIL,
-                    // Switch which modifier is getting applied based on if the item is selected or
-                    // not.
-                    modifier = if (isSelected) selectedModifier else baseModifier,
-                )
-
-                // Wrap the icon in a full size box with the same internal padding that
-                // selected images use to ensure it is positioned correctly, relative to the image
-                // it is drawing on top of.
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(MEASUREMENT_SELECTED_INTERNAL_PADDING)
-                ) {
-
-                    // Animate the visibility of the selected icon based on the [isSelected]
-                    // attribute.
-                    AnimatedVisibility(
-                        modifier =
-                            // This offset moves the icon in each axis from the corner
-                            // origin. (So that the center of the icon is closer to the
-                            // actual visual corner). The offset is applied to the animation wrapper
-                            // so the animation origin moves with the icon itself.
-                            Modifier.offset(
-                                x = -MEASUREMENT_SELECTED_ICON_OFFSET,
-                                y = -MEASUREMENT_SELECTED_ICON_OFFSET,
-                            ),
-                        visible = isSelected,
-                        enter = scaleIn(),
-                        // No exit transition so it disappears on the next frame.
-                        exit = ExitTransition.None,
-                    ) {
-                        Icon(
-                            Icons.Filled.CheckCircle,
-                            modifier =
-                                Modifier
-                                    // Background is necessary because the icon has negative space.
-                                    .background(MaterialTheme.colorScheme.onPrimary, CircleShape)
-                                    // Border color should match the surface that is behind the
-                                    // image.
-                                    .border(
-                                        MEASUREMENT_SELECTED_ICON_BORDER,
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        CircleShape
-                                    ),
-                            contentDescription = stringResource(R.string.photopicker_item_selected),
-                            // For now, this is a lovely shade of dark green to match the mocks.
-                            tint = MaterialTheme.colorScheme.primary,
+            // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
+            Box(
+                // Apply semantics for the click handlers
+                Modifier.semantics(mergeDescendants = true) {
+                    onClick(
+                        action = {
+                            onClick?.invoke(item)
+                            /* eventHandled= */ true
+                        }
+                    )
+                    onLongClick(
+                        action = {
+                            onLongPress?.invoke(item)
+                            /* eventHandled= */ true
+                        }
+                    )
+                }
+                    .aspectRatio(1f)
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onClick?.invoke(item) },
+                            onLongPress = { onLongPress?.invoke(item) }
                         )
                     }
-                } // Icon Container
-            } // Image + Icon Container
-        } // Surface
-    } // Box for GridCell
+            ) {
+                // A background surface that is shown behind selected images.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                ) {
+                    // Container for the image and selected icon
+                    Box {
+                        // Load the media item through the Glide entrypoint.
+                        loadMedia(
+                            media = item.media,
+                            resolution = Resolution.THUMBNAIL,
+                            // Switch which modifier is getting applied based on if the item is
+                            // selected or not.
+                            modifier = if (isSelected) selectedModifier else baseModifier,
+                        )
+
+                        // Wrap the icon in a full size box with the same internal padding that
+                        // selected images use to ensure it is positioned correctly, relative to the
+                        // image it is drawing on top of.
+                        Box(
+                            modifier = Modifier.fillMaxSize()
+                                .padding(MEASUREMENT_SELECTED_INTERNAL_PADDING)
+                        ) {
+                            // Animate the visibility of the selected icon based on the [isSelected]
+                            // attribute.
+                            AnimatedVisibility(
+                                modifier =
+                                // This offset moves the icon in each axis from the corner
+                                // origin. (So that the center of the icon is closer to the
+                                // actual visual corner). The offset is applied to the animation
+                                // wrapper so the animation origin moves with the icon itself.
+                                Modifier.offset(
+                                    x = -MEASUREMENT_SELECTED_ICON_OFFSET,
+                                    y = -MEASUREMENT_SELECTED_ICON_OFFSET,
+                                ),
+                                visible = isSelected,
+                                enter = scaleIn(),
+                                // No exit transition so it disappears on the next frame.
+                                exit = ExitTransition.None,
+                            ) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    modifier =
+                                    Modifier
+                                        // Background is necessary because the icon has negative
+                                        // space.
+                                        .background(
+                                            MaterialTheme.colorScheme.onPrimary,
+                                            CircleShape
+                                        )
+                                        // Border color should match the surface that is behind the
+                                        // image.
+                                        .border(
+                                            MEASUREMENT_SELECTED_ICON_BORDER,
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            CircleShape
+                                        ),
+                                    contentDescription = stringResource(
+                                        R.string.photopicker_item_selected
+                                    ),
+                                    // For now, this is a lovely shade of dark green to match
+                                    // the mocks.
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        } // Icon Container
+                    } // Image + Icon Container
+                } // Surface
+            } // Box for GridCell
+        }
+        else -> {}
+    }
 }
+
+/**
+ * Default [MediaGridItem.AlbumItem] builder that loads album into a square (1:1) aspect ratio
+ * GridCell, and provides a text title for it just below the thumbnail.
+ */
+@Composable
+private fun defaultBuildAlbumItem(
+    item: MediaGridItem,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+) {
+    when (item) {
+        is MediaGridItem.AlbumItem -> {
+            // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
+            Box(
+                // Apply semantics for the click handlers
+                Modifier.semantics(mergeDescendants = true) {
+                    onClick(
+                        action = {
+                            onClick?.invoke(item)
+                            /* eventHandled= */ true
+                        }
+                    )
+                }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onClick?.invoke(item) },
+                        )
+                    }
+            ) {
+                // A background surface that is shown behind albums grid.
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    // Container for albums and their title
+                    Column {
+                        // Load the media item through the Glide entrypoint.
+                        loadMedia(
+                            media = item.album,
+                            resolution = Resolution.THUMBNAIL,
+                            // Modifier for album thumbnail
+                            modifier = Modifier.fillMaxWidth()
+                                .clip(
+                                    RoundedCornerShape(
+                                        MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS
+                                    )
+                                )
+                                .aspectRatio(1f),
+                        )
+                        // Album title shown below the album thumbnail.
+                        Box {
+                            Text(
+                                text = item.album.displayName,
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1
+                            )
+                        }
+                    } // Album Container
+                } // Album cell surface
+            } // Box for the grid cell
+        }
+
+        else -> {}
+    }
+}
+
 
 /**
  * Default [MediaGridItem.SeparatorItem] that creates a full width divider using the provided text

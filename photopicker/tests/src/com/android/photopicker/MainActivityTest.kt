@@ -21,6 +21,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.UserProperties
 import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
@@ -93,10 +94,21 @@ class MainActivityTest {
         hiltRule.inject()
         // Stubs for UserMonitor
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        whenever(mockUserManager.getUserBadge()) {
+            resources.getDrawable(R.drawable.android, /* theme= */ null)
+        }
+        whenever(mockUserManager.getProfileLabel()) { "label" }
+        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+            UserProperties.Builder().build()
+        }
         whenever(mockContext.contentResolver) { contentResolver }
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.packageName) { "com.android.photopicker" }
         // Recursively return the same mockContext for all user packages to keep the stubing simple.
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            mockContext
+        }
         whenever(
             mockContext.createPackageContextAsUser(
                 anyString(),

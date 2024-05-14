@@ -14,51 +14,48 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.photogrid
+package com.android.photopicker.features.albumgrid
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
-import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
-import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
-import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
-import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
-import com.android.photopicker.extensions.navigateToPhotoGrid
-import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.navigationbar.NavigationBarButton
-import com.android.photopicker.features.preview.PreviewFeature
+
+/** The number of grid cells per row for Phone / narrow layouts */
+private val CELLS_PER_ROW_FOR_ALBUM_GRID = 2
+
+/** The number of grid cells per row for Tablet / expanded layouts */
+private val CELLS_PER_ROW_EXPANDED_FOR_ALBUM_GRID = 3
+
+/** The amount of padding to use around each cell in the albums grid. */
+private val MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID = 20.dp
 
 /**
- * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
+ * Primary composable for drawing the main AlbumGrid on [PhotopickerDestinations.ALBUM_GRID]
  *
  * @param viewModel - A viewModel override for the composable. Normally, this is fetched via hilt
  *   from the backstack entry by using hiltViewModel()
  */
 @Composable
-fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
-    val navController = LocalNavController.current
-    val items = viewModel.data.collectAsLazyPagingItems()
-    val featureManager = LocalFeatureManager.current
-    val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
-
+fun AlbumGrid(viewModel: AlbumGridViewModel = hiltViewModel()) {
+    val items = viewModel.getAlbums().collectAsLazyPagingItems()
     val state = rememberLazyGridState()
-
-    val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
 
     // Use the expanded layout any time the Width is Medium or larger.
     val isExpandedScreen: Boolean =
@@ -69,24 +66,19 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
         }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Invoke the composable for AlbumsGrid. OnClick uses the navController to navigate to
+        // the album content for the album that is selected by the user.
         mediaGrid(
             items = items,
+            onItemClick = {}, // TODO: Navigate to the album content grid for the selected album
             isExpandedScreen = isExpandedScreen,
-            selection = selection,
-            onItemClick = { item ->
-                if (item is MediaGridItem.MediaItem) {
-                    viewModel.handleGridItemSelection(
-                        item.media,
-                    )
-                }
+            columns = when (isExpandedScreen) {
+                true -> GridCells.Fixed(CELLS_PER_ROW_EXPANDED_FOR_ALBUM_GRID)
+                false -> GridCells.Fixed(CELLS_PER_ROW_FOR_ALBUM_GRID)
             },
-            onItemLongPress = { item ->
-                // If the [PreviewFeature] is enabled, launch the preview route.
-                if (isPreviewEnabled) {
-                    if (item is MediaGridItem.MediaItem)
-                        navController.navigateToPreviewMedia(item.media)
-                }
-            },
+            selection = emptySet(),
+            gridCellPadding = MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID,
+            contentPadding = PaddingValues(MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID),
             state = state,
         )
     }
@@ -97,14 +89,14 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
  * [Location.NAVIGATION_BAR_NAV_BUTTON]
  */
 @Composable
-fun PhotoGridNavButton(modifier: Modifier) {
+fun AlbumGridNavButton(modifier: Modifier) {
     val navController = LocalNavController.current
 
     NavigationBarButton(
-        onClick = navController::navigateToPhotoGrid,
+        onClick = navController::navigateToAlbumGrid,
         modifier = modifier,
-        isCurrentRoute = { route -> route == PHOTO_GRID.route },
+        isCurrentRoute = { route -> route == PhotopickerDestinations.ALBUM_GRID.route },
     ) {
-        Text(stringResource(R.string.photopicker_photos_nav_button_label))
+        Text(stringResource(R.string.photopicker_albums_nav_button_label))
     }
 }

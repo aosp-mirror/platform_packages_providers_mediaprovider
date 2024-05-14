@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.photogrid
+package com.android.photopicker.features.albumgrid
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -34,29 +34,31 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
-import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
 import com.android.photopicker.core.navigation.Route
 
 /**
- * Feature class for the Photopicker's primary photo grid.
+ * Feature class for the Photopicker's primary album grid.
  *
- * This feature adds the [PHOTO_GRID] route to the application as a high priority initial route.
+ * This feature adds the [ALBUM_GRID] route to the application.
  */
-class PhotoGridFeature : PhotopickerUiFeature {
+class AlbumGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerPhotoGridFeature"
+        override val TAG: String = "PhotopickerAlbumGridFeature"
 
         override fun isEnabled(config: PhotopickerConfiguration) = true
 
-        override fun build(featureManager: FeatureManager) = PhotoGridFeature()
+        override fun build(featureManager: FeatureManager) = AlbumGridFeature()
+
+        const val ALBUM_KEY = "album"
     }
 
-    override val token = FeatureToken.PHOTO_GRID.token
+    override val token = FeatureToken.ALBUM_GRID.token
 
-    /** Events consumed by the Photo grid */
+    /** Events consumed by the Album grid */
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
-    /** Events produced by the Photo grid */
+    /** Events produced by the Album grid */
     override val eventsProduced = emptySet<RegisteredEventClass>()
 
     override fun registerLocations(): List<Pair<Location, Int>> {
@@ -67,17 +69,17 @@ class PhotoGridFeature : PhotopickerUiFeature {
 
     override fun registerNavigationRoutes(): Set<Route> {
         return setOf(
-            // The main grid of the user's photos.
+            // The main grid of the user's albums.
             object : Route {
-                override val route = PhotopickerDestinations.PHOTO_GRID.route
-                override val initialRoutePriority = Priority.HIGH.priority
+                override val route = ALBUM_GRID.route
+                override val initialRoutePriority = Priority.MEDIUM.priority
                 override val arguments = emptyList<NamedNavArgument>()
                 override val deepLinks = emptyList<NavDeepLink>()
                 override val isDialog = false
                 override val dialogProperties = null
 
                 /*
-                 Animations for PHOTO_GRID
+                 Animations for ALBUM_GRID
                  - When navigating directly, content will slide IN from the left edge.
                  - When navigating away, content will slide OUT towards the left edge.
                  - When returning from the backstack, content will slide IN from the right edge.
@@ -85,33 +87,33 @@ class PhotoGridFeature : PhotopickerUiFeature {
                    the left edge.
                  */
                 override val enterTransition:
-                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // Positive value to slide left-to-right
-                        slideInHorizontally { -it }
+                        slideInHorizontally() { it }
                     }
                 override val exitTransition:
-                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // Negative value to slide right-to-left
-                        slideOutHorizontally { -it }
+                        slideOutHorizontally() { it }
                     }
                 override val popEnterTransition:
-                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // When returning from the backstack slide right-to-left
-                        slideInHorizontally { -it }
+                        slideInHorizontally() { it }
                     }
                 override val popExitTransition:
-                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // When navigating to the backstack slide left-to-right
-                        slideOutHorizontally { -it }
+                        slideOutHorizontally() { it }
                     }
 
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
-                    PhotoGrid()
+                    AlbumGrid()
                 }
             },
         )
@@ -123,7 +125,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
         modifier: Modifier,
     ) {
         when (location) {
-            Location.NAVIGATION_BAR_NAV_BUTTON -> PhotoGridNavButton(modifier)
+            Location.NAVIGATION_BAR_NAV_BUTTON -> AlbumGridNavButton(modifier)
             else -> {}
         }
     }

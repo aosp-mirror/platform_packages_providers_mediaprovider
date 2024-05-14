@@ -29,4 +29,7 @@ enum class PhotopickerDestinations(val route: String) {
     // data to be provided to the route in order to work correctly.
     PREVIEW_MEDIA("preview/media"), // Preview route for an individual item
     PREVIEW_SELECTION("preview/selection"), // Preview route for the current selection
+
+    // The route which shows a grid of the user's albums.
+    ALBUM_GRID("albumgrid"),
 }

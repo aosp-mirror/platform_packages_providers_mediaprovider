@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.photogrid
+package com.android.photopicker.features.albumgrid
 
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
-import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -42,13 +36,17 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
+import com.android.photopicker.core.configuration.testGetContentConfiguration
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource.Companion.TEST_ALBUM_NAME_PREFIX
+import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -69,7 +67,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
@@ -86,8 +83,7 @@ import org.mockito.MockitoAnnotations
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
-class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
-
+class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
@@ -122,10 +118,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
+
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
+
 
     @Before
     fun setup() {
@@ -150,115 +148,59 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testPhotoGridIsAlwaysEnabled() {
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
-        assertWithMessage("PhotoGridFeature is not always enabled for TEST_ACTION")
-            .that(PhotoGridFeature.Registration.isEnabled(configOne))
+    fun testAlbumGridIsAlwaysEnabled() {
+        assertWithMessage("AlbumGridFeature is not always enabled for TEST_ACTION")
+            .that(AlbumGridFeature.Registration.isEnabled(testPhotopickerConfiguration))
             .isEqualTo(true)
 
-        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
-        assertWithMessage("PhotoGridFeature is not always enabled")
-            .that(PhotoGridFeature.Registration.isEnabled(configTwo))
+        assertWithMessage("AlbumGridFeature is not always enabled")
+            .that(AlbumGridFeature.Registration.isEnabled(testActionPickImagesConfiguration))
             .isEqualTo(true)
 
-        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
-        assertWithMessage("PhotoGridFeature is not always enabled")
-            .that(PhotoGridFeature.Registration.isEnabled(configThree))
+        assertWithMessage("AlbumGridFeature is not always enabled")
+            .that(AlbumGridFeature.Registration.isEnabled(testGetContentConfiguration))
             .isEqualTo(true)
-    }
 
-    @Test
-    fun testPhotoGridIsTheInitialRoute() {
-        // Explicitly create a new feature manager that uses the same production feature
-        // registrations to ensure this test will fail if the default production behavior changes.
-        val featureManager =
-            FeatureManager(
-                registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
-                scope = testBackgroundScope,
-                configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
+        assertWithMessage("AlbumGridFeature is not always enabled")
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration
+                )
             )
-
-        mainScope.runTest {
-            composeTestRule.setContent {
-                callPhotopickerMain(
-                    featureManager = featureManager,
-                    selection = selection,
-                    events = events,
-                )
-            }
-
-            advanceUntilIdle()
-
-            val route = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Initial route is not the PhotoGridFeature")
-                .that(route)
-                .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
-        }
+            .isEqualTo(true)
     }
 
     @Test
-    fun testPhotosCanBeSelected() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-        val selectedString = resources.getString(R.string.photopicker_item_selected)
-
-        mainScope.runTest {
-            composeTestRule.setContent {
+    fun testNavigateAlbumGridAndAlbumsAreVisible() = mainScope.runTest {
+        composeTestRule.setContent {
+            // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
                 )
-            }
-
-            assertWithMessage("Expected selection to initially be empty.")
-                .that(selection.snapshot().size)
-                .isEqualTo(0)
-
-            // Wait for the PhotoGridViewModel to load data and for the UI to update.
-            advanceTimeBy(100)
-            composeTestRule.waitForIdle()
-
-            composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
-                .onFirst()
-                .performClick()
-
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
-
-            // Ensure the selected semantics got applied to the selected node.
-            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
-            // Ensure the click handler correctly ran by checking the selection snapshot.
-            assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
-                .isEqualTo(1)
         }
-    }
 
-    @Test
-    fun testPhotosAreDisplayed() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+        advanceTimeBy(100)
 
-        mainScope.runTest {
-            composeTestRule.setContent {
-                callPhotopickerMain(
-                    featureManager = featureManager,
-                    selection = selection,
-                    events = events,
-                )
-            }
+        // Navigate on the UI thread (similar to a click handler)
+        composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
 
-            // Wait for the PhotoGridViewModel to load data and for the UI to update.
-            advanceTimeBy(100)
-            composeTestRule.waitForIdle()
+        assertWithMessage("Expected route to be albumgrid")
+            .that(navController.currentBackStackEntry?.destination?.route)
+            .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
 
-            composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
-                .onFirst()
-                .assert(hasClickAction())
-                .assertIsDisplayed()
-        }
+        advanceTimeBy(100)
+        composeTestRule.waitForIdle()
+
+        // Allow the PreviewViewModel to collect flows
+        advanceTimeBy(100)
+
+        // In the [FakeInMemoryPagingSource] the albums are names using TEST_ALBUM_NAME_PREFIX
+        // appended by a count in their sequence. Verify that an album with the name exists
+        composeTestRule
+            .onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1"))
+            .assert(hasClickAction())
+            .assertIsDisplayed()
     }
 }

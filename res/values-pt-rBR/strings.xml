@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"App de mídia em nuvem"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"App de mídia em nuvem"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"App de mídia em nuvem"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Acessar seus conteúdos de mídia na nuvem quando um app ou site pedir para você selecionar fotos ou vídeos"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Acesse seus conteúdos de mídia na nuvem quando um app ou site pedir para você selecionar fotos ou vídeos"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Acessar a mídia em nuvem de"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nenhum"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Não foi possível mudar o app de mídia em nuvem."</string>

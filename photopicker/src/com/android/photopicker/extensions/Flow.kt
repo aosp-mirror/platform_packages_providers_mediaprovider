@@ -20,6 +20,7 @@ import androidx.paging.PagingData
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -34,8 +35,19 @@ import kotlinx.coroutines.flow.map
  * @return A [PagingData<MediaGridItem.MediaItem] that can be processed further, or provided to the
  *   [MediaGrid].
  */
-fun Flow<PagingData<Media>>.toMediaGridItem(): Flow<PagingData<MediaGridItem.MediaItem>> {
+fun Flow<PagingData<Media>>.toMediaGridItemFromMedia(): Flow<PagingData<MediaGridItem.MediaItem>> {
     return this.map { pagingData -> pagingData.map { MediaGridItem.MediaItem(it) } }
+}
+
+/**
+ * An extension function to prepare a flow of [PagingData<Album>] to be provided to the [MediaGrid]
+ * composable, by wrapping all of the [Album] objects in a [MediaGridItem].
+ *
+ * @return A [PagingData<MediaGridItem>] that can be processed further, or provided to the
+ *   [MediaGrid].
+ */
+fun Flow<PagingData<Group.Album>>.toMediaGridItemFromAlbum(): Flow<PagingData<MediaGridItem>> {
+    return this.map { pagingData -> pagingData.map { MediaGridItem.AlbumItem(it) } }
 }
 
 /**
@@ -67,7 +79,6 @@ fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
                 LocalDateTime.ofEpochSecond((after.media.getTimestamp() / 1000), 0, ZoneOffset.UTC)
 
             if (beforeLocalDateTime.getMonth() != afterLocalDateTime.getMonth()) {
-
                 val format =
                     // If the current calendar year is different from the items year, append the
                     // year to to the month string.

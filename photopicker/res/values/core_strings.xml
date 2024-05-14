@@ -31,4 +31,7 @@
   <!-- Button label for the Photos navigation button -->
   <string name="photopicker_photos_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their photos.">Photos</string>
 
+  <!-- Button label for the Albums navigation button -->
+  <string name="photopicker_albums_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their albums.">Albums</string>
+
 </resources>

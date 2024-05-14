@@ -23,6 +23,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
 import android.provider.MediaStore
+import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -87,6 +88,7 @@ import org.mockito.MockitoAnnotations
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
+
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
@@ -109,13 +111,14 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
     /**
-     * PhotoGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
+     * Preview uses Glide for loading images, so we have to mock out the dependencies for Glide
      * Replace the injected ContentResolver binding in [ApplicationModule] with this test value.
      */
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
     @Mock lateinit var mockContentProvider: ContentProvider
 
+    // Needed for UserMonitor
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
@@ -130,9 +133,14 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         hiltRule.inject()
 
+        // Stub for MockContentResolver constructor
+        whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
+
         // Stub out the content resolver for Glide
+        val mockContentResolver = MockContentResolver(mockContext)
         provider = MockContentProviderWrapper(mockContentProvider)
-        contentResolver = ContentResolver.wrap(provider)
+        mockContentResolver.addProvider(MockContentProviderWrapper.AUTHORITY, provider)
+        contentResolver = mockContentResolver
 
         // Return a resource png so that glide actually has something to load
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
@@ -143,7 +151,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotoGridIsAlwaysEnabled() {
-
         val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
         assertWithMessage("PhotoGridFeature is not always enabled for TEST_ACTION")
             .that(PhotoGridFeature.Registration.isEnabled(configOne))
@@ -162,7 +169,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotoGridIsTheInitialRoute() {
-
         // Explicitly create a new feature manager that uses the same production feature
         // registrations to ensure this test will fail if the default production behavior changes.
         val featureManager =
@@ -192,7 +198,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosCanBeSelected() {
-
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
@@ -233,7 +238,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosAreDisplayed() {
-
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 

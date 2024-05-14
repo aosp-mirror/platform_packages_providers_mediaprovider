@@ -43,10 +43,11 @@ import com.android.photopicker.core.navigation.Route
  * This feature adds the [PHOTO_GRID] route to the application as a high priority initial route.
  */
 class PhotoGridFeature : PhotopickerUiFeature {
-
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPhotoGridFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = PhotoGridFeature()
     }
 
@@ -65,7 +66,6 @@ class PhotoGridFeature : PhotopickerUiFeature {
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
-
         return setOf(
             // The main grid of the user's photos.
             object : Route {
@@ -83,35 +83,34 @@ class PhotoGridFeature : PhotopickerUiFeature {
                  - When returning from the backstack, content will slide IN from the right edge.
                  - When popping to another route on the backstack, content will slide OUT towards
                    the left edge.
-                */
+                 */
                 override val enterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // Positive value to slide left-to-right
-                        slideInHorizontally() { it }
+                        slideInHorizontally { -it }
                     }
                 override val exitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // Negative value to slide right-to-left
-                        slideOutHorizontally() { -it }
+                        slideOutHorizontally { -it }
                     }
                 override val popEnterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // When returning from the backstack slide right-to-left
-                        slideInHorizontally() { -it }
+                        slideInHorizontally { -it }
                     }
                 override val popExitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // When navigating to the backstack slide left-to-right
-                        slideOutHorizontally() { it }
+                        slideOutHorizontally { -it }
                     }
+
                 @Composable
-                override fun composable(
-                    navBackStackEntry: NavBackStackEntry?,
-                ) {
+                override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     PhotoGrid()
                 }
             },
@@ -119,7 +118,10 @@ class PhotoGridFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+    ) {
         when (location) {
             Location.NAVIGATION_BAR_NAV_BUTTON -> PhotoGridNavButton(modifier)
             else -> {}

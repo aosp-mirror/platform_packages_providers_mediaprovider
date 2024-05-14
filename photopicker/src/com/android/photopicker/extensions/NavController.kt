@@ -18,6 +18,7 @@ package com.android.photopicker.extensions
 
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_MEDIA
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_SELECTION
@@ -32,21 +33,19 @@ import com.android.photopicker.features.preview.PreviewFeature
  * If the route is not currently on the BackStack, then this will navigate directly.
  */
 fun NavController.navigateToPhotoGrid(navOptions: NavOptions? = null) {
-
     // First, check to see if the destination is already the current route.
     if (this.currentDestination?.route == PHOTO_GRID.route) {
         // Nothing to do. Return early to prevent navigation animations from triggering.
         return
     } else if (
-        // Try to return to the entry that is already on the backstack, so the user's
-        // previous state and scroll position is restored.
+    // Try to return to the entry that is already on the backstack, so the user's
+    // previous state and scroll position is restored.
         !this.popBackStack(
             PHOTO_GRID.route,
             /* inclusive= */ false,
             /* saveState = */ false,
         )
     ) {
-
         // Last resort; PHOTO_GRID isn't on the backstack, then navigate directly.
         this.navigate(PHOTO_GRID.route, navOptions)
     }
@@ -65,12 +64,40 @@ fun NavController.navigateToPreviewSelection(navOptions: NavOptions? = null) {
  *
  * @param media The media item that should be previewed in full resolution.
  */
-fun NavController.navigateToPreviewMedia(media: Media, navOptions: NavOptions? = null) {
+fun NavController.navigateToPreviewMedia(
+    media: Media,
+    navOptions: NavOptions? = null,
+) {
     this.navigate(PREVIEW_MEDIA.route, navOptions)
-
     // Media object must be parcellized and passed to the new route so it can be loaded.
     // This back stack entry is guaranteed to exist since it was just navigated to.
     this.getBackStackEntry(PREVIEW_MEDIA.route)
         .savedStateHandle
         .set(PreviewFeature.PREVIEW_MEDIA_KEY, media)
+}
+
+/**
+ * Utility function for navigating to the [PhotopickerDestinations.ALBUM_GRID] route.
+ *
+ * This attempts to reclaim an existing BackStack entry, preserving any previous state that existed.
+ *
+ * If the route is not currently on the BackStack, then this will navigate directly.
+ */
+fun NavController.navigateToAlbumGrid(navOptions: NavOptions? = null) {
+    // First, check to see if the destination is already the current route.
+    if (this.currentDestination?.route == PhotopickerDestinations.ALBUM_GRID.route) {
+        // Nothing to do. Return early to prevent navigation animations from triggering.
+        return
+    } else if (
+    // Try to return to the entry that is already on the backstack, so the user's
+    // previous state and scroll position is restored.
+        !this.popBackStack(
+            PhotopickerDestinations.ALBUM_GRID.route,
+            /* inclusive= */ false,
+            /* saveState = */ false,
+        )
+    ) {
+        // Last resort; ALBUM_GRID isn't on the backstack, then navigate directly.
+        this.navigate(PhotopickerDestinations.ALBUM_GRID.route, navOptions)
+    }
 }

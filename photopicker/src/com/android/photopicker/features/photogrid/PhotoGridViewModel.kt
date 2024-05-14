@@ -25,7 +25,7 @@ import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItem
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -86,7 +86,7 @@ constructor(
     /** Export the data from the pager and prepare it for use in the [MediaGrid] */
     val data =
         pager.flow
-            .toMediaGridItem()
+            .toMediaGridItemFromMedia()
             .insertMonthSeparators()
             // After the load and transformations, cache the data in the viewModelScope.
             // This ensures that the list position and state will be remembered by the MediaGrid

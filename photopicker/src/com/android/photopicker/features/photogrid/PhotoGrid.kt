@@ -16,23 +16,25 @@
 
 package com.android.photopicker.features.photogrid
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
@@ -49,7 +51,6 @@ import com.android.photopicker.features.preview.PreviewFeature
  */
 @Composable
 fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
-
     val navController = LocalNavController.current
     val items = viewModel.data.collectAsLazyPagingItems()
     val featureManager = LocalFeatureManager.current
@@ -59,7 +60,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
 
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
 
-    /* Use the expanded layout any time the Width is Medium or larger. */
+    // Use the expanded layout any time the Width is Medium or larger.
     val isExpandedScreen: Boolean =
         when (LocalWindowSizeClass.current.widthSizeClass) {
             WindowWidthSizeClass.Medium -> true
@@ -67,19 +68,28 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
             else -> false
         }
 
-    mediaGrid(
-        items = items,
-        isExpandedScreen = isExpandedScreen,
-        selection = selection,
-        onItemClick = { item -> viewModel.handleGridItemSelection(item) },
-        onItemLongPress = { item ->
-            // If the [PreviewFeature] is enabled, launch the preview route.
-            if (isPreviewEnabled) {
-                navController.navigateToPreviewMedia(item)
-            }
-        },
-        state = state,
-    )
+    Column(modifier = Modifier.fillMaxSize()) {
+        mediaGrid(
+            items = items,
+            isExpandedScreen = isExpandedScreen,
+            selection = selection,
+            onItemClick = { item ->
+                if (item is MediaGridItem.MediaItem) {
+                    viewModel.handleGridItemSelection(
+                        item.media,
+                    )
+                }
+            },
+            onItemLongPress = { item ->
+                // If the [PreviewFeature] is enabled, launch the preview route.
+                if (isPreviewEnabled) {
+                    if (item is MediaGridItem.MediaItem)
+                        navController.navigateToPreviewMedia(item.media)
+                }
+            },
+            state = state,
+        )
+    }
 }
 
 /**
@@ -88,7 +98,6 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
  */
 @Composable
 fun PhotoGridNavButton(modifier: Modifier) {
-
     val navController = LocalNavController.current
 
     NavigationBarButton(

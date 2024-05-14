@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Wolkmedia-app"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Wolkmedia-app"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Wolkmedia-app"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Toegang tot jou wolkmedia wanneer ’n app of webwerf jou vra om foto’s of video’s te kies"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Kry toegang tot jou wolkmedia wanneer ’n app of webwerf jou vra om foto’s of video’s te kies"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Kry toegang tot wolkmedia vanaf"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Kon nie wolkmedia-app op dié tydstip verander nie."</string>

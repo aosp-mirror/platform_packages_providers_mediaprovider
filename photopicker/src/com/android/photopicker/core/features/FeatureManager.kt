@@ -24,10 +24,11 @@ import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
-import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
+import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -73,6 +74,7 @@ class FeatureManager(
                 PreviewFeature.Registration,
                 ProfileSelectorFeature.Registration,
                 AlbumGridFeature.Registration,
+                SnackbarFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -82,7 +84,11 @@ class FeatureManager(
             )
 
         /* The list of events that the core library produces. */
-        val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> = setOf()
+        val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> =
+            setOf(
+                Event.MediaSelectionConfirmed::class.java,
+                Event.ShowSnackbarMessage::class.java,
+            )
     }
 
     // The internal mutable set of enabled features.
@@ -190,7 +196,10 @@ class FeatureManager(
 
         validateEventRegistrations()
 
-        Log.d(TAG, "Feature initialization complete.")
+        Log.d(
+            TAG,
+            "Feature initialization complete. Features: ${_enabledFeatures.map { it.token }}"
+        )
     }
 
     /**

@@ -65,7 +65,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
-    @Inject @ActivityRetainedScoped lateinit var selection: Selection<Media>
+    @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
     // This needs to be injected lazily, to defer initialization until the action can be set
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
@@ -97,6 +97,12 @@ class MainActivity : Hilt_MainActivity() {
         // Begin listening for events before starting the UI.
         listenForEvents()
 
+        // In single select sessions, the activity needs to end after a media object is selected,
+        // so register a listener to the selection so the activity can handle calling
+        // [onMediaSelectionConfirmed] itself. For multi-select, the activity has to wait to receive
+        // the [Event.MediaSelectionConfirmed] dispatch.
+        listenForSelectionIfSingleSelect()
+
         setContent {
             val photopickerConfiguration by
                 configurationManager.configuration.collectAsStateWithLifecycle()
@@ -105,10 +111,31 @@ class MainActivity : Hilt_MainActivity() {
             CompositionLocalProvider(
                 LocalFeatureManager provides featureManager.get(),
                 LocalPhotopickerConfiguration provides photopickerConfiguration,
-                LocalSelection provides selection,
+                LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
             ) {
                 PhotopickerTheme { PhotopickerAppWithBottomSheet(onDismissRequest = ::finish) }
+            }
+        }
+    }
+
+    /**
+     * A collector that starts when Photopicker is running in single-select mode. This collector
+     * will trigger [onMediaSelectionConfirmed] when the first (and only) item is selected.
+     */
+    private fun listenForSelectionIfSingleSelect() {
+
+        // Only set up a collector if the selection limit is 1, otherwise the [SelectionBarFeature]
+        // will be enabled for the user to confirm the selection.
+        if (configurationManager.configuration.value.selectionLimit == 1) {
+            lifecycleScope.launch {
+                withContext(background) {
+                    selection.get().flow.collect {
+                        if (it.size == 1) {
+                            onMediaSelectionConfirmed()
+                        }
+                    }
+                }
             }
         }
     }
@@ -126,6 +153,7 @@ class MainActivity : Hilt_MainActivity() {
                             withContext(background) { onMediaSelectionConfirmed() }
                         }
                     }
+                    else -> {}
                 }
             }
         }
@@ -175,7 +203,7 @@ class MainActivity : Hilt_MainActivity() {
      */
     private suspend fun setResultForApp(canSelectMultiple: Boolean) {
 
-        val snapshot = selection.snapshot()
+        val snapshot = selection.get().snapshot()
         if (snapshot.size < 1) return
 
         val resultData = Intent()
@@ -224,7 +252,7 @@ class MainActivity : Hilt_MainActivity() {
      */
     private suspend fun issueGrantsForApp(uid: Int) {
 
-        val uris: List<Uri> = selection.snapshot().map { it.mediaUri }
+        val uris: List<Uri> = selection.get().snapshot().map { it.mediaUri }
         // TODO: b/328189932 Diff the initial selection and revoke grants as needed.
         MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
 

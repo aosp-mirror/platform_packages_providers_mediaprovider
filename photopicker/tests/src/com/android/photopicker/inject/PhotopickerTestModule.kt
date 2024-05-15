@@ -23,7 +23,6 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
-import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
@@ -132,16 +131,20 @@ abstract class PhotopickerTestModule {
     @Provides
     fun createFeatureManager(
         @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): FeatureManager {
         return FeatureManager(
-            provideTestConfigurationFlow(scope = scope),
+            configurationManager.configuration,
             scope,
         )
     }
 
     @Singleton
     @Provides
-    fun createSelection(@Background scope: CoroutineScope): Selection<Media> {
-        return Selection<Media>(scope = scope)
+    fun createSelection(
+        @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager
+    ): Selection<Media> {
+        return Selection<Media>(scope = scope, configuration = configurationManager.configuration)
     }
 }

@@ -205,6 +205,7 @@ class MainActivityTest {
         val intent =
             Intent()
                 .setAction(Intent.ACTION_GET_CONTENT)
+                .setType("image/*")
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
@@ -292,6 +293,7 @@ class MainActivityTest {
         val intent =
             Intent()
                 .setAction(Intent.ACTION_GET_CONTENT)
+                .setType("image/*")
                 .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
                 .setComponent(
                     ComponentName(

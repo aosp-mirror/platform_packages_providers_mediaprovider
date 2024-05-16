@@ -17,9 +17,11 @@
 package com.android.photopicker
 
 import android.content.ClipData
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -64,6 +66,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
     // This needs to be injected lazily, to defer initialization until the action can be set
     // on the ConfigurationManager.
@@ -80,7 +83,18 @@ class MainActivity : Hilt_MainActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // [ACTION_GET_CONTENT]: Check to see if Photopicker should handle this session, or if the
+        // user should instead be referred to [com.android.documentsui]. This is necessary because
+        // Photopicker has a higher priority for "image/*" and "video/*" mimetypes that DocumentsUi.
+        // An unfortunate side effect is that a mimetype of "*/*" also matches Photopicker's
+        // intent-filter, and in that case, the user is not in a pure media selection mode, so refer
+        // the user to DocumentsUi to handle all file types.
+        if (shouldRerouteGetContentRequest()) {
+            referToDocumentsUi()
+        }
+
         enableEdgeToEdge()
+
         // Set the action before allowing FeatureManager to be initialized, so that it receives
         // the correct config with this activity's action.
         try {
@@ -95,7 +109,6 @@ class MainActivity : Hilt_MainActivity() {
 
         // Begin listening for events before starting the UI.
         listenForEvents()
-
 
         // In single select sessions, the activity needs to end after a media object is selected,
         // so register a listener to the selection so the activity can handle calling
@@ -259,5 +272,131 @@ class MainActivity : Hilt_MainActivity() {
         // No need to send any data back to the PermissionController, just send an OK signal
         // back to indicate the MediaGrants are available.
         setResult(RESULT_OK)
+    }
+
+    /**
+     * This will end the activity. Refer the current session to [com.android.documentsui]
+     *
+     * Note: Complete any pending logging or work before calling this method as this will end the
+     * process immediately.
+     */
+    private fun referToDocumentsUi() {
+        // The incoming intent is not changed in any way when redirecting to DocumentsUi.
+        // The calling app launched [ACTION_GET_CONTENT] probably without knowing it would first
+        // come to Photopicker, so if Photopicker isn't going to handle the intent, just pass it
+        // along unmodified.
+        @Suppress("UnsafeIntentLaunch") val intent = getIntent()
+        intent?.apply {
+            addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT)
+            addFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP)
+            setComponent(getDocumentssUiComponentName())
+        }
+        startActivityAsUser(intent, processOwnerUserHandle)
+        finish()
+    }
+
+    /**
+     * Determines if this session should end and the user should be redirected to
+     * [com.android.documentsUi]. The evaluates the incoming [Intent] to see if Photopicker is
+     * running in [ACTION_GET_CONTENT], and if the mimetypes requested can be correctly handled by
+     * Photopicker. If the activity is not running in [ACTION_GET_CONTENT] this will always return
+     * false.
+     *
+     * A notable exception would be if Photopicker was started by DocumentsUi rather than the
+     * original app, in which case this method will return [false].
+     *
+     * @return true if the activity is running [ACTION_GET_CONTENT] and Photopicker shouldn't handle
+     *   the session.
+     */
+    private fun shouldRerouteGetContentRequest(): Boolean {
+        val intent = getIntent()
+
+        return when {
+            Intent.ACTION_GET_CONTENT != intent.getAction() -> false
+
+            // GET_CONTENT for all (media and non-media) files opens DocumentsUi, but it still shows
+            // "Photo Picker app option. When the user clicks on "Photo Picker", the same intent
+            // which includes filters to show non-media files as well is forwarded to PhotoPicker.
+            // Make sure Photo Picker is opened when the intent is explicitly forwarded by
+            // documentsUi
+            isIntentReferredByDocumentsUi(getReferrer()) -> false
+
+            // Ensure Photopicker can handle the specified MIME types.
+            canHandleIntentMimeTypes(intent) -> false
+            else -> true
+        }
+    }
+
+    /**
+     * Resolves a [ComponentName] for DocumentsUi via [Intent.ACTION_OPEN_DOCUMENT]
+     *
+     * ACTION_OPEN_DOCUMENT is used to find DocumentsUi's component due to DocumentsUi being the
+     * default handler.
+     *
+     * @return the [ComponentName] for DocumentsUi's picker activity.
+     */
+    private fun getDocumentssUiComponentName(): ComponentName? {
+
+        val intent =
+            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                setType("*/*")
+            }
+
+        val componentName = intent.resolveActivity(getPackageManager())
+        return componentName
+    }
+
+    /**
+     * Determines if the referrer uri came from [com.android.documentsui]
+     *
+     * @return true if the referrer [Uri] is from DocumentsUi.
+     */
+    private fun isIntentReferredByDocumentsUi(referrer: Uri?): Boolean {
+        return referrer?.getHost() == getDocumentssUiComponentName()?.getPackageName()
+    }
+
+    /**
+     * Determines if [MainActivity] is capable of handling the [Intent.EXTRA_MIME_TYPES] provided to
+     * the activity in this Photopicker session.
+     *
+     * @return true if the list of mimetypes can be handled by Photopicker.
+     */
+    private fun canHandleIntentMimeTypes(intent: Intent): Boolean {
+
+        if (!intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
+            // If the incoming type is */* then Photopicker can't handle this mimetype
+            return isMediaMimeType(intent.getType())
+        }
+
+        val mimeTypes = intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
+
+        mimeTypes?.let {
+
+            // If the list of MimeTypes is empty, nothing was explicitly set, so assume that
+            // non-media files should be displayed.
+            if (mimeTypes.size == 0) return false
+
+            // Ensure all mimetypes in the incoming filter list are supported
+            for (mimeType in mimeTypes) {
+                if (!isMediaMimeType(mimeType)) {
+                    return false
+                }
+            }
+        }
+        // Should not be null at this point (the intent contains the extra key),
+        // but better safe than sorry.
+        ?: return false
+
+        return true
+    }
+
+    /**
+     * Determines if the mimeType is a media mimetype that Photopicker can support.
+     *
+     * @return Whether the mimetype is supported by Photopicker.
+     */
+    private fun isMediaMimeType(mimeType: String?): Boolean {
+        return mimeType?.let { it.startsWith("image/") || it.startsWith("video/") } ?: false
     }
 }

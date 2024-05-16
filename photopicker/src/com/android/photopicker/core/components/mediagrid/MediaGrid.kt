@@ -87,8 +87,8 @@ private val CELLS_PER_ROW = 3
 /** The number of grid cells per row for Tablet / expanded layouts */
 private val CELLS_PER_ROW_EXPANDED = 4
 
-/** The default (if not overridden) amount of content padding inside the grid */
-private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 0.dp
+/** The default (if not overridden) amount of content padding below the grid */
+private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 150.dp
 
 /** The amount of padding to use around each cell in the grid. */
 private val MEASUREMENT_CELL_SPACING = 1.dp
@@ -160,7 +160,8 @@ fun mediaGrid(
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
-    contentPadding: PaddingValues = PaddingValues(MEASUREMENT_DEFAULT_CONTENT_PADDING),
+    contentPadding: PaddingValues =
+        PaddingValues(bottom = MEASUREMENT_DEFAULT_CONTENT_PADDING),
     userScrollEnabled: Boolean = true,
     spanFactory: (item: MediaGridItem?, isExpandedScreen: Boolean) -> GridItemSpan =
         ::defaultBuildSpan,

@@ -51,6 +51,7 @@ android_app {
         "libfuse_jni",
         "libfuse",
     ],
+    use_embedded_native_libs: true,
 
     resource_dirs: [
         "res",

@@ -22,16 +22,24 @@ import android.os.SystemProperties
 /** Check system properties to determine if the device is considered debuggable */
 private val buildIsDebuggable = SystemProperties.getInt("ro.debuggable", 0) == 1
 
+/** The default selection maximum size if not set by the caller */
+const val DEFAULT_SELECTION_LIMIT = 1
+
 /**
  * Data object that represents a possible configuration state of the Photopicker.
  *
  * @property action the [Intent#getAction] that Photopicker is currently serving.
+ * @property intent the [Intent] that Photopicker was launched with.
+ * @property selectionLimit the value of [MediaStore.EXTRA_PICK_IMAGES_MAX] with a default value of
+ *   [DEFAULT_SELECTION_LIMIT], and max value of [MediaStore.getPickImagesMaxLimit()] if it was not
+ *   set or set to too large a limit.
  * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  */
 data class PhotopickerConfiguration(
     val action: String,
     val intent: Intent? = null,
+    val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
 )

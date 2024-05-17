@@ -38,7 +38,7 @@ import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.features.FeatureToken.SELECTION_BAR
+import com.android.photopicker.core.features.FeatureToken.CORE
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -62,7 +62,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -98,11 +97,9 @@ class MainActivityTest {
     @Mock lateinit var mockPackageManager: PackageManager
 
     val contentResolver: ContentResolver = MockContentResolver()
-    var scenario: ActivityScenario<MainActivity>? = null
 
     @Before
     fun setup() {
-        scenario = null
         MockitoAnnotations.initMocks(this)
         hiltRule.inject()
         // Stubs for UserMonitor
@@ -133,11 +130,6 @@ class MainActivityTest {
         }
     }
 
-    @After
-    fun teardown() {
-        scenario?.close()
-    }
-
     @Test
     fun testMainActivitySetsActivityAction() {
         mainScope.runTest {
@@ -150,11 +142,12 @@ class MainActivityTest {
                             MainActivity::class.java
                         )
                     )
-            scenario = ActivityScenario.launch(intent)
-            advanceTimeBy(100)
-            assertWithMessage("Expected configuration to contain an action")
-                .that(configurationManager.configuration.first().action)
-                .isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            with(ActivityScenario.launch<MainActivity>(intent)) {
+                advanceTimeBy(100)
+                assertWithMessage("Expected configuration to contain an action")
+                    .that(configurationManager.configuration.first().action)
+                    .isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            }
         }
     }
 
@@ -177,27 +170,28 @@ class MainActivityTest {
                     )
                 )
 
-        scenario = launchActivityForResult<MainActivity>(intent)
-        mainScope.runTest {
-            scenario?.onActivity {
-                mainScope.launch {
-                    selection.add(testImage)
-                    events.dispatch(Event.MediaSelectionConfirmed(SELECTION_BAR.token))
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    mainScope.launch {
+                        selection.add(testImage)
+                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                    }
                 }
+
+                advanceTimeBy(100)
             }
 
-            advanceTimeBy(100)
+            val result = this.result
+            assertWithMessage("Expected scenario result to be OK")
+                .that(result?.resultCode)
+                .isEqualTo(RESULT_OK)
+            val data = result?.resultData
+
+            assertWithMessage("Expected activity to return a uri")
+                .that(data?.getData())
+                .isEqualTo(testImage.mediaUri)
         }
-
-        val result = scenario?.result
-        assertWithMessage("Expected scenario result to be OK")
-            .that(result?.resultCode)
-            .isEqualTo(RESULT_OK)
-        val data = result?.resultData
-
-        assertWithMessage("Expected activity to return a uri")
-            .that(data?.getData())
-            .isEqualTo(testImage.mediaUri)
     }
     /**
      * Using [StubProvider] as a backing provider, ensure that [MainActivity] returns data to the
@@ -218,27 +212,28 @@ class MainActivityTest {
                     )
                 )
 
-        scenario = launchActivityForResult<MainActivity>(intent)
-        mainScope.runTest {
-            scenario?.onActivity {
-                mainScope.launch {
-                    selection.add(testImage)
-                    events.dispatch(Event.MediaSelectionConfirmed(SELECTION_BAR.token))
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    mainScope.launch {
+                        selection.add(testImage)
+                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                    }
                 }
+
+                advanceTimeBy(100)
             }
 
-            advanceTimeBy(100)
+            val result = this.result
+            assertWithMessage("Expected scenario result to be OK")
+                .that(result?.resultCode)
+                .isEqualTo(RESULT_OK)
+            val data = result?.resultData
+
+            assertWithMessage("Expected activity to return a uri")
+                .that(data?.getData())
+                .isEqualTo(testImage.mediaUri)
         }
-
-        val result = scenario?.result
-        assertWithMessage("Expected scenario result to be OK")
-            .that(result?.resultCode)
-            .isEqualTo(RESULT_OK)
-        val data = result?.resultData
-
-        assertWithMessage("Expected activity to return a uri")
-            .that(data?.getData())
-            .isEqualTo(testImage.mediaUri)
     }
 
     /**
@@ -261,33 +256,34 @@ class MainActivityTest {
                     )
                 )
 
-        scenario = launchActivityForResult<MainActivity>(intent)
-        mainScope.runTest {
-            scenario?.onActivity {
-                mainScope.launch {
-                    selection.addAll(selectedItems)
-                    events.dispatch(Event.MediaSelectionConfirmed(SELECTION_BAR.token))
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    mainScope.launch {
+                        selection.addAll(selectedItems)
+                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                    }
                 }
+
+                advanceTimeBy(100)
             }
 
-            advanceTimeBy(100)
+            val result = this.result
+            assertWithMessage("Expected scenario result to be OK")
+                .that(result?.resultCode)
+                .isEqualTo(RESULT_OK)
+
+            val data = result?.resultData
+            val results = data?.getClipDataUris()
+
+            assertWithMessage("Expected activity to return correct number of URIs")
+                .that(data?.clipData?.itemCount)
+                .isEqualTo(selectedItems.size)
+
+            assertWithMessage("Expected returned URIs to match selection")
+                .that(results)
+                .isEqualTo(selectedItems.map { it.mediaUri })
         }
-
-        val result = scenario?.result
-        assertWithMessage("Expected scenario result to be OK")
-            .that(result?.resultCode)
-            .isEqualTo(RESULT_OK)
-
-        val data = result?.resultData
-        val results = data?.getClipDataUris()
-
-        assertWithMessage("Expected activity to return correct number of URIs")
-            .that(data?.clipData?.itemCount)
-            .isEqualTo(selectedItems.size)
-
-        assertWithMessage("Expected returned URIs to match selection")
-            .that(results)
-            .isEqualTo(selectedItems.map { it.mediaUri })
     }
 
     @Test
@@ -304,12 +300,12 @@ class MainActivityTest {
                     )
                 )
 
-        scenario = launchActivityForResult<MainActivity>(intent)
-
-        val result = scenario?.result
-        assertWithMessage("Expected scenario result to be CANCELED")
-            .that(result?.resultCode)
-            .isEqualTo(RESULT_CANCELED)
+        with(launchActivityForResult<MainActivity>(intent)) {
+            val result = this.result
+            assertWithMessage("Expected scenario result to be CANCELED")
+                .that(result?.resultCode)
+                .isEqualTo(RESULT_CANCELED)
+        }
     }
 }
 

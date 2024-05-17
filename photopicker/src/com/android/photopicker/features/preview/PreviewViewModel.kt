@@ -35,6 +35,7 @@ import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -99,8 +100,16 @@ constructor(
      *
      * @param media
      */
-    fun toggleInSelection(media: Media) {
-        scope.launch { selection.toggle(media) }
+    fun toggleInSelection(
+        media: Media,
+        onSelectionLimitExceeded: () -> Unit,
+    ) {
+        scope.launch {
+            val result = selection.toggle(item = media)
+            if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                onSelectionLimitExceeded()
+            }
+        }
     }
 
     /**
@@ -254,22 +263,22 @@ constructor(
         authority: String
     ): ICloudMediaSurfaceStateChangedCallback.Stub {
         return object : ICloudMediaSurfaceStateChangedCallback.Stub() {
-                override fun setPlaybackState(
-                    surfaceId: Int,
-                    playbackState: Int,
-                    playbackStateInfo: Bundle?
-                ) {
-                    scope.launch {
-                        _playbackInfo.emit(
-                            PlaybackInfo(
-                                state = PlaybackState.fromStateInt(playbackState),
-                                surfaceId = surfaceId,
-                                authority = authority,
-                                playbackStateInfo = playbackStateInfo,
-                            )
+            override fun setPlaybackState(
+                surfaceId: Int,
+                playbackState: Int,
+                playbackStateInfo: Bundle?
+            ) {
+                scope.launch {
+                    _playbackInfo.emit(
+                        PlaybackInfo(
+                            state = PlaybackState.fromStateInt(playbackState),
+                            surfaceId = surfaceId,
+                            authority = authority,
+                            playbackStateInfo = playbackStateInfo,
                         )
-                    }
+                    )
                 }
             }
+        }
     }
 }

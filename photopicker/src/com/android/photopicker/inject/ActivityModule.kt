@@ -231,13 +231,18 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
             return selection
         } else {
             Log.d(TAG, "Initializing selection.")
-            selection = Selection(scope = scope)
+            selection =
+                Selection(
+                    scope = scope,
+                    configuration = configurationManager.configuration,
+                )
             return selection
         }
     }

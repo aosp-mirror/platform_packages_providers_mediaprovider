@@ -402,6 +402,63 @@ public class SelectionTest {
     }
 
     @Test
+    public void testIsSelectionWithPickImages_exceedsMaxSelectionLimit_selectionNotAllowed() {
+        final int maxLimit = 2;
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, maxLimit);
+        mSelection.parseSelectionValuesFromIntent(intent);
+
+        assertThat(mSelection.isSelectionAllowed()).isTrue();
+
+        final String id1 = "1";
+        final Item item1 = generateFakeImageItem(id1);
+        item1.setPreGranted();
+        mSelection.addSelectedItem(item1);
+
+        assertThat(mSelection.isSelectionAllowed()).isTrue();
+
+        final String id2 = "2";
+        final Item item2 = generateFakeImageItem(id2);
+        mSelection.addSelectedItem(item2);
+
+        // verify that the maxLimit for the selection remains the same even if some of the added
+        // items are pre-grants.
+        assertThat(mSelection.isSelectionAllowed()).isFalse();
+    }
+
+    @Test
+    public void testIsSelectionWithUserSelectAction_exceedsMaxSelectionLimit_selectionNotAllowed() {
+        // max limit for USER_SELECTION_IMAGES_ACTION is equal to the
+        // MediaStore.getPickImagesMaxLimit()
+        final int maxLimit = MediaStore.getPickImagesMaxLimit();
+
+        final Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        mSelection.parseSelectionValuesFromIntent(intent);
+
+        assertThat(mSelection.getMaxSelectionLimit()).isEqualTo(maxLimit);
+        assertThat(mSelection.isSelectionAllowed()).isTrue();
+
+        // add one pre-granted item.
+        final String id1 = "0";
+        final Item item1 = generateFakeImageItem(id1);
+        item1.setPreGranted();
+        mSelection.addSelectedItem(item1);
+        assertThat(mSelection.isSelectionAllowed()).isTrue();
+
+        // verify that maxLimit number of items can be selected on top of the pre-granted items.
+        for (int i = 0; i < maxLimit; i++) {
+            assertThat(mSelection.isSelectionAllowed()).isTrue();
+            mSelection.addSelectedItem(generateFakeImageItem(/* id */ String.valueOf(i)));
+        }
+
+        // after adding maxLimit number of items now selection should not be allowed anymore.
+        assertThat(mSelection.getSelectedItemCount().getValue()).isEqualTo(
+                maxLimit + /* add one for preGrant */ 1);
+        assertThat(mSelection.isSelectionAllowed()).isFalse();
+    }
+
+    @Test
     public void test_setPreGrantedItems_correctValuesSet() {
         final String id1 = "1";
         final Item item1 = generateFakeImageItem(id1);

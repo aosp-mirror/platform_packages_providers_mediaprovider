@@ -36,7 +36,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.pm.UserProperties;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -90,6 +89,7 @@ import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
+import com.android.providers.media.photopicker.util.RecentsPreviewUtil;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -1412,20 +1412,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @SuppressLint("NewApi")
     private void updateRecentsScreenshotSetting() {
         if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV())) return;
-        UserManagerState state = mPickerViewModel.getUserManagerState();
-        if (state == null) {
-            Log.e(TAG, "Can't update Recents screenshot setting, user manager state is null");
-            return;
-        }
-        for (UserId userId : state.getAllUserProfileIds()) {
-            if (state.getShowInQuietMode(userId) == UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
-                    && !state.isProfileOff(userId)) {
-                // Show blank screen in Recents to not leak existence of the profile which might
-                // be in a quiet mode after the app is moved to the background.
-                setRecentsScreenshotEnabled(false);
-                return;
-            }
-        }
-        setRecentsScreenshotEnabled(true);
+        RecentsPreviewUtil.updateRecentsVisibilitySetting(mConfigStore,
+                mPickerViewModel.getUserManagerState(), this);
     }
 }

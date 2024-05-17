@@ -43,6 +43,7 @@ import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.settings.SettingsProfileSelectFragment;
 import com.android.providers.media.photopicker.ui.settings.SettingsViewModel;
+import com.android.providers.media.photopicker.util.RecentsPreviewUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,6 +85,9 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
         createAndShowFragmentIfNeeded(callingUserId);
+
+        RecentsPreviewUtil.updateRecentsVisibilitySetting(mSettingsViewModel.getConfigStore(),
+                mSettingsViewModel.getUserManagerState(), this);
     }
 
     private void displayActionBar() {

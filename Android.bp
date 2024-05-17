@@ -53,6 +53,7 @@ android_app {
         "libfuse",
         "libleveldb_jni",
     ],
+    use_embedded_native_libs: true,
 
     resource_dirs: [
         "res",

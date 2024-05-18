@@ -16,9 +16,14 @@
 
 package com.android.photopicker.features.selectionbar
 
+import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.UserManager
 import android.provider.MediaStore
+import android.test.mock.MockContentResolver
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -35,6 +40,7 @@ import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.Main
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Event
@@ -52,7 +58,9 @@ import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
+import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -73,6 +81,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.mockito.Mock
+import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
@@ -100,9 +110,15 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    @Inject lateinit var selection: Selection<Media>
-    @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var events: Events
+    @Mock lateinit var mockUserManager: UserManager
+    @Mock lateinit var mockPackageManager: PackageManager
+    lateinit var mockContentResolver: ContentResolver
+
+    @Inject lateinit var mockContext: Context
+    @Inject lateinit var selection: Lazy<Selection<Media>>
+    @Inject lateinit var featureManager: Lazy<FeatureManager>
+    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject lateinit var events: Lazy<Events>
 
     val TEST_TAG_SELECTION_BAR = "selection_bar"
     val MEDIA_ITEM =
@@ -137,26 +153,65 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Before
     fun setup() {
+        MockitoAnnotations.initMocks(this)
         hiltRule.inject()
+
+        val testIntent =
+            Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5)
+            }
+        configurationManager.setIntent(testIntent)
+
+        // Stub for MockContentResolver constructor
+        whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
+        mockContentResolver = MockContentResolver(mockContext)
+
+        setupTestForUserMonitor(
+            mockContext,
+            mockUserManager,
+            mockContentResolver,
+            mockPackageManager
+        )
     }
 
     @Test
-    fun testSelectionBarIsAlwaysEnabled() {
+    fun testSelectionBarIsEnabledWithSelectionLimit() {
 
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
+        val configOne = PhotopickerConfiguration(action = "TEST_ACTION", selectionLimit = 5)
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
             .isEqualTo(true)
 
-        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+        val configTwo =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, selectionLimit = 5)
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configTwo))
             .isEqualTo(true)
 
-        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
+        val configThree =
+            PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT, selectionLimit = 5)
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configThree))
             .isEqualTo(true)
+    }
+
+    @Test
+    fun testSelectionBarNotEnabledForSingleSelect() {
+
+        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
+        assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
+            .that(SelectionBarFeature.Registration.isEnabled(configOne))
+            .isEqualTo(false)
+
+        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+        assertWithMessage("SelectionBarFeature is not always enabled")
+            .that(SelectionBarFeature.Registration.isEnabled(configTwo))
+            .isEqualTo(false)
+
+        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
+        assertWithMessage("SelectionBarFeature is not always enabled")
+            .that(SelectionBarFeature.Registration.isEnabled(configThree))
+            .isEqualTo(false)
     }
 
     @Test
@@ -175,16 +230,16 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
         mainScope.runTest {
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalFeatureManager provides featureManager,
-                    LocalSelection provides selection,
-                    LocalEvents provides events,
+                    LocalFeatureManager provides featureManager.get(),
+                    LocalSelection provides selection.get(),
+                    LocalEvents provides events.get(),
                     LocalNavController provides createNavController(),
                 ) {
                     SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
                 }
             }
             composeTestRule.onNode(hasTestTag(TEST_TAG_SELECTION_BAR)).assertDoesNotExist()
-            selection.add(MEDIA_ITEM)
+            selection.get().add(MEDIA_ITEM)
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -205,7 +260,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             )
 
         mainScope.runTest {
-            featureManager =
+            val testFeatureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
@@ -214,16 +269,16 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalFeatureManager provides featureManager,
-                    LocalSelection provides selection,
-                    LocalEvents provides events
+                    LocalFeatureManager provides testFeatureManager,
+                    LocalSelection provides selection.get(),
+                    LocalEvents provides events.get()
                 ) {
                     SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
                 }
             }
 
             composeTestRule.onNode(hasText(SimpleUiFeature.BUTTON_LABEL)).assertDoesNotExist()
-            selection.add(MEDIA_ITEM)
+            selection.get().add(MEDIA_ITEM)
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -239,13 +294,13 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
         mainScope.runTest {
             val eventsSent = mutableListOf<Event>()
-            backgroundScope.launch { events.flow.toList(eventsSent) }
+            backgroundScope.launch { events.get().flow.toList(eventsSent) }
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalFeatureManager provides featureManager,
-                    LocalSelection provides selection,
-                    LocalEvents provides events,
+                    LocalFeatureManager provides featureManager.get(),
+                    LocalSelection provides selection.get(),
+                    LocalEvents provides events.get(),
                     LocalNavController provides createNavController(),
                 ) {
                     SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
@@ -253,7 +308,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             }
 
             // Populate selection with an item, and wait for animations to complete.
-            selection.add(MEDIA_ITEM)
+            selection.get().add(MEDIA_ITEM)
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -261,7 +316,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             val buttonLabel =
                 resources.getString(
                     R.string.photopicker_add_button_label,
-                    selection.snapshot().size
+                    selection.get().snapshot().size
                 )
 
             // Find the button, ensure it has a registered click handler, is displayed.

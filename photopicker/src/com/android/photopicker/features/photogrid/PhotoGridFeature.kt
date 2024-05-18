@@ -27,6 +27,7 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
@@ -57,7 +58,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
     /** Events produced by the Photo grid */
-    override val eventsProduced = emptySet<RegisteredEventClass>()
+    override val eventsProduced = setOf(Event.ShowSnackbarMessage::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(

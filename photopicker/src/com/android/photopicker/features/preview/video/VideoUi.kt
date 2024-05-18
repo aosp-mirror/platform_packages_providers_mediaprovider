@@ -48,7 +48,6 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -91,9 +90,6 @@ private val MEASUREMENT_PLAY_PAUSE_ICON_SIZE = 48.dp
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL = 8.dp
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 128.dp
 
-/** Padding between the bottom edge of the screen and the snackbars */
-private val MEASUREMENT_SNACKBAR_BOTTOM_PADDING = 48.dp
-
 /** Delay in milliseconds before the player controls are faded. */
 private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 3000L
 
@@ -115,6 +111,7 @@ fun VideoUi(
     video: Media.Video,
     audioIsMuted: Boolean,
     onRequestAudioMuteChange: (Boolean) -> Unit,
+    snackbarHostState: SnackbarHostState,
     viewModel: PreviewViewModel = hiltViewModel(),
 ) {
 
@@ -137,9 +134,6 @@ fun VideoUi(
 
     /** Whether the [RetriableErrorDialog] is visible. */
     var showErrorDialog by remember { mutableStateOf(false) }
-
-    /** SnackbarHost api for launching Snackbars */
-    val snackbarHostState = remember { SnackbarHostState() }
 
     /** Producer for [PlaybackInfo] for the current video surface */
     val playbackInfo by producePlaybackInfo(surfaceId, video)
@@ -218,16 +212,6 @@ fun VideoUi(
                 controller.onSurfaceChanged(surfaceId, format, width, height)
             },
             onSurfaceDestroyed = { controller.onSurfaceDestroyed(surfaceId) },
-        )
-
-        // Photopicker is (generally) inside of a BottomSheet, and the preview route is inside a
-        // dialog, so this requires a custom [SnackbarHost] to draw on top of those elements that do
-        // not play nicely with snackbars. Peace was never an option.
-        SnackbarHost(
-            snackbarHostState,
-            modifier =
-                Modifier.align(Alignment.BottomCenter)
-                    .padding(bottom = MEASUREMENT_SNACKBAR_BOTTOM_PADDING)
         )
     }
 

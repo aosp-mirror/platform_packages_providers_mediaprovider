@@ -63,6 +63,7 @@ public class Selection {
     private List<Item> mSelectedItemsForPreview = new ArrayList<>();
     private boolean mIsSelectionOrdered = false;
     private boolean mSelectMultiple = false;
+    private boolean mIsUserSelectAction = false;
     private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
@@ -280,8 +281,16 @@ public class Selection {
     }
 
     private void updateSelectionAllowed() {
-        final int size = mSelectedItems.size();
-        if (size  - countOfPreGrantedItems() >= mMaxSelectionLimit) {
+        int size = mSelectedItems.size();
+        // In ACTION_USER_SELECT_IMAGES_FOR_APP mode the total count of selected media can
+        // exceed the mMaxSelectionLimit because in that scenario previous selection plus new
+        // selection are incrementally merged together. But for other cases
+        // (i.e. ACTION_PICK_IMAGES and ACTION_GET_CONTENT) it should remain
+        // mMaxSelectionLimit.
+        if (mIsUserSelectAction) {
+            size = size - countOfPreGrantedItems();
+        }
+        if (size >= mMaxSelectionLimit) {
             if (mIsSelectionAllowed) {
                 mIsSelectionAllowed = false;
             }
@@ -346,6 +355,7 @@ public class Selection {
 
         if (intent.getAction() != null
                 && intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+            mIsUserSelectAction = true;
             // If this is picking media for an app, enable multiselect.
             mSelectMultiple = true;
             // disable ordered selection.

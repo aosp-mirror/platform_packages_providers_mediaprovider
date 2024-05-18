@@ -163,7 +163,11 @@ class ProfileSelectorViewModelTest {
             whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
             whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
 
-            val selection = Selection<Media>(scope = this.backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                )
 
             val viewModel =
                 ProfileSelectorViewModel(
@@ -207,7 +211,11 @@ class ProfileSelectorViewModelTest {
             whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
             whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
 
-            val selection = Selection<Media>(scope = this.backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                )
 
             val viewModel =
                 ProfileSelectorViewModel(

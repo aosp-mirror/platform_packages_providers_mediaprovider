@@ -30,7 +30,7 @@ typealias RegisteredEventClass = Class<out Event>
  * See [Events] for implementation details and guidance on how to use the event bus. Ensure that any
  * events added are properly registered with the [FeatureManager].
  */
-sealed interface Event {
+interface Event {
 
     /**
      * All events must contain a dispatcherToken which signifies which feature dispatched this
@@ -41,4 +41,9 @@ sealed interface Event {
 
     // Signal Event when the user has confirmed the selection of media.
     data class MediaSelectionConfirmed(override val dispatcherToken: String) : Event
+
+    // For showing a message to the user in a snackbar. See [SnackbarFeature] for
+    // snackbar implementation details.
+    data class ShowSnackbarMessage(override val dispatcherToken: String, val message: String) :
+        Event
 }

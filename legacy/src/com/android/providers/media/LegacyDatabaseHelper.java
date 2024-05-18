@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static com.android.providers.media.util.Logging.TAG;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -68,6 +66,8 @@ import java.util.regex.Matcher;
  * on demand, create and upgrade the schema, etc.
  */
 public class LegacyDatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
+
+    private static final String TAG = "LegacyMediaProvider";
     @VisibleForTesting
     static final String TEST_RECOMPUTE_DB = "test_recompute";
     @VisibleForTesting

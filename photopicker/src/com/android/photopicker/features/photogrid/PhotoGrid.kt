@@ -32,6 +32,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -60,13 +61,17 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
 
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
 
-    // Use the expanded layout any time the Width is Medium or larger.
+    /* Use the expanded layout any time the Width is Medium or larger. */
     val isExpandedScreen: Boolean =
         when (LocalWindowSizeClass.current.widthSizeClass) {
             WindowWidthSizeClass.Medium -> true
             WindowWidthSizeClass.Expanded -> true
             else -> false
         }
+
+    val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val selectionLimitExceededMessage =
+        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
 
     Column(modifier = Modifier.fillMaxSize()) {
         mediaGrid(
@@ -76,7 +81,8 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
             onItemClick = { item ->
                 if (item is MediaGridItem.MediaItem) {
                     viewModel.handleGridItemSelection(
-                        item.media,
+                        item = item.media,
+                        selectionLimitExceededMessage = selectionLimitExceededMessage
                     )
                 }
             },

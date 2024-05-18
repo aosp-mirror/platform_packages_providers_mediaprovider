@@ -23,6 +23,10 @@ import android.annotation.NonNull;
 import android.annotation.RequiresApi;
 import android.annotation.UserIdInt;
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.UserManager;
@@ -46,6 +50,7 @@ import com.android.providers.media.photopicker.ui.settings.SettingsViewModel;
 import com.android.providers.media.photopicker.util.RecentsPreviewUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,10 +60,26 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
     private static final String TAG = "PickerSettings";
     static final String EXTRA_CURRENT_USER_ID = "user_id";
     private static final int DEFAULT_EXTRA_USER_ID = -1;
+    private ArrayList<String> mProfileActions;
+    private int mCallingUserId;
     private static final int DEFAULT_TAB_USER_ID = ActivityManager.getCurrentUser();;
 
     @NonNull
     private SettingsViewModel mSettingsViewModel;
+
+    private final BroadcastReceiver mProfilesActionsReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (SdkLevel.isAtLeastV()
+                            && !isFinishing()
+                            && mProfileActions.contains(intent.getAction())) {
+                        mSettingsViewModel.getUserManagerState().resetUserIds();
+                        createAndShowFragment(mCallingUserId, /* allowReplace= */ true);
+                        updateRecentsVisibilitySetting();
+                    }
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,17 +96,44 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         mSettingsViewModel =
                 new ViewModelProvider(this).get(SettingsViewModel.class);
         final Bundle extras = getIntent().getExtras();
-        final int callingUserId;
         if (extras != null) {
-            callingUserId = extras.getInt(EXTRA_CURRENT_USER_ID, DEFAULT_EXTRA_USER_ID);
+            mCallingUserId = extras.getInt(EXTRA_CURRENT_USER_ID, DEFAULT_EXTRA_USER_ID);
         } else {
-            callingUserId = DEFAULT_EXTRA_USER_ID;
+            mCallingUserId = DEFAULT_EXTRA_USER_ID;
         }
 
         setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
-        createAndShowFragmentIfNeeded(callingUserId);
+        createAndShowFragment(mCallingUserId, /* allowReplace= */ false);
 
+        updateRecentsVisibilitySetting();
+
+        // TODO: merge with CrossProfile listeners in the main Photo picker activity.
+        if (SdkLevel.isAtLeastV()) {
+            mProfileActions =
+                    new ArrayList<>(
+                            Arrays.asList(
+                                    Intent.ACTION_PROFILE_ADDED, Intent.ACTION_PROFILE_AVAILABLE,
+                                    Intent.ACTION_PROFILE_REMOVED,
+                                            Intent.ACTION_PROFILE_UNAVAILABLE));
+
+            final IntentFilter profileFilter = new IntentFilter();
+            for (String action : mProfileActions) {
+                profileFilter.addAction(action);
+            }
+            registerReceiver(mProfilesActionsReceiver, profileFilter);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (SdkLevel.isAtLeastV()) {
+            unregisterReceiver(mProfilesActionsReceiver);
+        }
+    }
+
+    private void updateRecentsVisibilitySetting() {
         RecentsPreviewUtil.updateRecentsVisibilitySetting(mSettingsViewModel.getConfigStore(),
                 mSettingsViewModel.getUserManagerState(), this);
     }
@@ -108,9 +156,10 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         return false;
     }
 
-    private void createAndShowFragmentIfNeeded(@UserIdInt int callingUserId) {
+    private void createAndShowFragment(@UserIdInt int callingUserId, boolean allowReplace) {
         final FragmentManager fragmentManager = getSupportFragmentManager();
-        if (fragmentManager.findFragmentById(R.id.settings_fragment_container) != null) {
+        if (!allowReplace
+                && fragmentManager.findFragmentById(R.id.settings_fragment_container) != null) {
             // Fragment already exists and is attached to this Activity.
             // Nothing further needs to be done.
             Log.d(TAG, "An instance of target fragment is already attached to the "

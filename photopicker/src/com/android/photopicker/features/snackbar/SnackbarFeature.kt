@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.selectionbar
+package com.android.photopicker.features.snackbar
 
 import androidx.compose.runtime.Composable
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -29,39 +29,35 @@ import com.android.photopicker.core.events.RegisteredEventClass
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.events.Event
 
-/** Feature class for the Photopicker's selection bar. */
-class SelectionBarFeature : PhotopickerUiFeature {
+/** Feature class for the Photopicker's snackbar. */
+class SnackbarFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerSelectionBarFeature"
-
-        // The selection bar is only shown when in multi-select mode. For single select,
-        // the activity ends as soon as the first Media is selected, so this feature is
-        // disabled to prevent it's animation for playing when the selection changes.
-        override fun isEnabled(config: PhotopickerConfiguration) = config.selectionLimit > 1
-        override fun build(featureManager: FeatureManager) = SelectionBarFeature()
+        override val TAG: String = "PhotopickerSnackbarFeature"
+        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun build(featureManager: FeatureManager) = SnackbarFeature()
     }
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.SELECTION_BAR, Priority.HIGH.priority))
+        return listOf(Pair(Location.SNACK_BAR, Priority.HIGH.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
         return emptySet()
     }
 
-    override val token = FeatureToken.SELECTION_BAR.token
+    override val token = FeatureToken.SNACK_BAR.token
 
     /** Events consumed by the selection bar */
-    override val eventsConsumed = setOf<RegisteredEventClass>()
+    override val eventsConsumed = setOf<RegisteredEventClass>(Event.ShowSnackbarMessage::class.java)
 
     /** Events produced by the selection bar */
-    override val eventsProduced = setOf(Event.MediaSelectionConfirmed::class.java)
+    override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
     override fun compose(location: Location, modifier: Modifier) {
         when (location) {
-            Location.SELECTION_BAR -> SelectionBar(modifier)
+            Location.SNACK_BAR -> Snackbar(modifier)
             else -> {}
         }
     }

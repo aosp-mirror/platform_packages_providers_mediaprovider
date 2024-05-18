@@ -86,7 +86,10 @@ public class SettingsProfileSelectFragment extends ProfileSelectFragment {
 
         // Set selected tab according to saved state.
         final int previouslySelectedTab = mSettingsViewModel.getSelectedTab();
-        if (previouslySelectedTab != SettingsViewModel.TAB_NOT_SET) {
+        final int tabCount = mTabLayout.getTabCount();
+        // Skip tab selection if no tab was selected or if previously selected tab was not found
+        if (previouslySelectedTab < tabCount
+                && previouslySelectedTab != SettingsViewModel.TAB_NOT_SET) {
             // Selected tab state has previously been set in onPause() and we should restore it.
             mTabLayout.getTabAt(previouslySelectedTab).select();
         }

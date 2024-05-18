@@ -20,6 +20,7 @@ import android.content.ContentProvider
 import android.content.ContentResolver.EXTRA_SIZE
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.pm.UserProperties
 import android.graphics.Point
 import android.net.Uri
 import android.os.Bundle
@@ -50,6 +51,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.photopicker.R
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
@@ -172,6 +175,9 @@ class PreviewViewModelTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+            UserProperties.Builder().build()
+        }
 
         // Stub for MockContentResolver constructor
         whenever(mockContext.getApplicationInfo()) {
@@ -185,6 +191,16 @@ class PreviewViewModelTest {
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.contentResolver) { mockContentResolver }
         whenever(mockContext.createPackageContextAsUser(any(), anyInt(), any())) { mockContext }
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            mockContext
+        }
+        whenever(mockUserManager.getUserBadge()) {
+            InstrumentationRegistry.getInstrumentation()
+                .getContext()
+                .getResources()
+                .getDrawable(R.drawable.android, /* theme= */ null)
+        }
+        whenever(mockUserManager.getProfileLabel()) { "label" }
 
         // Stubs for creating the RemoteSurfaceController
         whenever(
@@ -204,7 +220,11 @@ class PreviewViewModelTest {
     fun testToggleInSelectionUpdatesSelection() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                )
 
             val viewModel =
                 PreviewViewModel(
@@ -212,6 +232,7 @@ class PreviewViewModelTest {
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -223,7 +244,7 @@ class PreviewViewModelTest {
                 .isEqualTo(0)
 
             // Toggle the item into the selection
-            viewModel.toggleInSelection(TEST_MEDIA_IMAGE)
+            viewModel.toggleInSelection(TEST_MEDIA_IMAGE, {})
 
             // Wait for selection update.
             advanceTimeBy(100)
@@ -233,7 +254,7 @@ class PreviewViewModelTest {
                 .contains(TEST_MEDIA_IMAGE)
 
             // Toggle the item out of the selection
-            viewModel.toggleInSelection(TEST_MEDIA_IMAGE)
+            viewModel.toggleInSelection(TEST_MEDIA_IMAGE, {})
 
             advanceTimeBy(100)
 
@@ -248,7 +269,12 @@ class PreviewViewModelTest {
     fun testSnapshotSelection() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope, setOf(TEST_MEDIA_IMAGE))
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                )
 
             val viewModel =
                 PreviewViewModel(
@@ -256,6 +282,7 @@ class PreviewViewModelTest {
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -286,13 +313,19 @@ class PreviewViewModelTest {
     fun testRemotePreviewControllerCreation() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope, setOf(TEST_MEDIA_IMAGE))
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                )
             val viewModel =
                 PreviewViewModel(
                     this.backgroundScope,
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -334,13 +367,19 @@ class PreviewViewModelTest {
     fun testRemotePreviewControllersAreCached() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope, setOf(TEST_MEDIA_IMAGE))
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                )
             val viewModel =
                 PreviewViewModel(
                     this.backgroundScope,
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -419,13 +458,19 @@ class PreviewViewModelTest {
             ) {
                 bundleOf(EXTRA_SURFACE_CONTROLLER to controllerProxy)
             }
-            val selection = Selection<Media>(scope = this.backgroundScope, setOf(TEST_MEDIA_IMAGE))
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                )
             val viewModel =
                 PreviewViewModel(
                     this.backgroundScope,
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
@@ -444,13 +489,19 @@ class PreviewViewModelTest {
     fun testRemotePreviewSurfaceStateChangedCallbackEmitsUpdates() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope, setOf(TEST_MEDIA_IMAGE))
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                )
             val viewModel =
                 PreviewViewModel(
                     this.backgroundScope,
                     selection,
                     UserMonitor(
                         mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
                         this.backgroundScope,
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY

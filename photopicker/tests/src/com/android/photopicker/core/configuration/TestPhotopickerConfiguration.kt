@@ -29,28 +29,40 @@ import kotlinx.coroutines.flow.stateIn
  * values.
  */
 val testPhotopickerConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = "TEST_ACTION")
+    PhotopickerConfiguration(
+        action = "TEST_ACTION",
+        intent = Intent("TEST_ACTION"),
+    )
 
 /**
  * A [PhotopickerConfiguration] that can be used for codepaths that utilize
  * [MediaStore.ACTION_PICK_IMAGES] intent action.
  */
 val testActionPickImagesConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+    PhotopickerConfiguration(
+        action = MediaStore.ACTION_PICK_IMAGES,
+        intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+    )
 
 /**
  * A [PhotopickerConfiguration] that can be used for codepaths that utilize [Intent.GET_CONTENT]
  * intent action.
  */
 val testGetContentConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
+    PhotopickerConfiguration(
+        action = Intent.ACTION_GET_CONTENT,
+        intent = Intent(Intent.ACTION_GET_CONTENT),
+    )
 
 /**
  * A [PhotopickerConfiguration] that can be used for codepaths that utilize
  * [MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP] intent action.
  */
 val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+    PhotopickerConfiguration(
+        action = MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+        intent = Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP),
+    )
 
 /**
  * Helper function to generate a [StateFlow] that mimics the flow emitted by the

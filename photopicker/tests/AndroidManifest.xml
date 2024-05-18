@@ -25,6 +25,14 @@
      <activity
       android:name="com.android.photopicker.tests.HiltTestActivity"
       android:exported="false"/>
+
+    <!-- A test provider to allow the test application to issue uri grants for selected media-->
+    <provider
+      android:name="com.android.photopicker.tests.utils.StubProvider"
+      android:authorities="photopickertest"
+      android:exported="false"
+      android:grantUriPermissions="true"
+    />
   </application>
 
   <instrumentation

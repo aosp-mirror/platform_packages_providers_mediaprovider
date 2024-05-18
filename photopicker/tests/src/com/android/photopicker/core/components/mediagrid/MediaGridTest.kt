@@ -51,6 +51,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
@@ -138,22 +139,24 @@ class MediaGridTest {
                                 pickerId = i.toLong(),
                                 authority = "a",
                                 mediaSource = MediaSource.LOCAL,
-                                mediaUri = Uri.EMPTY.buildUpon()
-                                    .apply {
-                                        scheme("content")
-                                        authority("media")
-                                        path("picker")
-                                        path("a")
-                                        path("$i")
-                                    }
-                                    .build(),
-                                glideLoadableUri = Uri.EMPTY.buildUpon()
-                                    .apply {
-                                        scheme("content")
-                                        authority("a")
-                                        path("$i")
-                                    }
-                                    .build(),
+                                mediaUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("media")
+                                            path("picker")
+                                            path("a")
+                                            path("$i")
+                                        }
+                                        .build(),
+                                glideLoadableUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("a")
+                                            path("$i")
+                                        }
+                                        .build(),
                                 dateTakenMillisLong =
                                     LocalDateTime.now()
                                         .minus(i.toLong(), ChronoUnit.DAYS)
@@ -256,7 +259,11 @@ class MediaGridTest {
     /** Ensures the MediaGrid loads media with the correct semantic information */
     @Test
     fun testMediaGridDisplaysMedia() = runTest {
-        val selection = Selection<Media>(scope = backgroundScope)
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
 
         composeTestRule.setContent {
             grid(
@@ -272,7 +279,11 @@ class MediaGridTest {
     /** Ensures the AlbumGrid loads media with the correct semantic information */
     @Test
     fun testAlbumGridDisplaysMedia() = runTest {
-        val selection = Selection<Media>(scope = backgroundScope)
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
 
         // Modify the pager and flow to get data from the FakeInMemoryAlbumPagingSource.
 
@@ -302,7 +313,11 @@ class MediaGridTest {
      */
     @Test
     fun testMediaGridScroll() = runTest {
-        val selection = Selection<Media>(scope = backgroundScope)
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
 
         composeTestRule.setContent {
             grid(
@@ -336,7 +351,11 @@ class MediaGridTest {
         val selectedString = resources.getString(R.string.photopicker_item_selected)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 grid(
@@ -374,7 +393,11 @@ class MediaGridTest {
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 grid(
@@ -415,7 +438,11 @@ class MediaGridTest {
         val dataFlow = flowOf(customData)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = dataFlow.collectAsLazyPagingItems()
@@ -438,7 +465,11 @@ class MediaGridTest {
     @Test
     fun testMediaGridCustomContentItemFactory() {
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = flow.collectAsLazyPagingItems()
@@ -469,7 +500,11 @@ class MediaGridTest {
         val dataFlow = flowOf(customData)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = dataFlow.collectAsLazyPagingItems()

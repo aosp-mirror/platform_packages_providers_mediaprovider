@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.features
+package com.android.photopicker.core.configuration
 
 /**
- * A feature token which is claimed by a feature. These can be used to designate which feature is
- * making a specific call.
+ * Exception that is thrown when [ConfigurationManager] detects an illegal extra set on an incoming
+ * intent by the activity.
+ *
+ * @property message
  */
-enum class FeatureToken(val token: String) {
-    CORE("CORE"),
-    NAVIGATION_BAR("NAVIGATION_BAR"),
-    PHOTO_GRID("PHOTO_GRID"),
-    PREVIEW("PREVIEW"),
-    PROFILE_SELECTOR("PROFILE_SELECTOR"),
-    ALBUM_GRID("ALBUM_GRID"),
-    SELECTION_BAR("SELECTION_BAR"),
-    SNACK_BAR("SNACK_BAR"),
-}
+class IllegalIntentExtraException(message: String) : Exception(message)

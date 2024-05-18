@@ -18,6 +18,8 @@ package com.android.photopicker.core.selection
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -33,6 +35,9 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 class SelectionTest {
 
+    private val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 1)
+    private val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
+
     /** A sample data class used only for testing. */
     private data class SelectionData(val id: Int)
 
@@ -46,7 +51,15 @@ class SelectionTest {
     /** Ensures the selection is initialized as empty when no items are provided. */
     @Test
     fun testSelectionIsEmptyByDefault() = runTest {
-        val selection: Selection<SelectionData> = Selection(scope = backgroundScope)
+        val selection: Selection<SelectionData> =
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = SINGLE_SELECT_CONFIG
+                    )
+            )
         val snapshot = selection.snapshot()
 
         assertWithMessage("Snapshot was expected to be empty.").that(snapshot).isEmpty()
@@ -59,7 +72,15 @@ class SelectionTest {
     @Test
     fun testSelectionIsInitialized() = runTest {
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = INITIAL_SELECTION)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION
+            )
 
         val snapshot = selection.snapshot()
         val flow = selection.flow.first()
@@ -75,10 +96,61 @@ class SelectionTest {
         assertWithMessage("Emitted flow has an unexpected size").that(flow).hasSize(10)
     }
 
+    @Test
+    fun testSelectionReturnsSuccess() = runTest {
+        val selection: Selection<SelectionData> =
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+            )
+
+
+        assertWithMessage("Selection addition was expected to be successful: item 1")
+            .that(selection.add(SelectionData(1)))
+            .isEqualTo(SelectionModifiedResult.SUCCESS)
+        assertWithMessage("Selection addition was expected to be successful: item 2")
+            .that(selection.toggle(SelectionData(2)))
+            .isEqualTo(SelectionModifiedResult.SUCCESS)
+        assertWithMessage("Selection addition was expected to be successful: item 3")
+            .that(selection.toggleAll(setOf(SelectionData(3))))
+            .isEqualTo(SelectionModifiedResult.SUCCESS)
+    }
+
+    @Test
+    fun testSelectionReturnsSelectionLimitExceededWhenFull() = runTest {
+        val selection: Selection<SelectionData> =
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = SINGLE_SELECT_CONFIG
+                    ),
+                initialSelection = setOf(SelectionData(1))
+            )
+
+
+        assertWithMessage("Snapshot was expected to contain the initial selection")
+            .that(selection.add(SelectionData(2)))
+            .isEqualTo(SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED)
+    }
+
     /** Ensures a single item can be added to the selection. */
     @Test
     fun testSelectionCanAddSingleItem() = runTest {
-        val selection: Selection<SelectionData> = Selection(scope = backgroundScope)
+        val selection: Selection<SelectionData> =
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    )
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -103,7 +175,15 @@ class SelectionTest {
     /** Ensures bulk additions. */
     @Test
     fun testSelectionCanAddMultipleItems() = runTest {
-        val selection: Selection<SelectionData> = Selection(scope = backgroundScope)
+        val selection: Selection<SelectionData> =
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    )
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -136,7 +216,15 @@ class SelectionTest {
     @Test
     fun testSelectionCanBeCleared() = runTest {
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = INITIAL_SELECTION)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -167,7 +255,15 @@ class SelectionTest {
         val testItem = SelectionData(id = 999)
         val anotherTestItem = SelectionData(id = 1000)
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = setOf(testItem, anotherTestItem))
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = setOf(testItem, anotherTestItem)
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -210,7 +306,15 @@ class SelectionTest {
             )
 
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = values)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = values
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -241,7 +345,15 @@ class SelectionTest {
     @Test
     fun testSelectionCanToggleSingleItem() = runTest {
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = INITIAL_SELECTION)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -274,7 +386,15 @@ class SelectionTest {
     @Test
     fun testSelectionCanToggleMultipleItems() = runTest {
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = INITIAL_SELECTION)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION
+            )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
 
@@ -317,7 +437,15 @@ class SelectionTest {
             )
 
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = values)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = values
+            )
 
         assertWithMessage("Received unexpected position for item.")
             .that(selection.getPosition(values.get(2)))
@@ -328,7 +456,15 @@ class SelectionTest {
     @Test
     fun testSelectionGetPositionForMissingItem() = runTest {
         val selection: Selection<SelectionData> =
-            Selection(scope = backgroundScope, initialSelection = INITIAL_SELECTION)
+            Selection(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION
+            )
 
         val missingElement = SelectionData(id = 999)
 

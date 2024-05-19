@@ -26,4 +26,12 @@
   <!-- Button accessibility description -->
   <string name="photopicker_profile_switch_button_description" translation_description="Button accessibility description for switching user profiles">Switch User Profile</string>
 
+  <!-- Profile unavailable dialog title -->
+  <string name="photopicker_profile_unavailable_dialog_title" translation_description="Dialog title stating a user profile cannot be switched to due to it being unavailable."><xliff:g id="profile_name" example="Personal">%1$s</xliff:g> apps are paused</string>
+  <string name="photopicker_profile_blocked_by_admin_dialog_title" translation_description="Dialog title stating a user profile cannot be switched to due to admin policy.">Blocked by your admin</string>
+
+  <!-- Profile unavailable dialog message -->
+  <string name="photopicker_profile_unavailable_dialog_message" translation_description="Dialog message stating a user profile cannot be switched to due to it being unavailable.">To open <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> photos turn on your <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> apps, then try again</string>
+  <string name="photopicker_profile_blocked_by_admin_dialog_message" translation_description="Dialog title stating a user profile cannot be switched to due to it being unavailable.">Accessing data from this profile is not permitted by your administrator.</string>
+
 </resources>

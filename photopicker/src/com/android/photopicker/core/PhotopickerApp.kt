@@ -62,12 +62,10 @@ private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
-
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
     val state = rememberModalBottomSheetState()
-
     // Provide the NavController to the rest of the Compose stack.
     CompositionLocalProvider(LocalNavController provides navController) {
         Column(
@@ -91,17 +89,24 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     PhotopickerMain()
-                    LocalFeatureManager.current.composeLocation(
-                        Location.SELECTION_BAR,
-                        maxSlots = 1,
+                    Column(
                         modifier =
-                            // SELECTION_BAR needs to be drawn over the UI inside of the BottomSheet
-                            // A negative y offset will move it from the bottom of the content
-                            // to the bottom of the onscreen BottomSheet.
+                            // Some elements needs to be drawn over the UI inside of the
+                            // BottomSheet A negative y offset will move it from the bottom of the
+                            // content to the bottom of the onscreen BottomSheet.
                             Modifier.offset {
                                 IntOffset(x = 0, y = -state.requireOffset().toInt())
                             },
-                    )
+                    ) {
+                        LocalFeatureManager.current.composeLocation(
+                            Location.SNACK_BAR,
+                            maxSlots = 1,
+                        )
+                        LocalFeatureManager.current.composeLocation(
+                            Location.SELECTION_BAR,
+                            maxSlots = 1,
+                        )
+                    }
                 }
             }
         }
@@ -116,7 +121,6 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotopickerApp() {
-
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -141,7 +145,6 @@ fun PhotopickerApp() {
  */
 @Composable
 fun PhotopickerMain() {
-
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
             // The navigation bar and profile switcher are drawn above the navigation graph

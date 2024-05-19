@@ -62,6 +62,9 @@ import org.mockito.Mockito.verify
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeatureManagerTest {
 
+    // A test event that no features dispatch.
+    data class TestEventDoNotUse(override val dispatcherToken: String) : Event
+
     @get:Rule val composeTestRule = createComposeRule()
 
     val testRegistrations =
@@ -235,7 +238,7 @@ class FeatureManagerTest {
             )
 
         whenever(mockSimpleUiFeature.eventsConsumed) {
-            setOf(Event.MediaSelectionConfirmed::class.java)
+            setOf(TestEventDoNotUse::class.java)
         }
         whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
 

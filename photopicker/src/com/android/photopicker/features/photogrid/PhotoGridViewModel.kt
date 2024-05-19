@@ -21,11 +21,15 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItem
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +49,7 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     private val selection: Selection<Media>,
     private val dataService: DataService,
+    private val events: Events,
 ) : ViewModel() {
 
     // Check if a scope override was injected before using the default [viewModelScope]
@@ -86,7 +91,7 @@ constructor(
     /** Export the data from the pager and prepare it for use in the [MediaGrid] */
     val data =
         pager.flow
-            .toMediaGridItem()
+            .toMediaGridItemFromMedia()
             .insertMonthSeparators()
             // After the load and transformations, cache the data in the viewModelScope.
             // This ensures that the list position and state will be remembered by the MediaGrid
@@ -95,10 +100,19 @@ constructor(
 
     /**
      * Click handler that is called when items in the grid are clicked. Selection updates are made
-     * in the viewModelScope to ensure they aren't cancelled if the user navigates away from the
+     * in the viewModelScope to ensure they aren't canceled if the user navigates away from the
      * PhotoGrid composable.
      */
-    fun handleGridItemSelection(item: Media) {
-        scope.launch { selection.toggle(item) }
+    fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
+        scope.launch {
+            val result = selection.toggle(item)
+            if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                scope.launch {
+                    events.dispatch(
+                        Event.ShowSnackbarMessage(PHOTO_GRID.token, selectionLimitExceededMessage)
+                    )
+                }
+            }
+        }
     }
 }

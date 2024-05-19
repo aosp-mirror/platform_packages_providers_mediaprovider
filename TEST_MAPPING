@@ -67,6 +67,14 @@
                   "exclude-annotation": "androidx.test.filters.FlakyTest"
                 }
             ]
+        },
+        {
+            "name": "CtsMediaProviderTestCases[com.google.android.mediaprovider.apex]",
+            "options": [
+                {
+                    "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+            ]
         }
     ],
     "presubmit": [
@@ -94,10 +102,10 @@
             ]
         },
         {
-            "name": "CtsProviderTestCases",
+            "name": "CtsMediaProviderTestCases",
             "options": [
                 {
-                    "include-filter": "android.provider.cts.media."
+                    "exclude-annotation": "androidx.test.filters.FlakyTest"
                 }
             ]
         },

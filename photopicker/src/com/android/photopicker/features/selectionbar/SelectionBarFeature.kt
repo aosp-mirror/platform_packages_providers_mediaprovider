@@ -34,7 +34,11 @@ class SelectionBarFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerSelectionBarFeature"
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+
+        // The selection bar is only shown when in multi-select mode. For single select,
+        // the activity ends as soon as the first Media is selected, so this feature is
+        // disabled to prevent it's animation for playing when the selection changes.
+        override fun isEnabled(config: PhotopickerConfiguration) = config.selectionLimit > 1
         override fun build(featureManager: FeatureManager) = SelectionBarFeature()
     }
 

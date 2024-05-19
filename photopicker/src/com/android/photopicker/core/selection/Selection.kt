@@ -16,6 +16,9 @@
 
 package com.android.photopicker.core.selection
 
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
+import com.android.photopicker.core.selection.SelectionModifiedResult.SUCCESS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,8 +36,8 @@ import kotlinx.coroutines.sync.withLock
  * selection logic.
  *
  * To that end, Selection exposes its data in multiple ways, however UI elements should generally
- * collect and observe the provided flow since the APIs are subject to a [Mutex] and can
- * suspend until the lock can be acquired.
+ * collect and observe the provided flow since the APIs are subject to a [Mutex] and can suspend
+ * until the lock can be acquired.
  *
  * Additionally, there is a flow exposed for classes that are interested in observing the selection
  * state as it changes over time. Since it is expected that UI elements will be listening to this
@@ -47,10 +50,12 @@ import kotlinx.coroutines.sync.withLock
  * @param T The type of object this selection holds.
  * @property scope A [CoroutineScope] that the flow is shared and updated in.
  * @property initialSelection A collection to include initial selection value.
+ * @property configuration a collectable [StateFlow] of configuration changes
  */
 class Selection<T>(
     val scope: CoroutineScope,
     val initialSelection: Collection<T>? = null,
+    private val configuration: StateFlow<PhotopickerConfiguration>,
 ) {
 
     // An internal mutex is used to enforce thread-safe access of the selection set.
@@ -78,11 +83,21 @@ class Selection<T>(
      * If the item is already present in the selection, a duplicate will not be added, and it's
      * relative position in the selection will not be affected. Afterwards, will emit the new
      * selection into the exposed flow.
+     *
+     * @param item the item to add
+     * @return [SelectionModifiedResult] of the outcome of the addition.
      */
-    suspend fun add(item: T) {
+    suspend fun add(item: T): SelectionModifiedResult {
+
         mutex.withLock {
-            _selection.add(item)
-            updateFlow()
+            val itemCanFit = ensureSelectionLimitLocked(/* size= */ 1)
+            if (itemCanFit) {
+                _selection.add(item)
+                updateFlow()
+                return SUCCESS
+            } else {
+                return FAILURE_SELECTION_LIMIT_EXCEEDED
+            }
         }
     }
 
@@ -90,11 +105,22 @@ class Selection<T>(
      * Adds all of the requested items to the selection. If one or more are already in the
      * selection, this will not add duplicate items. Afterwards, will emit the new selection into
      * the exposed flow.
+     *
+     * This method only succeeds if all of the items will fit in the current selection.
+     *
+     * @param items the item to add
+     * @return [SelectionModifiedResult] of the outcome of the addition.
      */
-    suspend fun addAll(items: Collection<T>) {
+    suspend fun addAll(items: Collection<T>): SelectionModifiedResult {
         mutex.withLock {
-            _selection.addAll(items)
-            updateFlow()
+            val itemsCanFit = ensureSelectionLimitLocked(items.size)
+            if (itemsCanFit) {
+                _selection.addAll(items)
+                updateFlow()
+                return SUCCESS
+            } else {
+                return FAILURE_SELECTION_LIMIT_EXCEEDED
+            }
         }
     }
 
@@ -129,11 +155,13 @@ class Selection<T>(
     /**
      * Removes the requested item from the selection. If the item is not in the selection, this has
      * no effect. Afterwards, will emit the new selection into the exposed flow.
+     * @return [SelectionModifiedResult] of the outcome of the removal.
      */
-    suspend fun remove(item: T) {
+    suspend fun remove(item: T): SelectionModifiedResult {
         mutex.withLock {
             _selection.remove(item)
             updateFlow()
+            return SUCCESS
         }
     }
 
@@ -142,11 +170,13 @@ class Selection<T>(
      *
      * If one or more items are not present in the selection, this has no effect. Afterwards, will
      * emit the new selection into the exposed flow.
+     * @return [SelectionModifiedResult] of the outcome of the removal.
      */
-    suspend fun removeAll(items: Collection<T>) {
+    suspend fun removeAll(items: Collection<T>): SelectionModifiedResult {
         mutex.withLock {
             _selection.removeAll(items)
             updateFlow()
+            return SUCCESS
         }
     }
 
@@ -165,15 +195,26 @@ class Selection<T>(
      *
      * If the item is already in the selection, it is removed. If the item is not in the selection,
      * it is added. Afterwards, will emit the new selection into the exposed flow.
+     *
+     * @param item the item to add
+     * @param onSelectionLimitExceeded optional error handler if the item cannot fit into the
+     *   current selection, given the current [PhotopickerConfiguration.selectionLimit]
+     * @return [SelectionModifiedResult] of the outcome of the toggle.
      */
-    suspend fun toggle(item: T) {
+    suspend fun toggle(item: T): SelectionModifiedResult {
         mutex.withLock {
             if (_selection.contains(item)) {
                 _selection.remove(item)
             } else {
-                _selection.add(item)
+                val itemCanFit = ensureSelectionLimitLocked(/* size= */ 1)
+                if (itemCanFit) {
+                    _selection.add(item)
+                } else {
+                    return FAILURE_SELECTION_LIMIT_EXCEEDED
+                }
             }
             updateFlow()
+            return SUCCESS
         }
     }
 
@@ -181,22 +222,49 @@ class Selection<T>(
      * Toggles all of the requested items in the selection. This is the same as calling toggle(item)
      * on each item in the set, it will act on each item in the provided list independently.
      * Afterwards, will emit the new selection into the exposed flow.
+     *
+     * Note: Since this toggle acts on items individually, it may fail part way through if the
+     * selection becomes full.
+     *
+     * @param items to toggle in the selection
+     * @param onSelectionLimitExceeded optional error handler if the item cannot fit into the
+     *   current selection, given the current [PhotopickerConfiguration.selectionLimit]
+     * @return [SelectionModifiedResult] of the outcome of the toggleAll operation.
      */
-    suspend fun toggleAll(items: Collection<T>) {
+    suspend fun toggleAll(items: Collection<T>): SelectionModifiedResult {
         mutex.withLock {
             for (item in items) {
                 if (_selection.contains(item)) {
                     _selection.remove(item)
                 } else {
-                    _selection.add(item)
+                    val itemCanFit = ensureSelectionLimitLocked(/* size= */ 1)
+                    if (itemCanFit) {
+                        _selection.add(item)
+                    } else {
+                        return FAILURE_SELECTION_LIMIT_EXCEEDED
+                    }
                 }
             }
             updateFlow()
+            return SUCCESS
         }
     }
 
     /** Internal method that snapshots the current selection and emits it to the exposed flow. */
     private suspend fun updateFlow() {
         _flow.update { _selection.toSet() }
+    }
+
+    /**
+     * Method for checking if the given [size] will fit in the current selection, considering the
+     * [PhotopickerConfiguration.selectionLimit].
+     *
+     * IMPORTANT: This method should always be checked after acquiring the [Mutex] selection lock
+     * but prior adding any items to the selection.
+     *
+     * @return true if the item can fit in the selection. false otherwise.
+     */
+    private suspend fun ensureSelectionLimitLocked(size: Int): Boolean {
+        return _selection.size + size <= configuration.value.selectionLimit
     }
 }

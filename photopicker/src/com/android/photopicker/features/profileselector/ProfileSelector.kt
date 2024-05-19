@@ -28,6 +28,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +57,16 @@ fun ProfileSelector(
     // Collect selection to ensure this is recomposed when the selection is updated.
     val allProfiles by viewModel.allProfiles.collectAsStateWithLifecycle()
 
+    // MutableState which defines which profile to use to display the [ProfileUnavailableDialog].
+    // When this value is null, the dialog is hidden.
+    var disabledDialogProfile: UserProfile? by remember { mutableStateOf(null) }
+    disabledDialogProfile?.let {
+        ProfileUnavailableDialog(
+            onDismissRequest = { disabledDialogProfile = null },
+            profile = it,
+        )
+    }
+
     // Ensure there is more than one available profile before creating all of the UI.
     if (allProfiles.size > 1) {
         val context = LocalContext.current
@@ -63,11 +74,20 @@ fun ProfileSelector(
         var expanded by remember { mutableStateOf(false) }
         Box(modifier = modifier) {
             OutlinedIconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    getIconForProfile(currentProfile),
-                    contentDescription =
-                        stringResource(R.string.photopicker_profile_switch_button_description)
-                )
+                currentProfile.icon?.let {
+                    Icon(
+                        it,
+                        contentDescription =
+                            stringResource(R.string.photopicker_profile_switch_button_description)
+                    )
+                }
+                // If the profile doesn't have an icon drawable set, then
+                // generate one.
+                ?: Icon(
+                        getIconForProfile(currentProfile),
+                        contentDescription =
+                            stringResource(R.string.photopicker_profile_switch_button_description)
+                    )
             }
 
             // DropdownMenu attaches to the element above it in the hierarchy, so this should stay
@@ -76,7 +96,6 @@ fun ProfileSelector(
                 expanded = expanded,
                 onDismissRequest = { expanded = !expanded },
             ) {
-
                 for (profile in allProfiles) {
 
                     // The background color behind the text
@@ -89,22 +108,54 @@ fun ProfileSelector(
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
+                            // enabled = profile.enabled,
                             onClick = {
                                 // Only request a switch if the profile is actually different.
                                 if (currentProfile != profile) {
 
-                                    viewModel.requestSwitchUser(
-                                        context = context,
-                                        requested = profile
+                                    if (profile.enabled) {
+                                        viewModel.requestSwitchUser(
+                                            context = context,
+                                            requested = profile
+                                        )
+                                        // Close the profile switcher popup
+                                        expanded = false
+                                    } else {
+
+                                        // Show the disabled profile dialog
+                                        disabledDialogProfile = profile
+                                        expanded = false
+                                    }
+                                }
+                            },
+                            text = { Text(profile.label ?: getLabelForProfile(profile)) },
+                            leadingIcon = {
+                                profile.icon?.let {
+                                    Icon(
+                                        it,
+                                        contentDescription = null,
+                                        tint =
+                                            when (profile.enabled) {
+                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                false ->
+                                                    MenuDefaults.itemColors()
+                                                        .disabledLeadingIconColor
+                                            }
                                     )
                                 }
-
-                                // Close the profile switcher popup
-                                expanded = false
-                            },
-                            text = { Text(getLabelForProfile(profile)) },
-                            leadingIcon = {
-                                Icon(getIconForProfile(profile), contentDescription = null)
+                                // If the profile doesn't have an icon drawable set, then
+                                // generate one.
+                                ?: Icon(
+                                        getIconForProfile(profile),
+                                        contentDescription = null,
+                                        tint =
+                                            when (profile.enabled) {
+                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                false ->
+                                                    MenuDefaults.itemColors()
+                                                        .disabledLeadingIconColor
+                                            }
+                                    )
                             },
                         )
                     }
@@ -124,7 +175,7 @@ fun ProfileSelector(
  * @return a display safe & localized profile name
  */
 @Composable
-private fun getLabelForProfile(profile: UserProfile): String {
+internal fun getLabelForProfile(profile: UserProfile): String {
     return when (profile.profileType) {
         UserProfile.ProfileType.PRIMARY ->
             stringResource(R.string.photopicker_profile_primary_label)
@@ -142,7 +193,7 @@ private fun getLabelForProfile(profile: UserProfile): String {
  * @return an icon [ImageVector] that represents the profile
  */
 @Composable
-private fun getIconForProfile(profile: UserProfile): ImageVector {
+internal fun getIconForProfile(profile: UserProfile): ImageVector {
     return when (profile.profileType) {
         UserProfile.ProfileType.PRIMARY -> Icons.Filled.AccountCircle
         UserProfile.ProfileType.MANAGED -> Icons.Filled.Work

@@ -1885,7 +1885,7 @@ static void pf_opendir(fuse_req_t req,
     fuse_reply_open(req, fi);
 }
 
-#define READDIR_BUF 8192LU
+#define READDIR_BUF 32768LU
 
 static void do_readdir_common(fuse_req_t req,
                               fuse_ino_t ino,

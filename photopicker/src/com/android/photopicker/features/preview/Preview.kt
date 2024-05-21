@@ -16,7 +16,6 @@
 
 package com.android.photopicker.features.preview
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -65,6 +63,7 @@ import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import kotlinx.coroutines.flow.StateFlow
@@ -87,7 +86,6 @@ private val MEASUREMENT_SNACKBAR_BOTTOM_PADDING = 48.dp
  */
 @Composable
 fun PreviewSelection(viewModel: PreviewViewModel = hiltViewModel()) {
-
     val selection by viewModel.selectionSnapshot.collectAsStateWithLifecycle()
 
     // Only snapshot the selection once when the composable is created.
@@ -207,7 +205,6 @@ fun PreviewMedia(
  */
 @Composable
 private fun Preview(selection: Set<Media>) {
-
     val viewModel: PreviewViewModel = hiltViewModel()
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val events = LocalEvents.current
@@ -279,9 +276,13 @@ private fun Preview(selection: Set<Media>) {
                 Text(
                     if (currentSelection.contains(selection.elementAt(state.currentPage)))
                     // Label: Deselect
-                    stringResource(R.string.photopicker_deselect_button_label)
+                        stringResource(R.string.photopicker_deselect_button_label)
                     // Label: Select
-                    else stringResource(R.string.photopicker_select_button_label)
+                    else stringResource(R.string.photopicker_select_button_label),
+                    color = CustomAccentColorScheme.current
+                        .getAccentColorIfDefinedOrElse(
+                            MaterialTheme.colorScheme.primary
+                        ),
                 )
             }
 
@@ -292,9 +293,15 @@ private fun Preview(selection: Set<Media>) {
                     scope.launch { events.dispatch(Event.MediaSelectionConfirmed(PREVIEW.token)) }
                 },
                 colors =
-                    ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = CustomAccentColorScheme.current
+                        .getAccentColorIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.primary
+                        ),
+                    contentColor = CustomAccentColorScheme.current
+                        .getTextColorForAccentComponentsIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.onPrimary
+                        ),
                     )
             ) {
                 Text(
@@ -316,7 +323,6 @@ private fun Preview(selection: Set<Media>) {
  */
 @Composable
 private fun ImageUi(image: Media.Image) {
-
     loadMedia(
         media = image,
         resolution = Resolution.FULL,
@@ -334,13 +340,18 @@ private fun ImageUi(image: Media.Image) {
  */
 @Composable
 fun PreviewSelectionButton(modifier: Modifier) {
-
     val navController = LocalNavController.current
 
     TextButton(
         onClick = navController::navigateToPreviewSelection,
         modifier = modifier,
     ) {
-        Text(stringResource(R.string.photopicker_preview_button_label))
+        Text(
+            stringResource(R.string.photopicker_preview_button_label),
+            color = CustomAccentColorScheme.current
+                .getAccentColorIfDefinedOrElse(
+                    /* fallback */ MaterialTheme.colorScheme.primary
+                )
+        )
     }
 }

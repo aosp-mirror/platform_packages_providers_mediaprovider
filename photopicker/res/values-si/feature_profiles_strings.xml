@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"කාර්යාලය"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"වෙනත්"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"පරිශීලක පැතිකඩ මාරු කරන්න"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> යෙදුම් විරාම කළා"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"ඔබේ පරිපාලක විසින් අවහිර කරන ලදි"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ඡායාරූප විවෘත කිරීමට, ඔබේ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> යෙදුම් සක්‍රීය කර නැවත උත්සාහ කරන්න"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"මෙම පැතිකඩෙන් දත්ත වෙත ප්‍රවේශ වීම ඔබේ පරිපාලකයා විසින් අනුමත නොකරනු ලැබේ."</string>
 </resources>

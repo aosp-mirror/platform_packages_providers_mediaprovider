@@ -26,6 +26,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.PickerSQLConstants;
 
 import java.util.List;
@@ -116,6 +117,10 @@ public class AlbumsCursorWrapper extends CursorWrapper {
 
         switch (albumResponse) {
             case AUTHORITY:
+                if (PickerDataLayerV2.sMergedAlbumIds.contains(albumId)) {
+                    // By default, always keep merged album authority as local.
+                    return mLocalAuthority;
+                }
                 return mCoverAuthority;
 
             case UNWRAPPED_COVER_URI:

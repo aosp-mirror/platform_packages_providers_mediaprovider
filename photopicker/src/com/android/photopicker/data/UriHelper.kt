@@ -61,8 +61,7 @@ val MEDIA_URI: Uri = pickerUri.buildUpon().apply {
 /**
  * URI that receives [ContentProvider] change notifications for media updates.
  */
-val MEDIA_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
-    appendPath(MEDIA_PATH_SEGMENT)
+val MEDIA_CHANGE_NOTIFICATION_URI: Uri = MEDIA_URI.buildUpon().apply {
     appendPath(UPDATE_PATH_SEGMENT)
 }.build()
 
@@ -71,6 +70,13 @@ val MEDIA_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
  */
 val ALBUM_URI: Uri = pickerUri.buildUpon().apply {
     appendPath(ALBUM_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI that receives [ContentProvider] change notifications for album media updates.
+ */
+val ALBUM_CHANGE_NOTIFICATION_URI: Uri = ALBUM_URI.buildUpon().apply {
+    appendPath(UPDATE_PATH_SEGMENT)
 }.build()
 
 fun getAlbumMediaUri(albumId: String): Uri {

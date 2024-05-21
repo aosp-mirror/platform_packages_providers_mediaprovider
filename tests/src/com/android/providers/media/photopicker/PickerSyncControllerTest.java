@@ -1829,7 +1829,8 @@ public class PickerSyncControllerTest {
 
         final boolean shouldQueryCloudMedia =
                 mController.shouldQueryCloudMedia(
-                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY),
+                        /* cloudProvider */null);
 
         assertWithMessage("Cloud media should not be queried when cloud provider is null")
                 .that(shouldQueryCloudMedia)
@@ -1843,7 +1844,8 @@ public class PickerSyncControllerTest {
 
         final boolean shouldQueryCloudMedia =
                 mController.shouldQueryCloudMedia(
-                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY),
+                        CLOUD_SECONDARY_PROVIDER_AUTHORITY);
 
         assertWithMessage("Cloud media should not be queried when cloud provider is not in the "
                 + "providers list")
@@ -1858,7 +1860,8 @@ public class PickerSyncControllerTest {
 
         final boolean shouldQueryCloudMedia =
                 mController.shouldQueryCloudMedia(
-                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY),
+                        CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         assertWithMessage("Cloud media should not be queried when PickerDBFacade has disabled cloud"
                 + " queries")
@@ -1873,7 +1876,8 @@ public class PickerSyncControllerTest {
 
         final boolean shouldQueryCloudMedia =
                 mController.shouldQueryCloudMedia(
-                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY));
+                        List.of("local.provider.authority", CLOUD_PRIMARY_PROVIDER_AUTHORITY),
+                        CLOUD_PRIMARY_PROVIDER_AUTHORITY);
 
         assertWithMessage("Cloud media should be included in the picker media queries")
                 .that(shouldQueryCloudMedia)
@@ -1935,6 +1939,7 @@ public class PickerSyncControllerTest {
             @Nullable String defaultProviderPackage) {
         Context mockContext = mock(Context.class);
         Resources mockResources = mock(Resources.class);
+        ContentResolver mockResolver = mock(ContentResolver.class);
 
         when(mockContext.getResources()).thenReturn(mockResources);
         when(mockContext.getPackageManager()).thenReturn(mContext.getPackageManager());
@@ -1944,6 +1949,7 @@ public class PickerSyncControllerTest {
                 mContext.getSystemService(StorageManager.class));
         when(mockContext.getSharedPreferences(anyString(), anyInt())).thenAnswer(
                 i -> mContext.getSharedPreferences((String) i.getArgument(0), i.getArgument(1)));
+        when(mockContext.getContentResolver()).thenReturn(mockResolver);
 
         if (defaultProviderPackage != null) {
             mConfigStore.setDefaultCloudProviderPackage(defaultProviderPackage);

@@ -22,6 +22,7 @@
     <style name="PickerDialogTheme"
            parent="@android:style/Theme.DeviceDefault.Light.Dialog.Alert">
         <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">true</item>
     </style>
 
     <!-- Sets attributes for CacheClearingAlertDialogTheme -->

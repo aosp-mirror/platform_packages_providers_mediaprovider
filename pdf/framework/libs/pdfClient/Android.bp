@@ -31,19 +31,31 @@ cc_library_shared {
     ],
 
     shared_libs: [
-        "libpdfium",
         "liblog",
         "libjnigraphics",
+        "libdl",
+        "libft2",
+        "libicu",
+        "libjpeg",
+        "libz",
     ],
 
     static_libs: [
         "libbase_ndk",
+        "libpdfium_static",
     ],
 
     cflags: [
         "-Werror",
         "-Wno-unused-parameter",
     ],
+
+    ldflags: [
+        // Matches libpdfium flags.
+        "-Wl,-icf=all",
+    ],
+
+    version_script: "jni.lds",
 
     sdk_version: "current",
     min_sdk_version: "apex_inherit",

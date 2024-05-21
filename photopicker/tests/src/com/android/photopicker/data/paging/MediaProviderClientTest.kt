@@ -128,8 +128,13 @@ class MediaProviderClientTest {
         )
 
         assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
-        assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", false))
-            .isTrue()
+
+        // TODO(b/340246010): Currently, we trigger sync for all available providers. This is
+        //  because UI is responsible for triggering syncs which is sometimes required to enable
+        //  providers. This should be changed to triggering syncs for specific providers once the
+        //  backend takes responsibility for the sync triggers.
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", true))
+            .isFalse()
     }
 
     @Test

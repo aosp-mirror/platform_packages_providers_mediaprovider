@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -51,8 +52,12 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -60,8 +65,8 @@ import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.bumptech.glide.Glide
@@ -358,11 +363,26 @@ class MediaGridTest {
                 )
 
             composeTestRule.setContent {
-                grid(
-                    /* selection= */ selection,
-                    /* onItemClick= */ { item -> launch {
-                        if (item is MediaGridItem.MediaItem) selection.toggle(item.media) } },
-                )
+                val photopickerConfiguration: PhotopickerConfiguration =
+                    testPhotopickerConfiguration
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false,
+                        photopickerConfiguration.intent
+                    ) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */
+                            { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem) selection
+                                        .toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
             }
 
             composeTestRule
@@ -400,12 +420,23 @@ class MediaGridTest {
                 )
 
             composeTestRule.setContent {
-                grid(
-                    /* selection= */ selection,
-                    /* onItemClick= */ {},
-                    /* onItemLongPress=*/ { item -> launch {
-                        if (item is MediaGridItem.MediaItem) selection.toggle(item.media) } }
-                )
+                val photopickerConfiguration: PhotopickerConfiguration =
+                    testPhotopickerConfiguration
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false,
+                        photopickerConfiguration.intent
+                    ) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ {},
+                            /* onItemLongPress=*/ { item -> launch {
+                                if (item is MediaGridItem.MediaItem) selection.toggle(item.media) }
+                            }
+                        )
+                    }
+                }
             }
 
             composeTestRule

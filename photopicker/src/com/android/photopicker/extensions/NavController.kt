@@ -22,7 +22,9 @@ import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_MEDIA
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PREVIEW_SELECTION
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
 
 /**
@@ -94,10 +96,28 @@ fun NavController.navigateToAlbumGrid(navOptions: NavOptions? = null) {
         !this.popBackStack(
             PhotopickerDestinations.ALBUM_GRID.route,
             /* inclusive= */ false,
-            /* saveState = */ false,
+            /* saveState = */ true,
         )
     ) {
         // Last resort; ALBUM_GRID isn't on the backstack, then navigate directly.
         this.navigate(PhotopickerDestinations.ALBUM_GRID.route, navOptions)
     }
+}
+
+/**
+ * Utility function for navigating to the [PhotopickerDestinations.ALBUM_MEDIA_GRID] route.
+ *
+ * @param album The album for which the media needs to be displayed.
+ */
+fun NavController.navigateToAlbumMediaGrid(
+    navOptions: NavOptions? = null,
+    album: Group.Album,
+) {
+    this.navigate(PhotopickerDestinations.ALBUM_MEDIA_GRID.route, navOptions)
+
+    // Album object must be parcellized and passed to the new route so it can be loaded.
+    // This back stack entry is guaranteed to exist since it was just navigated to.
+    this.getBackStackEntry(PhotopickerDestinations.ALBUM_MEDIA_GRID.route)
+        .savedStateHandle
+        .set(AlbumGridFeature.ALBUM_KEY, album)
 }

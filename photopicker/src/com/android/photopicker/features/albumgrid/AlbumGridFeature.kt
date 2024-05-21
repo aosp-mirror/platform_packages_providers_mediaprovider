@@ -35,12 +35,15 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
+import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_MEDIA_GRID
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.data.model.Group
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Feature class for the Photopicker's primary album grid.
  *
- * This feature adds the [ALBUM_GRID] route to the application.
+ * This feature adds the [ALBUM_GRID] route and [ALBUM_MEDIA_GRID] route.
  */
 class AlbumGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
@@ -50,7 +53,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
 
         override fun build(featureManager: FeatureManager) = AlbumGridFeature()
 
-        const val ALBUM_KEY = "album"
+        const val ALBUM_KEY = "selected_album"
     }
 
     override val token = FeatureToken.ALBUM_GRID.token
@@ -87,33 +90,97 @@ class AlbumGridFeature : PhotopickerUiFeature {
                    the left edge.
                  */
                 override val enterTransition:
-                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        // Positive value to slide left-to-right
-                        slideInHorizontally() { it }
+                        if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
+                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
+                            EnterTransition.None
+                        } else {
+                            // Positive value to slide left-to-right
+                            slideInHorizontally { it }
+                        }
                     }
                 override val exitTransition:
-                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        // Negative value to slide right-to-left
-                        slideOutHorizontally() { it }
+                        if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
+                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
+                            ExitTransition.None
+                        } else {
+                            // Positive value to slide left-to-right
+                            slideOutHorizontally { it }
+                        }
                     }
                 override val popEnterTransition:
-                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        // When returning from the backstack slide right-to-left
-                        slideInHorizontally() { it }
+                        if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
+                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
+                            EnterTransition.None
+                        } else {
+                            // Positive value to slide left-to-right
+                            slideInHorizontally { it }
+                        }
                     }
                 override val popExitTransition:
-                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        // When navigating to the backstack slide left-to-right
-                        slideOutHorizontally() { it }
+                        if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
+                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
+                            ExitTransition.None
+                        } else {
+                            // Positive value to slide left-to-right
+                            slideOutHorizontally { it }
+                        }
                     }
 
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     AlbumGrid()
+                }
+            },
+            // Grid to show the album content for the album selected by the user.
+            object : Route {
+                override val route = ALBUM_MEDIA_GRID.route
+                override val initialRoutePriority = Priority.MEDIUM.priority
+                override val arguments = emptyList<NamedNavArgument>()
+                override val deepLinks = emptyList<NavDeepLink>()
+                override val isDialog = false
+                override val dialogProperties = null
+
+                /**
+                Animations for ALBUM_CONTENT_GRID are by default [EnterTransition.None] for entering
+                into view and [ExitTransition.None] while exiting.
+                 */
+                override val enterTransition:
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    {
+                        EnterTransition.None
+                    }
+                override val exitTransition:
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    {
+                        ExitTransition.None
+                    }
+                override val popEnterTransition:
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
+                    {
+                        EnterTransition.None
+                    }
+                override val popExitTransition:
+                        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
+                    {
+                        ExitTransition.None
+                    }
+
+                @Composable
+                override fun composable(navBackStackEntry: NavBackStackEntry?) {
+                    val flow: StateFlow<Group.Album?> =
+                        checkNotNull(
+                            navBackStackEntry?.savedStateHandle
+                                ?.getStateFlow<Group.Album?>(ALBUM_KEY, null),
+                        ) { "Unable to get a savedStateHandle for album content grid" }
+                    AlbumMediaGrid(flow)
                 }
             },
         )

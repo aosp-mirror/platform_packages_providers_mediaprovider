@@ -75,6 +75,7 @@ import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
+import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
@@ -397,7 +398,10 @@ private fun defaultBuildMediaItem(
                                         stringResource(R.string.photopicker_item_selected),
                                     // For now, this is a lovely shade of dark green to match
                                     // the mocks.
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = CustomAccentColorScheme.current
+                                        .getAccentColorIfDefinedOrElse(
+                                            /* fallback */ MaterialTheme.colorScheme.primary
+                                        ),
                                 )
                             }
                         } // Icon Container
@@ -405,6 +409,7 @@ private fun defaultBuildMediaItem(
                 } // Surface
             } // Box for GridCell
         }
+
         else -> {}
     }
 }

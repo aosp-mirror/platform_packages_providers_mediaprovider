@@ -33,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,6 +45,7 @@ import com.android.photopicker.core.features.FeatureToken.SELECTION_BAR
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.theme.CustomAccentColorScheme
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
 
@@ -63,7 +63,6 @@ private val MEASUREMENT_BAR_PADDING = 12.dp
  */
 @Composable
 fun SelectionBar(modifier: Modifier = Modifier) {
-
     // Collect selection to ensure this is recomposed when the selection is updated.
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val visible = currentSelection.isNotEmpty()
@@ -103,10 +102,16 @@ fun SelectionBar(modifier: Modifier = Modifier) {
                         }
                     },
                     colors =
-                        ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        )
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor = CustomAccentColorScheme.current
+                            .getAccentColorIfDefinedOrElse(
+                                /* fallback */ MaterialTheme.colorScheme.primary
+                            ),
+                        contentColor = CustomAccentColorScheme.current
+                            .getTextColorForAccentComponentsIfDefinedOrElse(
+                                /* fallback */ MaterialTheme.colorScheme.onPrimary
+                            ),
+                    )
                 ) {
                     Text(
                         stringResource(

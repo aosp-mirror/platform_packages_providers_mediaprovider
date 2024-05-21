@@ -3594,6 +3594,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (isPickerUri(uri)) {
+            if (isCallerPhotoPicker()) {
+                // Allow PhotoPicker app access to Picker media.
+                return PERMISSION_GRANTED;
+            }
             // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
             // Picker uris should have explicit permission grants.
             // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService

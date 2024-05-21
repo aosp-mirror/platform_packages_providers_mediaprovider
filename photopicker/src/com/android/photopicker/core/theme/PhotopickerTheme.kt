@@ -16,14 +16,18 @@
 
 package com.android.photopicker.core.theme
 
+import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.android.modules.utils.build.SdkLevel
 
@@ -37,24 +41,36 @@ import com.android.modules.utils.build.SdkLevel
 @Composable
 fun PhotopickerTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
+    intent: Intent?,
     content: @Composable () -> Unit
 ) {
-
     val context = LocalContext.current
+    val accentColorHelper = AccentColorHelper(intent)
 
-    // TODO(b/323830032): Define Photopicker's colorscheme when dynamic colors aren't available.
     val colorScheme =
         remember(isDarkTheme) {
             when {
-                SdkLevel.isAtLeastS() -> {
+                // When the accent color is available then the generic theme for the picker should
+                // be the static baseline material theme. This will be used for any components that
+                // are not highlighted with accent colors.
+                (accentColorHelper.getAccentColor() != Color.Unspecified) -> {
                     if (isDarkTheme) {
-                        dynamicDarkColorScheme(context)
+                        darkColorScheme()
                     } else {
-                        dynamicLightColorScheme(context)
+                        lightColorScheme()
                     }
                 }
-                isDarkTheme -> null
-                else -> null
+                else -> {
+                    if (SdkLevel.isAtLeastS()) {
+                        if (isDarkTheme) {
+                            dynamicDarkColorScheme(context)
+                        } else {
+                            dynamicLightColorScheme(context)
+                        }
+                    } else {
+                        null
+                    }
+                }
             }
         } ?: MaterialTheme.colorScheme
 
@@ -64,6 +80,9 @@ fun PhotopickerTheme(
     MaterialTheme(colorScheme) {
         CompositionLocalProvider(
             LocalWindowSizeClass provides windowSizeClass,
+            CustomAccentColorScheme provides AccentColorScheme(
+                accentColorHelper = accentColorHelper
+            ),
         ) {
             content()
         }

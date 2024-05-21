@@ -30,11 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToAlbumMediaGrid
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 
 /** The number of grid cells per row for Phone / narrow layouts */
@@ -65,12 +67,17 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = hiltViewModel()) {
             else -> false
         }
 
+    val navController = LocalNavController.current
     Column(modifier = Modifier.fillMaxSize()) {
         // Invoke the composable for AlbumsGrid. OnClick uses the navController to navigate to
         // the album content for the album that is selected by the user.
         mediaGrid(
             items = items,
-            onItemClick = {}, // TODO: Navigate to the album content grid for the selected album
+            onItemClick = { item ->
+                if (item is MediaGridItem.AlbumItem) navController.navigateToAlbumMediaGrid(
+                    album = item.album
+                )
+            },
             isExpandedScreen = isExpandedScreen,
             columns = when (isExpandedScreen) {
                 true -> GridCells.Fixed(CELLS_PER_ROW_EXPANDED_FOR_ALBUM_GRID)

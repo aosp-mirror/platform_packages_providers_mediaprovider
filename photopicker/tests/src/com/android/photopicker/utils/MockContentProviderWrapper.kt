@@ -49,6 +49,15 @@ class MockContentProviderWrapper(val provider: ContentProvider) : MockContentPro
     }
 
     /** Pass calls to the wrapped provider. */
+    override fun openTypedAssetFile(
+        uri: Uri,
+        mimeType: String,
+        opts: Bundle?,
+    ): AssetFileDescriptor? {
+        return provider.openTypedAssetFile(uri, mimeType, opts)
+    }
+
+    /** Pass calls to the wrapped provider. */
     override fun call(authority: String, method: String, arg: String?, extras: Bundle?): Bundle? {
         return provider.call(authority, method, arg, extras)
     }

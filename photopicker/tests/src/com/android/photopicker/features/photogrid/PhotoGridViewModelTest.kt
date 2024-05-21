@@ -88,8 +88,6 @@ class PhotoGridViewModelTest {
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
-                    coreEventsConsumed = setOf<RegisteredEventClass>(),
-                    coreEventsProduced = setOf<RegisteredEventClass>(),
                 )
 
             val events =

@@ -31,6 +31,8 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.theme.CustomAccentColorScheme
+
 
 /* Distance between two navigation buttons */
 private val MEASUREMENT_SPACER_SIZE = 6.dp
@@ -99,12 +101,20 @@ fun NavigationBarButton(
         onClick = onClick,
         modifier = modifier,
         colors =
-            if (isCurrentRoute(currentRoute ?: ""))
+            if (isCurrentRoute(currentRoute ?: "")) {
                 ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = CustomAccentColorScheme.current
+                        .getAccentColorIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.primary
+                        ),
+                    contentColor = CustomAccentColorScheme.current
+                        .getTextColorForAccentComponentsIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.onPrimary
+                        ),
                 )
-            else ButtonDefaults.filledTonalButtonColors()
+            } else {
+                ButtonDefaults.filledTonalButtonColors()
+            },
     ) {
         buttonContent()
     }

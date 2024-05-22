@@ -134,7 +134,7 @@ static constexpr char OWNERSHIP_RELATION[] = "ownership";
 
 static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuseMedia_fuse_media";
 
-enum class BpfFd { REMOVE = -1 };
+enum class BpfFd { REMOVE = -2 };
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -833,7 +833,6 @@ void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
     } else if (bpf_fd == static_cast<int>(BpfFd::REMOVE)) {
         e->bpf_action = FUSE_ACTION_REMOVE;
     } else {
-        // TODO: in the current implementation, this branch is unreachable.
         e->bpf_action = FUSE_ACTION_KEEP;
     }
 }

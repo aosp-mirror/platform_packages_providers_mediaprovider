@@ -1364,6 +1364,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         if (!new_parent_node) return ENOENT;
     }
     const string new_parent_path = new_parent_node->BuildPath();
+    if (fuse->bpf && is_bpf_backing_path(new_parent_path)) {
+        return EXDEV;
+    }
     if (!is_app_accessible_path(fuse, new_parent_path, ctx->uid)) {
         return ENOENT;
     }

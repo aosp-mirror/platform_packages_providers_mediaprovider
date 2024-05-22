@@ -69,7 +69,6 @@ public interface ConfigStore {
     boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
     boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
-    boolean DEFAULT_PICKER_PRIVATE_SPACE_ENABLED = true;
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -82,8 +81,11 @@ public interface ConfigStore {
     /**
      * @return if the Private-Space-in-Photo-Picker enabled
      */
+    // TODO(b/322093140) The method below is needed to support existing espresso tests running
+    // on 'UserIdManager' and needs to be cleared again after refactoring the espresso tests
+    // as per UserManagerState
     default boolean isPrivateSpaceInPhotoPickerEnabled() {
-        return DEFAULT_PICKER_PRIVATE_SPACE_ENABLED;
+        return true;
     }
 
     /**
@@ -315,9 +317,6 @@ public interface ConfigStore {
         @VisibleForTesting
         public static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
 
-        @VisibleForTesting
-        public static final String KEY_PRIVATE_SPACE_FEATURE_ENABLED =
-                "private_space_feature_enabled";
         private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
                 "picker_choice_managed_selection_enabled";
         @VisibleForTesting
@@ -349,14 +348,6 @@ public interface ConfigStore {
             // Only consider the feature enabled when the enabled flag is on AND when the allowlist
             // of permitted cloud media providers is not empty.
             return isEnabled && !allowList.isEmpty();
-        }
-
-        @Override
-        public boolean isPrivateSpaceInPhotoPickerEnabled() {
-            return getBooleanDeviceConfig(
-                    NAMESPACE_MEDIAPROVIDER,
-                    KEY_PRIVATE_SPACE_FEATURE_ENABLED,
-                    DEFAULT_PICKER_PRIVATE_SPACE_ENABLED);
         }
 
         @Override

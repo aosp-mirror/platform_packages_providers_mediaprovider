@@ -274,7 +274,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:enabled="true">
-            <intent-filter android:priority="101" >
+            <intent-filter android:priority="105" >
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
                 <category android:name="android.intent.category.DEFAULT" />

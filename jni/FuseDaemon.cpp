@@ -61,7 +61,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define BPF_FD_JUST_USE_INT
 #include "BpfSyscallWrappers.h"
 #include "MediaProviderWrapper.h"
 #include "leveldb/db.h"
@@ -264,7 +263,7 @@ class FAdviser {
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
-                  const bool _bpf, const int _bpf_fd,
+                  const bool _bpf, android::base::unique_fd&& _bpf_fd,
                   const std::vector<string>& _supported_transcoding_relative_paths,
                   const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
@@ -276,7 +275,7 @@ struct fuse {
           disable_dentry_cache(false),
           passthrough(false),
           bpf(_bpf),
-          bpf_fd(_bpf_fd),
+          bpf_fd(std::move(_bpf_fd)),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
           supported_uncached_relative_paths(_supported_uncached_relative_paths) {}
 
@@ -399,7 +398,7 @@ struct fuse {
     std::atomic_bool passthrough;
     std::atomic_bool bpf;
 
-    const int bpf_fd;
+    const android::base::unique_fd bpf_fd;
 
     // FUSE device id.
     std::atomic_uint dev;
@@ -833,6 +832,7 @@ void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_ent
     } else if (bpf_fd == static_cast<int>(BpfFd::REMOVE)) {
         e->bpf_action = FUSE_ACTION_REMOVE;
     } else {
+        // TODO: in the current implementation, this branch is unreachable.
         e->bpf_action = FUSE_ACTION_KEEP;
     }
 }
@@ -843,7 +843,7 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
     // extended for other media devices.
     if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
         if (is_bpf_backing_path(child_path)) {
-            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e, backing_fd);
+            fuse_bpf_fill_entries(child_path, fuse->bpf_fd.get(), e, backing_fd);
         } else if (is_package_owned_path(child_path, fuse->path)) {
             fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e, backing_fd);
         }
@@ -2432,11 +2432,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     }
 
     bool bpf_enabled = IsFuseBpfEnabled();
-    int bpf_fd = -1;
+    android::base::unique_fd bpf_fd(-1);
     if (bpf_enabled) {
-        bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
-        if (bpf_fd < 0) {
-            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << bpf_fd;
+        bpf_fd.reset(android::bpf::retrieveProgram(FUSE_BPF_PROG_PATH));
+        if (!bpf_fd.ok()) {
+            int error = errno;
+            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << error;
             bpf_enabled = false;
         } else {
             LOG(INFO) << "Using FUSE BPF, BPF prog fd fetched";
@@ -2447,7 +2448,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         LOG(INFO) << "Not using FUSE BPF";
     }
 
-    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, bpf_fd,
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, std::move(bpf_fd),
                              supported_transcoding_relative_paths,
                              supported_uncached_relative_paths);
     fuse_default.mp = &mp;

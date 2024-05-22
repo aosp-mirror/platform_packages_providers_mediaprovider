@@ -50,13 +50,13 @@
       android:windowSoftInputMode="adjustResize"
       android:excludeFromRecents="true">
 
-      <intent-filter android:priority="105" >
+      <intent-filter android:priority="95" >
                 <action android:name="android.provider.action.PICK_IMAGES"/>
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
       </intent-filter>
-      <intent-filter android:priority="105" >
+      <intent-filter android:priority="95" >
                 <action android:name="android.provider.action.PICK_IMAGES"/>
                 <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
@@ -68,7 +68,7 @@
         android:exported="true"
         android:excludeFromRecents="true"
         android:enabled="true">
-        <intent-filter android:priority="105" >
+        <intent-filter android:priority="101" >
             <action android:name="android.intent.action.GET_CONTENT"/>
             <category android:name="android.intent.category.OPENABLE"/>
             <category android:name="android.intent.category.DEFAULT"/>

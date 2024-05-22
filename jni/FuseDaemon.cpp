@@ -810,12 +810,13 @@ static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t 
 void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e,
                            int& backing_fd) {
     /*
-     * The file descriptor `fd` must not be closed as it is closed
+     * The file descriptor `backing_fd` must not be closed as it is closed
      * automatically by the kernel as soon as it consumes the FUSE reply. This
      * mechanism is necessary because userspace doesn't know when the kernel
-     * will consume the FUSE response containing `fd`, thus it may close the
-     * `fd` too soon, with the risk of assigning a backing file which is either
-     * invalid or corresponds to the wrong file in the lower file system.
+     * will consume the FUSE response containing `backing_fd`, thus it may close
+     * the `backing_fd` too soon, with the risk of assigning a backing file
+     * which is either invalid or corresponds to the wrong file in the lower
+     * file system.
      */
     backing_fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
     if (backing_fd < 0) {

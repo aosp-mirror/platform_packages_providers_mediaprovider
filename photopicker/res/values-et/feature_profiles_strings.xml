@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Töö"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Muu"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Kasutajaprofiili vahetamine"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Profiili <xliff:g id="PROFILE_NAME">%1$s</xliff:g> rakendused on peatatud"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Blokeeris teie administraator"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Profiili <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> fotode avamiseks lülitage sisse profiili <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> rakendused ja proovige siis uuesti"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Administraator pole juurdepääsu andmetele selle profiili jaoks lubanud."</string>
 </resources>

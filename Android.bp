@@ -51,7 +51,9 @@ android_app {
     jni_libs: [
         "libfuse_jni",
         "libfuse",
+        "libleveldb_jni",
     ],
+    use_embedded_native_libs: true,
 
     resource_dirs: [
         "res",
@@ -93,8 +95,6 @@ android_app {
             "-Xep:MediaProviderMimeType:ERROR",
         ],
     },
-
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
 
     lint: {
         baseline_filename: "lint-baseline.xml",

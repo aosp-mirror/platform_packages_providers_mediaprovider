@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package android.graphics.pdf;
+package com.android.photopicker.core.selection
 
-import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
-
-public class PlaceholderTest {
-
-    @Test
-    public void test_placeholderSetup() {
-        assertTrue(true);
-    }
+/**
+ * Result enumeration class for adding items to the selection.
+ */
+enum class SelectionModifiedResult {
+	SUCCESS,
+	FAILURE_SELECTION_LIMIT_EXCEEDED,
 }

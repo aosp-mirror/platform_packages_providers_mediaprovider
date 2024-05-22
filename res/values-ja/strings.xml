@@ -42,7 +42,7 @@
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"クラウド メディアアプリ"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"クラウド メディア アプリ"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"アプリやウェブサイトから写真や動画の選択が求められたときにクラウド メディアにアクセスします"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"クラウド メディアへのアクセス元"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"クラウド メディアへのアクセス先"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"なし"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"クラウド メディアアプリを変更できませんでした。"</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"メディアの選択"</string>

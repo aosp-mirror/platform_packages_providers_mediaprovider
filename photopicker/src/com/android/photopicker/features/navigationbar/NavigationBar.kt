@@ -24,16 +24,23 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.theme.CustomAccentColorScheme
+
 
 /* Distance between two navigation buttons */
 private val MEASUREMENT_SPACER_SIZE = 6.dp
+
+private val NAV_BAR_ENABLED_ROUTES = setOf(
+    PhotopickerDestinations.ALBUM_GRID.route,
+    PhotopickerDestinations.PHOTO_GRID.route,
+    )
 
 /**
  * Top of the NavigationBar feature.
@@ -46,19 +53,24 @@ private val MEASUREMENT_SPACER_SIZE = 6.dp
  */
 @Composable
 fun NavigationBar(modifier: Modifier) {
-
-    Row(
-        // Consume the incoming modifier
-        modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        // Buttons are provided by registered features, so request for the features to fill this
-        // content.
-        LocalFeatureManager.current.composeLocation(
-            Location.NAVIGATION_BAR_NAV_BUTTON,
-            maxSlots = 2,
-            modifier = Modifier.padding(MEASUREMENT_SPACER_SIZE)
-        )
+    // The navigation bar hides itself for certain routes
+    val navController = LocalNavController.current
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    if (currentRoute in NAV_BAR_ENABLED_ROUTES) {
+        Row(
+            // Consume the incoming modifier
+            modifier = modifier,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            // Buttons are provided by registered features, so request for the features to fill this
+            // content.
+            LocalFeatureManager.current.composeLocation(
+                Location.NAVIGATION_BAR_NAV_BUTTON,
+                maxSlots = 2,
+                modifier = Modifier.padding(MEASUREMENT_SPACER_SIZE)
+            )
+        }
     }
 }
 
@@ -81,7 +93,6 @@ fun NavigationBarButton(
     isCurrentRoute: (String) -> Boolean,
     buttonContent: @Composable () -> Unit
 ) {
-
     val navController = LocalNavController.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -90,12 +101,20 @@ fun NavigationBarButton(
         onClick = onClick,
         modifier = modifier,
         colors =
-            if (isCurrentRoute(currentRoute ?: ""))
+            if (isCurrentRoute(currentRoute ?: "")) {
                 ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = CustomAccentColorScheme.current
+                        .getAccentColorIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.primary
+                        ),
+                    contentColor = CustomAccentColorScheme.current
+                        .getTextColorForAccentComponentsIfDefinedOrElse(
+                            /* fallback */ MaterialTheme.colorScheme.onPrimary
+                        ),
                 )
-            else ButtonDefaults.filledTonalButtonColors()
+            } else {
+                ButtonDefaults.filledTonalButtonColors()
+            },
     ) {
         buttonContent()
     }

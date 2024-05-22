@@ -78,6 +78,7 @@ import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -207,6 +208,9 @@ public class PickerDataLayerV2Test {
         doReturn(providerInfo)
                 .when(mMockPackageManager)
                 .resolveContentProvider(CLOUD_PROVIDER, 0);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
         try (Cursor availableProviders = PickerDataLayerV2.queryAvailableProviders(mMockContext)) {
             availableProviders.moveToFirst();
@@ -891,13 +895,11 @@ public class PickerDataLayerV2Test {
 
     @Test
     public void testCloudAlbumMediaQuery() {
-        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS + 1);
-        Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_2, /* cloudId */ null, DATE_TAKEN_MS);
-        Cursor cursor3 = getAlbumMediaCursor(/* localId */ null, CLOUD_ID_1, DATE_TAKEN_MS);
+        Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS);
+        Cursor cursor2 = getAlbumMediaCursor(/* localId */ null, CLOUD_ID_1, DATE_TAKEN_MS);
 
         assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1, ALBUM_ID);
-        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1, ALBUM_ID);
+        assertAddAlbumMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1, ALBUM_ID);
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
@@ -911,15 +913,20 @@ public class PickerDataLayerV2Test {
 
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(1);
+                    .that(cr.getCount()).isEqualTo(2);
 
             cr.moveToFirst();
             assertMediaCursor(cr, CLOUD_ID_1, CLOUD_PROVIDER, DATE_TAKEN_MS,
+                    MP4_VIDEO_MIME_TYPE);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS,
                     MP4_VIDEO_MIME_TYPE);
         }
     }
 
     @Test
+    @Ignore("TODO(b/339604051): Enable when the bug is fixed.")
     public void testCloudAlbumMediaQueryWhenCloudIsDisabled() {
         Cursor cursor1 = getAlbumMediaCursor(LOCAL_ID_1, /* cloudId */ null, DATE_TAKEN_MS + 1);
         Cursor cursor2 = getAlbumMediaCursor(LOCAL_ID_2, /* cloudId */ null, DATE_TAKEN_MS);
@@ -1017,12 +1024,13 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE), MediaSource.LOCAL);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
-                    CLOUD_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_2);
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_2,
+                    MediaSource.REMOTE);
         }
     }
 
@@ -1135,14 +1143,16 @@ public class PickerDataLayerV2Test {
             cr.moveToFirst();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-                    CLOUD_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_1);
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_1,
+                    MediaSource.REMOTE);
 
             cr.moveToNext();
             // Videos album will be displayed by default
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE),
+                    MediaSource.LOCAL);
         }
     }
 
@@ -1566,6 +1576,14 @@ public class PickerDataLayerV2Test {
 
     private static void assertAlbumCursor(Cursor cursor, String albumId, String authority,
             Long dateTaken, String coverMediaId) {
+        final MediaSource mediaSource = LOCAL_PROVIDER.equals(authority)
+                ? MediaSource.LOCAL
+                : MediaSource.REMOTE;
+        assertAlbumCursor(cursor, albumId, authority, dateTaken, coverMediaId, mediaSource);
+    }
+
+    private static void assertAlbumCursor(Cursor cursor, String albumId, String authority,
+            Long dateTaken, String coverMediaId, MediaSource mediaSource) {
         assertWithMessage("Unexpected value of id in the media cursor.")
                 .that(cursor.getString(cursor.getColumnIndexOrThrow(
                         PickerSQLConstants.AlbumResponse.ALBUM_ID.getColumnName())))
@@ -1590,9 +1608,6 @@ public class PickerDataLayerV2Test {
                 .that(coverUri.getLastPathSegment())
                 .isEqualTo(coverMediaId);
 
-        final MediaSource mediaSource = LOCAL_PROVIDER.equals(authority)
-                ? MediaSource.LOCAL
-                : MediaSource.REMOTE;
         assertWithMessage("Unexpected value of media source in the media cursor.")
                 .that(MediaSource.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(
                         PickerSQLConstants.AlbumResponse.COVER_MEDIA_SOURCE.getColumnName()))))

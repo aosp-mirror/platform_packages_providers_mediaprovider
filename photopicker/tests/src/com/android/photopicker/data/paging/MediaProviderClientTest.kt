@@ -100,6 +100,7 @@ class MediaProviderClientTest {
             resolver = testContentResolver
         )
 
+        assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
         assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", true))
             .isFalse()
     }
@@ -126,8 +127,49 @@ class MediaProviderClientTest {
             resolver = testContentResolver
         )
 
+        assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
+
+        // TODO(b/340246010): Currently, we trigger sync for all available providers. This is
+        //  because UI is responsible for triggering syncs which is sometimes required to enable
+        //  providers. This should be changed to triggering syncs for specific providers once the
+        //  backend takes responsibility for the sync triggers.
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", true))
+            .isFalse()
+    }
+
+    @Test
+    fun testRefreshAlbumMedia() = runTest {
+        testContentProvider.lastRefreshMediaRequest = null
+        val mediaProviderClient = MediaProviderClient()
+        val albumId = "album_id"
+        val albumAuthority = "album_authority"
+        val providers: List<Provider> = mutableListOf(
+                Provider(
+                        authority = "local_authority",
+                        mediaSource = MediaSource.LOCAL,
+                        uid = 0
+                ),
+                Provider(
+                        authority = "hypothetical_local_authority",
+                        mediaSource = MediaSource.LOCAL,
+                        uid = 1
+                ),
+        )
+
+        mediaProviderClient.refreshAlbumMedia(
+                albumId = albumId,
+                albumAuthority = albumAuthority,
+                providers = providers,
+                resolver = testContentResolver
+        )
+
+        assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
         assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", false))
-            .isTrue()
+                .isTrue()
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getString("album_id"))
+                .isEqualTo(albumId)
+        assertThat(testContentProvider.lastRefreshMediaRequest?.getString("album_authority"))
+                .isEqualTo(albumAuthority)
     }
 
     @Test

@@ -1485,16 +1485,34 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        boolean isGetContentTakeoverEnabled;
-        if (SdkLevel.isAtLeastT()) {
-            isGetContentTakeoverEnabled = true;
-        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-            isGetContentTakeoverEnabled = true;
-        } else {
-            isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
-        }
-        setComponentEnabledSetting("PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
 
+        // Enable various Photopicker activities based on ConfigStore state.
+        boolean isModernPickerEnabled = mConfigStore.isModernPickerEnabled();
+
+        // ACTION_PICK_IMAGES
+        setComponentEnabledSetting(
+                "PhotoPickerActivity", /* isEnabled= */ !isModernPickerEnabled);
+
+        // ACTION_GET_CONTENT
+        boolean isGetContentTakeoverEnabled = false;
+
+        // If the modern picker is enabled, allow it to handle GET_CONTENT.
+        // This logic only exists to check for specific S device settings
+        // and the modern picker is T+ only.
+        if (!isModernPickerEnabled) {
+            if (SdkLevel.isAtLeastT()) {
+                isGetContentTakeoverEnabled = true;
+            } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+                isGetContentTakeoverEnabled = true;
+            } else {
+                isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
+            }
+        }
+        setComponentEnabledSetting(
+                "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
+
+        // ACTION_USER_SELECT_FOR_APP
+        // The modern picker does not yet handle USER_SELECT_FOR_APP.
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
     }

@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"ಕೆಲಸ"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"ಇತರೆ"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"ಬಳಕೆದಾರರ ಪ್ರೊಫೈಲ್ ಬದಲಿಸಿ"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> ಆ್ಯಪ್‌ಗಳನ್ನು ವಿರಾಮಗೊಳಿಸಲಾಗಿದೆ"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ನಿರ್ಬಂಧಿಸಿದ್ದಾರೆ"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ಫೋಟೋಗಳನ್ನು ತೆರೆಯಲು, ನಿಮ್ಮ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> ಆ್ಯಪ್‌ಗಳನ್ನು ಆನ್ ಮಾಡಿ ನಂತರ ಪುನಃ ಪ್ರಯತ್ನಿಸಿ"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"ಈ ಪ್ರೊಫೈಲ್ ಮೂಲಕ ಡೇಟಾವನ್ನು ಆ್ಯಕ್ಸೆಸ್ ಮಾಡಲು ನಿಮ್ಮ ನಿರ್ವಾಹಕರು ಅನುಮತಿ ನೀಡಿಲ್ಲ."</string>
 </resources>

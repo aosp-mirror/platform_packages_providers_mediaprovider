@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Pracovný"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Iné"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Prepnúť profil používateľa"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Aplikácie profilu <xliff:g id="PROFILE_NAME">%1$s</xliff:g> sú pozastavené"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Blokované vaším správcom"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Ak chcete otvoriť fotky profilu <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>, zapnite aplikácie profilu <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> a skúste to znova"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Prístup k údajom z tohto profilu váš správca nepovolil."</string>
 </resources>

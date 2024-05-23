@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Trabalho"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Outro"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Mudar o perfil de usuário"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Apps do perfil <xliff:g id="PROFILE_NAME">%1$s</xliff:g> estão pausados"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Interação bloqueada pelo administrador"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Para abrir fotos do perfil <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>, ative os apps do perfil <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> e tente de novo"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"O acesso aos dados deste perfil não é permitido pelo seu administrador."</string>
 </resources>

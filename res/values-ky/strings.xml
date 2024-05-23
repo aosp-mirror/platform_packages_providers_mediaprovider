@@ -41,8 +41,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"Булуттагы мультимедиа колдонмосу"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Булуттагы мультимедиа колдонмосу"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Булуттагы мультимедиа колдонмосу"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Колдонмо же вебсайт сүрөттөрдү же видеолорду тандоону сураганда булуттагы мультимедиага мүмкүнчүлүк алуу"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Төмөнкүдөн алынган булуттагы мультимедианы колдонуу:"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Колдонмолордон же вебсайттардан булуттагы сүрөттөрүңүздү же видеолоруңузду тандаңыз"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Булуттагы медиафайлдарыңызды кайсы колдонмо аркылуу ачасыз:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Жок"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Мультимедиа колдонмосу өзгөргөн жок."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Медиа файлдарды тандагыч"</string>

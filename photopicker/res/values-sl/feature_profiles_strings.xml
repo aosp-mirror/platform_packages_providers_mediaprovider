@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Službeno"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Drugo"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Preklopi profil uporabnika"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Aplikacije profila »<xliff:g id="PROFILE_NAME">%1$s</xliff:g>« so začasno zaustavljene"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Blokiral skrbnik"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Če želite odpreti fotografije profila »<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>«, vklopite aplikacije profila »<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>« in nato poskusite znova"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Skrbnik ne dovoli dostopa do podatkov iz tega profila."</string>
 </resources>

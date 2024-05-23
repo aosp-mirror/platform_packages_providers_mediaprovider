@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"직장"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"기타"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"사용자 프로필 전환"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> 앱이 일시중지됨"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"관리자가 차단함"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> 사진을 열려면 <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> 앱을 사용 설정한 후 다시 시도하세요."</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"관리자가 이 프로필의 데이터에 액세스하는 것을 허용하지 않습니다."</string>
 </resources>

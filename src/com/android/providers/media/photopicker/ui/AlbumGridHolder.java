@@ -27,10 +27,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.util.AccentColorResources;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.StringUtils;
 
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * {@link RecyclerView.ViewHolder} of a {@link View} representing an album {@link Category}.
@@ -45,11 +48,17 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
     private final boolean mHasMimeTypeFilter;
     @NonNull
     private final AlbumsTabAdapter.OnAlbumClickListener mOnAlbumClickListener;
+    private PickerViewModel mPickerViewModel;
 
     AlbumGridHolder(@NonNull View itemView, @NonNull ImageLoader imageLoader,
-            boolean hasMimeTypeFilter,
+            boolean hasMimeTypeFilter, @NonNull PickerViewModel pickerViewModel,
             @NonNull AlbumsTabAdapter.OnAlbumClickListener onAlbumClickListener) {
         super(itemView);
+
+        Objects.requireNonNull(itemView);
+        Objects.requireNonNull(imageLoader);
+        Objects.requireNonNull(pickerViewModel);
+        Objects.requireNonNull(onAlbumClickListener);
 
         mIconThumb = itemView.findViewById(R.id.icon_thumbnail);
         mIconDefaultThumb = itemView.findViewById(R.id.icon_default_thumbnail);
@@ -57,6 +66,7 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
         mItemCount = itemView.findViewById(R.id.item_count);
         mImageLoader = imageLoader;
         mHasMimeTypeFilter = hasMimeTypeFilter;
+        mPickerViewModel = pickerViewModel;
         mOnAlbumClickListener = onAlbumClickListener;
     }
 
@@ -74,6 +84,13 @@ class AlbumGridHolder extends RecyclerView.ViewHolder {
         }
         mImageLoader.loadAlbumThumbnail(category, mIconThumb, defaultResId, mIconDefaultThumb);
         mAlbumName.setText(category.getDisplayName(itemView.getContext()));
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            mAlbumName.setTextColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                            AccentColorResources.ON_SURFACE_COLOR_DARK
+            ));
+        }
         // Check whether there is a mime type filter or not. If yes, hide the item count. Otherwise,
         // show the item count and update the count.
         if (mItemCount.getVisibility() == View.VISIBLE) {

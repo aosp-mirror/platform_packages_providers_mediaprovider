@@ -1,0 +1,97 @@
+//
+// Copyright (C) 2023 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+cc_library_shared {
+    name: "libpdfclient",
+    srcs: [
+        "*.cc",
+        "utils/*.cc",
+    ],
+
+    exclude_srcs: [
+        "*_test.cc",
+    ],
+
+    shared_libs: [
+        "libpdfium",
+        "liblog",
+        "libjnigraphics",
+    ],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    cflags: [
+        "-Werror",
+        "-Wno-unused-parameter",
+    ],
+
+    sdk_version: "current",
+    min_sdk_version: "apex_inherit",
+    apex_available: ["com.android.mediaprovider"],
+    stl: "c++_static",
+    header_libs: ["jni_headers"],
+}
+
+cc_test {
+    name: "pdfClient_test",
+    compile_multilib: "both",
+    multilib: {
+        lib32: {
+            suffix: "32",
+        },
+        lib64: {
+            suffix: "64",
+        },
+    },
+
+    srcs: [
+        "*.cc",
+        "utils/*.cc",
+        "testing/*.cc",
+    ],
+
+    data: [
+        "testdata/**/*.pdf",
+    ],
+
+    test_suites: ["device-tests"],
+
+    static_libs: [
+        "libbase_ndk",
+    ],
+
+    shared_libs: [
+        "libpdfium",
+        "liblog",
+    ],
+
+    cflags: [
+        "-Werror",
+        "-Wno-unused-parameter",
+        "-Wmacro-redefined",
+    ],
+
+    sdk_version: "current",
+    stl: "c++_static",
+    header_libs: ["jni_headers"],
+}

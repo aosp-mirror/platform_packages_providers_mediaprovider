@@ -876,9 +876,27 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
+
+static bool is_user_accessible_path(fuse_req_t req, const struct fuse* fuse, const string& path) {
+    std::smatch match;
+    std::regex_search(path, match, storage_emulated_regex);
+
+    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
+    // requested path
+    if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
+        // If user id mismatch, check cross-user lookups
+        long userId = strtol(match[1].str().c_str(), nullptr, 10);
+        if (userId < 0 || userId > MAX_USER_ID ||
+            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
                        struct fuse_entry_param* e, int* error_code, const FuseOp op,
-                       int* backing_fd = NULL) {
+                       const bool validate_access, int* backing_fd = NULL) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -886,9 +904,11 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
+
     // We should always allow lookups on the root, because failing them could cause
     // bind mounts to be invalidated.
-    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
+    if (validate_access && !fuse->IsRoot(parent_node) &&
+        !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -896,19 +916,10 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
-    std::smatch match;
-    std::regex_search(child_path, match, storage_emulated_regex);
 
-    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
-    // requested path
-    if (match.size() == 2 && MY_USER_ID_STRING != match[1].str()) {
-        // If user id mismatch, check cross-user lookups
-        long userId = strtol(match[1].str().c_str(), nullptr, 10);
-        if (userId < 0 || userId > MAX_USER_ID ||
-            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
-            *error_code = EACCES;
-            return nullptr;
-        }
+    if (validate_access && !is_user_accessible_path(req, fuse, child_path)) {
+        *error_code = EACCES;
+        return nullptr;
     }
 
     auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
@@ -935,7 +946,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     int backing_fd = -1;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, &backing_fd)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, true, &backing_fd)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1877,7 +1888,7 @@ static void pf_opendir(fuse_req_t req,
     fuse_reply_open(req, fi);
 }
 
-#define READDIR_BUF 8192LU
+#define READDIR_BUF 32768LU
 
 static void do_readdir_common(fuse_req_t req,
                               fuse_ino_t ino,
@@ -1907,6 +1918,14 @@ static void do_readdir_common(fuse_req_t req,
     }
 
     TRACE_NODE(node, req);
+
+    // We don't return EACCES for compatibility with the previous implementation.
+    // It just ignored entries causing EACCES.
+    if (!is_user_accessible_path(req, fuse, path)) {
+        fuse_reply_buf(req, buf, used);
+        return;
+    }
+
     // Get all directory entries from MediaProvider on first readdir() call of
     // directory handle. h->next_off = 0 indicates that current readdir() call
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
@@ -1936,7 +1955,8 @@ static void do_readdir_common(fuse_req_t req,
         h->next_off++;
         if (plus) {
             int error_code = 0;
-            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir)) {
+            // Skip validating user and app access as they are already performed on parent node
+            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir, false)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             } else {

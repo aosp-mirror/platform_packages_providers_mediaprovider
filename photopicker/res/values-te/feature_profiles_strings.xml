@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"ఆఫీస్"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"ఇతరం"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"యూజర్ ప్రొఫైల్‌ను మార్చండి"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> యాప్‌లు పాజ్ చేయబడ్డాయి"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"మీ అడ్మిన్ ద్వారా బ్లాక్ చేయబడింది"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ఫోటోలను తెరవడానికి మీ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> యాప్‌లను ఆన్ చేసి ఆపై మళ్లీ ట్రై చేయండి"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"ఈ ప్రొఫైల్ నుండి డేటాను యాక్సెస్ చేయడం మీ అడ్మినిస్ట్రేటర్ ద్వారా అనుమతించబడదు."</string>
 </resources>

@@ -79,7 +79,6 @@ abstract class PhotopickerFeatureBaseTest {
         contentResolver: ContentResolver,
         mockPackageManager: PackageManager
     ) {
-
         // Stub out UserManager with the mock
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
 
@@ -138,7 +137,9 @@ abstract class PhotopickerFeatureBaseTest {
             LocalNavController provides navController,
             LocalEvents provides events,
         ) {
-            PhotopickerTheme { PhotopickerMain() }
+            PhotopickerTheme(
+                intent = photopickerConfiguration.intent
+            ) { PhotopickerMain() }
         }
     }
 }

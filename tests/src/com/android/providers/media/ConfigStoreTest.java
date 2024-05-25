@@ -20,9 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,7 +59,8 @@ public class ConfigStoreTest {
     };
 
     @Test
-    public void test_defaultValueConfigStore_allCorrect() {
+    public void test_defaultValueConfigStore_allCorrect_TPlus() {
+        assumeTrue(SdkLevel.isAtLeastT());
         assertTrue(mConfigStore.getAllowedCloudProviderPackages().isEmpty());
         assertNull(mConfigStore.getDefaultCloudProviderPackage());
         assertEquals(60000, mConfigStore.getTranscodeMaxDurationMs());
@@ -72,5 +77,28 @@ public class ConfigStoreTest {
         assertFalse(mConfigStore.shouldPickerRespectPreloadArgumentForPickImages());
         assertFalse(mConfigStore.shouldTranscodeDefault());
         assertTrue(mConfigStore.isPrivateSpaceInPhotoPickerEnabled());
+        assertFalse(mConfigStore.isModernPickerEnabled());
+    }
+
+    @Test
+    public void test_defaultValueConfigStore_allCorrect_SMinus() {
+        assumeFalse(SdkLevel.isAtLeastT());
+        assertTrue(mConfigStore.getAllowedCloudProviderPackages().isEmpty());
+        assertNull(mConfigStore.getDefaultCloudProviderPackage());
+        assertEquals(60000, mConfigStore.getTranscodeMaxDurationMs());
+        assertTrue(mConfigStore.isCloudMediaInPhotoPickerEnabled());
+        assertFalse(mConfigStore.isGetContentTakeOverEnabled());
+        assertTrue(mConfigStore.isPickerChoiceManagedSelectionEnabled());
+        assertFalse(mConfigStore.isStableUrisForExternalVolumeEnabled());
+        assertFalse(mConfigStore.isStableUrisForInternalVolumeEnabled());
+        assertTrue(mConfigStore.isTranscodeEnabled());
+        assertTrue(mConfigStore.isUserSelectForAppEnabled());
+        assertTrue(mConfigStore.shouldEnforceCloudProviderAllowlist());
+        assertTrue(mConfigStore.shouldPickerPreloadForGetContent());
+        assertTrue(mConfigStore.shouldPickerPreloadForPickImages());
+        assertFalse(mConfigStore.shouldPickerRespectPreloadArgumentForPickImages());
+        assertFalse(mConfigStore.shouldTranscodeDefault());
+        assertTrue(mConfigStore.isPrivateSpaceInPhotoPickerEnabled());
+        assertFalse(mConfigStore.isModernPickerEnabled());
     }
 }

@@ -225,8 +225,11 @@ public class PickerDbFacade {
     public void setCloudProvider(String authority) {
         try (CloseableReentrantLock ignored = mPickerSyncLockManager
                 .lock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
+            final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
-            PickerNotificationSender.notifyMediaChange(mContext);
+            if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
+                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+            }
         }
     }
 
@@ -239,8 +242,11 @@ public class PickerDbFacade {
     public void setCloudProviderWithTimeout(String authority) throws UnableToAcquireLockException {
         try (CloseableReentrantLock ignored =
                      mPickerSyncLockManager.tryLock(PickerSyncLockManager.DB_CLOUD_LOCK)) {
+            final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
-            PickerNotificationSender.notifyMediaChange(mContext);
+            if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
+                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+            }
         }
     }
 

@@ -106,6 +106,12 @@ class DataServiceImpl(
     private var mediaUpdateCallbackFlow: Flow<Unit>? = null
 
     /**
+     * Callback flow that listens to changes in album media and emits a [Pair] of album authority
+     * and album id when change is observed.
+     */
+    private var albumMediaUpdateCallbackFlow: Flow<Pair<String, String>>? = null
+
+    /**
      * Saves the current job that collects the [availableProviderCallbackFlow].
      * Cancel this job when there is a change in the [_activeContentResolver]
      */
@@ -117,6 +123,11 @@ class DataServiceImpl(
      */
     private var mediaUpdateCollectJob: Job? = null
 
+    /**
+     * Saves the current job that collects the [albumMediaUpdateCallbackFlow].
+     * Cancel this job when there is a change in the [_activeContentResolver]
+     */
+    private var albumMediaUpdateCollectJob: Job? = null
 
     /**
      * Internal [StateFlow] that emits when the [availableProviderCallbackFlow] emits a new list of
@@ -153,8 +164,7 @@ class DataServiceImpl(
     init {
         scope.launch(dispatcher) {
             availableProviders.collect { providers: List<Provider> ->
-                // Send refresh media request after the available providers are available.
-                refreshMedia(providers)
+                Log.d(DataService.TAG, "Available providers have changed to $providers.")
 
                 mediaPagingSourceMutex.withLock {
                     mediaPagingSources.forEach {
@@ -191,7 +201,15 @@ class DataServiceImpl(
                 availableProviderCollectJob = scope.launch(dispatcher) {
                     availableProviderCallbackFlow?.collect { providers: List<Provider> ->
                         Log.d(DataService.TAG, "Available providers update notification " +
-                                "received")
+                                "received $providers")
+
+                        // Send refresh media request to Photo Picker.
+                        // TODO(b/340246010): This is required even when  there is no change in the
+                        //  [availableProviders] state flow because PhotoPicker relies on the UI to
+                        //  trigger a sync when the cloud provider changes. Further, a successful
+                        //  sync enables cloud queries, which then updates the UI.
+                        refreshMedia(providers)
+
                         _availableProviders.update { providers }
                     }
                 }
@@ -208,6 +226,23 @@ class DataServiceImpl(
                                 mediaPagingSource -> mediaPagingSource.invalidate()
                             }
                         }
+                    }
+                }
+
+                // Stop collecting album media updates from previously initialized callback flow.
+                albumMediaUpdateCollectJob?.cancel()
+                albumMediaUpdateCallbackFlow = initAlbumMediaUpdateFlow(activeContentResolver)
+
+                albumMediaUpdateCollectJob = scope.launch(dispatcher) {
+                    albumMediaUpdateCallbackFlow?.collect {
+                        (albumAuthority, albumId): Pair<String, String> ->
+                            Log.d(DataService.TAG, "Album media update notification " +
+                                    "received for album authority $albumAuthority " +
+                                    "and album id $albumId")
+                            albumMediaPagingSourceMutex.withLock {
+                                albumMediaPagingSources
+                                        .get(albumAuthority)?.get(albumId)?.invalidate()
+                            }
                     }
                 }
             }
@@ -261,16 +296,51 @@ class DataServiceImpl(
      * [ContentObserver] notifications.
      */
     private fun initMediaUpdateFlow(resolver: ContentResolver): Flow<Unit> = callbackFlow<Unit> {
+        val observer = object : ContentObserver(/* handler */ null) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                trySend(Unit)
+            }
+        }
+
+        // Register the content observer callback.
+        notificationService.registerContentObserverCallback(
+            resolver,
+            MEDIA_CHANGE_NOTIFICATION_URI,
+            /* notifyForDescendants */ true,
+            observer
+        )
+
+        // Unregister when the flow is closed.
+        awaitClose {
+            notificationService.unregisterContentObserverCallback(
+                resolver,
+                observer
+            )
+        }
+    }
+
+    /**
+     * Creates a callback flow that emits the album ID when an update in the album's media is
+     * observed using [ContentObserver] notifications.
+     */
+    private fun initAlbumMediaUpdateFlow(resolver: ContentResolver): Flow<Pair<String, String>> =
+        callbackFlow {
             val observer = object : ContentObserver(/* handler */ null) {
                 override fun onChange(selfChange: Boolean, uri: Uri?) {
-                    trySend(Unit)
+                    // Verify that album authority and album ID is present in the URI
+                    if (uri?.pathSegments?.size ==
+                            (2 + ALBUM_CHANGE_NOTIFICATION_URI.pathSegments.size)) {
+                        val albumAuthority = uri.pathSegments[uri.pathSegments.size - 2] ?: ""
+                        val albumID = uri.pathSegments[uri.pathSegments.size - 1] ?: ""
+                        trySend(Pair(albumAuthority, albumID))
+                    }
                 }
             }
 
             // Register the content observer callback.
             notificationService.registerContentObserverCallback(
                 resolver,
-                MEDIA_CHANGE_NOTIFICATION_URI,
+                ALBUM_CHANGE_NOTIFICATION_URI,
                 /* notifyForDescendants */ true,
                 observer
             )

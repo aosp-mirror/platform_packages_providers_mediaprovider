@@ -37,6 +37,7 @@ public class PickerUriResolverV2 {
     public static final String PICKER_V2_PATH_SEGMENT = "v2";
     public static final String BASE_PICKER_PATH =
             PICKER_INTERNAL_PATH_SEGMENT + "/" + PICKER_V2_PATH_SEGMENT + "/";
+    public static final String AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers";
     public static final String MEDIA_PATH_SEGMENT = "media";
     public static final String ALBUM_PATH_SEGMENT = "album";
     public static final String UPDATE_PATH_SEGMENT = "update";
@@ -69,7 +70,7 @@ public class PickerUriResolverV2 {
         );
         sUriMatcher.addURI(
                 MediaStore.AUTHORITY,
-                BASE_PICKER_PATH + "available_providers",
+                BASE_PICKER_PATH + AVAILABLE_PROVIDERS_PATH_SEGMENT,
                 PICKER_INTERNAL_AVAILABLE_PROVIDERS
         );
     }

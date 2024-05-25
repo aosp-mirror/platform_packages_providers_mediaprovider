@@ -62,6 +62,8 @@ public interface ConfigStore {
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
+    boolean DEFAULT_MODERN_PICKER_ENABLED = false;
+
     boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
@@ -70,6 +72,14 @@ public interface ConfigStore {
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
     boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
     boolean DEFAULT_PICKER_PRIVATE_SPACE_ENABLED = true;
+
+
+    /**
+     * @return if the modern photopicker experience is enabled.
+     */
+    default boolean isModernPickerEnabled() {
+        return DEFAULT_MODERN_PICKER_ENABLED;
+    }
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -305,6 +315,8 @@ public interface ConfigStore {
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
 
+        private static final String KEY_MODERN_PICKER_ENABLED = "enable_modern_picker";
+
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
         private static final String KEY_PICKER_PICK_IMAGES_PRELOAD =
@@ -332,6 +344,22 @@ public interface ConfigStore {
 
         ConfigStoreImpl(@NonNull Resources resources) {
             mResources = requireNonNull(resources);
+        }
+
+        @Override
+        public boolean isModernPickerEnabled() {
+
+            // The modern photopicker can only be enabled on T+ such that it can acquire all
+            // of the necessary runtime permissions it needs. For devices running a platform
+            // prior to T, the modern picker is always disabled.
+            if (SdkLevel.isAtLeastT()) {
+                return getBooleanDeviceConfig(
+                                NAMESPACE_MEDIAPROVIDER,
+                                KEY_MODERN_PICKER_ENABLED,
+                                DEFAULT_MODERN_PICKER_ENABLED);
+            } else {
+                return false;
+            }
         }
 
         @Override

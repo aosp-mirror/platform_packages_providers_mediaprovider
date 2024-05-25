@@ -40,7 +40,7 @@
     <string name="picker_browse" msgid="5554477454636075934">"ബ്രൗസ് ചെയ്യുക…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"ക്ലൗഡ് മീഡിയ ആപ്പ്"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"ക്ലൗഡ് മീഡിയ ആപ്പ്"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"ക്ലൗഡ് മീഡിയ ആക്‌സസ് ചെയ്യുക"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"ക്ലൗഡ് മീഡിയ ആപ്പ്"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"ഫോട്ടോകളോ വീഡിയോകളോ തിരഞ്ഞെടുക്കാൻ ആപ്പോ വെബ്‌സൈറ്റോ നിങ്ങളോട് ആവശ്യപ്പെടുമ്പോൾ ക്ലൗഡ് മീഡിയ ആക്സസ് ചെയ്യുക"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"ക്ലൗഡ് മീഡിയ ആപ്പിൽ നിന്ന്"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ഒന്നുമില്ല"</string>

@@ -47,6 +47,7 @@ import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
+import dagger.Lazy
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -92,7 +93,7 @@ class MainActivityTest {
     @Inject lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
-    @Inject lateinit var events: Events
+    @Inject lateinit var events: Lazy<Events>
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
@@ -175,7 +176,7 @@ class MainActivityTest {
                 onActivity {
                     mainScope.launch {
                         selection.add(testImage)
-                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
                     }
                 }
 
@@ -205,6 +206,7 @@ class MainActivityTest {
         val intent =
             Intent()
                 .setAction(Intent.ACTION_GET_CONTENT)
+                .setType("image/*")
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
@@ -217,7 +219,7 @@ class MainActivityTest {
                 onActivity {
                     mainScope.launch {
                         selection.add(testImage)
-                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
                     }
                 }
 
@@ -261,7 +263,7 @@ class MainActivityTest {
                 onActivity {
                     mainScope.launch {
                         selection.addAll(selectedItems)
-                        events.dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
                     }
                 }
 
@@ -292,6 +294,7 @@ class MainActivityTest {
         val intent =
             Intent()
                 .setAction(Intent.ACTION_GET_CONTENT)
+                .setType("image/*")
                 .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
                 .setComponent(
                     ComponentName(

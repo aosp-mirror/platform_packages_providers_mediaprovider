@@ -48,7 +48,7 @@ java_sdk_library {
         "//cts/tests/pdf:__subpackages__",
     ],
     jarjar_rules: "jarjar-rules.txt",
-    min_sdk_version: "30",
+    min_sdk_version: "31",
 }
 
 filegroup {
@@ -78,7 +78,7 @@ java_aconfig_library {
     visibility: [
         "//packages/providers/MediaProvider/pdf:__subpackages__",
     ],
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     apex_available: [
         "com.android.mediaprovider",
     ],
@@ -92,7 +92,7 @@ genrule {
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module mediaprovider" +
         " --javaPackage android.graphics.pdf --javaClass PdfStatsLog" +
-        " --minApiLevel 30",
+        " --minApiLevel 31",
     out: ["android/graphics/pdf/PdfStatsLog.java"],
 }
 
@@ -100,7 +100,7 @@ genrule {
 java_library {
     name: "pdf-statsd",
     sdk_version: "module_current",
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     srcs: [
         ":statslog-pdf-java-gen",
     ],

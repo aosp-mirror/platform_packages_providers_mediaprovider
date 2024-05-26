@@ -41,8 +41,10 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
@@ -52,6 +54,7 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
@@ -176,7 +179,6 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarIsEnabledWithSelectionLimit() {
-
         val configOne = PhotopickerConfiguration(action = "TEST_ACTION", selectionLimit = 5)
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
@@ -197,7 +199,6 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarNotEnabledForSingleSelect() {
-
         val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
@@ -226,16 +227,19 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarIsShown() {
-
         mainScope.runTest {
+            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager.get(),
                     LocalSelection provides selection.get(),
                     LocalEvents provides events.get(),
                     LocalNavController provides createNavController(),
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    }
                 }
             }
             composeTestRule.onNode(hasTestTag(TEST_TAG_SELECTION_BAR)).assertDoesNotExist()
@@ -252,7 +256,6 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarShowsSecondaryAction() {
-
         val testFeatureRegistrations =
             setOf(
                 SelectionBarFeature.Registration,
@@ -266,14 +269,17 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     this.backgroundScope,
                     testFeatureRegistrations,
                 )
-
+            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides testFeatureManager,
                     LocalSelection provides selection.get(),
-                    LocalEvents provides events.get()
+                    LocalEvents provides events.get(),
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    }
                 }
             }
 
@@ -295,15 +301,18 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
         mainScope.runTest {
             val eventsSent = mutableListOf<Event>()
             backgroundScope.launch { events.get().flow.toList(eventsSent) }
-
+            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager.get(),
                     LocalSelection provides selection.get(),
                     LocalEvents provides events.get(),
                     LocalNavController provides createNavController(),
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                    }
                 }
             }
 

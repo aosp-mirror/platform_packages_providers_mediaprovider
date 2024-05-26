@@ -28,6 +28,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -118,12 +121,10 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-
 
     @Before
     fun setup() {
@@ -162,45 +163,119 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             .isEqualTo(true)
 
         assertWithMessage("AlbumGridFeature is not always enabled")
-            .that(
-                AlbumGridFeature.Registration.isEnabled(
-                    testUserSelectImagesForAppConfiguration
-                )
-            )
+            .that(AlbumGridFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
             .isEqualTo(true)
     }
 
     @Test
-    fun testNavigateAlbumGridAndAlbumsAreVisible() = mainScope.runTest {
-        composeTestRule.setContent {
-            // Set an explicit size to prevent errors in glide being unable to measure
+    fun testNavigateAlbumGridAndAlbumsAreVisible() =
+        mainScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
                 )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            advanceTimeBy(100)
+
+            // In the [FakeInMemoryPagingSource] the albums are names using TEST_ALBUM_NAME_PREFIX
+            // appended by a count in their sequence. Verify that an album with the name exists
+            composeTestRule
+                .onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1"))
+                .assert(hasClickAction())
+                .assertIsDisplayed()
         }
 
-        advanceTimeBy(100)
+    @Test
+    fun testAlbumsCanBeSelected() =
+        mainScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
 
-        // Navigate on the UI thread (similar to a click handler)
-        composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            advanceTimeBy(100)
 
-        assertWithMessage("Expected route to be albumgrid")
-            .that(navController.currentBackStackEntry?.destination?.route)
-            .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
 
-        advanceTimeBy(100)
-        composeTestRule.waitForIdle()
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
 
-        // Allow the PreviewViewModel to collect flows
-        advanceTimeBy(100)
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
 
-        // In the [FakeInMemoryPagingSource] the albums are names using TEST_ALBUM_NAME_PREFIX
-        // appended by a count in their sequence. Verify that an album with the name exists
-        composeTestRule
-            .onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1"))
-            .assert(hasClickAction())
-            .assertIsDisplayed()
-    }
+            advanceTimeBy(100)
+
+            val testAlbumDisplayName = TEST_ALBUM_NAME_PREFIX + "1"
+            // In the [FakeInMemoryPagingSource] the albums are names using TEST_ALBUM_NAME_PREFIX
+            // appended by a count in their sequence. Verify that an album with the name exists
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).assertIsDisplayed()
+
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected route to be albummediagrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_MEDIA_GRID.route)
+        }
+
+    @Test
+    fun testSwipeLeftToNavigateToPhotoGrid() =
+        mainScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
+
+            composeTestRule.onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1")).performTouchInput {
+                swipeRight()
+            }
+            composeTestRule.waitForIdle()
+
+            val route = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected swipe to navigate to AlbumGrid")
+                .that(route)
+                .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
+        }
 }

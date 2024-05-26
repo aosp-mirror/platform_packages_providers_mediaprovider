@@ -18,13 +18,15 @@ package com.android.providers.media.photopicker.v2;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_ALBUM_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
+
+import static java.util.Objects.requireNonNull;
 
 import android.annotation.UserIdInt;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
@@ -59,7 +61,7 @@ import java.util.List;
 public class PickerDataLayerV2 {
     private static final String TAG = "PickerDataLayerV2";
     private static final int CLOUD_SYNC_TIMEOUT_MILLIS = 500;
-    private static final List<String> sMergedAlbumIds = List.of(
+    public static final List<String> sMergedAlbumIds = List.of(
             AlbumColumns.ALBUM_ID_FAVORITES,
             AlbumColumns.ALBUM_ID_VIDEOS
     );
@@ -316,10 +318,9 @@ public class PickerDataLayerV2 {
             @Nullable String localAuthority) {
         boolean isLocal = localAuthority != null
                 && localAuthority.equals(query.getAlbumAuthority());
-        SyncCompletionWaiter.waitForSync(
-                getWorkManager(appContext),
+        SyncCompletionWaiter.waitForSyncWithTimeout(
                 SyncTrackerRegistry.getAlbumSyncTracker(isLocal),
-                IMMEDIATE_ALBUM_SYNC_WORK_NAME);
+                /* timeoutInMillis */ 500);
     }
 
     /**
@@ -847,12 +848,12 @@ public class PickerDataLayerV2 {
 
             final String cloudAuthority =
                     syncController.getCloudProviderOrDefault(/* defaultValue */ null);
-            if (cloudAuthority != null) {
+            if (syncController.shouldQueryCloudMedia(cloudAuthority)) {
                 final PackageManager packageManager = context.getPackageManager();
+                final ProviderInfo providerInfo = requireNonNull(
+                        packageManager.resolveContentProvider(cloudAuthority, /* flags */ 0));
                 final int uid = packageManager.getPackageUid(
-                        packageManager
-                                .resolveContentProvider(cloudAuthority, /* flags */ 0)
-                                .packageName,
+                        providerInfo.packageName,
                         /* flags */ 0
                 );
                 addAvailableProvidersToCursor(

@@ -41,8 +41,8 @@
     <string name="picker_settings" msgid="6443463167344790260">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"క్లౌడ్ మీడియా యాప్"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"క్లౌడ్ మీడియా యాప్"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"ఫోటోలు లేదా వీడియోలను ఎంచుకోమని యాప్ లేదా వెబ్‌సైట్ మిమ్మల్ని అడిగినప్పుడు మీ క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"దాని నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"ఫోటోలను లేదా వీడియోలను సెలెక్ట్ చేయాలని యాప్ గానీ వెబ్‌సైట్ గానీ మిమ్మల్ని అడిగినప్పుడు మీ క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"కింది వాటి నుండి క్లౌడ్ మీడియాను యాక్సెస్ చేయండి"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"ఏవీ లేవు"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"ఈ సమయంలో క్లౌడ్ మీడియా యాప్ మార్చడం సాధ్యపడలేదు."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"మీడియా సెలెక్టర్"</string>

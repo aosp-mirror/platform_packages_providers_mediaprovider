@@ -21,5 +21,9 @@
     <string name="photopicker_media_item" msgid="3592234718212377636">"மீடியா"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"தேர்ந்தெடுக்கப்பட்டது"</string>
     <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g>ஐச் சேர்"</string>
+    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ஆவணங்கள் வரை தேர்ந்தெடுங்கள்"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Photos"</string>
+    <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ஆல்பங்கள்"</string>
+    <!-- no translation found for photopicker_back_option (986374743479020214) -->
+    <skip />
 </resources>

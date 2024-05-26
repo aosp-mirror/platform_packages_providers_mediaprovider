@@ -21,4 +21,8 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Työpaikka"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Muu"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Vaihda käyttäjäprofiilia"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Sovellukset on keskeytetty: <xliff:g id="PROFILE_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Järjestelmänvalvojan estämä"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Jos haluat avata kuvia (<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>), laita sovellukset (<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>) päälle ja yritä uudelleen"</string>
+    <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Järjestelmänvalvojasi ei salli tälle profiilille pääsyä dataan."</string>
 </resources>

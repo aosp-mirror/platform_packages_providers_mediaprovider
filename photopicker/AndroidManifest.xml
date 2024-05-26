@@ -50,13 +50,13 @@
       android:windowSoftInputMode="adjustResize"
       android:excludeFromRecents="true">
 
-      <intent-filter android:priority="105" >
+      <intent-filter android:priority="95" >
                 <action android:name="android.provider.action.PICK_IMAGES"/>
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
       </intent-filter>
-      <intent-filter android:priority="105" >
+      <intent-filter android:priority="95" >
                 <action android:name="android.provider.action.PICK_IMAGES"/>
                 <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
@@ -68,7 +68,7 @@
         android:exported="true"
         android:excludeFromRecents="true"
         android:enabled="true">
-        <intent-filter android:priority="105" >
+        <intent-filter android:priority="101" >
             <action android:name="android.intent.action.GET_CONTENT"/>
             <category android:name="android.intent.category.OPENABLE"/>
             <category android:name="android.intent.category.DEFAULT"/>
@@ -79,16 +79,26 @@
 
   </application>
 
-  <!--
-    Ensure that all CLOUD_MEDIA_PROVIDER packages are visible to this app.
-    Since Photopicker does not hold QUERY_ALL_PACKAGES, but it queries the
-    CloudMediaProviders directly when loading media, declare the intent
-    action that all CloudMediaProviders use to identify themselves so their
-    packages are visible to Photopicker.
-  -->
   <queries>
+    <!--
+      Ensure that all CLOUD_MEDIA_PROVIDER packages are visible to this app.
+      Since Photopicker does not hold QUERY_ALL_PACKAGES, but it queries the
+      CloudMediaProviders directly when loading media, declare the intent
+      action that all CloudMediaProviders use to identify themselves so their
+      packages are visible to Photopicker.
+    -->
     <intent>
       <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+    </intent>
+
+    <!--
+      Ensure that Photopicker can resolve DocumentsUI which is the
+      default handler of [OPEN_DOCUMENT]. Photopicker uses this to redirect
+      the user to DocumentsUI in some ACTION_GET_CONTENT cases.
+    -->
+    <intent>
+      <action android:name="android.intent.action.OPEN_DOCUMENT" />
+      <data android:mimeType="*/*" />
     </intent>
   </queries>
 

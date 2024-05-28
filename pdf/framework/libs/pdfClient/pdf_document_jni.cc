@@ -86,6 +86,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromF
     std::unique_ptr<Document> doc;
 
     auto fileReader = std::make_unique<FileReader>(std::move(fd));
+    size_t pdfSizeInBytes = fileReader->CompleteSize();
     Status status = Document::Load(std::move(fileReader), password,
                                    /* closeFdOnFailure= */ true, &doc);
 
@@ -93,7 +94,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromF
         env->ReleaseStringUTFChars(jpassword, password);
     }
     // doc is owned by the LoadPdfResult in java.
-    return convert::ToJavaLoadPdfResult(env, status, std::move(doc));
+    return convert::ToJavaLoadPdfResult(env, status, std::move(doc), pdfSizeInBytes);
 }
 
 JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_destroy(JNIEnv* env,

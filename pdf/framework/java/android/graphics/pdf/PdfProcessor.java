@@ -31,6 +31,7 @@ import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.logging.PdfEventLogger;
 import android.graphics.pdf.models.FormEditRecord;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
@@ -38,6 +39,7 @@ import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Binder;
 import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -45,6 +47,7 @@ import android.system.OsConstants;
 import android.util.Log;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,10 +72,15 @@ public class PdfProcessor {
 
     private static final String TAG = "PdfProcessor";
     private static final Object sPdfiumLock = new Object();
+    private final PdfEventLogger mPdfEventLogger;
     private PdfDocumentProxy mPdfDocument;
 
     public PdfProcessor() {
         PdfDocumentProxy.loadLibPdf();
+
+        mPdfEventLogger = new PdfEventLogger(
+                /* processId = */ Binder.getCallingUid(),
+                /* docId = */ new SecureRandom().nextLong());
     }
 
     /**
@@ -89,6 +97,8 @@ public class PdfProcessor {
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public void create(ParcelFileDescriptor fileDescriptor, @Nullable LoadParams params)
             throws IOException {
+        long loadingStartTime = System.currentTimeMillis();
+
         Preconditions.checkNotNull(fileDescriptor, "Input FD cannot be null");
         ensurePdfDestroyed();
         try {
@@ -99,15 +109,56 @@ public class PdfProcessor {
 
         String password = (params != null) ? params.getPassword() : null;
         synchronized (sPdfiumLock) {
-            LoadPdfResult result =
-                    PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(), password);
+            LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(),
+                    password);
             switch (result.status) {
-                case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR ->
-                        throw new IOException("Unable to load the document!");
-                case REQUIRES_PASSWORD ->
-                        throw new SecurityException("Password required to access document");
-                case LOADED -> this.mPdfDocument = result.pdfDocument;
-                default -> throw new RuntimeException("Unexpected error has occurred!");
+                case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.ERROR,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new IOException("Unable to load the document!");
+                }
+                case REQUIRES_PASSWORD -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.WRONG_PASSWORD,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new SecurityException("Password required to access document");
+                }
+                case LOADED -> {
+
+                    this.mPdfDocument = result.pdfDocument;
+
+                    @PdfEventLogger.LinearizationTypes.LinearizationType int linearizationType =
+                            mPdfDocument.isPdfLinearized()
+                                    ? PdfEventLogger.LinearizationTypes.LINEARIZED
+                                    : PdfEventLogger.LinearizationTypes.NON_LINEARIZED;
+
+                    // Log pdf loaded successfully.
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.LOADED,
+                            /* linearizationType = */ linearizationType,
+                            /* numPages = */ mPdfDocument.getNumPages());
+                }
+                default -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.UNKNOWN,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new RuntimeException("Unexpected error has occurred!");
+                }
             }
         }
     }
@@ -244,7 +295,23 @@ public class PdfProcessor {
         Preconditions.checkNotNull(query, "Search query cannot be null");
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.searchPageText(pageNum, query).unflattenToList();
+            long searchStartTime = System.currentTimeMillis();
+            List<PageMatchBounds> searchPageTextResult =
+                    mPdfDocument.searchPageText(pageNum, query).unflattenToList();
+
+            // In the current version we are only interested in the results where query length is
+            // 1 as there is no much change in latency after words.
+            if (pageNum == 0 && query.length() == 1) {
+                mPdfEventLogger.logSearchReportedEvent(
+                        /* loadDurationMillis = */ System.currentTimeMillis() - searchStartTime,
+                        /* queryLength = */ query.length(),
+                        /* queryPageNumber = */ pageNum,
+                        /* apiResponse = */ PdfEventLogger.ApiResponseTypes.SUCCESS,
+                        /* numPages = */ mPdfDocument.getNumPages(),
+                        /* matchCount = */ searchPageTextResult.size());
+            }
+
+            return searchPageTextResult;
         }
     }
 
@@ -268,6 +335,11 @@ public class PdfProcessor {
                             android.graphics.pdf.models.jni.SelectionBoundary.convert(start),
                             android.graphics.pdf.models.jni.SelectionBoundary.convert(stop));
             if (legacyPageSelection != null) {
+
+                mPdfEventLogger.logPdfApiUsageReportedEvent(
+                        /* apiType = */ PdfEventLogger.ApiTypes.SELECT_CONTENT,
+                        /* apiResponse = */ PdfEventLogger.ApiResponseTypes.SUCCESS);
+
                 return legacyPageSelection.convert();
             }
             return null;
@@ -531,4 +603,5 @@ public class PdfProcessor {
     private void assertPdfDocumentNotNull() {
         Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
     }
+
 }

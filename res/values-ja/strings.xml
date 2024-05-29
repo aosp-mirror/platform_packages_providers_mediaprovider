@@ -66,7 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"プレビュー"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"個人"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"個人用"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは許可されていません"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>

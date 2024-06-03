@@ -20,18 +20,20 @@ import android.content.Context
 import android.os.Process
 import android.os.UserHandle
 import android.util.Log
-import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.DataServiceImpl
-import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
-import dagger.Provides
+import com.android.photopicker.data.NotificationServiceImpl
+import com.android.photopicker.data.model.Media
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.ActivityRetainedLifecycle
 import dagger.hilt.android.components.ActivityRetainedComponent
@@ -65,6 +67,7 @@ class ActivityModule {
     private lateinit var backgroundScope: CoroutineScope
     private lateinit var configurationManager: ConfigurationManager
     private lateinit var dataService: DataService
+    private lateinit var events: Events
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
     private lateinit var notificationService: NotificationService
@@ -121,23 +124,45 @@ class ActivityModule {
     @Provides
     @ActivityRetainedScoped
     fun provideDataService(
-            @ActivityRetainedScoped @Background scope: CoroutineScope,
-            @ActivityRetainedScoped userMonitor: UserMonitor,
-            @ActivityRetainedScoped notificationService: NotificationService
+        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background dispatcher: CoroutineDispatcher,
+        @ActivityRetainedScoped userMonitor: UserMonitor,
+        @ActivityRetainedScoped notificationService: NotificationService
     ): DataService {
 
         if (!::dataService.isInitialized) {
             Log.d(
-                    DataService.TAG,
-                    "DataService requested but not yet initialized. Initializing DataService."
+                DataService.TAG,
+                "DataService requested but not yet initialized. Initializing DataService."
             )
             dataService = DataServiceImpl(
-                    userMonitor.userStatus,
-                    scope,
-                    notificationService
+                userMonitor.userStatus,
+                scope,
+                dispatcher,
+                notificationService,
+                MediaProviderClient()
             )
         }
         return dataService
+    }
+
+    /**
+     * Provider method for [Events]. This is lazily initialized only when requested to save on
+     * initialization costs of this module.
+     */
+    @Provides
+    @ActivityRetainedScoped
+    fun provideEvents(
+        @Background scope: CoroutineScope,
+        featureManager: FeatureManager,
+        configurationManager: ConfigurationManager,
+    ): Events {
+        if (::events.isInitialized) {
+            return events
+        } else {
+            Log.d(Events.TAG, "Events requested but not yet initialized. Initializing Events.")
+            return Events(scope, configurationManager.configuration, featureManager)
+        }
     }
 
     @Provides
@@ -195,7 +220,7 @@ class ActivityModule {
             Log.d(
                 NotificationService.TAG,
                 "NotificationService requested but not yet initialized. " +
-                        "Initializing NotificationService."
+                    "Initializing NotificationService."
             )
             notificationService = NotificationServiceImpl()
         }
@@ -206,13 +231,18 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
             return selection
         } else {
             Log.d(TAG, "Initializing selection.")
-            selection = Selection(scope = scope)
+            selection =
+                Selection(
+                    scope = scope,
+                    configuration = configurationManager.configuration,
+                )
             return selection
         }
     }
@@ -229,6 +259,7 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
+        @ActivityRetainedScoped configurationManager: ConfigurationManager,
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped handle: UserHandle,
@@ -240,7 +271,8 @@ class ActivityModule {
                 UserMonitor.TAG,
                 "UserMonitor requested but not yet initialized. Initializing UserMonitor."
             )
-            userMonitor = UserMonitor(context, scope, dispatcher, handle)
+            userMonitor =
+                UserMonitor(context, configurationManager.configuration, scope, dispatcher, handle)
             return userMonitor
         }
     }

@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "cpp/fpdf_scopers.h"
-#include "extractors.h"
 #include "form_filler.h"
 #include "form_widget_info.h"
 #include "fpdf_annot.h"
@@ -34,7 +33,6 @@
 #include "fpdf_text.h"
 #include "fpdfview.h"
 #include "normalize.h"
-#include "pdf_features.h"
 #include "rect.h"
 #include "utf.h"
 #include "utils/annot_hider.h"
@@ -76,10 +74,6 @@ Rectangle_i Page::Dimensions() const {
     return IntRect(0, 0, Width(), Height());
 }
 
-int32_t Page::GetFeatures() const {
-    return pdfClient::GetFeatures(page_.get());
-}
-
 void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
                   int clip_right, int clip_bottom, int render_mode, int hide_text_annots) {
     std::unordered_set<int> types;
@@ -89,7 +83,7 @@ void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int cl
     pdfClient_utils::AnnotHider annot_hider(page_.get(), types);
     int renderFlags = FPDF_REVERSE_BYTE_ORDER;
     if (render_mode == RENDER_MODE_FOR_DISPLAY) {
-        renderFlags |= FPDF_LCD_TEXT;
+        renderFlags |= FPDF_LCD_TEXT | FPDF_ANNOT;
     } else if (render_mode == RENDER_MODE_FOR_PRINT) {
         renderFlags |= FPDF_PRINTING;
     }

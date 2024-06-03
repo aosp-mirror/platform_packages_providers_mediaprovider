@@ -11,6 +11,18 @@
       ]
     }
   ],
+  "mediaprovider-mainline-presubmit": [
+    {
+      "name": "MediaProviderTests",
+      "options": [
+        {
+          // For changes in Photopicker UI we want to run all the photopicker
+          // tests in the given package regardless of @RunOnlyOnPostsubmit annotation
+          "include-filter": "com.android.providers.media.photopicker"
+        }
+      ]
+    }
+  ],
   "presubmit": [
     {
       "name": "MediaProviderTests",

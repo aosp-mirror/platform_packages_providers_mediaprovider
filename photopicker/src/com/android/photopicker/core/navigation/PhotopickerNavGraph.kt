@@ -17,6 +17,8 @@
 package com.android.photopicker.core.navigation
 
 import android.util.Log
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NamedNavArgument
@@ -47,7 +49,12 @@ fun PhotopickerNavGraph() {
     NavHost(
         navController = navController,
         startDestination = getStartDestination(featureManager.enabledUiFeatures).route,
-        builder = { this.setupFeatureRoutesForNavigation(featureManager) }
+        builder = { this.setupFeatureRoutesForNavigation(featureManager) },
+        // Disable all transitions by default so that routes fully control the transition logic.
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None },
     )
 }
 

@@ -48,7 +48,7 @@ public final class ListItem implements Parcelable {
     /**
      * Creates a new choice option with the specified label, and selected state.
      *
-     * @param label Label for choice option.
+     * @param label    Label for choice option.
      * @param selected Determines if the option is selected or not.
      * @throws NullPointerException if {@code label} is null
      */
@@ -89,10 +89,7 @@ public final class ListItem implements Parcelable {
 
     @Override
     public String toString() {
-        return "ChoiceOption{"
-                + "\tlabel=" + mLabel + "\n"
-                + "\tselected=" + mSelected + "\n"
-                + "}";
+        return "ChoiceOption{" + "\tlabel=" + mLabel + "\n\tselected=" + mSelected + "\n" + "}";
     }
 
     @Override

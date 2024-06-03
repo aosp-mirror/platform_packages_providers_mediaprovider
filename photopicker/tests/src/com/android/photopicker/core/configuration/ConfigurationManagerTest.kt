@@ -16,6 +16,8 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
+import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -176,7 +179,7 @@ class ConfigurationManagerTest {
      * expected action.
      */
     @Test
-    fun testSetActionUpdatesConfiguration() {
+    fun testSetIntentUpdatesConfiguration() {
 
         runTest {
             val configurationManager =
@@ -185,20 +188,142 @@ class ConfigurationManagerTest {
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
                 )
-            // Expect the default configuration with an action matching the test action.
+            // Expect the default configuration
             val expectedConfiguration = PhotopickerConfiguration(action = "")
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
 
             advanceTimeBy(100)
-            configurationManager.setAction("TEST_ACTION")
+            configurationManager.setIntent(Intent("TEST_ACTION"))
             advanceTimeBy(100)
 
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
-            assertThat(emissions.last())
-                .isEqualTo(expectedConfiguration.copy(action = "TEST_ACTION"))
+            assertThat(emissions.last().action).isEqualTo("TEST_ACTION")
+            assertThat(emissions.last().intent).isNotNull()
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected selection limit.
+     */
+    @Test
+    fun testSetIntentSetsSelectionLimit() {
+
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().intent).isNotNull()
+            assertThat(emissions.last().selectionLimit)
+                .isEqualTo(MediaStore.getPickImagesMaxLimit())
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected selection limit.
+     */
+    @Test
+    fun testSetIntentSetsSelectionLimitThrowsOnIllegalConfiguration() {
+
+        val intent =
+            Intent()
+                .setAction(Intent.ACTION_GET_CONTENT)
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            assertThrows(IllegalIntentExtraException::class.java) {
+                configurationManager.setIntent(intent)
+            }
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected selection limit.
+     */
+    @Test
+    fun testSetIntentSetsSelectionLimitThrowsOnIllegalRange() {
+
+        val intentTooHigh =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                // One higher than the limit so we are outside the range
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit() + 1)
+
+        val intentTooLow =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                // One higher than the limit so we are outside the range
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 0)
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            assertThrows(IllegalIntentExtraException::class.java) {
+                configurationManager.setIntent(intentTooHigh)
+            }
+            advanceTimeBy(100)
+            advanceTimeBy(100)
+            assertThrows(IllegalIntentExtraException::class.java) {
+                configurationManager.setIntent(intentTooLow)
+            }
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
         }
     }
 }

@@ -83,6 +83,7 @@ import com.android.providers.media.util.UserCache;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -115,7 +116,7 @@ public class MediaProviderTest {
     private static ContentResolver sIsolatedResolver;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUpBeforeClass() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
@@ -126,7 +127,10 @@ public class MediaProviderTest {
                         // MANAGE_USERS permission for MediaProvider module.
                         Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
+    }
 
+    @Before
+    public void setUp() {
         resetIsolatedContext();
     }
 
@@ -263,7 +267,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -292,7 +296,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -306,7 +310,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -434,7 +438,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -564,7 +568,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -586,7 +590,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */

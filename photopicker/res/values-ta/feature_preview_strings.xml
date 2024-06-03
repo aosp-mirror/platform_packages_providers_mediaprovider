@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="photopicker_select_button_label" msgid="770981849239352214">"தேர்ந்தெடு"</string>
+    <string name="photopicker_deselect_button_label" msgid="4642861301796573559">"தேர்வு நீக்கு"</string>
+    <string name="photopicker_preview_button_label" msgid="3567318300811305531">"மாதிரிக்காட்சி"</string>
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"வீடியோவைப் பிளே செய்வதில் சிக்கல்"</string>
+    <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்"</string>
+    <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"மீண்டும் முயலுங்கள்"</string>
+    <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"வீடியோவைப் பிளே செய்ய முடியவில்லை"</string>
+    <string name="photopicker_video_play_button_description" msgid="5708220946927401230">"பிளே செய்யும்"</string>
+    <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"இடைநிறுத்தும்"</string>
+    <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"ஒலியடக்கும்"</string>
+    <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"ஒலியை இயக்கும்"</string>
+</resources>

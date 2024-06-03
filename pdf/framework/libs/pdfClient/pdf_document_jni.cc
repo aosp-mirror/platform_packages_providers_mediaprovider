@@ -51,8 +51,6 @@ using pdfClient::SelectionBoundary;
 using pdfClient::Status;
 using std::vector;
 
-using pdfClient::BufferWriter;
-using pdfClient::FdWriter;
 using pdfClient::LinuxFileOps;
 
 namespace {

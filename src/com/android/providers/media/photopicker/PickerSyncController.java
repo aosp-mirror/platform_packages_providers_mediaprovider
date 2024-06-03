@@ -72,6 +72,7 @@ import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -555,6 +556,23 @@ public class PickerSyncController {
     }
 
     /**
+     * @param defaultValue The default cloud provider authority to return if cloud provider cannot
+     *                     be fetched within the given timeout.
+     * @return {@link android.content.pm.ProviderInfo#authority authority} of the current
+     *         {@link CloudMediaProvider} or {@code null} if the {@link CloudMediaProvider}
+     *         integration is not enabled. This operation acquires a lock internally with a timeout.
+     */
+    @Nullable
+    public String getCloudProviderOrDefault(@Nullable String defaultValue) {
+        try {
+            return getCloudProviderWithTimeout();
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not get cloud provider, returning default value: " + defaultValue, e);
+            return defaultValue;
+        }
+    }
+
+    /**
      * @return {@link android.content.pm.ProviderInfo#authority authority} of the local provider.
      */
     @NonNull
@@ -729,7 +747,6 @@ public class PickerSyncController {
                     if (!resetAllMedia(authority, isLocal)) {
                         return false;
                     }
-                    enablePickerCloudMediaQueries(authority, isLocal);
 
                     // Cache collection id with default generation id to prevent DB reset if full
                     // sync resumes the next time sync is triggered.
@@ -739,6 +756,8 @@ public class PickerSyncController {
                     // Fall through to run full sync
                 case SYNC_TYPE_MEDIA_FULL:
                     NonUiEventLogger.logPickerFullSyncStart(instanceId, MY_UID, authority);
+
+                    enablePickerCloudMediaQueries(authority, isLocal);
 
                     // Send UI refresh notification for any active picker sessions, as the
                     // UI data might be stale if a full sync needs to be run.
@@ -856,6 +875,8 @@ public class PickerSyncController {
                      mDbFacade.beginResetMediaOperation(authority)) {
             final int writeCount = operation.execute(null /* cursor */);
             operation.setSuccess();
+
+            PickerNotificationSender.notifyMediaChange(mContext);
 
             Log.i(TAG, "SyncReset. isLocal:" + isLocal + ". authority: " + authority
                     +  ". result count: " + writeCount);
@@ -1075,6 +1096,8 @@ public class PickerSyncController {
             }
 
             sendPickerUiRefreshNotification(/* isInitPending */ true);
+
+            PickerNotificationSender.notifyAvailableProvidersChange(mContext);
         }
     }
 
@@ -1518,6 +1541,12 @@ public class PickerSyncController {
                     }
                 }
 
+                // Only send a media update notification if the media table is getting updated.
+                if (albumId == null) {
+                    PickerNotificationSender.notifyMediaChange(mContext);
+                } else {
+                    PickerNotificationSender.notifyAlbumMediaChange(mContext, authority, albumId);
+                }
             } while (nextPageToken != null);
 
             Log.i(
@@ -1797,5 +1826,45 @@ public class PickerSyncController {
                 + getCachedMediaCollectionInfo(/* isLocal */ true));
         writer.println("  cachedCloudMediaCollectionInfo="
                 + getCachedMediaCollectionInfo(/* isLocal */ false));
+    }
+
+    /**
+     * Returns the associated Picker DB instance.
+     */
+    public PickerDbFacade getDbFacade() {
+        return mDbFacade;
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current cloud provider is not null.
+     * 2. Current cloud provider is present in the given providers list.
+     * 3. Database has currently enabled cloud provider queries.
+     * 4. The given provider is equal to the current provider.
+     */
+    public boolean shouldQueryCloudMedia(
+            @NonNull List<String> providers,
+            @Nullable String cloudProvider) {
+        return cloudProvider != null
+                && providers.contains(cloudProvider)
+                && shouldQueryCloudMedia(cloudProvider);
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current cloud provider is not null.
+     * 2. Database has currently enabled cloud provider queries.
+     */
+    public boolean shouldQueryCloudMedia(
+            @Nullable String cloudProvider) {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            return cloudProvider != null
+                    && cloudProvider.equals(getCloudProviderWithTimeout())
+                    && cloudProvider.equals(mDbFacade.getCloudProvider());
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not check if cloud media should be queried", e);
+            return false;
+        }
     }
 }

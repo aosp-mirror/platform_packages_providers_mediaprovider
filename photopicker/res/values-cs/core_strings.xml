@@ -18,8 +18,11 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_application_label" msgid="3482718304682270084">"Nástroj pro výběr médií"</string>
-    <!-- no translation found for photopicker_media_item (3592234718212377636) -->
-    <skip />
-    <!-- no translation found for photopicker_item_selected (3741045642641682375) -->
-    <skip />
+    <string name="photopicker_media_item" msgid="3592234718212377636">"Média"</string>
+    <string name="photopicker_item_selected" msgid="3741045642641682375">"Vybráno"</string>
+    <string name="photopicker_add_button_label" msgid="6805332693977632142">"Přidat <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Vyberte maximálně <xliff:g id="COUNT">%1$s</xliff:g> položek"</string>
+    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Fotky"</string>
+    <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Alba"</string>
+    <string name="photopicker_back_option" msgid="986374743479020214">"Zpět"</string>
 </resources>

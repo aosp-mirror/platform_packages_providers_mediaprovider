@@ -39,9 +39,6 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_saveToFd(J
                                                                                jobject jPdfDocument,
                                                                                jint jfd);
 
-JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getNumAvailablePages(
-        JNIEnv* env, jobject jPdfDocument, jobject jDoubleEndedFile, jint start, jint end);
-
 JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageWidth(JNIEnv* env,
                                                                                jobject jPdfDocument,
                                                                                jint pageNum);

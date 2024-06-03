@@ -17,13 +17,16 @@
 package com.android.photopicker.features.simpleuifeature
 
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
@@ -41,11 +44,21 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
         val UI_STRING = "I'm a simple string, from a SimpleUiFeature"
         val SIMPLE_ROUTE = "simple"
+        val BUTTON_LABEL = "Simple"
     }
+
+    override val token = TAG
+
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
+        return listOf(
+            Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority),
+            Pair(Location.SELECTION_BAR_SECONDARY_ACTION, Priority.REGISTRATION_ORDER.priority),
+        )
     }
 
     /** Navigation registration callback from feature framework */
@@ -72,10 +85,11 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location) {
+    override fun compose(location: Location, modifier: Modifier) {
 
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
+            Location.SELECTION_BAR_SECONDARY_ACTION -> selectionBarAction()
             else -> {}
         }
     }
@@ -90,5 +104,11 @@ open class SimpleUiFeature : PhotopickerUiFeature {
     @Composable
     private fun simpleRoute() {
         Text(UI_STRING)
+    }
+
+    /* Composes the action button for the selection bar */
+    @Composable
+    private fun selectionBarAction() {
+        TextButton(onClick = {}) { Text(BUTTON_LABEL) }
     }
 }

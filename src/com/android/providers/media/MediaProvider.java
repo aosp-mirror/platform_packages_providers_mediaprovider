@@ -46,10 +46,10 @@ import static android.provider.MediaStore.MY_UID;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
-import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -57,8 +57,8 @@ import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
-import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
+import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -113,10 +113,6 @@ import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
@@ -800,8 +796,9 @@ public class MediaProvider extends ContentProvider {
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
+                    int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
                     if (pkg != null) {
-                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        invalidateLocalCallingIdentityCache(uid, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
@@ -895,14 +892,19 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        try {
+            int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+            invalidateLocalCallingIdentityCache(packageUid, reason);
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Couldn't get uid for package: " + packageName);
+        }
+    }
+
+    private void invalidateLocalCallingIdentityCache(int packageUid, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
-            try {
-                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
-                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
-                    mCachedCallingIdentityForFuse.remove(packageUid);
-                }
-            } catch (NameNotFoundException ignored) {
+            if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                mCachedCallingIdentityForFuse.remove(packageUid);
             }
         }
     }
@@ -1483,16 +1485,34 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        boolean isGetContentTakeoverEnabled;
-        if (SdkLevel.isAtLeastT()) {
-            isGetContentTakeoverEnabled = true;
-        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-            isGetContentTakeoverEnabled = true;
-        } else {
-            isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
-        }
-        setComponentEnabledSetting("PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
 
+        // Enable various Photopicker activities based on ConfigStore state.
+        boolean isModernPickerEnabled = mConfigStore.isModernPickerEnabled();
+
+        // ACTION_PICK_IMAGES
+        setComponentEnabledSetting(
+                "PhotoPickerActivity", /* isEnabled= */ !isModernPickerEnabled);
+
+        // ACTION_GET_CONTENT
+        boolean isGetContentTakeoverEnabled = false;
+
+        // If the modern picker is enabled, allow it to handle GET_CONTENT.
+        // This logic only exists to check for specific S device settings
+        // and the modern picker is T+ only.
+        if (!isModernPickerEnabled) {
+            if (SdkLevel.isAtLeastT()) {
+                isGetContentTakeoverEnabled = true;
+            } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+                isGetContentTakeoverEnabled = true;
+            } else {
+                isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
+            }
+        }
+        setComponentEnabledSetting(
+                "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
+
+        // ACTION_USER_SELECT_FOR_APP
+        // The modern picker does not yet handle USER_SELECT_FOR_APP.
         setComponentEnabledSetting("PhotoPickerUserSelectActivity",
                 mConfigStore.isUserSelectForAppEnabled());
     }
@@ -2508,6 +2528,7 @@ public class MediaProvider extends ContentProvider {
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
                 redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
+                Log.v(TAG, "Redaction ranges: " + Arrays.toString(redactionRanges));
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
@@ -3049,10 +3070,19 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
-            // TODO(b/146777893): System gallery apps can rename a media directory containing
-            // non-media files. This update doesn't support updating non-media files that are not
-            // owned by system gallery app.
-            count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            Long parent = values.getAsLong(FileColumns.PARENT);
+            // Opening a transaction here and ensuring the qbForUpdate happens within
+            // doesn't open two transactions, but just joins the existing one
+            count = helper.runWithTransaction((db) -> {
+                if (parent == null && newPath != null) {
+                    final long parentId = getParent(db, newPath);
+                    values.put(FileColumns.PARENT, parentId);
+                }
+                // TODO(b/146777893): System gallery apps can rename a media directory
+                // containing non-media files. This update doesn't support updating
+                // non-media files that are not owned by system gallery app.
+                return qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            });
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
             retryUpdateWithReplace = true;
@@ -3582,6 +3612,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (isPickerUri(uri)) {
+            if (isCallerPhotoPicker()) {
+                // Allow PhotoPicker app access to Picker media.
+                return PERMISSION_GRANTED;
+            }
             // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
             // Picker uris should have explicit permission grants.
             // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService
@@ -3748,17 +3782,12 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        // TODO(b/195008831): Add test to verify that apps can't access
-        if (table == PICKER_INTERNAL_MEDIA_ALL) {
-            return mPickerDataLayer.fetchAllMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_MEDIA_LOCAL) {
-            return mPickerDataLayer.fetchLocalMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_ALL) {
-            return mPickerDataLayer.fetchAllAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
-            return mPickerDataLayer.fetchLocalAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_V2) {
-            return PickerUriResolverV2.query(uri, queryArgs);
+        if (PickerUriResolver.PICKER_INTERNAL_TABLES.contains(table)) {
+            return mPickerUriResolver.query(table, queryArgs, mPickerDbFacade.getLocalProvider(),
+                    mPickerSyncController.getCloudProvider(), mPickerDataLayer);
+        }
+        if (table == PICKER_INTERNAL_V2) {
+            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -6493,6 +6522,15 @@ public class MediaProvider extends ContentProvider {
             final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+
+                // if calling package is not self and its target SDK version is greater than U,
+                // ignore the deleteparam and do not allow use by apps
+                if (!isCallingPackageSelf() && getCallingPackageTargetSdkVersion()
+                        > Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    deleteparam = null;
+                    Log.w(TAG, "Ignoring param:deletedata post U for external apps");
+                }
+
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     Cursor c = qb.query(helper, projection, userWhere, userWhereArgs,
                             null, null, null, null, null);
@@ -6886,6 +6924,8 @@ public class MediaProvider extends ContentProvider {
 
     @Nullable
     private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        // WRITE_MEDIA_STORAGE is a privileged permission which only MediaProvider and some other
+        // system apps have.
         getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                 "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
         final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -7199,7 +7239,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForPickerMediaInit(Bundle extras) {
         Log.i(TAG, "Received media init query for extras: " + extras);
         if (!checkPermissionShell(Binder.getCallingUid())
-                && !checkPermissionSelf(Binder.getCallingUid())) {
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker media init"));
         }

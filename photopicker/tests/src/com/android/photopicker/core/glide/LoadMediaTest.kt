@@ -24,10 +24,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.provider.CloudMediaProviderContract
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.ApplicationModule
@@ -105,7 +102,7 @@ class LoadMediaTest {
                 return Uri.EMPTY.buildUpon()
                     .apply {
                         scheme("content")
-                        authority(provider.AUTHORITY)
+                        authority(MockContentProviderWrapper.AUTHORITY)
                         path("${CloudMediaProviderContract.URI_PATH_MEDIA}/1234")
                     }
                     .build()
@@ -155,8 +152,6 @@ class LoadMediaTest {
 
         composeTestRule.setContent {
             loadMedia(
-                // Set an explicit size for the placeholder measurement
-                modifier = Modifier.size(100.dp),
                 media = loadable,
                 resolution = Resolution.THUMBNAIL,
                 requestBuilderTransformation = ::setupRequestListener,
@@ -211,8 +206,6 @@ class LoadMediaTest {
 
         composeTestRule.setContent {
             loadMedia(
-                // Set an explicit size for the placeholder measurement
-                modifier = Modifier.size(100.dp),
                 media = loadable,
                 resolution = Resolution.FULL,
                 requestBuilderTransformation = ::setupRequestListener,

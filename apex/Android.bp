@@ -33,6 +33,7 @@ apex {
 
 apex_defaults {
     name: "com.android.mediaprovider-defaults",
+    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
     bootclasspath_fragments: ["com.android.mediaprovider-bootclasspath-fragment"],
     sh_binaries: [
         // MediaProvider CLI (cli/media_provider_cli_wrapper.sh)
@@ -115,6 +116,7 @@ bootclasspath_fragment {
             "android.graphics.pdf.content",
             "android.graphics.pdf.models.jni",
             "android.graphics.pdf.models.selection",
+            "android.graphics.pdf.logging",
         ],
     },
 }

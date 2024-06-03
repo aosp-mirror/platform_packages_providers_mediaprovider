@@ -21,6 +21,8 @@ import android.annotation.NonNull;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import java.util.List;
 
@@ -31,41 +33,53 @@ import java.util.List;
  * <strong>Note: </strong>Currently supports text selection only.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PageSelection {
+public final class PageSelection implements Parcelable {
+    @NonNull
+    public static final Creator<PageSelection> CREATOR = new Creator<PageSelection>() {
+        @Override
+        public PageSelection createFromParcel(Parcel in) {
+            return new PageSelection(in);
+        }
+
+        @Override
+        public PageSelection[] newArray(int size) {
+            return new PageSelection[size];
+        }
+    };
+
     private final int mPage;
-
-    private final boolean mIsRtl;
-
-    private final SelectionBoundary mLeft;
-
-    private final SelectionBoundary mRight;
-
+    private final SelectionBoundary mStart;
+    private final SelectionBoundary mStop;
     private final List<PdfPageTextContent> mSelectedContents;
 
     /**
-     * Creates a new instance of {@link PageSelection} for the specified page, the left and right
-     * selection edge and the selected text content.
+     * Creates a new instance of {@link PageSelection} for the specified page, the start and stop
+     * selection boundary, and the selected text content.
      *
      * @param page             The page number of the selection.
-     * @param left             Left edge of the selection.
-     * @param right            right edge of the selection.
+     * @param start            Boundary where the selection starts.
+     * @param stop             Boundary where the selection stops.
      * @param selectedContents list of segments of selected text content.
-     * @param isRtl            Determines the rtl mode of the selection.
      * @throws IllegalArgumentException If the page number is negative.
-     * @throws NullPointerException     If left/right edge or text selection is null.
+     * @throws NullPointerException     If start/stop edge or text selection is null.
      */
-    public PageSelection(int page, @NonNull SelectionBoundary left,
-            @NonNull SelectionBoundary right, @NonNull List<PdfPageTextContent> selectedContents,
-            boolean isRtl) {
+    public PageSelection(int page, @NonNull SelectionBoundary start,
+            @NonNull SelectionBoundary stop, @NonNull List<PdfPageTextContent> selectedContents) {
         Preconditions.checkArgument(page >= 0, "Page number cannot be negative");
-        Preconditions.checkNotNull(left, "Left boundary cannot be null");
-        Preconditions.checkNotNull(right, "Right boundary cannot be null");
+        Preconditions.checkNotNull(start, "Start boundary cannot be null");
+        Preconditions.checkNotNull(stop, "Stop boundary cannot be null");
         Preconditions.checkNotNull(selectedContents, "Selected text content " + "cannot be null");
-        this.mLeft = left;
-        this.mRight = right;
+        this.mStart = start;
+        this.mStop = stop;
         this.mPage = page;
         this.mSelectedContents = selectedContents;
-        this.mIsRtl = isRtl;
+    }
+
+    private PageSelection(Parcel in) {
+        mPage = in.readInt();
+        mStart = in.readParcelable(SelectionBoundary.class.getClassLoader());
+        mStop = in.readParcelable(SelectionBoundary.class.getClassLoader());
+        mSelectedContents = in.createTypedArrayList(PdfPageTextContent.CREATOR);
     }
 
     /**
@@ -78,37 +92,25 @@ public final class PageSelection {
     }
 
     /**
-     * Determines if the selected content is from right-to-left. If true then the {@link #getLeft()}
-     * returns the end of the selection and {@link #getRight()} the start of the selection.
+     * <p>
+     * Gets the edge from where the selection starts- index is inclusive.
      *
-     * @return If the selection is from right-to-left.
+     * @return The starting edge of the selection.
      */
-    public boolean isRtl() {
-        return mIsRtl;
+    @NonNull
+    public SelectionBoundary getStart() {
+        return mStart;
     }
 
     /**
      * <p>
-     * Gets the left edge of the selection - index is inclusive.
-     * <strong>Note: </strong>Represents the right edge if {@link #isRtl()} returns true.
+     * Gets the edge where the selection stops - index is inclusive.
      *
-     * @return The left edge of the selection.
+     * @return The stopping edge of the selection.
      */
     @NonNull
-    public SelectionBoundary getLeft() {
-        return mLeft;
-    }
-
-    /**
-     * <p>
-     * Gets the right edge of the selection - index is inclusive.
-     * <strong>Note: </strong>Represents the left edge if {@link #isRtl()} returns true.
-     *
-     * @return The right edge of the selection.
-     */
-    @NonNull
-    public SelectionBoundary getRight() {
-        return mRight;
+    public SelectionBoundary getStop() {
+        return mStop;
     }
 
     /**
@@ -121,5 +123,18 @@ public final class PageSelection {
     @NonNull
     public List<PdfPageTextContent> getSelectedTextContents() {
         return mSelectedContents;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeInt(mPage);
+        dest.writeParcelable(mStart, flags);
+        dest.writeParcelable(mStop, flags);
+        dest.writeTypedList(mSelectedContents);
     }
 }

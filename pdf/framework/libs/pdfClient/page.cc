@@ -75,12 +75,17 @@ Rectangle_i Page::Dimensions() const {
 }
 
 void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
-                  int clip_right, int clip_bottom, int render_mode, int hide_text_annots,
+                  int clip_right, int clip_bottom, int render_mode, int show_annot_types,
                   bool render_form_fields) {
     std::unordered_set<int> types;
-    if (hide_text_annots) {
-        types = {FPDF_ANNOT_TEXT, FPDF_ANNOT_HIGHLIGHT};
+    for (auto renderFlag_annot : renderFlagsAnnotsMap) {
+        if ((renderFlag_annot.first & show_annot_types) != 0) {
+            for (int annot_type : renderFlag_annot.second) {
+                types.insert(annot_type);
+            }
+        }
     }
+    if (render_form_fields) types.insert(FPDF_ANNOT_WIDGET);
     pdfClient_utils::AnnotHider annot_hider(page_.get(), types);
     int renderFlags = FPDF_REVERSE_BYTE_ORDER;
     if (render_mode == RENDER_MODE_FOR_DISPLAY) {

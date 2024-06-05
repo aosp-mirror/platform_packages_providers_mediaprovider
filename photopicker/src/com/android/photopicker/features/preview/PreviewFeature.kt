@@ -29,6 +29,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -45,8 +46,11 @@ class PreviewFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPreviewFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = PreviewFeature()
+
         val PREVIEW_MEDIA_KEY = "preview_media"
     }
 
@@ -66,7 +70,6 @@ class PreviewFeature : PhotopickerUiFeature {
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
-
         return setOf(
             object : Route {
                 override val route = PhotopickerDestinations.PREVIEW_SELECTION.route
@@ -90,6 +93,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(
                     navBackStackEntry: NavBackStackEntry?,
@@ -122,6 +126,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(
                     navBackStackEntry: NavBackStackEntry?,
@@ -144,7 +149,11 @@ class PreviewFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.SELECTION_BAR_SECONDARY_ACTION -> PreviewSelectionButton(modifier)
             else -> {}

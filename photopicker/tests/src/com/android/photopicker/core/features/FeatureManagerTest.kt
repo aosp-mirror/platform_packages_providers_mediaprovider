@@ -28,6 +28,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -40,6 +41,8 @@ import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeat
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -77,19 +80,18 @@ class FeatureManagerTest {
     @Composable
     private fun featureManagerTestUiComposeTop(
         featureManager: FeatureManager,
-        maxSlots: Int? = null
+        maxSlots: Int? = null,
+        params: LocationParams = LocationParams.None,
     ) {
-
         // Mark this node as COMPOSE_TOP
         Surface(modifier = Modifier.fillMaxSize().testTag("COMPOSE_TOP")) {
-            featureManager.composeLocation(Location.COMPOSE_TOP, maxSlots)
+            featureManager.composeLocation(Location.COMPOSE_TOP, maxSlots, Modifier, params)
         }
     }
 
     /* Ensures feature registration is completed upon initialization. */
     @Test
     fun testRegisteredFeaturesCanBeEnabled() {
-
         runTest {
             val featureManager =
                 FeatureManager(
@@ -111,7 +113,6 @@ class FeatureManagerTest {
      * to priority. */
     @Test
     fun testFeaturesCanComposeAtRegisteredLocationsWithPriorities() {
-
         runTest {
             val featureManager =
                 FeatureManager(
@@ -149,7 +150,6 @@ class FeatureManagerTest {
     /* Ensures that the [FeatureManager] composes content for registered features. */
     @Test
     fun testFeaturesCanComposeAtRegisteredLocationsWithLimitedSlots() {
-
         runTest {
             val featureManager =
                 FeatureManager(
@@ -182,13 +182,14 @@ class FeatureManagerTest {
      * change. */
     @Test
     fun testFeatureManagerOnConfigurationChanged() {
-
         // Mock out a feature and provide a fake registration that provides the mock.
         val mockSimpleUiFeature: SimpleUiFeature = mock(SimpleUiFeature::class.java)
         val mockRegistration =
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
+
                 override fun isEnabled(config: PhotopickerConfiguration) = true
+
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
 
@@ -219,13 +220,14 @@ class FeatureManagerTest {
      * an event that needs to be consumed is not produced. */
     @Test
     fun testFeatureManagerConsumedEventsRequireProducerThrowsDebug() {
-
         // Mock out a feature and provide a fake registration that provides the mock.
         val mockSimpleUiFeature: SimpleUiFeature = mock(SimpleUiFeature::class.java)
         val mockRegistration =
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
+
                 override fun isEnabled(config: PhotopickerConfiguration) = true
+
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
 
@@ -237,9 +239,7 @@ class FeatureManagerTest {
                 )
             )
 
-        whenever(mockSimpleUiFeature.eventsConsumed) {
-            setOf(TestEventDoNotUse::class.java)
-        }
+        whenever(mockSimpleUiFeature.eventsConsumed) { setOf(TestEventDoNotUse::class.java) }
         whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
 
         runTest {
@@ -257,13 +257,14 @@ class FeatureManagerTest {
      * an event that needs to be consumed is not produced. */
     @Test
     fun testFeatureManagerConsumedEventsRequireProducerDoesNotThrowProduction() {
-
         // Mock out a feature and provide a fake registration that provides the mock.
         val mockSimpleUiFeature: SimpleUiFeature = mock(SimpleUiFeature::class.java)
         val mockRegistration =
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
+
                 override fun isEnabled(config: PhotopickerConfiguration) = true
+
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
 
@@ -293,10 +294,44 @@ class FeatureManagerTest {
         }
     }
 
+    @Test
+    fun testFeatureManagerComposeLocationWithLocationParams() {
+        runTest {
+            val featureManager =
+                FeatureManager(
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    this.backgroundScope,
+                    testRegistrations,
+                    /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                    /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
+                )
+
+            val deferred = CompletableDeferred<Boolean>()
+
+            composeTestRule.setContent {
+                featureManagerTestUiComposeTop(
+                    featureManager,
+                    null,
+                    params = LocationParams.WithClickAction { deferred.complete(true) }
+                )
+            }
+
+            composeTestRule
+                .onNodeWithText(SimpleUiFeature.Registration.UI_STRING)
+                .assertIsDisplayed()
+                .performClick()
+
+            val wasClicked = deferred.await()
+
+            assertWithMessage("Expected WithClickAction to run, but it did not")
+                .that(wasClicked)
+                .isTrue()
+        }
+    }
+
     /* Ensure the isEnabled api can correctly return which features are enabled. */
     @Test
     fun testFeatureManagerIsFeatureEnabled() {
-
         runTest {
             val featureManager =
                 FeatureManager(

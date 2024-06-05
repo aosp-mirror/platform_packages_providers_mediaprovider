@@ -30,6 +30,7 @@ import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
@@ -39,7 +40,9 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "SimpleUiFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = SimpleUiFeature()
 
         val UI_STRING = "I'm a simple string, from a SimpleUiFeature"
@@ -75,6 +78,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     simpleRoute()
@@ -85,10 +89,13 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
-
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
-            Location.COMPOSE_TOP -> composeTop()
+            Location.COMPOSE_TOP -> composeTop(params)
             Location.SELECTION_BAR_SECONDARY_ACTION -> selectionBarAction()
             else -> {}
         }
@@ -96,8 +103,15 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /* Private composable used for the [Location.COMPOSE_TOP] location */
     @Composable
-    private fun composeTop() {
-        Text(UI_STRING)
+    private fun composeTop(params: LocationParams) {
+        TextButton(
+            onClick = {
+                val clickHandler = params as? LocationParams.WithClickAction
+                clickHandler?.onClick()
+            }
+        ) {
+            Text(UI_STRING)
+        }
     }
 
     /* Composes the [SIMPLE_ROUTE] */

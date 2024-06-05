@@ -110,10 +110,15 @@ class MainActivity : Hilt_MainActivity() {
         // Begin listening for events before starting the UI.
         listenForEvents()
 
-        // In single select sessions, the activity needs to end after a media object is selected,
-        // so register a listener to the selection so the activity can handle calling
-        // [onMediaSelectionConfirmed] itself. For multi-select, the activity has to wait to receive
-        // the [Event.MediaSelectionConfirmed] dispatch.
+        /*
+         * In single select sessions, the activity needs to end after a media object is selected,
+         * so register a listener to the selection so the activity can handle calling
+         * [onMediaSelectionConfirmed] itself.
+         *
+         * For multi-select, the activity has to wait for onMediaSelectionConfirmed to be called
+         * by the selection bar click handler, or for the [Event.MediaSelectionConfirmed], in
+         * the event the user ends the session from the [PreviewFeature]
+         */
         listenForSelectionIfSingleSelect()
 
         setContent {
@@ -127,7 +132,15 @@ class MainActivity : Hilt_MainActivity() {
                 LocalEvents provides events.get(),
             ) {
                 PhotopickerTheme(intent = photopickerConfiguration.intent) {
-                    PhotopickerAppWithBottomSheet(onDismissRequest = ::finish)
+                    PhotopickerAppWithBottomSheet(
+                        onDismissRequest = ::finish,
+                        onMediaSelectionConfirmed = {
+                            lifecycleScope.launch {
+                                // Move the work off the UI dispatcher.
+                                withContext(background) { onMediaSelectionConfirmed() }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -194,9 +207,9 @@ class MainActivity : Hilt_MainActivity() {
             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
                 val uid =
                     configuration.intent?.getExtras()?.getInt(Intent.EXTRA_UID)
-                    // If the permission controller did not provide a uid, there is no way to
-                    // continue.
-                    ?: throw IllegalStateException(
+                        // If the permission controller did not provide a uid, there is no way to
+                        // continue.
+                        ?: throw IllegalStateException(
                             "Expected a uid to provided by PermissionController."
                         )
                 issueGrantsForApp(uid)
@@ -384,9 +397,9 @@ class MainActivity : Hilt_MainActivity() {
                 }
             }
         }
-        // Should not be null at this point (the intent contains the extra key),
-        // but better safe than sorry.
-        ?: return false
+            // Should not be null at this point (the intent contains the extra key),
+            // but better safe than sorry.
+            ?: return false
 
         return true
     }

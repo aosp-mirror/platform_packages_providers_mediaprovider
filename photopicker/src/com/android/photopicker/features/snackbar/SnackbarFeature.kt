@@ -17,24 +17,27 @@
 package com.android.photopicker.features.snackbar
 
 import androidx.compose.runtime.Composable
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.Priority
-import com.android.photopicker.core.features.FeatureRegistration
-import com.android.photopicker.core.features.Location
-import com.android.photopicker.core.features.PhotopickerUiFeature
-import com.android.photopicker.core.navigation.Route
-import com.android.photopicker.core.features.FeatureToken
-import com.android.photopicker.core.events.RegisteredEventClass
 import androidx.compose.ui.Modifier
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.FeatureToken
+import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.Priority
+import com.android.photopicker.core.navigation.Route
 
 /** Feature class for the Photopicker's snackbar. */
 class SnackbarFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerSnackbarFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = SnackbarFeature()
     }
 
@@ -55,7 +58,7 @@ class SnackbarFeature : PhotopickerUiFeature {
     override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.SNACK_BAR -> Snackbar(modifier)
             else -> {}

@@ -269,7 +269,8 @@ public class CloudProviderUtils {
 
         CompletableFuture<Bundle> future = CompletableFuture.supplyAsync(() ->
                 resolver.call(getMediaCollectionInfoUri(cloudMediaProviderAuthority),
-                        METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null, /* extras */ null));
+                        METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
+                        /* extras */ new Bundle()));
 
         return (timeout > 0) ? future.get(timeout, MILLISECONDS) : future.get();
     }

@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import static android.provider.MediaStore.MY_USER_ID;
+
 import static java.util.Objects.requireNonNull;
 
 import android.database.Cursor;
@@ -132,7 +134,8 @@ public class AlbumsCursorWrapper extends CursorWrapper {
                 if (EMPTY_MEDIA_ID.equals(mediaId)) {
                     return Uri.EMPTY.toString();
                 } else {
-                    return PickerUriResolver.getMediaUri(mCoverAuthority)
+                    return PickerUriResolver
+                            .getMediaUri(getEncodedUserAuthority(mCoverAuthority))
                             .buildUpon()
                             .appendPath(getMediaIdFromWrappedCursor())
                             .build()
@@ -213,5 +216,9 @@ public class AlbumsCursorWrapper extends CursorWrapper {
         );
         requireNonNull(mediaId);
         return mediaId;
+    }
+
+    private String getEncodedUserAuthority(String authority) {
+        return MY_USER_ID + "@" + authority;
     }
 }

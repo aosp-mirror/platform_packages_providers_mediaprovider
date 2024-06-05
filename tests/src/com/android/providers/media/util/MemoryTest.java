@@ -30,11 +30,6 @@ public class MemoryTest {
     private final byte[] buf = new byte[4];
 
     @Test
-    public void testConstructor() {
-        new Memory();
-    }
-
-    @Test
     public void testBigEndian() {
         final int expected = 42;
         Memory.pokeInt(buf, 0, expected, ByteOrder.BIG_ENDIAN);

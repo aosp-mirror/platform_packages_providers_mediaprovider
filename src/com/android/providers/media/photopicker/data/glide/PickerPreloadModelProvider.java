@@ -43,12 +43,14 @@ import java.util.List;
 public class PickerPreloadModelProvider implements PreloadModelProvider<GlideLoadable> {
 
     private final Context mContext;
+    private final String mMediaStoreVersion;
     private final PreferredColorSpace mPreferredColorSpace;
     private final PhotosTabAdapter mAdapter;
 
     public PickerPreloadModelProvider(Context context, PhotosTabAdapter adapter) {
         mContext = context;
         mAdapter = adapter;
+        mMediaStoreVersion = MediaStore.getVersion(mContext);
 
         final boolean isScreenWideColorGamut =
                 mContext.getResources().getConfiguration().isScreenWideColorGamut();
@@ -88,13 +90,10 @@ public class PickerPreloadModelProvider implements PreloadModelProvider<GlideLoa
     @Override
     @Nullable
     public RequestBuilder getPreloadRequestBuilder(GlideLoadable loadable) {
-        RequestOptions options =
+        final RequestOptions options =
                 RequestOptions.option(THUMBNAIL_REQUEST, true)
                         .set(PREFERRED_COLOR_SPACE, mPreferredColorSpace);
-        // TODO(b/224725723): Remove media store version from key once MP ids are
-        // stable.
-        ObjectKey signature =
-                loadable.getLoadableSignature(/* prefix= */ MediaStore.getVersion(mContext));
+        final ObjectKey signature = loadable.getLoadableSignature(/* prefix= */ mMediaStoreVersion);
 
         return Glide.with(mContext).asBitmap().apply(options).signature(signature).load(loadable);
     }

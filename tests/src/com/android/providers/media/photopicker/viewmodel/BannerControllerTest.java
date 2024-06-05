@@ -198,7 +198,8 @@ public class BannerControllerTest {
                 mContentResolver.acquireContentProviderClient(AUTHORITY);
         assertNotNull(client);
 
-        persistSelectedProvider(client, authority);
+        final boolean isUpdateSuccessful = persistSelectedProvider(client, authority);
+        assertTrue(isUpdateSuccessful);
 
         final String actualAuthority = getCurrentCloudProvider(mContentResolver);
         assertEquals(authority, actualAuthority);

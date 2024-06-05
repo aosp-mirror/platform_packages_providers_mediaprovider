@@ -19,6 +19,11 @@ package com.android.providers.media.util;
 import java.nio.ByteOrder;
 
 public class Memory {
+
+    private Memory() {
+        // Utility class, cannot be instantiated
+    }
+
     public static int peekInt(byte[] src, int offset, ByteOrder order) {
         if (order == ByteOrder.BIG_ENDIAN) {
             return (((src[offset++] & 0xff) << 24) |

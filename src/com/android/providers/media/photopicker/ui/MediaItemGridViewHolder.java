@@ -20,6 +20,11 @@ import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.StateListDrawable;
+import android.graphics.drawable.VectorDrawable;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -31,6 +36,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 /**
  * {@link RecyclerView.ViewHolder} of a {@link View} representing a (media) {@link Item} (a photo or
@@ -53,6 +60,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
 
     private final View.OnHoverListener mOnMediaItemHoverListener;
     private final PhotosTabAdapter.OnMediaItemClickListener mOnMediaItemClickListener;
+    private final PickerViewModel mPickerViewModel;
 
     MediaItemGridViewHolder(
             @NonNull LifecycleOwner lifecycleOwner,
@@ -60,6 +68,7 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
             @NonNull ImageLoader imageLoader,
             @NonNull PhotosTabAdapter.OnMediaItemClickListener onMediaItemClickListener,
             View.OnHoverListener onMediaItemHoverListener,
+            PickerViewModel pickerViewModel,
             boolean canSelectMultiple,
             boolean isOrderedSelection) {
         super(itemView);
@@ -75,12 +84,22 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
         mCanSelectMultiple = canSelectMultiple;
         mShowOrderedSelectionLabel = isOrderedSelection;
         mOnMediaItemHoverListener = onMediaItemHoverListener;
+        mPickerViewModel = pickerViewModel;
         mSelectedOrderText = itemView.findViewById(R.id.selected_order);
         mCheckIcon = itemView.findViewById(R.id.icon_check);
         mCheckIcon.setVisibility(
                 (mCanSelectMultiple && !mShowOrderedSelectionLabel) ? VISIBLE : GONE);
         mSelectedOrderText.setVisibility(
                 (mCanSelectMultiple && mShowOrderedSelectionLabel) ? VISIBLE : GONE);
+
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            setCustomSelectedMediaIconColors(
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor(),
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                            AccentColorResources.SURFACE_CONTAINER_COLOR_DARK
+                    ));
+        }
     }
 
     public void bind(@NonNull Item item, boolean isSelected) {
@@ -138,6 +157,40 @@ class MediaItemGridViewHolder extends RecyclerView.ViewHolder {
                     });
         }
         mSelectionOrder = selectionOrder;
+    }
+
+    private void setCustomSelectedMediaIconColors(
+            int checkIconColor, int uncheckedIconColor) {
+        // Selected Media icon colors for unordered selection
+        StateListDrawable drawableCheckIcon = (StateListDrawable) mCheckIcon.getDrawable();
+        // Set color of the selected media icon
+        LayerDrawable checkIcon = (LayerDrawable) drawableCheckIcon.getStateDrawable(0);
+        VectorDrawable selectedMediaBaseCircle = (VectorDrawable) checkIcon.findDrawableByLayerId(
+                R.id.selected_radio_button_selected_mark);
+        selectedMediaBaseCircle.setTint(checkIconColor);
+        // Set color of the unselected media icon
+        VectorDrawable uncheckedIcon = (VectorDrawable) drawableCheckIcon.getStateDrawable(1);
+        uncheckedIcon.setTint(uncheckedIconColor);
+        mCheckIcon.setImageDrawable(drawableCheckIcon);
+
+        // Selected Media icon for ordered selection
+        StateListDrawable drawableOrderedSelection =
+                (StateListDrawable) mSelectedOrderText.getBackground();
+        // Set color of selected media icon
+        LayerDrawable orderedIcon = (LayerDrawable) drawableOrderedSelection.getStateDrawable(0);
+        GradientDrawable orderedIconBaseCircle =
+                (GradientDrawable) orderedIcon.findDrawableByLayerId(
+                        R.id.ordered_selection_selected_icon);
+        orderedIconBaseCircle.setColor(checkIconColor);
+        // Set color of the unselected media icon
+        VectorDrawable orderedSelectionSelectedItem =
+                (VectorDrawable) drawableOrderedSelection.getStateDrawable(1);
+        orderedSelectionSelectedItem.setTint(uncheckedIconColor);
+        mSelectedOrderText.setBackground(drawableOrderedSelection);
+        mSelectedOrderText.setTextColor(Color.parseColor(
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR));
     }
 
     @NonNull

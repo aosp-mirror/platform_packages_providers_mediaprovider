@@ -18,10 +18,10 @@ package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.buildTestWorker;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getCloudSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalSyncInputData;
-import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -217,7 +217,7 @@ public class ImmediateSyncWorkerTest {
     public void testImmediateSyncWorkerOnStopped() {
         // Setup
         final ImmediateSyncWorker immediateSyncWorker =
-                new ImmediateSyncWorker(mContext, getLocalAndCloudSyncTestWorkParams());
+                buildTestWorker(mContext, ImmediateSyncWorker.class);
 
         // Test onStopped
         immediateSyncWorker.onStopped();
@@ -238,8 +238,8 @@ public class ImmediateSyncWorkerTest {
 
     @Test
     public void testGetForegroundInfo() {
-        final ForegroundInfo foregroundInfo = new ImmediateSyncWorker(
-                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+        final ForegroundInfo foregroundInfo =
+                buildTestWorker(mContext, ImmediateSyncWorker.class).getForegroundInfo();
 
         assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
         assertThat(foregroundInfo.getNotification().getChannelId())

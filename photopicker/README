@@ -1,0 +1,47 @@
+######################################
+# Android Photopicker README
+######################################
+
+Note: This photopicker app is currently under development, and is not
+(currently) being shipped with mediaprovider. You might be looking for:
+
+/packages/providers/MediaProvider/photopicker
+
+######################################
+# To install for development / testing:
+######################################
+
+Consider using photopicker_utils.sh for deploying/incremental installs/removing.
+
+Build a mediaprovider APEX which includes Photopicker. The initial deployment
+needs to be from the APEX to ensure Photopicker receives its certificate specific
+permissions.
+
+Incremental builds can be done by making the Photopicker target and directly
+installing the resulting APK.
+
+######################################
+# Troubleshooting
+######################################
+
+Launching ACTION_PICK_IMAGES or ACTION_GET_CONTENT should bring you into the new
+PhotopickerActivity. If not, try debugging the intents to see if the activity
+is getting picked up by Android:
+
+adb shell pm query-activities -a "android.intent.action.GET_CONTENT" -t "image/*"
+
+This should give a print out of all activities (and their respective priorities)
+that can handle this intent and com.android.photopicker.MainActivity should be
+in the list. If not, try the installation steps above again. (Be sure to reboot)
+
+
+######################################
+# Testing
+######################################
+To run the tests:
+
+atest PhotopickerTests
+
+Note: PhotopickerTests bundles the application code with the tests, so the
+app does not need to be installed first for the test suite to be run. The test
+suite will bring along all the code it needs.

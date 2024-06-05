@@ -18,11 +18,11 @@ package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.buildTestWorker;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getCloudAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudAlbumSyncInputData;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncInputData;
-import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -255,7 +255,7 @@ public class ImmediateAlbumSyncWorkerTest {
     public void testImmediateAlbumSyncWorkerOnStopped() {
         // Setup
         final ImmediateAlbumSyncWorker immediateAlbumSyncWorker =
-                new ImmediateAlbumSyncWorker(mContext, getLocalAndCloudSyncTestWorkParams());
+                buildTestWorker(mContext, ImmediateAlbumSyncWorker.class);
 
         // Test onStopped
         immediateAlbumSyncWorker.onStopped();
@@ -276,8 +276,8 @@ public class ImmediateAlbumSyncWorkerTest {
 
     @Test
     public void testGetForegroundInfo() {
-        final ForegroundInfo foregroundInfo = new ImmediateAlbumSyncWorker(
-                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+        final ForegroundInfo foregroundInfo =
+                buildTestWorker(mContext, ImmediateAlbumSyncWorker.class).getForegroundInfo();
 
         assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
         assertThat(foregroundInfo.getNotification().getChannelId())

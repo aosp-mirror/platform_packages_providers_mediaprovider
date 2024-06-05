@@ -33,8 +33,11 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.settings.SettingsProfileSelectFragment;
 import com.android.providers.media.photopicker.ui.settings.SettingsViewModel;
 
@@ -56,6 +59,9 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         // material components. We use force "false" here, only values that are not already defined
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
+
+        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
 
         super.onCreate(savedInstanceState);
 
@@ -116,23 +122,44 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         // Target fragment is SettingsProfileSelectFragment if there exists more than one
         // UserHandles for profiles associated with the context user, including the user itself.
         // Else target fragment is SettingsCloudMediaSelectFragment
-        final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
-        if (userIdManager.isMultiUserProfiles()) {
-            // In case work profile exists and is turned off, do not show the work tab.
-            userIdManager.updateWorkProfileOffValue();
-            if (!userIdManager.isWorkProfileOff()) {
-                final int selectedProfileTab = getInitialProfileTab(callingUserId);
-                return SettingsProfileSelectFragment.getProfileSelectFragment(selectedProfileTab);
+        boolean showPersonalAndWorkTabs = false;
+        if (mSettingsViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
+                && SdkLevel.isAtLeastS()) {
+            final UserManagerState userManagerState = mSettingsViewModel.getUserManagerState();
+            if (userManagerState.isMultiUserProfiles()) {
+                userManagerState.updateProfileOffValues();
+                for (UserId userId : userManagerState.getAllUserProfileIds()) {
+                    // In case work profile exists and is turned off, do not show the work tab.
+                    if (userManagerState.isManagedUserProfile(userId)
+                            && !userManagerState.isProfileOff(userId)) {
+                        showPersonalAndWorkTabs = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
+            if (userIdManager.isMultiUserProfiles()) {
+                userIdManager.updateWorkProfileOffValue();
+                // In case work profile exists and is turned off, do not show the work tab.
+                if (!userIdManager.isWorkProfileOff()) {
+                    showPersonalAndWorkTabs = true;
+                }
             }
         }
+
+        if (showPersonalAndWorkTabs) {
+            final int selectedProfileTab = getInitialProfileTab(callingUserId);
+            return SettingsProfileSelectFragment.getProfileSelectFragment(selectedProfileTab);
+        }
+
         return getCloudMediaSelectFragment();
     }
 
     @NonNull
     private Fragment getCloudMediaSelectFragment() {
-        final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
-        final int userId = userIdManager.getCurrentUserProfileId().getIdentifier();
-        return SettingsProfileSelectFragment.getCloudMediaSelectFragment(userId);
+        return SettingsProfileSelectFragment.getCloudMediaSelectFragment(
+                UserId.CURRENT_USER.getIdentifier());
     }
 
     /**

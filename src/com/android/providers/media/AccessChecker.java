@@ -207,6 +207,41 @@ public class AccessChecker {
     }
 
     /**
+     * Returns where clause for access on user selected permission with filtering for latest
+     * selection only.
+     *
+     * <p><strong>NOTE:</strong> This method assumes that app has necessary permissions and returns
+     * the where clause without checking any permission state of the app.
+     */
+    @NonNull
+    public static String getWhereForLatestSelection(
+            @NonNull LocalCallingIdentity callingIdentity, int uriType) {
+        switch (uriType) {
+            case IMAGES_MEDIA:
+            case IMAGES_MEDIA_ID:
+            case VIDEO_MEDIA_ID:
+            case VIDEO_MEDIA:
+            case DOWNLOADS_ID:
+            case DOWNLOADS:
+            case FILES_ID:
+            case FILES: {
+                return getWhereClauseForLatestUserSelection(callingIdentity, MediaColumns._ID);
+            }
+            case IMAGES_THUMBNAILS_ID:
+            case IMAGES_THUMBNAILS: {
+                return getWhereClauseForLatestUserSelection(callingIdentity, "image_id");
+            }
+            case VIDEO_THUMBNAILS_ID:
+            case VIDEO_THUMBNAILS: {
+                return getWhereClauseForLatestUserSelection(callingIdentity, "video_id");
+            }
+            default:
+                throw new UnsupportedOperationException(
+                        "Unknown or unsupported type: " + uriType);
+        }
+    }
+
+    /**
      * Returns where clause for constrained access.
      *
      * Where clause is generated based on the given collection type{@code uriType} and access
@@ -388,6 +423,15 @@ public class AccessChecker {
 
         return String.format(
                 "%s IN (SELECT file_id from media_grants WHERE %s AND %s)",
+                id,
+                getWhereForOwnerPackageMatch(callingIdentity),
+                getWhereForUserIdMatch(callingIdentity));
+    }
+
+    private static String getWhereClauseForLatestUserSelection(
+            @NonNull LocalCallingIdentity callingIdentity, String id) {
+        return String.format("%s IN (SELECT file_id from media_grants WHERE generation_granted = "
+                        + "(SELECT MAX(generation_granted) from media_grants WHERE %s AND %s))",
                 id,
                 getWhereForOwnerPackageMatch(callingIdentity),
                 getWhereForUserIdMatch(callingIdentity));

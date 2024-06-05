@@ -20,7 +20,6 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
 import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
-import static com.android.providers.media.DatabaseHelper.TEST_RECOMPUTE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
 
@@ -29,11 +28,8 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -48,8 +44,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.collection.ArraySet;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 import com.android.providers.media.util.UserCache;
@@ -70,16 +66,15 @@ public class DatabaseHelperTest {
     private static final String SQLITE_MASTER_ORDER_BY = "type,name,tbl_name";
 
     private static Context sIsolatedContext;
-    private static ContentResolver sIsolatedResolver;
+
     private static ProjectionHelper sProjectionHelper;
 
     @Before
     public void setUp() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.INTERACT_ACROSS_USERS);
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
         sProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
     }
 
@@ -309,9 +304,8 @@ public class DatabaseHelperTest {
                 false).build());
         backedUpData.put("/product/media/audio/alarms/e.ogg", BackupIdRow.newBuilder(5).setIsDirty(
                 true).build());
-        sIsolatedContext = new IsolatedContext(
-                InstrumentationRegistry.getTargetContext(), TAG, /*asFuseThread*/ false);
-        sIsolatedResolver = sIsolatedContext.getContentResolver();
+        sIsolatedContext = new IsolatedContext(InstrumentationRegistry.getInstrumentation()
+                .getTargetContext(), TAG, /*asFuseThread*/ false);
         Map<String, Long> pathToIdMap = new HashMap<>();
         DatabaseBackupAndRecovery testDatabaseBackupAndRecovery = new TestDatabaseBackupAndRecovery(
                 new TestConfigStore(),
@@ -379,117 +373,6 @@ public class DatabaseHelperTest {
     @Test
     public void testTtoU() throws Exception {
         assertUpgrade(DatabaseHelperT.class, DatabaseHelperU.class);
-    }
-
-    private void assertRecompute(Class<? extends DatabaseHelper> before,
-            Class<? extends DatabaseHelper> after) throws Exception {
-        try (DatabaseHelper helper = before.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_RECOMPUTE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
-                        "/storage/emulated/0/DCIM/global.jpg");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                values.put(FileColumns.DISPLAY_NAME, "global.jpg");
-                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_IMAGE);
-                values.put(FileColumns.MIME_TYPE, "image/jpeg");
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
-                        "/storage/emulated/0/Android/media/com.example/app.jpg");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                values.put(FileColumns.DISPLAY_NAME, "app.jpg");
-                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_IMAGE);
-                values.put(FileColumns.MIME_TYPE, "image/jpeg");
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
-                        "/storage/emulated/0/Download/colors.txt");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                values.put(FileColumns.DISPLAY_NAME, "colors.txt");
-                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
-                values.put(FileColumns.MIME_TYPE, "text/plain");
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA,
-                        "/storage/emulated/0/Download/foo");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-            {
-                final ContentValues values = new ContentValues();
-                values.put(FileColumns.DATA, "/storage/emulated/0/Download/bar");
-                values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
-                values.put(FileColumns.DATE_MODIFIED, System.currentTimeMillis());
-                assertFalse(db.insert("files", FileColumns.DATA, values) == -1);
-            }
-        }
-
-        try (DatabaseHelper helper = after.getConstructor(Context.class, String.class)
-                .newInstance(sIsolatedContext, TEST_RECOMPUTE_DB)) {
-            SQLiteDatabase db = helper.getWritableDatabaseForTest();
-            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='global.jpg'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertEquals("/storage/emulated/0/DCIM/global.jpg",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
-                assertEquals(null,
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
-                assertEquals("0", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='app.jpg'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertEquals("/storage/emulated/0/Android/media/com.example/app.jpg",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
-                assertEquals("com.example",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
-                assertEquals("0", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null, FileColumns.DISPLAY_NAME + "='colors.txt'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertEquals("/storage/emulated/0/Download/colors.txt",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.DATA)));
-                assertEquals("text/plain",
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
-                assertEquals(null,
-                        c.getString(c.getColumnIndexOrThrow(FileColumns.OWNER_PACKAGE_NAME)));
-                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null,
-                    FileColumns.DATA + "='/storage/emulated/0/Download/foo'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertNull(c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
-                assertEquals("foo", c.getString(c.getColumnIndexOrThrow(FileColumns.DISPLAY_NAME)));
-                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-            try (Cursor c = db.query("files", null,
-                    FileColumns.DATA + "='/storage/emulated/0/Download/bar'",
-                    null, null, null, null)) {
-                assertEquals(1, c.getCount());
-                assertTrue(c.moveToFirst());
-                assertNull(c.getString(c.getColumnIndexOrThrow(FileColumns.MIME_TYPE)));
-                assertEquals("bar", c.getString(c.getColumnIndexOrThrow(FileColumns.DISPLAY_NAME)));
-                assertEquals("1", c.getString(c.getColumnIndexOrThrow(FileColumns.IS_DOWNLOAD)));
-            }
-        }
     }
 
     private void assertUpgrade(Class<? extends DatabaseHelper> before,
@@ -687,48 +570,6 @@ public class DatabaseHelperTest {
                 res.add(c.getString(0));
             }
             return res;
-        }
-    }
-
-    private static class DatabaseHelperO extends DatabaseHelper {
-        public DatabaseHelperO(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_O, false, false, sProjectionHelper, null,
-                    null, null, null, false,
-                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
-                            new VolumeCache(context, new UserCache(context))));
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            createOSchema(db, false);
-        }
-    }
-
-    private static class DatabaseHelperP extends DatabaseHelper {
-        public DatabaseHelperP(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_P, false, false, sProjectionHelper, null,
-                    null, null, null, false,
-                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
-                            new VolumeCache(context, new UserCache(context))));
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            createPSchema(db, false);
-        }
-    }
-
-    private static class DatabaseHelperQ extends DatabaseHelper {
-        public DatabaseHelperQ(Context context, String name) {
-            super(context, name, DatabaseHelper.VERSION_Q, false, false, sProjectionHelper, null,
-                    null, null, null, false,
-                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
-                            new VolumeCache(context, new UserCache(context))));
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            createQSchema(db, false);
         }
     }
 

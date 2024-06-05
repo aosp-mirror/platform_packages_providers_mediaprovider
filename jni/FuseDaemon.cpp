@@ -408,7 +408,7 @@ struct fuse {
 
     // LevelDb Connection Map
     std::map<std::string, leveldb::DB*> level_db_connection_map;
-    std::mutex level_db_mutex;
+    std::recursive_mutex level_db_mutex;
 };
 
 struct OpenInfo {
@@ -764,8 +764,33 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     fuse->active->store(true, std::memory_order_release);
 }
 
+static void removeInstance(struct fuse* fuse, std::string instance_name) {
+    if (fuse->level_db_connection_map.find(instance_name) != fuse->level_db_connection_map.end()) {
+        delete fuse->level_db_connection_map[instance_name];
+        (fuse->level_db_connection_map).erase(instance_name);
+        LOG(INFO) << "Removed leveldb connection for " << instance_name;
+    }
+}
+
+static void removeLevelDbConnection(struct fuse* fuse) {
+    fuse->level_db_mutex.lock();
+    if (android::base::StartsWith(fuse->path, PRIMARY_VOLUME_PREFIX)) {
+        removeInstance(fuse, VOLUME_INTERNAL);
+        removeInstance(fuse, OWNERSHIP_RELATION);
+        removeInstance(fuse, VOLUME_EXTERNAL_PRIMARY);
+    } else {
+        // Return "C58E-1702" from the path like "/storage/C58E-1702"
+        std::string volume_name = (fuse->path).substr(9);
+        // Convert to lowercase
+        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
+        removeInstance(fuse, volume_name);
+    }
+    fuse->level_db_mutex.unlock();
+}
+
 static void pf_destroy(void* userdata) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    removeLevelDbConnection(fuse);
     LOG(INFO) << "DESTROY " << fuse->path;
 
     node::DeleteTree(fuse->root);
@@ -851,9 +876,27 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
+
+static bool is_user_accessible_path(fuse_req_t req, const struct fuse* fuse, const string& path) {
+    std::smatch match;
+    std::regex_search(path, match, storage_emulated_regex);
+
+    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
+    // requested path
+    if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
+        // If user id mismatch, check cross-user lookups
+        long userId = strtol(match[1].str().c_str(), nullptr, 10);
+        if (userId < 0 || userId > MAX_USER_ID ||
+            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
                        struct fuse_entry_param* e, int* error_code, const FuseOp op,
-                       int* backing_fd = NULL) {
+                       const bool validate_access, int* backing_fd = NULL) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -861,9 +904,11 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
+
     // We should always allow lookups on the root, because failing them could cause
     // bind mounts to be invalidated.
-    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
+    if (validate_access && !fuse->IsRoot(parent_node) &&
+        !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -871,19 +916,10 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
-    std::smatch match;
-    std::regex_search(child_path, match, storage_emulated_regex);
 
-    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
-    // requested path
-    if (match.size() == 2 && MY_USER_ID_STRING != match[1].str()) {
-        // If user id mismatch, check cross-user lookups
-        long userId = strtol(match[1].str().c_str(), nullptr, 10);
-        if (userId < 0 || userId > MAX_USER_ID ||
-            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
-            *error_code = EACCES;
-            return nullptr;
-        }
+    if (validate_access && !is_user_accessible_path(req, fuse, child_path)) {
+        *error_code = EACCES;
+        return nullptr;
     }
 
     auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
@@ -910,7 +946,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     int backing_fd = -1;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, &backing_fd)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, true, &backing_fd)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1330,6 +1366,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         if (!new_parent_node) return ENOENT;
     }
     const string new_parent_path = new_parent_node->BuildPath();
+    if (fuse->bpf && is_bpf_backing_path(new_parent_path)) {
+        return EXDEV;
+    }
     if (!is_app_accessible_path(fuse, new_parent_path, ctx->uid)) {
         return ENOENT;
     }
@@ -1849,7 +1888,7 @@ static void pf_opendir(fuse_req_t req,
     fuse_reply_open(req, fi);
 }
 
-#define READDIR_BUF 8192LU
+#define READDIR_BUF 32768LU
 
 static void do_readdir_common(fuse_req_t req,
                               fuse_ino_t ino,
@@ -1879,6 +1918,14 @@ static void do_readdir_common(fuse_req_t req,
     }
 
     TRACE_NODE(node, req);
+
+    // We don't return EACCES for compatibility with the previous implementation.
+    // It just ignored entries causing EACCES.
+    if (!is_user_accessible_path(req, fuse, path)) {
+        fuse_reply_buf(req, buf, used);
+        return;
+    }
+
     // Get all directory entries from MediaProvider on first readdir() call of
     // directory handle. h->next_off = 0 indicates that current readdir() call
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
@@ -1908,7 +1955,8 @@ static void do_readdir_common(fuse_req_t req,
         h->next_off++;
         if (plus) {
             int error_code = 0;
-            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir)) {
+            // Skip validating user and app access as they are already performed on parent node
+            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir, false)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             } else {
@@ -1962,7 +2010,8 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
     struct fuse* fuse = get_fuse(req);
     char buf[READDIR_BUF];
     struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
-    size_t used = sizeof(*fro);
+    size_t used = 0;
+    bool redacted = false;
     char* dirents_out = (char*)(fro + 1);
 
     ATRACE_CALL();
@@ -1981,7 +2030,7 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
 
     for (off_t in = 0; in < size_out;) {
         struct fuse_dirent* dirent_in = (struct fuse_dirent*)((char*)dirents_in + in);
-        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + fro->size);
+        struct fuse_dirent* dirent_out = (struct fuse_dirent*)((char*)dirents_out + used);
         struct stat stats;
         int err;
 
@@ -1997,11 +2046,13 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
              child_name == ".nomedia")) {
             *dirent_out = *dirent_in;
             strcpy(dirent_out->name, child_name.c_str());
-            fro->size += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+            used += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+        } else {
+            redacted = true;
         }
     }
-    used += fro->size;
-    fuse_reply_buf(req, buf, used);
+    if (redacted && used == 0) fro->again = 1;
+    fuse_reply_buf(req, buf, sizeof(*fro) + used);
 }
 
 static void pf_readdirplus(fuse_req_t req,
@@ -2551,8 +2602,8 @@ void FuseDaemon::SetupLevelDbConnection(const std::string& instance_name) {
         return;
     }
 
-    std::string leveldbPath = "/storage/emulated/" + MY_USER_ID_STRING +
-                              "/.transforms/recovery/leveldb-" + instance_name;
+    std::string leveldbPath =
+            "/data/media/" + MY_USER_ID_STRING + "/.transforms/recovery/leveldb-" + instance_name;
     leveldb::Options options;
     options.create_if_missing = true;
     leveldb::DB* leveldb;
@@ -2607,8 +2658,10 @@ std::string deriveVolumeName(const std::string& path) {
 }
 
 void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
+    fuse->level_db_mutex.lock();
     std::string volume_name = deriveVolumeName(key);
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "DeleteFromLevelDb: Missing leveldb connection.";
         return;
     }
@@ -2616,22 +2669,28 @@ void FuseDaemon::DeleteFromLevelDb(const std::string& key) {
     leveldb::Status status;
     status = fuse->level_db_connection_map[volume_name]->Delete(leveldb::WriteOptions(), key);
     if (!status.ok()) {
-        LOG(ERROR) << "Failure in leveldb delete for key: " << key <<
-            " from volume:" << volume_name;
+        LOG(ERROR) << "Failure in leveldb delete for key: " << key
+                   << " from volume:" << volume_name;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::string& key,
                                  const std::string& value) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "InsertInLevelDb: Missing leveldb connection.";
         return;
     }
 
     leveldb::Status status;
-    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key, value);
+    status = fuse->level_db_connection_map[volume_name]->Put(leveldb::WriteOptions(), key,
+                                                             value);
+    fuse->level_db_mutex.unlock();
     if (!status.ok()) {
-        LOG(ERROR) << "Failure in leveldb insert for key: " << key << " in volume:" << volume_name;
+        LOG(ERROR) << "Failure in leveldb insert for key: " << key
+                   << " in volume:" << volume_name;
         LOG(ERROR) << status.ToString();
     }
 }
@@ -2639,11 +2698,13 @@ void FuseDaemon::InsertInLevelDb(const std::string& volume_name, const std::stri
 std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string& volume_name,
                                                               const std::string& last_read_value,
                                                               int limit) {
+    fuse->level_db_mutex.lock();
     int counter = 0;
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection.";
+        fuse->level_db_mutex.unlock();
+        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection";
         return file_paths;
     }
 
@@ -2661,37 +2722,47 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
         file_paths.push_back(it->key().ToString());
         counter++;
     }
+    fuse->level_db_mutex.unlock();
     return file_paths;
 }
 
 std::string FuseDaemon::ReadBackedUpDataFromLevelDb(const std::string& filePath) {
+    fuse->level_db_mutex.lock();
     std::string data = "";
     std::string volume_name = deriveVolumeName(filePath);
     if (!CheckLevelDbConnection(volume_name)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "ReadBackedUpDataFromLevelDb: Missing leveldb connection.";
         return data;
     }
 
-    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(leveldb::ReadOptions(),
-                                                                             filePath, &data);
+    leveldb::Status status = fuse->level_db_connection_map[volume_name]->Get(
+            leveldb::ReadOptions(), filePath, &data);
+    fuse->level_db_mutex.unlock();
+
     if (status.IsNotFound()) {
         LOG(VERBOSE) << "Key is not found in leveldb: " << filePath << " " << status.ToString();
     } else if (!status.ok()) {
-        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " " << status.ToString();
+        LOG(WARNING) << "Failure in leveldb read for key: " << filePath << " "
+                     << status.ToString();
     }
     return data;
 }
 
 std::string FuseDaemon::ReadOwnership(const std::string& key) {
+    fuse->level_db_mutex.lock();
     // Return empty string if key not found
     std::string data = "";
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "ReadOwnership: Missing leveldb connection.";
         return data;
     }
 
     leveldb::Status status = fuse->level_db_connection_map[OWNERSHIP_RELATION]->Get(
             leveldb::ReadOptions(), key, &data);
+    fuse->level_db_mutex.unlock();
+
     if (status.IsNotFound()) {
         LOG(VERBOSE) << "Key is not found in leveldb: " << key << " " << status.ToString();
     } else if (!status.ok()) {
@@ -2703,7 +2774,9 @@ std::string FuseDaemon::ReadOwnership(const std::string& key) {
 
 void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "CreateOwnerIdRelation: Missing leveldb connection.";
         return;
     }
@@ -2722,11 +2795,14 @@ void FuseDaemon::CreateOwnerIdRelation(const std::string& ownerId,
         LOG(ERROR) << "Failure in leveldb insert for owner_id: " << ownerId
                    << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
                                        const std::string& ownerPackageIdentifier) {
+    fuse->level_db_mutex.lock();
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "RemoveOwnerIdRelation: Missing leveldb connection.";
         return;
     }
@@ -2748,11 +2824,14 @@ void FuseDaemon::RemoveOwnerIdRelation(const std::string& ownerId,
         LOG(ERROR) << "Failure in leveldb delete for owner_id: " << ownerId
                    << " and ownerPackageIdentifier: " << ownerPackageIdentifier;
     }
+    fuse->level_db_mutex.unlock();
 }
 
 std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
+    fuse->level_db_mutex.lock();
     std::map<std::string, std::string> resultMap;
     if (!CheckLevelDbConnection(OWNERSHIP_RELATION)) {
+        fuse->level_db_mutex.unlock();
         LOG(ERROR) << "GetOwnerRelationship: Missing leveldb connection.";
         return resultMap;
     }
@@ -2766,6 +2845,8 @@ std::map<std::string, std::string> FuseDaemon::GetOwnerRelationship() {
         std::string value = it->value().ToString();
         resultMap.insert(std::pair<std::string, std::string>(key, value));
     }
+
+    fuse->level_db_mutex.unlock();
     return resultMap;
 }
 

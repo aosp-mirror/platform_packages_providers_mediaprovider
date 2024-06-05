@@ -25,6 +25,7 @@ import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
 import static com.android.providers.media.AccessChecker.getWhereForMediaTypeMatch;
 import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
+import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
 import static com.android.providers.media.AccessChecker.getWhereForUserIdMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
@@ -309,6 +310,52 @@ public class AccessCheckerTest {
                 () -> getWhereForUserSelectedAccess(callingIdentity, AUDIO_MEDIA));
     }
 
+    @Test
+    public void testGetWhereForRecentSelection() {
+        LocalCallingIdentity callingIdentity = LocalCallingIdentity.forTest(
+                InstrumentationRegistry.getTargetContext(), Os.getuid(),
+                getUserSelectedPermission());
+
+        String selectIdForMaxGenerationQuery =
+                "(SELECT file_id from media_grants WHERE generation_granted = (SELECT MAX"
+                        + "(generation_granted) from media_grants WHERE "
+                        + getWhereForOwnerPackageMatch(callingIdentity) + " AND "
+                        + getWhereForUserIdMatch(callingIdentity) + "))";
+
+        for (int collection : Arrays.asList(
+                VIDEO_MEDIA,
+                VIDEO_MEDIA_ID,
+                IMAGES_MEDIA,
+                IMAGES_MEDIA_ID,
+                DOWNLOADS,
+                DOWNLOADS_ID,
+                FILES,
+                FILES_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForLatestSelection(callingIdentity, collection))
+                    .isEqualTo("_id IN " + selectIdForMaxGenerationQuery);
+        }
+
+        for (int collection : Arrays.asList(
+                IMAGES_THUMBNAILS,
+                IMAGES_THUMBNAILS_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForLatestSelection(callingIdentity, collection))
+                    .isEqualTo("image_id IN " + selectIdForMaxGenerationQuery);
+        }
+
+        for (int collection : Arrays.asList(
+                VIDEO_THUMBNAILS,
+                VIDEO_THUMBNAILS_ID)) {
+            assertWithMessage("Expected user selected where clause for collection " + collection)
+                    .that(getWhereForLatestSelection(callingIdentity, collection))
+                    .isEqualTo("video_id IN " + selectIdForMaxGenerationQuery);
+        }
+
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> getWhereForLatestSelection(callingIdentity, AUDIO_MEDIA));
+    }
 
     @Test
     public void testGetWhereForConstrainedAccess_forRead_noPerms() {

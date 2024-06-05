@@ -57,7 +57,8 @@ public class AlbumsTabFragment extends TabFragment {
                 mPickerViewModel.shouldShowAccountUpdatedBannerLiveData(),
                 mPickerViewModel.shouldShowChooseAccountBannerLiveData(),
                 mOnChooseAppBannerEventListener, mOnCloudMediaAvailableBannerEventListener,
-                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener);
+                mOnAccountUpdatedBannerEventListener, mOnChooseAccountBannerEventListener,
+                mPickerViewModel);
         mPickerViewModel.getCategories().observe(this, categoryList -> {
             if (categoryList.size() == 1 && categoryList.get(0).getId().equals("EMPTY_VIEW")) {
                 adapter.updateCategoryList(new ArrayList<>());

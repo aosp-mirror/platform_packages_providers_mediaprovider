@@ -16,8 +16,6 @@
 
 package com.android.providers.media;
 
-import static android.provider.MediaStore.MediaColumns.DATA;
-
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
@@ -53,6 +51,7 @@ public class MediaGrants {
     public static final String MEDIA_GRANTS_TABLE = "media_grants";
     public static final String FILE_ID_COLUMN = "file_id";
     public static final String PACKAGE_USER_ID_COLUMN = "package_user_id";
+    public static final String GENERATION_GRANTED = "generation_granted";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 
@@ -116,6 +115,7 @@ public class MediaGrants {
 
         mExternalDatabase.runWithTransaction(
                 (db) -> {
+                    long generation_granted = DatabaseHelper.getGeneration(db);
                     for (Uri uri : uris) {
 
                         if (!isUriAllowed(uri)) {
@@ -129,6 +129,7 @@ public class MediaGrants {
                         values.put(OWNER_PACKAGE_NAME_COLUMN, packageName);
                         values.put(FILE_ID_COLUMN, id);
                         values.put(PACKAGE_USER_ID_COLUMN, packageUserId);
+                        values.put(GENERATION_GRANTED, generation_granted);
 
                         try {
                             mQueryBuilder.insert(db, values);
@@ -177,8 +178,8 @@ public class MediaGrants {
                             .build());
 
             return queryBuilder.query(db,
-                    new String[]{DATA, FILE_ID_COLUMN}, null, selectionArgs, null, null, null, null,
-                    null);
+                    new String[]{FILE_ID_COLUMN, PACKAGE_USER_ID_COLUMN}, null,
+                    selectionArgs, null, null, null, null, null);
         });
     }
 

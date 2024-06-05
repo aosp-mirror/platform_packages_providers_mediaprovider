@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -40,7 +41,6 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.Operation;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkContinuation;
-import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
@@ -49,7 +49,6 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,10 +56,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -95,10 +91,28 @@ public class PickerSyncManagerTest {
                 "com.hooli.super.awesome.cloudpicker");
     }
 
+
+    @Test
+    public void testScheduleEndlessWorker() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        // The third call here comes from the EndlessWorker
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(),
+                        any(),
+                        mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(EndlessWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isFalse();
+    }
+
     @Test
     public void testSchedulePeriodicSyncs() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ true);
 
+        // The third call here comes from the EndlessWorker
         verify(mMockWorkManager, times(2))
                 .enqueueUniquePeriodicWork(anyString(),
                         any(),
@@ -193,6 +207,7 @@ public class PickerSyncManagerTest {
     @Test
     public void testAdhocProactiveSyncLocalOnly() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaProactively(/* localOnly */ true);
         verify(mMockWorkManager, times(1))
@@ -210,11 +225,15 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test
     public void testAdhocProactiveSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaProactively(/* localOnly */ false);
         verify(mMockWorkManager, times(1))
@@ -232,12 +251,15 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(PickerSyncManager.PROACTIVE_SYNC_DELAY_MS);
     }
 
     @Test
     public void testImmediateLocalSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
+        reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(true);
         verify(mMockWorkManager, times(1))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
@@ -257,6 +279,8 @@ public class PickerSyncManagerTest {
     @Test
     public void testImmediateCloudSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaImmediately(false);
         verify(mMockWorkManager, times(2))
@@ -294,7 +318,8 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+                "Not_null", PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                /* isLocal= */ true);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),
@@ -332,7 +357,7 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mPickerSyncManager.syncAlbumMediaForProviderImmediately(
-                "Not_null", "com.hooli.cloudpicker");
+                "Not_null", "com.hooli.cloudpicker", /* isLocal= */ false);
         verify(mMockWorkManager, times(1))
                 .beginUniqueWork(
                         anyString(),
@@ -363,41 +388,6 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
         assertThat(workRequest.getWorkSpec().input.getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_CLOUD_ONLY);
-    }
-
-    @Test
-    public void testUniqueWorkStatusForPendingWork() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-        final String workName = "testWorkName";
-        final SettableFuture<List<WorkInfo>> future = SettableFuture.create();
-        final List<WorkInfo> futureResult = new ArrayList<>();
-        futureResult.add(getWorkInfo(WorkInfo.State.SUCCEEDED));
-        futureResult.add(getWorkInfo(WorkInfo.State.ENQUEUED));
-        future.set(futureResult);
-        doReturn(future).when(mMockWorkManager)
-                .getWorkInfosForUniqueWork(workName);
-
-        assertThat(mPickerSyncManager.isUniqueWorkPending(workName)).isTrue();
-    }
-
-    @Test
-    public void testUniqueWorkStatusForCompletedWork() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-        final String workName = "testWorkName";
-        final SettableFuture<List<WorkInfo>> future = SettableFuture.create();
-        final List<WorkInfo> futureResult = new ArrayList<>();
-        futureResult.add(getWorkInfo(WorkInfo.State.SUCCEEDED));
-        futureResult.add(getWorkInfo(WorkInfo.State.FAILED));
-        futureResult.add(getWorkInfo(WorkInfo.State.CANCELLED));
-        future.set(futureResult);
-        doReturn(future).when(mMockWorkManager)
-                .getWorkInfosForUniqueWork(workName);
-
-        assertThat(mPickerSyncManager.isUniqueWorkPending(workName)).isFalse();
-    }
-
-    private WorkInfo getWorkInfo(WorkInfo.State state) {
-        return new WorkInfo(UUID.randomUUID(), state, new HashSet<>());
     }
 
     private void setupPickerSyncManager(boolean schedulePeriodicSyncs) {

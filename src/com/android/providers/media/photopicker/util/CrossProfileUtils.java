@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -51,6 +52,26 @@ public class CrossProfileUtils {
         intent.setPackage(null);
         for (ResolveInfo info : packageManager.queryIntentActivities(intent,
                 PackageManager.MATCH_DEFAULT_ONLY)) {
+            if (info != null && info.isCrossProfileIntentForwarderActivity()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether given intent is allowed to show cross profile content
+     * for the given user profile. This can be regulated by device admin policies.
+     *
+     * @return {@code true} if the given user profile can access cross profile content.
+     *
+     */
+    public static boolean isIntentAllowedCrossProfileAccessFromUser(Intent intent,
+            PackageManager packageManager, UserHandle userHandle) {
+        intent.setComponent(null);
+        intent.setPackage(null);
+        for (ResolveInfo info : packageManager.queryIntentActivitiesAsUser(
+                intent, PackageManager.MATCH_DEFAULT_ONLY, userHandle)) {
             if (info != null && info.isCrossProfileIntentForwarderActivity()) {
                 return true;
             }

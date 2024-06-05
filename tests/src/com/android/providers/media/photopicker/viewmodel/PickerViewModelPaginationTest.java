@@ -47,22 +47,26 @@ import android.provider.MediaStore;
 
 import androidx.lifecycle.LiveData;
 import androidx.test.filters.SdkSuppress;
-import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.UserId;
+
+import com.google.android.collect.Lists;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -72,7 +76,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(Parameterized.class)
 public class PickerViewModelPaginationTest {
 
     @Rule
@@ -88,6 +92,18 @@ public class PickerViewModelPaginationTest {
 
     private static final String TAG = "PickerViewModelTest";
     private ContentResolver mIsolatedResolver;
+    @Parameterized.Parameter(0)
+    public boolean isPrivateSpaceEnabled;
+
+    /**
+     * Parametrize values for {@code isPrivateSpaceEnabled} to run all the tests twice once with
+     * private space flag enabled and once with it disabled.
+     */
+    @Parameterized.Parameters(name = "privateSpaceEnabled={0}")
+    public static Iterable<?> data() {
+        return Lists.newArrayList(true, false);
+    }
+
 
     public PickerViewModelPaginationTest() {
 
@@ -104,6 +120,11 @@ public class PickerViewModelPaginationTest {
 
         final TestConfigStore testConfigStore = new TestConfigStore();
         testConfigStore.enableCloudMediaFeature();
+        if (isPrivateSpaceEnabled) {
+            testConfigStore.enablePrivateSpaceInPhotoPicker();
+        } else {
+            testConfigStore.disablePrivateSpaceInPhotoPicker();
+        }
 
         final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
                 /* asFuseThread */ false, sTargetContext.getUser(), testConfigStore);
@@ -116,9 +137,16 @@ public class PickerViewModelPaginationTest {
                 }
             };
         });
-        final UserIdManager userIdManager = mock(UserIdManager.class);
-        when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
-        mPickerViewModel.setUserIdManager(userIdManager);
+        if (testConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            final UserManagerState userManagerState = mock(UserManagerState.class);
+            when(userManagerState.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+            mPickerViewModel.setUserManagerState(userManagerState);
+        } else {
+            final UserIdManager userIdManager = mock(UserIdManager.class);
+            when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+            mPickerViewModel.setUserIdManager(userIdManager);
+        }
+
         mIsolatedResolver = isolatedContext.getContentResolver();
         final ItemsProvider itemsProvider = new ItemsProvider(isolatedContext);
         mPickerViewModel.setItemsProvider(itemsProvider);

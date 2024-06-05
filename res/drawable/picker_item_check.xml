@@ -19,12 +19,14 @@
     <layer-list>
         <item android:gravity="center"
               android:width="18dp"
-              android:height="18dp">
+              android:height="18dp"
+              android:id="@+id/selected_radio_button_base">
             <shape android:shape="oval">
                 <solid android:color="@color/picker_background_color"/>
             </shape>
         </item>
-        <item android:drawable="@drawable/ic_check_circle_filled"/>
+        <item android:drawable="@drawable/ic_check_circle_filled"
+              android:id="@+id/selected_radio_button_selected_mark"/>
     </layer-list>
 </item>
 <item android:drawable="@drawable/ic_radio_button_unchecked"/>

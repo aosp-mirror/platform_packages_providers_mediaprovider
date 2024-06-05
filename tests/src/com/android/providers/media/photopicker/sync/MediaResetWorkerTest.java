@@ -24,8 +24,8 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_TAG_IS_PERIODIC;
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_CHANNEL_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncNotificationHelper.NOTIFICATION_ID;
+import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.buildTestWorker;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getAlbumResetInputData;
-import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.getLocalAndCloudSyncTestWorkParams;
 import static com.android.providers.media.photopicker.sync.SyncWorkerTestUtils.initializeTestWorkManager;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -367,7 +367,7 @@ public class MediaResetWorkerTest {
 
     @Test
     public void testMediaResetWorkerOnStopped() {
-        new MediaResetWorker(mContext, getLocalAndCloudSyncTestWorkParams()).onStopped();
+        buildTestWorker(mContext, MediaResetWorker.class).onStopped();
 
         verify(mMockLocalAlbumSyncTracker, times(/* wantedNumberOfInvocations */ 0))
                 .createSyncFuture(any());
@@ -382,8 +382,8 @@ public class MediaResetWorkerTest {
 
     @Test
     public void testGetForegroundInfo() {
-        final ForegroundInfo foregroundInfo = new MediaResetWorker(
-                mContext, getLocalAndCloudSyncTestWorkParams()).getForegroundInfo();
+        final ForegroundInfo foregroundInfo =
+                buildTestWorker(mContext, MediaResetWorker.class).getForegroundInfo();
 
         assertThat(foregroundInfo.getNotificationId()).isEqualTo(NOTIFICATION_ID);
         assertThat(foregroundInfo.getNotification().getChannelId())

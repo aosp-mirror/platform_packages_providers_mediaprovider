@@ -171,6 +171,11 @@ android_test {
         "framework-mediaprovider.impl",
     ],
 
+    jni_libs: [
+        // Needed to run LevelDBManagerTest
+        "libleveldb_jni",
+    ],
+
     static_libs: [
         "androidx.appcompat_appcompat",
         "modules-utils-backgroundthread",

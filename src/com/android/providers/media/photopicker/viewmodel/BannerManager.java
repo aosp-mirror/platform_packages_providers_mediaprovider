@@ -31,9 +31,11 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.util.ThreadUtils;
 import com.android.providers.media.util.PerUser;
 
@@ -42,6 +44,7 @@ class BannerManager {
     private static final int DELAY_MILLIS = 0;
 
     private final UserIdManager mUserIdManager;
+    private final UserManagerState mUserManagerState;
 
     // Authority of the current CloudMediaProvider of the current user
     private final MutableLiveData<String> mCloudMediaProviderAuthority = new MutableLiveData<>();
@@ -64,9 +67,22 @@ class BannerManager {
 
     // The banner controllers per user
     private final PerUser<BannerController> mBannerControllers;
+    private ConfigStore mConfigStore;
 
     BannerManager(@NonNull Context context, @NonNull UserIdManager userIdManager,
             @NonNull ConfigStore configStore) {
+        this(context, userIdManager, null, configStore);
+    }
+
+    BannerManager(@NonNull Context context, @NonNull UserManagerState userManagerState,
+            @NonNull ConfigStore configStore) {
+        this(context, null, userManagerState, configStore);
+    }
+
+    private BannerManager(@NonNull Context context, UserIdManager userIdManager,
+            UserManagerState userManagerState, ConfigStore configStore) {
+        mConfigStore = configStore;
+        mUserManagerState = userManagerState;
         mUserIdManager = userIdManager;
         mBannerControllers = new PerUser<BannerController>() {
             @NonNull
@@ -82,10 +98,14 @@ class BannerManager {
     @NonNull
     BannerController createBannerController(@NonNull Context context,
             @NonNull UserHandle userHandle, @NonNull ConfigStore configStore) {
+        mConfigStore = configStore;
         return new BannerController(context, userHandle, configStore);
     }
 
     @UserIdInt int getCurrentUserProfileId() {
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            return mUserManagerState.getCurrentUserProfileId().getIdentifier();
+        }
         return mUserIdManager.getCurrentUserProfileId().getIdentifier();
     }
 
@@ -304,6 +324,12 @@ class BannerManager {
                 @NonNull ConfigStore configStore) {
             super(context, userIdManager, configStore);
         }
+
+        CloudBannerManager(@NonNull Context context, @NonNull UserManagerState userManagerState,
+                @NonNull ConfigStore configStore) {
+            super(context, userManagerState, configStore);
+        }
+
 
         /**
          * Initialise and set the banner data for the current user.

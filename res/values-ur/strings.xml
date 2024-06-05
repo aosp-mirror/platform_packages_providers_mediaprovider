@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"پیش منظر"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"کام پر سوئچ کریں"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ذاتی پروفائل پر سوئچ کریں"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ذاتی"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"آپ کے منتظم کے ذریعے مسدود کردہ ہے"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ذاتی ایپ سے دفتری ڈیٹا تک رسائی کی اجازت نہیں ہے"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ورک ایپ سے ذاتی ڈیٹا تک رسائی کی اجازت نہیں ہے"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> ایپ سے <xliff:g id="PROFILE1">%1$s</xliff:g> کے ڈیٹا تک رسائی کی اجازت نہیں ہے"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> پر سوئچ کریں"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ورک ایپس موقوف ہیں"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> ایپس موقوف ہیں"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"کام کی تصاویر کھولنے کے لیے اپنی ورک ایپس آن کریں، پھر دوبارہ کوشش کریں"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> کی تصاویر کھولنے کے لیے، اپنی <xliff:g id="PROFILE2">%2$s</xliff:g> ایپس کو آن کریں پھر دوبارہ کوشش کریں"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"یہ ایپ صرف آپ کی منتخب کردہ تصاویر تک رسائی حاصل کر سکتی ہے"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"وہ تصاویر اور ویڈیوز منتخب کریں جن تک آپ اس ایپ کو رسائی کی اجازت دیتے ہیں"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> آئٹم}other{<xliff:g id="COUNT_1">^1</xliff:g> آئٹمز}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"بعد میں دوبارہ کوشش کریں۔ مسئلہ حل ہو جانے کے بعد آپ کی تصاویر دستیاب ہوں گی۔"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"کچھ تصاویر لوڈ نہیں کی جا سکتیں"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"سمجھ آ گئی"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"میڈیا مالک کے پیکیج کے نام تک رسائی حاصل کریں"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"ایپ کو تمام قابل رسائی میڈیا فائلز کے مالک پیکیج کے ناموں تک رسائی کی اجازت دیتا ہے۔"</string>
 </resources>

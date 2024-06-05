@@ -22,26 +22,49 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 
+import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaApplication;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 
 /**
  * SettingsViewModel stores common objects used across PhotoPickerSettingsActivity and
  * SettingsProfileSelectFragment. It also stores the tab selected state which helps maintain tab
- * state when activity is destroyed and recrreated.
+ * state when activity is destroyed and recreated.
  */
 public class SettingsViewModel extends AndroidViewModel {
     public static final int TAB_NOT_SET = -1;
 
-    @NonNull
     private final UserIdManager mUserIdManager;
+    private final UserManagerState mUserManagerState;
     private int mSelectedTab;
+    private ConfigStore mConfigStore;
 
     public SettingsViewModel(@NonNull Application application) {
         super(application);
 
         final Context context = application.getApplicationContext();
-        mUserIdManager = UserIdManager.create(context);
+        initConfigStore();
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            mUserManagerState = UserManagerState.create(context);
+            mUserIdManager = null;
+        } else {
+            mUserIdManager = UserIdManager.create(context);
+            mUserManagerState = null;
+        }
         mSelectedTab = TAB_NOT_SET;
+    }
+
+    private void initConfigStore() {
+        mConfigStore = MediaApplication.getConfigStore();
+    }
+
+    /**
+     * @return the {@link ConfigStore} for this context.
+     */
+    public ConfigStore getConfigStore() {
+        return mConfigStore;
     }
 
     public void setSelectedTab(int selectedTab) {
@@ -52,8 +75,11 @@ public class SettingsViewModel extends AndroidViewModel {
         return mSelectedTab;
     }
 
-    @NonNull
     public UserIdManager getUserIdManager() {
         return mUserIdManager;
+    }
+
+    public UserManagerState getUserManagerState() {
+        return mUserManagerState;
     }
 }

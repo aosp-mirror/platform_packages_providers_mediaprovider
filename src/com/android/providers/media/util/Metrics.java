@@ -43,6 +43,11 @@ import com.android.providers.media.MediaProviderStatsLog;
  * regression investigations and bug triage.
  */
 public class Metrics {
+
+    private Metrics() {
+        // Utility class, cannot be instantiated
+    }
+
     public static void logScan(@NonNull String volumeName, int reason, long itemCount,
             long durationMillis, int insertCount, int updateCount, int deleteCount) {
         Logging.logPersistent(

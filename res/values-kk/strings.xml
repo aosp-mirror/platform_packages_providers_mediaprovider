@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Алғы көрініс"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Жұмыс профиліне ауысу"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Жеке профильге ауысу"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Жеке"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Әкімшіңіз бөгеген"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Жұмыс дерегіне жеке қолданбадан кіруге рұқсат жоқ."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Жеке дерекке жұмыс қолданбасынан кіруге рұқсат жоқ."</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> қолданбасынан <xliff:g id="PROFILE1">%1$s</xliff:g> деректерін пайдалануға рұқсат етілмейді."</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> профиліне ауысу"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Жұмыс қолданбалары кідіртілді"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> қолданбалары уақытша тоқтатылды"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Жұмыс аккаунтындағы фотосуреттерді ашу үшін жұмыс қолданбаларын қосып, содан кейін қайталап көріңіз."</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> фотосуреттерін ашу үшін <xliff:g id="PROFILE2">%2$s</xliff:g> қолданбаларын қосыңыз да, әрекетті қайталап көріңіз."</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Бұл қолданба өзіңіз таңдаған фотосуреттерді ғана пайдалана алады."</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Осы қолданба пайдалана алатын фотосуреттер мен бейнелерді таңдаңыз"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> элемент}other{<xliff:g id="COUNT_1">^1</xliff:g> элемент}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Кейінірек қайталап көріңіз. Мәселе шешілген соң, фотосуреттеріңіз қолжетімді болады."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Кейбір фотосуреттерді жүктеу мүмкін емес"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Түсінікті"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Мультимедиа иесіне арналған пакет атауын пайдалану"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Қолданба барлық қолжетімді мультимедиа файл иесіне арналған пакеттің атауларын пайдалануға рұқсат алады."</string>
 </resources>

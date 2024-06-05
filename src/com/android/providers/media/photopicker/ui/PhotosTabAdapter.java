@@ -31,7 +31,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import com.bumptech.glide.util.ViewPreloadSizeProvider;
 
@@ -69,12 +71,14 @@ public class PhotosTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
             @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
             @NonNull View.OnHoverListener onMediaItemHoverListener,
-            @NonNull ViewPreloadSizeProvider preloadSizeProvider) {
+            @NonNull ViewPreloadSizeProvider preloadSizeProvider,
+            @NonNull PickerViewModel pickerViewModel) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
                 onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
-                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener,
+                pickerViewModel);
         mLifecycleOwner = lifecycleOwner;
         mShowRecentSection = showRecentSection;
         mSelection = selection;
@@ -101,6 +105,7 @@ public class PhotosTabAdapter extends TabAdapter {
                         mImageLoader,
                         mOnMediaItemClickListener,
                         mOnMediaItemHoverListener,
+                        mPickerViewModel,
                         mSelection.canSelectMultiple(),
                         mSelection.isSelectionOrdered());
         mPreloadSizeProvider.setView(viewHolder.getThumbnailImageView());
@@ -113,6 +118,13 @@ public class PhotosTabAdapter extends TabAdapter {
         final DateHeaderViewHolder dateHeaderVH = (DateHeaderViewHolder) viewHolder;
 
         dateHeaderVH.bind(dateHeader);
+        TextView titleTextView = dateHeaderVH.title;
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            titleTextView.setTextColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                            AccentColorResources.ON_SURFACE_COLOR_DARK));
+        }
     }
 
     @Override

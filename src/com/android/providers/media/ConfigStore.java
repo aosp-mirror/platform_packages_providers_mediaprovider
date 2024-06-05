@@ -62,6 +62,8 @@ public interface ConfigStore {
     boolean DEFAULT_TRANSCODE_OPT_OUT_STRATEGY_ENABLED = false;
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
+    boolean DEFAULT_MODERN_PICKER_ENABLED = false;
+
     boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG = false;
@@ -69,6 +71,15 @@ public interface ConfigStore {
     boolean DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED = true;
     boolean DEFAULT_ENFORCE_CLOUD_PROVIDER_ALLOWLIST = true;
     boolean DEFAULT_PICKER_CHOICE_MANAGED_SELECTION_ENABLED = true;
+    boolean DEFAULT_PICKER_PRIVATE_SPACE_ENABLED = true;
+
+
+    /**
+     * @return if the modern photopicker experience is enabled.
+     */
+    default boolean isModernPickerEnabled() {
+        return DEFAULT_MODERN_PICKER_ENABLED;
+    }
 
     /**
      * @return if the Cloud-Media-in-Photo-Picker enabled (e.g. platform will recognize and
@@ -76,6 +87,13 @@ public interface ConfigStore {
      */
     default boolean isCloudMediaInPhotoPickerEnabled() {
         return DEFAULT_CLOUD_MEDIA_IN_PHOTO_PICKER_ENABLED;
+    }
+
+    /**
+     * @return if the Private-Space-in-Photo-Picker enabled
+     */
+    default boolean isPrivateSpaceInPhotoPickerEnabled() {
+        return DEFAULT_PICKER_PRIVATE_SPACE_ENABLED;
     }
 
     /**
@@ -250,6 +268,28 @@ public interface ConfigStore {
         writer.println("  transcodeCompatStale=" + getTranscodeCompatStale());
     }
 
+    static ConfigStore getDefaultConfigStore() {
+        return new ConfigStore() {
+            @NonNull
+            @Override
+            public List<String> getTranscodeCompatManifest() {
+                return Collections.emptyList();
+            }
+
+            @NonNull
+            @Override
+            public List<String> getTranscodeCompatStale() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public void addOnChangeListener(@NonNull Executor executor,
+                    @NonNull Runnable listener) {
+                // Do nothing
+            }
+        };
+    }
+
     /**
      * Implementation of the {@link ConfigStore} that reads "real" configs from
      * {@link android.provider.DeviceConfig}. Meant to be used by the "production" code.
@@ -275,6 +315,8 @@ public interface ConfigStore {
             "persist.sys.fuse.transcode_max_file_duration_ms";
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
 
+        private static final String KEY_MODERN_PICKER_ENABLED = "enable_modern_picker";
+
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
         private static final String KEY_PICKER_PICK_IMAGES_PRELOAD =
@@ -282,10 +324,16 @@ public interface ConfigStore {
         private static final String KEY_PICKER_PICK_IMAGES_RESPECT_PRELOAD_ARG =
                 "picker_pick_images_respect_preload_selected_arg";
 
-        private static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+        @VisibleForTesting
+        public static final String KEY_CLOUD_MEDIA_FEATURE_ENABLED = "cloud_media_feature_enabled";
+
+        @VisibleForTesting
+        public static final String KEY_PRIVATE_SPACE_FEATURE_ENABLED =
+                "private_space_feature_enabled";
         private static final String KEY_PICKER_CHOICE_MANAGED_SELECTION_ENABLED =
                 "picker_choice_managed_selection_enabled";
-        private static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
+        @VisibleForTesting
+        public static final String KEY_CLOUD_MEDIA_PROVIDER_ALLOWLIST = "allowed_cloud_providers";
         private static final String KEY_CLOUD_MEDIA_ENFORCE_PROVIDER_ALLOWLIST =
                 "cloud_media_enforce_provider_allowlist";
 
@@ -296,6 +344,22 @@ public interface ConfigStore {
 
         ConfigStoreImpl(@NonNull Resources resources) {
             mResources = requireNonNull(resources);
+        }
+
+        @Override
+        public boolean isModernPickerEnabled() {
+
+            // The modern photopicker can only be enabled on T+ such that it can acquire all
+            // of the necessary runtime permissions it needs. For devices running a platform
+            // prior to T, the modern picker is always disabled.
+            if (SdkLevel.isAtLeastT()) {
+                return getBooleanDeviceConfig(
+                                NAMESPACE_MEDIAPROVIDER,
+                                KEY_MODERN_PICKER_ENABLED,
+                                DEFAULT_MODERN_PICKER_ENABLED);
+            } else {
+                return false;
+            }
         }
 
         @Override
@@ -313,6 +377,14 @@ public interface ConfigStore {
             // Only consider the feature enabled when the enabled flag is on AND when the allowlist
             // of permitted cloud media providers is not empty.
             return isEnabled && !allowList.isEmpty();
+        }
+
+        @Override
+        public boolean isPrivateSpaceInPhotoPickerEnabled() {
+            return getBooleanDeviceConfig(
+                    NAMESPACE_MEDIAPROVIDER,
+                    KEY_PRIVATE_SPACE_FEATURE_ENABLED,
+                    DEFAULT_PICKER_PRIVATE_SPACE_ENABLED);
         }
 
         @Override
@@ -389,7 +461,8 @@ public interface ConfigStore {
 
         @Override
         public boolean isGetContentTakeOverEnabled() {
-            return getBooleanDeviceConfig(KEY_TAKE_OVER_GET_CONTENT, DEFAULT_TAKE_OVER_GET_CONTENT);
+            return getBooleanDeviceConfig(NAMESPACE_MEDIAPROVIDER, KEY_TAKE_OVER_GET_CONTENT,
+                    DEFAULT_TAKE_OVER_GET_CONTENT);
         }
 
         @Override

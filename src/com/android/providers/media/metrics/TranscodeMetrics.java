@@ -18,7 +18,6 @@ package com.android.providers.media.metrics;
 
 import static com.android.providers.media.MediaProviderStatsLog.TRANSCODING_DATA;
 
-import android.app.StatsManager;
 import android.util.StatsEvent;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -43,6 +42,10 @@ final class TranscodeMetrics {
     // This can be greater than TRANSCODING_STATS_DATA.size() since we might not add all the
     // incoming data because of the hard limit on the size.
     private static int sTotalStatsDataCount = 0;
+
+    private TranscodeMetrics() {
+        // Do nothing, this class cannot be instantiated
+    }
 
     static List<StatsEvent> pullStatsEvents() {
         synchronized (TRANSCODING_STATS_DATA) {

@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.util.StatsEvent;
 
-import androidx.test.runner.AndroidJUnit4;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.After;
 import org.junit.Test;
@@ -30,7 +30,6 @@ import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 public class TranscodeMetricsTest {
-    private static final int UNKNOWN_ATOM_TAG = -1;
 
     private static final TranscodeMetrics.TranscodingStatsData EMPTY_STATS_DATA =
             new TranscodeMetrics.TranscodingStatsData(

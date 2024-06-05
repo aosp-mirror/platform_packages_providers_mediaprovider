@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.ui;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -42,6 +43,7 @@ import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.MuteStatus;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -75,6 +77,7 @@ public class PreviewFragment extends Fragment {
     private boolean mShouldShowGifBadge;
     private boolean mShouldShowMotionPhotoBadge;
     private MuteStatus mMuteStatus;
+    private boolean mIsCustomPickerColorSet = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -103,6 +106,8 @@ public class PreviewFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup parent,
             Bundle savedInstanceState) {
         mPickerViewModel = new ViewModelProvider(requireActivity()).get(PickerViewModel.class);
+        mIsCustomPickerColorSet =
+                mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet();
         mSelection = mPickerViewModel.getSelection();
         mMuteStatus = mPickerViewModel.getMuteStatus();
         return inflater.inflate(R.layout.fragment_preview, parent, /* attachToRoot */ false);
@@ -212,6 +217,11 @@ public class PreviewFragment extends Fragment {
      */
     private void setUpPreviewLayoutForLongPress(@NonNull View view) {
         final Button addOrSelectButton = view.findViewById(R.id.preview_add_or_select_button);
+        if (mIsCustomPickerColorSet) {
+            setCustomButtonColorsInLongPressPreviewMode(
+                    addOrSelectButton,
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor());
+        }
 
         // Preview on Long Press will reuse AddOrSelect button as
         // * Add button - Button with text "Add" - for single select mode
@@ -236,6 +246,14 @@ public class PreviewFragment extends Fragment {
         updateSpecialFormatIcon(mViewPager2Wrapper.getItemAt(/* position */ 0));
     }
 
+    private void setCustomButtonColorsInLongPressPreviewMode(
+            Button addOrSelectButton, int buttonBackgroundColor) {
+        String textColor = mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                ? AccentColorResources.DARK_TEXT_COLOR : AccentColorResources.LIGHT_TEXT_COLOR;
+        addOrSelectButton.setBackgroundColor(buttonBackgroundColor);
+        addOrSelectButton.setTextColor(Color.parseColor(textColor));
+    }
+
     /**
      * Adjusts the layout based on Multi select and adds appropriate onClick listeners
      */
@@ -254,6 +272,13 @@ public class PreviewFragment extends Fragment {
 
         final Button selectedCheckButton = view.findViewById(R.id.preview_selected_check_button);
         selectedCheckButton.setVisibility(View.VISIBLE);
+
+        if (mIsCustomPickerColorSet) {
+            setCustomButtonColorsInViewSelectedPreviewMode(
+                    viewSelectedAddButton, selectedCheckButton,
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor(),
+                    AccentColorResources.LIGHT_TEXT_COLOR);
+        }
         // Update the select icon and text according to the state of selection while swiping
         // between photos
         mViewPager2Wrapper.addOnPageChangeCallback(new OnPageChangeCallback(selectedCheckButton));
@@ -276,6 +301,22 @@ public class PreviewFragment extends Fragment {
 
         selectedCheckButton.setOnClickListener(
                 v -> onClickSelectedCheckButton(selectedCheckButton));
+    }
+
+    private void setCustomButtonColorsInViewSelectedPreviewMode(
+            Button addButton, Button viewSelectedButton, int buttonFillColor,
+            String viewSelectedButtonTextColor) {
+        // Set add button colors
+        String addButtonTextColor =
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR;
+        addButton.setBackgroundColor(buttonFillColor);
+        addButton.setTextColor(Color.parseColor(addButtonTextColor));
+        // Set view-selected button colors
+        viewSelectedButton.setTextColor(Color.parseColor(viewSelectedButtonTextColor));
+        viewSelectedButton.setCompoundDrawableTintList(
+                ColorStateList.valueOf(buttonFillColor));
     }
 
     @Override

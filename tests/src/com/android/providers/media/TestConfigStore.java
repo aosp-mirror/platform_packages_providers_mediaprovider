@@ -35,6 +35,7 @@ import java.util.concurrent.Executor;
  */
 public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
+    private boolean mPrivateSpaceEnabled = false;
 
     private boolean mPickerChoiceManagedSelectionEnabled = false;
     private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
@@ -45,6 +46,26 @@ public class TestConfigStore implements ConfigStore {
         mAllowedCloudProviderPackages = Arrays.asList(providers);
         mCloudMediaInPhotoPickerEnabled = true;
         notifyObservers();
+    }
+
+    /**
+     * Enables private space flag for PhotoPicker in test config
+     */
+    public void enablePrivateSpaceInPhotoPicker() {
+        mPrivateSpaceEnabled = true;
+        notifyObservers();
+    }
+
+    /**
+     * Disables private space flag for PhotoPicker in test config
+     */
+    public void disablePrivateSpaceInPhotoPicker() {
+        mPrivateSpaceEnabled = false;
+        notifyObservers();
+    }
+    @Override
+   public boolean isPrivateSpaceInPhotoPickerEnabled() {
+        return mPrivateSpaceEnabled;
     }
 
     public void enableCloudMediaFeature() {

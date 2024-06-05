@@ -19,15 +19,17 @@ package com.android.providers.media.photopicker.data;
 import static android.content.ContentResolver.QUERY_ARG_LIMIT;
 import static android.database.DatabaseUtils.dumpCursorToString;
 import static android.provider.MediaStore.AUTHORITY;
-import static android.provider.MediaStore.MediaColumns.DATA;
+import static android.provider.MediaStore.EXTRA_CALLING_PACKAGE_UID;
 
 import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
+import static com.android.providers.media.PickerUriResolver.DEFAULT_UID;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_DATE_TAKEN_BEFORE_MS;
-import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ROW_ID;
+import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOULD_SCREEN_SELECTION_URIS;
 import static com.android.providers.media.photopicker.util.CloudProviderUtils.sendInitPhotoPickerDataNotification;
-import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -52,13 +54,14 @@ import androidx.annotation.Nullable;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.UserId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Provides image and video items from {@link MediaStore} collection to the Photo Picker.
@@ -172,20 +175,27 @@ public class ItemsProvider {
      * Gets cursor for items corresponding to the ids passed as an argument.
      *
      * @param category  the category of items to return.
+     * @param preselectedUris list of Uris for which the item objects are required
      * @param mimeTypes the mime type of item. {@code null} returns all images/videos that are
      *                 scanned by {@link MediaStore}.
      * @param userId the {@link UserId} of the user to get items as.
      *               {@code null} defaults to {@link UserId#CURRENT_USER}
-     * @param localIdSelection list of ids for which the item objects are required
+     * @param isLocalOnly indicates if only local items are required
+     * @param callingPackageUid uid for the calling package
+     * @param  shouldScreenSelectionUris flag to represent if the preselectedUris passed should
+     *                                   be validated and checked for permission
      */
-    public Cursor getLocalItemsForSelection(Category category,
-            @NonNull List<Integer> localIdSelection,
+    public Cursor getItemsForPreselectedMedia(Category category,
+            @Nullable List<Uri> preselectedUris,
             @Nullable String[] mimeTypes,
             @Nullable UserId userId,
+            boolean isLocalOnly,
+            int callingPackageUid,
+            boolean  shouldScreenSelectionUris,
             @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
-        Objects.requireNonNull(localIdSelection);
-        return queryMedia(URI_MEDIA_LOCAL, new PaginationParameters(), mimeTypes, category, userId,
-                localIdSelection, cancellationSignal);
+        return queryMedia(isLocalOnly ? URI_MEDIA_LOCAL : URI_MEDIA_ALL,
+                new PaginationParameters(), mimeTypes, category, userId,
+                preselectedUris, callingPackageUid, shouldScreenSelectionUris, cancellationSignal);
     }
 
     /**
@@ -240,15 +250,16 @@ public class ItemsProvider {
     private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
             String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
             @Nullable CancellationSignal cancellationSignal) {
-        return queryMedia(uri, paginationParameters, mimeTypes, category, userId, null,
-                cancellationSignal);
+        return queryMedia(uri, paginationParameters, mimeTypes, category, userId,
+                /* preselectedUris */ null, /* callingPackageUid */ DEFAULT_UID,
+                /* shouldScreenSelectionUris */false, cancellationSignal);
     }
 
     @Nullable
     private Cursor queryMedia(@NonNull Uri uri, PaginationParameters paginationParameters,
             String[] mimeTypes, @NonNull Category category, @Nullable UserId userId,
-            List<Integer> localIdSelection,
-            @Nullable CancellationSignal cancellationSignal)
+            @Nullable List<Uri> preselectedUris, int callingPackageUid,
+            boolean shouldScreenSelectionUris, @Nullable CancellationSignal cancellationSignal)
             throws IllegalStateException {
         if (userId == null) {
             userId = UserId.CURRENT_USER;
@@ -285,10 +296,13 @@ public class ItemsProvider {
                 extras.putInt(QUERY_ROW_ID, paginationParameters.getRowId());
                 extras.putLong(QUERY_DATE_TAKEN_BEFORE_MS, paginationParameters.getDateBeforeMs());
             }
-            if (localIdSelection != null) {
-                extras.putIntegerArrayList(QUERY_LOCAL_ID_SELECTION,
-                        (ArrayList<Integer>) localIdSelection);
+            if (preselectedUris != null) {
+                extras.putStringArrayList(QUERY_ID_SELECTION, preselectedUris.stream()
+                        .map(Uri::toString).collect(Collectors.toCollection(ArrayList::new)));
             }
+            extras.putInt(EXTRA_CALLING_PACKAGE_UID, callingPackageUid);
+            extras.putBoolean(QUERY_SHOULD_SCREEN_SELECTION_URIS,
+                    shouldScreenSelectionUris);
 
             result = client.query(uri, /* projection */ null, extras,
                     /* cancellationSignal */ cancellationSignal);
@@ -431,10 +445,13 @@ public class ItemsProvider {
                     /* queryArgs= */ extras,
                     null)) {
                 while (c.moveToNext()) {
-                    final String file_path = c.getString(c.getColumnIndexOrThrow(DATA));
                     final Integer file_id = c.getInt(c.getColumnIndexOrThrow(FILE_ID_COLUMN));
-                    filesUriList.add(getContentUriForPath(
-                            file_path).buildUpon().appendPath(String.valueOf(file_id)).build());
+                    final Integer userId = c.getInt(
+                            c.getColumnIndexOrThrow(PACKAGE_USER_ID_COLUMN));
+                    // transforming ids to Item uris to use as a key in selection based features.
+                    filesUriList.add(getItemsUri(String.valueOf(file_id),
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                            UserId.of(UserHandle.of(userId))));
                 }
             }
             return filesUriList;

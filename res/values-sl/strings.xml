@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Predogled"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Preklop na delovni profil"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Preklop na osebni profil"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Osebno"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Blokiral skrbnik."</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Iz osebne aplikacije ni dovoljeno dostopati do delovnih podatkov."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Iz delovne aplikacije ni dovoljeno dostopati do osebnih podatkov."</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Iz aplikacije profila »<xliff:g id="PROFILE2">%2$s</xliff:g>« ni dovoljeno dostopati do podatkov profila »<xliff:g id="PROFILE1">%1$s</xliff:g>«"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Preklopi na profil »<xliff:g id="PROFILE">%s</xliff:g>«"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Delovne aplikacije so začasno zaustavljene"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplikacije profila »<xliff:g id="PROFILE">%s</xliff:g>« so začasno zaustavljene"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Če želite odpreti delovne fotografije, vklopite delovne aplikacije in poskusite znova."</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Če želite odpreti fotografije profila »<xliff:g id="PROFILE1">%1$s</xliff:g>«, vklopite aplikacije profila »<xliff:g id="PROFILE2">%2$s</xliff:g>« in nato poskusite znova"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ta aplikacija ima dostop samo do fotografij, ki jih izberete."</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Izberite fotografije in videoposnetke, do katerih aplikaciji dovolite dostop."</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}one{<xliff:g id="COUNT_1">^1</xliff:g> element}two{<xliff:g id="COUNT_1">^1</xliff:g> elementa}few{<xliff:g id="COUNT_1">^1</xliff:g> elementi}other{<xliff:g id="COUNT_1">^1</xliff:g> elementov}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Poskusite znova pozneje. Fotografije bodo na voljo, ko bo težava odpravljena."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Nekaterih fotografij ni mogoče naložiti"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Razumem"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Dostop do imena lastniškega paketa"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Aplikaciji omogoča dostop do imen lastniških paketov vseh dostopnih predstavnostnih datotek."</string>
 </resources>

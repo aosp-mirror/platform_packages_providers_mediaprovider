@@ -619,7 +619,7 @@ public class ModernMediaScannerTest {
     }
 
     /**
-     * All file formats are thoroughly tested by {@code CtsProviderTestCases},
+     * All file formats are thoroughly tested by {@code CtsMediaProviderTestCases},
      * but to prove code coverage we also need to exercise manually here with a
      * bare-bones scan operation.
      */

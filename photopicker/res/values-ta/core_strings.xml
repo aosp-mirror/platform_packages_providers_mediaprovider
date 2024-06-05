@@ -24,6 +24,5 @@
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ஆவணங்கள் வரை தேர்ந்தெடுங்கள்"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Photos"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ஆல்பங்கள்"</string>
-    <!-- no translation found for photopicker_back_option (986374743479020214) -->
-    <skip />
+    <string name="photopicker_back_option" msgid="986374743479020214">"பின்செல்லும்"</string>
 </resources>

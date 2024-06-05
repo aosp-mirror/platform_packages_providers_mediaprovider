@@ -24,7 +24,10 @@ apex {
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
     apps: ["MediaProvider"],
-    compat_configs: ["media-provider-platform-compat-config"],
+    compat_configs: [
+        "media-provider-platform-compat-config",
+        "framework-pdf-v-platform-compat-config",
+    ],
     jni_libs: [
         "libpdfclient",
     ],

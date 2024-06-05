@@ -19,7 +19,6 @@ package com.android.photopicker.features.selectionbar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
@@ -58,12 +57,12 @@ class SelectionBarFeature : PhotopickerUiFeature {
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
     /** Events produced by the selection bar */
-    override val eventsProduced = setOf(Event.MediaSelectionConfirmed::class.java)
+    override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
     override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
-            Location.SELECTION_BAR -> SelectionBar(modifier)
+            Location.SELECTION_BAR -> SelectionBar(modifier, params)
             else -> {}
         }
     }

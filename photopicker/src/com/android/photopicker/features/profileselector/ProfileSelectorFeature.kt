@@ -24,6 +24,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 
@@ -32,7 +33,9 @@ class ProfileSelectorFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerProfileSelectorFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = ProfileSelectorFeature()
     }
 
@@ -49,7 +52,11 @@ class ProfileSelectorFeature : PhotopickerUiFeature {
     override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.PROFILE_SELECTOR -> ProfileSelector(modifier)
             else -> {}

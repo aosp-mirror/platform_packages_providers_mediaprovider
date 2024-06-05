@@ -26,6 +26,7 @@ import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 
@@ -37,7 +38,9 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "AlwaysDisabledFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = false
+
         override fun build(featureManager: FeatureManager) = AlwaysDisabledFeature()
 
         val UI_STRING = "Can anyone hear me? :("
@@ -56,8 +59,11 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
-
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
             else -> {}

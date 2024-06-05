@@ -19,9 +19,14 @@ package com.android.photopicker.features.photogrid
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -39,7 +44,18 @@ class PhotoGridViewModelTest {
             mediaId = "id",
             pickerId = 1000L,
             authority = "a",
-            uri =
+            mediaSource = MediaSource.LOCAL,
+            mediaUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("id")
+                    }
+                    .build(),
+            glideLoadableUri =
                 Uri.EMPTY.buildUpon()
                     .apply {
                         scheme("content")
@@ -57,13 +73,33 @@ class PhotoGridViewModelTest {
     fun testPhotoGridItemClickedUpdatesSelection() {
 
         runTest {
-            val selection = Selection<Media>(scope = this.backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                )
+
+            val featureManager =
+                FeatureManager(
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    scope = this.backgroundScope,
+                    coreEventsConsumed = setOf<RegisteredEventClass>(),
+                    coreEventsProduced = setOf<RegisteredEventClass>(),
+                )
+
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager = featureManager,
+                )
 
             val viewModel =
                 PhotoGridViewModel(
                     this.backgroundScope,
                     selection,
                     TestDataServiceImpl(),
+                    events,
                 )
 
             assertWithMessage("Unexpected selection start size")
@@ -71,7 +107,7 @@ class PhotoGridViewModelTest {
                 .isEqualTo(0)
 
             // Toggle the item into the selection
-            viewModel.handleGridItemSelection(mediaItem)
+            viewModel.handleGridItemSelection(mediaItem, "")
 
             // Wait for selection update.
             advanceTimeBy(100)
@@ -81,7 +117,7 @@ class PhotoGridViewModelTest {
                 .contains(mediaItem)
 
             // Toggle the item out of the selection
-            viewModel.handleGridItemSelection(mediaItem)
+            viewModel.handleGridItemSelection(mediaItem, "")
 
             advanceTimeBy(100)
 

@@ -20,7 +20,14 @@ import static com.android.settingslib.widget.ProfileSelectFragment.PERSONAL_TAB;
 import static com.android.settingslib.widget.ProfileSelectFragment.WORK_TAB;
 
 import android.annotation.NonNull;
+import android.annotation.RequiresApi;
 import android.annotation.UserIdInt;
+import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
@@ -40,6 +47,11 @@ import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.ui.settings.SettingsProfileSelectFragment;
 import com.android.providers.media.photopicker.ui.settings.SettingsViewModel;
+import com.android.providers.media.photopicker.util.RecentsPreviewUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Photo Picker settings page where user can view/edit current cloud media provider.
@@ -48,10 +60,26 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
     private static final String TAG = "PickerSettings";
     static final String EXTRA_CURRENT_USER_ID = "user_id";
     private static final int DEFAULT_EXTRA_USER_ID = -1;
-    private static final int DEFAULT_TAB = PERSONAL_TAB;
+    private ArrayList<String> mProfileActions;
+    private int mCallingUserId;
+    private static final int DEFAULT_TAB_USER_ID = ActivityManager.getCurrentUser();;
 
     @NonNull
     private SettingsViewModel mSettingsViewModel;
+
+    private final BroadcastReceiver mProfilesActionsReceiver =
+            new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (SdkLevel.isAtLeastV()
+                            && !isFinishing()
+                            && mProfileActions.contains(intent.getAction())) {
+                        mSettingsViewModel.getUserManagerState().resetUserIds();
+                        createAndShowFragment(mCallingUserId, /* allowReplace= */ true);
+                        updateRecentsVisibilitySetting();
+                    }
+                }
+            };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,16 +96,46 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         mSettingsViewModel =
                 new ViewModelProvider(this).get(SettingsViewModel.class);
         final Bundle extras = getIntent().getExtras();
-        final int callingUserId;
         if (extras != null) {
-            callingUserId = extras.getInt(EXTRA_CURRENT_USER_ID, DEFAULT_EXTRA_USER_ID);
+            mCallingUserId = extras.getInt(EXTRA_CURRENT_USER_ID, DEFAULT_EXTRA_USER_ID);
         } else {
-            callingUserId = DEFAULT_EXTRA_USER_ID;
+            mCallingUserId = DEFAULT_EXTRA_USER_ID;
         }
 
         setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
-        createAndShowFragmentIfNeeded(callingUserId);
+        createAndShowFragment(mCallingUserId, /* allowReplace= */ false);
+
+        updateRecentsVisibilitySetting();
+
+        // TODO: merge with CrossProfile listeners in the main Photo picker activity.
+        if (SdkLevel.isAtLeastV()) {
+            mProfileActions =
+                    new ArrayList<>(
+                            Arrays.asList(
+                                    Intent.ACTION_PROFILE_ADDED, Intent.ACTION_PROFILE_AVAILABLE,
+                                    Intent.ACTION_PROFILE_REMOVED,
+                                            Intent.ACTION_PROFILE_UNAVAILABLE));
+
+            final IntentFilter profileFilter = new IntentFilter();
+            for (String action : mProfileActions) {
+                profileFilter.addAction(action);
+            }
+            registerReceiver(mProfilesActionsReceiver, profileFilter);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (SdkLevel.isAtLeastV()) {
+            unregisterReceiver(mProfilesActionsReceiver);
+        }
+    }
+
+    private void updateRecentsVisibilitySetting() {
+        RecentsPreviewUtil.updateRecentsVisibilitySetting(mSettingsViewModel.getConfigStore(),
+                mSettingsViewModel.getUserManagerState(), this);
     }
 
     private void displayActionBar() {
@@ -98,9 +156,10 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         return false;
     }
 
-    private void createAndShowFragmentIfNeeded(@UserIdInt int callingUserId) {
+    private void createAndShowFragment(@UserIdInt int callingUserId, boolean allowReplace) {
         final FragmentManager fragmentManager = getSupportFragmentManager();
-        if (fragmentManager.findFragmentById(R.id.settings_fragment_container) != null) {
+        if (!allowReplace
+                && fragmentManager.findFragmentById(R.id.settings_fragment_container) != null) {
             // Fragment already exists and is attached to this Activity.
             // Nothing further needs to be done.
             Log.d(TAG, "An instance of target fragment is already attached to the "
@@ -117,40 +176,52 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         fragmentManager.executePendingTransactions();
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
+    private List<Integer> getUserIdListToShowProfileTabs(UserManagerState userManagerState) {
+        List<Integer> userIdList = new ArrayList<>();
+        for (UserId userId : userManagerState.getAllUserProfileIds()) {
+            if (!userManagerState.isProfileOff(userId)) {
+                userIdList.add(userId.getIdentifier());
+            }
+        }
+        return userIdList;
+    }
+
     @NonNull
     private Fragment getTargetFragment(@UserIdInt int callingUserId) {
         // Target fragment is SettingsProfileSelectFragment if there exists more than one
         // UserHandles for profiles associated with the context user, including the user itself.
         // Else target fragment is SettingsCloudMediaSelectFragment
-        boolean showPersonalAndWorkTabs = false;
+        boolean showOtherProfileTabs = false;
+        List<Integer> userIdListToShowProfileTabs = null;
         if (mSettingsViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()
                 && SdkLevel.isAtLeastS()) {
             final UserManagerState userManagerState = mSettingsViewModel.getUserManagerState();
-            if (userManagerState.isMultiUserProfiles()) {
-                userManagerState.updateProfileOffValues();
-                for (UserId userId : userManagerState.getAllUserProfileIds()) {
-                    // In case work profile exists and is turned off, do not show the work tab.
-                    if (userManagerState.isManagedUserProfile(userId)
-                            && !userManagerState.isProfileOff(userId)) {
-                        showPersonalAndWorkTabs = true;
-                        break;
-                    }
-                }
-            }
+            userManagerState.updateProfileOffValues();
+            userIdListToShowProfileTabs = getUserIdListToShowProfileTabs(userManagerState);
+            showOtherProfileTabs = userIdListToShowProfileTabs.size() > 1;
         } else {
             final UserIdManager userIdManager = mSettingsViewModel.getUserIdManager();
             if (userIdManager.isMultiUserProfiles()) {
                 userIdManager.updateWorkProfileOffValue();
                 // In case work profile exists and is turned off, do not show the work tab.
                 if (!userIdManager.isWorkProfileOff()) {
-                    showPersonalAndWorkTabs = true;
+                    showOtherProfileTabs = true;
                 }
             }
         }
 
-        if (showPersonalAndWorkTabs) {
-            final int selectedProfileTab = getInitialProfileTab(callingUserId);
-            return SettingsProfileSelectFragment.getProfileSelectFragment(selectedProfileTab);
+        if (showOtherProfileTabs) {
+            final int selectedProfileTab = getInitialProfileTab(
+                    callingUserId, userIdListToShowProfileTabs);
+            // 'userIdProvided` represents whether we are working with userIds or tab positions.
+            // If we are working with tab’s user id that is only possible when
+            // `Private space feature flag is enabled && SdkLevel.isAtLeastV()` , this variable will
+            // be true and false otherwise
+            boolean userIdProvided = SdkLevel.isAtLeastV() && mSettingsViewModel
+                    .getConfigStore().isPrivateSpaceInPhotoPickerEnabled();
+            return SettingsProfileSelectFragment.getProfileSelectFragment(
+                    selectedProfileTab, userIdProvided, userIdListToShowProfileTabs);
         }
 
         return getCloudMediaSelectFragment();
@@ -163,13 +234,28 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
     }
 
     /**
-     * @return the tab position that should be open when user initially lands on the Settings page.
+     *  Returns the user id of the initially selected tab when `private space is enabled &&
+     * SdkLevel.isAtLeastV()` and for rest of the case it returns the tab position of the initially
+     * selected tab
      */
-    private int getInitialProfileTab(@UserIdInt int callingUserId) {
+    private int getInitialProfileTab(@UserIdInt int callingUserId, List<Integer> userIdList) {
         final UserManager userManager = getApplicationContext().getSystemService(UserManager.class);
+        int selectedTabId = callingUserId;
         if (userManager == null || callingUserId == DEFAULT_EXTRA_USER_ID) {
-            return DEFAULT_TAB;
+            selectedTabId = DEFAULT_TAB_USER_ID;
         }
-        return userManager.isManagedProfile(callingUserId) ? WORK_TAB : PERSONAL_TAB;
+
+        // For all the cases when private space may exist on the device, we will work with tab
+        // user ids of different profiles and for rest of the case we will use tab positions to get
+        // personal and work profile tabs
+        if (SdkLevel.isAtLeastV()
+                && mSettingsViewModel.getConfigStore().isPrivateSpaceInPhotoPickerEnabled()) {
+            if (!userIdList.contains(callingUserId)) {
+                selectedTabId = DEFAULT_TAB_USER_ID;
+            }
+            return selectedTabId;
+        }
+
+        return userManager.isManagedProfile(selectedTabId) ? WORK_TAB : PERSONAL_TAB;
     }
 }

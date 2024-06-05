@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -71,9 +72,6 @@ import java.util.stream.Collectors;
  * To ensure that the ids of MediaStore database uris are stable and reliable.
  */
 public class DatabaseBackupAndRecovery {
-
-    private static final String UPPER_FS_RECOVERY_DIRECTORY_PATH =
-            "/storage/emulated/" + UserHandle.myUserId() + "/.transforms/recovery";
 
     private static final String LOWER_FS_RECOVERY_DIRECTORY_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery";
@@ -85,11 +83,11 @@ public class DatabaseBackupAndRecovery {
     private static final String OWNER_RELATION_LOWER_FS_BACKUP_PATH =
             "/data/media/" + UserHandle.myUserId() + "/.transforms/recovery/leveldb-ownership";
 
-    private static final String INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH =
-            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-internal";
+    private static final String INTERNAL_VOLUME_LOWER_FS_BACKUP_PATH =
+            LOWER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-internal";
 
-    private static final String EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH =
-            UPPER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-external_primary";
+    private static final String EXTERNAL_PRIMARY_VOLUME_LOWER_FS_BACKUP_PATH =
+            LOWER_FS_RECOVERY_DIRECTORY_PATH + "/leveldb-external_primary";
 
     /**
      * Every LevelDB table name starts with this prefix.
@@ -162,8 +160,14 @@ public class DatabaseBackupAndRecovery {
     private final ConfigStore mConfigStore;
     private final VolumeCache mVolumeCache;
     private Set<String> mSetupCompleteVolumes = ConcurrentHashMap.newKeySet();
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUriEnabledForInternal = false;
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUriEnabledForExternal = false;
+
+    // Flag only used to enable/disable feature for testing
     private boolean mIsStableUrisEnabledForPublic = false;
 
     private static Map<String, String> sOwnerIdRelationMap;
@@ -176,7 +180,7 @@ public class DatabaseBackupAndRecovery {
     public static final String STABLE_URI_EXTERNAL_PROPERTY =
             "persist.sys.fuse.backup.external_volume_backup";
 
-    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = true;
 
     public static final String STABLE_URI_PUBLIC_PROPERTY =
             "persist.sys.fuse.backup.public_db_backup";
@@ -192,6 +196,18 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        // Check if flags are enabled for test for internal volume
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && mIsStableUriEnabledForInternal) {
+            return true;
+        }
+        // Check if flags are enabled for test for external primary volume
+        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                && mIsStableUriEnabledForExternal) {
+            return true;
+        }
+
+        // Feature is disabled for below S due to vold mount issues.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return false;
         }
@@ -246,9 +262,9 @@ public class DatabaseBackupAndRecovery {
                 ? MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY
                 : MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
         try {
-            if (!new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).exists()) {
-                new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
-                Log.v(TAG, "Created recovery directory:" + UPPER_FS_RECOVERY_DIRECTORY_PATH);
+            if (!new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).exists()) {
+                new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
+                Log.v(TAG, "Created recovery directory:" + LOWER_FS_RECOVERY_DIRECTORY_PATH);
             }
             FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
@@ -450,7 +466,7 @@ public class DatabaseBackupAndRecovery {
 
     protected void deleteBackupForVolume(String volumeName) {
         File dbFilePath = new File(
-                String.format(Locale.ROOT, "%s/%s.db", UPPER_FS_RECOVERY_DIRECTORY_PATH,
+                String.format(Locale.ROOT, "%s/%s.db", LOWER_FS_RECOVERY_DIRECTORY_PATH,
                         volumeName));
         if (dbFilePath.exists()) {
             dbFilePath.delete();
@@ -901,6 +917,13 @@ public class DatabaseBackupAndRecovery {
         }
         Log.d(TAG, "Backup is present for " + volumeName);
 
+        try {
+            waitForVolumeToBeAttached(mSetupCompleteVolumes);
+        } catch (Exception e) {
+            Log.e(TAG, "Volume not attached in given time. Cannot recover data.", e);
+            return;
+        }
+
         long rowsRecovered = 0;
         long dirtyRowsCount = 0;
         String[] backedUpFilePaths;
@@ -950,12 +973,31 @@ public class DatabaseBackupAndRecovery {
 
     protected boolean isBackupPresent(String volumeName) {
         if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
-            return new File(INTERNAL_VOLUME_UPPER_FS_BACKUP_PATH).exists();
+            return new File(INTERNAL_VOLUME_LOWER_FS_BACKUP_PATH).exists();
         } else if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            return new File(EXTERNAL_PRIMARY_VOLUME_UPPER_FS_BACKUP_PATH).exists();
+            return new File(EXTERNAL_PRIMARY_VOLUME_LOWER_FS_BACKUP_PATH).exists();
         }
 
         return false;
+    }
+
+    protected void waitForVolumeToBeAttached(Set<String> setupCompleteVolumes)
+            throws TimeoutException {
+        long time = 0;
+        // Wait of 10 seconds
+        long waitTimeInMilliseconds = 10000;
+        // Poll every 100 milliseconds
+        long pollTime = 100;
+        while (time <= waitTimeInMilliseconds) {
+            if (setupCompleteVolumes.contains(MediaStore.VOLUME_EXTERNAL_PRIMARY)) {
+                Log.i(TAG, "Found external primary volume attached.");
+                return;
+            }
+
+            SystemClock.sleep(pollTime);
+            time += pollTime;
+        }
+        throw new TimeoutException("Timed out waiting for external primary setup");
     }
 
     protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
@@ -999,7 +1041,7 @@ public class DatabaseBackupAndRecovery {
      * Returns list of backed up files from external storage.
      */
     protected List<File> getBackupFiles() {
-        return Arrays.asList(new File(UPPER_FS_RECOVERY_DIRECTORY_PATH).listFiles());
+        return Arrays.asList(new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).listFiles());
     }
 
     /**

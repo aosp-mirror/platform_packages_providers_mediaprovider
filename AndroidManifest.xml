@@ -92,13 +92,15 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
 
         <provider
             android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
             android:process=":PhotoPicker"
             android:authorities="com.android.providers.media.remote_video_preview"
-            android:exported="false" />
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+            android:exported="true" />
 
         <!-- Don't initialise WorkManager by default at startup -->
         <provider
@@ -272,7 +274,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:enabled="true">
-            <intent-filter android:priority="101" >
+            <intent-filter android:priority="105" >
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -16,10 +16,16 @@
 
 package com.android.providers.media;
 
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.UsedByNative;
+
 /**
  * Wrapper class which contains transforms, transforms completion status and ioPath for transform
  * lookup query for a file and uid pair.
  */
+@UsedByNative(
+    description = "Called from JNI in jni/MediaProviderWrapper.cpp",
+    kind = KeepItemKind.CLASS_AND_MEMBERS)
 public final class FileLookupResult {
     public final int transforms;
     public final int transformsReason;

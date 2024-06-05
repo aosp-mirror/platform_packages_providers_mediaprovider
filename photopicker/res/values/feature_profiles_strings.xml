@@ -1,0 +1,37 @@
+<!--
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+  <!-- Profile display names -->
+  <string name="photopicker_profile_primary_label" translation_description="Display name of the primary device user profile.">Personal</string>
+
+  <string name="photopicker_profile_managed_label" translation_description="Display name of the managed (work) device user profile.">Work</string>
+
+  <string name="photopicker_profile_unknown_label" translation_description="Display name of a device user profile whose type is not known.">Other</string>
+
+  <!-- Button accessibility description -->
+  <string name="photopicker_profile_switch_button_description" translation_description="Button accessibility description for switching user profiles">Switch User Profile</string>
+
+  <!-- Profile unavailable dialog title -->
+  <string name="photopicker_profile_unavailable_dialog_title" translation_description="Dialog title stating a user profile cannot be switched to due to it being unavailable."><xliff:g id="profile_name" example="Personal">%1$s</xliff:g> apps are paused</string>
+  <string name="photopicker_profile_blocked_by_admin_dialog_title" translation_description="Dialog title stating a user profile cannot be switched to due to admin policy.">Blocked by your admin</string>
+
+  <!-- Profile unavailable dialog message -->
+  <string name="photopicker_profile_unavailable_dialog_message" translation_description="Dialog message stating a user profile cannot be switched to due to it being unavailable.">To open <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> photos turn on your <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> apps, then try again</string>
+  <string name="photopicker_profile_blocked_by_admin_dialog_message" translation_description="Dialog title stating a user profile cannot be switched to due to it being unavailable.">Accessing data from this profile is not permitted by your administrator.</string>
+
+</resources>

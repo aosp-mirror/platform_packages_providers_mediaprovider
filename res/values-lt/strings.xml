@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Medijos debesyje programa"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Medijos debesyje programa"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Medijos debesyje programa"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Pasiekite debesies mediją, kai programa ar svetainė paprašys pasirinkti nuotraukas ar vaizdo įrašus"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Pasiekite mediją debesyje, kai programa ar svetainė paprašys pasirinkti nuotraukas ar vaizdo įrašus"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Pasiekti mediją debesyje iš"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nėra"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Šiuo metu nepavyko pakeisti debesies medijos programos."</string>

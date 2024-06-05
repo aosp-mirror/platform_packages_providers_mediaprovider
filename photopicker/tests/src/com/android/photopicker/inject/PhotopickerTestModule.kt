@@ -23,7 +23,6 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
-import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
@@ -37,6 +36,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import org.mockito.Mockito.mock
 
 /**
  * A basic Hilt test module that resolves common injected dependencies. Tests can install extend and
@@ -55,6 +55,15 @@ import kotlinx.coroutines.CoroutineScope
 @Module
 @DisableInstallInCheck
 abstract class PhotopickerTestModule {
+
+    @Singleton
+    @Provides
+    fun provideTestMockContext(): Context {
+        // Always provide a Mocked Context object to injected dependencies, to ensure that the
+        // device state never leaks into the test environment. Feature tests can obtain this mock
+        // by injecting a context object.
+        return mock(Context::class.java)
+    }
 
     @Singleton
     @Provides
@@ -88,11 +97,18 @@ abstract class PhotopickerTestModule {
     @Provides
     fun createUserMonitor(
         context: Context,
+        configurationManager: ConfigurationManager,
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         userHandle: UserHandle,
     ): UserMonitor {
-        return UserMonitor(context, scope, dispatcher, userHandle)
+        return UserMonitor(
+            context,
+            configurationManager.configuration,
+            scope,
+            dispatcher,
+            userHandle
+        )
     }
 
     @Singleton
@@ -115,16 +131,20 @@ abstract class PhotopickerTestModule {
     @Provides
     fun createFeatureManager(
         @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): FeatureManager {
         return FeatureManager(
-            provideTestConfigurationFlow(scope = scope),
+            configurationManager.configuration,
             scope,
         )
     }
 
     @Singleton
     @Provides
-    fun createSelection(@Background scope: CoroutineScope): Selection<Media> {
-        return Selection<Media>(scope = scope)
+    fun createSelection(
+        @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager
+    ): Selection<Media> {
+        return Selection<Media>(scope = scope, configuration = configurationManager.configuration)
     }
 }

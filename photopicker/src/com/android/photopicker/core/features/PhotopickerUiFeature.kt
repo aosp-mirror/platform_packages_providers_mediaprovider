@@ -71,7 +71,7 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * thread. Do not do expensive operations in this method, and follow all best practices for
      * normal @Composable functions. (Such as offloading background work via Coroutines.)
      */
-    @Composable fun compose(location: Location, modifier: Modifier): Unit
+    @Composable fun compose(location: Location, modifier: Modifier, params: LocationParams): Unit
 
     /**
      * This is called when the [NavHost] is composed for all enabled [PhotopickerUiFeature] to

@@ -65,12 +65,3 @@ filegroup {
     path: "java",
     visibility: ["//packages/providers/MediaProvider/tests"],
 }
-
-java_api_contribution {
-    name: "framework-mediaprovider-public-stubs",
-    api_surface: "public",
-    api_file: "api/current.txt",
-    visibility: [
-        "//build/orchestrator/apis",
-    ],
-}

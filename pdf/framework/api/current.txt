@@ -1,0 +1,227 @@
+// Signature format: 2.0
+package android.graphics.pdf {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class LoadParams {
+    method @Nullable public String getPassword();
+  }
+
+  public static final class LoadParams.Builder {
+    ctor public LoadParams.Builder();
+    method @NonNull public android.graphics.pdf.LoadParams build();
+    method @NonNull public android.graphics.pdf.LoadParams.Builder setPassword(@Nullable String);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfRendererPreV implements java.lang.AutoCloseable {
+    ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor) throws java.io.IOException;
+    ctor public PdfRendererPreV(@NonNull android.os.ParcelFileDescriptor, @NonNull android.graphics.pdf.LoadParams) throws java.io.IOException;
+    method public void close();
+    method public int getDocumentLinearizationType();
+    method @IntRange(from=0) public int getPageCount();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public int getPdfFormType();
+    method @NonNull public android.graphics.pdf.PdfRendererPreV.Page openPage(@IntRange(from=0) int);
+    method public void write(@NonNull android.os.ParcelFileDescriptor, boolean) throws java.io.IOException;
+    field public static final int DOCUMENT_LINEARIZED_TYPE_LINEARIZED = 1; // 0x1
+    field public static final int DOCUMENT_LINEARIZED_TYPE_NON_LINEARIZED = 0; // 0x0
+    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_ACRO_FORM = 1; // 0x1
+    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_NONE = 0; // 0x0
+    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3; // 0x3
+    field @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public static final int PDF_FORM_TYPE_XFA_FULL = 2; // 0x2
+  }
+
+  public final class PdfRendererPreV.Page implements java.lang.AutoCloseable {
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.Rect> applyEdit(@NonNull android.graphics.pdf.models.FormEditRecord);
+    method public void close();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from=0) int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtPosition(int, int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.pdf.models.FormWidgetInfo> getFormWidgetInfos(@NonNull int[]);
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageGotoLinkContent> getGotoLinks();
+    method @IntRange(from=0) public int getHeight();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
+    method @IntRange(from=0) public int getIndex();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
+    method @IntRange(from=0) public int getWidth();
+    method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
+    method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
+    method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class RenderParams {
+    method public int getRenderFlags();
+    method public int getRenderMode();
+    field public static final int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 4; // 0x4
+    field public static final int FLAG_RENDER_TEXT_ANNOTATIONS = 2; // 0x2
+    field public static final int RENDER_MODE_FOR_DISPLAY = 1; // 0x1
+    field public static final int RENDER_MODE_FOR_PRINT = 2; // 0x2
+  }
+
+  public static final class RenderParams.Builder {
+    ctor public RenderParams.Builder(int);
+    method @NonNull public android.graphics.pdf.RenderParams build();
+    method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int);
+    method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int, int);
+  }
+
+}
+
+package android.graphics.pdf.content {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageGotoLinkContent implements android.os.Parcelable {
+    ctor public PdfPageGotoLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.graphics.pdf.content.PdfPageGotoLinkContent.Destination);
+    method public int describeContents();
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
+    method @NonNull public android.graphics.pdf.content.PdfPageGotoLinkContent.Destination getDestination();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.content.PdfPageGotoLinkContent> CREATOR;
+  }
+
+  public static final class PdfPageGotoLinkContent.Destination implements android.os.Parcelable {
+    ctor public PdfPageGotoLinkContent.Destination(int, float, float, float);
+    method public int describeContents();
+    method @IntRange(from=0) public int getPageNumber();
+    method @FloatRange(from=0.0f) public float getXCoordinate();
+    method @FloatRange(from=0.0f) public float getYCoordinate();
+    method @FloatRange(from=0.0f) public float getZoom();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.content.PdfPageGotoLinkContent.Destination> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageImageContent implements android.os.Parcelable {
+    ctor public PdfPageImageContent(@NonNull String);
+    method public int describeContents();
+    method @NonNull public String getAltText();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.content.PdfPageImageContent> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageLinkContent implements android.os.Parcelable {
+    ctor public PdfPageLinkContent(@NonNull java.util.List<android.graphics.RectF>, @NonNull android.net.Uri);
+    method public int describeContents();
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
+    method @NonNull public android.net.Uri getUri();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.content.PdfPageLinkContent> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PdfPageTextContent implements android.os.Parcelable {
+    ctor public PdfPageTextContent(@NonNull String);
+    ctor public PdfPageTextContent(@NonNull String, @NonNull java.util.List<android.graphics.RectF>);
+    method public int describeContents();
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
+    method @NonNull public String getText();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.content.PdfPageTextContent> CREATOR;
+  }
+
+}
+
+package android.graphics.pdf.models {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormEditRecord implements android.os.Parcelable {
+    method public int describeContents();
+    method @Nullable public android.graphics.Point getClickPoint();
+    method @IntRange(from=0) public int getPageNumber();
+    method @NonNull public int[] getSelectedIndices();
+    method @Nullable public String getText();
+    method public int getType();
+    method @IntRange(from=0) public int getWidgetIndex();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.FormEditRecord> CREATOR;
+    field public static final int EDIT_TYPE_CLICK = 0; // 0x0
+    field public static final int EDIT_TYPE_SET_INDICES = 1; // 0x1
+    field public static final int EDIT_TYPE_SET_TEXT = 2; // 0x2
+  }
+
+  public static final class FormEditRecord.Builder {
+    ctor public FormEditRecord.Builder(int, @IntRange(from=0) int, @IntRange(from=0) int);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord build();
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setClickPoint(@Nullable android.graphics.Point);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setSelectedIndices(@Nullable int[]);
+    method @NonNull public android.graphics.pdf.models.FormEditRecord.Builder setText(@Nullable String);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class FormWidgetInfo implements android.os.Parcelable {
+    method public int describeContents();
+    method @Nullable public String getAccessibilityLabel();
+    method @FloatRange(from=0.0f) public float getFontSize();
+    method @NonNull public java.util.List<android.graphics.pdf.models.ListItem> getListItems();
+    method @IntRange(from=0xffffffff) public int getMaxLength();
+    method @Nullable public String getTextValue();
+    method @IntRange(from=0) public int getWidgetIndex();
+    method @NonNull public android.graphics.Rect getWidgetRect();
+    method public int getWidgetType();
+    method public boolean isEditableText();
+    method public boolean isMultiLineText();
+    method public boolean isMultiSelect();
+    method public boolean isReadOnly();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.FormWidgetInfo> CREATOR;
+    field public static final int WIDGET_TYPE_CHECKBOX = 2; // 0x2
+    field public static final int WIDGET_TYPE_COMBOBOX = 4; // 0x4
+    field public static final int WIDGET_TYPE_LISTBOX = 5; // 0x5
+    field public static final int WIDGET_TYPE_PUSHBUTTON = 1; // 0x1
+    field public static final int WIDGET_TYPE_RADIOBUTTON = 3; // 0x3
+    field public static final int WIDGET_TYPE_SIGNATURE = 7; // 0x7
+    field public static final int WIDGET_TYPE_TEXTFIELD = 6; // 0x6
+    field public static final int WIDGET_TYPE_UNKNOWN = 0; // 0x0
+  }
+
+  public static final class FormWidgetInfo.Builder {
+    ctor public FormWidgetInfo.Builder(int, @IntRange(from=0) int, @NonNull android.graphics.Rect, @NonNull String, @NonNull String);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo build();
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setEditableText(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setFontSize(@FloatRange(from=0.0f) float);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setListItems(@NonNull java.util.List<android.graphics.pdf.models.ListItem>);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMaxLength(@IntRange(from=0) int);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiLineText(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setMultiSelect(boolean);
+    method @NonNull public android.graphics.pdf.models.FormWidgetInfo.Builder setReadOnly(boolean);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") public final class ListItem implements android.os.Parcelable {
+    ctor public ListItem(@NonNull String, boolean);
+    method public int describeContents();
+    method @NonNull public String getLabel();
+    method public boolean isSelected();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.ListItem> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageMatchBounds implements android.os.Parcelable {
+    ctor public PageMatchBounds(@NonNull java.util.List<android.graphics.RectF>, int);
+    method public int describeContents();
+    method @NonNull public java.util.List<android.graphics.RectF> getBounds();
+    method public int getTextStartIndex();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.PageMatchBounds> CREATOR;
+  }
+
+}
+
+package android.graphics.pdf.models.selection {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class PageSelection implements android.os.Parcelable {
+    ctor public PageSelection(int, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull java.util.List<android.graphics.pdf.content.PdfPageTextContent>);
+    method public int describeContents();
+    method public int getPage();
+    method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getSelectedTextContents();
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getStart();
+    method @NonNull public android.graphics.pdf.models.selection.SelectionBoundary getStop();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.selection.PageSelection> CREATOR;
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class SelectionBoundary implements android.os.Parcelable {
+    ctor public SelectionBoundary(int);
+    ctor public SelectionBoundary(@NonNull android.graphics.Point);
+    method public int describeContents();
+    method public int getIndex();
+    method public boolean getIsRtl();
+    method @Nullable public android.graphics.Point getPoint();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.graphics.pdf.models.selection.SelectionBoundary> CREATOR;
+  }
+
+}
+

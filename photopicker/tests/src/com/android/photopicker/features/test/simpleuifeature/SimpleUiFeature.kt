@@ -17,6 +17,7 @@
 package com.android.photopicker.features.simpleuifeature
 
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -29,6 +30,7 @@ import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
@@ -38,11 +40,14 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "SimpleUiFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = SimpleUiFeature()
 
         val UI_STRING = "I'm a simple string, from a SimpleUiFeature"
         val SIMPLE_ROUTE = "simple"
+        val BUTTON_LABEL = "Simple"
     }
 
     override val token = TAG
@@ -53,7 +58,10 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
+        return listOf(
+            Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority),
+            Pair(Location.SELECTION_BAR_SECONDARY_ACTION, Priority.REGISTRATION_ORDER.priority),
+        )
     }
 
     /** Navigation registration callback from feature framework */
@@ -70,6 +78,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     simpleRoute()
@@ -80,23 +89,40 @@ open class SimpleUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
-
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
-            Location.COMPOSE_TOP -> composeTop()
+            Location.COMPOSE_TOP -> composeTop(params)
+            Location.SELECTION_BAR_SECONDARY_ACTION -> selectionBarAction()
             else -> {}
         }
     }
 
     /* Private composable used for the [Location.COMPOSE_TOP] location */
     @Composable
-    private fun composeTop() {
-        Text(UI_STRING)
+    private fun composeTop(params: LocationParams) {
+        TextButton(
+            onClick = {
+                val clickHandler = params as? LocationParams.WithClickAction
+                clickHandler?.onClick()
+            }
+        ) {
+            Text(UI_STRING)
+        }
     }
 
     /* Composes the [SIMPLE_ROUTE] */
     @Composable
     private fun simpleRoute() {
         Text(UI_STRING)
+    }
+
+    /* Composes the action button for the selection bar */
+    @Composable
+    private fun selectionBarAction() {
+        TextButton(onClick = {}) { Text(BUTTON_LABEL) }
     }
 }

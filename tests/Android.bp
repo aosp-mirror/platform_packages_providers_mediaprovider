@@ -169,6 +169,12 @@ android_test {
         "android.test.runner",
         "unsupportedappusage",
         "framework-mediaprovider.impl",
+        "keepanno-annotations",
+    ],
+
+    jni_libs: [
+        // Needed to run LevelDBManagerTest
+        "libleveldb_jni",
     ],
 
     static_libs: [
@@ -179,7 +185,7 @@ android_test {
         "guava",
         "mockito-target",
         "modules-utils-build",
-        "truth-prebuilt",
+        "truth",
         "com.google.android.material_material",
         "cts-install-lib",
         "androidx.test.espresso.core",

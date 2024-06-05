@@ -34,6 +34,7 @@ android_app {
         "modules-utils-shell-command-handler",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     libs: [
@@ -44,12 +45,15 @@ android_app {
         "framework-mediaprovider.impl",
         "framework-media.stubs.module_lib",
         "framework-statsd",
+        "keepanno-annotations",
     ],
 
     jni_libs: [
         "libfuse_jni",
         "libfuse",
+        "libleveldb_jni",
     ],
+    use_embedded_native_libs: true,
 
     resource_dirs: [
         "res",
@@ -92,11 +96,13 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
-
     lint: {
-        strict_updatability_linting: true,
+        baseline_filename: "lint-baseline.xml",
     },
+
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -136,6 +142,9 @@ java_library {
         "framework-annotations-lib",
         "framework-mediaprovider",
     ],
+    lint: {
+        baseline_filename: "lint-baseline2.xml",
+    },
 }
 
 platform_compat_config {
@@ -161,4 +170,22 @@ prebuilt_etc {
 sh_binary {
     name: "media_provider",
     src: "cli/media_provider_cli_wrapper.sh",
+}
+
+aconfig_declarations {
+    name: "mediaprovider_flags",
+    package: "com.android.providers.media.flags",
+    container: "com.android.mediaprovider",
+    srcs: ["mediaprovider_flags.aconfig"],
+}
+
+java_aconfig_library {
+    name: "mediaprovider_flags_java_lib",
+    aconfig_declarations: "mediaprovider_flags",
+    min_sdk_version: "30",
+    sdk_version: "module_current",
+    libs: ["framework-configinfrastructure"],
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }

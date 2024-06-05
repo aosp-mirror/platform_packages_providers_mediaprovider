@@ -28,6 +28,7 @@ import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.DataServiceImpl
+import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
 import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.data.model.Media
@@ -124,6 +125,7 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideDataService(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped userMonitor: UserMonitor,
         @ActivityRetainedScoped notificationService: NotificationService
     ): DataService {
@@ -133,7 +135,13 @@ class ActivityModule {
                 DataService.TAG,
                 "DataService requested but not yet initialized. Initializing DataService."
             )
-            dataService = DataServiceImpl(userMonitor.userStatus, scope, notificationService)
+            dataService = DataServiceImpl(
+                userMonitor.userStatus,
+                scope,
+                dispatcher,
+                notificationService,
+                MediaProviderClient()
+            )
         }
         return dataService
     }
@@ -223,13 +231,18 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
             return selection
         } else {
             Log.d(TAG, "Initializing selection.")
-            selection = Selection(scope = scope)
+            selection =
+                Selection(
+                    scope = scope,
+                    configuration = configurationManager.configuration,
+                )
             return selection
         }
     }
@@ -246,6 +259,7 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
+        @ActivityRetainedScoped configurationManager: ConfigurationManager,
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped handle: UserHandle,
@@ -257,7 +271,8 @@ class ActivityModule {
                 UserMonitor.TAG,
                 "UserMonitor requested but not yet initialized. Initializing UserMonitor."
             )
-            userMonitor = UserMonitor(context, scope, dispatcher, handle)
+            userMonitor =
+                UserMonitor(context, configurationManager.configuration, scope, dispatcher, handle)
             return userMonitor
         }
     }

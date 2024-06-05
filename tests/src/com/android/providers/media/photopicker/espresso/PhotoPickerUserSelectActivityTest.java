@@ -28,6 +28,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import static com.android.providers.media.photopicker.data.ItemsProvider.getItemsUri;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.atPositionOnItemViewType;
 import static com.android.providers.media.photopicker.espresso.RecyclerViewTestUtils.clickItem;
 import static com.android.providers.media.photopicker.ui.TabAdapter.ITEM_TYPE_BANNER;
@@ -44,6 +45,7 @@ import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 
 import androidx.lifecycle.ViewModelProvider;
@@ -55,14 +57,16 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 import com.android.providers.media.R;
 import com.android.providers.media.library.RunOnlyOnPostsubmit;
 import com.android.providers.media.photopicker.DataLoaderThread;
+import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.Selection;
+import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -243,8 +247,12 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
         launchValidActivityWithManagedSelectionEnabled();
         onView(withId(PICKER_TAB_RECYCLERVIEW_ID)).check(matches(isDisplayed()));
 
-        final Uri uri = MediaStore.scanFile(getIsolatedContext().getContentResolver(),
+        final Uri mediaStoreUri = MediaStore.scanFile(getIsolatedContext().getContentResolver(),
                 IMAGE_1_FILE);
+        // convert MediaStore uri to ItemsProvider Uri.
+        final Uri uri = getItemsUri(String.valueOf(ContentUris.parseId(mediaStoreUri)),
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                UserId.of(UserHandle.of(UserHandle.myUserId())));
         MediaStore.waitForIdle(getIsolatedContext().getContentResolver());
         mScenario.onActivity(activity -> {
             // Add an item id to the pre-granted set, so that when preview fragment gets opened up
@@ -252,7 +260,7 @@ public class PhotoPickerUserSelectActivityTest extends PhotoPickerBaseTest {
             Selection selection =
                     new ViewModelProvider(activity).get(PickerViewModel.class).getSelection();
             selection.setTotalNumberOfPreGrantedItems(1);
-            selection.setPreGrantedItemSet(Set.of(String.valueOf(ContentUris.parseId(uri))));
+            selection.setPreGrantedItems(List.of(uri));
 
             // Verify that we don't have anything to preview
             selection.prepareSelectedItemsForPreviewAll();

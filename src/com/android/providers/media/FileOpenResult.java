@@ -16,9 +16,13 @@
 
 package com.android.providers.media;
 
-/**
- * Wrapper class which contains the result of an open.
- */
+import com.android.tools.r8.keepanno.annotations.KeepItemKind;
+import com.android.tools.r8.keepanno.annotations.UsedByNative;
+
+/** Wrapper class which contains the result of an open. */
+@UsedByNative(
+    description = "Called from JNI in jni/MediaProviderWrapper.cpp",
+    kind = KeepItemKind.CLASS_AND_MEMBERS)
 public final class FileOpenResult {
     public final int status;
     public final int uid;

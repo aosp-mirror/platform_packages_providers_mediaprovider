@@ -23,8 +23,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -37,12 +37,12 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -52,12 +52,21 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
+import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItem
+import com.android.photopicker.extensions.toMediaGridItemFromAlbum
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.bumptech.glide.Glide
@@ -71,7 +80,6 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -98,7 +106,6 @@ import org.mockito.MockitoAnnotations
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MediaGridTest {
-
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeTestRule = createComposeRule()
@@ -109,6 +116,7 @@ class MediaGridTest {
      */
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
+
     @Mock lateinit var mockContentProvider: ContentProvider
 
     lateinit var pager: Pager<MediaPageKey, Media>
@@ -135,7 +143,18 @@ class MediaGridTest {
                                 mediaId = "$i",
                                 pickerId = i.toLong(),
                                 authority = "a",
-                                uri =
+                                mediaSource = MediaSource.LOCAL,
+                                mediaUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("media")
+                                            path("picker")
+                                            path("a")
+                                            path("$i")
+                                        }
+                                        .build(),
+                                glideLoadableUri =
                                     Uri.EMPTY.buildUpon()
                                         .apply {
                                             scheme("content")
@@ -179,7 +198,7 @@ class MediaGridTest {
 
         // Keep the flow processing out of the composable as that drastically cuts down on the
         // flakiness of individual test runs.
-        flow = pager.flow.toMediaGridItem().insertMonthSeparators()
+        flow = pager.flow.toMediaGridItemFromMedia().insertMonthSeparators()
     }
 
     @After()
@@ -196,9 +215,9 @@ class MediaGridTest {
     @Composable
     private fun grid(
         selection: Selection<Media>,
-        onItemClick: (Media) -> Unit,
+        onItemClick: (MediaGridItem) -> Unit,
+        onItemLongPress: (MediaGridItem) -> Unit = {},
     ) {
-
         val items = flow.collectAsLazyPagingItems()
         val selected by selection.flow.collectAsStateWithLifecycle()
 
@@ -206,6 +225,7 @@ class MediaGridTest {
             items = items,
             selection = selected,
             onItemClick = onItemClick,
+            onItemLongPress = onItemLongPress,
             modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG)
         )
     }
@@ -215,14 +235,14 @@ class MediaGridTest {
      */
     @Composable
     private fun customContentItemFactory(
-        item: MediaGridItem.MediaItem,
-        onClick: ((Media) -> Unit)?,
+        item: MediaGridItem,
+        onClick: ((MediaGridItem) -> Unit)?,
     ) {
-
         Box(
             modifier =
                 // .clickable also merges the semantics of its descendants
-                Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable { onClick?.invoke(item.media) }
+                Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
+                    if (item is MediaGridItem.MediaItem) {onClick?.invoke(item)} }
         ) {
             Text(CUSTOM_ITEM_FACTORY_TEXT)
         }
@@ -244,7 +264,11 @@ class MediaGridTest {
     /** Ensures the MediaGrid loads media with the correct semantic information */
     @Test
     fun testMediaGridDisplaysMedia() = runTest {
-        val selection = Selection<Media>(scope = backgroundScope)
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
 
         composeTestRule.setContent {
             grid(
@@ -257,13 +281,48 @@ class MediaGridTest {
         mediaGrid.assertIsDisplayed()
     }
 
+    /** Ensures the AlbumGrid loads media with the correct semantic information */
+    @Test
+    fun testAlbumGridDisplaysMedia() = runTest {
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
+
+        // Modify the pager and flow to get data from the FakeInMemoryAlbumPagingSource.
+
+        // Normally this would be created in the view model that owns the paged data.
+        val pagerForAlbums: Pager<MediaPageKey, Group.Album> =
+            Pager(PagingConfig(pageSize = 50, maxSize = 500)) { FakeInMemoryAlbumPagingSource() }
+
+        // Keep the flow processing out of the composable as that drastically cuts down on the
+        // flakiness of individual test runs.
+        flow = pagerForAlbums.flow.toMediaGridItemFromAlbum()
+
+        composeTestRule.setContent {
+            grid(
+                /* selection= */ selection,
+                /* onItemClick= */ {},
+            )
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+        mediaGrid.assertIsDisplayed()
+    }
+
+
     /**
      * Ensures the MediaGrid continues to load media as the grid is scrolled. This further ensures
      * the grid, paging and glide integrations are correctly setup.
      */
     @Test
     fun testMediaGridScroll() = runTest {
-        val selection = Selection<Media>(scope = backgroundScope)
+        val selection =
+            Selection<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
 
         composeTestRule.setContent {
             grid(
@@ -292,19 +351,38 @@ class MediaGridTest {
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
     fun testMediaGridClickItem() {
-
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
-                grid(
-                    /* selection= */ selection,
-                    /* onItemClick= */ { item -> launch { selection.toggle(item) } },
-                )
+                val photopickerConfiguration: PhotopickerConfiguration =
+                    testPhotopickerConfiguration
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false,
+                        photopickerConfiguration.intent
+                    ) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */
+                            { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem) selection
+                                        .toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
             }
 
             composeTestRule
@@ -328,10 +406,60 @@ class MediaGridTest {
         }
     }
 
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
+    fun testMediaGridLongPressItem() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+        runTest {
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
+
+            composeTestRule.setContent {
+                val photopickerConfiguration: PhotopickerConfiguration =
+                    testPhotopickerConfiguration
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false,
+                        photopickerConfiguration.intent
+                    ) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ {},
+                            /* onItemLongPress=*/ { item -> launch {
+                                if (item is MediaGridItem.MediaItem) selection.toggle(item.media) }
+                            }
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performTouchInput { longClick() }
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected long press handler to have executed.")
+                .that(selection.snapshot())
+                .isNotEmpty()
+        }
+    }
+
     /** Ensures that Separators are correctly inserted into the MediaGrid. */
     @Test
     fun testMediaGridSeparator() {
-
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
@@ -341,7 +469,11 @@ class MediaGridTest {
         val dataFlow = flowOf(customData)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = dataFlow.collectAsLazyPagingItems()
@@ -363,9 +495,12 @@ class MediaGridTest {
     /** Ensures that the grid uses a custom content item factory when it is provided */
     @Test
     fun testMediaGridCustomContentItemFactory() {
-
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = flow.collectAsLazyPagingItems()
@@ -374,7 +509,8 @@ class MediaGridTest {
                     items = items,
                     selection = selected,
                     onItemClick = {},
-                    contentItemFactory = { item, _, onClick ->
+                    onItemLongPress = {},
+                    contentItemFactory = { item, _, onClick, _ ->
                         customContentItemFactory(item, onClick)
                     },
                 )
@@ -389,14 +525,17 @@ class MediaGridTest {
     /** Ensures that the grid uses a custom content item factory when it is provided */
     @Test
     fun testMediaGridCustomContentSeparatorFactory() {
-
         // Provide a custom PagingData that puts Separators in specific positions to reduce
         // test flakiness of having to scroll to find a separator.
         val customData = PagingData.from(dataWithSeparators)
         val dataFlow = flowOf(customData)
 
         runTest {
-            val selection = Selection<Media>(scope = backgroundScope)
+            val selection =
+                Selection<Media>(
+                    scope = backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                )
 
             composeTestRule.setContent {
                 val items = dataFlow.collectAsLazyPagingItems()

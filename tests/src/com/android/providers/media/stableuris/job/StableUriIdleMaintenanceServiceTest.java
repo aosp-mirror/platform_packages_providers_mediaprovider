@@ -34,14 +34,12 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import androidx.test.filters.SdkSuppress;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -63,7 +61,6 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
@@ -171,6 +168,7 @@ public class StableUriIdleMaintenanceServiceTest {
                 BackupIdRow backupIdRow = BackupIdRow.deserialize(
                         MediaStore.readBackup(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY,
                                 filePath));
+                Log.i(TAG, "BackupIdRow is " + backupIdRow);
                 assertNotNull(backupIdRow);
                 assertEquals(pathToIdMap.get(filePath).longValue(), backupIdRow.getId());
                 assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());

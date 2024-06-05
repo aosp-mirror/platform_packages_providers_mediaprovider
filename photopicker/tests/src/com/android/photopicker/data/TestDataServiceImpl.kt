@@ -23,6 +23,7 @@ import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,21 +41,28 @@ import kotlinx.coroutines.flow.StateFlow
  * the [MediaProvider] process.
  */
 class TestDataServiceImpl() : DataService {
-
     override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
 
-    override fun albumContentPagingSource(albumId: String): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
+        // reusing media paging source.
+        return FakeInMemoryMediaPagingSource()
+    }
 
-    override fun albumPagingSource(): PagingSource<MediaPageKey, Album> =
-        throw NotImplementedError("This method is not implemented yet.")
+    override fun albumPagingSource(): PagingSource<MediaPageKey, Album> {
+        return FakeInMemoryAlbumPagingSource()
+    }
 
-    override fun cloudMediaProviderDetails(
-        authority: String
-    ): StateFlow<CloudMediaProviderDetails?> =
+    override fun cloudMediaProviderDetails(authority: String): StateFlow<
+            CloudMediaProviderDetails?> =
         throw NotImplementedError("This method is not implemented yet.")
 
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> {
         return FakeInMemoryMediaPagingSource()
     }
+
+    override suspend fun refreshMedia() = throw NotImplementedError(
+        "This method is not implemented yet.")
+
+    override suspend fun refreshAlbumMedia(album: Album) =
+        throw NotImplementedError("This method is not implemented yet.")
 }

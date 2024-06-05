@@ -14,24 +14,20 @@
  * limitations under the License.
  */
 
-package src.com.android.photopicker.data
+package com.android.photopicker.data
 
 import android.content.ContentResolver
 import android.content.UriMatcher
 import android.database.ContentObserver
 import android.net.Uri
-import com.android.photopicker.data.NotificationService
 
 /**
  * Test implementation of Notification Service. It registers the observers in memory. Test writers
  * can use [dispatchChangeToObservers] method to notify the registered content observers.
  */
 class TestNotificationServiceImpl : NotificationService {
-
     companion object {
-        private const val EXACT_MATCH = 0
-        private const val DESCENDANT_MATCH = 1
-        private const val WILDCARD = "*"
+        private const val MATCH = 0
     }
 
     private val registeredObservers: MutableMap<Uri, UriObservers> = mutableMapOf()
@@ -102,18 +98,14 @@ class TestNotificationServiceImpl : NotificationService {
         fun getMatchedObservers(uri: Uri, allowExactMatch: Boolean):
                 Set<ContentObserver> {
             val uriMatcher = UriMatcher(UriMatcher.NO_MATCH)
-            uriMatcher.addURI(uri.authority, uri.path, EXACT_MATCH)
-            uriMatcher.addURI(uri.authority, uri.path + WILDCARD, DESCENDANT_MATCH)
+            uriMatcher.addURI(uri.authority, uri.path, MATCH)
 
             val observers: MutableSet<ContentObserver> = mutableSetOf()
-            when (uriMatcher.match(uri)) {
-                EXACT_MATCH -> {
-                    if (allowExactMatch) {
-                        observers.addAll(exactMatchObservers)
-                        observers.addAll(descendantMatchObservers)
-                    }
-                }
-                DESCENDANT_MATCH -> {
+            if (uriMatcher.match(uri) == MATCH) {
+                if (allowExactMatch) {
+                    observers.addAll(exactMatchObservers)
+                    observers.addAll(descendantMatchObservers)
+                } else {
                     observers.addAll(descendantMatchObservers)
                 }
             }

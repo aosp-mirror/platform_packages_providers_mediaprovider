@@ -20,7 +20,10 @@ import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.UserManager
 import android.provider.MediaStore
+import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -30,6 +33,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
@@ -107,15 +112,18 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
     /**
-     * PhotoGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
+     * Preview uses Glide for loading images, so we have to mock out the dependencies for Glide
      * Replace the injected ContentResolver binding in [ApplicationModule] with this test value.
      */
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
     @Mock lateinit var mockContentProvider: ContentProvider
 
-    @BindValue val context: Context = getTestableContext()
+    // Needed for UserMonitor
+    @Mock lateinit var mockUserManager: UserManager
+    @Mock lateinit var mockPackageManager: PackageManager
 
+    @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
@@ -126,19 +134,24 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         hiltRule.inject()
 
+        // Stub for MockContentResolver constructor
+        whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
+
         // Stub out the content resolver for Glide
+        val mockContentResolver = MockContentResolver(mockContext)
         provider = MockContentProviderWrapper(mockContentProvider)
-        contentResolver = ContentResolver.wrap(provider)
+        mockContentResolver.addProvider(MockContentProviderWrapper.AUTHORITY, provider)
+        contentResolver = mockContentResolver
 
         // Return a resource png so that glide actually has something to load
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
         }
+        setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
     }
 
     @Test
     fun testPhotoGridIsAlwaysEnabled() {
-
         val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
         assertWithMessage("PhotoGridFeature is not always enabled for TEST_ACTION")
             .that(PhotoGridFeature.Registration.isEnabled(configOne))
@@ -157,7 +170,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotoGridIsTheInitialRoute() {
-
         // Explicitly create a new feature manager that uses the same production feature
         // registrations to ensure this test will fail if the default production behavior changes.
         val featureManager =
@@ -187,7 +199,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosCanBeSelected() {
-
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
@@ -228,7 +239,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosAreDisplayed() {
-
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
@@ -250,6 +260,36 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                 .onFirst()
                 .assert(hasClickAction())
                 .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testSwipeLeftToNavigateToAlbumGrid() {
+        val resources = getTestableContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+        mainScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onAllNodesWithContentDescription(mediaItemString)
+                .onFirst()
+                .performTouchInput { swipeLeft() }
+            composeTestRule.waitForIdle()
+            val route = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected swipe to navigate to AlbumGrid")
+                .that(route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
         }
     }
 }

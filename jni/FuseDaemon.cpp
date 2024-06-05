@@ -61,7 +61,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define BPF_FD_JUST_USE_INT
 #include "BpfSyscallWrappers.h"
 #include "MediaProviderWrapper.h"
 #include "leveldb/db.h"
@@ -135,7 +134,7 @@ static constexpr char OWNERSHIP_RELATION[] = "ownership";
 
 static constexpr char FUSE_BPF_PROG_PATH[] = "/sys/fs/bpf/prog_fuseMedia_fuse_media";
 
-enum class BpfFd { REMOVE = -1 };
+enum class BpfFd { REMOVE = -2 };
 
 /*
  * In order to avoid double caching with fuse, call fadvise on the file handles
@@ -264,7 +263,7 @@ class FAdviser {
 /* Single FUSE mount */
 struct fuse {
     explicit fuse(const std::string& _path, const ino_t _ino, const bool _uncached_mode,
-                  const bool _bpf, const int _bpf_fd,
+                  const bool _bpf, android::base::unique_fd&& _bpf_fd,
                   const std::vector<string>& _supported_transcoding_relative_paths,
                   const std::vector<string>& _supported_uncached_relative_paths)
         : path(_path),
@@ -276,7 +275,7 @@ struct fuse {
           disable_dentry_cache(false),
           passthrough(false),
           bpf(_bpf),
-          bpf_fd(_bpf_fd),
+          bpf_fd(std::move(_bpf_fd)),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
           supported_uncached_relative_paths(_supported_uncached_relative_paths) {}
 
@@ -399,7 +398,7 @@ struct fuse {
     std::atomic_bool passthrough;
     std::atomic_bool bpf;
 
-    const int bpf_fd;
+    const android::base::unique_fd bpf_fd;
 
     // FUSE device id.
     std::atomic_uint dev;
@@ -408,7 +407,7 @@ struct fuse {
 
     // LevelDb Connection Map
     std::map<std::string, leveldb::DB*> level_db_connection_map;
-    std::mutex level_db_mutex;
+    std::recursive_mutex level_db_mutex;
 };
 
 struct OpenInfo {
@@ -702,7 +701,7 @@ static node* make_node_entry(fuse_req_t req, node* parent, const string& name,
     // directories.
     if (!fuse->bpf || !is_bpf_backing_path(parent_path)) {
         e->entry_timeout = get_entry_timeout(path, should_invalidate, fuse);
-        e->attr_timeout = std::numeric_limits<double>::max();
+        e->attr_timeout = fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max();
     }
     return node;
 }
@@ -720,11 +719,19 @@ namespace fuse {
 static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
 
+    // Check the same property as android.os.Build.IS_ARC.
+    const bool is_arc = android::base::GetBoolProperty("ro.boot.container", false);
+
     // We don't want a getattr request with every read request
     conn->want &= ~FUSE_CAP_AUTO_INVAL_DATA & ~FUSE_CAP_READDIRPLUS_AUTO;
     uint64_t mask = (FUSE_CAP_SPLICE_WRITE | FUSE_CAP_SPLICE_MOVE | FUSE_CAP_SPLICE_READ |
                      FUSE_CAP_ASYNC_READ | FUSE_CAP_ATOMIC_O_TRUNC | FUSE_CAP_WRITEBACK_CACHE |
                      FUSE_CAP_EXPORT_SUPPORT | FUSE_CAP_FLOCK_LOCKS);
+    // Disable writeback cache if it's uncached mode or if it's ARC. In ARC, due to the Downloads
+    // bind-mount, we need to disable it on the primary emulated volume as well as on StubVolumes.
+    if (fuse->uncached_mode || is_arc) {
+        mask &= ~FUSE_CAP_WRITEBACK_CACHE;
+    }
 
     bool disable_splice_write = false;
     if (fuse->passthrough) {
@@ -836,12 +843,13 @@ static bool is_app_accessible_path(struct fuse* fuse, const string& path, uid_t 
 void fuse_bpf_fill_entries(const string& path, const int bpf_fd, struct fuse_entry_param* e,
                            int& backing_fd) {
     /*
-     * The file descriptor `fd` must not be closed as it is closed
+     * The file descriptor `backing_fd` must not be closed as it is closed
      * automatically by the kernel as soon as it consumes the FUSE reply. This
      * mechanism is necessary because userspace doesn't know when the kernel
-     * will consume the FUSE response containing `fd`, thus it may close the
-     * `fd` too soon, with the risk of assigning a backing file which is either
-     * invalid or corresponds to the wrong file in the lower file system.
+     * will consume the FUSE response containing `backing_fd`, thus it may close
+     * the `backing_fd` too soon, with the risk of assigning a backing file
+     * which is either invalid or corresponds to the wrong file in the lower
+     * file system.
      */
     backing_fd = open(path.c_str(), O_CLOEXEC | O_DIRECTORY | O_RDONLY);
     if (backing_fd < 0) {
@@ -868,7 +876,7 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
     // extended for other media devices.
     if (android::base::StartsWith(child_path, PRIMARY_VOLUME_PREFIX)) {
         if (is_bpf_backing_path(child_path)) {
-            fuse_bpf_fill_entries(child_path, fuse->bpf_fd, e, backing_fd);
+            fuse_bpf_fill_entries(child_path, fuse->bpf_fd.get(), e, backing_fd);
         } else if (is_package_owned_path(child_path, fuse->path)) {
             fuse_bpf_fill_entries(child_path, static_cast<int>(BpfFd::REMOVE), e, backing_fd);
         }
@@ -876,9 +884,27 @@ void fuse_bpf_install(struct fuse* fuse, struct fuse_entry_param* e, const strin
 }
 
 static std::regex storage_emulated_regex("^\\/storage\\/emulated\\/([0-9]+)");
+
+static bool is_user_accessible_path(fuse_req_t req, const struct fuse* fuse, const string& path) {
+    std::smatch match;
+    std::regex_search(path, match, storage_emulated_regex);
+
+    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
+    // requested path
+    if (match.size() == 2 && std::to_string(getuid() / PER_USER_RANGE) != match[1].str()) {
+        // If user id mismatch, check cross-user lookups
+        long userId = strtol(match[1].str().c_str(), nullptr, 10);
+        if (userId < 0 || userId > MAX_USER_ID ||
+            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
                        struct fuse_entry_param* e, int* error_code, const FuseOp op,
-                       int* backing_fd = NULL) {
+                       const bool validate_access, int* backing_fd = NULL) {
     struct fuse* fuse = get_fuse(req);
     node* parent_node = fuse->FromInode(parent);
     if (!parent_node) {
@@ -886,9 +912,11 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
         return nullptr;
     }
     string parent_path = parent_node->BuildPath();
+
     // We should always allow lookups on the root, because failing them could cause
     // bind mounts to be invalidated.
-    if (!fuse->IsRoot(parent_node) && !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
+    if (validate_access && !fuse->IsRoot(parent_node) &&
+        !is_app_accessible_path(fuse, parent_path, req->ctx.uid)) {
         *error_code = ENOENT;
         return nullptr;
     }
@@ -896,19 +924,10 @@ static node* do_lookup(fuse_req_t req, fuse_ino_t parent, const char* name,
     TRACE_NODE(parent_node, req);
 
     const string child_path = parent_path + "/" + name;
-    std::smatch match;
-    std::regex_search(child_path, match, storage_emulated_regex);
 
-    // Ensure the FuseDaemon user id matches the user id or cross-user lookups are allowed in
-    // requested path
-    if (match.size() == 2 && MY_USER_ID_STRING != match[1].str()) {
-        // If user id mismatch, check cross-user lookups
-        long userId = strtol(match[1].str().c_str(), nullptr, 10);
-        if (userId < 0 || userId > MAX_USER_ID ||
-            !fuse->mp->ShouldAllowLookup(req->ctx.uid, userId)) {
-            *error_code = EACCES;
-            return nullptr;
-        }
+    if (validate_access && !is_user_accessible_path(req, fuse, child_path)) {
+        *error_code = EACCES;
+        return nullptr;
     }
 
     auto node = make_node_entry(req, parent_node, name, parent_path, child_path, e, error_code, op);
@@ -935,7 +954,7 @@ static void pf_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
     int backing_fd = -1;
 
     int error_code = 0;
-    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, &backing_fd)) {
+    if (do_lookup(req, parent, name, &e, &error_code, FuseOp::lookup, true, &backing_fd)) {
         fuse_reply_entry(req, &e);
     } else {
         CHECK(error_code != 0);
@@ -1038,7 +1057,8 @@ static void pf_getattr(fuse_req_t req,
     if (lstat(path.c_str(), &s) < 0) {
         fuse_reply_err(req, errno);
     } else {
-        fuse_reply_attr(req, &s, std::numeric_limits<double>::max());
+        fuse_reply_attr(req, &s,
+                        fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max());
     }
 }
 
@@ -1141,7 +1161,7 @@ static void pf_setattr(fuse_req_t req,
     }
 
     lstat(path.c_str(), attr);
-    fuse_reply_attr(req, attr, std::numeric_limits<double>::max());
+    fuse_reply_attr(req, attr, fuse->ShouldNotCache(path) ? 0 : std::numeric_limits<double>::max());
 }
 
 static void pf_canonical_path(fuse_req_t req, fuse_ino_t ino)
@@ -1355,6 +1375,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
         if (!new_parent_node) return ENOENT;
     }
     const string new_parent_path = new_parent_node->BuildPath();
+    if (fuse->bpf && is_bpf_backing_path(new_parent_path)) {
+        return EXDEV;
+    }
     if (!is_app_accessible_path(fuse, new_parent_path, ctx->uid)) {
         return ENOENT;
     }
@@ -1874,7 +1897,7 @@ static void pf_opendir(fuse_req_t req,
     fuse_reply_open(req, fi);
 }
 
-#define READDIR_BUF 8192LU
+#define READDIR_BUF 32768LU
 
 static void do_readdir_common(fuse_req_t req,
                               fuse_ino_t ino,
@@ -1904,6 +1927,14 @@ static void do_readdir_common(fuse_req_t req,
     }
 
     TRACE_NODE(node, req);
+
+    // We don't return EACCES for compatibility with the previous implementation.
+    // It just ignored entries causing EACCES.
+    if (!is_user_accessible_path(req, fuse, path)) {
+        fuse_reply_buf(req, buf, used);
+        return;
+    }
+
     // Get all directory entries from MediaProvider on first readdir() call of
     // directory handle. h->next_off = 0 indicates that current readdir() call
     // is first readdir() call for the directory handle, Avoid multiple JNI calls
@@ -1933,7 +1964,8 @@ static void do_readdir_common(fuse_req_t req,
         h->next_off++;
         if (plus) {
             int error_code = 0;
-            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir)) {
+            // Skip validating user and app access as they are already performed on parent node
+            if (do_lookup(req, ino, de->d_name.c_str(), &e, &error_code, FuseOp::readdir, false)) {
                 entry_size = fuse_add_direntry_plus(req, buf + used, len - used, de->d_name.c_str(),
                                                     &e, h->next_off);
             } else {
@@ -2381,7 +2413,8 @@ void FuseDaemon::InvalidateFuseDentryCache(const std::string& path) {
         }
 
         if (!name.empty()) {
-            fuse_inval(fuse->se, parent, child, name, path);
+            std::thread t([=]() { fuse_inval(fuse->se, parent, child, name, path); });
+            t.detach();
         }
     } else {
         LOG(WARNING) << "FUSE daemon is inactive. Cannot invalidate dentry";
@@ -2460,11 +2493,12 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
     }
 
     bool bpf_enabled = IsFuseBpfEnabled();
-    int bpf_fd = -1;
+    android::base::unique_fd bpf_fd(-1);
     if (bpf_enabled) {
-        bpf_fd = android::bpf::bpfFdGet(FUSE_BPF_PROG_PATH, BPF_F_RDONLY);
-        if (bpf_fd < 0) {
-            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << bpf_fd;
+        bpf_fd.reset(android::bpf::retrieveProgram(FUSE_BPF_PROG_PATH));
+        if (!bpf_fd.ok()) {
+            int error = errno;
+            PLOG(ERROR) << "Failed to fetch BPF prog fd: " << error;
             bpf_enabled = false;
         } else {
             LOG(INFO) << "Using FUSE BPF, BPF prog fd fetched";
@@ -2475,7 +2509,7 @@ void FuseDaemon::Start(android::base::unique_fd fd, const std::string& path,
         LOG(INFO) << "Not using FUSE BPF";
     }
 
-    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, bpf_fd,
+    struct fuse fuse_default(path, stat.st_ino, uncached_mode, bpf_enabled, std::move(bpf_fd),
                              supported_transcoding_relative_paths,
                              supported_uncached_relative_paths);
     fuse_default.mp = &mp;
@@ -2579,8 +2613,8 @@ void FuseDaemon::SetupLevelDbConnection(const std::string& instance_name) {
         return;
     }
 
-    std::string leveldbPath = "/storage/emulated/" + MY_USER_ID_STRING +
-                              "/.transforms/recovery/leveldb-" + instance_name;
+    std::string leveldbPath =
+            "/data/media/" + MY_USER_ID_STRING + "/.transforms/recovery/leveldb-" + instance_name;
     leveldb::Options options;
     options.create_if_missing = true;
     leveldb::DB* leveldb;
@@ -2680,8 +2714,9 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(INFO) << "ReadFilePathsFromLevelDb: Missing leveldb connection, attempting setup.";
-        SetupLevelDbInstances();
+        fuse->level_db_mutex.unlock();
+        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection";
+        return file_paths;
     }
 
     leveldb::Iterator* it =

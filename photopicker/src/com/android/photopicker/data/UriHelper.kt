@@ -18,37 +18,69 @@ package com.android.photopicker.data
 
 import android.content.ContentResolver
 import android.net.Uri
+import android.provider.MediaStore
 
 /**
  * Provides URI constants and helper functions.
  */
-private const val MEDIA_PROVIDER_AUTHORITY = "media"
+internal const val MEDIA_PROVIDER_AUTHORITY = MediaStore.AUTHORITY
 private const val UPDATE_PATH_SEGMENT = "update"
 private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
+private const val MEDIA_PATH_SEGMENT = "media"
+private const val ALBUM_PATH_SEGMENT = "album"
 
 private val pickerUri: Uri = Uri.Builder().apply {
     scheme(ContentResolver.SCHEME_CONTENT)
     authority(MEDIA_PROVIDER_AUTHORITY)
     appendPath("picker_internal")
     appendPath("v2")
-}
-    .build()
+}.build()
 
 /**
  * URI for available providers resource.
  */
-val AVAILABLE_PROVIDERS_URI: Uri =
-    pickerUri
-        .buildUpon()
-        .appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
-        .build()
+val AVAILABLE_PROVIDERS_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
+}.build()
 
 /**
  * URI that receives [ContentProvider] change notifications for available provider updates.
  */
-val AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI: Uri =
-        pickerUri
-            .buildUpon()
-            .appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
-            .appendPath(UPDATE_PATH_SEGMENT)
-            .build()
+val AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(AVAILABLE_PROVIDERS_PATH_SEGMENT)
+    appendPath(UPDATE_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI for media metadata.
+ */
+val MEDIA_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(MEDIA_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI that receives [ContentProvider] change notifications for media updates.
+ */
+val MEDIA_CHANGE_NOTIFICATION_URI: Uri = MEDIA_URI.buildUpon().apply {
+    appendPath(UPDATE_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI for album metadata.
+ */
+val ALBUM_URI: Uri = pickerUri.buildUpon().apply {
+    appendPath(ALBUM_PATH_SEGMENT)
+}.build()
+
+/**
+ * URI that receives [ContentProvider] change notifications for album media updates.
+ */
+val ALBUM_CHANGE_NOTIFICATION_URI: Uri = ALBUM_URI.buildUpon().apply {
+    appendPath(UPDATE_PATH_SEGMENT)
+}.build()
+
+fun getAlbumMediaUri(albumId: String): Uri {
+    return ALBUM_URI.buildUpon().apply {
+        appendPath(albumId)
+    }.build()
+}

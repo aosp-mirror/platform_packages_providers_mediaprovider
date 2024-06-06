@@ -16,10 +16,13 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import static android.provider.MediaStore.MY_USER_ID;
+
 import static java.util.Objects.requireNonNull;
 
 import android.database.Cursor;
 import android.database.CursorWrapper;
+import android.net.Uri;
 import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
@@ -41,11 +44,13 @@ public class AlbumsCursorWrapper extends CursorWrapper {
     // displayed above the cloud albums too. The sort order is DESC(date_taken, picker_id).
     private static final List<String> localAlbumsOrder = List.of(
             CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
             CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
             CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
             CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS
     );
+    // This represents that media item is not available.
+    public static final String EMPTY_MEDIA_ID = "";
 
     @NonNull final String mCoverAuthority;
     @NonNull final String mLocalAuthority;
@@ -125,11 +130,17 @@ public class AlbumsCursorWrapper extends CursorWrapper {
 
             case UNWRAPPED_COVER_URI:
                 // TODO(b/317118334): Use local copy of the cover image when available.
-                return PickerUriResolver.getMediaUri(mCoverAuthority)
-                        .buildUpon()
-                        .appendPath(getMediaIdFromWrappedCursor())
-                        .build()
-                        .toString();
+                final String mediaId = getMediaIdFromWrappedCursor();
+                if (EMPTY_MEDIA_ID.equals(mediaId)) {
+                    return Uri.EMPTY.toString();
+                } else {
+                    return PickerUriResolver
+                            .getMediaUri(getEncodedUserAuthority(mCoverAuthority))
+                            .buildUpon()
+                            .appendPath(getMediaIdFromWrappedCursor())
+                            .build()
+                            .toString();
+                }
 
             case PICKER_ID:
                 if (localAlbumsOrder.contains(albumId)) {
@@ -205,5 +216,9 @@ public class AlbumsCursorWrapper extends CursorWrapper {
         );
         requireNonNull(mediaId);
         return mediaId;
+    }
+
+    private String getEncodedUserAuthority(String authority) {
+        return MY_USER_ID + "@" + authority;
     }
 }

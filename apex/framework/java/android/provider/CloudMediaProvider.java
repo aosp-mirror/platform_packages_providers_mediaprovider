@@ -362,8 +362,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
         }
     }
 
-    private Bundle callUnchecked(String method, String arg, Bundle extras)
+    private Bundle callUnchecked(@NonNull String method, @Nullable String arg,
+                                 @Nullable Bundle extras)
             throws FileNotFoundException {
+        if (extras == null) {
+            extras = new Bundle();
+        }
         Bundle result = new Bundle();
         if (METHOD_GET_MEDIA_COLLECTION_INFO.equals(method)) {
             long startTime = System.currentTimeMillis();

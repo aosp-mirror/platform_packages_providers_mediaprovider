@@ -19,12 +19,13 @@ package com.android.photopicker.features.navigationbar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
-import com.android.photopicker.core.features.Location
-import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.FeatureToken
-import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 
 /** Feature class for the Photopicker's navigation bar. */
@@ -32,7 +33,9 @@ class NavigationBarFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerNavigationBarFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = NavigationBarFeature()
     }
 
@@ -49,7 +52,7 @@ class NavigationBarFeature : PhotopickerUiFeature {
     override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.NAVIGATION_BAR -> NavigationBar(modifier)
             else -> {}

@@ -16,7 +16,6 @@
 
 package com.android.photopicker.core
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
 
@@ -60,7 +60,10 @@ private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
+fun PhotopickerAppWithBottomSheet(
+    onDismissRequest: () -> Unit,
+    onMediaSelectionConfirmed: () -> Unit,
+) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -104,6 +107,7 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
                         LocalFeatureManager.current.composeLocation(
                             Location.SELECTION_BAR,
                             maxSlots = 1,
+                            params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                         )
                     }
                 }

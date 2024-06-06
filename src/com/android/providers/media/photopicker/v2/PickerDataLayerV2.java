@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.v2;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
+import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
 import static java.util.Objects.requireNonNull;
 
@@ -583,7 +584,7 @@ public class PickerDataLayerV2 {
                         /* albumId */ albumId,
                         /* dateTakenMillis */ Long.toString(Long.MAX_VALUE),
                         /* displayName */ albumId,
-                        /* mediaId */ Integer.toString(Integer.MAX_VALUE),
+                        /* mediaId */ EMPTY_MEDIA_ID,
                         /* count */ "0", // This value is not used anymore
                         localAuthority,
                 };

@@ -43,6 +43,7 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.get
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GIF_IMAGE_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.PNG_IMAGE_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.JPEG_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -1024,7 +1025,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE), MediaSource.LOCAL);
+                    /* coverMediaId */ EMPTY_MEDIA_ID, MediaSource.LOCAL);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
@@ -1063,7 +1064,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
@@ -1151,7 +1152,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE),
+                    /* coverMediaId */ EMPTY_MEDIA_ID,
                     MediaSource.LOCAL);
         }
     }
@@ -1191,7 +1192,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
         }
     }
 
@@ -1255,7 +1256,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
@@ -1298,7 +1299,7 @@ public class PickerDataLayerV2Test {
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
-                    /* coverMediaId */ Integer.toString(Integer.MAX_VALUE));
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
@@ -1604,9 +1605,15 @@ public class PickerDataLayerV2Test {
                         PickerSQLConstants.AlbumResponse.UNWRAPPED_COVER_URI.getColumnName()))
         );
 
-        assertWithMessage("Unexpected value of cover media id in the media cursor.")
-                .that(coverUri.getLastPathSegment())
-                .isEqualTo(coverMediaId);
+        if (EMPTY_MEDIA_ID.equals(coverMediaId)) {
+            assertWithMessage("Unexpected value of cover uri.")
+                    .that(coverUri)
+                    .isEqualTo(Uri.EMPTY);
+        } else {
+            assertWithMessage("Unexpected value of cover media id in the media cursor.")
+                    .that(coverUri.getLastPathSegment())
+                    .isEqualTo(coverMediaId);
+        }
 
         assertWithMessage("Unexpected value of media source in the media cursor.")
                 .that(MediaSource.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(

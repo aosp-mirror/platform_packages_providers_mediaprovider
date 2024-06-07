@@ -138,14 +138,14 @@ public class DatabaseBackupAndRecovery {
     };
 
     /**
-     * Wait time of 10 seconds in millis.
+     * Wait time of 15 seconds in millis.
      */
-    private static final long WAIT_TIME_10_SECONDS_IN_MILLIS = 10000;
+    private static final long WAIT_TIME_15_SECONDS_IN_MILLIS = 15000;
 
     /**
      * Number of records to read from leveldb in a JNI call.
      */
-    protected static final int LEVEL_DB_READ_LIMIT = 1000;
+    protected static final int LEVEL_DB_READ_LIMIT = 100;
 
     /**
      * Stores cached value of next owner id. This helps in improving performance by backing up next
@@ -423,7 +423,7 @@ public class DatabaseBackupAndRecovery {
             Log.d(TAG, "Started to back up " + volumeName
                     + ", maxGeneration:" + maxGeneration);
             try (Cursor c = db.query(true, "files", QUERY_COLUMNS, selectionClause, null, null,
-                    null, MediaStore.MediaColumns._ID + " ASC", null, signal)) {
+                    null, MediaStore.MediaColumns.GENERATION_MODIFIED + " ASC", null, signal)) {
                 while (c.moveToNext()) {
                     if (signal != null && signal.isCanceled()) {
                         Log.i(TAG, "Received a cancellation signal during the DB "
@@ -824,12 +824,10 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+    protected boolean insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
             String volumeName) {
         final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        if (db.insert("files", null, values) == -1) {
-            Log.e(TAG, "Failed to insert " + values + "; continuing");
-        }
+        return db.insert("files", null, values) != -1;
     }
 
     private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
@@ -894,7 +892,7 @@ public class DatabaseBackupAndRecovery {
         return null;
     }
 
-    protected void recoverData(SQLiteDatabase db, String volumeName) {
+    protected void recoverData(SQLiteDatabase db, String volumeName) throws Exception{
         if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
                 && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
             // todo: implement for public volume
@@ -904,24 +902,17 @@ public class DatabaseBackupAndRecovery {
         final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
         // Wait for external primary to be attached as we use same thread for internal volume.
         // Maximum wait for 10s
-        try {
-            getFuseDaemonForFileWithWait(new File(fuseFilePath));
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.", e);
-            return;
-        }
-
+        getFuseDaemonForFileWithWait(new File(fuseFilePath));
         if (!isBackupPresent(volumeName)) {
-            Log.w(TAG, "Backup is not present for " + volumeName);
-            return;
+            throw new FileNotFoundException("Backup file not found for " + volumeName);
         }
-        Log.d(TAG, "Backup is present for " + volumeName);
 
+        Log.d(TAG, "Backup is present for " + volumeName);
         try {
             waitForVolumeToBeAttached(mSetupCompleteVolumes);
         } catch (Exception e) {
-            Log.e(TAG, "Volume not attached in given time. Cannot recover data.", e);
-            return;
+            throw new IllegalStateException(
+                    "Volume not attached in given time. Cannot recover data.", e);
         }
 
         long rowsRecovered = 0;
@@ -946,8 +937,9 @@ public class DatabaseBackupAndRecovery {
                         continue;
                     }
 
-                    insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
-                    rowsRecovered++;
+                    if(insertDataInDatabase(db, fileRow.get(), filePath, volumeName)) {
+                        rowsRecovered++;
+                    }
                 }
             }
 
@@ -962,13 +954,14 @@ public class DatabaseBackupAndRecovery {
                 getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
         Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
                 volumeName));
-        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            // Resetting generation number
-            setXattr(LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX
-                            + MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    LAST_BACKEDUP_GENERATION_XATTR_KEY, String.valueOf(0));
-        }
         Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+    }
+
+    void resetLastBackedUpGenerationNumber(String volumeName) {
+        // Resetting generation number
+        setXattr(LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX + volumeName,
+                LAST_BACKEDUP_GENERATION_XATTR_KEY, String.valueOf(0));
+        Log.v(TAG, "Leveldb Last backed generation number reset done to 0 for " + volumeName);
     }
 
     protected boolean isBackupPresent(String volumeName) {
@@ -1004,7 +997,7 @@ public class DatabaseBackupAndRecovery {
             throws FileNotFoundException {
         pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
-                WAIT_TIME_10_SECONDS_IN_MILLIS);
+                WAIT_TIME_15_SECONDS_IN_MILLIS);
     }
 
     protected void setStableUrisGlobalFlag(String volumeName, boolean isEnabled) {
@@ -1149,7 +1142,7 @@ public class DatabaseBackupAndRecovery {
 
     private static void pollForExternalStorageMountedState() {
         final File target = Environment.getExternalStorageDirectory();
-        for (int i = 0; i < WAIT_TIME_10_SECONDS_IN_MILLIS / 100; i++) {
+        for (int i = 0; i < WAIT_TIME_15_SECONDS_IN_MILLIS / 100; i++) {
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))) {
                 return;
             }

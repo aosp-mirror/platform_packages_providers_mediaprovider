@@ -621,6 +621,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } finally {
                 updateNextRowIdInDatabaseAndExternalStorage(db);
                 mIsRecovering.set(false);
+                mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
                 updateSessionIdInDatabaseAndExternalStorage(db);
             }
         }

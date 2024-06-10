@@ -57,6 +57,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -82,6 +83,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -125,6 +127,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -184,6 +187,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -220,6 +224,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -258,6 +263,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
@@ -301,6 +307,7 @@ class ConfigurationManagerTest {
         runTest {
             val configurationManager =
                 ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,

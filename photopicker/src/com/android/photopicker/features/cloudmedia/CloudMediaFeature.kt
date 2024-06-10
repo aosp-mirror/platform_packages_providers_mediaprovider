@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.navigationbar
+package com.android.photopicker.features.cloudmedia
 
+import android.provider.MediaStore
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -27,34 +28,55 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
+import com.android.photopicker.core.navigation.Route
 
-/** Feature class for the Photopicker's navigation bar. */
-class NavigationBarFeature : PhotopickerUiFeature {
-
+/**
+ * Feature class for the Photopicker's cloud media implementation.
+ *
+ * This feature adds the Cloud media preloader for preloading off-device content before the
+ * Photopicker session ends.
+ */
+class CloudMediaFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerNavigationBarFeature"
+        override val TAG: String = "PhotopickerCloudMediaFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
 
-        override fun build(featureManager: FeatureManager) = NavigationBarFeature()
+            // Cloud media is not available in permission mode.
+            if (config.action == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) return false
+
+            return true
+        }
+
+        override fun build(featureManager: FeatureManager) = CloudMediaFeature()
     }
 
-    override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.NAVIGATION_BAR, Priority.HIGH.priority))
-    }
+    override val token = FeatureToken.CLOUD_MEDIA.token
 
-    override val token = FeatureToken.NAVIGATION_BAR.token
-
-    /** Events consumed by the selection bar */
+    /** Events consumed by Cloud Media */
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
-    /** Events produced by the selection bar */
+    /** Events produced by the Cloud Media */
     override val eventsProduced = setOf<RegisteredEventClass>()
 
+    override fun registerLocations(): List<Pair<Location, Int>> {
+        return listOf(
+            Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
+        )
+    }
+
+    override fun registerNavigationRoutes(): Set<Route> {
+        return setOf()
+    }
+
     @Composable
-    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
-            Location.NAVIGATION_BAR -> NavigationBar(modifier)
+            Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
             else -> {}
         }
     }

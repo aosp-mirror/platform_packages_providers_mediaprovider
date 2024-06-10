@@ -47,11 +47,14 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -79,6 +82,30 @@ class MainActivity : Hilt_MainActivity() {
     companion object {
         val TAG: String = "Photopicker"
     }
+
+    /**
+     * A flow used to trigger the preloader. When media is ready to be preloaded it should be
+     * provided to the preloader by emitting into this flow.
+     *
+     * The main activity should create a new [_preloadDeferred] before emitting, and then monitor
+     * that deferred to obtain the result of the preload operation that this flow will trigger.
+     */
+    val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
+
+    /**
+     * A deferred which tracks the current state of any preload operation requested by the main
+     * activity.
+     */
+    private var _preloadDeferred: CompletableDeferred<Boolean> = CompletableDeferred()
+
+    /**
+     * Public access to the deferred, behind a getter. (To ensure any access to this property always
+     * obtains the latest value)
+     */
+    public val preloadDeferred: CompletableDeferred<Boolean>
+        get() {
+            return _preloadDeferred
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -139,7 +166,9 @@ class MainActivity : Hilt_MainActivity() {
                                 // Move the work off the UI dispatcher.
                                 withContext(background) { onMediaSelectionConfirmed() }
                             }
-                        }
+                        },
+                        preloadMedia = preloadMedia,
+                        obtainPreloaderDeferred = { preloadDeferred }
                     )
                 }
             }
@@ -173,12 +202,12 @@ class MainActivity : Hilt_MainActivity() {
             events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
                 ->
                 when (event) {
-                    is Event.MediaSelectionConfirmed -> {
-                        lifecycleScope.launch {
-                            // Move the work off the UI dispatcher.
-                            withContext(background) { onMediaSelectionConfirmed() }
-                        }
-                    }
+
+                    /**
+                     * [MediaSelectionConfirmed] will be dispatched in response to the user
+                     * confirming their selection of Media in the UI.
+                     */
+                    is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
                     else -> {}
                 }
             }
@@ -186,24 +215,62 @@ class MainActivity : Hilt_MainActivity() {
     }
 
     /**
-     * This will end the activity.
+     * Entrypoint for confirming the set of selected media and preparing the media for the calling
+     * application.
      *
-     * This method should be called when the user has confirmed their selection of media and would
-     * like to exit the Photopicker. This method will then arrange for the correct data to be
-     * returned based on the configuration Photopicker is running under.
+     * This should be called when the user has confirmed their selection, and would like to exit
+     * photopicker and grant access to the media to the calling application.
      *
-     * When this method is complete, the Photopicker session will end.
-     *
-     * See: [setResultForApp] for modes where the Photopicker returns media directly to the caller
-     * See: [issueGrantsForApp] for permission mode grant writing in MediaProvider
+     * This will result in access being issued to the calling app if the media can be successfully
+     * prepared.
      */
     private suspend fun onMediaSelectionConfirmed() {
 
+        val snapshot = selection.get().snapshot()
+        // Determine if any preload of the selected media needs to happen, and
+        // await the result of the preloader before proceeding.
+        if (featureManager.get().isFeatureEnabled(CloudMediaFeature::class.java)) {
+
+            // Create a new [CompletableDeferred] that represents the result of this
+            // preload operation
+            _preloadDeferred = CompletableDeferred()
+            preloadMedia.emit(snapshot)
+
+            // Await a response from the deferred before proceeding.
+            // This will suspend until the response is available.
+            val preloadSuccessful = _preloadDeferred.await()
+
+            // The preload failed, so the activity cannot be completed.
+            if (!preloadSuccessful) {
+                return
+            }
+        }
+
+        onMediaSelectionReady(snapshot)
+    }
+
+    /**
+     * This will end the activity.
+     *
+     * This method should be called when the user has confirmed their selection of media and would
+     * like to exit the Photopicker. All Media preloading should be completed before this method is
+     * invoked. This method will then arrange for the correct data to be returned based on the
+     * configuration Photopicker is running under.
+     *
+     * When this method is complete, the Photopicker session will end.
+     *
+     * @param selection The prepared media that is ready to be returned to the caller.
+     * @see [setResultForApp] for modes where the Photopicker returns media directly to the caller
+     * @see [issueGrantsForApp] for permission mode grant writing in MediaProvider
+     */
+    private suspend fun onMediaSelectionReady(selection: Set<Media>) {
+
         val configuration = configurationManager.configuration.first()
+
         when (configuration.action) {
             MediaStore.ACTION_PICK_IMAGES,
             Intent.ACTION_GET_CONTENT ->
-                setResultForApp(canSelectMultiple = configuration.selectionLimit > 1)
+                setResultForApp(selection, canSelectMultiple = configuration.selectionLimit > 1)
             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
                 val uid =
                     configuration.intent?.getExtras()?.getInt(Intent.EXTRA_UID)
@@ -212,7 +279,7 @@ class MainActivity : Hilt_MainActivity() {
                         ?: throw IllegalStateException(
                             "Expected a uid to provided by PermissionController."
                         )
-                issueGrantsForApp(uid)
+                issueGrantsForApp(selection, uid)
             }
             else -> {}
         }
@@ -226,15 +293,17 @@ class MainActivity : Hilt_MainActivity() {
      * provide the selected media uris to the caller.
      *
      * This work runs on the @Background [CoroutineDispatcher] to avoid any UI disruption.
+     *
+     * @param selection the prepared media that can be safely returned to the app.
+     * @param canSelectMultiple whether photopicker is in multi-select mode.
      */
-    private suspend fun setResultForApp(canSelectMultiple: Boolean) {
+    private suspend fun setResultForApp(selection: Set<Media>, canSelectMultiple: Boolean) {
 
-        val snapshot = selection.get().snapshot()
-        if (snapshot.size < 1) return
+        if (selection.size < 1) return
 
         val resultData = Intent()
 
-        val uris: MutableList<Uri> = snapshot.map { it.mediaUri }.toMutableList()
+        val uris: MutableList<Uri> = selection.map { it.mediaUri }.toMutableList()
 
         if (!canSelectMultiple) {
             // For Single selection set the Uri on the intent directly.
@@ -244,7 +313,7 @@ class MainActivity : Hilt_MainActivity() {
             val clipData =
                 ClipData(
                     /* label= */ null,
-                    /* mimeTypes= */ snapshot.map { it.mimeType }.distinct().toTypedArray(),
+                    /* mimeTypes= */ selection.map { it.mimeType }.distinct().toTypedArray(),
                     /* item= */ ClipData.Item(uris.removeFirst())
                 )
 
@@ -275,10 +344,13 @@ class MainActivity : Hilt_MainActivity() {
      *
      * This is part of the sequence of ending a Photopicker Session, and is done in place of
      * returning data to the caller.
+     *
+     * @param selection The prepared media that is ready to be returned to the caller.
+     * @param uid The uid of the calling application to issue media grants for.
      */
-    private suspend fun issueGrantsForApp(uid: Int) {
+    private suspend fun issueGrantsForApp(selection: Set<Media>, uid: Int) {
 
-        val uris: List<Uri> = selection.get().snapshot().map { it.mediaUri }
+        val uris: List<Uri> = selection.map { it.mediaUri }
         // TODO: b/328189932 Diff the initial selection and revoke grants as needed.
         MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
 

@@ -200,7 +200,7 @@ public class StableUriIdleMaintenanceServiceTest {
                 if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volName)
                         && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volName)) {
                     // public volume
-                    Set<String> newFilePaths = new HashSet<String>();
+                    Set<String> newFilePaths = new HashSet<>();
                     Map<String, Long> pathToIdMap = new HashMap<>();
                     MediaStore.waitForIdle(resolver);
 

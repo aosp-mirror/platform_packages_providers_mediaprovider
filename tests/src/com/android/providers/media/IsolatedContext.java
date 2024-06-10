@@ -146,7 +146,7 @@ public class IsolatedContext extends ContextWrapper {
         mMediaProvider.setUriResolver(resolver);
     }
 
-    private void attachInfoAndAddProvider(Context base, ContentProvider provider,
+    public void attachInfoAndAddProvider(Context base, ContentProvider provider,
             String authority) {
         final ProviderInfo info = base.getPackageManager().resolveContentProvider(authority, 0);
         provider.attachInfo(this, info);

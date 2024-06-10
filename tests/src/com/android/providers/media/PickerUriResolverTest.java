@@ -45,8 +45,10 @@ import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
@@ -56,10 +58,12 @@ import android.provider.Column;
 import android.provider.ExportedSince;
 import android.provider.MediaStore;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.photopicker.PhotoPickerProvider;
 import com.android.providers.media.photopicker.PickerDataLayer;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
@@ -87,6 +91,7 @@ public class PickerUriResolverTest {
     private static final int TEST_USER = 20;
 
     private static Context sCurrentContext;
+    private static IsolatedContext sOtherUserContext;
     private static TestPickerUriResolver sTestPickerUriResolver;
     private static Uri sTestPickerUri;
     private static String TEST_ID;
@@ -140,10 +145,10 @@ public class PickerUriResolverTest {
         when(packageManager.getPackagesForUid(anyInt())).thenReturn(
                 new String[]{getContext().getPackageName()});
 
-        final Context otherUserContext = createOtherUserContext(TEST_USER);
+        sOtherUserContext = createOtherUserContext(TEST_USER);
         sTestPickerUriResolver = new TestPickerUriResolver(sCurrentContext);
 
-        sMediaStoreUriInOtherContext = createTestFileInContext(otherUserContext);
+        sMediaStoreUriInOtherContext = createTestFileInContext(sOtherUserContext);
         TEST_ID = sMediaStoreUriInOtherContext.getLastPathSegment();
     }
 
@@ -534,6 +539,41 @@ public class PickerUriResolverTest {
     }
 
     @Test
+    public void testPickerUriResolver_thumbnailRequest() throws Exception {
+        sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
+                TEST_USER, ACTION_PICK_IMAGES);
+        updateReadUriPermission(sTestPickerUri, /* grant */ true);
+        assertThat(PickerUriResolver.getUserId(sTestPickerUri)).isEqualTo(TEST_USER);
+
+        try {
+            sOtherUserContext.attachInfoAndAddProvider(getTargetContext(),
+                    new PhotoPickerProvider() {
+                        @NonNull
+                        @Override
+                        public AssetFileDescriptor onOpenPreview(@NonNull String mediaId,
+                                @NonNull Point size, @NonNull Bundle extras,
+                                @NonNull CancellationSignal signal) throws FileNotFoundException {
+                            assertThat(Long.parseLong(mediaId))
+                                    .isEqualTo(ContentUris.parseId(sMediaStoreUriInOtherContext));
+                            return mock(AssetFileDescriptor.class);
+                        }
+                    }, PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+
+            try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(
+                    sTestPickerUri, "image/*", /* opts */ null, /* signal */ null,
+                    LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
+                            0), /* wantsThumb */ true)) {
+                assertThat(afd).isNotNull();
+            }
+        } finally {
+            sOtherUserContext.attachInfoAndAddProvider(getTargetContext(),
+                    new PhotoPickerProvider(),
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY);
+        }
+
+    }
+
+    @Test
     public void testPickerUriResolver_pickerUri_fileOpenWithRequireOriginal() throws Exception {
         sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
                 TEST_USER, ACTION_PICK_IMAGES);
@@ -562,7 +602,7 @@ public class PickerUriResolverTest {
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
                 "image/*", /* opts */ null, /* signal */ null,
                 LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
+                        0), /* wantsThumb */ false)) {
             fail("Require original should not be supported for picker uri:" + sTestPickerUri);
         } catch (UnsupportedOperationException expected) {
             // expected
@@ -570,7 +610,7 @@ public class PickerUriResolverTest {
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
                 "image/*", /* opts */ null, /* signal */ null,
                 LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
+                        0), /* wantsThumb */ false)) {
             fail("Require original should not be supported for picker uri:" + sTestPickerUri);
         } catch (UnsupportedOperationException expected) {
             // expected
@@ -609,13 +649,15 @@ public class PickerUriResolverTest {
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
                 "image/*", /* opts */ null, /* signal */ null,
                 LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        ~LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
+                        ~LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED),
+                /* wantsThumb */ false)) {
             assertThat(afd).isNotNull();
         }
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(sTestPickerUri,
                 "image/*", /* opts */ null, /* signal */ null,
                 LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED))) {
+                        LocalCallingIdentity.PERMISSION_IS_REDACTION_NEEDED),
+                /* wantsThumb */ false)) {
             fail("Require original should not be supported when calling package does not have "
                     + "required permission");
         } catch (UnsupportedOperationException expected) {
@@ -645,7 +687,7 @@ public class PickerUriResolverTest {
         }
     }
 
-    private static Context createOtherUserContext(int user) throws Exception {
+    private static IsolatedContext createOtherUserContext(int user) throws Exception {
         final UserHandle userHandle = UserHandle.of(user);
         // For unit testing: IsolatedContext is the context of another User: user.
         // PickerUriResolver should correctly be able to call into other user's content resolver
@@ -717,7 +759,7 @@ public class PickerUriResolverTest {
         try (AssetFileDescriptor afd = sTestPickerUriResolver.openTypedAssetFile(uri, "image/*",
                 /* opts */ null, /* signal */ null,
                 LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                        0))) {
+                        0), /* wantsThumb */ false)) {
             assertThat(afd).isNotNull();
         }
     }
@@ -756,7 +798,7 @@ public class PickerUriResolverTest {
             sTestPickerUriResolver.openTypedAssetFile(uri, "image/*", /* opts */ null,
                     /* signal */ null,
                     LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                            0), /* wantsThumb */ false);
             fail("Invalid user specified in the picker uri: " + uri);
         } catch (FileNotFoundException expected) {
             // expected
@@ -801,7 +843,7 @@ public class PickerUriResolverTest {
             sTestPickerUriResolver.openTypedAssetFile(uri, "image/*", /* opts */ null,
                     /* signal */ null,
                     LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */
-                            0));
+                            0), /* wantsThumb */ false);
             fail("openTypedAssetFile should fail if the caller does not have permission grant on"
                     + " the picker uri: " + uri);
         } catch (SecurityException expected) {

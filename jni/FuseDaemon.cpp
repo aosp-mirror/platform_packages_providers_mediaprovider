@@ -2644,13 +2644,11 @@ void FuseDaemon::SetupLevelDbInstances() {
 }
 
 void FuseDaemon::SetupPublicVolumeLevelDbInstance(const std::string& volume_name) {
-    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
-        // Setup leveldb instance for both external primary and internal volume.
-        fuse->level_db_mutex.lock();
-        // Create level db instance for public volume
-        SetupLevelDbConnection(volume_name);
-        fuse->level_db_mutex.unlock();
-    }
+    // Setup leveldb instance for both external primary and internal volume.
+    fuse->level_db_mutex.lock();
+    // Create level db instance for public volume
+    SetupLevelDbConnection(volume_name);
+    fuse->level_db_mutex.unlock();
 }
 
 std::string deriveVolumeName(const std::string& path) {

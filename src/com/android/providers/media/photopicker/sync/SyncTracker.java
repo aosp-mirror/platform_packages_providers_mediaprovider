@@ -72,16 +72,18 @@ public class SyncTracker {
      * @param workRequestID the work request id of a picker sync.
      */
     public void markSyncCompleted(UUID workRequestID) {
-        if (mFutureMap.containsKey(workRequestID)) {
-            mFutureMap.get(workRequestID).complete(FUTURE_RESULT);
-            mFutureMap.remove(workRequestID);
-            Log.i(TAG, String.format(
-                    "Marked sync future complete for work id: %s. Future map: %s",
-                    workRequestID, mFutureMap));
-        } else {
-            Log.w(TAG, String.format("Attempted to complete sync future that is not currently "
-                            + "tracked for work id: %s. Future map: %s",
-                    workRequestID, mFutureMap));
+        synchronized (mFutureMap) {
+            if (mFutureMap.containsKey(workRequestID)) {
+                mFutureMap.get(workRequestID).complete(FUTURE_RESULT);
+                mFutureMap.remove(workRequestID);
+                Log.i(TAG, String.format(
+                        "Marked sync future complete for work id: %s. Future map: %s",
+                        workRequestID, mFutureMap));
+            } else {
+                Log.w(TAG, String.format("Attempted to complete sync future that is not currently "
+                                + "tracked for work id: %s. Future map: %s",
+                        workRequestID, mFutureMap));
+            }
         }
     }
 

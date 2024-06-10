@@ -30,30 +30,14 @@ package com.android.photopicker.core.features
  */
 enum class Location {
 
-    /* CORE Locations */
+    // keep-sorted start
     COMPOSE_TOP, // UI feature entrypoint at the top of the compose UI tree.
-
-    /* NAVIGATION_BAR */
+    MEDIA_PRELOADER, // Where the MEDIA_PRELOADER is attached to the compose tree.
     NAVIGATION_BAR, // Where the navigation bar should be drawn (when it is active).
-
-    /*
-     * Where the navigation bar draws navigation buttons.
-     *
-     * Implementation notes:
-     *
-     * For consistency, features that register a navigation button should use the provided
-     * [NavigationBarButton] composable to ensure consistent behavior between navigable routes.
-     * A modifier is provided which will space elements consistently and should be applied
-     * to the [NavigationBarButton].
-     */
-    NAVIGATION_BAR_NAV_BUTTON,
-
+    NAVIGATION_BAR_NAV_BUTTON, // Where the navigation bar draws navigation buttons.
     PROFILE_SELECTOR, // Where the profile switcher button is drawn
-
-    /* SELECTION_BAR */
     SELECTION_BAR, // Where the selection bar should be drawn (when it is active).
     SELECTION_BAR_SECONDARY_ACTION, // Where the extra button is drawn on the selection bar.
-
-    /* SNACK_BAR */
     SNACK_BAR, // Where the [Event.ShowSnackbarMessage] toasts will appear.
+    // keep-sorted end
 }

@@ -1,4 +1,9 @@
 {
+  "mainline-presubmit": [
+    {
+          "name": "CtsPdfModuleTestCases[com.google.android.mediaprovider.apex]"
+    }
+  ],
   "presubmit": [
     {
       "name": "CtsPdfModuleTestCases"

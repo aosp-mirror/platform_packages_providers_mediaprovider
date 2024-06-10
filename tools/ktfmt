@@ -1,5 +1,0 @@
- #!/usr/bin/env bash
-
-ROOT=$(dirname "$(realpath "$0")")/../../../../
-
-"$ROOT/prebuilts/jdk/jdk17/linux-x86/bin/java" -jar "$ROOT/prebuilts/build-tools/common/framework/ktfmt.jar" "$@"

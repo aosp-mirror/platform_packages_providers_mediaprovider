@@ -16,6 +16,10 @@
 
 package com.android.photopicker.core.features
 
+import com.android.photopicker.data.model.Media
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+
 /**
  * Parameter interface for passing additional parameters to a [Location]'s implementer via
  * [FeatureManager#composeLocation].
@@ -42,5 +46,16 @@ sealed interface LocationParams {
      */
     fun interface WithClickAction : LocationParams {
         fun onClick()
+    }
+
+    /** Requirements for attaching a [MediaPreloader] to the compose UI. */
+    interface WithMediaPreloader : LocationParams {
+
+        // Method which can be called to obtain a deferred for the currently requested preload
+        // operation.
+        fun obtainDeferred(): CompletableDeferred<Boolean>
+
+        // Flow to trigger the start of media preloads.
+        val preloadMedia: Flow<Set<Media>>
     }
 }

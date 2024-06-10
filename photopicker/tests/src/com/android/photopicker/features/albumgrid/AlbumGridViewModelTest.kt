@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.photogrid
+package com.android.photopicker.features.albumgrid
 
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -25,7 +25,7 @@ import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
+import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
@@ -42,7 +42,7 @@ import org.junit.runner.RunWith
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
-class PhotoGridViewModelTest {
+class AlbumGridViewModelTest {
 
     val mediaItem =
         Media.Image(
@@ -75,7 +75,7 @@ class PhotoGridViewModelTest {
         )
 
     @Test
-    fun testPhotoGridItemClickedUpdatesSelection() {
+    fun testAlbumGridItemClickedUpdatesSelection() {
 
         runTest {
             val selection =
@@ -88,6 +88,8 @@ class PhotoGridViewModelTest {
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    coreEventsConsumed = setOf<RegisteredEventClass>(),
+                    coreEventsProduced = setOf<RegisteredEventClass>(),
                 )
 
             val events =
@@ -98,7 +100,7 @@ class PhotoGridViewModelTest {
                 )
 
             val viewModel =
-                PhotoGridViewModel(
+                AlbumGridViewModel(
                     this.backgroundScope,
                     selection,
                     TestDataServiceImpl(),
@@ -110,7 +112,7 @@ class PhotoGridViewModelTest {
                 .isEqualTo(0)
 
             // Toggle the item into the selection
-            viewModel.handleGridItemSelection(mediaItem, "")
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "")
 
             // Wait for selection update.
             advanceTimeBy(100)
@@ -120,7 +122,7 @@ class PhotoGridViewModelTest {
                 .contains(mediaItem)
 
             // Toggle the item out of the selection
-            viewModel.handleGridItemSelection(mediaItem, "")
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "")
 
             advanceTimeBy(100)
 
@@ -131,7 +133,7 @@ class PhotoGridViewModelTest {
     }
 
     @Test
-    fun testShowsToastWhenSelectionFull() {
+    fun testAlbumGridShowsToastWhenSelectionFull() {
 
         runTest {
             val selection =
@@ -168,7 +170,7 @@ class PhotoGridViewModelTest {
             backgroundScope.launch { events.flow.toList(eventsDispatched) }
 
             val viewModel =
-                PhotoGridViewModel(
+                AlbumGridViewModel(
                     this.backgroundScope,
                     selection,
                     TestDataServiceImpl(),
@@ -181,14 +183,14 @@ class PhotoGridViewModelTest {
 
             // Toggle the item into the selection
             val errorMessage = "test"
-            viewModel.handleGridItemSelection(mediaItem, errorMessage)
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, errorMessage)
 
             // Wait for selection update.
             advanceTimeBy(100)
 
             assertWithMessage("Snackbar event was not dispatched when selection failed")
                 .that(eventsDispatched)
-                .contains(Event.ShowSnackbarMessage(PHOTO_GRID.token, errorMessage))
+                .contains(Event.ShowSnackbarMessage(ALBUM_GRID.token, errorMessage))
         }
     }
 }

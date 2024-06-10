@@ -48,6 +48,9 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
+import com.android.photopicker.data.model.Media
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 
 private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 
@@ -63,6 +66,8 @@ private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 fun PhotopickerAppWithBottomSheet(
     onDismissRequest: () -> Unit,
     onMediaSelectionConfirmed: () -> Unit,
+    preloadMedia: Flow<Set<Media>>,
+    obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
 ) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
@@ -111,6 +116,21 @@ fun PhotopickerAppWithBottomSheet(
                         )
                     }
                 }
+                // If a [MEDIA_PRELOADER] is configured in the current session, attach it
+                // to the compose UI here, so that any dialogs it shows are drawn overtop
+                // of the application.
+                LocalFeatureManager.current.composeLocation(
+                    Location.MEDIA_PRELOADER,
+                    maxSlots = 1,
+                    params =
+                        object : LocationParams.WithMediaPreloader {
+                            override fun obtainDeferred(): CompletableDeferred<Boolean> {
+                                return obtainPreloaderDeferred()
+                            }
+
+                            override val preloadMedia = preloadMedia
+                        }
+                )
             }
         }
     }

@@ -20,9 +20,13 @@ import android.content.Context
 import android.os.Process
 import android.os.UserHandle
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.EmbeddedLifecycle
+import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
@@ -37,35 +41,31 @@ import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
 import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.data.model.Media
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.ActivityRetainedLifecycle
-import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 
 /**
- * Injection Module that provides access to objects bound to the ActivityRetainedScope.
+ * Injection Module that provides access to objects bound to a single [EmbeddedServiceComponent].
  *
- * These can be injected by requesting the type with the [@ActivityRetainedScoped] qualifier.
- *
- * The module outlives the individual activities (and survives configuration changes), but is bound
- * to a single Photopicker session.
+ * The module is bound to a single instance of the embedded Photopicker, and first obtained in the
+ * [Session].
  *
  * Note: Jobs that are launched in the [CoroutineScope] provided by this module will be
- * automatically cancelled when the ActivityRetainedScope is ended.
+ * automatically cancelled when the [EmbeddedLifecycle] provided by this module ends.
  */
 @Module
-@InstallIn(ActivityRetainedComponent::class)
-class ActivityModule {
+@InstallIn(EmbeddedServiceComponent::class)
+class EmbeddedServiceModule {
 
     companion object {
-        val TAG: String = "PhotopickerActivityModule"
+        val TAG: String = "PhotopickerEmbeddedModule"
     }
 
     // Avoid initialization until it's actually needed.
@@ -73,38 +73,84 @@ class ActivityModule {
     private lateinit var configurationManager: ConfigurationManager
     private lateinit var dataService: DataService
     private lateinit var events: Events
+    private lateinit var embeddedLifecycle: EmbeddedLifecycle
+    private lateinit var embeddedViewModelFactory: EmbeddedViewModelFactory
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
     private lateinit var notificationService: NotificationService
     private lateinit var selection: Selection<Media>
     private lateinit var userMonitor: UserMonitor
 
+    @Provides
+    fun provideEmbeddedLifecycle(viewModelFactory: EmbeddedViewModelFactory): EmbeddedLifecycle {
+        if (::embeddedLifecycle.isInitialized) {
+            return embeddedLifecycle
+        } else {
+            Log.d(TAG, "Initializing custom embedded lifecycle.")
+            embeddedLifecycle = EmbeddedLifecycle(viewModelFactory)
+            return embeddedLifecycle
+        }
+    }
+
+    @Provides
+    fun provideViewModelFactory(
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        featureManager: Lazy<FeatureManager>,
+        configurationManager: Lazy<ConfigurationManager>,
+        selection: Lazy<Selection<Media>>,
+        userMonitor: Lazy<UserMonitor>,
+        dataService: Lazy<DataService>,
+        events: Lazy<Events>,
+    ): EmbeddedViewModelFactory {
+        if (::embeddedViewModelFactory.isInitialized) {
+            return embeddedViewModelFactory
+        } else {
+            Log.d(TAG, "Initializing embedded view model factory.")
+            embeddedViewModelFactory =
+                EmbeddedViewModelFactory(
+                    backgroundDispatcher,
+                    configurationManager,
+                    dataService,
+                    events,
+                    featureManager,
+                    selection,
+                    userMonitor,
+                )
+            return embeddedViewModelFactory
+        }
+    }
+
     /** Provider for a @Background Dispatcher [CoroutineScope]. */
     @Provides
-    @ActivityRetainedScoped
     @Background
     fun provideBackgroundScope(
         @Background dispatcher: CoroutineDispatcher,
-        activityRetainedLifecycle: ActivityRetainedLifecycle
+        embeddedLifecycle: EmbeddedLifecycle,
     ): CoroutineScope {
         if (::backgroundScope.isInitialized) {
             return backgroundScope
         } else {
             Log.d(TAG, "Initializing background scope.")
             backgroundScope = CoroutineScope(SupervisorJob() + dispatcher)
-            activityRetainedLifecycle.addOnClearedListener {
-                Log.d(TAG, "Activity retained lifecycle is ending, cancelling background scope.")
-                backgroundScope.cancel()
-            }
+            embeddedLifecycle.lifecycle.addObserver(
+                LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_DESTROY -> {
+                            Log.d(TAG, "Embedded lifecycle is ending, cancelling background scope.")
+                            backgroundScope.cancel()
+                        }
+                        else -> {}
+                    }
+                }
+            )
             return backgroundScope
         }
     }
 
     /** Provider for the [ConfigurationManager]. */
     @Provides
-    @ActivityRetainedScoped
     fun provideConfigurationManager(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
     ): ConfigurationManager {
         if (::configurationManager.isInitialized) {
@@ -117,7 +163,7 @@ class ActivityModule {
             )
             configurationManager =
                 ConfigurationManager(
-                    /* runtimeEnv= */ PhotopickerRuntimeEnv.ACTIVITY,
+                    /* runtimeEnv= */ PhotopickerRuntimeEnv.EMBEDDED,
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
                     /* deviceConfigProxy= */ DeviceConfigProxyImpl(),
@@ -129,19 +175,17 @@ class ActivityModule {
     /**
      * Provider method for [DataService]. This is lazily initialized only when requested to save on
      * initialization costs of this module.
-     *
-     * Ideally this should not be limited to an Activity scope. This is planned to be changed soon.
      */
     @Provides
-    @ActivityRetainedScoped
     fun provideDataService(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
-        @ActivityRetainedScoped userMonitor: UserMonitor,
-        @ActivityRetainedScoped notificationService: NotificationService,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped featureManager: FeatureManager
+        userMonitor: UserMonitor,
+        notificationService: NotificationService,
+        configurationManager: ConfigurationManager,
+        featureManager: FeatureManager
     ): DataService {
+
         if (!::dataService.isInitialized) {
             Log.d(
                 DataService.TAG,
@@ -166,7 +210,6 @@ class ActivityModule {
      * initialization costs of this module.
      */
     @Provides
-    @ActivityRetainedScoped
     fun provideEvents(
         @Background scope: CoroutineScope,
         featureManager: FeatureManager,
@@ -181,10 +224,9 @@ class ActivityModule {
     }
 
     @Provides
-    @ActivityRetainedScoped
     fun provideFeatureManager(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
+        @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): FeatureManager {
 
         if (::featureManager.isInitialized) {
@@ -207,11 +249,10 @@ class ActivityModule {
 
     /** Provider for a @Main Dispatcher [CoroutineScope]. */
     @Provides
-    @ActivityRetainedScoped
     @Main
     fun provideMainScope(
         @Main dispatcher: CoroutineDispatcher,
-        activityRetainedLifecycle: ActivityRetainedLifecycle
+        embeddedLifecycle: EmbeddedLifecycle,
     ): CoroutineScope {
 
         if (::mainScope.isInitialized) {
@@ -219,16 +260,22 @@ class ActivityModule {
         } else {
             Log.d(TAG, "Initializing main scope.")
             mainScope = CoroutineScope(SupervisorJob() + dispatcher)
-            activityRetainedLifecycle.addOnClearedListener {
-                Log.d(TAG, "Activity retained lifecycle is ending, cancelling main scope.")
-                mainScope.cancel()
-            }
+            embeddedLifecycle.lifecycle.addObserver(
+                LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_DESTROY -> {
+                            Log.d(TAG, "Embedded lifecycle is ending, cancelling main scope.")
+                            mainScope.cancel()
+                        }
+                        else -> {}
+                    }
+                }
+            )
             return mainScope
         }
     }
 
     @Provides
-    @ActivityRetainedScoped
     fun provideNotificationService(): NotificationService {
 
         if (!::notificationService.isInitialized) {
@@ -243,9 +290,8 @@ class ActivityModule {
     }
 
     @Provides
-    @ActivityRetainedScoped
     fun provideSelection(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
     ): Selection<Media> {
 
@@ -260,7 +306,6 @@ class ActivityModule {
                             scope = scope,
                             configuration = configurationManager.configuration,
                         )
-
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(
                             scope = scope,
@@ -273,20 +318,18 @@ class ActivityModule {
 
     /** Provides the UserHandle of the current process owner. */
     @Provides
-    @ActivityRetainedScoped
     fun provideUserHandle(): UserHandle {
         return Process.myUserHandle()
     }
 
     /** Provider for the [UserMonitor]. This is lazily initialized only when requested. */
     @Provides
-    @ActivityRetainedScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
-        @ActivityRetainedScoped handle: UserHandle,
+        handle: UserHandle,
     ): UserMonitor {
         if (::userMonitor.isInitialized) {
             return userMonitor

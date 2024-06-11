@@ -131,21 +131,25 @@ class ActivityModule {
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         @ActivityRetainedScoped userMonitor: UserMonitor,
-        @ActivityRetainedScoped notificationService: NotificationService
+        @ActivityRetainedScoped notificationService: NotificationService,
+        @ActivityRetainedScoped configurationManager: ConfigurationManager,
+        @ActivityRetainedScoped featureManager: FeatureManager
     ): DataService {
-
         if (!::dataService.isInitialized) {
             Log.d(
                 DataService.TAG,
                 "DataService requested but not yet initialized. Initializing DataService."
             )
-            dataService = DataServiceImpl(
-                userMonitor.userStatus,
-                scope,
-                dispatcher,
-                notificationService,
-                MediaProviderClient()
-            )
+            dataService =
+                DataServiceImpl(
+                    userMonitor.userStatus,
+                    scope,
+                    dispatcher,
+                    notificationService,
+                    MediaProviderClient(),
+                    configurationManager.configuration,
+                    featureManager
+                )
         }
         return dataService
     }

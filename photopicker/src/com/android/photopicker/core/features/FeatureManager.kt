@@ -23,6 +23,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
@@ -75,6 +76,7 @@ class FeatureManager(
                 ProfileSelectorFeature.Registration,
                 AlbumGridFeature.Registration,
                 SnackbarFeature.Registration,
+                CloudMediaFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -271,9 +273,9 @@ class FeatureManager(
                 it.add(Pair(feature, second))
                 it.sortWith(priorityDescending)
             }
-            // If this is the first registration for this location, initialize the list and add
-            // the current feature to the registry for this location.
-            ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
+                // If this is the first registration for this location, initialize the list and add
+                // the current feature to the registry for this location.
+                ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
         }
     }
 
@@ -318,18 +320,28 @@ class FeatureManager(
      * This can result in an empty [Composable] if no features have the provided [Location] in their
      * list of registered locations.
      *
-     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
-     * that is reguarly re-composed will result in the entire subtree being re-composed, which can
-     * impact performance.
+     * Additional parameters can be passed via the [LocationParams] interface for providing
+     * functionality such as click handlers or passing primitive data.
      *
      * @param location The UI location that needs to be composed
      * @param maxSlots (Optional, default unlimited) The maximum number of features that can compose
      *   at this location. If set, this will call features in priority order until all slots of been
      *   exhausted.
      * @param modifier (Optional) A [Modifier] to pass in the compose call.
+     * @param params (Optional) A [LocationParams] to pass in the compose call.
+     * @see [LocationParams]
+     *
+     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
+     * that is regularly re-composed will result in the entire sub tree being re-composed, which can
+     * impact performance.
      */
     @Composable
-    fun composeLocation(location: Location, maxSlots: Int? = null, modifier: Modifier = Modifier) {
+    fun composeLocation(
+        location: Location,
+        maxSlots: Int? = null,
+        modifier: Modifier = Modifier,
+        params: LocationParams = LocationParams.None,
+    ) {
         val featurePairs = locationRegistry.get(location)
 
         // There is no guarantee the [Location] exists in the registry, since it is initialized
@@ -337,7 +349,7 @@ class FeatureManager(
         featurePairs?.let {
             for (feature in featurePairs.take(maxSlots ?: featurePairs.size)) {
                 Log.d(TAG, "Composing for $location for $feature")
-                feature.first.compose(location, modifier)
+                feature.first.compose(location, modifier, params)
             }
         }
     }

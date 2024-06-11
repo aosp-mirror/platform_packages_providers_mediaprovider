@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -160,6 +159,7 @@ fun PhotopickerApp() {
  * View or an Activity lifecycle.
  *
  * By this entrypoint, the expected CompositionLocals should already exist:
+ * - LocalEvents
  * - LocalFeatureManager
  * - LocalNavController
  * - LocalPhotopickerConfiguration
@@ -189,9 +189,11 @@ fun PhotopickerMain() {
                     maxSlots = 1,
                     modifier = Modifier,
                 )
-                // Placeholder for overflow menu
-                // Weight should match the profile switcher slot so they are the same size.
-                Spacer(Modifier.weight(1f))
+                LocalFeatureManager.current.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    // Weight should match the profile switcher slot so they are the same size.
+                    modifier = Modifier.weight(1f),
+                )
             }
             // Initialize the navigation graph.
             PhotopickerNavGraph()

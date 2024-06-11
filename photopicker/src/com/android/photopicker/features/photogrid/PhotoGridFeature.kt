@@ -33,6 +33,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -78,12 +79,12 @@ class PhotoGridFeature : PhotopickerUiFeature {
                 override val dialogProperties = null
 
                 /*
-                 Animations for PHOTO_GRID
-                 - When navigating directly, content will slide IN from the left edge.
-                 - When navigating away, content will slide OUT towards the left edge.
-                 - When returning from the backstack, content will slide IN from the right edge.
-                 - When popping to another route on the backstack, content will slide OUT towards
-                   the left edge.
+                Animations for PHOTO_GRID
+                - When navigating directly, content will slide IN from the left edge.
+                - When navigating away, content will slide OUT towards the left edge.
+                - When returning from the backstack, content will slide IN from the right edge.
+                - When popping to another route on the backstack, content will slide OUT towards
+                  the left edge.
                  */
                 override val enterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
@@ -122,6 +123,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
     override fun compose(
         location: Location,
         modifier: Modifier,
+        params: LocationParams,
     ) {
         when (location) {
             Location.NAVIGATION_BAR_NAV_BUTTON -> PhotoGridNavButton(modifier)

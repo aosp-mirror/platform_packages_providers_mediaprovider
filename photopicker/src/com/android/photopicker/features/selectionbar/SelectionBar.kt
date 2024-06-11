@@ -32,22 +32,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
-import com.android.photopicker.core.events.Event
-import com.android.photopicker.core.events.LocalEvents
-import com.android.photopicker.core.features.FeatureToken.SELECTION_BAR
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import java.text.NumberFormat
-import kotlinx.coroutines.launch
 
 /* The size of spacers between elements on the bar */
 private val MEASUREMENT_SPACER_SIZE = 6.dp
@@ -62,12 +58,10 @@ private val MEASUREMENT_BAR_PADDING = 12.dp
  * is relevant to the selection bar. If not are provided, the space will be left empty.
  */
 @Composable
-fun SelectionBar(modifier: Modifier = Modifier) {
+fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
     // Collect selection to ensure this is recomposed when the selection is updated.
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val visible = currentSelection.isNotEmpty()
-    val events = LocalEvents.current
-    val scope = rememberCoroutineScope()
     val numberFormatter = remember { NumberFormat.getInstance() }
 
     // The entire selection bar is hidden if the selection is empty, and
@@ -97,21 +91,23 @@ fun SelectionBar(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.padding(MEASUREMENT_SPACER_SIZE))
                 FilledTonalButton(
                     onClick = {
-                        scope.launch {
-                            events.dispatch(Event.MediaSelectionConfirmed(SELECTION_BAR.token))
-                        }
+                        // The selection bar should receive a click handler from its parent
+                        // to handle the primary button click.
+                        val clickAction = params as? LocationParams.WithClickAction
+                        clickAction?.onClick()
                     },
                     colors =
-                    ButtonDefaults.filledTonalButtonColors(
-                        containerColor = CustomAccentColorScheme.current
-                            .getAccentColorIfDefinedOrElse(
-                                /* fallback */ MaterialTheme.colorScheme.primary
-                            ),
-                        contentColor = CustomAccentColorScheme.current
-                            .getTextColorForAccentComponentsIfDefinedOrElse(
-                                /* fallback */ MaterialTheme.colorScheme.onPrimary
-                            ),
-                    )
+                        ButtonDefaults.filledTonalButtonColors(
+                            containerColor =
+                                CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                                    /* fallback */ MaterialTheme.colorScheme.primary
+                                ),
+                            contentColor =
+                                CustomAccentColorScheme.current
+                                    .getTextColorForAccentComponentsIfDefinedOrElse(
+                                        /* fallback */ MaterialTheme.colorScheme.onPrimary
+                                    ),
+                        )
                 ) {
                     Text(
                         stringResource(

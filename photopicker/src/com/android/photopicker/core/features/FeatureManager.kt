@@ -23,7 +23,9 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
+import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
@@ -75,6 +77,8 @@ class FeatureManager(
                 ProfileSelectorFeature.Registration,
                 AlbumGridFeature.Registration,
                 SnackbarFeature.Registration,
+                CloudMediaFeature.Registration,
+                OverflowMenuFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -271,9 +275,9 @@ class FeatureManager(
                 it.add(Pair(feature, second))
                 it.sortWith(priorityDescending)
             }
-            // If this is the first registration for this location, initialize the list and add
-            // the current feature to the registry for this location.
-            ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
+                // If this is the first registration for this location, initialize the list and add
+                // the current feature to the registry for this location.
+                ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
         }
     }
 
@@ -308,6 +312,31 @@ class FeatureManager(
     }
 
     /**
+     * Checks the run-time (current) maximum size (in terms of number of children created) of the
+     * provided [Location] in the [FeatureManager] internal [locationRegistry].
+     *
+     * This allows features to determine if a given [composeLocation] call will actually create any
+     * child elements at the location.
+     *
+     * The size returned is always stable for the current [PhotopickerConfiguration] but may change
+     * if the configuration is changed, since features could be added or removed under the new
+     * configuration.
+     *
+     * NOTE: This only returns the number of children, there is no way to directly interact with the
+     * feature classes registered at the given location.
+     *
+     * @param location The location to check the size of.
+     * @return the max number of children of the location. Cannot be negative.
+     * @see [composeLocation] for rendering the children of a [Location] in the compose tree.
+     */
+    fun getSizeOfLocationInRegistry(location: Location): Int {
+        // There is no guarantee the [Location] exists in the registry, since it is initialized
+        // lazily, its possible that features have not been registered for the current
+        // configuration.
+        return locationRegistry.get(location)?.size ?: 0
+    }
+
+    /**
      * Calls all of the relevant compose methods for all enabled [PhotopickerUiFeature] that have
      * the [Location] in their registered locations, in their declared priority descending order.
      *
@@ -318,18 +347,28 @@ class FeatureManager(
      * This can result in an empty [Composable] if no features have the provided [Location] in their
      * list of registered locations.
      *
-     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
-     * that is reguarly re-composed will result in the entire subtree being re-composed, which can
-     * impact performance.
+     * Additional parameters can be passed via the [LocationParams] interface for providing
+     * functionality such as click handlers or passing primitive data.
      *
      * @param location The UI location that needs to be composed
      * @param maxSlots (Optional, default unlimited) The maximum number of features that can compose
      *   at this location. If set, this will call features in priority order until all slots of been
      *   exhausted.
      * @param modifier (Optional) A [Modifier] to pass in the compose call.
+     * @param params (Optional) A [LocationParams] to pass in the compose call.
+     * @see [LocationParams]
+     *
+     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
+     * that is regularly re-composed will result in the entire sub tree being re-composed, which can
+     * impact performance.
      */
     @Composable
-    fun composeLocation(location: Location, maxSlots: Int? = null, modifier: Modifier = Modifier) {
+    fun composeLocation(
+        location: Location,
+        maxSlots: Int? = null,
+        modifier: Modifier = Modifier,
+        params: LocationParams = LocationParams.None,
+    ) {
         val featurePairs = locationRegistry.get(location)
 
         // There is no guarantee the [Location] exists in the registry, since it is initialized
@@ -337,7 +376,7 @@ class FeatureManager(
         featurePairs?.let {
             for (feature in featurePairs.take(maxSlots ?: featurePairs.size)) {
                 Log.d(TAG, "Composing for $location for $feature")
-                feature.first.compose(location, modifier)
+                feature.first.compose(location, modifier, params)
             }
         }
     }

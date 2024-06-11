@@ -25,7 +25,7 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
 /** Holds metadata for a type of media item like [Image] or [Video]. */
-sealed interface Media : GlideLoadable, Parcelable {
+sealed interface Media : GlideLoadable, Grantable, Parcelable {
     /** This is the ID that provider has shared with Picker */
     val mediaId: String
 
@@ -39,6 +39,7 @@ sealed interface Media : GlideLoadable, Parcelable {
     val sizeInBytes: Long
     val mimeType: String
     val standardMimeTypeExtension: Int
+    override val isPreGranted: Boolean
 
     override fun getSignature(resolution: Resolution): ObjectKey {
         return ObjectKey("${mediaUri}_$resolution")
@@ -90,6 +91,7 @@ sealed interface Media : GlideLoadable, Parcelable {
         override val sizeInBytes: Long,
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
+        override val isPreGranted: Boolean = false,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -135,6 +137,7 @@ sealed interface Media : GlideLoadable, Parcelable {
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
         val duration: Int,
+        override val isPreGranted: Boolean = false,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {

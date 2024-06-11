@@ -9028,7 +9028,7 @@ public class MediaProvider extends ContentProvider {
 
             try {
                 return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
-                        mCallingIdentity.get());
+                        mCallingIdentity.get(), wantsThumb);
             } finally {
                 synchronized (mPendingOpenInfo) {
                     mPendingOpenInfo.remove(tid);

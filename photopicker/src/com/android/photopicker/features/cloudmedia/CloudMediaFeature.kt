@@ -16,9 +16,13 @@
 
 package com.android.photopicker.features.cloudmedia
 
+import android.content.Intent
 import android.provider.MediaStore
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.android.photopicker.R
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
@@ -29,6 +33,7 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.features.overflowmenu.OverflowMenuItem
 
 /**
  * Feature class for the Photopicker's cloud media implementation.
@@ -62,6 +67,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
             Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.HIGH.priority),
         )
     }
 
@@ -77,6 +83,17 @@ class CloudMediaFeature : PhotopickerUiFeature {
     ) {
         when (location) {
             Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
+            Location.OVERFLOW_MENU_ITEMS -> {
+                val context = LocalContext.current
+                val clickAction = params as? LocationParams.WithClickAction
+                OverflowMenuItem(
+                    label = stringResource(R.string.photopicker_overflow_cloud_media_app),
+                    onClick = {
+                        clickAction?.onClick()
+                        context.startActivity(Intent(MediaStore.ACTION_PICK_IMAGES_SETTINGS))
+                    }
+                )
+            }
             else -> {}
         }
     }

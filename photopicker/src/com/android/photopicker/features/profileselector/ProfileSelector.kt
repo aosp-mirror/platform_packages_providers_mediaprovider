@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +74,10 @@ fun ProfileSelector(
         val currentProfile by viewModel.selectedProfile.collectAsStateWithLifecycle()
         var expanded by remember { mutableStateOf(false) }
         Box(modifier = modifier) {
-            OutlinedIconButton(onClick = { expanded = !expanded }) {
+            OutlinedIconButton(
+                modifier = Modifier.align(Alignment.CenterStart),
+                onClick = { expanded = !expanded }
+            ) {
                 currentProfile.icon?.let {
                     Icon(
                         it,
@@ -81,9 +85,9 @@ fun ProfileSelector(
                             stringResource(R.string.photopicker_profile_switch_button_description)
                     )
                 }
-                // If the profile doesn't have an icon drawable set, then
-                // generate one.
-                ?: Icon(
+                    // If the profile doesn't have an icon drawable set, then
+                    // generate one.
+                    ?: Icon(
                         getIconForProfile(currentProfile),
                         contentDescription =
                             stringResource(R.string.photopicker_profile_switch_button_description)
@@ -143,9 +147,9 @@ fun ProfileSelector(
                                             }
                                     )
                                 }
-                                // If the profile doesn't have an icon drawable set, then
-                                // generate one.
-                                ?: Icon(
+                                    // If the profile doesn't have an icon drawable set, then
+                                    // generate one.
+                                    ?: Icon(
                                         getIconForProfile(profile),
                                         contentDescription = null,
                                         tint =

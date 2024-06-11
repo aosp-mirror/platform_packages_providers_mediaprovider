@@ -26,7 +26,7 @@ import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
-import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
@@ -79,7 +79,7 @@ class AlbumGridViewModelTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
                 )
@@ -137,7 +137,7 @@ class AlbumGridViewModelTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration =
                         provideTestConfigurationFlow(

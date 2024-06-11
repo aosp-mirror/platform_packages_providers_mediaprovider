@@ -34,6 +34,7 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.features.overflowmenu.OverflowMenuItem
 
 /** Test [PhotopickerUiFeature] that renders a simple string to [Location.COMPOSE_TOP] */
 open class SimpleUiFeature : PhotopickerUiFeature {
@@ -60,6 +61,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
             Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority),
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.REGISTRATION_ORDER.priority),
             Pair(Location.SELECTION_BAR_SECONDARY_ACTION, Priority.REGISTRATION_ORDER.priority),
         )
     }
@@ -97,6 +99,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
         when (location) {
             Location.COMPOSE_TOP -> composeTop(params)
             Location.SELECTION_BAR_SECONDARY_ACTION -> selectionBarAction()
+            Location.OVERFLOW_MENU_ITEMS -> overflowMenuItem(params)
             else -> {}
         }
     }
@@ -124,5 +127,11 @@ open class SimpleUiFeature : PhotopickerUiFeature {
     @Composable
     private fun selectionBarAction() {
         TextButton(onClick = {}) { Text(BUTTON_LABEL) }
+    }
+
+    @Composable
+    private fun overflowMenuItem(params: LocationParams) {
+        val clickAction = params as? LocationParams.WithClickAction
+        OverflowMenuItem(label = BUTTON_LABEL, onClick = { clickAction?.onClick() })
     }
 }

@@ -56,7 +56,7 @@ import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
@@ -139,37 +139,37 @@ class MediaGridTest {
                 add(
                     MediaGridItem.MediaItem(
                         media =
-                            Media.Image(
-                                mediaId = "$i",
-                                pickerId = i.toLong(),
-                                authority = "a",
-                                mediaSource = MediaSource.LOCAL,
-                                mediaUri =
-                                    Uri.EMPTY.buildUpon()
-                                        .apply {
-                                            scheme("content")
-                                            authority("media")
-                                            path("picker")
-                                            path("a")
-                                            path("$i")
-                                        }
-                                        .build(),
-                                glideLoadableUri =
-                                    Uri.EMPTY.buildUpon()
-                                        .apply {
-                                            scheme("content")
-                                            authority("a")
-                                            path("$i")
-                                        }
-                                        .build(),
-                                dateTakenMillisLong =
-                                    LocalDateTime.now()
-                                        .minus(i.toLong(), ChronoUnit.DAYS)
-                                        .toEpochSecond(ZoneOffset.UTC) * 1000,
-                                sizeInBytes = 1000L,
-                                mimeType = "image/png",
-                                standardMimeTypeExtension = 1,
-                            )
+                        Media.Image(
+                            mediaId = "$i",
+                            pickerId = i.toLong(),
+                            authority = "a",
+                            mediaSource = MediaSource.LOCAL,
+                            mediaUri =
+                            Uri.EMPTY.buildUpon()
+                                .apply {
+                                    scheme("content")
+                                    authority("media")
+                                    path("picker")
+                                    path("a")
+                                    path("$i")
+                                }
+                                .build(),
+                            glideLoadableUri =
+                            Uri.EMPTY.buildUpon()
+                                .apply {
+                                    scheme("content")
+                                    authority("a")
+                                    path("$i")
+                                }
+                                .build(),
+                            dateTakenMillisLong =
+                            LocalDateTime.now()
+                                .minus(i.toLong(), ChronoUnit.DAYS)
+                                .toEpochSecond(ZoneOffset.UTC) * 1000,
+                            sizeInBytes = 1000L,
+                            mimeType = "image/png",
+                            standardMimeTypeExtension = 1,
+                        )
                     )
                 )
             }
@@ -214,7 +214,7 @@ class MediaGridTest {
      */
     @Composable
     private fun grid(
-        selection: Selection<Media>,
+        selection: SelectionImpl<Media>,
         onItemClick: (MediaGridItem) -> Unit,
         onItemLongPress: (MediaGridItem) -> Unit = {},
     ) {
@@ -240,9 +240,9 @@ class MediaGridTest {
     ) {
         Box(
             modifier =
-                // .clickable also merges the semantics of its descendants
-                Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
-                    if (item is MediaGridItem.MediaItem) {onClick?.invoke(item)} }
+            // .clickable also merges the semantics of its descendants
+            Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
+                if (item is MediaGridItem.MediaItem) {onClick?.invoke(item)} }
         ) {
             Text(CUSTOM_ITEM_FACTORY_TEXT)
         }
@@ -253,9 +253,9 @@ class MediaGridTest {
     private fun customContentSeparatorFactory() {
         Box(
             modifier =
-                // Merge the semantics into the parent node to make it easy to asset and select
-                // these nodes in the tree.
-                Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG),
+            // Merge the semantics into the parent node to make it easy to asset and select
+            // these nodes in the tree.
+            Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG),
         ) {
             Text(CUSTOM_ITEM_SEPARATOR_TEXT)
         }
@@ -265,7 +265,7 @@ class MediaGridTest {
     @Test
     fun testMediaGridDisplaysMedia() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope)
             )
@@ -285,7 +285,7 @@ class MediaGridTest {
     @Test
     fun testAlbumGridDisplaysMedia() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope)
             )
@@ -319,7 +319,7 @@ class MediaGridTest {
     @Test
     fun testMediaGridScroll() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope)
             )
@@ -357,7 +357,7 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope)
                 )
@@ -414,7 +414,7 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope)
                 )
@@ -470,7 +470,7 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope)
                 )
@@ -497,7 +497,7 @@ class MediaGridTest {
     fun testMediaGridCustomContentItemFactory() {
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope)
                 )
@@ -532,7 +532,7 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope)
                 )

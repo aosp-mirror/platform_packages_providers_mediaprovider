@@ -25,6 +25,16 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
 /**
+ * A [PhotopickerConfiguration] that allows selection of only a single item.
+ */
+val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 1)
+
+/**
+ * A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items.
+ */
+val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
+
+/**
  * A [PhotopickerConfiguration] that can be used with most tests, that comes with sensible default
  * values.
  */

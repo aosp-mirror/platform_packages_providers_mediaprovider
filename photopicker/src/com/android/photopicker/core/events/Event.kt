@@ -47,8 +47,11 @@ interface Event {
      */
     data class MediaSelectionConfirmed(override val dispatcherToken: String) : Event
 
-    // For showing a message to the user in a snackbar. See [SnackbarFeature] for
-    // snackbar implementation details.
+    /**
+     * For showing a message to the user in a snackbar.
+     *
+     * @see [SnackbarFeature] for snackbar implementation details.
+     */
     data class ShowSnackbarMessage(override val dispatcherToken: String, val message: String) :
         Event
 }

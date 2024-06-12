@@ -90,6 +90,20 @@ class FeatureManager(
             setOf(
                 Event.MediaSelectionConfirmed::class.java,
                 Event.ShowSnackbarMessage::class.java,
+                Event.ReportPhotopickerSessionInfo::class.java,
+                Event.ReportPhotopickerApiInfo::class.java,
+                Event.LogPhotopickerUIEvent::class.java,
+                Event.ReportPhotopickerMediaItemStatus::class.java,
+                Event.LogPhotopickerPreviewInfo::class.java,
+                Event.LogPhotopickerMenuInteraction::class.java,
+                Event.LogPhotopickerBannerInteraction::class.java,
+                Event.LogPhotopickerMediaLibraryInfo::class.java,
+                Event.LogPhotopickerPageInfo::class.java,
+                Event.ReportPhotopickerMediaGridSyncInfo::class.java,
+                Event.ReportPhotopickerAlbumSyncInfo::class.java,
+                Event.ReportPhotopickerSearchInfo::class.java,
+                Event.ReportSearchDataExtractionDetails::class.java,
+                Event.ReportEmbeddedPhotopickerInfo::class.java
             )
     }
 

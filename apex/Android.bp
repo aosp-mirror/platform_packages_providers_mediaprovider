@@ -105,6 +105,8 @@ bootclasspath_fragment {
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
             "android.provider",
+            "android.provider.mediacognitionutils",
+            "android.provider.media.internal.flags",
             "android.graphics.pdf.common",
             "android.graphics.pdf.concurrency",
             "android.graphics.pdf.converters",

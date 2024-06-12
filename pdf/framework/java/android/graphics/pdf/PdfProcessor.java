@@ -200,9 +200,8 @@ public class PdfProcessor {
     public List<PdfPageImageContent> getPageImageContents(int pageNum) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.getPageAltText(pageNum).stream()
-                    .map(PdfPageImageContent::new)
-                    .collect(Collectors.toList());
+            return mPdfDocument.getPageAltText(pageNum).stream().map(
+                    PdfPageImageContent::new).collect(Collectors.toList());
         }
     }
 
@@ -235,8 +234,8 @@ public class PdfProcessor {
      * task.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public void renderPage(
-            int pageNum, Bitmap bitmap, Rect destClip, Matrix transform, RenderParams params) {
+    public void renderPage(int pageNum, Bitmap bitmap, Rect destClip, Matrix transform,
+            RenderParams params, boolean renderFormFields) {
         Preconditions.checkNotNull(bitmap, "Destination bitmap cannot be null");
         Preconditions.checkNotNull(params, "RenderParams cannot be null");
         Preconditions.checkArgument(bitmap.getConfig() == Bitmap.Config.ARGB_8888,
@@ -267,16 +266,9 @@ public class PdfProcessor {
 
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            mPdfDocument.render(
-                    pageNum,
-                    bitmap,
-                    contentLeft,
-                    contentTop,
-                    contentRight,
-                    contentBottom,
-                    transformArr,
-                    renderMode,
-                    params.areAnnotationsDisabled());
+            mPdfDocument.render(pageNum, bitmap, contentLeft, contentTop, contentRight,
+                    contentBottom, transformArr, renderMode, params.areAnnotationsDisabled(),
+                    renderFormFields);
         }
     }
 
@@ -330,8 +322,7 @@ public class PdfProcessor {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
             android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
-                    mPdfDocument.selectPageText(
-                            pageNum,
+                    mPdfDocument.selectPageText(pageNum,
                             android.graphics.pdf.models.jni.SelectionBoundary.convert(start),
                             android.graphics.pdf.models.jni.SelectionBoundary.convert(stop));
             if (legacyPageSelection != null) {
@@ -386,8 +377,7 @@ public class PdfProcessor {
     public int getDocumentLinearizationType() {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.isPdfLinearized()
-                    ? PDF_DOCUMENT_TYPE_LINEARIZED
+            return mPdfDocument.isPdfLinearized() ? PDF_DOCUMENT_TYPE_LINEARIZED
                     : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
         }
     }
@@ -402,9 +392,8 @@ public class PdfProcessor {
             assertPdfDocumentNotNull();
             int pdfFormType = mPdfDocument.getFormType();
             return switch (pdfFormType) {
-                case PDF_FORM_TYPE_ACRO_FORM,
-                                PDF_FORM_TYPE_XFA_FULL,
-                                PDF_FORM_TYPE_XFA_FOREGROUND ->
+                case PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL,
+                        PDF_FORM_TYPE_XFA_FOREGROUND ->
                         pdfFormType;
                 default -> PDF_FORM_TYPE_NONE;
             };
@@ -427,8 +416,8 @@ public class PdfProcessor {
      * page will be returned.
      */
     @NonNull
-    public List<FormWidgetInfo> getFormWidgetInfos(
-            int pageNum, @NonNull @FormWidgetInfo.WidgetType int[] types) {
+    public List<FormWidgetInfo> getFormWidgetInfos(int pageNum,
+            @NonNull @FormWidgetInfo.WidgetType int[] types) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
             return mPdfDocument.getFormWidgetInfos(pageNum, types);
@@ -513,9 +502,8 @@ public class PdfProcessor {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
             int[] selectedIndices = editRecord.getSelectedIndices();
-            List<Rect> results =
-                    mPdfDocument.setFormFieldSelectedIndices(
-                            pageNum, editRecord.getWidgetIndex(), selectedIndices);
+            List<Rect> results = mPdfDocument.setFormFieldSelectedIndices(pageNum,
+                    editRecord.getWidgetIndex(), selectedIndices);
             if (results == null) {
                 throw new IllegalArgumentException("Cannot set selected indices on this widget.");
             }
@@ -530,8 +518,8 @@ public class PdfProcessor {
         String text = editRecord.getText();
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            List<Rect> results =
-                    mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
+            List<Rect> results = mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(),
+                    text);
             if (results == null) {
                 throw new IllegalArgumentException("Cannot set form field text on this widget.");
             }

@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"ପ୍ରିଭ୍ୟୁ"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ୱାର୍କକୁ ସୁଇଚ କରନ୍ତୁ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ବ୍ୟକ୍ତିଗତକୁ ସୁଇଚ କରନ୍ତୁ"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ବ୍ୟକ୍ତିଗତ"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ଆପଣଙ୍କ ଆଡମିନଙ୍କ ଦ୍ୱାରା ବ୍ଲକ କରାଯାଇଛି"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"କୌଣସି ବ୍ୟକ୍ତିଗତ ଆପରୁ ୱାର୍କ ଡାଟାକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"କୌଣସି ୱାର୍କ ଆପରୁ ବ୍ୟକ୍ତିଗତ ଡାଟାକୁ ଆକ୍ସେସ୍ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"ଏକ <xliff:g id="PROFILE2">%2$s</xliff:g> ଆପରୁ <xliff:g id="PROFILE1">%1$s</xliff:g> ଡାଟାକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦିଆଯାଇନାହିଁ"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g>କୁ ସୁଇଚ କରନ୍ତୁ"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"ୱାର୍କ ଆପଗୁଡ଼ିକୁ ବିରତ କରାଯାଇଛି"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> ଆପ୍ସକୁ ବିରତ କରାଯାଇଛି"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"ୱାର୍କ ଫଟୋଗୁଡ଼ିକୁ ଖୋଲିବାକୁ, ଆପଣଙ୍କ ୱାର୍କ ଆପଗୁଡ଼ିକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> ଫଟୋ ଖୋଲିବା ପାଇଁ ଆପଣଙ୍କ <xliff:g id="PROFILE2">%2$s</xliff:g> ଆପ୍ସକୁ ଚାଲୁ କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"ଏହି ଆପ କେବଳ ଆପଣ ଚୟନ କରିଥିବା ଫଟୋଗୁଡ଼ିକୁ ଆକ୍ସେସ କରିପାରିବ"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"ଆପଣ ଏହି ଆପକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଅନୁମତି ଦେଉଥିବା ଫଟୋ ଏବଂ ଭିଡିଓଗୁଡ଼ିକୁ ଚୟନ କରନ୍ତୁ"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>ଟି ଆଇଟମ}other{<xliff:g id="COUNT_1">^1</xliff:g>ଟି ଆଇଟମ}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ। ସମସ୍ୟାର ସମାଧାନ ହେବା ପରେ ଆପଣଙ୍କ ଫଟୋଗୁଡ଼ିକ ଉପଲବ୍ଧ ହେବ।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"କିଛି ଫଟୋ ଲୋଡ କରାଯାଇପାରିବ ନାହିଁ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ବୁଝିଗଲି"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"ମିଡିଆ ମାଲିକଙ୍କ ପେକେଜ ନାମ ଆକ୍ସେସ କରନ୍ତୁ"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"ସମସ୍ତ ଆକ୍ସେସ ଯୋଗ୍ୟ ମିଡିଆ ଫାଇଲର ମାଲିକଙ୍କ ପେକେଜ ନାମକୁ ଆକ୍ସେସ କରିବା ପାଇଁ ଆପକୁ ଅନୁମତି ଦିଏ।"</string>
 </resources>

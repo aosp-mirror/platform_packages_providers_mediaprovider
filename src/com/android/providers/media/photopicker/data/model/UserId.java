@@ -119,6 +119,11 @@ public final class UserId {
     }
 
     @Override
+    public int hashCode() {
+        return Integer.hashCode(mUserHandle.getIdentifier());
+    }
+
+    @Override
     public String toString() {
         return String.valueOf(this.mUserHandle.getIdentifier());
     }

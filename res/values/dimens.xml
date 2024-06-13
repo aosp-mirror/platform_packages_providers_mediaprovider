@@ -53,6 +53,8 @@
 
     <dimen name="picker_photo_item_spacing">3dp</dimen>
 
+    <dimen name="popup_window_title_icon_padding">10dp</dimen>
+
     <!-- Photo Picker recycler view bottom padding for progress bar -->
     <dimen name="picker_recycler_view_bottom_padding">78dp</dimen>
 

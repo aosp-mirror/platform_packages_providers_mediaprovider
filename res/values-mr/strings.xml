@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"पूर्वावलोकन"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"ऑफिसवर स्विच करा"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"वैयक्तिकवर स्विच करा"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"वैयक्तिक"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"तुमच्या ॲडमिनने ब्लॉक केले"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"वैयक्तिक ॲपवरून कामाशी संबंधित डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"कामाशी संबंधित ॲपवरून वैयक्तिक डेटा अ‍ॅक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> ॲपवरून <xliff:g id="PROFILE1">%1$s</xliff:g> चा डेटा ॲक्सेस करण्याची परवानगी नाही"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> वर स्विच करा"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामाशी संबंधित अ‍ॅप्स थांबवली आहेत"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> ॲप्स थांबवली आहेत"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामाशी संबंधित फोटो उघडण्यासाठी, कामाशी संबंधित अ‍ॅप्स सुरू करा त्यानंतर पुन्हा प्रयत्न करा"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> शी संबंधित फोटो उघडण्यासाठी, तुमची <xliff:g id="PROFILE2">%2$s</xliff:g> ॲप्स सुरू करा, त्यानंतर पुन्हा प्रयत्न करा"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"हे ॲप फक्त तुम्ही निवडलेले फोटो अ‍ॅक्सेस करू शकते"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"तुम्ही या ॲपला अ‍ॅक्सेस करण्याची अनुमती दिलेले फोटो आणि व्हिडिओ निवडा"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> आयटम}other{<xliff:g id="COUNT_1">^1</xliff:g> आयटम}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"नंतर पुन्हा प्रयत्न करा. समस्येचे निराकरण झाल्यावर तुमचे फोटो उपलब्ध होतील."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"काही फोटो लोड करू शकत नाही"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"समजले"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"मीडिया मालकाच्या पॅकेजचे नाव अ‍ॅक्सेस करा"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"ॲपला सर्व अ‍ॅक्सेसिबल मीडिया फाइलच्या मालकाच्या पॅकेजची नावे अ‍ॅक्सेस करण्याची अनुमती देते."</string>
 </resources>

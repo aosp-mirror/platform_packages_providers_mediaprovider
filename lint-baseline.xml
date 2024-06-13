@@ -1,16 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.0.0-dev" type="baseline" dependencies="true" variant="all" version="8.0.0-dev">
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 31 (current min is 30): `android.content.Context#getUser`"
-        errorLine1="            owner = context.getUser();"
-        errorLine2="                            ~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/src/com/android/providers/media/MediaService.java"
-            line="166"
-            column="29"/>
-    </issue>
+<issues format="6" by="lint 8.4.0-alpha01" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha01">
 
     <issue
         id="NewApi"
@@ -26,12 +15,12 @@
     <issue
         id="NewApi"
         message="Call requires API level 31 (current min is 30): `android.content.Context#getUser`"
-        errorLine1="        return getUserId(uri) == mContext.getUser().getIdentifier();"
-        errorLine2="                                          ~~~~~~~">
+        errorLine1="            owner = context.getUser();"
+        errorLine2="                            ~~~~~~~">
         <location
-            file="packages/providers/MediaProvider/src/com/android/providers/media/PickerUriResolver.java"
-            line="296"
-            column="43"/>
+            file="packages/providers/MediaProvider/src/com/android/providers/media/MediaService.java"
+            line="166"
+            column="29"/>
     </issue>
 
     <issue
@@ -41,8 +30,30 @@
         errorLine2="                      ~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/src/com/android/providers/media/photopicker/PhotoPickerActivity.java"
-            line="573"
+            line="630"
             column="23"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `android.content.Context#getUser`"
+        errorLine1="        return getUserId(uri) == mContext.getUser().getIdentifier();"
+        errorLine2="                                          ~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/PickerUriResolver.java"
+            line="369"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 31 (current min is 30): `java.util.concurrent.CompletableFuture#completeOnTimeout`"
+        errorLine1="        syncFuture.completeOnTimeout(FUTURE_RESULT, syncFutureTimeout, timeUnit);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/src/com/android/providers/media/photopicker/sync/SyncTracker.java"
+            line="63"
+            column="20"/>
     </issue>
 
     <issue

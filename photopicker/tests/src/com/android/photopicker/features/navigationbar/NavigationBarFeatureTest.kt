@@ -16,7 +16,6 @@
 
 package com.android.photopicker.features.navigationbar
 
-
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
@@ -35,6 +34,7 @@ import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
@@ -77,6 +77,7 @@ import org.mockito.MockitoAnnotations
     ActivityModule::class,
     ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
     ViewModelModule::class,
 )
 @HiltAndroidTest
@@ -120,7 +121,6 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
 
-
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
@@ -160,13 +160,10 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
 
         assertWithMessage("NavigationBar is not always enabled")
             .that(
-                NavigationBarFeature.Registration.isEnabled(
-                    testUserSelectImagesForAppConfiguration
-                )
+                NavigationBarFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration)
             )
             .isEqualTo(true)
     }
-
 
     /* Verify Navigation Bar contains tabs for both photos and albums grid.*/
     @Test

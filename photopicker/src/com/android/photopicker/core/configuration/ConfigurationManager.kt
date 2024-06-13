@@ -44,6 +44,9 @@ import kotlinx.coroutines.launch
  * to batch any changes to configuration together, as it is anticipated that configuration changes
  * will cause lots of re-calculation of downstream state.
  *
+ * @property runtimeEnv The current [PhotopickerRuntimeEnv] environment, this value is used to create the
+ *   initial [PhotopickerConfiguration], and should never be changed during subsequent configuration
+ *   updates.
  * @property scope The [CoroutineScope] the configuration flow will be shared in.
  * @property dispatcher [CoroutineDispatcher] context that the DeviceConfig listener will execute
  *   in.
@@ -51,6 +54,7 @@ import kotlinx.coroutines.launch
  *   testing various device flags, without relying on the device's actual flags at test time.
  */
 class ConfigurationManager(
+    private val runtimeEnv: PhotopickerRuntimeEnv,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val deviceConfigProxy: DeviceConfigProxy,
@@ -145,6 +149,7 @@ class ConfigurationManager(
     private fun generateInitialConfiguration(): PhotopickerConfiguration {
         val config =
             PhotopickerConfiguration(
+                runtimeEnv = runtimeEnv,
                 action = "",
                 flags = getFlagsFromDeviceConfig(),
             )

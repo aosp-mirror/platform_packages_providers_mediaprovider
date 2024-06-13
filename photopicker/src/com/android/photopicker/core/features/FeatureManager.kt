@@ -23,7 +23,9 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
+import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
@@ -75,6 +77,8 @@ class FeatureManager(
                 ProfileSelectorFeature.Registration,
                 AlbumGridFeature.Registration,
                 SnackbarFeature.Registration,
+                CloudMediaFeature.Registration,
+                OverflowMenuFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -305,6 +309,31 @@ class FeatureManager(
             return coreEventsProduced.contains(event::class.java)
         return _tokenMap.get(event.dispatcherToken)?.eventsProduced?.contains(event::class.java)
             ?: false
+    }
+
+    /**
+     * Checks the run-time (current) maximum size (in terms of number of children created) of the
+     * provided [Location] in the [FeatureManager] internal [locationRegistry].
+     *
+     * This allows features to determine if a given [composeLocation] call will actually create any
+     * child elements at the location.
+     *
+     * The size returned is always stable for the current [PhotopickerConfiguration] but may change
+     * if the configuration is changed, since features could be added or removed under the new
+     * configuration.
+     *
+     * NOTE: This only returns the number of children, there is no way to directly interact with the
+     * feature classes registered at the given location.
+     *
+     * @param location The location to check the size of.
+     * @return the max number of children of the location. Cannot be negative.
+     * @see [composeLocation] for rendering the children of a [Location] in the compose tree.
+     */
+    fun getSizeOfLocationInRegistry(location: Location): Int {
+        // There is no guarantee the [Location] exists in the registry, since it is initialized
+        // lazily, its possible that features have not been registered for the current
+        // configuration.
+        return locationRegistry.get(location)?.size ?: 0
     }
 
     /**

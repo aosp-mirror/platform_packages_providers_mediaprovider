@@ -32,11 +32,14 @@
 #include "fpdf_doc.h"
 #include "fpdf_text.h"
 #include "fpdfview.h"
+#include "logging.h"
 #include "normalize.h"
 #include "rect.h"
 #include "utf.h"
 #include "utils/annot_hider.h"
 #include "utils/text.h"
+
+#define LOG_TAG "page"
 
 using std::vector;
 
@@ -309,7 +312,13 @@ vector<GotoLink> Page::GetGotoLinks() const {
 
         GotoLink goto_link = GotoLink{goto_link_rects, *goto_link_dest};
 
-        links.push_back(goto_link);
+        // Ensure that links are within page bounds
+        if (goto_link_dest->x >= 0 && goto_link_dest->y >= 0) {
+            links.push_back(goto_link);
+        } else {
+            LOGE("Goto Link out of bound (x=%f, y=%f). Page width=%d, height =%d",
+                 goto_link_dest->x, goto_link_dest->y, Width(), Height());
+        }
     }
     return links;
 }

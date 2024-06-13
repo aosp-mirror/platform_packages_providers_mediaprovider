@@ -43,6 +43,10 @@ java_sdk_library {
         "framework-media.stubs.module_lib",
         "unsupportedappusage",
     ],
+    static_libs: [
+        "mediaprovider_flags_java_lib",
+    ],
+    jarjar_rules: "jarjar_rules.txt",
 
     hostdex: true, // for hiddenapi check
     impl_library_visibility: [

@@ -37,6 +37,7 @@ import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
@@ -80,6 +81,7 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    EmbeddedServiceModule::class,
     ApplicationModule::class,
     ConcurrencyModule::class,
     ViewModelModule::class,

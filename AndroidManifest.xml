@@ -47,6 +47,9 @@
     <!-- Permission required to access CloudMediaProviders. Declared by us -->
     <uses-permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
 
+    <!-- Permission required to bind to MediaCognitionService. Declared by us -->
+    <uses-permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE" />
+
     <!-- Allows an application to have access to OWNER_PACKAGE_NAME field of accessible media files.
          Applications are still required to have read access to media files.
          <p>Protection level: normal -->
@@ -57,6 +60,9 @@
 
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
+
+    <permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE"
+                android:protectionLevel="signature"/>
 
     <!-- We use Photo Picker app icon and label for this package. It is necessary for Photo Picker
          GET_CONTENT take over. Some apps query packages that can handle GET_CONTENT and want to

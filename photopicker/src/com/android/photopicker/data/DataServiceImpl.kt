@@ -66,6 +66,7 @@ import kotlinx.coroutines.sync.withLock
  *   change notifications.
  * @param mediaProviderClient An instance of [MediaProviderClient] responsible to get data from
  *   MediaProvider.
+ * @param config [StateFlow] that emits [PhotopickerConfiguration] changes.
  */
 class DataServiceImpl(
     private val userStatus: StateFlow<UserStatus>,
@@ -393,7 +394,8 @@ class DataServiceImpl(
                             contentResolver,
                             availableProviders,
                             mediaProviderClient,
-                            dispatcher
+                            dispatcher,
+                            config.value.intent,
                         )
 
                     Log.v(
@@ -418,7 +420,8 @@ class DataServiceImpl(
                     contentResolver,
                     availableProviders,
                     mediaProviderClient,
-                    dispatcher
+                    dispatcher,
+                    config.value.intent,
                 )
 
             Log.v(
@@ -445,7 +448,8 @@ class DataServiceImpl(
                     contentResolver,
                     availableProviders,
                     mediaProviderClient,
-                    dispatcher
+                    dispatcher,
+                    config.value.intent,
                 )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
@@ -486,7 +490,8 @@ class DataServiceImpl(
                 album.id,
                 album.authority,
                 providers,
-                _activeContentResolver.value
+                _activeContentResolver.value,
+                config.value.intent
             )
         } else {
             Log.e(
@@ -500,7 +505,11 @@ class DataServiceImpl(
 
     private fun refreshMedia(availableProviders: List<Provider>) {
         if (availableProviders.isNotEmpty()) {
-            mediaProviderClient.refreshMedia(availableProviders, _activeContentResolver.value)
+            mediaProviderClient.refreshMedia(
+                availableProviders,
+                _activeContentResolver.value,
+                config.value.intent,
+            )
         } else {
             Log.w(DataService.TAG, "Cannot refresh media when there are no providers available")
         }

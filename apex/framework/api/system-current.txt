@@ -1,6 +1,68 @@
 // Signature format: 2.0
 package android.provider {
 
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public interface MediaCognitionGetVersionsCallback {
+    method public void onFailure(@NonNull String);
+    method public void onSuccess(@NonNull android.provider.MediaCognitionProcessingVersions);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public interface MediaCognitionProcessingCallback {
+    method public void onFailure(@NonNull String);
+    method public void onSuccess(@NonNull java.util.List<android.provider.MediaCognitionProcessingResponse>);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public final class MediaCognitionProcessingRequest implements android.os.Parcelable {
+    method public boolean checkProcessingRequired(int);
+    method public int describeContents();
+    method public int getProcessingCombination();
+    method @NonNull public android.net.Uri getUri();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.provider.MediaCognitionProcessingRequest> CREATOR;
+  }
+
+  public static final class MediaCognitionProcessingRequest.Builder {
+    ctor public MediaCognitionProcessingRequest.Builder(@NonNull android.net.Uri);
+    method @NonNull public android.provider.MediaCognitionProcessingRequest.Builder addProcessingRequest(int);
+    method @NonNull public android.provider.MediaCognitionProcessingRequest build();
+    method @NonNull public android.provider.MediaCognitionProcessingRequest.Builder setProcessingCombination(int);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public class MediaCognitionProcessingResponse {
+    method @Nullable public java.util.List<java.lang.String> getImageLabels();
+    method @Nullable public String getImageOcrLatin();
+    method @NonNull public android.provider.MediaCognitionProcessingRequest getRequest();
+  }
+
+  public static final class MediaCognitionProcessingResponse.Builder {
+    ctor public MediaCognitionProcessingResponse.Builder(@NonNull android.provider.MediaCognitionProcessingRequest);
+    method @NonNull public android.provider.MediaCognitionProcessingResponse build();
+    method @NonNull public android.provider.MediaCognitionProcessingResponse.Builder setImageLabels(@Nullable java.util.List<java.lang.String>);
+    method @NonNull public android.provider.MediaCognitionProcessingResponse.Builder setImageOcrLatin(@Nullable String);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public final class MediaCognitionProcessingVersions implements android.os.Parcelable {
+    ctor public MediaCognitionProcessingVersions();
+    method public int describeContents();
+    method public int getProcessingVersion(int);
+    method public void setProcessingVersion(int, int);
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.provider.MediaCognitionProcessingVersions> CREATOR;
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.media_cognition_service") public abstract class MediaCognitionService extends android.app.Service {
+    ctor public MediaCognitionService();
+    method @Nullable public final android.os.IBinder onBind(@Nullable android.content.Intent);
+    method public abstract void onGetProcessingVersions(@NonNull android.provider.MediaCognitionGetVersionsCallback);
+    method public abstract void onProcessMedia(@NonNull java.util.List<android.provider.MediaCognitionProcessingRequest>, @Nullable android.os.CancellationSignal, @NonNull android.provider.MediaCognitionProcessingCallback);
+    field public static final String BIND_MEDIA_COGNITION_SERVICE = "com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE";
+    field public static final String SERVICE_INTERFACE = "android.provider.MediaCognitionService";
+  }
+
+  public static interface MediaCognitionService.ProcessingTypes {
+    field public static final int IMAGE_LABEL = 2; // 0x2
+    field public static final int IMAGE_OCR_LATIN = 1; // 0x1
+  }
+
   public final class MediaStore {
     method @NonNull public static android.net.Uri rewriteToLegacy(@NonNull android.net.Uri);
     method @NonNull @WorkerThread public static android.net.Uri scanFile(@NonNull android.content.ContentResolver, @NonNull java.io.File);

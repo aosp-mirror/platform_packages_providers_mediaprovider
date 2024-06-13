@@ -112,7 +112,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -141,7 +141,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -170,7 +170,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -264,7 +264,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -339,7 +339,7 @@ class DataServiceImplTest {
                 notificationService = mockNotificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -440,7 +440,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -492,7 +492,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -545,7 +545,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
         advanceTimeBy(100)
@@ -615,7 +615,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
 
@@ -697,7 +697,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
         advanceTimeBy(100)
@@ -739,7 +739,7 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
             )
         advanceTimeBy(100)

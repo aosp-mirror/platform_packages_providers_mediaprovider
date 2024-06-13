@@ -127,6 +127,7 @@ public class PdfDocumentProxy {
      * @see android.graphics.Matrix#getValues(float[])
      * @param renderMode the render mode
      * @param hideTextAnnots whether to hide text and highlight annotations
+     * @param renderFormFields true to included PDF form content in the output
      * @return true if the page was rendered into the destination bitmap
      */
     public native boolean render(
@@ -138,7 +139,8 @@ public class PdfDocumentProxy {
             int clipBottom,
             float[] transform,
             int renderMode,
-            boolean hideTextAnnots);
+            boolean hideTextAnnots,
+            boolean renderFormFields);
 
     /**
      * Clones the currently loaded document using the provided file descriptor.

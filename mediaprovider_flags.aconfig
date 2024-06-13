@@ -49,3 +49,10 @@ flag {
     bug: "333038370"
 }
 
+flag {
+    name: "media_cognition_service"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable the abstract service for media cognition processes"
+    bug: "331771553"
+}

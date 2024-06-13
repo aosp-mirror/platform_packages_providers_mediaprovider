@@ -100,12 +100,11 @@ FormFiller::FormFiller(Document* document, FPDF_DOCUMENT fpdf_document) : docume
 
 FormFiller::~FormFiller() {}
 
-bool FormFiller::RenderTile(FPDF_PAGE page, int page_width, int page_height,
-                            const Rectangle_i& tile, FPDF_BITMAP bitmap) const {
+bool FormFiller::RenderTile(FPDF_PAGE page, FPDF_BITMAP bitmap, FS_MATRIX transform, FS_RECTF clip,
+                            int render_mode) const {
     if (form_handle_) {
-        // This renders forms - checkboxes, textfields, and annotations.
-        FPDF_FFLDraw(form_handle_.get(), bitmap, page, -tile.left, -tile.top, page_width,
-                     page_height, 0, FPDF_ANNOT | FPDF_LCD_TEXT);
+        // This renders forms - checkboxes, text fields, and annotations.
+        FPDF_FFLDrawWithMatrix(form_handle_.get(), bitmap, page, &transform, &clip, render_mode);
         return true;
     }
     return false;

@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
@@ -37,6 +36,7 @@ import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.extensions.navigateToAlbumMediaGrid
@@ -57,10 +57,10 @@ private val MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID = 20.dp
  * Primary composable for drawing the main AlbumGrid on [PhotopickerDestinations.ALBUM_GRID]
  *
  * @param viewModel - A viewModel override for the composable. Normally, this is fetched via hilt
- *   from the backstack entry by using hiltViewModel()
+ *   from the backstack entry by using obtainViewModel()
  */
 @Composable
-fun AlbumGrid(viewModel: AlbumGridViewModel = hiltViewModel()) {
+fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
     val items = viewModel.getAlbums().collectAsLazyPagingItems()
     val state = rememberLazyGridState()
     val navController = LocalNavController.current
@@ -96,9 +96,8 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = hiltViewModel()) {
         mediaGrid(
             items = items,
             onItemClick = { item ->
-                if (item is MediaGridItem.AlbumItem) navController.navigateToAlbumMediaGrid(
-                    album = item.album
-                )
+                if (item is MediaGridItem.AlbumItem)
+                    navController.navigateToAlbumMediaGrid(album = item.album)
             },
             isExpandedScreen = isExpandedScreen,
             columns =

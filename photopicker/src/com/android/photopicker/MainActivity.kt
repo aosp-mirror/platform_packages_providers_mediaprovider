@@ -47,6 +47,7 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
@@ -418,7 +419,7 @@ class MainActivity : Hilt_MainActivity() {
             isIntentReferredByDocumentsUi(getReferrer()) -> false
 
             // Ensure Photopicker can handle the specified MIME types.
-            canHandleIntentMimeTypes(intent) -> false
+            intent.canHandleGetContentIntentMimeTypes() -> false
             else -> true
         }
     }
@@ -450,49 +451,5 @@ class MainActivity : Hilt_MainActivity() {
      */
     private fun isIntentReferredByDocumentsUi(referrer: Uri?): Boolean {
         return referrer?.getHost() == getDocumentssUiComponentName()?.getPackageName()
-    }
-
-    /**
-     * Determines if [MainActivity] is capable of handling the [Intent.EXTRA_MIME_TYPES] provided to
-     * the activity in this Photopicker session.
-     *
-     * @return true if the list of mimetypes can be handled by Photopicker.
-     */
-    private fun canHandleIntentMimeTypes(intent: Intent): Boolean {
-
-        if (!intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
-            // If the incoming type is */* then Photopicker can't handle this mimetype
-            return isMediaMimeType(intent.getType())
-        }
-
-        val mimeTypes = intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
-
-        mimeTypes?.let {
-
-            // If the list of MimeTypes is empty, nothing was explicitly set, so assume that
-            // non-media files should be displayed.
-            if (mimeTypes.size == 0) return false
-
-            // Ensure all mimetypes in the incoming filter list are supported
-            for (mimeType in mimeTypes) {
-                if (!isMediaMimeType(mimeType)) {
-                    return false
-                }
-            }
-        }
-            // Should not be null at this point (the intent contains the extra key),
-            // but better safe than sorry.
-            ?: return false
-
-        return true
-    }
-
-    /**
-     * Determines if the mimeType is a media mimetype that Photopicker can support.
-     *
-     * @return Whether the mimetype is supported by Photopicker.
-     */
-    private fun isMediaMimeType(mimeType: String?): Boolean {
-        return mimeType?.let { it.startsWith("image/") || it.startsWith("video/") } ?: false
     }
 }

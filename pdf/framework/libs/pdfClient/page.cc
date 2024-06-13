@@ -75,7 +75,8 @@ Rectangle_i Page::Dimensions() const {
 }
 
 void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
-                  int clip_right, int clip_bottom, int render_mode, int hide_text_annots) {
+                  int clip_right, int clip_bottom, int render_mode, int hide_text_annots,
+                  bool render_form_fields) {
     std::unordered_set<int> types;
     if (hide_text_annots) {
         types = {FPDF_ANNOT_TEXT, FPDF_ANNOT_HIGHLIGHT};
@@ -90,6 +91,10 @@ void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int cl
 
     FS_RECTF clip = {(float)clip_left, (float)clip_top, (float)clip_right, (float)clip_bottom};
     FPDF_RenderPageBitmapWithMatrix(bitmap, page_.get(), &transform, &clip, renderFlags);
+
+    if (render_form_fields) {
+        form_filler_->RenderTile(page_.get(), bitmap, transform, clip, renderFlags);
+    }
 }
 
 Point_i Page::ApplyPageTransform(const Point_d& input) const {

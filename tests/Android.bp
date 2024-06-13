@@ -205,6 +205,7 @@ android_test {
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     certificate: "media",

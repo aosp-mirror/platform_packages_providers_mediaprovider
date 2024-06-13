@@ -24,6 +24,10 @@ import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SuppressLint;
+import android.app.compat.CompatChanges;
+import android.compat.annotation.ChangeId;
+import android.compat.annotation.EnabledAfter;
+import android.compat.annotation.EnabledSince;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -137,6 +141,18 @@ public final class PdfRenderer implements AutoCloseable {
     /** Represents a PDF with form fields specified using the XFAF subset of the XFA spec */
     @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
+
+    /**
+     * For apps targeting Android V and above, all overloads of
+     * {@link Page#render(Bitmap, Rect, Matrix, int)} will render form content (i.e. text the user
+     * input to an edit text form widget). For apps targeting an SDK version <em>below</em> this,
+     * form content will not be included in the rendered bitmaps.
+     *
+     * @hide
+     */
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public static final long RENDER_PDF_FORM_FIELDS = 345564691L;
 
     private static final String TAG = PdfRenderer.class.getSimpleName();
     private final CloseGuard mCloseGuard = new CloseGuard();
@@ -529,8 +545,9 @@ public final class PdfRenderer implements AutoCloseable {
         @SuppressLint("UnflaggedApi")
         public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
                 @Nullable Matrix transform, @RenderMode int renderMode) {
+            boolean renderFormFields = CompatChanges.isChangeEnabled(RENDER_PDF_FORM_FIELDS);
             mPdfProcessor.renderPage(mIndex, destination, destClip, transform,
-                    new RenderParams.Builder(renderMode).build());
+                    new RenderParams.Builder(renderMode).build(), renderFormFields);
         }
 
         /**
@@ -556,7 +573,9 @@ public final class PdfRenderer implements AutoCloseable {
         public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
                 @Nullable Matrix transform, @NonNull RenderParams params) {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
+            boolean renderFormFields = CompatChanges.isChangeEnabled(RENDER_PDF_FORM_FIELDS);
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params,
+                    renderFormFields);
         }
 
         /**

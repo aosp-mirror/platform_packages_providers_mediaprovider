@@ -25,5 +25,7 @@
     <string name="config_default_cloud_media_provider_package" translatable="false"></string>
     <!-- DEPRECATED: Use the config_defaultCloudMediaProviderPackage. -->
     <string name="config_default_cloud_provider_authority" translatable="false"></string>
+    <!--Config for MediaCognitionService package -->
+    <string name="config_default_media_cognition_service_package" translatable="false"></string>
 
 </resources>

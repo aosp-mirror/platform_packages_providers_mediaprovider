@@ -25,6 +25,7 @@ java_sdk_library {
     ],
     libs: [
         "androidx.annotation_annotation",
+        "app-compat-annotations",
         "error_prone_annotations",
         "modules-utils-preconditions",
         "unsupportedappusage",
@@ -60,4 +61,9 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
+}
+
+platform_compat_config {
+    name: "framework-pdf-v-platform-compat-config",
+    src: ":framework-pdf-v",
 }

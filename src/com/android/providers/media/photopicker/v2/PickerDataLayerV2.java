@@ -52,9 +52,8 @@ import com.android.providers.media.photopicker.v2.model.VideoMediaQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-
+import java.util.Objects;
 
 /**
  * This class handles Photo Picker content queries.
@@ -138,12 +137,7 @@ public class PickerDataLayerV2 {
             cursors.add(getCloudAlbumsCursor(appContext, query, localAuthority, cloudAuthority));
         }
 
-        for (Iterator<AlbumsCursorWrapper> iterator = cursors.iterator(); iterator.hasNext(); ) {
-            if (iterator.next() == null) {
-                iterator.remove();
-            }
-        }
-
+        cursors.removeIf(Objects::isNull);
         if (cursors.isEmpty()) {
             Log.e(TAG, "No albums available");
             return null;
@@ -533,7 +527,11 @@ public class PickerDataLayerV2 {
             @Nullable String cloudAuthority) {
         final MediaQuery query;
         if (albumId.equals(AlbumColumns.ALBUM_ID_VIDEOS)) {
-            query = new VideoMediaQuery(queryArgs, 1);
+            VideoMediaQuery videoQuery = new VideoMediaQuery(queryArgs, 1);
+            if (!videoQuery.shouldDisplayVideosAlbum()) {
+                return null;
+            }
+            query = videoQuery;
         } else if (albumId.equals(AlbumColumns.ALBUM_ID_FAVORITES)) {
             query = new FavoritesMediaQuery(queryArgs, 1);
         } else {

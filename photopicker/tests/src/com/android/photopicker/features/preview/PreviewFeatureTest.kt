@@ -57,6 +57,7 @@ import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.events.Event
@@ -114,6 +115,7 @@ import org.mockito.MockitoAnnotations
     ActivityModule::class,
     ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
     ViewModelModule::class,
 )
 @HiltAndroidTest
@@ -269,24 +271,31 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 override fun onSurfaceDestroyed(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onSurfaceDestroyed(surfaceId)
                 }
+
                 override fun onMediaPlay(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onMediaPlay(surfaceId)
                 }
+
                 override fun onMediaPause(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onMediaPause(surfaceId)
                 }
+
                 override fun onMediaSeekTo(surfaceId: Int, timestampMillis: Long) {
                     mockCloudMediaSurfaceController.onMediaSeekTo(surfaceId, timestampMillis)
                 }
+
                 override fun onConfigChange(bundle: Bundle) {
                     mockCloudMediaSurfaceController.onConfigChange(bundle)
                 }
+
                 override fun onDestroy() {
                     mockCloudMediaSurfaceController.onDestroy()
                 }
+
                 override fun onPlayerCreate() {
                     mockCloudMediaSurfaceController.onPlayerCreate()
                 }
+
                 override fun onPlayerRelease() {
                     mockCloudMediaSurfaceController.onPlayerRelease()
                 }
@@ -677,7 +686,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -723,12 +732,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             advanceTimeBy(100)
@@ -798,12 +807,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -821,7 +830,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             verify(mockCloudMediaSurfaceController).onMediaPause(anyInt())
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_PAUSED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_PAUSED, null)
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -867,12 +876,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -938,12 +947,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -1007,12 +1016,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)

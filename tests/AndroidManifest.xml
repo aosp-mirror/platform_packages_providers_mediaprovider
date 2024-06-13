@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
+
+    <uses-permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE" />
+
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
 
@@ -132,6 +135,17 @@
             android:name="com.android.providers.media.IdleService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+
+        <service android:name="com.android.providers.media.mediacognitionservices.TestMediaCognitionService"
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE">
+            <intent-filter>
+                <action android:name="android.provider.MediaCognitionService" />
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

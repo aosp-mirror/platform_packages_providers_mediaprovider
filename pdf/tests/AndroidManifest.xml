@@ -29,6 +29,6 @@
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:label="PDF Viewer Unit Test cases"
                      android:targetPackage="android.graphics.pdf.tests"/>
-    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="35"/>
+    <uses-sdk android:minSdkVersion="31" android:targetSdkVersion="35"/>
 
 </manifest>

@@ -17,10 +17,13 @@
 package com.android.photopicker.features.data.paging
 
 import android.content.ContentResolver
+import android.content.Intent
+import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadParams
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.data.MediaProviderClient
+import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
@@ -37,7 +40,6 @@ import org.mockito.Mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
-import com.android.photopicker.data.TestMediaProvider
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
@@ -47,8 +49,7 @@ class AlbumMediaPagingSourceTest {
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
     private val availableProviders: List<Provider> = listOf(Provider("auth", MediaSource.LOCAL, 0))
 
-    @Mock
-    private lateinit var mockMediaProviderClient: MediaProviderClient
+    @Mock private lateinit var mockMediaProviderClient: MediaProviderClient
 
     @Before
     fun setup() {
@@ -59,26 +60,28 @@ class AlbumMediaPagingSourceTest {
     fun testLoad() = runTest {
         val albumId = "test-album-id"
         val albumAuthority = availableProviders[0].authority
-        val albumMediaPagingSource = AlbumMediaPagingSource(
-            albumId = albumId,
-            albumAuthority = albumAuthority,
-            contentResolver = contentResolver,
-            availableProviders = availableProviders,
-            mediaProviderClient = mockMediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+        val albumMediaPagingSource =
+            AlbumMediaPagingSource(
+                albumId = albumId,
+                albumAuthority = albumAuthority,
+                contentResolver = contentResolver,
+                availableProviders = availableProviders,
+                mediaProviderClient = mockMediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                intent = intent
+            )
 
         val pageKey = MediaPageKey()
         val pageSize = 10
-        val params = LoadParams.Append<MediaPageKey>(
-            key = pageKey,
-            loadSize = pageSize,
-            placeholdersEnabled = false
-        )
+        val params =
+            LoadParams.Append<MediaPageKey>(
+                key = pageKey,
+                loadSize = pageSize,
+                placeholdersEnabled = false
+            )
 
-        backgroundScope.launch {
-            albumMediaPagingSource.load(params)
-        }
+        backgroundScope.launch { albumMediaPagingSource.load(params) }
         advanceTimeBy(100)
 
         verify(mockMediaProviderClient, times(1))
@@ -88,7 +91,8 @@ class AlbumMediaPagingSourceTest {
                 pageKey,
                 pageSize,
                 contentResolver,
-                availableProviders
+                availableProviders,
+                intent
             )
     }
 }

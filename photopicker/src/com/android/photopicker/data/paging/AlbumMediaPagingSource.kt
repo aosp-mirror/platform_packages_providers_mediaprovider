@@ -17,9 +17,9 @@
 package com.android.photopicker.data.paging
 
 import android.content.ContentResolver
+import android.content.Intent
 import android.util.Log
 import androidx.paging.PagingSource
-import androidx.paging.PagingSource.LoadResult
 import androidx.paging.PagingState
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Media
@@ -41,14 +41,13 @@ class AlbumMediaPagingSource(
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
     private val dispatcher: CoroutineDispatcher,
+    private val intent: Intent?,
 ) : PagingSource<MediaPageKey, Media>() {
     companion object {
         val TAG: String = "PickerAlbumMediaPagingSource"
     }
 
-    override suspend fun load(
-            params: LoadParams<MediaPageKey>
-    ): LoadResult<MediaPageKey, Media> {
+    override suspend fun load(params: LoadParams<MediaPageKey>): LoadResult<MediaPageKey, Media> {
         // Switch to the background thread from the main thread using [withContext].
         return withContext(dispatcher) {
             val pageKey = params.key ?: MediaPageKey()
@@ -61,12 +60,13 @@ class AlbumMediaPagingSource(
                 }
 
                 mediaProviderClient.fetchAlbumMedia(
-                        albumId,
-                        albumAuthority,
-                        pageKey,
-                        pageSize,
-                        contentResolver,
-                        availableProviders
+                    albumId,
+                    albumAuthority,
+                    pageKey,
+                    pageSize,
+                    contentResolver,
+                    availableProviders,
+                    intent
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Could not fetch page from MediaProvider for album $albumId", e)

@@ -43,16 +43,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
 /** Entry point for the profile selector. */
 @Composable
 fun ProfileSelector(
     modifier: Modifier = Modifier,
-    viewModel: ProfileSelectorViewModel = hiltViewModel(),
+    viewModel: ProfileSelectorViewModel = obtainViewModel(),
 ) {
 
     // Collect selection to ensure this is recomposed when the selection is updated.

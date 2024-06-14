@@ -24,6 +24,23 @@
 
 namespace pdfClient_utils {
 
+void GetVisibleAnnots(FPDF_PAGE page, const std::unordered_set<int>& types_to_exclude,
+                      std::vector<ScopedFPDFAnnotation>* annots) {
+    const int num_annots = FPDFPage_GetAnnotCount(page);
+    for (int i = 0; i < num_annots; ++i) {
+        ScopedFPDFAnnotation annot(FPDFPage_GetAnnot(page, i));
+        const FPDF_ANNOTATION_SUBTYPE subtype = FPDFAnnot_GetSubtype(annot.get());
+        // If the subtype is not present in types_to_exclude, add it to annots_ to hide it
+        if (types_to_exclude.find(subtype) == types_to_exclude.end()) {
+            const int annot_flags = FPDFAnnot_GetFlags(annot.get());
+            // Only worry about annots that aren't already hidden.
+            if ((annot_flags & FPDF_ANNOT_FLAG_HIDDEN) == FPDF_ANNOT_FLAG_NONE) {
+                annots->push_back(std::move(annot));
+            }
+        }
+    }
+}
+
 void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types,
                             std::vector<ScopedFPDFAnnotation>* annots) {
     const int num_annots = FPDFPage_GetAnnotCount(page);

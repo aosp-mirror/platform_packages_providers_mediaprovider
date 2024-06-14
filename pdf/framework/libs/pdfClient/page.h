@@ -88,7 +88,8 @@ class Page {
     // Render the page to the output bitmap, applying the appropriate transform, clip, and
     // render mode as specified.
     void Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
-                int clip_right, int clip_bottom, int render_mode, int hide_text_annots);
+                int clip_right, int clip_bottom, int render_mode, int hide_text_annots,
+                bool render_form_fields);
 
     // The page has a transform that must be applied to all characters and objects
     // on the page. This transforms from the page's internal co-ordinate system

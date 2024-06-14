@@ -56,13 +56,16 @@ public class MediaQuery {
         mPickerId = queryArgs.getLong("picker_id", Long.MAX_VALUE);
         mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MAX_VALUE);
         mPageSize = queryArgs.getInt("page_size", Integer.MAX_VALUE);
-        mProviders = queryArgs.getStringArrayList("providers");
-        mMimeTypes = queryArgs.getStringArrayList("mime_types");
+
+        // Make deep copies of the arrays to avoid leaking changes made to the arrays.
+        mProviders = new ArrayList<>(
+                Objects.requireNonNull(queryArgs.getStringArrayList("providers")));
+        mMimeTypes = queryArgs.getStringArrayList("mime_types") != null
+                ? new ArrayList<>(queryArgs.getStringArrayList("mime_types"))
+                : null;
 
         // This is true by default.
         mShouldDedupe = true;
-
-        Objects.requireNonNull(mProviders);
     }
 
     @NonNull
@@ -73,6 +76,11 @@ public class MediaQuery {
     @NonNull
     public List<String> getProviders() {
         return mProviders;
+    }
+
+    @Nullable
+    public List<String> getMimeTypes() {
+        return mMimeTypes;
     }
 
     /**

@@ -151,7 +151,7 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
         jint clipTop, jint clipRight, jint clipBottom, jfloatArray jTransform, jint renderMode,
-        jboolean hideTextAnnots) {
+        jboolean hideTextAnnots, jboolean renderFormFields) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
 
@@ -181,7 +181,7 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
     // Actually render via Page
     std::shared_ptr<Page> page = doc->GetPage(pageNum);
     page->Render(bitmap, pdfiumTransform, clipLeft, clipTop, clipRight, clipBottom, renderMode,
-                 hideTextAnnots);
+                 hideTextAnnots, renderFormFields);
     if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
         LOGE("Couldn't unlock bitmap pixel address");
         return false;

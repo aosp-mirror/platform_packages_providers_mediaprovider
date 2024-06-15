@@ -21,7 +21,6 @@ import androidx.annotation.GuardedBy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.photopicker.core.Background
-import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
@@ -97,7 +96,6 @@ constructor(
     @Background private val backgroundDispatcher: CoroutineDispatcher,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
-    private val events: Events,
 ) : ViewModel() {
 
     companion object {

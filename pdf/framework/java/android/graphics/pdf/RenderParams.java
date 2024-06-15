@@ -39,6 +39,7 @@ public final class RenderParams {
      */
     public static final int RENDER_MODE_FOR_PRINT = 2;
 
+    // LINT.IfChange
     /**
      * Flag to enable rendering of text annotation on the page.
      *
@@ -54,6 +55,7 @@ public final class RenderParams {
      * @see RenderParams.Builder#setRenderFlags(int)
      */
     public static final int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 1 << 2;
+    // LINT.ThenChange(packages/providers/MediaProvider/pdf/framework/libs/pdfClient/page.h)
 
     private static final int RENDER_FLAGS_MASK =
             FLAG_RENDER_TEXT_ANNOTATIONS | FLAG_RENDER_HIGHLIGHT_ANNOTATIONS;
@@ -83,8 +85,8 @@ public final class RenderParams {
     }
 
     /** @hide */
-    public boolean areAnnotationsDisabled() {
-        return (mRenderFlags & RENDER_FLAGS_MASK) == 0;
+    public int getRenderAnnotations() {
+        return mRenderFlags & RENDER_FLAGS_MASK;
     }
 
     /** @hide */

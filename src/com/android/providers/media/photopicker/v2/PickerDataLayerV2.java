@@ -401,8 +401,8 @@ public class PickerDataLayerV2 {
                         PickerSQLConstants.MediaResponse
                                 .AUTHORITY.getProjection(localAuthority, cloudAuthority),
                         PickerSQLConstants.MediaResponse.MEDIA_SOURCE.getProjection(),
-                        PickerSQLConstants.MediaResponse
-                                .WRAPPED_URI.getProjection(localAuthority, cloudAuthority),
+                        PickerSQLConstants.MediaResponse.WRAPPED_URI.getProjection(
+                                localAuthority, cloudAuthority, query.getIntentAction()),
                         PickerSQLConstants.MediaResponse
                                 .UNWRAPPED_URI.getProjection(localAuthority, cloudAuthority),
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection(),

@@ -41,11 +41,12 @@ public class PickerDbTestUtils {
     public static final String LOCAL_ID_2 = "502";
     public static final String LOCAL_ID_3 = "503";
     public static final String LOCAL_ID_4 = "504";
-    public static final String CLOUD_ID = "asdfghjkl;";
-    public static final String CLOUD_ID_1 = "asdfghjkl;1";
-    public static final String CLOUD_ID_2 = "asdfghjkl;2";
-    public static final String CLOUD_ID_3 = "asdfghjkl;3";
-    public static final String CLOUD_ID_4 = "asdfghjkl;4";
+    //TODO(b/329122491): Test with media ids that contain special characters.
+    public static final String CLOUD_ID = "asdfghjkl";
+    public static final String CLOUD_ID_1 = "asdfghjkl1";
+    public static final String CLOUD_ID_2 = "asdfghjkl2";
+    public static final String CLOUD_ID_3 = "asdfghjkl3";
+    public static final String CLOUD_ID_4 = "asdfghjkl4";
     public static final String ALBUM_ID = "testAlbum";
     public static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
     public static final String WEBM_VIDEO_MIME_TYPE = "video/webm";

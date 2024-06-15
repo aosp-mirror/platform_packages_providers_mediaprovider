@@ -126,7 +126,8 @@ public class PdfDocumentProxy {
      * @param transform an affine transform matrix in the form of an array.
      * @see android.graphics.Matrix#getValues(float[])
      * @param renderMode the render mode
-     * @param hideTextAnnots whether to hide text and highlight annotations
+     * @param showAnnotTypes Bitmask of renderFlags to indicate the types of annotations to
+     *                       be rendered
      * @param renderFormFields true to included PDF form content in the output
      * @return true if the page was rendered into the destination bitmap
      */
@@ -139,7 +140,7 @@ public class PdfDocumentProxy {
             int clipBottom,
             float[] transform,
             int renderMode,
-            boolean hideTextAnnots,
+            int showAnnotTypes,
             boolean renderFormFields);
 
     /**

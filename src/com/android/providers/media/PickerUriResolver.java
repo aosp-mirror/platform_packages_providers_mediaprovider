@@ -34,6 +34,8 @@ import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOU
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -327,6 +329,18 @@ public class PickerUriResolver {
     }
 
     /**
+     * @param intentAction The intent action associated with the Picker session.
+     * @return The Picker URI path segment.
+     */
+    public static String getPickerSegmentFromIntentAction(String intentAction) {
+        requireNonNull(intentAction);
+        if (intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+            return PICKER_GET_CONTENT_SEGMENT;
+        }
+        return PICKER_SEGMENT;
+    }
+
+    /**
      * Creates a picker uri incorporating authority, user id and cloud provider.
      */
     public static Uri wrapProviderUri(Uri uri, String action, int userId) {
@@ -336,11 +350,7 @@ public class PickerUriResolver {
         }
 
         Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
-        if (action.equalsIgnoreCase(Intent.ACTION_GET_CONTENT)) {
-            builder.appendPath(PICKER_GET_CONTENT_SEGMENT);
-        } else {
-            builder.appendPath(PICKER_SEGMENT);
-        }
+        builder.appendPath(getPickerSegmentFromIntentAction(action));
         builder.appendPath(String.valueOf(userId));
         builder.appendPath(uri.getHost());
 

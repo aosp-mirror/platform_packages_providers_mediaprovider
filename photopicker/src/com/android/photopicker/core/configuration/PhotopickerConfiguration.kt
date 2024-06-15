@@ -25,9 +25,17 @@ private val buildIsDebuggable = SystemProperties.getInt("ro.debuggable", 0) == 1
 /** The default selection maximum size if not set by the caller */
 const val DEFAULT_SELECTION_LIMIT = 1
 
+/** Enum that describes the current runtime environment of the Photopicker. */
+enum class PhotopickerRuntimeEnv {
+    ACTIVITY,
+    EMBEDDED,
+}
+
 /**
  * Data object that represents a possible configuration state of the Photopicker.
  *
+ * @property runtimeEnv The current Photopicker runtime environment, this should never be changed
+ *   during configuration updates.
  * @property action the [Intent#getAction] that Photopicker is currently serving.
  * @property intent the [Intent] that Photopicker was launched with.
  * @property selectionLimit the value of [MediaStore.EXTRA_PICK_IMAGES_MAX] with a default value of
@@ -37,6 +45,7 @@ const val DEFAULT_SELECTION_LIMIT = 1
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  */
 data class PhotopickerConfiguration(
+    val runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
     val action: String,
     val intent: Intent? = null,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,

@@ -17,9 +17,9 @@
 package com.android.photopicker.data.paging
 
 import android.content.ContentResolver
+import android.content.Intent
 import android.util.Log
 import androidx.paging.PagingSource
-import androidx.paging.PagingSource.LoadResult
 import androidx.paging.PagingState
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Media
@@ -29,8 +29,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /**
- * This [PagingSource] class is responsible to providing paginated media data from Picker
- * Database by serving requests from Paging library.
+ * This [PagingSource] class is responsible to providing paginated media data from Picker Database
+ * by serving requests from Paging library.
  *
  * It sources data from a [ContentProvider] called [MediaProvider].
  */
@@ -39,14 +39,13 @@ class MediaPagingSource(
     private val availableProviders: List<Provider>,
     private val mediaProviderClient: MediaProviderClient,
     private val dispatcher: CoroutineDispatcher,
+    private val intent: Intent?,
 ) : PagingSource<MediaPageKey, Media>() {
     companion object {
         val TAG: String = "PickerMediaPagingSource"
     }
 
-    override suspend fun load(
-            params: LoadParams<MediaPageKey>
-    ): LoadResult<MediaPageKey, Media> {
+    override suspend fun load(params: LoadParams<MediaPageKey>): LoadResult<MediaPageKey, Media> {
         // Switch to the background thread from the main thread using [withContext].
         return withContext(dispatcher) {
             val pageKey = params.key ?: MediaPageKey()
@@ -58,10 +57,11 @@ class MediaPagingSource(
                 }
 
                 mediaProviderClient.fetchMedia(
-                        pageKey,
-                        pageSize,
-                        contentResolver,
-                        availableProviders
+                    pageKey,
+                    pageSize,
+                    contentResolver,
+                    availableProviders,
+                    intent
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Could not fetch page from Media provider", e)

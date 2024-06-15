@@ -114,6 +114,23 @@ cc_library_shared {
     min_sdk_version: "30",
 }
 
+filegroup {
+    name: "fuse_test_default_map",
+    srcs: ["fuse_test_default.map"],
+}
+
+cc_defaults {
+    name: "fuse_test_defaults",
+    // These tests run on older platform versions, so many libraries (such as libbase and libc++)
+    // need to be linked statically. The tests also need to be linked with a version script to
+    // ensure that the statically-linked library isn't exported from the executable, where it
+    // would override the shared libraries that the platform itself uses.
+    // See http://b/333438055 for an example of what goes wrong when libc++ is partially exported
+    // from an executable.
+    version_script: ":fuse_test_default_map",
+    stl: "c++_static",
+}
+
 cc_test {
     name: "fuse_node_test",
     test_suites: [
@@ -121,6 +138,10 @@ cc_test {
         "mts-mediaprovider",
     ],
     test_config: "fuse_node_test.xml",
+
+    defaults: [
+        "fuse_test_defaults",
+    ],
 
     compile_multilib: "both",
     multilib: {
@@ -155,7 +176,6 @@ cc_test {
     ],
 
     sdk_version: "current",
-    stl: "c++_static",
 }
 
 cc_test {
@@ -165,6 +185,10 @@ cc_test {
         "mts-mediaprovider",
     ],
     test_config: "RedactionInfoTest.xml",
+
+    defaults: [
+        "fuse_test_defaults",
+    ],
 
     compile_multilib: "both",
     multilib: {
@@ -194,7 +218,6 @@ cc_test {
     tidy: true,
 
     sdk_version: "current",
-    stl: "c++_static",
 }
 
 cc_test {
@@ -204,6 +227,10 @@ cc_test {
         "mts-mediaprovider",
     ],
     test_config: "FuseUtilsTest.xml",
+
+    defaults: [
+        "fuse_test_defaults",
+    ],
 
     compile_multilib: "both",
     multilib: {
@@ -237,5 +264,4 @@ cc_test {
     tidy: true,
 
     sdk_version: "current",
-    stl: "c++_static",
 }

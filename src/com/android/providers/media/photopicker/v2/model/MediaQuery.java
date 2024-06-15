@@ -40,15 +40,17 @@ import java.util.Objects;
  * Encapsulates all query arguments of a Media query i.e. query to fetch Media Items from Picker DB.
  */
 public class MediaQuery {
-    private long mDateTakenMs;
-    private long mPickerId;
-    protected int mPageSize;
+    private final long mDateTakenMs;
+    private final long mPickerId;
+    @NonNull
+    private final String mIntentAction;
     @NonNull
     private final List<String> mProviders;
     // If this is not null or empty, only fetch the rows that match at least one of the
     // given mime types.
     @Nullable
     protected List<String> mMimeTypes;
+    protected int mPageSize;
     // If this is true, only fetch the rows from Picker Database where the IS_VISIBLE flag is on.
     protected boolean mShouldDedupe;
 
@@ -56,6 +58,7 @@ public class MediaQuery {
         mPickerId = queryArgs.getLong("picker_id", Long.MAX_VALUE);
         mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MAX_VALUE);
         mPageSize = queryArgs.getInt("page_size", Integer.MAX_VALUE);
+        mIntentAction = Objects.requireNonNull(queryArgs.getString("intent_action"));
 
         // Make deep copies of the arrays to avoid leaking changes made to the arrays.
         mProviders = new ArrayList<>(
@@ -81,6 +84,11 @@ public class MediaQuery {
     @Nullable
     public List<String> getMimeTypes() {
         return mMimeTypes;
+    }
+
+    @NonNull
+    public String getIntentAction() {
+        return mIntentAction;
     }
 
     /**

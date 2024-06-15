@@ -50,7 +50,7 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
         jint clipTop, jint clipRight, int clipBottom, jfloatArray jTransform, jint renderMode,
-        jboolean hideTextAnnots, jboolean renderFormFields);
+        jint showAnnotTypes, jboolean renderFormFields);
 
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
         JNIEnv* env, jobject jPdfDocument, jint destination);

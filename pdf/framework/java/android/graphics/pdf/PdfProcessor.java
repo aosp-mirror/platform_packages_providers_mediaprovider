@@ -266,8 +266,16 @@ public class PdfProcessor {
 
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            mPdfDocument.render(pageNum, bitmap, contentLeft, contentTop, contentRight,
-                    contentBottom, transformArr, renderMode, params.areAnnotationsDisabled(),
+            mPdfDocument.render(
+                    pageNum,
+                    bitmap,
+                    contentLeft,
+                    contentTop,
+                    contentRight,
+                    contentBottom,
+                    transformArr,
+                    renderMode,
+                    params.getRenderAnnotations(),
                     renderFormFields);
         }
     }

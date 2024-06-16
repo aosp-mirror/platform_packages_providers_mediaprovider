@@ -24,7 +24,10 @@ apex {
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
     apps: ["MediaProvider"],
-    compat_configs: ["media-provider-platform-compat-config"],
+    compat_configs: [
+        "media-provider-platform-compat-config",
+        "framework-pdf-v-platform-compat-config",
+    ],
     jni_libs: [
         "libpdfclient",
     ],
@@ -105,6 +108,8 @@ bootclasspath_fragment {
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
             "android.provider",
+            "android.provider.mediacognitionutils",
+            "android.provider.media.internal.flags",
             "android.graphics.pdf.common",
             "android.graphics.pdf.concurrency",
             "android.graphics.pdf.converters",

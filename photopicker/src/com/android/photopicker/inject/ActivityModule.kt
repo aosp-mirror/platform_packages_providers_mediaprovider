@@ -22,6 +22,7 @@ import android.os.UserHandle
 import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
@@ -114,7 +115,13 @@ class ActivityModule {
                 "ConfigurationManager requested but not yet initialized." +
                     " Initializing ConfigurationManager."
             )
-            configurationManager = ConfigurationManager(scope, dispatcher, DeviceConfigProxyImpl())
+            configurationManager =
+                ConfigurationManager(
+                    /* runtimeEnv= */ PhotopickerRuntimeEnv.ACTIVITY,
+                    /* scope= */ scope,
+                    /* dispatcher= */ dispatcher,
+                    /* deviceConfigProxy= */ DeviceConfigProxyImpl(),
+                )
             return configurationManager
         }
     }

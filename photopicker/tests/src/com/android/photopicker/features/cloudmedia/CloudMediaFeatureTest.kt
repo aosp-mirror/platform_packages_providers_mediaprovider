@@ -32,6 +32,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
@@ -72,6 +73,7 @@ import org.mockito.MockitoAnnotations
 @UninstallModules(
     ActivityModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)

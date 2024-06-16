@@ -88,7 +88,7 @@ fun PhotopickerAppWithBottomSheet(
                 scrimColor = Color.Transparent,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                windowInsets = WindowInsets.systemBars,
+                contentWindowInsets = { WindowInsets.systemBars },
             ) {
                 Box(
                     modifier = Modifier.fillMaxHeight(),

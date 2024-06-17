@@ -20,7 +20,6 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
-import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -45,6 +44,7 @@ import androidx.work.WorkContinuation;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 
@@ -57,6 +57,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class PickerSyncManagerTest {
     private PickerSyncManager mPickerSyncManager;
@@ -412,4 +414,16 @@ public class PickerSyncManagerTest {
                 new PickerSyncManager(mMockWorkManager, mMockContext,
                         mConfigStore, schedulePeriodicSyncs);
     }
+
+    private static void waitForIdle() {
+        final CountDownLatch latch = new CountDownLatch(1);
+        BackgroundThread.getExecutor().execute(latch::countDown);
+        try {
+            latch.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+    }
+
 }

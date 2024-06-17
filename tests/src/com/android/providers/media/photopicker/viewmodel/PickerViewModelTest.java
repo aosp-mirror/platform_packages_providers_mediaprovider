@@ -40,6 +40,7 @@ import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEA
 import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,7 +48,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.Application;
@@ -56,6 +62,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.graphics.Color;
 import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
@@ -64,8 +71,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.test.filters.SdkSuppress;
-import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -73,15 +80,21 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
+import com.android.providers.media.photopicker.data.UserManagerState;
 import com.android.providers.media.photopicker.data.model.Category;
 import com.android.providers.media.photopicker.data.model.Item;
 import com.android.providers.media.photopicker.data.model.ModelTestUtils;
+import com.android.providers.media.photopicker.data.model.RefreshRequest;
 import com.android.providers.media.photopicker.data.model.UserId;
+import com.android.providers.media.photopicker.espresso.PhotoPickerBaseTest;
+
+import com.google.android.collect.Lists;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -91,7 +104,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(Parameterized.class)
 public class PickerViewModelTest {
     private static final String FAKE_CATEGORY_NAME = "testCategoryName";
     private static final String FAKE_ID = "5";
@@ -111,6 +124,17 @@ public class PickerViewModelTest {
     private TestConfigStore mConfigStore;
     private BannerManager mBannerManager;
     private BannerController mBannerController;
+    @Parameterized.Parameter(0)
+    public boolean isPrivateSpaceEnabled;
+
+    /**
+     * Parametrize values for {@code isPrivateSpaceEnabled} to run all the tests twice once with
+     * private space flag enabled and once with it disabled.
+     */
+    @Parameterized.Parameters(name = "privateSpaceEnabled={0}")
+    public static Iterable<?> data() {
+        return Lists.newArrayList(true, false);
+    }
 
     public PickerViewModelTest() {
     }
@@ -123,6 +147,11 @@ public class PickerViewModelTest {
         mConfigStore = new TestConfigStore();
         mConfigStore.enableCloudMediaFeatureAndSetAllowedCloudProviderPackages(TEST_PACKAGE_NAME);
         mConfigStore.enablePickerChoiceManagedSelectionEnabled();
+        if (isPrivateSpaceEnabled) {
+            mConfigStore.enablePrivateSpaceInPhotoPicker();
+        } else {
+            mConfigStore.disablePrivateSpaceInPhotoPicker();
+        }
 
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
@@ -134,12 +163,22 @@ public class PickerViewModelTest {
         });
         mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
-        final UserIdManager userIdManager = mock(UserIdManager.class);
-        when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
-        mPickerViewModel.setUserIdManager(userIdManager);
 
-        mBannerManager = BannerTestUtils.getTestCloudBannerManager(sTargetContext, userIdManager,
-                mConfigStore);
+        // set current user profile and banner manager
+        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
+            final UserManagerState userManagerState = mock(UserManagerState.class);
+            when(userManagerState.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+            mPickerViewModel.setUserManagerState(userManagerState);
+            mBannerManager = BannerTestUtils.getTestCloudBannerManager(
+                    sTargetContext, userManagerState, mConfigStore);
+        } else {
+            final UserIdManager userIdManager = mock(UserIdManager.class);
+            when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+            mPickerViewModel.setUserIdManager(userIdManager);
+            mBannerManager = BannerTestUtils.getTestCloudBannerManager(
+                    sTargetContext, userIdManager, mConfigStore);
+        }
+
         mPickerViewModel.setBannerManager(mBannerManager);
 
         // Set default banner manager values
@@ -598,6 +637,126 @@ public class PickerViewModelTest {
     }
 
     @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerInPhotosTab() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_IMAGES);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_IMAGES);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerInAlbumsTab() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_ALBUMS);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_ALBUMS);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_launchPickerWithIncorrectTabOption() {
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, 2);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+            fail("Incorrect value passed for the picker launch tab option in the intent");
+        } catch (IllegalArgumentException expected) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_validAccentColor() {
+        long accentColor = 0xFFFF0000;
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        assertThat(
+                mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor()).isEqualTo(
+                        Color.parseColor(String.format("#%06X", (0xFFFFFF & accentColor))));
+        assertThat(
+                mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet())
+                .isTrue();
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_invalidAccentColor() {
+        long accentColor = 0xFF6;
+
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        try {
+            mPickerViewModel.parseValuesFromIntent(intent);
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_extraPickerLaunchTab() {
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB, MediaStore.PICK_IMAGES_TAB_ALBUMS);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // GET_CONTENT doesn't support this option. Launch tab will always default to photos
+        assertThat(mPickerViewModel.getPickerLaunchTab()).isEqualTo(
+                MediaStore.PICK_IMAGES_TAB_IMAGES);
+    }
+
+    @Test
+    public void testParseValuesFromPickImagesIntent_accentColorsWithUnacceptedBrightness() {
+        // Accent color brightness is less than the accepted brightness
+        long[] accentColors = new long[] {
+                0xFF000000, // black
+                0xFFFFFFFF, // white
+                0xFFFFFFF0  // variant of white
+        };
+
+        for (long accentColor: accentColors) {
+            final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+            intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+            mPickerViewModel.parseValuesFromIntent(intent);
+
+            // Fall back to the android theme
+            assertWithMessage("Input accent color " + accentColor
+                    + " does not fall within accepted luminance range.")
+                    .that(mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor())
+                    .isEqualTo(-1);
+            assertWithMessage("Custom picker color flag for input color "
+                    + accentColor + " should be false but was true.")
+                    .that(mPickerViewModel.getPickerAccentColorParameters()
+                            .isCustomPickerColorSet()).isFalse();
+        }
+    }
+
+    @Test
+    public void testParseValuesFromGetContentIntent_accentColor() {
+        long accentColor = 0xFFFF0000;
+        final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColor);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // GET_CONTENT doesn't support this option. Accent color parameter object is not
+        // created.
+        assertThat(mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor())
+                .isEqualTo(-1);
+        assertThat(mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet())
+                .isFalse();
+    }
+
+    @Test
     public void testShouldShowOnlyLocalFeatures() {
         mConfigStore.enableCloudMediaFeature();
 
@@ -618,17 +777,17 @@ public class PickerViewModelTest {
 
     @Test
     public void testRefreshUiNotifications() throws InterruptedException {
-        final LiveData<Boolean> shouldRefreshUi = mPickerViewModel.shouldRefreshUiLiveData();
-        assertFalse(shouldRefreshUi.getValue());
+        final LiveData<RefreshRequest> shouldRefreshUi = mPickerViewModel.refreshUiLiveData();
+        assertFalse(shouldRefreshUi.getValue().shouldRefreshPicker());
 
         final ContentResolver contentResolver = sTargetContext.getContentResolver();
         contentResolver.notifyChange(REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI, null);
 
         TimeUnit.MILLISECONDS.sleep(100);
-        assertTrue(shouldRefreshUi.getValue());
+        assertTrue(shouldRefreshUi.getValue().shouldRefreshPicker());
 
-        mPickerViewModel.resetAllContentInCurrentProfile();
-        assertFalse(shouldRefreshUi.getValue());
+        mPickerViewModel.resetAllContentInCurrentProfile(false);
+        assertFalse(shouldRefreshUi.getValue().shouldRefreshPicker());
     }
 
     @Test
@@ -733,5 +892,78 @@ public class PickerViewModelTest {
 
         assertEquals(testIntent,
                 mPickerViewModel.getChooseCloudMediaAccountActivityIntent());
+    }
+
+    @Test
+    public void testMainGridInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that the request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void testMainGridPickerChoiceInitRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent =  PhotoPickerBaseTest.getUserSelectImagesForAppIntent();
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+
+        // Send an init request again
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that init request was NOT sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(true), any());
+    }
+
+    @Test
+    public void testMainGridInitOnResetRequest() {
+        ItemsProvider mockItemsProvider = spy(ItemsProvider.class);
+        mPickerViewModel.setItemsProvider(mockItemsProvider);
+
+        // Parse values from intent
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // Send an init request
+        mPickerViewModel.maybeInitPhotoPickerData();
+
+        // Check that a local-only init request was sent
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(1)).initPhotoPickerData(any(), any(), eq(false), any());
+
+        // Send an init request again
+        mPickerViewModel.resetAllContentInCurrentProfile(true);
+
+        // Check that init request was sent again
+        DataLoaderThread.waitForIdle();
+        verify(mockItemsProvider, times(2)).initPhotoPickerData(any(), any(), eq(false), any());
     }
 }

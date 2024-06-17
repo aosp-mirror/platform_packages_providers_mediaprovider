@@ -20,7 +20,8 @@
         <layer-list>
             <item android:gravity="center"
                   android:width="18dp"
-                  android:height="18dp">
+                  android:height="18dp"
+                  android:id="@+id/ordered_selection_selected_icon">
                 <shape android:shape="oval">
                     <solid android:color="?attr/pickerSelectedColor"/>
                 </shape>

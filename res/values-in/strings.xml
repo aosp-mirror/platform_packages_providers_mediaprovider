@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Pratinjau"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Beralih ke profil kerja"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Beralih ke profil pribadi"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Pribadi"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Diblokir oleh admin Anda"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Mengakses data kerja dari aplikasi pribadi tidak diizinkan"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Mengakses data pribadi dari aplikasi kerja tidak diizinkan"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Mengakses data <xliff:g id="PROFILE1">%1$s</xliff:g> dari aplikasi <xliff:g id="PROFILE2">%2$s</xliff:g> tidak diizinkan"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Alihkan ke <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplikasi kerja dijeda"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplikasi <xliff:g id="PROFILE">%s</xliff:g> dijeda"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Untuk membuka foto kerja, aktifkan aplikasi kerja lalu coba lagi"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Untuk membuka foto <xliff:g id="PROFILE1">%1$s</xliff:g>, aktifkan aplikasi <xliff:g id="PROFILE2">%2$s</xliff:g> Anda, lalu coba lagi"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Aplikasi ini hanya dapat mengakses foto yang Anda pilih"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Pilih foto dan video yang Anda izinkan untuk diakses oleh aplikasi ini"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}other{<xliff:g id="COUNT_1">^1</xliff:g> item}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Coba lagi nanti. Foto Anda akan tersedia setelah masalah diselesaikan."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Tidak dapat memuat beberapa Foto"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Oke"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Akses nama paket pemilik media"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Memungkinkan aplikasi mengakses nama paket pemilik semua file media yang dapat diakses."</string>
 </resources>

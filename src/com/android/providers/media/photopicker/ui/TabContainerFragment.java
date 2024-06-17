@@ -17,7 +17,11 @@ package com.android.providers.media.photopicker.ui;
 
 import static com.android.providers.media.util.MimeUtils.isVideoMimeType;
 
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +29,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -34,6 +39,7 @@ import androidx.viewpager2.widget.CompositePageTransformer;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.providers.media.R;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -68,11 +74,17 @@ public class TabContainerFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mTabContainerAdapter = new TabContainerAdapter(/* fragment */ this);
         mViewPager = view.findViewById(R.id.picker_tab_viewpager);
-        mViewPager.setAdapter(mTabContainerAdapter);
         final ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
         mPickerViewModel = viewModelProvider.get(PickerViewModel.class);
+        mTabContainerAdapter = new TabContainerAdapter(/* fragment */ this);
+        mViewPager.setAdapter(mTabContainerAdapter);
+
+        // Launch in albums tab if the app requests so
+        if (mPickerViewModel.getPickerLaunchTab() == MediaStore.PICK_IMAGES_TAB_ALBUMS) {
+            // Launch the picker in Albums tab without any switch animation
+            mViewPager.setCurrentItem(ALBUMS_TAB_POSITION, /* smoothScroll */ false);
+        }
 
         // If the ViewPager2 has more than one page with BottomSheetBehavior, the scrolled view
         // (e.g. RecyclerView) on the second page can't be scrolled. The workaround is to update
@@ -105,6 +117,23 @@ public class TabContainerFragment extends Fragment {
 
         final TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
 
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            tabLayout.setBackgroundColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                    AccentColorResources.SURFACE_CONTAINER_COLOR_LIGHT,
+                    AccentColorResources.SURFACE_CONTAINER_COLOR_DARK));
+            LayerDrawable pickerTabDrawable = (LayerDrawable) ContextCompat.getDrawable(
+                    getActivity(), R.drawable.picker_tab_background);
+            GradientDrawable pickerTab =
+                    (GradientDrawable) pickerTabDrawable.findDrawableByLayerId(R.id.picker_tab);
+            pickerTab.setColor(mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                    AccentColorResources.SURFACE_CONTAINER_HIGHEST_LIGHT,
+                    AccentColorResources.SURFACE_CONTAINER_HIGHEST_DARK));
+            tabLayout.setSelectedTabIndicatorColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getPickerAccentColor());
+            setTabTextColors(tabLayout);
+        }
+
         mTabLayoutMediator = new TabLayoutMediator(tabLayout, mViewPager, (tab, pos) -> {
             if (pos == PHOTOS_TAB_POSITION) {
                 if (isOnlyVideoMimeTypeFilterAvailable()) {
@@ -123,6 +152,19 @@ public class TabContainerFragment extends Fragment {
         // set the drawable for the shape here.
         tabLayout.setSelectedTabIndicator(R.drawable.picker_tab_indicator);
         tabLayout.addOnTabSelectedListener(mOnTabSelectedListener);
+    }
+
+    private void setTabTextColors(TabLayout tabLayout) {
+        String selectedTabTextColor =
+                mPickerViewModel.getPickerAccentColorParameters().isAccentColorBright()
+                        ? AccentColorResources.DARK_TEXT_COLOR
+                        : AccentColorResources.LIGHT_TEXT_COLOR;
+        // Unselected tab text color in dark mode will be white and vice versa
+        tabLayout.setTabTextColors(
+                mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                        AccentColorResources.DARK_TEXT_COLOR,
+                        AccentColorResources.LIGHT_TEXT_COLOR),
+                Color.parseColor(selectedTabTextColor));
     }
 
     private boolean isOnlyVideoMimeTypeFilterAvailable() {

@@ -22,7 +22,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
-import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.stableuris.job.StableUriIdleMaintenanceService;
 
 public class MediaReceiver extends BroadcastReceiver {
@@ -30,7 +29,6 @@ public class MediaReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            PickerSyncController.getInstanceOrThrow().onBootComplete();
             // Register our idle maintenance service
             IdleService.scheduleIdlePass(context);
             StableUriIdleMaintenanceService.scheduleIdlePass(context);

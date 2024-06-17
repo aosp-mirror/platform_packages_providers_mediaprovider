@@ -16,12 +16,10 @@
 
 package com.android.photopicker.core
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -46,8 +44,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
+import com.android.photopicker.data.model.Media
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 
 private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 
@@ -60,7 +62,12 @@ private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
+fun PhotopickerAppWithBottomSheet(
+    onDismissRequest: () -> Unit,
+    onMediaSelectionConfirmed: () -> Unit,
+    preloadMedia: Flow<Set<Media>>,
+    obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
+) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -81,7 +88,7 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
                 scrimColor = Color.Transparent,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                windowInsets = WindowInsets.systemBars,
+                contentWindowInsets = { WindowInsets.systemBars },
             ) {
                 Box(
                     modifier = Modifier.fillMaxHeight(),
@@ -104,9 +111,25 @@ fun PhotopickerAppWithBottomSheet(onDismissRequest: () -> Unit) {
                         LocalFeatureManager.current.composeLocation(
                             Location.SELECTION_BAR,
                             maxSlots = 1,
+                            params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                         )
                     }
                 }
+                // If a [MEDIA_PRELOADER] is configured in the current session, attach it
+                // to the compose UI here, so that any dialogs it shows are drawn overtop
+                // of the application.
+                LocalFeatureManager.current.composeLocation(
+                    Location.MEDIA_PRELOADER,
+                    maxSlots = 1,
+                    params =
+                        object : LocationParams.WithMediaPreloader {
+                            override fun obtainDeferred(): CompletableDeferred<Boolean> {
+                                return obtainPreloaderDeferred()
+                            }
+
+                            override val preloadMedia = preloadMedia
+                        }
+                )
             }
         }
     }
@@ -136,6 +159,7 @@ fun PhotopickerApp() {
  * View or an Activity lifecycle.
  *
  * By this entrypoint, the expected CompositionLocals should already exist:
+ * - LocalEvents
  * - LocalFeatureManager
  * - LocalNavController
  * - LocalPhotopickerConfiguration
@@ -165,9 +189,11 @@ fun PhotopickerMain() {
                     maxSlots = 1,
                     modifier = Modifier,
                 )
-                // Placeholder for overflow menu
-                // Weight should match the profile switcher slot so they are the same size.
-                Spacer(Modifier.weight(1f))
+                LocalFeatureManager.current.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    // Weight should match the profile switcher slot so they are the same size.
+                    modifier = Modifier.weight(1f),
+                )
             }
             // Initialize the navigation graph.
             PhotopickerNavGraph()

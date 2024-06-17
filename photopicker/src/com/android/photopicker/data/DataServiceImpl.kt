@@ -503,7 +503,7 @@ class DataServiceImpl(
         }
     }
 
-    private suspend fun refreshMedia(availableProviders: List<Provider>) {
+    private fun refreshMedia(availableProviders: List<Provider>) {
         if (availableProviders.isNotEmpty()) {
             mediaProviderClient.refreshMedia(
                 availableProviders,

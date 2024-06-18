@@ -20,6 +20,8 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 
+import com.android.providers.media.util.MimeUtils;
+
 import java.util.ArrayList;
 
 /**
@@ -37,8 +39,24 @@ public class VideoMediaQuery extends MediaQuery {
         super(queryArgs);
 
         if (mMimeTypes == null) {
+            // If there are no MIME type filters applied, add all videos MIME type filter.
             mMimeTypes = new ArrayList<String>();
+            mMimeTypes.add("video/*");
+        } else {
+            // If there are MIME type filters applied, only keep videos MIME type filters.
+            mMimeTypes.removeIf(mimeType -> !MimeUtils.isVideoMimeType(mimeType));
         }
-        mMimeTypes.add("video/*");
+    }
+
+    /**
+     * @return true if any videos can be displayed after applying the input MIME type filters,
+     * otherwise return false.
+     */
+    public boolean shouldDisplayVideosAlbum() {
+        // Only display Videos album when at least one valid Videos filter is applied.
+        if (mMimeTypes != null && mMimeTypes.isEmpty()) {
+            return false;
+        }
+        return true;
     }
 }

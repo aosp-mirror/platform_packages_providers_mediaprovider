@@ -22,14 +22,22 @@ import android.os.UserHandle
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
+import com.android.photopicker.core.embedded.EmbeddedLifecycle
+import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionImpl
+import com.android.photopicker.core.selection.SelectionStrategy
+import com.android.photopicker.core.selection.SelectionStrategy.Companion.determineSelectionStrategy
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.migration.DisableInstallInCheck
@@ -67,12 +75,44 @@ abstract class PhotopickerTestModule {
 
     @Singleton
     @Provides
+    fun provideEmbeddedLifecycle(viewModelFactory: EmbeddedViewModelFactory): EmbeddedLifecycle {
+        val embeddedLifecycle = EmbeddedLifecycle(viewModelFactory)
+        return embeddedLifecycle
+    }
+
+    @Singleton
+    @Provides
+    fun provideViewModelFactory(
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        featureManager: Lazy<FeatureManager>,
+        configurationManager: Lazy<ConfigurationManager>,
+        selection: Lazy<Selection<Media>>,
+        userMonitor: Lazy<UserMonitor>,
+        dataService: Lazy<DataService>,
+        events: Lazy<Events>,
+    ): EmbeddedViewModelFactory {
+        val embeddedViewModelFactory =
+            EmbeddedViewModelFactory(
+                backgroundDispatcher,
+                configurationManager,
+                dataService,
+                events,
+                featureManager,
+                selection,
+                userMonitor,
+            )
+        return embeddedViewModelFactory
+    }
+
+    @Singleton
+    @Provides
     fun createConfigurationManager(
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
         deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
         return ConfigurationManager(
+            PhotopickerRuntimeEnv.ACTIVITY,
             scope,
             dispatcher,
             deviceConfigProxy,
@@ -145,6 +185,18 @@ abstract class PhotopickerTestModule {
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager
     ): Selection<Media> {
-        return Selection<Media>(scope = scope, configuration = configurationManager.configuration)
+       return when (determineSelectionStrategy(configurationManager.configuration.value)) {
+            SelectionStrategy.GRANTS_AWARE_SELECTION ->
+                GrantsAwareSelectionImpl(
+                    scope = scope,
+                    configuration = configurationManager.configuration,
+                )
+
+            SelectionStrategy.DEFAULT ->
+                SelectionImpl(
+                    scope = scope,
+                    configuration = configurationManager.configuration,
+                )
+        }
     }
 }

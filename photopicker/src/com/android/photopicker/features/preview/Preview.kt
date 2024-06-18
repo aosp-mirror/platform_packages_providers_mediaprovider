@@ -51,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -62,6 +61,7 @@ import com.android.photopicker.core.glide.RESOLUTION_REQUESTED
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Media
@@ -85,7 +85,7 @@ private val MEASUREMENT_SNACKBAR_BOTTOM_PADDING = 48.dp
  * from the list of preview-able photos.
  */
 @Composable
-fun PreviewSelection(viewModel: PreviewViewModel = hiltViewModel()) {
+fun PreviewSelection(viewModel: PreviewViewModel = obtainViewModel()) {
     val selection by viewModel.selectionSnapshot.collectAsStateWithLifecycle()
 
     // Only snapshot the selection once when the composable is created.
@@ -149,8 +149,8 @@ fun PreviewMedia(
             modifier =
                 Modifier.fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                        // This is inside an edge-to-edge dialog, so apply padding to ensure the
-                        // selection button stays above the navigation bar.
+                    // This is inside an edge-to-edge dialog, so apply padding to ensure the
+                    // selection button stays above the navigation bar.
                     .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical)),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -162,7 +162,7 @@ fun PreviewMedia(
 
             // Once a media item is loaded, display the selection toggles at the bottom.
             if (localMedia != null) {
-                val viewModel: PreviewViewModel = hiltViewModel()
+                val viewModel: PreviewViewModel = obtainViewModel()
                 Row {
                     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
                     val selectionLimitExceededMessage =
@@ -205,7 +205,7 @@ fun PreviewMedia(
  */
 @Composable
 private fun Preview(selection: Set<Media>) {
-    val viewModel: PreviewViewModel = hiltViewModel()
+    val viewModel: PreviewViewModel = obtainViewModel()
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
@@ -276,11 +276,11 @@ private fun Preview(selection: Set<Media>) {
                 Text(
                     if (currentSelection.contains(selection.elementAt(state.currentPage)))
                     // Label: Deselect
-                        stringResource(R.string.photopicker_deselect_button_label)
+                    stringResource(R.string.photopicker_deselect_button_label)
                     // Label: Select
                     else stringResource(R.string.photopicker_select_button_label),
-                    color = CustomAccentColorScheme.current
-                        .getAccentColorIfDefinedOrElse(
+                    color =
+                        CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
                             MaterialTheme.colorScheme.primary
                         ),
                 )
@@ -293,15 +293,16 @@ private fun Preview(selection: Set<Media>) {
                     scope.launch { events.dispatch(Event.MediaSelectionConfirmed(PREVIEW.token)) }
                 },
                 colors =
-                ButtonDefaults.filledTonalButtonColors(
-                    containerColor = CustomAccentColorScheme.current
-                        .getAccentColorIfDefinedOrElse(
-                            /* fallback */ MaterialTheme.colorScheme.primary
-                        ),
-                    contentColor = CustomAccentColorScheme.current
-                        .getTextColorForAccentComponentsIfDefinedOrElse(
-                            /* fallback */ MaterialTheme.colorScheme.onPrimary
-                        ),
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor =
+                            CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                                /* fallback */ MaterialTheme.colorScheme.primary
+                            ),
+                        contentColor =
+                            CustomAccentColorScheme.current
+                                .getTextColorForAccentComponentsIfDefinedOrElse(
+                                    /* fallback */ MaterialTheme.colorScheme.onPrimary
+                                ),
                     )
             ) {
                 Text(
@@ -348,8 +349,8 @@ fun PreviewSelectionButton(modifier: Modifier) {
     ) {
         Text(
             stringResource(R.string.photopicker_preview_button_label),
-            color = CustomAccentColorScheme.current
-                .getAccentColorIfDefinedOrElse(
+            color =
+                CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
                     /* fallback */ MaterialTheme.colorScheme.primary
                 )
         )

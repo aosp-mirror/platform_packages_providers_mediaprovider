@@ -358,7 +358,7 @@ public class PickerDataLayer {
     private AccountInfo fetchCloudAccountInfoInternal(@NonNull String cloudProvider) {
         final Bundle accountBundle = mContext.getContentResolver()
                 .call(getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
-                        /* arg */ null, /* extras */ null);
+                        /* arg */ null, /* extras */ new Bundle());
         if (accountBundle == null) {
             Log.e(TAG,
                     "Media collection info received is null. Failed to fetch Cloud account "

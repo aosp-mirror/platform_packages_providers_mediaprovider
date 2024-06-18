@@ -17,17 +17,17 @@
 package com.android.photopicker.features.selectionbar
 
 import androidx.compose.runtime.Composable
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.Priority
-import com.android.photopicker.core.features.FeatureRegistration
-import com.android.photopicker.core.features.Location
-import com.android.photopicker.core.features.PhotopickerUiFeature
-import com.android.photopicker.core.navigation.Route
-import com.android.photopicker.core.features.FeatureToken
-import com.android.photopicker.core.events.RegisteredEventClass
 import androidx.compose.ui.Modifier
-import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.FeatureToken
+import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.Priority
+import com.android.photopicker.core.navigation.Route
 
 /** Feature class for the Photopicker's selection bar. */
 class SelectionBarFeature : PhotopickerUiFeature {
@@ -39,6 +39,7 @@ class SelectionBarFeature : PhotopickerUiFeature {
         // the activity ends as soon as the first Media is selected, so this feature is
         // disabled to prevent it's animation for playing when the selection changes.
         override fun isEnabled(config: PhotopickerConfiguration) = config.selectionLimit > 1
+
         override fun build(featureManager: FeatureManager) = SelectionBarFeature()
     }
 
@@ -56,12 +57,12 @@ class SelectionBarFeature : PhotopickerUiFeature {
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
     /** Events produced by the selection bar */
-    override val eventsProduced = setOf(Event.MediaSelectionConfirmed::class.java)
+    override val eventsProduced = setOf<RegisteredEventClass>()
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
-            Location.SELECTION_BAR -> SelectionBar(modifier)
+            Location.SELECTION_BAR -> SelectionBar(modifier, params)
             else -> {}
         }
     }

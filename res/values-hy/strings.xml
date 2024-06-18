@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Նախադիտում"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Բացել աշխատանքային պրոֆիլը"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Բացել անձնական պրոֆիլը"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Անձնական"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Արգելափակվել է ձեր ադմինիստրատորի կողմից"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Աշխատանքային տվյալները հասանելի չեն անձնական հավելվածում"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Անձնական տվյալները հասանելի չեն աշխատանքային հավելվածում"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Որպես կանոն՝ <xliff:g id="PROFILE1">%1$s</xliff:g> տվյալները հասանելի չեն <xliff:g id="PROFILE2">%2$s</xliff:g> հավելվածում"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Անցնել <xliff:g id="PROFILE">%s</xliff:g> պրոֆիլին"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Աշխատանքային հավելվածները դադարեցված են"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> հավելվածները դադարեցված են"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Աշխատանքային լուսանկարները բացելու համար միացրեք աշխատանքային հավելվածները և նորից փորձեք։"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Որպեսզի բացեք <xliff:g id="PROFILE1">%1$s</xliff:g> լուսանկարները, միացրեք ձեր <xliff:g id="PROFILE2">%2$s</xliff:g> հավելվածները, այնուհետև նորից փորձեք"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Այս հավելվածին հասանելի են միայն ձեր ընտրած լուսանկարները"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Ընտրեք լուսանկարներ և տեսանյութեր, որոնք ուզում եք հասանելի դարձնել այս հավելվածին"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> տարր}one{<xliff:g id="COUNT_1">^1</xliff:g> տարր}other{<xliff:g id="COUNT_1">^1</xliff:g> տարր}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Փորձեք ավելի ուշ։ Ձեր լուսանկարները հասանելի կլինեն, երբ խնդիրը լուծվի։"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Չհաջողվեց բեռնել որոշ լուսանկարներ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Եղավ"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Հասանելի է դարձնում մուլտիմեդիայի սեփականատիրոջ փաթեթի անվանումը"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Թույլատրում է հավելվածին տեսնել բոլոր հասանելի մուլտիմեդիա ֆայլերի սեփականատիրոջ փաթեթի անվանումը։"</string>
 </resources>

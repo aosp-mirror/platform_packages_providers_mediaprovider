@@ -24,7 +24,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.USE_RESERVED_DISK" />
+    <uses-permission android:name="android.permission.USE_RESERVED_DISK" android:maxSdkVersion="34" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.HIDE_NON_SYSTEM_OVERLAY_WINDOWS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -46,6 +46,14 @@
 
     <!-- Permission required to access CloudMediaProviders. Declared by us -->
     <uses-permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
+
+    <!-- Allows an application to have access to OWNER_PACKAGE_NAME field of accessible media files.
+         Applications are still required to have read access to media files.
+         <p>Protection level: normal -->
+    <permission android:name="com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME"
+                android:label="@string/permlab_accessMediaOwnerPackageName"
+                android:description="@string/permdesc_accessMediaOwnerPackageName"
+                android:protectionLevel="normal" />
 
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
@@ -230,6 +238,9 @@
             <meta-data
                 android:name="com.android.settings.title"
                 android:resource="@string/picker_settings_system_settings_menu_title"/>
+            <meta-data
+                android:name="com.android.settings.summary_uri"
+                android:value="content://media/get_cloud_provider_label"/>
             <meta-data
                 android:name="com.android.settings.profile"
                 android:value="primary_profile_only"/>

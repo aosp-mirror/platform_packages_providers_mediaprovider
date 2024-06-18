@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Vorschau"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Zum Arbeitsprofil wechseln"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Zum privaten Profil wechseln"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Privat"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Vom Administrator blockiert"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Der Zugriff auf berufliche Daten von einer privaten App ist nicht zulässig"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Der Zugriff auf private Daten von einer geschäftlichen App ist nicht zulässig"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Der Zugriff auf Daten aus dem Profil „<xliff:g id="PROFILE1">%1$s</xliff:g>“ aus der App „<xliff:g id="PROFILE2">%2$s</xliff:g>“ ist nicht erlaubt"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"Zum Profil „<xliff:g id="PROFILE">%s</xliff:g>“ wechseln"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Geschäftliche Apps sind pausiert"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> Apps sind pausiert"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Wenn du geschäftliche Fotos aufrufen möchtest, aktiviere zuerst deine geschäftlichen Apps und versuche es dann noch einmal"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Wenn du Fotos aus dem Profil „<xliff:g id="PROFILE1">%1$s</xliff:g>“ öffnen möchtest, aktiviere deine <xliff:g id="PROFILE2">%2$s</xliff:g> Apps und versuche es noch einmal"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Diese App kann nur auf die Fotos zugreifen, die du auswählst"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Wähle aus, auf welche Fotos und Videos diese App zugreifen darf"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> Element}other{<xliff:g id="COUNT_1">^1</xliff:g> Elemente}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"Versuch es später noch einmal. Deine Fotos sind verfügbar, sobald das Problem gelöst wurde."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Einige Fotos konnten nicht geladen werden"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ok"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Auf Paketnamen des Medieninhabers zugreifen"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"App darf auf Paketnamen des Inhabers aller zugänglichen Mediendateien zugreifen."</string>
 </resources>

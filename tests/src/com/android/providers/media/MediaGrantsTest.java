@@ -23,6 +23,7 @@ import static com.android.providers.media.util.FileCreationUtils.insertFileInRes
 import static com.android.providers.media.util.FileUtils.getContentUriForPath;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -522,6 +523,47 @@ public class MediaGrantsTest {
         assertGrantExistsForPackage(fileId2, mContext.getPackageName(), TEST_USER_ID);
     }
 
+    @Test
+    public void test_generationGrantedExistsAndIsIncreasing_success() throws Exception {
+        Long fileId1 = insertFileInResolver(mIsolatedResolver, "test_file1");
+        Long fileId2 = insertFileInResolver(mIsolatedResolver, "test_file2");
+        Long fileId3 = insertFileInResolver(mIsolatedResolver, "test_file3");
+
+        List<Uri> uris = List.of(buildValidPickerUri(fileId1), buildValidPickerUri(fileId2));
+        MediaStore.grantMediaReadForPackage(mIsolatedContext, Process.myUid(), uris);
+        // adding grants separately for fileId3 so that it has a different generation from fileId1
+        // and fileId2.
+        List<Uri> uris2 = List.of(buildValidPickerUri(fileId3));
+        MediaStore.grantMediaReadForPackage(mIsolatedContext, Process.myUid(), uris2);
+
+        assertGrantExistsForPackage(
+                fileId1,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+        assertGrantExistsForPackage(
+                fileId2,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+        assertGrantExistsForPackage(
+                fileId3,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+
+        long gen1 = getGenerationForMediaGrant(fileId1,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+        long gen2 = getGenerationForMediaGrant(fileId2,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+        long gen3 = getGenerationForMediaGrant(fileId3,
+                mContext.getPackageName(),
+                TEST_USER_ID);
+        // verify generation for items granted in the same session are equal.
+        assertEquals(gen2, gen1);
+        // verify generation are increasing.
+        assertTrue(gen1 < gen3);
+    }
+
     /**
      * Assert a media grant exists in the given database.
      *
@@ -529,40 +571,64 @@ public class MediaGrantsTest {
      * @param packageName   i.e. com.android.test.package
      * @param userId        the user id of the package.
      */
-    private void assertGrantExistsForPackage(Long fileId, String packageName, int userId) {
-
-        try (Cursor c =
-                mExternalDatabase.runWithTransaction(
-                        (db) ->
-                                db.query(
-                                        MediaGrants.MEDIA_GRANTS_TABLE,
-                                        new String[] {
-                                            MediaGrants.FILE_ID_COLUMN,
-                                            MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
-                                            MediaGrants.PACKAGE_USER_ID_COLUMN
-                                        },
-                                        String.format(
-                                                "%s = '%s' AND %s = %s AND %s = %s",
-                                                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
-                                                packageName,
-                                                MediaGrants.FILE_ID_COLUMN,
-                                                Long.toString(fileId),
-                                                MediaGrants.PACKAGE_USER_ID_COLUMN,
-                                                Integer.toString(userId)),
-                                        null,
-                                        null,
-                                        null,
-                                        null))) {
+    private void assertGrantExistsForPackage(Long fileId, String packageName,
+            int userId) {
+        try (Cursor c = getMediaGrantRow(fileId, packageName, userId)) {
+            assertNotNull(c);
             assertEquals(1, c.getCount());
             Long fileIdValue;
             String ownerValue;
-
             assertTrue(c.moveToFirst());
             fileIdValue = c.getLong(c.getColumnIndex(MediaGrants.FILE_ID_COLUMN));
             ownerValue = c.getString(c.getColumnIndex(MediaGrants.OWNER_PACKAGE_NAME_COLUMN));
+            long generationGranted = c.getLong(
+                    c.getColumnIndex(MediaGrants.GENERATION_GRANTED));
             assertEquals(fileIdValue, fileId);
             assertEquals(packageName, ownerValue);
+            assertTrue(generationGranted > 0);
         }
+    }
+
+    private long getGenerationForMediaGrant(Long fileId, String packageName,
+            int userId) {
+
+        long generationGranted = -1;
+        try (Cursor c = getMediaGrantRow(fileId, packageName, userId)) {
+            assertNotNull(c);
+            assertEquals(1, c.getCount());
+            assertTrue(c.moveToFirst());
+            generationGranted = c.getLong(
+                    c.getColumnIndex(MediaGrants.GENERATION_GRANTED));
+            assertTrue(generationGranted >= 0);
+
+        }
+        return generationGranted;
+    }
+
+    private Cursor getMediaGrantRow(Long fileId, String packageName,
+            int userId) {
+        return mExternalDatabase.runWithTransaction(
+                (db) ->
+                        db.query(
+                                MediaGrants.MEDIA_GRANTS_TABLE,
+                                new String[]{
+                                        MediaGrants.FILE_ID_COLUMN,
+                                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                        MediaGrants.PACKAGE_USER_ID_COLUMN,
+                                        MediaGrants.GENERATION_GRANTED
+                                },
+                                String.format(
+                                        "%s = '%s' AND %s = %s AND %s = %s",
+                                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                                        packageName,
+                                        MediaGrants.FILE_ID_COLUMN,
+                                        Long.toString(fileId),
+                                        MediaGrants.PACKAGE_USER_ID_COLUMN,
+                                        Integer.toString(userId)),
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     private List<Uri> convertToListOfUri(Cursor c) {

@@ -305,12 +305,14 @@ public class Selection {
 
     /**
      * Prepares current selected items for previewing all selected items in multi-select preview.
-     * The method also sorts the selected items by {@link Item#compareTo} method which sorts based
-     * on dateTaken values.
+     * If ordered selection is not enabled, the method also sorts the selected items
+     * by {@link Item#compareTo} method which sorts based on dateTaken values.
      */
     public void prepareSelectedItemsForPreviewAll() {
         mSelectedItemsForPreview = new ArrayList<>(mSelectedItems.values());
-        mSelectedItemsForPreview.sort(Collections.reverseOrder(Item::compareTo));
+        if (!mIsSelectionOrdered) {
+            mSelectedItemsForPreview.sort(Collections.reverseOrder(Item::compareTo));
+        }
     }
 
     /**

@@ -70,7 +70,7 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
     }
 
     @Override
-    protected boolean isBackupPresent() {
+    protected boolean isBackupPresent(String volumeName) {
         return true;
     }
 
@@ -81,9 +81,7 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
     }
 
     @Override
-    protected void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
-        return;
-    }
+    protected void setupVolumeDbBackupAndRecovery(String volumeName) {}
 
     public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
         this.mBackedUpData = backedUpData;

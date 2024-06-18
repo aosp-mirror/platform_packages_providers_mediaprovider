@@ -763,8 +763,31 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
     fuse->active->store(true, std::memory_order_release);
 }
 
+static void removeInstance(struct fuse* fuse, std::string instance_name) {
+    if (fuse->level_db_connection_map.find(instance_name) != fuse->level_db_connection_map.end()) {
+        delete fuse->level_db_connection_map[instance_name];
+        (fuse->level_db_connection_map).erase(instance_name);
+        LOG(INFO) << "Removed leveldb connection for " << instance_name;
+    }
+}
+
+static void removeLevelDbConnection(struct fuse* fuse) {
+    if (android::base::StartsWith(fuse->path, PRIMARY_VOLUME_PREFIX)) {
+        removeInstance(fuse, VOLUME_INTERNAL);
+        removeInstance(fuse, OWNERSHIP_RELATION);
+        removeInstance(fuse, VOLUME_EXTERNAL_PRIMARY);
+    } else {
+        // Return "C58E-1702" from the path like "/storage/C58E-1702"
+        std::string volume_name = (fuse->path).substr(9);
+        // Convert to lowercase
+        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
+        removeInstance(fuse, volume_name);
+    }
+}
+
 static void pf_destroy(void* userdata) {
     struct fuse* fuse = reinterpret_cast<struct fuse*>(userdata);
+    removeLevelDbConnection(fuse);
     LOG(INFO) << "DESTROY " << fuse->path;
 
     node::DeleteTree(fuse->root);
@@ -1963,6 +1986,7 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
     char buf[READDIR_BUF];
     struct fuse_read_out* fro = (struct fuse_read_out*)(buf);
     size_t used = 0;
+    bool redacted = false;
     char* dirents_out = (char*)(fro + 1);
 
     ATRACE_CALL();
@@ -1998,8 +2022,11 @@ static void pf_readdir_postfilter(fuse_req_t req, fuse_ino_t ino, uint32_t error
             *dirent_out = *dirent_in;
             strcpy(dirent_out->name, child_name.c_str());
             used += sizeof(*dirent_out) + round_up(dirent_out->namelen, sizeof(uint64_t));
+        } else {
+            redacted = true;
         }
     }
+    if (redacted && used == 0) fro->again = 1;
     fuse_reply_buf(req, buf, sizeof(*fro) + used);
 }
 
@@ -2644,8 +2671,8 @@ std::vector<std::string> FuseDaemon::ReadFilePathsFromLevelDb(const std::string&
     std::vector<std::string> file_paths;
 
     if (!CheckLevelDbConnection(volume_name)) {
-        LOG(ERROR) << "ReadFilePathsFromLevelDb: Missing leveldb connection.";
-        return file_paths;
+        LOG(INFO) << "ReadFilePathsFromLevelDb: Missing leveldb connection, attempting setup.";
+        SetupLevelDbInstances();
     }
 
     leveldb::Iterator* it =

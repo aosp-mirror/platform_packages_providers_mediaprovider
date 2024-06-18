@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import android.Manifest;
 import android.app.job.JobScheduler;
@@ -33,18 +34,17 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.os.UserHandle;
-import android.provider.DeviceConfig;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
+import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
-import com.android.providers.media.ConfigStore;
 import com.android.providers.media.stableuris.dao.BackupIdRow;
 
 import org.junit.AfterClass;
@@ -63,7 +63,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = 31, codeName = "S")
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class StableUriIdleMaintenanceServiceTest {
     private static final String TAG = "StableUriIdleMaintenanceServiceTest";
 
@@ -75,53 +75,17 @@ public class StableUriIdleMaintenanceServiceTest {
 
     private static final String PUBLIC_VOLUME_BACKUP_NAME = "leveldb-";
 
-    private static boolean sInitialDeviceConfigValueForInternal = false;
-
-    private static boolean sInitialDeviceConfigValueForExternal = false;
-
-    private static boolean sInitialDeviceConfigValueForPublic = false;
+    private static final String PUBLIC_VOLUME = "public_volume";
 
     private static final int IDLE_JOB_ID = -500;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
+    public static void setUpClass() {
         adoptShellPermission();
-
-        // Read existing value of the flag
-        sInitialDeviceConfigValueForInternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL));
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL, Boolean.TRUE.toString(),
-                false);
-        sInitialDeviceConfigValueForExternal = Boolean.parseBoolean(
-                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL));
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL, Boolean.TRUE.toString(),
-                false);
-        sInitialDeviceConfigValueForPublic = Boolean.parseBoolean(
-                DeviceConfig.getProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                        ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_PUBLIC));
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_PUBLIC, Boolean.TRUE.toString(),
-                false);
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
-
-        // Restore previous value of the flag
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_INTERNAL,
-                String.valueOf(sInitialDeviceConfigValueForInternal), false);
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_EXTERNAL,
-                String.valueOf(sInitialDeviceConfigValueForExternal), false);
-        DeviceConfig.setProperty(ConfigStore.NAMESPACE_MEDIAPROVIDER,
-                ConfigStore.ConfigStoreImpl.KEY_STABILIZE_VOLUME_PUBLIC,
-                String.valueOf(sInitialDeviceConfigValueForPublic), false);
-        SystemClock.sleep(3000);
+    public static void tearDownClass() {
         dropShellPermission();
     }
 
@@ -129,33 +93,41 @@ public class StableUriIdleMaintenanceServiceTest {
     public void testDataMigrationForInternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
-        Set<String> internalFilePaths = new HashSet<>();
-        Map<String, Long> pathToIdMap = new HashMap<>();
-        MediaStore.waitForIdle(resolver);
-        try (Cursor c = resolver.query(MediaStore.Files.getContentUri(MediaStore.VOLUME_INTERNAL),
-                new String[]{MediaStore.Files.FileColumns.DATA, MediaStore.Files.FileColumns._ID},
-                null, null)) {
-            assertNotNull(c);
-            while (c.moveToNext()) {
-                String path = c.getString(0);
-                internalFilePaths.add(path);
-                pathToIdMap.put(path, c.getLong(1));
+        try {
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, true);
+            Set<String> internalFilePaths = new HashSet<>();
+            Map<String, Long> pathToIdMap = new HashMap<>();
+            MediaStore.waitForIdle(resolver);
+            MediaStore.scanVolume(resolver, MediaStore.VOLUME_INTERNAL);
+            try (Cursor c = resolver.query(
+                    MediaStore.Files.getContentUri(MediaStore.VOLUME_INTERNAL),
+                    new String[]{MediaStore.Files.FileColumns.DATA,
+                            MediaStore.Files.FileColumns._ID},
+                    null, null)) {
+                assertNotNull(c);
+                while (c.moveToNext()) {
+                    String path = c.getString(0);
+                    internalFilePaths.add(path);
+                    pathToIdMap.put(path, c.getLong(1));
+                }
             }
-        }
-        assertFalse(internalFilePaths.isEmpty());
+            assumeFalse(internalFilePaths.isEmpty());
 
-        MediaStore.waitForIdle(resolver);
-        // Creates backup
-        MediaStore.runIdleMaintenanceForStableUris(resolver);
+            MediaStore.waitForIdle(resolver);
+            // Creates backup
+            MediaStore.runIdleMaintenanceForStableUris(resolver);
 
-        verifyLevelDbPresence(resolver, INTERNAL_BACKUP_NAME);
-        // Verify that all internal files are backed up
-        for (String path : internalFilePaths) {
-            BackupIdRow backupIdRow = BackupIdRow.deserialize(MediaStore.readBackup(resolver,
-                    MediaStore.VOLUME_EXTERNAL_PRIMARY, path));
-            assertNotNull(backupIdRow);
-            assertEquals(pathToIdMap.get(path).longValue(), backupIdRow.getId());
-            assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
+            verifyLevelDbPresence(resolver, INTERNAL_BACKUP_NAME);
+            // Verify that all internal files are backed up
+            for (String path : internalFilePaths) {
+                BackupIdRow backupIdRow = BackupIdRow.deserialize(MediaStore.readBackup(resolver,
+                        MediaStore.VOLUME_INTERNAL, path));
+                assertNotNull(backupIdRow);
+                assertEquals(pathToIdMap.get(path).longValue(), backupIdRow.getId());
+                assertEquals(UserHandle.myUserId(), backupIdRow.getUserId());
+            }
+        } finally {
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, false);
         }
     }
 
@@ -163,11 +135,13 @@ public class StableUriIdleMaintenanceServiceTest {
     public void testDataMigrationForExternalVolume() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
         final ContentResolver resolver = context.getContentResolver();
-        Set<String> newFilePaths = new HashSet<String>();
+        Set<String> newFilePaths = new HashSet<>();
         Map<String, Long> pathToIdMap = new HashMap<>();
         MediaStore.waitForIdle(resolver);
-
+        MediaStore.scanVolume(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
         try {
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, true);
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, true);
             for (int i = 0; i < 10; i++) {
                 final File dir =
                         Environment.getExternalStoragePublicDirectory(
@@ -205,6 +179,8 @@ public class StableUriIdleMaintenanceServiceTest {
                         MediaStore.getOwnerPackageName(resolver, backupIdRow.getOwnerPackageId()));
             }
         } finally {
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, false);
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, false);
             for (String path : newFilePaths) {
                 new File(path).delete();
             }
@@ -214,10 +190,13 @@ public class StableUriIdleMaintenanceServiceTest {
     @Test
     @Ignore
     public void testDataMigrationForPublicVolume() throws Exception {
+        final Context context = InstrumentationRegistry.getTargetContext();
+        final ContentResolver resolver = context.getContentResolver();
         createNewPublicVolume();
         try {
-            final Context context = InstrumentationRegistry.getTargetContext();
-            final ContentResolver resolver = context.getContentResolver();
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, true);
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, true);
+            MediaStore.setStableUrisFlag(resolver, PUBLIC_VOLUME, true);
             final Set<String> volNames = MediaStore.getExternalVolumeNames(context);
 
             for (String volName : volNames) {
@@ -272,6 +251,9 @@ public class StableUriIdleMaintenanceServiceTest {
                 }
             }
         } finally {
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_INTERNAL, false);
+            MediaStore.setStableUrisFlag(resolver, MediaStore.VOLUME_EXTERNAL_PRIMARY, false);
+            MediaStore.setStableUrisFlag(resolver, PUBLIC_VOLUME, false);
             deletePublicVolumes();
         }
     }

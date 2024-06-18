@@ -139,7 +139,8 @@ public class SettingsCloudMediaSelectFragment extends PreferenceFragmentCompat
                             providerMediaCollectionInfo.getAccountConfigurationIntent();
                     selectedPref.setExtraWidgetOnClickListener(
                             accountConfigurationIntent == null ? null : v ->
-                                    requireActivity().startActivity(accountConfigurationIntent));
+                                    requireActivity().startActivityAsUser(
+                                            accountConfigurationIntent, mUserId.getUserHandle()));
                 });
     }
 

@@ -66,8 +66,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.android.photopicker.R
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.delay
@@ -112,7 +112,7 @@ fun VideoUi(
     audioIsMuted: Boolean,
     onRequestAudioMuteChange: (Boolean) -> Unit,
     snackbarHostState: SnackbarHostState,
-    viewModel: PreviewViewModel = hiltViewModel(),
+    viewModel: PreviewViewModel = obtainViewModel(),
 ) {
 
     /**
@@ -614,7 +614,7 @@ private fun rememberAudioFocus(
 private fun producePlaybackInfo(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = hiltViewModel()
+    viewModel: PreviewViewModel = obtainViewModel()
 ): State<PlaybackInfo> {
 
     return produceState<PlaybackInfo>(
@@ -650,7 +650,7 @@ private fun producePlaybackInfo(
 private fun produceAspectRatio(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = hiltViewModel()
+    viewModel: PreviewViewModel = obtainViewModel()
 ): State<Float?> {
 
     return produceState<Float?>(

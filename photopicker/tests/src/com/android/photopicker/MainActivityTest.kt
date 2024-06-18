@@ -34,6 +34,7 @@ import androidx.test.core.app.ActivityScenario.launchActivityForResult
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Event
@@ -46,8 +47,8 @@ import com.android.photopicker.tests.utils.StubProvider
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
-import dagger.Module
 import dagger.Lazy
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -75,6 +76,7 @@ import org.mockito.MockitoAnnotations
 /** This test class will run Photopicker's actual MainActivity. */
 @UninstallModules(
     ActivityModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -152,6 +154,36 @@ class MainActivityTest {
         }
     }
 
+    @Test
+    fun testMainActivitySetsCaller() {
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .setComponent(
+                    ComponentName(
+                        InstrumentationRegistry.getInstrumentation().targetContext,
+                        MainActivity::class.java
+                    )
+                )
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    advanceTimeBy(100)
+                    val configuration = configurationManager.configuration.value
+                    assertWithMessage("Expected configuration to contain caller's package name")
+                        .that(configuration.callingPackage)
+                        .isEqualTo("com.android.photopicker.tests")
+                    assertWithMessage("Expected configuration to contain caller's uid")
+                        .that(configuration.callingPackageUid)
+                        .isNotNull()
+                    assertWithMessage("Expected configuration to contain caller's display label")
+                        .that(configuration.callingPackageLabel)
+                        .isNotNull()
+                }
+            }
+        }
+    }
+
     /**
      * Using [StubProvider] as a backing provider, ensure that [MainActivity] returns data to the
      * calling app when the selection is confirmed by the user.
@@ -194,6 +226,7 @@ class MainActivityTest {
                 .isEqualTo(testImage.mediaUri)
         }
     }
+
     /**
      * Using [StubProvider] as a backing provider, ensure that [MainActivity] returns data to the
      * calling app when the selection is confirmed by the user.

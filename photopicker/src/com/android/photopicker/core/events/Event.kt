@@ -39,11 +39,19 @@ interface Event {
      */
     val dispatcherToken: String
 
-    // Signal Event when the user has confirmed the selection of media.
+    /**
+     * Individual elements wishing to indicate a user choice for the current [Selection] should
+     * dispatch [MediaSelectionConfirmed] to begin the sequence of preparing media. No further
+     * action is required, Preloading will be chosen based on the current [PhotopickerConfiguration]
+     * and available set of [PhotopickerFeature].
+     */
     data class MediaSelectionConfirmed(override val dispatcherToken: String) : Event
 
-    // For showing a message to the user in a snackbar. See [SnackbarFeature] for
-    // snackbar implementation details.
+    /**
+     * For showing a message to the user in a snackbar.
+     *
+     * @see [SnackbarFeature] for snackbar implementation details.
+     */
     data class ShowSnackbarMessage(override val dispatcherToken: String, val message: String) :
         Event
 }

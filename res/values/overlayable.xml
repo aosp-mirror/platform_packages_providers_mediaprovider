@@ -22,6 +22,7 @@
 
             <item type="string" name="config_default_cloud_media_provider_package"/>
             <item type="string" name="config_default_cloud_provider_authority"/>
+            <item type="string" name="config_default_media_cognition_service_package" />
         </policy>
     </overlayable>
 </resources>

@@ -154,36 +154,6 @@ class MainActivityTest {
         }
     }
 
-    @Test
-    fun testMainActivitySetsCaller() {
-        val intent =
-            Intent()
-                .setAction(MediaStore.ACTION_PICK_IMAGES)
-                .setComponent(
-                    ComponentName(
-                        InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
-                    )
-                )
-        with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
-                    advanceTimeBy(100)
-                    val configuration = configurationManager.configuration.value
-                    assertWithMessage("Expected configuration to contain caller's package name")
-                        .that(configuration.callingPackage)
-                        .isEqualTo("com.android.photopicker.tests")
-                    assertWithMessage("Expected configuration to contain caller's uid")
-                        .that(configuration.callingPackageUid)
-                        .isNotNull()
-                    assertWithMessage("Expected configuration to contain caller's display label")
-                        .that(configuration.callingPackageLabel)
-                        .isNotNull()
-                }
-            }
-        }
-    }
-
     /**
      * Using [StubProvider] as a backing provider, ensure that [MainActivity] returns data to the
      * calling app when the selection is confirmed by the user.

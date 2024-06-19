@@ -16,11 +16,13 @@
 
 package com.android.photopicker.data
 
+import android.content.ContentProviderClient
 import android.content.ContentResolver
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.photopicker.data.model.Group
@@ -29,6 +31,8 @@ import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
+import kotlinx.coroutines.delay
+import java.lang.IllegalStateException
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -106,27 +110,27 @@ open class MediaProviderClient {
     }
 
     /** Fetch available [Provider]-s from the Media Provider process. */
-    fun fetchAvailableProviders(
+    suspend fun fetchAvailableProviders(
         contentResolver: ContentResolver,
     ): List<Provider> {
         try {
-            contentResolver
-                .query(
+            acquireMediaProviderClient(contentResolver).use {
+                it.query(
                     AVAILABLE_PROVIDERS_URI,
                     /* projection */ null,
                     /* queryArgs */ null,
                     /* cancellationSignal */ null // TODO
-                )
-                .use { cursor ->
+                ).use { cursor ->
                     return getListOfProviders(cursor!!)
                 }
+            }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch available providers", e)
         }
     }
 
     /** Fetch a list of [Media] from MediaProvider for the given page key. */
-    fun fetchMedia(
+    suspend fun fetchMedia(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,
@@ -147,32 +151,31 @@ open class MediaProviderClient {
             )
 
         try {
-            return contentResolver
-                .query(
+            return acquireMediaProviderClient(contentResolver).use {
+                it.query(
                     MEDIA_URI,
                     /* projection */ null,
                     input,
                     /* cancellationSignal */ null // TODO
-                )
-                .use { cursor ->
+                ).use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfMedia(),
                             prevKey = cursor.getPrevPageKey(),
                             nextKey = cursor.getNextPageKey()
                         )
-                    }
-                        ?: throw IllegalStateException(
-                            "Received a null response from Content Provider"
-                        )
+                    } ?: throw IllegalStateException(
+                        "Received a null response from Content Provider"
+                    )
                 }
+            }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch media", e)
         }
     }
 
     /** Fetch a list of [Group.Album] from MediaProvider for the given page key. */
-    fun fetchAlbums(
+    suspend fun fetchAlbums(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,
@@ -193,14 +196,13 @@ open class MediaProviderClient {
             )
 
         try {
-            return contentResolver
-                .query(
+            return acquireMediaProviderClient(contentResolver).use {
+                it.query(
                     ALBUM_URI,
                     /* projection */ null,
                     input,
                     /* cancellationSignal */ null // TODO
-                )
-                .use { cursor ->
+                ).use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfAlbums(),
@@ -212,13 +214,14 @@ open class MediaProviderClient {
                             "Received a null response from Content Provider"
                         )
                 }
+            }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch albums", e)
         }
     }
 
     /** Fetch a list of [Media] from MediaProvider for the given page key. */
-    fun fetchAlbumMedia(
+    suspend fun fetchAlbumMedia(
         albumId: String,
         albumAuthority: String,
         pageKey: MediaPageKey,
@@ -242,14 +245,13 @@ open class MediaProviderClient {
             )
 
         try {
-            return contentResolver
-                .query(
+            return acquireMediaProviderClient(contentResolver).use {
+                it.query(
                     getAlbumMediaUri(albumId),
                     /* projection */ null,
                     input,
                     /* cancellationSignal */ null // TODO
-                )
-                .use { cursor ->
+                ).use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfMedia(),
@@ -261,6 +263,7 @@ open class MediaProviderClient {
                             "Received a null response from Content Provider"
                         )
                 }
+            }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch album media", e)
         }
@@ -270,7 +273,7 @@ open class MediaProviderClient {
      * Send a refresh media request to MediaProvider. This is a signal for MediaProvider to refresh
      * its cache, if required.
      */
-    fun refreshMedia(
+    suspend fun refreshMedia(
         @Suppress("UNUSED_PARAMETER") providers: List<Provider>,
         resolver: ContentResolver,
         intent: Intent?
@@ -293,7 +296,7 @@ open class MediaProviderClient {
      * Send a refresh album media request to MediaProvider. This is a signal for MediaProvider to
      * refresh its cache for the given album media, if required.
      */
-    fun refreshAlbumMedia(
+    suspend fun refreshAlbumMedia(
         albumId: String,
         albumAuthority: String,
         providers: List<Provider>,
@@ -342,6 +345,29 @@ open class MediaProviderClient {
         }
 
         return result
+    }
+
+    private suspend fun acquireMediaProviderClient(
+        resolver: ContentResolver
+    ): ContentProviderClient {
+        var backoffDelay: Long = 500
+        var remainingRetries = 2
+        do {
+            val client: ContentProviderClient? =
+                resolver.acquireContentProviderClient(MEDIA_PROVIDER_AUTHORITY)
+            if (client != null) {
+                return client
+            } else {
+                Log.e(TAG, "Could not acquire the MediaProvider client. " +
+                        "Retries remaining $remainingRetries, back off delay $backoffDelay")
+                if (remainingRetries >= 0) {
+                    delay(backoffDelay)
+                    backoffDelay = backoffDelay * 2
+                }
+            }
+        } while (remainingRetries >= 0)
+
+        throw IllegalStateException("Could not acquire the MediaProvider client")
     }
 
     /**
@@ -483,14 +509,16 @@ open class MediaProviderClient {
      * Send a refresh [Media] request to MediaProvider with the prepared input args. This is a
      * signal for MediaProvider to refresh its cache, if required.
      */
-    private fun refreshMedia(extras: Bundle, contentResolver: ContentResolver) {
+    private suspend fun refreshMedia(extras: Bundle, contentResolver: ContentResolver) {
         try {
-            contentResolver.call(
-                MEDIA_PROVIDER_AUTHORITY,
-                MEDIA_INIT_CALL_METHOD,
-                /* arg */ null,
-                extras
-            )
+            acquireMediaProviderClient(contentResolver).use {
+                it.call(
+                    MEDIA_PROVIDER_AUTHORITY,
+                    MEDIA_INIT_CALL_METHOD,
+                    /* arg */ null,
+                    extras
+                )
+            }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not send refresh media call to Media Provider $extras", e)
         }

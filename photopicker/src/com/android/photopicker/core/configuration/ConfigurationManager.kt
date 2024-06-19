@@ -44,9 +44,9 @@ import kotlinx.coroutines.launch
  * to batch any changes to configuration together, as it is anticipated that configuration changes
  * will cause lots of re-calculation of downstream state.
  *
- * @property runtimeEnv The current [PhotopickerRuntimeEnv] environment, this value is used to
- *   create the initial [PhotopickerConfiguration], and should never be changed during subsequent
- *   configuration updates.
+ * @property runtimeEnv The current [PhotopickerRuntimeEnv] environment, this value is used to create the
+ *   initial [PhotopickerConfiguration], and should never be changed during subsequent configuration
+ *   updates.
  * @property scope The [CoroutineScope] the configuration flow will be shared in.
  * @property dispatcher [CoroutineDispatcher] context that the DeviceConfig listener will execute
  *   in.
@@ -141,29 +141,6 @@ class ConfigurationManager(
                 action = intent?.getAction() ?: "",
                 intent = intent,
                 selectionLimit = selectionLimit,
-            )
-        }
-    }
-
-    /**
-     * Sets data in [PhotopickerConfiguration] about the current caller, and emit an updated
-     * configuration.
-     *
-     * @param callingPackage the package name of the caller
-     * @param callingPackageUid the uid of the caller
-     * @param callingPackageLabel the display label of the caller
-     */
-    fun setCaller(
-        callingPackage: String?,
-        callingPackageUid: Int?,
-        callingPackageLabel: String?,
-    ) {
-        Log.d(TAG, "Caller information updated : Configuration will now update.")
-        _configuration.updateAndGet {
-            it.copy(
-                callingPackage = callingPackage,
-                callingPackageUid = callingPackageUid,
-                callingPackageLabel = callingPackageLabel,
             )
         }
     }

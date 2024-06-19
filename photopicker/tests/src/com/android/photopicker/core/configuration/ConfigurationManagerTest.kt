@@ -209,43 +209,6 @@ class ConfigurationManagerTest {
         }
     }
 
-    @Test
-    fun testSetCallerUpdatesConfiguration() {
-        runTest {
-            val configurationManager =
-                ConfigurationManager(
-                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
-                    scope = this.backgroundScope,
-                    dispatcher = StandardTestDispatcher(this.testScheduler),
-                    deviceConfigProxy,
-                )
-            // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
-
-            val emissions = mutableListOf<PhotopickerConfiguration>()
-            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
-
-            advanceTimeBy(100)
-            configurationManager.setCaller(
-                callingPackage = "com.caller.package",
-                callingPackageUid = 99999,
-                callingPackageLabel = "Caller"
-            )
-            advanceTimeBy(100)
-
-            assertThat(emissions.size).isEqualTo(2)
-            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
-            assertThat(emissions.last())
-                .isEqualTo(
-                    expectedConfiguration.copy(
-                        callingPackage = "com.caller.package",
-                        callingPackageUid = 99999,
-                        callingPackageLabel = "Caller",
-                    )
-                )
-        }
-    }
-
     /**
      * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
      * expected selection limit.

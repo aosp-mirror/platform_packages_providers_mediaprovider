@@ -19,9 +19,6 @@ package com.android.photopicker
 import android.content.ClipData
 import android.content.ComponentName
 import android.content.Intent
-import android.content.pm.PackageManager.ApplicationInfoFlags
-import android.content.pm.PackageManager.NameNotFoundException
-import android.content.pm.PackageManager.PackageInfoFlags
 import android.net.Uri
 import android.os.Bundle
 import android.os.UserHandle
@@ -36,7 +33,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
 import com.android.photopicker.core.configuration.ConfigurationManager
@@ -139,9 +135,6 @@ class MainActivity : Hilt_MainActivity() {
             finish()
         }
 
-        // Add information about the caller to the configuration.
-        setCallerInConfiguration()
-
         // Begin listening for events before starting the UI.
         listenForEvents()
 
@@ -220,54 +213,6 @@ class MainActivity : Hilt_MainActivity() {
                 }
             }
         }
-    }
-
-    /**
-     * Sets the caller related fields in [PhotopickerConfiguration] with the calling application's
-     * information, if available. This should only be called once and will cause a configuration
-     * update.
-     */
-    private fun setCallerInConfiguration() {
-
-        val pm = getPackageManager()
-        val callingPackage: String? = getCallingPackage()
-        val callingPackageLabel: String? =
-            callingPackage?.let {
-                try {
-                    if (SdkLevel.isAtLeastT()) {
-                        // getApplicationInfo API is T+
-                        pm.getApplicationLabel(
-                                pm.getApplicationInfo(it, ApplicationInfoFlags.of(0))
-                            )
-                            .toString() // convert CharSequence to String
-                    } else {
-                        // Fallback for S or lower
-                        pm.getApplicationLabel(pm.getApplicationInfo(it, /* flags= */ 0))
-                            .toString() // convert CharSequence to String
-                    }
-                } catch (e: NameNotFoundException) {
-                    null
-                }
-            }
-        val callingPackageUid: Int? =
-            callingPackage?.let {
-                try {
-                    if (SdkLevel.isAtLeastT()) {
-                        // getPackageUid API is T+
-                        pm.getPackageUid(it, PackageInfoFlags.of(0))
-                    } else {
-                        // Fallback for S or lower
-                        pm.getPackageUid(it, /* flags= */ 0)
-                    }
-                } catch (e: NameNotFoundException) {
-                    null
-                }
-            }
-        configurationManager.setCaller(
-            callingPackage = callingPackage,
-            callingPackageUid = callingPackageUid,
-            callingPackageLabel = callingPackageLabel,
-        )
     }
 
     /**

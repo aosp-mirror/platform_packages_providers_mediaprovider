@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="public final class GetProcessingVersionsCallbackImpl implements MediaCognitionGetVersionsCallback {"
+        errorLine2="                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/GetProcessingVersionsCallbackImpl.java"
+            line="31"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onSuccess` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG, &quot;The callback can only be called once&quot;);"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/GetProcessingVersionsCallbackImpl.java"
+            line="47"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onSuccess` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG,"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/GetProcessingVersionsCallbackImpl.java"
+            line="54"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onFailure` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG, &quot;The callback can only be called once&quot;);"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/GetProcessingVersionsCallbackImpl.java"
+            line="62"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onFailure` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG,"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/GetProcessingVersionsCallbackImpl.java"
+            line="69"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.pick_ordered_images&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="867"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_accent_color&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="913"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="926"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="942"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="942"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="949"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="949"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_pre_selection&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="1033"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_recent_selection&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="1182"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.access_media_owner_package_name_permission&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="1190"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="This is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `?` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="public final class ProcessMediaCallbackImpl implements MediaCognitionProcessingCallback {"
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="36"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onSuccess` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG, &quot;The callback can only be called once&quot;);"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="55"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onSuccess` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG, &quot;Empty response&quot;);"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="60"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onSuccess` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG,"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="66"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onFailure` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG, &quot;The callback can only be called once&quot;);"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="75"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `onFailure` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            Log.w(MediaCognitionService.TAG,"
+        errorLine2="                                        ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="82"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Class `ProcessingTypes` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        final int numColumns = ProcessingTypes.class.getDeclaredFields().length + 1;"
+        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="98"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getRequest()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                final MediaCognitionProcessingRequest request = responses.get(row).getRequest();"
+        errorLine2="                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="132"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getUri()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                if (request == null || request.getUri() == null"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="133"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getUri()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                        || request.getUri().getLastPathSegment() == null) {"
+        errorLine2="                           ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="134"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `TAG` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                    Log.w(MediaCognitionService.TAG, &quot;Correct request not&quot;"
+        errorLine2="                                                ~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="135"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getUri()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `wrapInCursorWindows` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                dataAdded &amp;= window.putString(request.getUri().getLastPathSegment(),"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="141"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `IMAGE_OCR_LATIN` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageOcrLatin` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        final int column = Integer.numberOfTrailingZeros(ProcessingTypes.IMAGE_OCR_LATIN) + 1;"
+        errorLine2="                                                                         ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="184"
+            column="74"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `IMAGE_OCR_LATIN` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageOcrLatin` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        if (request.checkProcessingRequired(ProcessingTypes.IMAGE_OCR_LATIN)"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="186"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `checkProcessingRequired()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageOcrLatin` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        if (request.checkProcessingRequired(ProcessingTypes.IMAGE_OCR_LATIN)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="186"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getImageOcrLatin()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageOcrLatin` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                &amp;&amp; response.getImageOcrLatin() != null) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="187"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getImageOcrLatin()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageOcrLatin` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            return window.putString(response.getImageOcrLatin(), row, column);"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="188"
+            column="37"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `IMAGE_LABEL` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageLabels` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        final int column = Integer.numberOfTrailingZeros(ProcessingTypes.IMAGE_LABEL) + 1;"
+        errorLine2="                                                                         ~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="195"
+            column="74"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `IMAGE_LABEL` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageLabels` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        if (request.checkProcessingRequired(ProcessingTypes.IMAGE_LABEL)"
+        errorLine2="                                                            ~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="196"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `checkProcessingRequired()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageLabels` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="        if (request.checkProcessingRequired(ProcessingTypes.IMAGE_LABEL)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="196"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getImageLabels()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageLabels` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="                &amp;&amp; response.getImageLabels() != null) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="197"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getImageLabels()` is a flagged API and should be inside an `if (Flags.mediaCognitionService())` check (or annotate the surrounding method `addImageLabels` with `@FlaggedApi(Flags.FLAG_MEDIA_COGNITION_SERVICE) to transfer requirement to caller`)"
+        errorLine1="            return window.putString(String.join(&quot;|&quot;, response.getImageLabels()),"
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/mediacognitionutils/ProcessMediaCallbackImpl.java"
+            line="198"
+            column="54"/>
+    </issue>
+
+</issues>

@@ -2,6 +2,14 @@ package: "com.android.providers.media.flags"
 container: "com.android.mediaprovider"
 
 flag {
+    name: "enable_modern_photopicker"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether the modern photopicker is enabled"
+    bug: "303779617"
+}
+
+flag {
     name: "pick_ordered_images"
     is_exported: true
     namespace: "mediaprovider"

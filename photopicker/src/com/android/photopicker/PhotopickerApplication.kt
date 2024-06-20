@@ -17,11 +17,29 @@
 package com.android.photopicker
 
 import android.app.Application
+import androidx.room.Room
+import com.android.photopicker.core.database.PhotopickerDatabase
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp(Application::class)
 class PhotopickerApplication : Hilt_PhotopickerApplication() {
+
+    private lateinit var _database: PhotopickerDatabase
+    val database: PhotopickerDatabase
+        get() {
+            if (::_database.isInitialized) {
+                return _database
+            } else {
+                throw IllegalStateException(
+                    "Database cannot be accessed before Application#onCreate"
+                )
+            }
+        }
+
     override fun onCreate() {
         super.onCreate()
+
+        _database =
+            Room.databaseBuilder(this, PhotopickerDatabase::class.java, "photopicker").build()
     }
 }

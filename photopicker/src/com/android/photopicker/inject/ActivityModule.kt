@@ -23,6 +23,8 @@ import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.database.DatabaseManager
+import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
@@ -71,6 +73,7 @@ class ActivityModule {
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
     private lateinit var configurationManager: ConfigurationManager
+    private lateinit var databaseManager: DatabaseManager
     private lateinit var dataService: DataService
     private lateinit var events: Events
     private lateinit var featureManager: FeatureManager
@@ -123,6 +126,18 @@ class ActivityModule {
                     /* deviceConfigProxy= */ DeviceConfigProxyImpl(),
                 )
             return configurationManager
+        }
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideDatabaseManager(@ApplicationContext context: Context): DatabaseManager {
+        if (::databaseManager.isInitialized) {
+            return databaseManager
+        } else {
+            Log.d(TAG, "Initializing DatabaseManager")
+            databaseManager = DatabaseManagerImpl(context)
+            return databaseManager
         }
     }
 
@@ -260,7 +275,6 @@ class ActivityModule {
                             scope = scope,
                             configuration = configurationManager.configuration,
                         )
-
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(
                             scope = scope,

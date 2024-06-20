@@ -15,6 +15,10 @@ android_library {
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
     ],
+    javacflags: [
+        "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
+    ],
+    kotlincflags: ["-Xjvm-default=all"],
     static_libs: [
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",
@@ -33,6 +37,8 @@ android_library {
         "androidx.paging_paging-common-ktx",
         "androidx.paging_paging-compose",
         "androidx.paging_paging-runtime",
+        "androidx.room_room-runtime",
+        "androidx.room_room-ktx",
         // glide and dependencies
         "androidx.exifinterface_exifinterface",
         "androidx.vectordrawable_vectordrawable-animated",
@@ -56,6 +62,7 @@ android_library {
     ],
     plugins: [
         "glide-annotation-processor",
+        "androidx.room_room-compiler-plugin",
     ],
 }
 

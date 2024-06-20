@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
+
+    <issue
+        id="FlaggedApi"
+        message="Field `EDIT_TYPE_CLICK` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        if (editRecord.getType() == FormEditRecord.EDIT_TYPE_CLICK) {"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="483"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getType()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        if (editRecord.getType() == FormEditRecord.EDIT_TYPE_CLICK) {"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="483"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `applyEditTypeClick()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditTypeClick(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="484"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `EDIT_TYPE_SET_INDICES` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_INDICES) {"
+        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="485"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getType()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_INDICES) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="485"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `applyEditTypeSetIndices()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditTypeSetIndices(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="486"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Field `EDIT_TYPE_SET_TEXT` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_TEXT) {"
+        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="487"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `getType()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="        } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_TEXT) {"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="487"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `applyEditSetText()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditSetText(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="488"
+            column="20"/>
+    </issue>
+
+</issues>

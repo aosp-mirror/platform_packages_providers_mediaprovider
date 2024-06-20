@@ -27,7 +27,7 @@
     <string name="root_documents" msgid="3829103301363849237">"कागजातहरू"</string>
     <string name="permission_required" msgid="1460820436132943754">"यो वस्तु परिमार्जन गर्न वा मेटाउन अनुमति आवश्यक पर्छ।"</string>
     <string name="permission_required_action" msgid="706370952366113539">"जारी राख्नुहोस्"</string>
-    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"अनुमति दिइयोस्"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"अनुमति दिनुहोस्"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"अनुमति नदिनुहोस्"</string>
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{थप <xliff:g id="COUNT_0">^1</xliff:g> वटा अतिरिक्त वस्तु}other{थप <xliff:g id="COUNT_1">^1</xliff:g> वटा अतिरिक्त वस्तु}}"</string>

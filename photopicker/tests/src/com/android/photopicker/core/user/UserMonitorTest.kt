@@ -17,16 +17,23 @@
 package com.android.photopicker.core.user
 
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.content.pm.UserProperties
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import androidx.test.platform.app.InstrumentationRegistry
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.R
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
@@ -44,8 +51,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Captor
 import org.mockito.Mock
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
@@ -55,21 +65,32 @@ import org.mockito.MockitoAnnotations
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserMonitorTest {
 
-    val USER_HANDLE_PRIMARY: UserHandle
-    val USER_ID_PRIMARY: Int = 0
-    val PRIMARY_PROFILE_BASE =
-        UserProfile(identifier = USER_ID_PRIMARY, profileType = UserProfile.ProfileType.PRIMARY)
+    private val PLATFORM_PROVIDED_PROFILE_LABEL = "Platform Label"
 
-    val USER_HANDLE_MANAGED: UserHandle
-    val USER_ID_MANAGED: Int = 10
-    val MANAGED_PROFILE_BASE =
-        UserProfile(identifier = USER_ID_MANAGED, profileType = UserProfile.ProfileType.MANAGED)
+    private val USER_HANDLE_PRIMARY: UserHandle
+    private val USER_ID_PRIMARY: Int = 0
+    private val PRIMARY_PROFILE_BASE =
+        UserProfile(
+            identifier = USER_ID_PRIMARY,
+            profileType = UserProfile.ProfileType.PRIMARY,
+            label = PLATFORM_PROVIDED_PROFILE_LABEL
+        )
 
-    val initialExpectedStatus: UserStatus
+    private val USER_HANDLE_MANAGED: UserHandle
+    private val USER_ID_MANAGED: Int = 10
+    private val MANAGED_PROFILE_BASE =
+        UserProfile(
+            identifier = USER_ID_MANAGED,
+            profileType = UserProfile.ProfileType.MANAGED,
+            label = PLATFORM_PROVIDED_PROFILE_LABEL
+        )
 
-    lateinit var userMonitor: UserMonitor
+    private val initialExpectedStatus: UserStatus
+    private val mockContentResolver: ContentResolver = mock(ContentResolver::class.java)
 
-    @Mock lateinit var context: Context
+    private lateinit var userMonitor: UserMonitor
+
+    @Mock lateinit var mockContext: Context
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
     @Captor lateinit var broadcastReceiver: ArgumentCaptor<BroadcastReceiver>
@@ -91,20 +112,29 @@ class UserMonitorTest {
         initialExpectedStatus =
             UserStatus(
                 activeUserProfile = PRIMARY_PROFILE_BASE,
-                allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE)
+                allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
+                activeContentResolver = mockContentResolver
             )
     }
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-        mockSystemService(context, UserManager::class.java) { mockUserManager }
-        whenever(context.getPackageManager()) { mockPackageManager }
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        whenever(mockUserManager.getUserBadge()) {
+            resources.getDrawable(R.drawable.android, /* theme= */ null)
+        }
+        whenever(mockUserManager.getProfileLabel()) { PLATFORM_PROVIDED_PROFILE_LABEL }
+        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockContext.packageManager) { mockPackageManager }
+        whenever(mockContext.contentResolver) { mockContentResolver }
+        whenever(mockContext.createPackageContextAsUser(any(), anyInt(), any())) { mockContext }
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            mockContext
+        }
 
         // Initial setup state: Two profiles (Personal/Work), both enabled
-        whenever(mockUserManager.getUserProfiles()) {
-            listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED)
-        }
+        whenever(mockUserManager.userProfiles) { listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED) }
 
         // Default responses for relevant UserManager apis
         whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_PRIMARY)) { false }
@@ -112,6 +142,24 @@ class UserMonitorTest {
         whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
         whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
         whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
+
+        val mockResolveInfo = mock(ResolveInfo::class.java)
+        whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
+        whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
+            listOf(mockResolveInfo)
+        }
+
+        whenever(mockUserManager.getUserProperties(USER_HANDLE_PRIMARY)) {
+            UserProperties.Builder().build()
+        }
+        // By default, allow managed profile to be available
+        whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+            UserProperties.Builder()
+                .setCrossProfileContentSharingStrategy(
+                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                )
+                .build()
+        }
     }
 
     /** Ensures the initial [UserStatus] is emitted before any Broadcasts are received. */
@@ -121,7 +169,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -129,7 +181,145 @@ class UserMonitorTest {
 
             launch {
                 val reportedStatus = userMonitor.userStatus.first()
-                assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
+            }
+        }
+    }
+
+    /** Ensures profiles with a cross profile forwarding intent are active */
+    @Test
+    fun testProfilesForCrossProfileIntentForwarding() {
+
+        whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+            UserProperties.Builder()
+                .setCrossProfileContentSharingStrategy(
+                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_NO_DELEGATION
+                )
+                .build()
+        }
+
+        val mockResolveInfo = mock(ResolveInfo::class.java)
+        whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
+        whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
+            listOf(mockResolveInfo)
+        }
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
+            }
+        }
+    }
+    /**
+     * Ensures that profiles that explicitly request not to be shown in sharing surfaces are not
+     * included
+     */
+    @Test
+    fun testIgnoresSharingDisabledProfiles() {
+        assumeTrue(SdkLevel.isAtLeastV())
+
+        val parcel = Parcel.obtain()
+        parcel.writeInt(100)
+        parcel.setDataPosition(0)
+        val disabledSharingProfile = UserHandle(parcel)
+        parcel.recycle()
+
+        // Initial setup state: Two profiles (Personal/Work), both enabled
+        whenever(mockUserManager.userProfiles) {
+            listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED, disabledSharingProfile)
+        }
+        whenever(mockUserManager.getUserProperties(disabledSharingProfile)) {
+            UserProperties.Builder()
+                .setShowInSharingSurfaces(UserProperties.SHOW_IN_SHARING_SURFACES_NO)
+                .build()
+        }
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
+            }
+        }
+    }
+
+    /** Ensures that displayable content for a profile is fetched from the platform on V+ */
+    @Test
+    fun testProfileDisplayablesFromPlatformOnV() {
+        assumeTrue(SdkLevel.isAtLeastV())
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                // Just check the value isn't null, since the drawable gets converted to an
+                // ImageBitmap
+                assertThat(reportedStatus.activeUserProfile.icon).isNotNull()
+                assertThat(reportedStatus.activeUserProfile.label)
+                    .isEqualTo(PLATFORM_PROVIDED_PROFILE_LABEL)
+            }
+        }
+    }
+
+    /** Ensures that displayable content for a profile is not set before Android V */
+    @Test
+    fun testProfileDisplayablesPriorToV() {
+        assumeFalse(SdkLevel.isAtLeastV())
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                // Just check the value isn't null, since the drawable gets converted to an
+                // ImageBitmap
+                assertThat(reportedStatus.activeUserProfile.icon).isNull()
+                assertThat(reportedStatus.activeUserProfile.label).isNull()
             }
         }
     }
@@ -147,7 +337,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -155,10 +349,10 @@ class UserMonitorTest {
 
             launch {
                 val reportedStatus = userMonitor.userStatus.first()
-                assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -187,7 +381,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -195,10 +393,10 @@ class UserMonitorTest {
 
             launch {
                 val reportedStatus = userMonitor.userStatus.first()
-                assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -227,7 +425,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -235,10 +437,10 @@ class UserMonitorTest {
 
             launch {
                 val reportedStatus = userMonitor.userStatus.first()
-                assertThat(reportedStatus).isEqualTo(initialExpectedStatus)
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
             }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -262,7 +464,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -272,7 +478,7 @@ class UserMonitorTest {
 
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -282,7 +488,7 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
 
             advanceTimeBy(100)
 
@@ -290,12 +496,18 @@ class UserMonitorTest {
                 UserStatus(
                     activeUserProfile = PRIMARY_PROFILE_BASE,
                     allProfiles =
-                        listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE.copy(enabled = false))
+                        listOf(
+                            PRIMARY_PROFILE_BASE,
+                            MANAGED_PROFILE_BASE.copy(
+                                disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE)
+                            )
+                        ),
+                    activeContentResolver = mockContentResolver
                 )
 
             assertThat(emissions.size).isEqualTo(2)
-            assertThat(emissions.get(0)).isEqualTo(initialExpectedStatus)
-            assertThat(emissions.get(1)).isEqualTo(expectedUpdatedStatus)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialExpectedStatus)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(1), expectedUpdatedStatus)
         }
     }
 
@@ -306,7 +518,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -316,7 +532,7 @@ class UserMonitorTest {
 
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
@@ -326,7 +542,7 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
 
             advanceTimeBy(100)
 
@@ -337,7 +553,7 @@ class UserMonitorTest {
             val intent2 = Intent()
             intent2.setAction(Intent.ACTION_PROFILE_INACCESSIBLE)
             intent2.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent2)
+            receiver.onReceive(mockContext, intent2)
 
             advanceTimeBy(100)
 
@@ -353,7 +569,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -366,7 +586,8 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
@@ -376,12 +597,13 @@ class UserMonitorTest {
             val expectedStatus =
                 UserStatus(
                     activeUserProfile = MANAGED_PROFILE_BASE,
-                    allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE)
+                    allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
+                    activeContentResolver = mockContentResolver
                 )
 
             assertThat(emissions.size).isEqualTo(2)
-            assertThat(emissions.get(0)).isEqualTo(initialExpectedStatus)
-            assertThat(emissions.get(1)).isEqualTo(expectedStatus)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialExpectedStatus)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(1), expectedStatus)
         }
     }
 
@@ -397,27 +619,30 @@ class UserMonitorTest {
                     UserProfile(
                         identifier = USER_ID_PRIMARY,
                         profileType = UserProfile.ProfileType.PRIMARY,
-                        enabled = true
                     ),
                 allProfiles =
                     listOf(
                         UserProfile(
                             identifier = USER_ID_PRIMARY,
                             profileType = UserProfile.ProfileType.PRIMARY,
-                            enabled = true
                         ),
                         UserProfile(
                             identifier = USER_ID_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
-                            enabled = false
+                            disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE)
                         )
-                    )
+                    ),
+                activeContentResolver = mockContentResolver
             )
 
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -430,7 +655,8 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
             }
@@ -438,7 +664,7 @@ class UserMonitorTest {
             advanceTimeBy(100)
 
             assertThat(emissions.size).isEqualTo(1)
-            assertThat(emissions.get(0)).isEqualTo(initialState)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialState)
         }
     }
 
@@ -449,7 +675,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -461,14 +691,17 @@ class UserMonitorTest {
 
             backgroundScope.launch {
                 val switchResult =
-                    userMonitor.requestSwitchActiveUserProfile(UserProfile(identifier = 999))
+                    userMonitor.requestSwitchActiveUserProfile(
+                        UserProfile(identifier = 999),
+                        mockContext
+                    )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_UNKNOWN_PROFILE)
             }
 
             advanceTimeBy(100)
 
             assertThat(emissions.size).isEqualTo(1)
-            assertThat(emissions.get(0)).isEqualTo(initialExpectedStatus)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialExpectedStatus)
         }
     }
 
@@ -482,7 +715,11 @@ class UserMonitorTest {
         runTest { // this: TestScope
             userMonitor =
                 UserMonitor(
-                    context,
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     USER_HANDLE_PRIMARY
@@ -492,19 +729,21 @@ class UserMonitorTest {
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
 
-            verify(context)
+            verify(mockContext)
                 .registerReceiver(capture(broadcastReceiver), capture(intentFilter), capture(flag))
 
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED)
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
 
             advanceTimeBy(100)
-            assertThat(emissions.last().activeUserProfile).isEqualTo(MANAGED_PROFILE_BASE)
+            assertThat(emissions.last().activeUserProfile.identifier)
+                .isEqualTo(MANAGED_PROFILE_BASE.identifier)
 
             val receiver: BroadcastReceiver = broadcastReceiver.getValue()
 
@@ -513,10 +752,36 @@ class UserMonitorTest {
             val intent = Intent()
             intent.setAction(Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE)
             intent.putExtra(Intent.EXTRA_USER, USER_HANDLE_MANAGED)
-            receiver.onReceive(context, intent)
+            receiver.onReceive(mockContext, intent)
             advanceTimeBy(100)
 
-            assertThat(emissions.last().activeUserProfile).isEqualTo(PRIMARY_PROFILE_BASE)
+            assertThat(emissions.last().activeUserProfile.identifier)
+                .isEqualTo(PRIMARY_PROFILE_BASE.identifier)
         }
+    }
+
+    /**
+     * Custom compare for [UserStatus] that ignores differences in specific [UserProfile] fields:
+     * - Icon
+     * - Label
+     */
+    private fun assertUserStatusIsEqualIgnoringFields(a: UserStatus, b: UserStatus) {
+        val bWithIgnoredFields =
+            b.copy(
+                activeUserProfile =
+                    b.activeUserProfile.copy(
+                        icon = a.activeUserProfile.icon,
+                        label = a.activeUserProfile.label
+                    ),
+                allProfiles =
+                    b.allProfiles.mapIndexed { index, profile ->
+                        profile.copy(
+                            icon = a.allProfiles.get(index).icon,
+                            label = a.allProfiles.get(index).label
+                        )
+                    }
+            )
+
+        assertThat(a).isEqualTo(bWithIgnoredFields)
     }
 }

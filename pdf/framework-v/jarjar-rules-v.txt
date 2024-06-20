@@ -1,0 +1,1 @@
+rule javax.annotation.** android.graphics.pdf.v.internal.javax.annotation.@1

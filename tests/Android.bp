@@ -172,6 +172,11 @@ android_test {
         "keepanno-annotations",
     ],
 
+    jni_libs: [
+        // Needed to run LevelDBManagerTest
+        "libleveldb_jni",
+    ],
+
     static_libs: [
         "androidx.appcompat_appcompat",
         "modules-utils-backgroundthread",
@@ -200,6 +205,7 @@ android_test {
         "exoplayer-mediaprovider-ui",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     certificate: "media",

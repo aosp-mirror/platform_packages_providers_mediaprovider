@@ -27,6 +27,7 @@ import static com.android.providers.media.photopicker.data.PickerResult.getPicke
 import static com.android.providers.media.photopicker.data.PickerResult.getPickerUrisForItems;
 import static com.android.providers.media.photopicker.util.LayoutModeUtils.MODE_PHOTOS_TAB;
 
+import android.annotation.SuppressLint;
 import android.annotation.UserIdInt;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -47,6 +48,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -87,6 +89,7 @@ import com.android.providers.media.photopicker.ui.TabContainerFragment;
 import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.LayoutModeUtils;
 import com.android.providers.media.photopicker.util.MimeFilterUtils;
+import com.android.providers.media.photopicker.util.RecentsPreviewUtil;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 import com.android.providers.media.util.ForegroundThread;
 
@@ -96,6 +99,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Photo Picker allows users to choose one or more photos and/or videos to share with an app. The
@@ -108,7 +112,6 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private static final String LOGGER_INSTANCE_ID_ARG = "loggerInstanceIdArg";
     private static final String EXTRA_PRELOAD_SELECTED =
             "com.android.providers.media.photopicker.extra.PRELOAD_SELECTED";
-
     private ViewModelProvider mViewModelProvider;
     private PickerViewModel mPickerViewModel;
     private PreloaderInstanceHolder mPreloaderInstanceHolder;
@@ -126,6 +129,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
     private Toolbar mToolbar;
     private CrossProfileListeners mCrossProfileListeners;
     private ConfigStore mConfigStore;
+    private boolean mIsPostResumeCallFinished = true;
+    private UserId mTurnedOffProfileUserId = null;
+    private UserId mRemovedProfileUserId = null;
+
 
     @NonNull
     private final MutableLiveData<Boolean> mIsItemPhotoGridViewChanged =
@@ -161,6 +168,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // material components. We use force "false" here, only values that are not already defined
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
+
+        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
 
         super.onCreate(savedInstanceState);
 
@@ -233,14 +243,28 @@ public class PhotoPickerActivity extends AppCompatActivity {
         }
 
         observeRefreshUiNotificationLiveData();
+
+        if (SdkLevel.isAtLeastV()) {
+            updateRecentsScreenshotSetting();
+        }
+
         // Restore state operation should always be kept at the end of this method.
         restoreState(savedInstanceState);
 
         // Call this after state is restored, to use the correct LOGGER_INSTANCE_ID_ARG
         if (savedInstanceState == null) {
             final String intentAction = intent != null ? intent.getAction() : null;
-            mPickerViewModel.logPickerOpened(Binder.getCallingUid(), getCallingPackage(),
-                    intentAction);
+            mPickerViewModel.logPickerOpened(getCallingUid(), getCallingPackage(), intentAction);
+        }
+    }
+
+    private int getCallingUid() {
+        final String callingPackage = getCallingPackage();
+        try {
+            return getPackageManager().getPackageUid(callingPackage, /* flags= */ 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Returning calling uid as -1; callingPackage: " + callingPackage + ".", e);
+            return -1;
         }
     }
 
@@ -254,13 +278,25 @@ public class PhotoPickerActivity extends AppCompatActivity {
     }
 
     /**
-     * Warning: This method is needed for tests, we are not customizing anything here.
-     * Allowing ourselves to control ViewModel creation helps us mock the ViewModel for test.
+     * Gets PickerViewModel instance populated with the current calling package's uid.
+     *
+     * This method is also needed for tests, allowing ourselves to control ViewModel creation
+     * helps us mock the ViewModel for test.
      */
     @VisibleForTesting
     @NonNull
     protected PickerViewModel getOrCreateViewModel() {
-        return mViewModelProvider.get(PickerViewModel.class);
+        PickerViewModel viewModel =  mViewModelProvider.get(PickerViewModel.class);
+        // populate calling package UID in PickerViewModel instance.
+        try {
+            if (getCallingPackage() != null) {
+                viewModel.setCallingPackageUid(
+                        getPackageManager().getPackageUid(getCallingPackage(), 0));
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {
+            // no-op since the default value is -1.
+        }
+        return viewModel;
     }
 
     @Override
@@ -318,9 +354,30 @@ public class PhotoPickerActivity extends AppCompatActivity {
      */
     @Override
     public void onSaveInstanceState(Bundle state) {
+        // The below assignment is necessary to track activity resume status, when PhotoPicker is
+        // opened in the background and any profile that is currently selected in PhotoPicker is
+        // turned-off or removed by the user.
+        // So if mIsPostResumeCallFinished is false means currently we can not refresh UI until
+        // the activity is fully resumed (Until mIsPostResumeCallFinished is assigned as true
+        // in onPostResume()) to avoid fragment state loss in onSaveInstanceState.
+        mIsPostResumeCallFinished = false;
         super.onSaveInstanceState(state);
         saveBottomSheetState();
         state.putParcelable(LOGGER_INSTANCE_ID_ARG, mPickerViewModel.getInstanceId());
+    }
+
+    @Override
+    public void onPostResume() {
+        super.onPostResume();
+        // The below task will handle turned-off/removed request,  when PhotoPicker is
+        // opened in the background and any profile is turned-off or removed by the user.
+        // when activity is not fully resumed and a profile is requested to be turned-off or removed
+        // in between, we will handle those requests in onPostResume to avoid fragment state
+        // loss in onSaveInstanceState.
+        new Handler().post(() -> {
+            mCrossProfileListeners.handleTurnedOffOrRemovedProfile();
+            mIsPostResumeCallFinished = true;
+        });
     }
 
     @Override
@@ -659,7 +716,7 @@ public class PhotoPickerActivity extends AppCompatActivity {
         final Bundle extras = getIntent().getExtras();
         final int uid = extras.getInt(Intent.EXTRA_UID);
         final List<Uri> uris = getPickerUrisForItems(getIntent().getAction(),
-                mSelection.getSelectedItemsWithoutGrants());
+                mSelection.getNewlySelectedItems());
         if (!uris.isEmpty()) {
             ForegroundThread.getExecutor().execute(() -> {
                 // Handle grants in another thread to not block the UI.
@@ -672,7 +729,8 @@ public class PhotoPickerActivity extends AppCompatActivity {
         // deselected them.
         if (mPickerViewModel.isManagedSelectionEnabled()) {
             final List<Uri> urisForItemsWhoseGrantsNeedsToBeRevoked = getPickerUrisForItems(
-                    getIntent().getAction(), mSelection.getPreGrantedItemsToBeRevoked());
+                    getIntent().getAction(), mSelection.getDeselectedItemsToBeRevoked()
+                            .stream().collect(Collectors.toList()));
             if (!urisForItemsWhoseGrantsNeedsToBeRevoked.isEmpty()) {
                 ForegroundThread.getExecutor().execute(() -> {
                     // Handle grants in another thread to not block the UI.
@@ -1162,10 +1220,10 @@ public class PhotoPickerActivity extends AppCompatActivity {
                             handleProfileAdded();
                             break;
                         case Intent.ACTION_PROFILE_REMOVED:
-                            handleProfileRemoved(userId);
+                            notifyProfileRemoved(userId);
                             break;
                         case Intent.ACTION_PROFILE_UNAVAILABLE:
-                            handleProfileOff(userId);
+                            notifyProfileOff(userId);
                             break;
                         case Intent.ACTION_PROFILE_AVAILABLE:
                             handleProfileOn(userId);
@@ -1177,15 +1235,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
 
                 switch (action) {
                     case Intent.ACTION_MANAGED_PROFILE_UNAVAILABLE:
-                        handleProfileOff(userId);
+                            notifyProfileOff(userId);
                         break;
                     case Intent.ACTION_MANAGED_PROFILE_REMOVED:
-                        if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
-                                && !SdkLevel.isAtLeastV() && SdkLevel.isAtLeastS()) {
-                            handleProfileRemoved(userId);
-                        } else if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
-                                && SdkLevel.isAtLeastS())) {
-                            handleWorkProfileRemoved();
+                        if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled()
+                                && SdkLevel.isAtLeastV())) {
+                            notifyProfileRemoved(userId);
                         }
                         break;
                     case Intent.ACTION_MANAGED_PROFILE_UNLOCKED:
@@ -1214,11 +1269,39 @@ public class PhotoPickerActivity extends AppCompatActivity {
             registerReceiver(mReceiver, profileFilter);
         }
 
+        private void handleTurnedOffOrRemovedProfile() {
+            if (mTurnedOffProfileUserId != null) {
+                handleProfileOff(mTurnedOffProfileUserId);
+                mTurnedOffProfileUserId = null;
+            }
+
+            if (mRemovedProfileUserId != null) {
+                if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS())) {
+                    handleWorkProfileRemoved();
+                } else {
+                    handleProfileRemoved(mRemovedProfileUserId);
+                }
+                mRemovedProfileUserId = null;
+            }
+        }
         private void handleWorkProfileOff() {
             if (mUserIdManager.isManagedUserSelected()) {
                 switchToPersonalProfileInitialLaunchState();
             }
             mUserIdManager.updateWorkProfileOffValue();
+        }
+        private void notifyProfileOff(UserId userId) {
+            mTurnedOffProfileUserId = userId;
+            if (mIsPostResumeCallFinished) {
+                handleTurnedOffOrRemovedProfile();
+            }
+        }
+
+        private void notifyProfileRemoved(UserId userId) {
+            mRemovedProfileUserId = userId;
+            if (mIsPostResumeCallFinished) {
+                handleTurnedOffOrRemovedProfile();
+            }
         }
         private void handleProfileOff(UserId userId) {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
@@ -1226,6 +1309,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.updateProfileOffValuesAndPostCrossProfileStatus();
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOff();
@@ -1245,6 +1331,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
                     switchToCurrentUserProfileInitialLaunchState();
                 }
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1255,6 +1344,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
         private void handleProfileAdded() {
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.resetUserIdsAndSetCrossProfileValues(getIntent());
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
             }
         }
 
@@ -1271,6 +1363,9 @@ public class PhotoPickerActivity extends AppCompatActivity {
             // immediately, we need to check if it is ready before we reload the content.
             if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
                 mUserManagerState.waitForMediaProviderToBeAvailable(userId);
+                if (SdkLevel.isAtLeastV()) {
+                    updateRecentsScreenshotSetting();
+                }
                 return;
             }
             handleWorkProfileOn();
@@ -1312,5 +1407,12 @@ public class PhotoPickerActivity extends AppCompatActivity {
                         resetInCurrentProfile(refreshRequest.shouldInitPicker());
                     }
                 });
+    }
+
+    @SuppressLint("NewApi")
+    private void updateRecentsScreenshotSetting() {
+        if (!(mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastV())) return;
+        RecentsPreviewUtil.updateRecentsVisibilitySetting(mConfigStore,
+                mPickerViewModel.getUserManagerState(), this);
     }
 }

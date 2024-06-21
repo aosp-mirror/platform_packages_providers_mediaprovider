@@ -21,6 +21,7 @@ import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -466,6 +467,132 @@ class ConfigurationManagerTest {
     }
 
     /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected default launch tab.
+     */
+    @Test
+    fun testSetIntentSetsAlbumStartDestination() {
+
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(
+                    MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                    MediaStore.PICK_IMAGES_TAB_ALBUMS
+                )
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().intent).isNotNull()
+            assertThat(emissions.last().startDestination)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID)
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected default launch tab.
+     */
+    @Test
+    fun testSetIntentSetsPhotoStartDestination() {
+
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(
+                    MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                    MediaStore.PICK_IMAGES_TAB_IMAGES
+                )
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().intent).isNotNull()
+            assertThat(emissions.last().startDestination)
+                .isEqualTo(PhotopickerDestinations.PHOTO_GRID)
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected default launch tab.
+     */
+    @Test
+    fun testSetIntentSetsDefaultStartDestinationForUnknownValue() {
+
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(
+                    MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                    // This value isn't valid, and should result in a default start.
+                    1000
+                )
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().intent).isNotNull()
+            assertThat(emissions.last().startDestination).isEqualTo(PhotopickerDestinations.DEFAULT)
+        }
+    }
+
+    /**
      * Ensures that [ConfigurationManager#setIntent] will reject illegal configurations for
      * pickImagesInOrder
      */
@@ -513,6 +640,46 @@ class ConfigurationManagerTest {
             Intent()
                 .setAction(Intent.ACTION_GET_CONTENT)
                 .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            assertThrows(IllegalIntentExtraException::class.java) {
+                configurationManager.setIntent(intent)
+            }
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will reject illegal startDestination
+     * configurations.
+     */
+    @Test
+    fun testSetIntentLaunchTabThrowsOnIllegalConfiguration() {
+
+        val intent =
+            Intent()
+                .setAction(Intent.ACTION_GET_CONTENT)
+                .putExtra(
+                    MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                    MediaStore.PICK_IMAGES_TAB_ALBUMS
+                )
 
         runTest {
             val configurationManager =

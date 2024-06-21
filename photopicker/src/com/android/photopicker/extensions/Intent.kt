@@ -19,6 +19,7 @@ package com.android.photopicker.extensions
 import android.content.Intent
 import android.provider.MediaStore
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 
 /**
  * Check the various possible actions the intent could be running under and extract a valid value
@@ -82,6 +83,45 @@ fun Intent.getPickImagesInOrderEnabled(default: Boolean): Boolean {
                 // All other actions are unsupported.
                 throw IllegalIntentExtraException(
                     "EXTRA_PICK_IMAGES_IN_ORDER is not supported for ${getAction()}"
+                )
+        }
+    } else {
+        return default
+    }
+}
+
+/**
+ * Validate the [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra from the intent.
+ * [EXTRA_PICK_IMAGES_LAUNCH_TAB] only works in ACTION_PICK_IMAGES, and is ignored in all other
+ * configurations.
+ *
+ * @param default The default to use in the case of an invalid or missing extra.
+ * @return The [PhotopickerDestinations] that matches the value in the intent, or the default if
+ *   nothing matches.
+ */
+fun Intent.getStartDestination(default: PhotopickerDestinations): PhotopickerDestinations {
+
+    if (getExtras()?.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB) == true) {
+        return when (getAction()) {
+            // This intent extra is only supported for ACTION_PICK_IMAGES
+            MediaStore.ACTION_PICK_IMAGES ->
+                when (
+                    getIntExtra(
+                        MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                        // The default does not match any destination
+                        /* default= */ 9999
+                    )
+                ) {
+                    MediaStore.PICK_IMAGES_TAB_ALBUMS -> PhotopickerDestinations.ALBUM_GRID
+                    MediaStore.PICK_IMAGES_TAB_IMAGES -> PhotopickerDestinations.PHOTO_GRID
+                    // Some unknown value was specified, or it was null
+                    else -> default
+                }
+            // All other actions are unsupported.
+            else ->
+                throw IllegalIntentExtraException(
+                    "EXTRA_PICK_IMAGES_LAUNCH_TAB is not supported for ${getAction()}, " +
+                        "use ACTION_PICK_IMAGES instead."
                 )
         }
     } else {

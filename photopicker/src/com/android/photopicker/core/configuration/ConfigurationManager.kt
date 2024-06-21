@@ -19,9 +19,11 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
+import com.android.photopicker.extensions.getStartDestination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -149,6 +151,11 @@ class ConfigurationManager(
         val pickImagesInOrder =
             intent?.getPickImagesInOrderEnabled(default = false) ?: false && (selectionLimit > 1)
 
+        /** Handle [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra if it's in the intent */
+        val startDestination =
+            intent?.getStartDestination(default = PhotopickerDestinations.DEFAULT)
+                ?: _configuration.value.startDestination
+
         // Use updateAndGet to ensure the value is set before this method returns so the new intent
         // is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -157,7 +164,8 @@ class ConfigurationManager(
                 intent = intent,
                 selectionLimit = selectionLimit,
                 mimeTypes = mimeTypes,
-                pickImagesInOrder = pickImagesInOrder
+                pickImagesInOrder = pickImagesInOrder,
+                startDestination = startDestination,
             )
         }
     }

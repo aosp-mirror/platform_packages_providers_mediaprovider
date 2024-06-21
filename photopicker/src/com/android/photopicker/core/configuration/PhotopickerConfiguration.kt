@@ -18,6 +18,7 @@ package com.android.photopicker.core.configuration
 
 import android.content.Intent
 import android.os.SystemProperties
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 
 /** Check system properties to determine if the device is considered debuggable */
 private val buildIsDebuggable = SystemProperties.getInt("ro.debuggable", 0) == 1
@@ -47,6 +48,8 @@ enum class PhotopickerRuntimeEnv {
  * @property selectionLimit the value of [MediaStore.EXTRA_PICK_IMAGES_MAX] with a default value of
  *   [DEFAULT_SELECTION_LIMIT], and max value of [MediaStore.getPickImagesMaxLimit()] if it was not
  *   set or set to too large a limit.
+ * @property startDestination the start destination that should be consider the "home" view the user
+ *   is shown for the session.
  * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  */
@@ -60,6 +63,7 @@ data class PhotopickerConfiguration(
     val mimeTypes: ArrayList<String> = arrayListOf("image/*", "video/*"),
     val pickImagesInOrder: Boolean = false,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
+    val startDestination: PhotopickerDestinations = PhotopickerDestinations.DEFAULT,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
 )

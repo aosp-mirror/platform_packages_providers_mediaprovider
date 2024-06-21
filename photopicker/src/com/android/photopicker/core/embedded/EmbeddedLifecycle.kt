@@ -57,9 +57,7 @@ class EmbeddedLifecycle(viewModelFactory: ViewModelProvider.Factory) :
     private val stateBundle: Bundle = Bundle()
 
     private val lifecycleRegistry =
-        LifecycleRegistry.createUnsafe(/* provider= */ this).apply {
-            currentState = Lifecycle.State.INITIALIZED
-        }
+        LifecycleRegistry(/* provider= */ this).apply { currentState = Lifecycle.State.INITIALIZED }
 
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 

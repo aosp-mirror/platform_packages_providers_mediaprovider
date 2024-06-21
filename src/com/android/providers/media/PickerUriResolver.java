@@ -332,8 +332,7 @@ public class PickerUriResolver {
      * @param intentAction The intent action associated with the Picker session.
      * @return The Picker URI path segment.
      */
-    @NonNull
-    public static String getPickerSegmentFromIntentAction(@NonNull String intentAction) {
+    public static String getPickerSegmentFromIntentAction(String intentAction) {
         requireNonNull(intentAction);
         if (intentAction.equals(Intent.ACTION_GET_CONTENT)) {
             return PICKER_GET_CONTENT_SEGMENT;
@@ -344,8 +343,7 @@ public class PickerUriResolver {
     /**
      * Creates a picker uri incorporating authority, user id and cloud provider.
      */
-    @NonNull
-    public static Uri wrapProviderUri(@NonNull Uri uri, @NonNull String action, int userId) {
+    public static Uri wrapProviderUri(Uri uri, String action, int userId) {
         final List<String> segments = uri.getPathSegments();
         if (segments.size() != 2) {
             throw new IllegalArgumentException("Unexpected provider URI: " + uri);

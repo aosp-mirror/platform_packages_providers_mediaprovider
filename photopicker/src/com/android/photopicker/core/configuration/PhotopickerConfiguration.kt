@@ -41,6 +41,9 @@ enum class PhotopickerRuntimeEnv {
  * @property callingPackage the package name of the caller
  * @property callingPackageUid the uid of the caller
  * @property callingPackageLabel the display label of the caller that can be shown to the user
+ * @property mimeTypes the mimetypes to filter all media requests with for the current session.
+ * @property pickImagesInOrder whether to show check marks as ordered number values for selected
+ *   media.
  * @property selectionLimit the value of [MediaStore.EXTRA_PICK_IMAGES_MAX] with a default value of
  *   [DEFAULT_SELECTION_LIMIT], and max value of [MediaStore.getPickImagesMaxLimit()] if it was not
  *   set or set to too large a limit.
@@ -54,6 +57,8 @@ data class PhotopickerConfiguration(
     val callingPackageUid: Int? = null,
     val callingPackageLabel: String? = null,
     val intent: Intent? = null,
+    val mimeTypes: ArrayList<String> = arrayListOf("image/*", "video/*"),
+    val pickImagesInOrder: Boolean = false,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),

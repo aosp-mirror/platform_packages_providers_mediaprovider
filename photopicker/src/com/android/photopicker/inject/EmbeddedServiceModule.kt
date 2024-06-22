@@ -25,6 +25,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.database.DatabaseManager
+import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
@@ -71,6 +73,7 @@ class EmbeddedServiceModule {
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
     private lateinit var configurationManager: ConfigurationManager
+    private lateinit var databaseManager: DatabaseManager
     private lateinit var dataService: DataService
     private lateinit var events: Events
     private lateinit var embeddedLifecycle: EmbeddedLifecycle
@@ -203,6 +206,17 @@ class EmbeddedServiceModule {
                 )
         }
         return dataService
+    }
+
+    @Provides
+    fun provideDatabaseManager(@ApplicationContext context: Context): DatabaseManager {
+        if (::databaseManager.isInitialized) {
+            return databaseManager
+        } else {
+            Log.d(TAG, "Initializing DatabaseManager")
+            databaseManager = DatabaseManagerImpl(context)
+            return databaseManager
+        }
     }
 
     /**

@@ -9588,7 +9588,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void deleteAndInvalidate(@NonNull Path path) {
-        deleteAndInvalidate(path.toFile());
+        if (path == null) {
+            return;
+        }
+
+        String fileName = path.getFileName().toString();
+        // Delete and invalidate all files except .nomedia and .database_uuid
+        if (!fileName.equalsIgnoreCase(MEDIA_IGNORE_FILENAME)
+                && !fileName.equalsIgnoreCase(FILE_DATABASE_UUID)) {
+            deleteAndInvalidate(path.toFile());
+        }
     }
 
     private void deleteAndInvalidate(@NonNull File file) {

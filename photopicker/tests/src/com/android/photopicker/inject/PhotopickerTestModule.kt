@@ -24,6 +24,8 @@ import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
+import com.android.photopicker.core.database.DatabaseManager
+import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
@@ -119,6 +121,12 @@ abstract class PhotopickerTestModule {
         )
     }
 
+    @Singleton
+    @Provides
+    fun provideDatabaseManager(): DatabaseManager {
+        return DatabaseManagerTestImpl()
+    }
+
     @Provides
     fun createDeviceConfigProxy(): DeviceConfigProxy {
         return TestDeviceConfigProxyImpl()
@@ -185,13 +193,12 @@ abstract class PhotopickerTestModule {
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager
     ): Selection<Media> {
-       return when (determineSelectionStrategy(configurationManager.configuration.value)) {
+        return when (determineSelectionStrategy(configurationManager.configuration.value)) {
             SelectionStrategy.GRANTS_AWARE_SELECTION ->
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
                 )
-
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(
                     scope = scope,

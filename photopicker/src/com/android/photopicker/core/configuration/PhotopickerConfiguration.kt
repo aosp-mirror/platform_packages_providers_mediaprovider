@@ -38,6 +38,9 @@ enum class PhotopickerRuntimeEnv {
  *   during configuration updates.
  * @property action the [Intent#getAction] that Photopicker is currently serving.
  * @property intent the [Intent] that Photopicker was launched with.
+ * @property callingPackage the package name of the caller
+ * @property callingPackageUid the uid of the caller
+ * @property callingPackageLabel the display label of the caller that can be shown to the user
  * @property selectionLimit the value of [MediaStore.EXTRA_PICK_IMAGES_MAX] with a default value of
  *   [DEFAULT_SELECTION_LIMIT], and max value of [MediaStore.getPickImagesMaxLimit()] if it was not
  *   set or set to too large a limit.
@@ -47,6 +50,9 @@ enum class PhotopickerRuntimeEnv {
 data class PhotopickerConfiguration(
     val runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
     val action: String,
+    val callingPackage: String? = null,
+    val callingPackageUid: Int? = null,
+    val callingPackageLabel: String? = null,
     val intent: Intent? = null,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,

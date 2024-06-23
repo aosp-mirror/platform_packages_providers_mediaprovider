@@ -66,11 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"プレビュー"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"仕事用に切り替える"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"個人用に切り替える"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"個人"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"管理者によりブロックされています"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"個人用アプリから仕事用データにアクセスすることは許可されていません"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"仕事用アプリから個人データにアクセスすることは認められていません"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g>のアプリから<xliff:g id="PROFILE1">%1$s</xliff:g>のデータにアクセスすることは許可されていません"</string>
+    <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g>に切り替える"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"仕事用アプリ一時停止中"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g>のアプリは一時停止中です"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"仕事用の写真を開くには、仕事用アプリを有効にしてからもう一度試してください。"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g>の写真を開くには、<xliff:g id="PROFILE2">%2$s</xliff:g>のアプリをオンにしてからもう一度お試しください"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"このアプリは、選択した写真にのみアクセスできます。"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"このアプリにアクセスを許可する写真と動画を選択してください"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> 件のアイテム}other{<xliff:g id="COUNT_1">^1</xliff:g> 件のアイテム}}"</string>
@@ -160,4 +165,6 @@
     <string name="dialog_error_message" msgid="5120432204743681606">"しばらくしてからもう一度お試しください。問題が解決されると、写真をご利用いただけるようになります。"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"読み込めなかった写真があります"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"メディア所有者のパッケージ名へのアクセス"</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"アクセス可能なすべてのメディア ファイルの所有者パッケージ名へのアクセスをアプリに許可します。"</string>
 </resources>

@@ -55,11 +55,13 @@ public class ImageLoader {
     private static final RequestOptions THUMBNAIL_OPTION =
             RequestOptions.option(THUMBNAIL_REQUEST, /* enableThumbnail */ true);
     private final Context mContext;
+    private final String mMediaStoreVersion;
     private final PreferredColorSpace mPreferredColorSpace;
     private static final String PREVIEW_PREFIX = "preview_";
 
     public ImageLoader(Context context) {
         mContext = context;
+        mMediaStoreVersion = MediaStore.getVersion(mContext);
 
         final boolean isScreenWideColorGamut =
                 mContext.getResources().getConfiguration().isScreenWideColorGamut();
@@ -155,11 +157,8 @@ public class ImageLoader {
     }
 
     private ObjectKey getGlideSignature(GlideLoadable loadable, @Nullable String prefix) {
-        // TODO(b/224725723): Remove media store version from key once MP ids are
-        // stable.
         return loadable.getLoadableSignature(
-                /* prefix= */ MediaStore.getVersion(mContext)
-                        + Optional.ofNullable(prefix).orElse(""));
+                /* prefix= */ mMediaStoreVersion + Optional.ofNullable(prefix).orElse(""));
     }
 
     private RequestBuilder<Bitmap> getBitmapRequestBuilder(GlideLoadable loadable) {

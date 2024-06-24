@@ -6,7 +6,10 @@ package {
 android_library {
     name: "PhotopickerLib",
     manifest: "AndroidManifest.xml",
-    srcs: ["src/**/*.kt"],
+    srcs: [
+        "src/**/*.kt",
+        ":statslog-mediaprovider-java-gen",
+    ],
     resource_dirs: ["res"],
     sdk_version: "module_current",
     min_sdk_version: "30",
@@ -14,6 +17,7 @@ android_library {
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-statsd",
     ],
     javacflags: [
         "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",

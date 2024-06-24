@@ -21,7 +21,7 @@ import android.os.Process
 import android.os.UserHandle
 import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.database.DatabaseManagerImpl
@@ -109,6 +109,7 @@ class ActivityModule {
     fun provideConfigurationManager(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
+        deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
         if (::configurationManager.isInitialized) {
             return configurationManager
@@ -123,7 +124,7 @@ class ActivityModule {
                     /* runtimeEnv= */ PhotopickerRuntimeEnv.ACTIVITY,
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
-                    /* deviceConfigProxy= */ DeviceConfigProxyImpl(),
+                    /* deviceConfigProxy= */ deviceConfigProxy,
                 )
             return configurationManager
         }

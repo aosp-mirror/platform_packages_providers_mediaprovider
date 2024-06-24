@@ -127,6 +127,8 @@ abstract class PhotopickerTestModule {
         return DatabaseManagerTestImpl()
     }
 
+    /** Use a test DeviceConfigProxy to isolate device state */
+    @Singleton
     @Provides
     fun createDeviceConfigProxy(): DeviceConfigProxy {
         return TestDeviceConfigProxyImpl()

@@ -142,7 +142,7 @@ class PreviewFeature : PhotopickerUiFeature {
                     // Until b/281081905 is fixed, use a workaround to enable edge-to-edge in the
                     // dialog
                     SetDialogDestinationToEdgeToEdge()
-                    PreviewMedia(flow)
+                    PreviewSelection(previewItemFlow = flow)
                 }
             },
         )

@@ -29,6 +29,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import com.android.photopicker.MainActivity
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.PhotopickerUiFeature
@@ -45,10 +47,12 @@ fun PhotopickerNavGraph() {
 
     val featureManager = LocalFeatureManager.current
     val navController = LocalNavController.current
+    val configuration = LocalPhotopickerConfiguration.current
 
     NavHost(
         navController = navController,
-        startDestination = getStartDestination(featureManager.enabledUiFeatures).route,
+        startDestination =
+            getStartDestination(featureManager.enabledUiFeatures, configuration).route,
         builder = { this.setupFeatureRoutesForNavigation(featureManager) },
         // Disable all transitions by default so that routes fully control the transition logic.
         enterTransition = { EnterTransition.None },
@@ -119,13 +123,24 @@ private fun NavGraphBuilder.setupFeatureRoutesForNavigation(
  *
  * @return The starting route for initializing the Navigation Graph.
  */
-private fun getStartDestination(enabledUiFeatures: Set<PhotopickerUiFeature>): Route {
+private fun getStartDestination(
+    enabledUiFeatures: Set<PhotopickerUiFeature>,
+    configuration: PhotopickerConfiguration? = null
+): Route {
 
     val allRoutes = enabledUiFeatures.flatMap { it.registerNavigationRoutes() }
 
+    configuration?.let {
+        val startRouteFromConfiguration =
+            allRoutes.find { it.route == configuration.startDestination.route }
+        startRouteFromConfiguration?.let {
+            return (it)
+        }
+    }
+
     return allRoutes.maxByOrNull { it.initialRoutePriority }
-    // A default blank route in case no route exists.
-    ?: object : Route {
+        // A default blank route in case no route exists.
+        ?: object : Route {
             override val route = PhotopickerDestinations.DEFAULT.route
             override val initialRoutePriority = Priority.LOW.priority
             override val arguments = emptyList<NamedNavArgument>()
@@ -136,6 +151,7 @@ private fun getStartDestination(enabledUiFeatures: Set<PhotopickerUiFeature>): R
             override val exitTransition = null
             override val popEnterTransition = null
             override val popExitTransition = null
+
             @Composable override fun composable(navBackStackEntry: NavBackStackEntry?) {}
         }
 }

@@ -295,7 +295,6 @@ class MediaProviderClientTest {
         val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
         intent.setType(mimeType)
 
-        val resultMimeTypeFilter = intent.getPhotopickerMimeTypes()
-        assertThat(resultMimeTypeFilter).isNull()
+        assertThrows(IllegalIntentExtraException::class.java) { intent.getPhotopickerMimeTypes() }
     }
 }

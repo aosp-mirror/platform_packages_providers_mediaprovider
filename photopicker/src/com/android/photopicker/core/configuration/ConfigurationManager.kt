@@ -19,7 +19,11 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
+import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
+import com.android.photopicker.extensions.getPickImagesInOrderEnabled
+import com.android.photopicker.extensions.getStartDestination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -134,6 +138,24 @@ class ConfigurationManager(
             intent?.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
                 ?: DEFAULT_SELECTION_LIMIT
 
+        // MimeTypes can explicitly be passed in the intent extras, so extract them if they exist
+        // (and are actually a media mimetype that is supported). If nothing is in the intent,
+        // just set what is already set in the current configuration.
+        val mimeTypes = intent?.getPhotopickerMimeTypes() ?: _configuration.value.mimeTypes
+
+        /**
+         * Pick images in order is a combination of circumstances:
+         * - selectionLimit mode must be multiselect (more than 1)
+         * - The extra must be requested from the caller in the intent
+         */
+        val pickImagesInOrder =
+            intent?.getPickImagesInOrderEnabled(default = false) ?: false && (selectionLimit > 1)
+
+        /** Handle [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra if it's in the intent */
+        val startDestination =
+            intent?.getStartDestination(default = PhotopickerDestinations.DEFAULT)
+                ?: _configuration.value.startDestination
+
         // Use updateAndGet to ensure the value is set before this method returns so the new intent
         // is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -141,6 +163,9 @@ class ConfigurationManager(
                 action = intent?.getAction() ?: "",
                 intent = intent,
                 selectionLimit = selectionLimit,
+                mimeTypes = mimeTypes,
+                pickImagesInOrder = pickImagesInOrder,
+                startDestination = startDestination,
             )
         }
     }

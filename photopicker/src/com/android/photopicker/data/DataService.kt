@@ -56,20 +56,30 @@ interface DataService {
      */
     fun cloudMediaProviderDetails(authority: String): StateFlow<CloudMediaProviderDetails?>
 
-    /**
-     * @return a new instance of [PagingSource].
-     */
+    /** @return a new instance of [PagingSource]. */
     fun mediaPagingSource(): PagingSource<MediaPageKey, Media>
 
     /**
-     * Sends a refresh media notification to the data source. This signal tells the data source
-     * to refresh its cache.
+     * @param currentSelection set of items that have been selected by the user in the current
+     *   session.
+     * @param currentDeselection set of items that are pre-granted and have been de-selected by the
+     *   user.
+     * @return a new instance of [PagingSource].
+     */
+    fun previewMediaPagingSource(
+        currentSelection: Set<Media>,
+        currentDeselection: Set<Media>
+    ): PagingSource<MediaPageKey, Media>
+
+    /**
+     * Sends a refresh media notification to the data source. This signal tells the data source to
+     * refresh its cache.
      */
     suspend fun refreshMedia()
 
     /**
      * @param album This method sends a refresh notification for the media of the given
-     * [Group.Album] to the data source. This signal tells the data source to refresh its cache.
+     *   [Group.Album] to the data source. This signal tells the data source to refresh its cache.
      */
     suspend fun refreshAlbumMedia(album: Album)
 }

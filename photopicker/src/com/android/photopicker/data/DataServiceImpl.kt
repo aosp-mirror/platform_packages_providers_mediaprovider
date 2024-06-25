@@ -459,6 +459,12 @@ class DataServiceImpl(
         }
     }
 
+    override fun previewMediaPagingSource(
+        currentSelection: Set<Media>,
+        currentDeselection: Set<Media>
+    ): PagingSource<MediaPageKey, Media> =
+        throw NotImplementedError("This method is not implemented yet.")
+
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value
         refreshMedia(availableProviders)

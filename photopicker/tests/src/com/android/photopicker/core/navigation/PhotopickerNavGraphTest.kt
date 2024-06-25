@@ -28,6 +28,8 @@ import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
@@ -82,12 +84,18 @@ class PhotopickerNavGraphTest {
      * with its expected providers
      */
     @Composable
-    private fun testNavGraph(featureManager: FeatureManager) {
+    private fun testNavGraph(
+        featureManager: FeatureManager,
+        configuration: PhotopickerConfiguration = PhotopickerConfiguration(action = "")
+    ) {
         navController = TestNavHostController(LocalContext.current)
         navController.navigatorProvider.addNavigator(ComposeNavigator())
         navController.navigatorProvider.addNavigator(DialogNavigator())
         // Provide the feature manager to the compose stack.
-        CompositionLocalProvider(LocalFeatureManager provides featureManager) {
+        CompositionLocalProvider(
+            LocalPhotopickerConfiguration provides configuration,
+            LocalFeatureManager provides featureManager
+        ) {
 
             // Provide the nav controller via [CompositionLocalProvider] to
             // simulate how it receives it at runtime.
@@ -133,6 +141,36 @@ class PhotopickerNavGraphTest {
         assertThat(route).isEqualTo(HighPriorityUiFeature.START_ROUTE)
         composeTestRule.onNodeWithText(HighPriorityUiFeature.START_STRING).assertIsDisplayed()
         composeTestRule.onNodeWithText(HighPriorityUiFeature.DIALOG_STRING).assertDoesNotExist()
+    }
+
+    /** Ensures that the starting route passed in the configuration is chosen, if available. */
+    @Test
+    fun testStartDestinationWithAlbumGridConfiguration() {
+
+        val config =
+            PhotopickerConfiguration(
+                action = "",
+                startDestination = PhotopickerDestinations.ALBUM_GRID
+            )
+        composeTestRule.setContent { testNavGraph(featureManager, config) }
+
+        val route = navController.currentBackStackEntry?.destination?.route
+        assertThat(route).isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+    }
+
+    /** Ensures that the starting route passed in the configuration is chosen, if available. */
+    @Test
+    fun testStartDestinationWithPhotoGridConfiguration() {
+
+        val config =
+            PhotopickerConfiguration(
+                action = "",
+                startDestination = PhotopickerDestinations.PHOTO_GRID
+            )
+        composeTestRule.setContent { testNavGraph(featureManager, config) }
+
+        val route = navController.currentBackStackEntry?.destination?.route
+        assertThat(route).isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
     }
 
     /** Ensures that composables can navigate to dialogs on the graph. */

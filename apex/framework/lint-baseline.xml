@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.4.0-alpha08" type="baseline" client="" dependencies="true" name="" variant="all" version="8.4.0-alpha08">
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.pick_ordered_images&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="860"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_accent_color&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="904"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="917"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="933"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="933"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="940"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_default_tab&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="940"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.picker_recent_selection&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="1146"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="@FlaggedApi should specify an actual flag constant; raw strings are discouraged (and more importantly, **not enforced**)"
+        errorLine1="    @FlaggedApi(&quot;com.android.providers.media.flags.access_media_owner_package_name_permission&quot;)"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/apex/framework/java/android/provider/MediaStore.java"
+            line="1154"
+            column="17"/>
+    </issue>
+
+</issues>

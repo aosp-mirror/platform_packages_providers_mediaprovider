@@ -410,6 +410,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_IMAGE)
             })
 
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
+
             composeTestRule.onNode(hasText(deselectButtonLabel)).assertDoesNotExist()
             composeTestRule
                 .onNode(hasText(selectButtonLabel))
@@ -495,6 +499,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
 
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
+
             assertWithMessage("Expected route to be preview/media")
                 .that(navController.currentBackStackEntry?.destination?.route)
                 .isEqualTo(PhotopickerDestinations.PREVIEW_SELECTION.route)
@@ -554,6 +562,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -597,6 +610,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -639,6 +657,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -679,6 +702,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -725,6 +753,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -800,6 +833,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -869,6 +907,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -940,6 +983,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -1009,6 +1057,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 

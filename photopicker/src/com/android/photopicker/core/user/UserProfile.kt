@@ -66,5 +66,6 @@ data class UserProfile(
     enum class DisabledReason {
         CROSS_PROFILE_NOT_ALLOWED,
         QUIET_MODE,
+        QUIET_MODE_DO_NOT_SHOW
     }
 }

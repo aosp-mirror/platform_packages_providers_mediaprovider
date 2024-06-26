@@ -25,6 +25,7 @@ import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.SwitchUserProfileResult
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
+import com.android.photopicker.core.user.UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
 import com.android.photopicker.data.model.Media
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -63,11 +64,19 @@ constructor(
     /** All of the profiles that are available to Photopicker */
     val allProfiles: StateFlow<List<UserProfile>> =
         userMonitor.userStatus
-            .map { it.allProfiles }
+            // For any profiles that contain a [QUIET_MODE_DO_NOT_SHOW] reason, this profile
+            // should be skipped as it is currently in quiet mode and the profile specs
+            // state it should be hidden from sharing surfaces when it is in quiet mode.
+            .map {
+                it.allProfiles.filterNot { it.disabledReasons.contains(QUIET_MODE_DO_NOT_SHOW) }
+            }
             .stateIn(
                 scope,
                 SharingStarted.WhileSubscribed(),
-                initialValue = userMonitor.userStatus.value.allProfiles
+                initialValue =
+                    userMonitor.userStatus.value.allProfiles.filterNot {
+                        it.disabledReasons.contains(QUIET_MODE_DO_NOT_SHOW)
+                    }
             )
 
     /** The current active profile */
@@ -81,11 +90,11 @@ constructor(
             )
 
     /**
-     * Request for the profile to be changed to the provided profile.
-     * This is not guaranteed to succeed (the profile could be disabled/unavailable etc)
+     * Request for the profile to be changed to the provided profile. This is not guaranteed to
+     * succeed (the profile could be disabled/unavailable etc)
      *
-     * If it does succeed, this will also clear out any selected media since
-     * media cannot be selected from multiple profiles simultaneously.
+     * If it does succeed, this will also clear out any selected media since media cannot be
+     * selected from multiple profiles simultaneously.
      */
     fun requestSwitchUser(context: Context, requested: UserProfile) {
         scope.launch {

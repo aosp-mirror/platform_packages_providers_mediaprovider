@@ -53,8 +53,10 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -138,6 +140,37 @@ class PreviewViewModelTest {
             sizeInBytes = 1000L,
             mimeType = "image/png",
             standardMimeTypeExtension = 1,
+        )
+
+    val TEST_PRE_GRANTED_MEDIA_IMAGE =
+        Media.Image(
+            mediaId = "id2",
+            pickerId = 1000L,
+            authority = "a",
+            mediaSource = MediaSource.LOCAL,
+            mediaUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("id")
+                    }
+                    .build(),
+            glideLoadableUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority(MockContentProviderWrapper.AUTHORITY)
+                        path("id")
+                    }
+                    .build(),
+            dateTakenMillisLong = 123456789L,
+            sizeInBytes = 1000L,
+            mimeType = "image/png",
+            standardMimeTypeExtension = 1,
+            isPreGranted = true,
         )
 
     val TEST_MEDIA_VIDEO =
@@ -235,6 +268,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             assertWithMessage("Unexpected selection start size")
@@ -285,6 +319,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             var snapshot = viewModel.selectionSnapshot.first()
@@ -303,6 +338,51 @@ class PreviewViewModelTest {
             assertWithMessage("Selection snapshot did not match expected")
                 .that(snapshot)
                 .isEqualTo(setOf(TEST_MEDIA_IMAGE))
+        }
+    }
+
+    /** Ensures the deselection is snapshotted when requested. */
+    @Test
+    fun testDeselectionSnapshotIsPopulated() {
+
+        runTest {
+            val selection =
+                GrantsAwareSelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl()
+                )
+
+            // remove a pre-granted item and it should be added to the deselection snapshot.
+            selection.remove(TEST_PRE_GRANTED_MEDIA_IMAGE)
+
+            viewModel.takeNewSelectionSnapshot()
+
+            // Wait for snapshot
+            advanceTimeBy(100)
+            var snapshot = viewModel.selectionSnapshot.value
+            var deselectionSnapshot = viewModel.deselectionSnapshot.value
+
+            assertWithMessage("Selection snapshot did not match expected")
+                .that(snapshot)
+                .isEqualTo(emptySet<Media>())
+
+            assertWithMessage("Deselection snapshot did not match expected")
+                .that(deselectionSnapshot)
+                .isEqualTo(setOf(TEST_PRE_GRANTED_MEDIA_IMAGE))
         }
     }
 
@@ -328,6 +408,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             val controller =
@@ -382,6 +463,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             val controller =
@@ -435,14 +517,21 @@ class PreviewViewModelTest {
                     ) {}
 
                     override fun onSurfaceDestroyed(surfaceId: Int) {}
+
                     override fun onMediaPlay(surfaceId: Int) {}
+
                     override fun onMediaPause(surfaceId: Int) {}
+
                     override fun onMediaSeekTo(surfaceId: Int, timestampMillis: Long) {}
+
                     override fun onConfigChange(bundle: Bundle) {}
+
                     override fun onDestroy() {
                         mockController.onDestroy()
                     }
+
                     override fun onPlayerCreate() {}
+
                     override fun onPlayerRelease() {}
                 }
 
@@ -473,6 +562,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)
@@ -504,6 +594,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)

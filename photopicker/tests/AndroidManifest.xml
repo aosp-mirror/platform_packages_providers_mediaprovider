@@ -15,6 +15,7 @@
   -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.android.photopicker.tests">
 
   <uses-permission
@@ -25,6 +26,18 @@
      <activity
       android:name="com.android.photopicker.tests.HiltTestActivity"
       android:exported="false"/>
+
+    <activity
+      android:name="com.android.photopicker.MainActivity"
+      android:enabled="true"
+      tools:replace="android:enabled">
+    </activity>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerGetContentActivity"
+        android:enabled="false"
+        tools:replace="android:enabled">
+    </activity-alias>
 
     <!-- A test provider to allow the test application to issue uri grants for selected media-->
     <provider

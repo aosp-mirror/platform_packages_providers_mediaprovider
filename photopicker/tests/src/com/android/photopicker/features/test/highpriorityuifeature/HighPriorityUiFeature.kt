@@ -39,6 +39,8 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.LocalNavController
+import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
+import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 
@@ -111,7 +113,38 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     dialog()
                 }
-            }
+            },
+
+            // This is implemented for PhotopickerNavGraphTest
+            object : Route {
+                override val route = PHOTO_GRID.route
+                override val initialRoutePriority = Priority.LAST.priority
+                override val arguments = emptyList<NamedNavArgument>()
+                override val deepLinks = emptyList<NavDeepLink>()
+                override val isDialog = false
+                override val dialogProperties = null
+                override val enterTransition = null
+                override val exitTransition = null
+                override val popEnterTransition = null
+                override val popExitTransition = null
+
+                @Composable override fun composable(navBackStackEntry: NavBackStackEntry?) {}
+            },
+            // This is implemented for PhotopickerNavGraphTest
+            object : Route {
+                override val route = ALBUM_GRID.route
+                override val initialRoutePriority = Priority.LAST.priority
+                override val arguments = emptyList<NamedNavArgument>()
+                override val deepLinks = emptyList<NavDeepLink>()
+                override val isDialog = false
+                override val dialogProperties = null
+                override val enterTransition = null
+                override val exitTransition = null
+                override val popEnterTransition = null
+                override val popExitTransition = null
+
+                @Composable override fun composable(navBackStackEntry: NavBackStackEntry?) {}
+            },
         )
     }
 

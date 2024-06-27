@@ -372,7 +372,8 @@ public final class PdfRendererPreV implements AutoCloseable {
         public void render(@NonNull Bitmap destination, @Nullable Rect destClip,
                 @Nullable Matrix transform, @NonNull RenderParams params) {
             throwIfDocumentOrPageClosed();
-            mPdfProcessor.renderPage(mIndex, destination, destClip, transform, params);
+            mPdfProcessor.renderPage(mIndex, destination, destClip, transform,
+                    params, /* renderFormFields= */ true);
         }
 
         /**

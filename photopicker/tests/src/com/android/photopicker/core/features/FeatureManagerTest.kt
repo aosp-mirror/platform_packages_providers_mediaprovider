@@ -109,6 +109,33 @@ class FeatureManagerTest {
         }
     }
 
+    /* Ensures feature manager correctly reports the size of its location registry. */
+    @Test
+    fun testGetSizeOfLocationInRegistry() = runTest {
+        val featureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = this.backgroundScope),
+                this.backgroundScope,
+                testRegistrations,
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
+            )
+
+        // All three features in testRegistrations use this location, but [AlwaysDisabledFeature]
+        // is always disabled, so it won't ever be present in the location registry.
+        assertThat(featureManager.getSizeOfLocationInRegistry(Location.COMPOSE_TOP)).isEqualTo(2)
+
+        val featureManagerTwo =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = this.backgroundScope),
+                this.backgroundScope,
+                /*registeredFeatures=*/ emptySet(),
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
+            )
+        assertThat(featureManagerTwo.getSizeOfLocationInRegistry(Location.COMPOSE_TOP)).isEqualTo(0)
+    }
+
     /* Ensures that the [FeatureManager] composes content for registered features, according
      * to priority. */
     @Test

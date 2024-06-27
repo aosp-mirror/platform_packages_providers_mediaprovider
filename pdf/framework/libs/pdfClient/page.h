@@ -21,6 +21,7 @@
 
 #include <span>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -32,6 +33,17 @@
 #include "rect.h"
 
 namespace pdfClient {
+
+// Render Flags corresponding to each render flag defined in
+// 'pdf/framework/java/android/graphics/pdf/RenderParams.java'
+// LINT.IfChange
+static const int FLAG_RENDER_TEXT_ANNOTATIONS = 1 << 1;
+static const int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 1 << 2;
+// LINT.ThenChange(packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/RenderParams.java)
+
+static const std::unordered_map<int, std::vector<int>> renderFlagsAnnotsMap = {
+        {FLAG_RENDER_TEXT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_TEXT, FPDF_ANNOT_FREETEXT}},
+        {FLAG_RENDER_HIGHLIGHT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_HIGHLIGHT}}};
 
 // A start index (inclusive) and a stop index (exclusive) into the string of
 // codepoints that make up a range of text.
@@ -88,7 +100,8 @@ class Page {
     // Render the page to the output bitmap, applying the appropriate transform, clip, and
     // render mode as specified.
     void Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
-                int clip_right, int clip_bottom, int render_mode, int hide_text_annots);
+         int clip_right, int clip_bottom, int render_mode, int show_annot_types,
+         bool render_form_fields);
 
     // The page has a transform that must be applied to all characters and objects
     // on the page. This transforms from the page's internal co-ordinate system

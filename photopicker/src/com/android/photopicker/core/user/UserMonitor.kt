@@ -24,6 +24,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.pm.UserProperties
+import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.content.res.Resources
 import android.os.UserHandle
 import android.os.UserManager
@@ -155,7 +156,7 @@ class UserMonitor(
             } else {
                 // manually set the flags since [Context.RECEIVER_NOT_EXPORTED] doesn't exist pre
                 // Sdk33
-                context.registerReceiver(receiver, intentFilter, /* flags=*/ 0x4)
+                context.registerReceiver(receiver, intentFilter, /* flags= */ 0x4)
             }
 
             awaitClose {
@@ -271,9 +272,9 @@ class UserMonitor(
                     }
                 }
 
-                // This is potentially a problematic state, the current profile is disabled,
-                // and attempting to find the process owner's profile was unsuccessful.
-                ?: run {
+                    // This is potentially a problematic state, the current profile is disabled,
+                    // and attempting to find the process owner's profile was unsuccessful.
+                    ?: run {
                         Log.w(
                             TAG,
                             "Could not find the process owner's profile to switch to when the" +
@@ -289,9 +290,9 @@ class UserMonitor(
                 _userStatus.update { it.copy(allProfiles = newProfilesList) }
             }
         }
-        // If the incoming Intent does not include a UserHandle, there is nothing to update,
-        // but Log a warning to help with debugging.
-        ?: run {
+            // If the incoming Intent does not include a UserHandle, there is nothing to update,
+            // but Log a warning to help with debugging.
+            ?: run {
                 Log.w(
                     TAG,
                     "Received intent: $intent but could not find matching UserHandle. Ignoring."
@@ -369,7 +370,7 @@ class UserMonitor(
         val isQuietModeEnabled = userManager.isQuietModeEnabled(handle)
         var isCrossProfileSupported = getIsCrossProfileAllowedForHandle(handle)
 
-        val userContext = context.createContextAsUser(handle, /* flags=*/ 0)
+        val userContext = context.createContextAsUser(handle, /* flags= */ 0)
         val localUserManager: UserManager = userContext.requireSystemService()
 
         val (icon, label) =
@@ -412,7 +413,21 @@ class UserMonitor(
                         buildSet {
                             if (isParentProfile)
                                 return@buildSet // Parent profile can always be accessed by children
-                            if (isQuietModeEnabled) add(UserProfile.DisabledReason.QUIET_MODE)
+                            if (isQuietModeEnabled) {
+                                add(UserProfile.DisabledReason.QUIET_MODE)
+
+                                // For V plus devices another check is required to see if the
+                                // profile would like to be hidden when in quiet mode.
+                                if (SdkLevel.isAtLeastV()) {
+                                    val userProperties = userManager.getUserProperties(handle)
+                                    if (
+                                        userProperties.getShowInQuietMode() ==
+                                            SHOW_IN_QUIET_MODE_HIDDEN
+                                    ) {
+                                        add(UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW)
+                                    }
+                                }
+                            }
                             if (!isCrossProfileSupported)
                                 add(UserProfile.DisabledReason.CROSS_PROFILE_NOT_ALLOWED)
                         }

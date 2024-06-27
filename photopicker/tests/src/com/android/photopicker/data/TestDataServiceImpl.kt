@@ -52,16 +52,23 @@ class TestDataServiceImpl() : DataService {
         return FakeInMemoryAlbumPagingSource()
     }
 
-    override fun cloudMediaProviderDetails(authority: String): StateFlow<
-            CloudMediaProviderDetails?> =
+    override fun cloudMediaProviderDetails(
+        authority: String
+    ): StateFlow<CloudMediaProviderDetails?> =
         throw NotImplementedError("This method is not implemented yet.")
 
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> {
         return FakeInMemoryMediaPagingSource()
     }
 
-    override suspend fun refreshMedia() = throw NotImplementedError(
-        "This method is not implemented yet.")
+    override fun previewMediaPagingSource(
+        currentSelection: Set<Media>,
+        currentDeselection: Set<Media>
+    ): PagingSource<MediaPageKey, Media> =
+        throw NotImplementedError("This method is not implemented yet.")
+
+    override suspend fun refreshMedia() =
+        throw NotImplementedError("This method is not implemented yet.")
 
     override suspend fun refreshAlbumMedia(album: Album) =
         throw NotImplementedError("This method is not implemented yet.")

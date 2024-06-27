@@ -621,6 +621,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             } finally {
                 updateNextRowIdInDatabaseAndExternalStorage(db);
                 mIsRecovering.set(false);
+                mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
                 updateSessionIdInDatabaseAndExternalStorage(db);
             }
         }
@@ -1709,6 +1710,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
+        db.execSQL("CREATE INDEX date_modified_index ON files(date_modified)");
+        db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
     }
 
     private static void updateCollationKeys(SQLiteDatabase db) {
@@ -1953,6 +1956,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         createMediaGrantsIndex(db);
     }
 
+    private static void updateAddDateModifiedAndGenerationModifiedIndexes(SQLiteDatabase db) {
+        db.execSQL("CREATE INDEX date_modified_index ON files(date_modified)");
+        db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -2015,7 +2023,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     static final int VERSION_T = 1308;
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
-    static final int VERSION_U = 1408;
+    static final int VERSION_U = 1409;
     public static final int VERSION_LATEST = VERSION_U;
 
     /**
@@ -2239,6 +2247,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                         updateAddMediaGrantsTable(db);
                     }
                 }
+            }
+
+            if (fromVersion < 1409) {
+                updateAddDateModifiedAndGenerationModifiedIndexes(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

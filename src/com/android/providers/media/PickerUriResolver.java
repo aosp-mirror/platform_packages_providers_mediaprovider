@@ -34,6 +34,8 @@ import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOU
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -151,7 +153,8 @@ public class PickerUriResolver {
     }
 
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
-            CancellationSignal signal, LocalCallingIdentity localCallingIdentity)
+            CancellationSignal signal, LocalCallingIdentity localCallingIdentity,
+            boolean wantsThumb)
             throws FileNotFoundException {
         checkPermissionForRequireOriginalQueryParam(uri, localCallingIdentity);
         checkUriPermission(uri, localCallingIdentity.pid, localCallingIdentity.uid);
@@ -164,6 +167,14 @@ public class PickerUriResolver {
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
         }
+
+        if (wantsThumb) {
+            Log.d(TAG, "Thumbnail is requested for " + uri);
+            // If thumbnail is requested, forward the thumbnail request to the provider
+            // rather than requesting the full media file
+            return openThumbnailFromProvider(resolver, uri, mimeTypeFilter, opts, signal);
+        }
+
         if (canHandleUriInUser(uri)) {
             return new AssetFileDescriptor(openPickerFile(uri), 0,
                     AssetFileDescriptor.UNKNOWN_LENGTH);
@@ -318,6 +329,18 @@ public class PickerUriResolver {
     }
 
     /**
+     * @param intentAction The intent action associated with the Picker session.
+     * @return The Picker URI path segment.
+     */
+    public static String getPickerSegmentFromIntentAction(String intentAction) {
+        requireNonNull(intentAction);
+        if (intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+            return PICKER_GET_CONTENT_SEGMENT;
+        }
+        return PICKER_SEGMENT;
+    }
+
+    /**
      * Creates a picker uri incorporating authority, user id and cloud provider.
      */
     public static Uri wrapProviderUri(Uri uri, String action, int userId) {
@@ -327,11 +350,7 @@ public class PickerUriResolver {
         }
 
         Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
-        if (action.equalsIgnoreCase(Intent.ACTION_GET_CONTENT)) {
-            builder.appendPath(PICKER_GET_CONTENT_SEGMENT);
-        } else {
-            builder.appendPath(PICKER_SEGMENT);
-        }
+        builder.appendPath(getPickerSegmentFromIntentAction(action));
         builder.appendPath(String.valueOf(userId));
         builder.appendPath(uri.getHost());
 
@@ -466,6 +485,10 @@ public class PickerUriResolver {
 
     @VisibleForTesting
     static Uri unwrapProviderUri(Uri uri) {
+        return unwrapProviderUri(uri, true);
+    }
+
+    private static Uri unwrapProviderUri(Uri uri, boolean addUserId) {
         List<String> segments = uri.getPathSegments();
         if (segments.size() != 5) {
             throw new IllegalArgumentException("Unexpected picker provider URI: " + uri);
@@ -476,7 +499,7 @@ public class PickerUriResolver {
         final String host = segments.get(2);
         segments = segments.subList(3, segments.size());
 
-        Uri.Builder builder = initializeUriBuilder(userId + "@" + host);
+        Uri.Builder builder = initializeUriBuilder(addUserId ? (userId + "@" + host) : host);
 
         for (int i = 0; i < segments.size(); i++) {
             builder.appendPath(segments.get(i));
@@ -556,6 +579,22 @@ public class PickerUriResolver {
                 NonUiEventLogger.logPickerQueriedWithUnknownColumn(
                         callingUid, callingPackageAndColumn);
             }
+        }
+    }
+
+    private AssetFileDescriptor openThumbnailFromProvider(ContentResolver resolver, Uri uri,
+            String mimeTypeFilter, Bundle opts,
+            CancellationSignal signal) throws FileNotFoundException {
+        Bundle newOpts = opts == null ? new Bundle() : (Bundle) opts.clone();
+        newOpts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
+        newOpts.putBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, true);
+
+        final Uri unwrappedUri = unwrapProviderUri(uri, false);
+        final long  callingIdentity = Binder.clearCallingIdentity();
+        try {
+            return resolver.openTypedAssetFile(unwrappedUri, mimeTypeFilter, newOpts, signal);
+        } finally {
+            Binder.restoreCallingIdentity(callingIdentity);
         }
     }
 

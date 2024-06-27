@@ -22,6 +22,10 @@ import android.net.Uri
 import androidx.paging.PagingSource
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.Group
@@ -29,6 +33,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.tests.utils.mockito.nonNullableAny
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.google.common.truth.Truth.assertThat
@@ -39,6 +44,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -56,20 +62,16 @@ class DataServiceImplTest {
     companion object {
         private val albumMediaUpdateUri =
             Uri.parse("content://media/picker_internal/v2/album/update")
-        private val mediaUpdateUri =
-            Uri.parse("content://media/picker_internal/v2/media/update")
+        private val mediaUpdateUri = Uri.parse("content://media/picker_internal/v2/media/update")
         private val availableProvidersUpdateUri =
             Uri.parse("content://media/picker_internal/v2/available_providers/update")
-        private val userProfilePrimary: UserProfile = UserProfile(
-            identifier = 0,
-            profileType = UserProfile.ProfileType.PRIMARY
-        )
-        private val userProfileManaged: UserProfile = UserProfile(
-            identifier = 10,
-            profileType = UserProfile.ProfileType.MANAGED
-        )
+        private val userProfilePrimary: UserProfile =
+            UserProfile(identifier = 0, profileType = UserProfile.ProfileType.PRIMARY)
+        private val userProfileManaged: UserProfile =
+            UserProfile(identifier = 10, profileType = UserProfile.ProfileType.MANAGED)
     }
 
+    private lateinit var testFeatureManager: FeatureManager
     private lateinit var testContentProvider: TestMediaProvider
     private lateinit var testContentResolver: ContentResolver
     private lateinit var notificationService: TestNotificationServiceImpl
@@ -78,33 +80,44 @@ class DataServiceImplTest {
 
     @Before
     fun setup() {
+        val scope = TestScope()
         testContentProvider = TestMediaProvider()
         testContentResolver = ContentResolver.wrap(testContentProvider)
         notificationService = TestNotificationServiceImpl()
         mediaProviderClient = MediaProviderClient()
-        userStatus = UserStatus(
-            activeUserProfile = userProfilePrimary,
-            allProfiles = listOf(userProfilePrimary),
-            activeContentResolver = testContentResolver
-        )
+        userStatus =
+            UserStatus(
+                activeUserProfile = userProfilePrimary,
+                allProfiles = listOf(userProfilePrimary),
+                activeContentResolver = testContentResolver
+            )
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = scope.backgroundScope),
+                scope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
     }
 
     @Test
     fun testAvailableContentProviderFlow() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
+        val dataService: DataService =
+            DataServiceImpl(
                 userStatus = userStatusFlow,
                 scope = this.backgroundScope,
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         // The first emission will be an empty string. The next emission will happen once Media
@@ -114,25 +127,26 @@ class DataServiceImplTest {
 
         assertThat(emissions.get(1).count()).isEqualTo(1)
         assertThat(emissions.get(1).get(0).authority)
-                .isEqualTo(testContentProvider.providers[0].authority)
+            .isEqualTo(testContentProvider.providers[0].authority)
     }
 
     @Test
     fun testInitialAllowedProvider() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = notificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         // The first emission will be an empty string. The next emission will happen once Media
@@ -142,42 +156,36 @@ class DataServiceImplTest {
 
         assertThat(emissions.get(1).count()).isEqualTo(1)
         assertThat(emissions.get(1).get(0).authority)
-                .isEqualTo(testContentProvider.providers[0].authority)
+            .isEqualTo(testContentProvider.providers[0].authority)
     }
 
     @Test
     fun testUpdateAvailableProviders() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = notificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         assertThat(emissions.count()).isEqualTo(2)
         assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
 
-        testContentProvider.providers = mutableListOf(
-            Provider(
-                authority = "local_authority",
-                mediaSource = MediaSource.LOCAL,
-                uid = 0
-            ),
-            Provider(
-                authority = "cloud_authority",
-                mediaSource = MediaSource.REMOTE,
-                uid = 0
-            ),
-        )
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
 
         notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
 
@@ -191,33 +199,77 @@ class DataServiceImplTest {
         // The next emission will happen once Media Provider responds with the result of
         // available providers at the time of init.
         assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority)
-                .isEqualTo("test_authority")
+        assertThat(emissions.get(1).get(0).authority).isEqualTo("test_authority")
 
         // The next emission happens when a change notification is dispatched.
         assertThat(emissions.get(2).count()).isEqualTo(2)
         assertThat(emissions.get(2).get(0).authority)
-                .isEqualTo(testContentProvider.providers[0].authority)
+            .isEqualTo(testContentProvider.providers[0].authority)
         assertThat(emissions.get(2).get(1).authority)
-                .isEqualTo(testContentProvider.providers[1].authority)
+            .isEqualTo(testContentProvider.providers[1].authority)
+    }
+
+    @Test
+    fun testAvailableProvidersCloudMediaFeatureDisabled() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val scope = TestScope()
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = MutableStateFlow(testPhotopickerConfiguration),
+                featureManager =
+                    FeatureManager(
+                        provideTestConfigurationFlow(scope = scope.backgroundScope),
+                        scope,
+                        setOf(), // Don't register CloudMediaFeature
+                        setOf<RegisteredEventClass>(),
+                        setOf<RegisteredEventClass>(),
+                    ),
+            )
+
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
+
+        val emissions = mutableListOf<List<Provider>>()
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
+        advanceTimeBy(100)
+
+        assertThat(emissions.count()).isEqualTo(2)
+
+        // The first emission will be an empty list.
+        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
+
+        // The next emission will happen once Media Provider responds with the result of
+        // available providers at the time of init. Check that the provider with MediaSource.REMOTE
+        // is not part of the available providers.
+        assertThat(emissions.get(1).count()).isEqualTo(1)
+        assertThat(emissions.get(1).get(0).authority).isEqualTo("local_authority")
     }
 
     @Test
     fun testAvailableProvidersWhenUserChanges() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
+        val dataService: DataService =
+            DataServiceImpl(
                 userStatus = userStatusFlow,
                 scope = this.backgroundScope,
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         assertThat(emissions.count()).isEqualTo(2)
@@ -225,9 +277,7 @@ class DataServiceImplTest {
 
         // A new user becomes active.
         userStatusFlow.update {
-            it.copy (
-                allProfiles = listOf(userProfilePrimary, userProfileManaged)
-            )
+            it.copy(allProfiles = listOf(userProfilePrimary, userProfileManaged))
         }
 
         advanceTimeBy(100)
@@ -239,21 +289,14 @@ class DataServiceImplTest {
         // The active user changes
         val updatedContentProvider = TestMediaProvider()
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
-        updatedContentProvider.providers = mutableListOf(
-                Provider(
-                        authority = "local_authority",
-                        mediaSource = MediaSource.LOCAL,
-                        uid = 0
-                ),
-                Provider(
-                        authority = "cloud_authority",
-                        mediaSource = MediaSource.REMOTE,
-                        uid = 0
-                ),
-        )
+        updatedContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
 
         userStatusFlow.update {
-            it.copy (
+            it.copy(
                 activeUserProfile = userProfileManaged,
                 activeContentResolver = updatedContentResolver
             )
@@ -273,15 +316,15 @@ class DataServiceImplTest {
         // content provider.
         assertThat(emissions.get(1).count()).isEqualTo(1)
         assertThat(emissions.get(1).get(0).authority)
-                .isEqualTo(testContentProvider.providers[0].authority)
+            .isEqualTo(testContentProvider.providers[0].authority)
 
         // The next emission happens when a change in active user is observed. This last emission
         // should come from the updated content provider.
         assertThat(emissions.get(2).count()).isEqualTo(2)
         assertThat(emissions.get(2).get(0).authority)
-                .isEqualTo(updatedContentProvider.providers[0].authority)
+            .isEqualTo(updatedContentProvider.providers[0].authority)
         assertThat(emissions.get(2).get(1).authority)
-                .isEqualTo(updatedContentProvider.providers[1].authority)
+            .isEqualTo(updatedContentProvider.providers[1].authority)
     }
 
     @Test
@@ -289,27 +332,29 @@ class DataServiceImplTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
         val mockNotificationService = mock(NotificationService::class.java)
 
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = mockNotificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = mockNotificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         // Verify initial available provider emissions.
         assertThat(emissions.count()).isEqualTo(2)
         assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
 
-        val defaultContentObserver: ContentObserver = object : ContentObserver(/* handler */ null) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) { }
-        }
+        val defaultContentObserver: ContentObserver =
+            object : ContentObserver(/* handler */ null) {
+                override fun onChange(selfChange: Boolean, uri: Uri?) {}
+            }
 
         verify(mockNotificationService)
             .registerContentObserverCallback(
@@ -338,21 +383,14 @@ class DataServiceImplTest {
         // Change the active user
         val updatedContentProvider = TestMediaProvider()
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
-        updatedContentProvider.providers = mutableListOf(
-            Provider(
-                authority = "local_authority",
-                mediaSource = MediaSource.LOCAL,
-                uid = 0
-            ),
-            Provider(
-                authority = "cloud_authority",
-                mediaSource = MediaSource.REMOTE,
-                uid = 0
-            ),
-        )
+        updatedContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
 
         userStatusFlow.update {
-            it.copy (
+            it.copy(
                 activeUserProfile = userProfileManaged,
                 activeContentResolver = updatedContentResolver
             )
@@ -395,48 +433,38 @@ class DataServiceImplTest {
     fun testMediaPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
+        val dataService: DataService =
+            DataServiceImpl(
                 userStatus = userStatusFlow,
                 scope = this.backgroundScope,
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         assertThat(emissions.count()).isEqualTo(2)
         assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
 
         val firstMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.mediaPagingSource()
+            dataService.mediaPagingSource()
         assertThat(firstMediaPagingSource.invalid).isFalse()
 
         // The active user changes
         val updatedContentProvider = TestMediaProvider()
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
-        updatedContentProvider.providers = mutableListOf(
-            Provider(
-                authority = "local_authority",
-                mediaSource = MediaSource.LOCAL,
-                uid = 0
-            ),
-            Provider(
-                authority = "cloud_authority",
-                mediaSource = MediaSource.REMOTE,
-                uid = 0
-            ),
-        )
-
-        userStatusFlow.update {
-            it.copy (
-                    activeContentResolver = updatedContentResolver
+        updatedContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
             )
-        }
+
+        userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
 
         advanceTimeBy(1000)
 
@@ -449,7 +477,7 @@ class DataServiceImplTest {
 
         // Check that the new MediaPagingSource instance is still valid.
         val secondMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.mediaPagingSource()
+            dataService.mediaPagingSource()
         assertThat(secondMediaPagingSource.invalid).isFalse()
     }
 
@@ -457,19 +485,20 @@ class DataServiceImplTest {
     fun testAlbumPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = notificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         // Check initial available provider emissions
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         assertThat(emissions.count()).isEqualTo(2)
@@ -482,24 +511,13 @@ class DataServiceImplTest {
         // The active user changes
         val updatedContentProvider = TestMediaProvider()
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
-        updatedContentProvider.providers = mutableListOf(
-            Provider(
-                authority = "local_authority",
-                mediaSource = MediaSource.LOCAL,
-                uid = 0
-            ),
-            Provider(
-                authority = "cloud_authority",
-                mediaSource = MediaSource.REMOTE,
-                uid = 0
-            ),
-        )
-
-        userStatusFlow.update {
-            it.copy (
-                activeContentResolver = updatedContentResolver
+        updatedContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
             )
-        }
+
+        userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
         advanceTimeBy(100)
 
         // Since the active user has changed, this should trigger a re-fetch of the active
@@ -520,26 +538,30 @@ class DataServiceImplTest {
         testContentProvider.lastRefreshMediaRequest = null
 
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = notificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
         advanceTimeBy(100)
 
         // Fetch album media the first time
         val albumId = testContentProvider.albumMedia.keys.first()
-        val album = Group.Album(
-            id = albumId,
-            pickerId = Long.MAX_VALUE,
-            authority = testContentProvider.providers[0].authority,
-            dateTakenMillisLong = Long.MAX_VALUE,
-            displayName = "album",
-            coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
-            coverMediaSource = testContentProvider.providers[0].mediaSource
-        )
+        val album =
+            Group.Album(
+                id = albumId,
+                pickerId = Long.MAX_VALUE,
+                authority = testContentProvider.providers[0].authority,
+                dateTakenMillisLong = Long.MAX_VALUE,
+                displayName = "album",
+                coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
+                coverMediaSource = testContentProvider.providers[0].mediaSource
+            )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
             dataService.albumMediaPagingSource(album)
@@ -553,7 +575,7 @@ class DataServiceImplTest {
 
         // Fetch the album media again
         val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
 
         // Check the previous album media source was reused because it was not marked as invalid.
         assertThat(secondAlbumMediaPagingSource.invalid).isFalse()
@@ -569,7 +591,7 @@ class DataServiceImplTest {
 
         // Fetch the album media again
         val thirdAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
 
         // Check the previous album media source was not reused because it was invalidated.
         assertThat(secondAlbumMediaPagingSource.invalid).isTrue()
@@ -586,19 +608,20 @@ class DataServiceImplTest {
     fun testAlbumMediaPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
-            userStatus = userStatusFlow,
-            scope = this.backgroundScope,
-            notificationService = notificationService,
-            mediaProviderClient = mediaProviderClient,
-            dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
 
         // Check initial available provider emissions
         val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch {
-            dataService.availableProviders.toList(emissions)
-        }
+        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
         assertThat(emissions.count()).isEqualTo(2)
@@ -606,18 +629,19 @@ class DataServiceImplTest {
 
         // Fetch album media the first time
         val albumId = testContentProvider.albumMedia.keys.first()
-        val album = Group.Album(
-            id = albumId,
-            pickerId = Long.MAX_VALUE,
-            authority = testContentProvider.providers[0].authority,
-            dateTakenMillisLong = Long.MAX_VALUE,
-            displayName = "album",
-            coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
-            coverMediaSource = testContentProvider.providers[0].mediaSource
-        )
+        val album =
+            Group.Album(
+                id = albumId,
+                pickerId = Long.MAX_VALUE,
+                authority = testContentProvider.providers[0].authority,
+                dateTakenMillisLong = Long.MAX_VALUE,
+                displayName = "album",
+                coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
+                coverMediaSource = testContentProvider.providers[0].mediaSource
+            )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
 
         // Check the album media paging source is valid
         assertThat(firstAlbumMediaPagingSource.invalid).isFalse()
@@ -629,32 +653,26 @@ class DataServiceImplTest {
         // The active user changes
         val updatedContentProvider = TestMediaProvider()
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
-        updatedContentProvider.providers = mutableListOf(
-            Provider(
-                authority = testContentProvider.providers[0].authority,
-                mediaSource = MediaSource.LOCAL,
-                uid = 0
-            ),
-            Provider(
-                authority = "cloud_authority",
-                mediaSource = MediaSource.REMOTE,
-                uid = 0
-            ),
-        )
-
-        userStatusFlow.update {
-            it.copy (
-                activeContentResolver = updatedContentResolver
+        updatedContentProvider.providers =
+            mutableListOf(
+                Provider(
+                    authority = testContentProvider.providers[0].authority,
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0
+                ),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
             )
-        }
+
+        userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
         advanceTimeBy(100)
 
-        // Since the active user has changed, this should trigger a re-fetch of the active providers.
+        // Since the active user has changed, this should trigger a re-fetch of the active
+        // providers.
         assertThat(emissions.count()).isEqualTo(3)
 
         // Fetch the album media again
         val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
 
         // Check that previous album media source was marked as invalid.
         assertThat(firstAlbumMediaPagingSource.invalid).isTrue()
@@ -672,17 +690,20 @@ class DataServiceImplTest {
     fun testOnUpdateMediaNotification() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
+        val dataService: DataService =
+            DataServiceImpl(
                 userStatus = userStatusFlow,
                 scope = this.backgroundScope,
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
         advanceTimeBy(100)
 
         val firstMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.mediaPagingSource()
+            dataService.mediaPagingSource()
         assertThat(firstMediaPagingSource.invalid).isFalse()
 
         // Check that a cache refresh request was received
@@ -698,7 +719,7 @@ class DataServiceImplTest {
 
         // Check that the a new PagingSource instance was created which is still valid
         val secondMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.mediaPagingSource()
+            dataService.mediaPagingSource()
         assertThat(secondMediaPagingSource).isNotEqualTo(firstMediaPagingSource)
         assertThat(secondMediaPagingSource.invalid).isFalse()
 
@@ -711,17 +732,21 @@ class DataServiceImplTest {
     fun testOnUpdateAlbumMediaNotification() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
-        val dataService: DataService = DataServiceImpl(
+        val dataService: DataService =
+            DataServiceImpl(
                 userStatus = userStatusFlow,
                 scope = this.backgroundScope,
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler)
-        )
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
         advanceTimeBy(100)
 
         // Fetch album media the first time
-        val album = Group.Album(
+        val album =
+            Group.Album(
                 id = testContentProvider.albumMedia.keys.first(),
                 pickerId = Long.MAX_VALUE,
                 authority = testContentProvider.providers[0].authority,
@@ -729,10 +754,10 @@ class DataServiceImplTest {
                 displayName = "album",
                 coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
                 coverMediaSource = testContentProvider.providers[0].mediaSource
-        )
+            )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
 
         // Check the album media paging source is valid
         assertThat(firstAlbumMediaPagingSource.invalid).isFalse()
@@ -742,10 +767,14 @@ class DataServiceImplTest {
         assertThat(firstAlbumMediaRefreshRequest).isNotNull()
 
         // Send a media update notification
-        val albumUpdateUri: Uri = albumMediaUpdateUri.buildUpon().apply {
-            appendPath(album.authority)
-            appendPath(album.id)
-        }.build()
+        val albumUpdateUri: Uri =
+            albumMediaUpdateUri
+                .buildUpon()
+                .apply {
+                    appendPath(album.authority)
+                    appendPath(album.id)
+                }
+                .build()
 
         notificationService.dispatchChangeToObservers(albumUpdateUri)
         advanceTimeBy(100)
@@ -755,7 +784,7 @@ class DataServiceImplTest {
 
         // Check that the a new PagingSource instance was created which is still valid
         val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
-                dataService.albumMediaPagingSource(album)
+            dataService.albumMediaPagingSource(album)
         assertThat(secondAlbumMediaPagingSource).isNotEqualTo(firstAlbumMediaPagingSource)
         assertThat(secondAlbumMediaPagingSource.invalid).isFalse()
 

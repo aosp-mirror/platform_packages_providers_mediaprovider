@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static com.android.providers.media.PickerUriResolver.getPickerSegmentFromIntentAction;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DURATION_MS;
@@ -33,7 +34,6 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import java.util.Arrays;
@@ -156,6 +156,24 @@ public class PickerSQLConstants {
         @NonNull
         public String getProjection(
                 @Nullable String localAuthority,
+                @Nullable String cloudAuthority,
+                @NonNull String intentAction
+        ) {
+            switch (this) {
+                case WRAPPED_URI:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getWrappedUri(localAuthority, cloudAuthority, intentAction),
+                            mProjectedName
+                    );
+                default:
+                    return getProjection(localAuthority, cloudAuthority);
+            }
+        }
+
+        @NonNull
+        public String getProjection(
+                @Nullable String localAuthority,
                 @Nullable String cloudAuthority
         ) {
             switch (this) {
@@ -163,12 +181,6 @@ public class PickerSQLConstants {
                     return String.format(
                             DEFAULT_PROJECTION,
                             getAuthority(localAuthority, cloudAuthority),
-                            mProjectedName
-                    );
-                case WRAPPED_URI:
-                    return String.format(
-                            DEFAULT_PROJECTION,
-                            getWrappedUri(localAuthority, cloudAuthority),
                             mProjectedName
                     );
                 case UNWRAPPED_URI:
@@ -238,14 +250,15 @@ public class PickerSQLConstants {
 
         private String getWrappedUri(
                 @Nullable String localAuthority,
-                @Nullable String cloudAuthority
+                @Nullable String cloudAuthority,
+                @NonNull String intentAction
         ) {
             // The format is:
             // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>
             return String.format(
                     "'content://%s/%s/%s/' || %s || '/media/' || %s",
                     MediaStore.AUTHORITY,
-                    PickerUriResolver.PICKER_SEGMENT,
+                    getPickerSegmentFromIntentAction(intentAction),
                     MediaStore.MY_USER_ID,
                     getAuthority(localAuthority, cloudAuthority),
                     getMediaId()

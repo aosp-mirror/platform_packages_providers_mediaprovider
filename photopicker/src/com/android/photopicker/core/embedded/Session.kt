@@ -18,6 +18,7 @@ package com.android.photopicker.core.embedded
 import android.content.Context
 import androidx.compose.runtime.getValue
 import com.android.photopicker.core.EmbeddedServiceComponent
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -62,17 +63,19 @@ class Session(
 
         fun lifecycle(): EmbeddedLifecycle
 
-        fun featureManager(): Lazy<FeatureManager>
+        fun bannerManager(): Lazy<BannerManager>
 
         fun configurationManager(): Lazy<ConfigurationManager>
-
-        fun selection(): Lazy<Selection<Media>>
-
-        fun userMonitor(): Lazy<UserMonitor>
 
         fun dataService(): Lazy<DataService>
 
         fun events(): Lazy<Events>
+
+        fun featureManager(): Lazy<FeatureManager>
+
+        fun selection(): Lazy<Selection<Media>>
+
+        fun userMonitor(): Lazy<UserMonitor>
     }
 
     /** A set of Session specific dependencies that are only used by this session instance */

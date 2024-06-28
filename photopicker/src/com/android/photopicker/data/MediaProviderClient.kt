@@ -21,6 +21,7 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.photopicker.data.model.Group
@@ -143,7 +144,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                EXTRA_INTENT_ACTION to intent?.action
+                // todo(349796461): Handle this in the backend
+                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
             )
 
         try {

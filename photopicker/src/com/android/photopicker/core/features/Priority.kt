@@ -26,6 +26,7 @@ package com.android.photopicker.core.features
  *   registerLocation).
  */
 enum class Priority(val priority: Int) {
+    DISABLED(-1),
     LAST(0),
     REGISTRATION_ORDER(1),
     LOW(25),

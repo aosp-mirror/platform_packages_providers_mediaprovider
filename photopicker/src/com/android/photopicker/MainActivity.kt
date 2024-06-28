@@ -39,6 +39,7 @@ import androidx.lifecycle.lifecycleScope
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -74,6 +75,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var bannerManager: Lazy<BannerManager>
     @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
     // This needs to be injected lazily, to defer initialization until the action can be set
@@ -169,6 +171,7 @@ class MainActivity : Hilt_MainActivity() {
                 PhotopickerTheme(intent = photopickerConfiguration.intent) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
+                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.
@@ -181,6 +184,15 @@ class MainActivity : Hilt_MainActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "MainActivity OnResume")
+
+        // Initialize / Refresh the banner state, it's possible that external state has changed if
+        // the activity is returning from the background.
+        lifecycleScope.launch { bannerManager.get().refreshBanners() }
     }
 
     /**

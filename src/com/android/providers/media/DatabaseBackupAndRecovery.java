@@ -180,7 +180,7 @@ public class DatabaseBackupAndRecovery {
     public static final String STABLE_URI_EXTERNAL_PROPERTY =
             "persist.sys.fuse.backup.external_volume_backup";
 
-    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = true;
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
 
     public static final String STABLE_URI_PUBLIC_PROPERTY =
             "persist.sys.fuse.backup.public_db_backup";

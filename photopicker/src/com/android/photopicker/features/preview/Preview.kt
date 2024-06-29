@@ -52,6 +52,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
@@ -66,6 +68,7 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -79,119 +82,64 @@ private val MEASUREMENT_SELECTION_BAR_PADDING = 12.dp
 private val MEASUREMENT_SNACKBAR_BOTTOM_PADDING = 48.dp
 
 /**
- * Entry point for the [PhotopickerDestinations.PREVIEW_SELECTION] route.
+ * Entry point for the [PhotopickerDestinations.PREVIEW_SELECTION] and
+ * [PhotopickerDestinations.PREVIEW_MEDIA]route.
  *
  * This composable will snapshot the current selection when created so that photos are not removed
  * from the list of preview-able photos.
  */
 @Composable
-fun PreviewSelection(viewModel: PreviewViewModel = obtainViewModel()) {
-    val selection by viewModel.selectionSnapshot.collectAsStateWithLifecycle()
-
-    // Only snapshot the selection once when the composable is created.
-    LaunchedEffect(Unit) { viewModel.takeNewSelectionSnapshot() }
-
-    Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-        Column(
-            modifier =
-                // This is inside an edge-to-edge dialog, so apply padding to ensure the
-                // UI buttons stay above the navigation bar.
-                Modifier.windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Vertical)
-                )
-        ) {
-            when {
-                selection.isEmpty() -> {}
-                else -> Preview(selection)
-            }
-        }
-    }
-}
-
-/**
- * Entry point for the [PhotopickerDestinations.PREVIEW_MEDIA] route.
- *
- * @param previewItemFlow - A [StateFlow] from the navBackStackEntry savedStateHandler which uses
- *   the [PreviewFeature.PREVIEW_MEDIA_KEY] to retrieve the passed [Media] item to preview.
- */
-@Composable
-fun PreviewMedia(
-    previewItemFlow: StateFlow<Media?>,
+fun PreviewSelection(
+    viewModel: PreviewViewModel = obtainViewModel(),
+    previewItemFlow: StateFlow<Media?>? = null
 ) {
-    val media by previewItemFlow.collectAsStateWithLifecycle()
-    val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
-    // create a local variable for the when block so the compiler doesn't complain about the
-    // delegate.
-    val localMedia = media
-
-    /** SnackbarHost api for launching Snackbars */
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-
-    Box {
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
-            Box(
-                modifier = Modifier.padding(vertical = 50.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Preview session state to keep track if the video player's audio is muted.
-                var audioIsMuted by remember { mutableStateOf(true) }
-                when (localMedia) {
-                    is Media.Image -> ImageUi(localMedia)
-                    is Media.Video ->
-                        VideoUi(localMedia, audioIsMuted, { audioIsMuted = it }, snackbarHostState)
-                    null -> {}
+    val selection =
+        when (previewItemFlow != null) {
+            true -> {
+                val media by previewItemFlow.collectAsStateWithLifecycle()
+                val localMedia = media
+                if (localMedia != null) {
+                    viewModel
+                        .getPreviewMediaIncludingPreGrantedItems(
+                            setOf(localMedia),
+                            LocalPhotopickerConfiguration.current,
+                            /* isSingleItemPreview */ true
+                        )
+                        .collectAsLazyPagingItems()
+                } else {
+                    null
                 }
             }
+            false -> {
+                val selectionSnapshot by viewModel.selectionSnapshot.collectAsStateWithLifecycle()
+                viewModel
+                    .getPreviewMediaIncludingPreGrantedItems(
+                        selectionSnapshot,
+                        LocalPhotopickerConfiguration.current
+                    )
+                    .collectAsLazyPagingItems()
+            }
         }
 
-        Column(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .align(Alignment.BottomCenter)
+    if (selection != null) {
+        // Only snapshot the selection once when the composable is created.
+        LaunchedEffect(Unit) { viewModel.takeNewSelectionSnapshot() }
+
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
+            Column(
+                modifier =
                     // This is inside an edge-to-edge dialog, so apply padding to ensure the
-                    // selection button stays above the navigation bar.
-                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Vertical)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-
-            // Photopicker is (generally) inside of a BottomSheet, and the preview route is inside a
-            // dialog, so this requires a custom [SnackbarHost] to draw on top of those elements
-            // that do not play nicely with snackbars. Peace was never an option.
-            SnackbarHost(snackbarHostState)
-
-            // Once a media item is loaded, display the selection toggles at the bottom.
-            if (localMedia != null) {
-                val viewModel: PreviewViewModel = obtainViewModel()
-                Row {
-                    val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
-                    val selectionLimitExceededMessage =
-                        stringResource(
-                            R.string.photopicker_selection_limit_exceeded_snackbar,
-                            selectionLimit
-                        )
-
-                    FilledTonalButton(
-                        modifier = Modifier.widthIn(min = MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH),
-                        onClick = {
-                            viewModel.toggleInSelection(
-                                media = localMedia,
-                                onSelectionLimitExceeded = {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            selectionLimitExceededMessage
-                                        )
-                                    }
-                                }
-                            )
-                        },
-                    ) {
-                        Text(
-                            if (selection.contains(localMedia))
-                                stringResource(R.string.photopicker_deselect_button_label)
-                            else stringResource(R.string.photopicker_select_button_label)
-                        )
-                    }
+                    // UI buttons stay above the navigation bar.
+                    Modifier.windowInsetsPadding(
+                        WindowInsets.systemBars.only(WindowInsetsSides.Vertical)
+                    )
+            ) {
+                if (selection.itemCount > 0) {
+                    // When previewItemFlow is populated, it suggests that the code has reached here
+                    // by the single item preview (usually by long press on the item). In this case
+                    // only the select/deselect option needs to be shown. Add button should not be
+                    // displayed. Hence This information is used to create the UI for preview.
+                    Preview(selection, /* shouldShowAddButton */ previewItemFlow == null)
                 }
             }
         }
@@ -202,12 +150,12 @@ fun PreviewMedia(
  * Composable that creates a [HorizontalPager] and shows items in the provided selection set.
  *
  * @param selection selected items that should be included in the pager.
+ * @param shouldShowAddButton flags if the add button should be displayed on the UI or not.
  */
 @Composable
-private fun Preview(selection: Set<Media>) {
+private fun Preview(selection: LazyPagingItems<Media>, shouldShowAddButton: Boolean = false) {
     val viewModel: PreviewViewModel = obtainViewModel()
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
-    val events = LocalEvents.current
     val scope = rememberCoroutineScope()
 
     // Preview session state to keep track if the video player's audio is muted.
@@ -217,103 +165,146 @@ private fun Preview(selection: Set<Media>) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Page count equal to size of selection
-    val state = rememberPagerState { selection.size }
+    val state = rememberPagerState { selection.itemCount }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            val media = selection.elementAt(page)
-
-            when (media) {
-                is Media.Image -> ImageUi(media)
-                is Media.Video ->
-                    VideoUi(media, audioIsMuted, { audioIsMuted = it }, snackbarHostState)
+        if (selection.itemCount > 0) {
+            HorizontalPager(
+                state = state,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val media = selection.get(page)
+                if (media != null) {
+                    when (media) {
+                        is Media.Image -> ImageUi(media)
+                        is Media.Video ->
+                            VideoUi(media, audioIsMuted, { audioIsMuted = it }, snackbarHostState)
+                    }
+                }
             }
-        }
 
-        // Photopicker is (generally) inside of a BottomSheet, and the preview route is inside a
-        // dialog, so this requires a custom [SnackbarHost] to draw on top of those elements that do
-        // not play nicely with snackbars. Peace was never an option.
-        SnackbarHost(
-            snackbarHostState,
-            modifier =
-                Modifier.align(Alignment.BottomCenter)
-                    .padding(bottom = MEASUREMENT_SNACKBAR_BOTTOM_PADDING)
-        )
-
-        // Bottom row of action buttons
-        Row(
-            modifier =
-                Modifier.align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(MEASUREMENT_SELECTION_BAR_PADDING),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
-            val selectionLimitExceededMessage =
-                stringResource(
-                    R.string.photopicker_selection_limit_exceeded_snackbar,
-                    selectionLimit
-                )
-            FilledTonalButton(
+            // Photopicker is (generally) inside of a BottomSheet, and the preview route is inside a
+            // dialog, so this requires a custom [SnackbarHost] to draw on top of those elements
+            // that do not play nicely with snackbars. Peace was never an option.
+            SnackbarHost(
+                snackbarHostState,
                 modifier =
-                    Modifier.widthIn(
-                        // Apply a min width to prevent the button re-sizing when the label changes.
-                        min = MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH,
-                    ),
-                onClick = {
-                    viewModel.toggleInSelection(
-                        media = selection.elementAt(state.currentPage),
-                        onSelectionLimitExceeded = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(selectionLimitExceededMessage)
-                            }
-                        }
-                    )
-                },
-            ) {
-                Text(
-                    if (currentSelection.contains(selection.elementAt(state.currentPage)))
-                    // Label: Deselect
-                    stringResource(R.string.photopicker_deselect_button_label)
-                    // Label: Select
-                    else stringResource(R.string.photopicker_select_button_label),
-                    color =
-                        CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
-                            MaterialTheme.colorScheme.primary
-                        ),
-                )
-            }
+                    Modifier.align(Alignment.BottomCenter)
+                        .padding(bottom = MEASUREMENT_SNACKBAR_BOTTOM_PADDING)
+            )
 
-            // Similar button to the Add button on the Selection bar. Clicking this will confirm
-            // the current selection and end the session.
-            FilledTonalButton(
-                onClick = {
-                    scope.launch { events.dispatch(Event.MediaSelectionConfirmed(PREVIEW.token)) }
-                },
-                colors =
-                    ButtonDefaults.filledTonalButtonColors(
-                        containerColor =
-                            CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
-                                /* fallback */ MaterialTheme.colorScheme.primary
-                            ),
-                        contentColor =
-                            CustomAccentColorScheme.current
-                                .getTextColorForAccentComponentsIfDefinedOrElse(
-                                    /* fallback */ MaterialTheme.colorScheme.onPrimary
-                                ),
-                    )
+            // Bottom row of action buttons
+            Row(
+                modifier =
+                    Modifier.align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(MEASUREMENT_SELECTION_BAR_PADDING),
+                horizontalArrangement =
+                    if (shouldShowAddButton) Arrangement.SpaceBetween else Arrangement.Center,
             ) {
-                Text(
-                    stringResource(
-                        // Label: Add (N)
-                        R.string.photopicker_add_button_label,
-                        currentSelection.size,
+                selection.get(state.currentPage)?.let {
+                    ItemSelectionStatusButton(
+                        viewModel,
+                        snackbarHostState,
+                        scope,
+                        it,
+                        currentSelection
                     )
-                )
+                }
+
+                if (shouldShowAddButton) {
+                    addButton(currentSelection, scope)
+                }
             }
         }
+    }
+}
+
+/**
+ * Based on current selection, displays the current status of the media. Also enables toggle for the
+ * selection state of the item.
+ *
+ * @param viewModel viewmodel for the current preview session
+ * @param snackbarHostState state for the snackbar host
+ * @param scope scope used to launch snackbar
+ * @param media item that is under preview, for which the selection status needs to be displayed
+ * @param currentSelection represents the set of current selection, used to toggle selection status
+ */
+@Composable
+private fun ItemSelectionStatusButton(
+    viewModel: PreviewViewModel,
+    snackbarHostState: SnackbarHostState,
+    scope: CoroutineScope,
+    media: Media,
+    currentSelection: Set<Media>
+) {
+    val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val selectionLimitExceededMessage =
+        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+    FilledTonalButton(
+        modifier =
+            Modifier.widthIn(
+                // Apply a min width to prevent the button re-sizing when the label changes.
+                min = MEASUREMENT_SELECTION_BUTTON_MIN_WIDTH,
+            ),
+        onClick = {
+            viewModel.toggleInSelection(
+                media = media,
+                onSelectionLimitExceeded = {
+                    scope.launch { snackbarHostState.showSnackbar(selectionLimitExceededMessage) }
+                }
+            )
+        },
+    ) {
+        Text(
+            if (currentSelection.contains(media))
+            // Label: Deselect
+            stringResource(R.string.photopicker_deselect_button_label)
+            // Label: Select
+            else stringResource(R.string.photopicker_select_button_label),
+            color =
+                CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                    MaterialTheme.colorScheme.primary
+                ),
+        )
+    }
+}
+
+/**
+ * Displays an add button containing the count of selection and clickable action that dispatches the
+ * event signifying that selection has been confirmed.
+ *
+ * @param currentSelection represents the set of current selection, used to toggle selection status
+ * @param scope scope used to launch events for confitmation of selection
+ */
+@Composable
+private fun addButton(currentSelection: Set<Media>, scope: CoroutineScope) {
+    val events = LocalEvents.current
+    // Similar button to the Add button on the Selection bar. Clicking this will confirm
+    // the current selection and end the session.
+    FilledTonalButton(
+        onClick = {
+            scope.launch { events.dispatch(Event.MediaSelectionConfirmed(PREVIEW.token)) }
+        },
+        colors =
+            ButtonDefaults.filledTonalButtonColors(
+                containerColor =
+                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                        /* fallback */ MaterialTheme.colorScheme.primary
+                    ),
+                contentColor =
+                    CustomAccentColorScheme.current.getTextColorForAccentComponentsIfDefinedOrElse(
+                        /* fallback */ MaterialTheme.colorScheme.onPrimary
+                    ),
+            )
+    ) {
+        Text(
+            stringResource(
+                // Label: Add (N)
+                R.string.photopicker_add_button_label,
+                currentSelection.size,
+            )
+        )
     }
 }
 

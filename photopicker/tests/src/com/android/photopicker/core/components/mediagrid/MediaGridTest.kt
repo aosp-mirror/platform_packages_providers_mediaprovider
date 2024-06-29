@@ -50,8 +50,13 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
+import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.Background
+import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
+import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
@@ -67,21 +72,29 @@ import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.bumptech.glide.Glide
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
+import dagger.hilt.components.SingletonComponent
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -102,7 +115,12 @@ import org.mockito.MockitoAnnotations
  * avoid creating test images on the device itself. Metadata is generated in the paging source, and
  * all images are backed by a test resource png that is provided by the content resolver mock.
  */
-@UninstallModules(ApplicationModule::class)
+@UninstallModules(
+    ActivityModule::class,
+    ApplicationModule::class,
+    ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
+)
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MediaGridTest {
@@ -116,6 +134,19 @@ class MediaGridTest {
      */
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
+
+    /* Setup dependencies for the UninstallModules for the test class. */
+    @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
+
+    val testDispatcher = StandardTestDispatcher()
+
+    /* Overrides for ActivityModule */
+    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+
+    /* Overrides for the ConcurrencyModule */
+    @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
+    @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
     @Mock lateinit var mockContentProvider: ContentProvider
 
@@ -139,37 +170,37 @@ class MediaGridTest {
                 add(
                     MediaGridItem.MediaItem(
                         media =
-                        Media.Image(
-                            mediaId = "$i",
-                            pickerId = i.toLong(),
-                            authority = "a",
-                            mediaSource = MediaSource.LOCAL,
-                            mediaUri =
-                            Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme("content")
-                                    authority("media")
-                                    path("picker")
-                                    path("a")
-                                    path("$i")
-                                }
-                                .build(),
-                            glideLoadableUri =
-                            Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme("content")
-                                    authority("a")
-                                    path("$i")
-                                }
-                                .build(),
-                            dateTakenMillisLong =
-                            LocalDateTime.now()
-                                .minus(i.toLong(), ChronoUnit.DAYS)
-                                .toEpochSecond(ZoneOffset.UTC) * 1000,
-                            sizeInBytes = 1000L,
-                            mimeType = "image/png",
-                            standardMimeTypeExtension = 1,
-                        )
+                            Media.Image(
+                                mediaId = "$i",
+                                pickerId = i.toLong(),
+                                authority = "a",
+                                mediaSource = MediaSource.LOCAL,
+                                mediaUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("media")
+                                            path("picker")
+                                            path("a")
+                                            path("$i")
+                                        }
+                                        .build(),
+                                glideLoadableUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("a")
+                                            path("$i")
+                                        }
+                                        .build(),
+                                dateTakenMillisLong =
+                                    LocalDateTime.now()
+                                        .minus(i.toLong(), ChronoUnit.DAYS)
+                                        .toEpochSecond(ZoneOffset.UTC) * 1000,
+                                sizeInBytes = 1000L,
+                                mimeType = "image/png",
+                                standardMimeTypeExtension = 1,
+                            )
                     )
                 )
             }
@@ -240,9 +271,12 @@ class MediaGridTest {
     ) {
         Box(
             modifier =
-            // .clickable also merges the semantics of its descendants
-            Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
-                if (item is MediaGridItem.MediaItem) {onClick?.invoke(item)} }
+                // .clickable also merges the semantics of its descendants
+                Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
+                    if (item is MediaGridItem.MediaItem) {
+                        onClick?.invoke(item)
+                    }
+                }
         ) {
             Text(CUSTOM_ITEM_FACTORY_TEXT)
         }
@@ -253,9 +287,9 @@ class MediaGridTest {
     private fun customContentSeparatorFactory() {
         Box(
             modifier =
-            // Merge the semantics into the parent node to make it easy to asset and select
-            // these nodes in the tree.
-            Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG),
+                // Merge the semantics into the parent node to make it easy to asset and select
+                // these nodes in the tree.
+                Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG),
         ) {
             Text(CUSTOM_ITEM_SEPARATOR_TEXT)
         }
@@ -310,7 +344,6 @@ class MediaGridTest {
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
         mediaGrid.assertIsDisplayed()
     }
-
 
     /**
      * Ensures the MediaGrid continues to load media as the grid is scrolled. This further ensures
@@ -368,16 +401,13 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false,
-                        photopickerConfiguration.intent
-                    ) {
+                    PhotopickerTheme(/* isDarkTheme */ false, photopickerConfiguration.intent) {
                         grid(
                             /* selection= */ selection,
-                            /* onItemClick= */
-                            { item ->
+                            /* onItemClick= */ { item ->
                                 launch {
-                                    if (item is MediaGridItem.MediaItem) selection
-                                        .toggle(item.media)
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
                                 }
                             },
                         )
@@ -425,14 +455,15 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false,
-                        photopickerConfiguration.intent
-                    ) {
+                    PhotopickerTheme(/* isDarkTheme */ false, photopickerConfiguration.intent) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ {},
-                            /* onItemLongPress=*/ { item -> launch {
-                                if (item is MediaGridItem.MediaItem) selection.toggle(item.media) }
+                            /* onItemLongPress=*/ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
                             }
                         )
                     }

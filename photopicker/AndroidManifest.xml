@@ -78,6 +78,25 @@
         </intent-filter>
     </activity-alias>
 
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerUserSelectActivity"
+        android:targetActivity="com.android.photopicker.MainActivity"
+        android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
+        android:exported="true"
+        android:enabled="false"
+        android:excludeFromRecents="true">
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="image/*" />
+            <data android:mimeType="video/*" />
+        </intent-filter>
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+    </activity-alias>
+
     <!--
       Receiver that receives broadcasts from MediaProvider when the DeviceConfig is updated.
       This is required because Photopicker does not have a persistent process of its own, but

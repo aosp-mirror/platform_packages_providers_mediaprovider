@@ -108,8 +108,7 @@ public class DateTimeUtils {
         }
     }
 
-    @VisibleForTesting
-    static String getDateTimeString(long when, String skeleton, Locale locale) {
+    private static String getDateTimeString(long when, String skeleton, Locale locale) {
         final DateFormat format = DateFormat.getInstanceForSkeleton(skeleton, locale);
         format.setContext(DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE);
         return format.format(when);

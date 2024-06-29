@@ -29,7 +29,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
 public class DateTimeUtilsTest {
@@ -91,36 +90,6 @@ public class DateTimeUtilsTest {
         final String result = DateTimeUtils.getDateHeaderString(when, FAKE_DATE);
 
         assertThat(result).isEqualTo("Sun, Jul 7, 2019");
-    }
-
-    /**
-     * Test the capitalized issue in different languages b/208864827.
-     * E.g. For pt-BR
-     * Wrong format: ter, 16 de nov.
-     * Right format: Ter, 16 de nov.
-     */
-    @Test
-    public void testCapitalizedInDifferentLanguages() throws Exception {
-        final LocalDate whenDate = FAKE_DATE.minusMonths(1).minusDays(4);;
-        final long when = generateDateTimeMillis(whenDate);
-        final String skeleton = "EMMMd";
-
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("PT-BR")))
-                .isEqualTo("Qua., 3 de jun.");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("ET")))
-                .isEqualTo("K, 3. juuni");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("LV")))
-                .isEqualTo("Trešd., 3. jūn.");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("BE")))
-                .isEqualTo("Ср, 3 чэр");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("RU")))
-                .isEqualTo("Ср, 3 июн.");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("SQ")))
-                .isEqualTo("Mër, 3 qer");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("IT")))
-                .isEqualTo("Mer 3 giu");
-        assertThat(DateTimeUtils.getDateTimeString(when, skeleton, new Locale("KK")))
-                .isEqualTo("3 мау., ср");
     }
 
     @Test

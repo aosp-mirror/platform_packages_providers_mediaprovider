@@ -64,3 +64,11 @@ flag {
     description: "This flag will enable the abstract service for media cognition processes"
     bug: "331771553"
 }
+
+flag {
+    name: "version_lockdown"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable updates to MediaStore versioning to make it more unique across apps."
+    bug: "349160128"
+}

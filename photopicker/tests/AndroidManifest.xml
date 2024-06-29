@@ -35,8 +35,15 @@
 
     <activity-alias
         android:name="com.android.photopicker.PhotopickerGetContentActivity"
-        android:enabled="false"
+        android:enabled="true"
         tools:replace="android:enabled">
+    </activity-alias>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerUserSelectActivity"
+        android:enabled="true"
+        android:permission=""
+        tools:replace="android:enabled,android:permission">
     </activity-alias>
 
     <!-- A test provider to allow the test application to issue uri grants for selected media-->

@@ -242,7 +242,46 @@ class MainActivity : Hilt_MainActivity() {
     private fun setCallerInConfiguration() {
 
         val pm = getPackageManager()
-        val callingPackage: String? = getCallingPackage()
+
+        var callingPackage: String?
+        var callingPackageUid: Int?
+
+        when (getIntent()?.getAction()) {
+            // For permission mode, the caller will always be the permission controller,
+            // and the permission controller will pass the UID of the app.
+            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
+
+                callingPackageUid = getIntent()?.extras?.getInt(Intent.EXTRA_UID)
+                checkNotNull(callingPackageUid) {
+                    "Photopicker cannot run in permission mode without Intent.EXTRA_UID set."
+                }
+                callingPackage =
+                    callingPackageUid.let {
+                        // In the case of multiple packages sharing a uid, use the first one.
+                        pm.getPackagesForUid(it)?.first()
+                    }
+            }
+
+            // Extract the caller from the activity class inputs
+            else -> {
+                callingPackage = getCallingPackage()
+                callingPackageUid =
+                    callingPackage?.let {
+                        try {
+                            if (SdkLevel.isAtLeastT()) {
+                                // getPackageUid API is T+
+                                pm.getPackageUid(it, PackageInfoFlags.of(0))
+                            } else {
+                                // Fallback for S or lower
+                                pm.getPackageUid(it, /* flags= */ 0)
+                            }
+                        } catch (e: NameNotFoundException) {
+                            null
+                        }
+                    }
+            }
+        }
+
         val callingPackageLabel: String? =
             callingPackage?.let {
                 try {
@@ -256,20 +295,6 @@ class MainActivity : Hilt_MainActivity() {
                         // Fallback for S or lower
                         pm.getApplicationLabel(pm.getApplicationInfo(it, /* flags= */ 0))
                             .toString() // convert CharSequence to String
-                    }
-                } catch (e: NameNotFoundException) {
-                    null
-                }
-            }
-        val callingPackageUid: Int? =
-            callingPackage?.let {
-                try {
-                    if (SdkLevel.isAtLeastT()) {
-                        // getPackageUid API is T+
-                        pm.getPackageUid(it, PackageInfoFlags.of(0))
-                    } else {
-                        // Fallback for S or lower
-                        pm.getPackageUid(it, /* flags= */ 0)
                     }
                 } catch (e: NameNotFoundException) {
                     null

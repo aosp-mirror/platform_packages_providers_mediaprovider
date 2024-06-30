@@ -60,6 +60,7 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -78,6 +79,7 @@ import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -164,6 +166,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
 
     val TEST_MEDIA_IMAGE =
         Media.Image(
@@ -324,6 +327,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -359,6 +363,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -401,6 +406,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -409,6 +415,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.runOnUiThread({
                 navController.navigateToPreviewMedia(TEST_MEDIA_IMAGE)
             })
+
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
 
             composeTestRule.onNode(hasText(deselectButtonLabel)).assertDoesNotExist()
             composeTestRule
@@ -451,6 +461,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -485,6 +496,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -494,6 +506,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
+
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
 
             assertWithMessage("Expected route to be preview/media")
                 .that(navController.currentBackStackEntry?.destination?.route)
@@ -547,6 +563,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -554,6 +571,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -589,6 +611,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -597,6 +620,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -631,6 +659,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -639,6 +668,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -671,6 +705,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -679,6 +714,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -717,6 +757,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -725,6 +766,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -792,6 +838,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -800,6 +847,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -861,6 +913,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -869,6 +922,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -932,6 +990,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -940,6 +999,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -1001,6 +1065,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -1009,6 +1074,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 

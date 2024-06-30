@@ -51,7 +51,7 @@ interface BannerStateDao {
      * @return The row, if it exists. If it does not exist, null is returned instead.
      */
     @Query("SELECT * from banner_state WHERE bannerId=:bannerId AND uid = :uid")
-    fun getBannerState(bannerId: String, uid: Int?): BannerState?
+    fun getBannerState(bannerId: String, uid: Int): BannerState?
 
     /**
      * Write a row for a specific [BannerState].

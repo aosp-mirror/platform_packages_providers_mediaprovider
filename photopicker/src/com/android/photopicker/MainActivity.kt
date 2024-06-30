@@ -39,6 +39,7 @@ import androidx.lifecycle.lifecycleScope
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -74,6 +75,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var bannerManager: Lazy<BannerManager>
     @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
     // This needs to be injected lazily, to defer initialization until the action can be set
@@ -169,6 +171,7 @@ class MainActivity : Hilt_MainActivity() {
                 PhotopickerTheme(intent = photopickerConfiguration.intent) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
+                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.
@@ -181,6 +184,15 @@ class MainActivity : Hilt_MainActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "MainActivity OnResume")
+
+        // Initialize / Refresh the banner state, it's possible that external state has changed if
+        // the activity is returning from the background.
+        lifecycleScope.launch { bannerManager.get().refreshBanners() }
     }
 
     /**
@@ -230,7 +242,46 @@ class MainActivity : Hilt_MainActivity() {
     private fun setCallerInConfiguration() {
 
         val pm = getPackageManager()
-        val callingPackage: String? = getCallingPackage()
+
+        var callingPackage: String?
+        var callingPackageUid: Int?
+
+        when (getIntent()?.getAction()) {
+            // For permission mode, the caller will always be the permission controller,
+            // and the permission controller will pass the UID of the app.
+            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
+
+                callingPackageUid = getIntent()?.extras?.getInt(Intent.EXTRA_UID)
+                checkNotNull(callingPackageUid) {
+                    "Photopicker cannot run in permission mode without Intent.EXTRA_UID set."
+                }
+                callingPackage =
+                    callingPackageUid.let {
+                        // In the case of multiple packages sharing a uid, use the first one.
+                        pm.getPackagesForUid(it)?.first()
+                    }
+            }
+
+            // Extract the caller from the activity class inputs
+            else -> {
+                callingPackage = getCallingPackage()
+                callingPackageUid =
+                    callingPackage?.let {
+                        try {
+                            if (SdkLevel.isAtLeastT()) {
+                                // getPackageUid API is T+
+                                pm.getPackageUid(it, PackageInfoFlags.of(0))
+                            } else {
+                                // Fallback for S or lower
+                                pm.getPackageUid(it, /* flags= */ 0)
+                            }
+                        } catch (e: NameNotFoundException) {
+                            null
+                        }
+                    }
+            }
+        }
+
         val callingPackageLabel: String? =
             callingPackage?.let {
                 try {
@@ -244,20 +295,6 @@ class MainActivity : Hilt_MainActivity() {
                         // Fallback for S or lower
                         pm.getApplicationLabel(pm.getApplicationInfo(it, /* flags= */ 0))
                             .toString() // convert CharSequence to String
-                    }
-                } catch (e: NameNotFoundException) {
-                    null
-                }
-            }
-        val callingPackageUid: Int? =
-            callingPackage?.let {
-                try {
-                    if (SdkLevel.isAtLeastT()) {
-                        // getPackageUid API is T+
-                        pm.getPackageUid(it, PackageInfoFlags.of(0))
-                    } else {
-                        // Fallback for S or lower
-                        pm.getPackageUid(it, /* flags= */ 0)
                     }
                 } catch (e: NameNotFoundException) {
                     null

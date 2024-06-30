@@ -26,6 +26,7 @@ import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_V
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.Logging.TAG;
 import static com.android.providers.media.flags.Flags.enableStableUrisForExternalPrimaryVolume;
+import static com.android.providers.media.flags.Flags.enableStableUrisForPublicVolume;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -235,8 +236,8 @@ public class DatabaseBackupAndRecovery {
             default:
                 // public volume
                 return mIsStableUrisEnabledForPublic
-                        || isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                        && mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || enableStableUrisForPublicVolume()
                         || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
                         /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
         }

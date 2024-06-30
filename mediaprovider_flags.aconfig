@@ -80,3 +80,11 @@ flag {
     description: "This flag will enable stable uris for external primary volume"
     bug: "213931581"
 }
+
+flag {
+    name: "enable_stable_uris_for_public_volume"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable stable uris for public volume"
+    bug: "213931581"
+}

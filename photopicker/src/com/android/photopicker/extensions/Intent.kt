@@ -19,6 +19,7 @@ package com.android.photopicker.extensions
 import android.content.Intent
 import android.provider.MediaStore
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
+import com.android.photopicker.core.navigation.PhotopickerDestinations
 
 /**
  * Check the various possible actions the intent could be running under and extract a valid value
@@ -64,13 +65,83 @@ fun Intent.getPhotopickerSelectionLimitOrDefault(default: Int): Int {
 }
 
 /**
+ * Validate the correct action and fetch the [EXTRA_PICK_IMAGES_IN_ORDER] extra from the intent.
+ *
+ * [EXTRA_PICK_IMAGES_IN_ORDER] only works in ACTION_PICK_IMAGES, so this method will throw
+ * [IllegalIntentExtraException] for any other actions.
+ *
+ * @return the value of the extra, default if it is not set or an [IllegalIntentExtraException] is
+ *   thrown if the action is not supported.
+ */
+fun Intent.getPickImagesInOrderEnabled(default: Boolean): Boolean {
+
+    if (extras?.containsKey(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER) == true) {
+        return when (action) {
+            MediaStore.ACTION_PICK_IMAGES ->
+                getBooleanExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, default)
+            else ->
+                // All other actions are unsupported.
+                throw IllegalIntentExtraException(
+                    "EXTRA_PICK_IMAGES_IN_ORDER is not supported for ${getAction()}"
+                )
+        }
+    } else {
+        return default
+    }
+}
+
+/**
+ * Validate the [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra from the intent.
+ * [EXTRA_PICK_IMAGES_LAUNCH_TAB] only works in ACTION_PICK_IMAGES, and is ignored in all other
+ * configurations.
+ *
+ * @param default The default to use in the case of an invalid or missing extra.
+ * @return The [PhotopickerDestinations] that matches the value in the intent, or the default if
+ *   nothing matches.
+ */
+fun Intent.getStartDestination(default: PhotopickerDestinations): PhotopickerDestinations {
+
+    if (getExtras()?.containsKey(MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB) == true) {
+        return when (getAction()) {
+            // This intent extra is only supported for ACTION_PICK_IMAGES
+            MediaStore.ACTION_PICK_IMAGES ->
+                when (
+                    getIntExtra(
+                        MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
+                        // The default does not match any destination
+                        /* default= */ 9999
+                    )
+                ) {
+                    MediaStore.PICK_IMAGES_TAB_ALBUMS -> PhotopickerDestinations.ALBUM_GRID
+                    MediaStore.PICK_IMAGES_TAB_IMAGES -> PhotopickerDestinations.PHOTO_GRID
+                    // Some unknown value was specified, or it was null
+                    else -> default
+                }
+            // All other actions are unsupported.
+            else ->
+                throw IllegalIntentExtraException(
+                    "EXTRA_PICK_IMAGES_LAUNCH_TAB is not supported for ${getAction()}, " +
+                        "use ACTION_PICK_IMAGES instead."
+                )
+        }
+    } else {
+        return default
+    }
+}
+
+/**
  * @return An [ArrayList] of MIME type filters derived from the intent. If no MIME type filters
  *   should be applied, return null.
  * @throws [IllegalIntentExtraException] if the input MIME types filters cannot be applied.
  */
 fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
-    val mimeTypes: Array<String>? = getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
-    if (mimeTypes != null) {
+
+    // Depending on how the extra was set it's necessary to check a couple of different places
+    val mimeTypesParcelable = getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
+    val mimeTypesArrayList = getStringArrayListExtra(Intent.EXTRA_MIME_TYPES)
+    val mimeTypes: List<String>? = mimeTypesParcelable?.toList() ?: mimeTypesArrayList?.toList()
+
+    mimeTypes?.let {
         if (mimeTypes.all { mimeType -> isMediaMimeType(mimeType) }) {
             return mimeTypes.toCollection(ArrayList())
         } else {
@@ -83,10 +154,25 @@ fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
                 )
             }
         }
-    } else {
-        // Ignore the set type if it is not media type and don't apply any MIME type filters.
-        if (type != null && isMediaMimeType(type!!)) return arrayListOf(type!!)
     }
+        ?:
+        // None of the intent extras were set, so check in the intent itself for [setType]
+        type?.let {
+            if (isMediaMimeType(it)) {
+                return arrayListOf(it)
+            } else {
+                // Picker can be opened from Documents UI by the user. In this case, the intent
+                // action will be Intent.ACTION_GET_CONTENT and the mime types may contain non-media
+                // types. Don't apply any MIME type filters in this case. Otherwise, throw an
+                // exception.
+                if (!action.equals(Intent.ACTION_GET_CONTENT)) {
+                    throw IllegalIntentExtraException(
+                        "Only media MIME types can be accepted. Input MIME types: $it"
+                    )
+                }
+            }
+        }
+
     return null
 }
 

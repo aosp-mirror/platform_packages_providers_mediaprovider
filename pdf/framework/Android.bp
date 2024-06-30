@@ -48,6 +48,9 @@ java_sdk_library {
     ],
     jarjar_rules: "jarjar-rules.txt",
     min_sdk_version: "30",
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 filegroup {

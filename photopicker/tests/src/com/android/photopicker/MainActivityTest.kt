@@ -25,6 +25,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.net.Uri
+import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
@@ -179,6 +180,38 @@ class MainActivityTest {
                     assertWithMessage("Expected configuration to contain caller's uid")
                         .that(configuration.callingPackageUid)
                         .isNotNull()
+                    assertWithMessage("Expected configuration to contain caller's display label")
+                        .that(configuration.callingPackageLabel)
+                        .isNotNull()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testMainActivitySetsCallerUserSelectImagesForApp() {
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                .setComponent(
+                    ComponentName(
+                        InstrumentationRegistry.getInstrumentation().targetContext,
+                        MainActivity::class.java
+                    )
+                )
+                .putExtra(Intent.EXTRA_UID, Process.myUid())
+
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    advanceTimeBy(100)
+                    val configuration = configurationManager.configuration.value
+                    assertWithMessage("Expected configuration to contain caller's package name")
+                        .that(configuration.callingPackage)
+                        .isEqualTo("com.android.photopicker.tests")
+                    assertWithMessage("Expected configuration to contain caller's uid")
+                        .that(configuration.callingPackageUid)
+                        .isEqualTo(Process.myUid())
                     assertWithMessage("Expected configuration to contain caller's display label")
                         .that(configuration.callingPackageLabel)
                         .isNotNull()

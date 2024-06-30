@@ -89,7 +89,8 @@ class EmbeddedViewModelFactory(
                     PhotoGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
                 isAssignableFrom(PreviewViewModel::class.java) ->
                     @Suppress("UNCHECKED_CAST")
-                    PreviewViewModel(null, selection.get(), userMonitor.get()) as T
+                    PreviewViewModel(null, selection.get(), userMonitor.get(), dataService.get())
+                        as T
                 isAssignableFrom(ProfileSelectorViewModel::class.java) ->
                     @Suppress("UNCHECKED_CAST")
                     ProfileSelectorViewModel(null, selection.get(), userMonitor.get()) as T

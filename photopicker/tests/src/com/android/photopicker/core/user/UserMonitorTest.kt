@@ -24,6 +24,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.pm.UserProperties
+import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
@@ -223,6 +224,7 @@ class UserMonitorTest {
             }
         }
     }
+
     /**
      * Ensures that profiles that explicitly request not to be shown in sharing surfaces are not
      * included
@@ -757,6 +759,73 @@ class UserMonitorTest {
 
             assertThat(emissions.last().activeUserProfile.identifier)
                 .isEqualTo(PRIMARY_PROFILE_BASE.identifier)
+        }
+    }
+
+    @Test
+    fun testProfileDisableWhileInQuietMode() {
+
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { true }
+        whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+            UserProperties.Builder().setShowInQuietMode(SHOW_IN_QUIET_MODE_HIDDEN).build()
+        }
+
+        val initialState =
+            UserStatus(
+                activeUserProfile =
+                    UserProfile(
+                        identifier = USER_ID_PRIMARY,
+                        profileType = UserProfile.ProfileType.PRIMARY,
+                    ),
+                allProfiles =
+                    listOf(
+                        UserProfile(
+                            identifier = USER_ID_PRIMARY,
+                            profileType = UserProfile.ProfileType.PRIMARY,
+                        ),
+                        UserProfile(
+                            identifier = USER_ID_MANAGED,
+                            profileType = UserProfile.ProfileType.MANAGED,
+                            disabledReasons =
+                                setOf(
+                                    UserProfile.DisabledReason.QUIET_MODE,
+                                    UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
+                                )
+                        )
+                    ),
+                activeContentResolver = mockContentResolver
+            )
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            val emissions = mutableListOf<UserStatus>()
+            backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
+            advanceTimeBy(100)
+
+            backgroundScope.launch {
+                val switchResult =
+                    userMonitor.requestSwitchActiveUserProfile(
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
+                    )
+                assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
+            }
+
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialState)
         }
     }
 

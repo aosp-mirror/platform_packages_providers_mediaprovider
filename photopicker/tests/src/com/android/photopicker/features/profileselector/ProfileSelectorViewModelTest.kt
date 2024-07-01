@@ -29,6 +29,7 @@ import android.test.mock.MockContentResolver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
@@ -119,13 +120,6 @@ class ProfileSelectorViewModelTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder()
-                .setCrossProfileContentSharingStrategy(
-                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
-                )
-                .build()
-        }
 
         // Stubs for UserMonitor
         whenever(mockContext.packageManager) { mockPackageManager }
@@ -134,13 +128,23 @@ class ProfileSelectorViewModelTest {
         whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
             mockContext
         }
-        whenever(mockUserManager.getUserBadge()) {
-            InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDrawable(R.drawable.android, /* theme= */ null)
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder()
+                    .setCrossProfileContentSharingStrategy(
+                        UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                    )
+                    .build()
+            }
+            whenever(mockUserManager.getUserBadge()) {
+                InstrumentationRegistry.getInstrumentation()
+                    .getContext()
+                    .getResources()
+                    .getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
         }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
         val mockResolveInfo = mock(ResolveInfo::class.java)
         whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
         whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {

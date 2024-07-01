@@ -40,16 +40,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
@@ -59,9 +60,7 @@ import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Padding measurement for the text shown as the heading for album content grid.
- */
+/** Padding measurement for the text shown as the heading for album content grid. */
 private val MEASUREMENT_DISPLAY_NAME_PADDING = 15.dp
 
 /**
@@ -69,7 +68,7 @@ private val MEASUREMENT_DISPLAY_NAME_PADDING = 15.dp
  * [PhotopickerDestinations.ALBUM_MEDIA_GRID]
  *
  * @param viewModel - A viewModel override for the composable. Normally, this is fetched via hilt
- *   from the backstack entry by using hiltViewModel()
+ *   from the backstack entry by using obtainViewModel()
  * @param flow - stateflow holding the album for which the media needs to be presented.
  */
 @Composable
@@ -81,13 +80,11 @@ fun AlbumMediaGrid(flow: StateFlow<Group.Album?>) {
     }
 }
 
-/**
- * Initialises all the states and media source required to load media for the input [album].
- */
+/** Initialises all the states and media source required to load media for the input [album]. */
 @Composable
 private fun InitialiseAlbumMedia(
     album: Group.Album,
-    viewModel: AlbumGridViewModel = hiltViewModel(),
+    viewModel: AlbumGridViewModel = obtainViewModel(),
 ) {
     val featureManager = LocalFeatureManager.current
     val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
@@ -131,10 +128,7 @@ private fun AlbumMediaGridView(
     state: LazyGridState,
 ) {
     val navController = LocalNavController.current
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxSize()) {
         // Container encapsulating the album title followed by the album content in the form of a
         // grid, the content also includes date and month separators.
         Column {
@@ -144,9 +138,7 @@ private fun AlbumMediaGridView(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // back button
-                IconButton(onClick = {
-                    navController.navigateToAlbumGrid()
-                }) {
+                IconButton(onClick = { navController.navigateToAlbumGrid() }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         // For accessibility
@@ -163,6 +155,13 @@ private fun AlbumMediaGridView(
                 )
             }
 
+            val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+            val selectionLimitExceededMessage =
+                stringResource(
+                    R.string.photopicker_selection_limit_exceeded_snackbar,
+                    selectionLimit
+                )
+
             mediaGrid(
                 // Album content grid
                 items = items,
@@ -170,7 +169,10 @@ private fun AlbumMediaGridView(
                 selection = selection,
                 onItemClick = { item ->
                     if (item is MediaGridItem.MediaItem) {
-                        viewModel.handleAlbumMediaGridItemSelection(item.media)
+                        viewModel.handleAlbumMediaGridItemSelection(
+                            item.media,
+                            selectionLimitExceededMessage
+                        )
                     }
                 },
                 onItemLongPress = { item ->

@@ -128,13 +128,15 @@ jobject ToJavaPdfDocument(JNIEnv* env, std::unique_ptr<Document> doc) {
     return env->NewObject(pdf_doc_class, init, (jlong)doc.release(), numPages);
 }
 
-jobject ToJavaLoadPdfResult(JNIEnv* env, const Status status, std::unique_ptr<Document> doc) {
+jobject ToJavaLoadPdfResult(JNIEnv* env, const Status status, std::unique_ptr<Document> doc,
+                            size_t pdfSizeInByte) {
     static jclass result_class = GetPermClassRef(env, kLoadPdfResult);
     static jmethodID init =
-            env->GetMethodID(result_class, "<init>", funcsig("V", "I", kPdfDocument).c_str());
+            env->GetMethodID(result_class, "<init>", funcsig("V", "I", kPdfDocument, "F").c_str());
 
     jobject jPdfDocument = (!doc) ? nullptr : ToJavaPdfDocument(env, std::move(doc));
-    return env->NewObject(result_class, init, (jint)status, jPdfDocument);
+    jfloat pdfSizeInKb = pdfSizeInByte / 1024.0f;
+    return env->NewObject(result_class, init, (jint)status, jPdfDocument, pdfSizeInKb);
 }
 
 Document* GetPdfDocPtr(JNIEnv* env, jobject jPdfDocument) {

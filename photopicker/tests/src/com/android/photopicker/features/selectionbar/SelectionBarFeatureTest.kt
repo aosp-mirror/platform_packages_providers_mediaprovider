@@ -37,20 +37,22 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
@@ -72,11 +74,10 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Inject
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -89,7 +90,9 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
@@ -115,7 +118,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-    lateinit var mockContentResolver: ContentResolver
+    @BindValue @ApplicationOwned lateinit var mockContentResolver: ContentResolver
 
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Lazy<Selection<Media>>
@@ -216,16 +219,6 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testSelectionBarFeatureRegistersEvents() {
-
-        val feature = SelectionBarFeature()
-
-        assertWithMessage("Unexpected events in Registration.")
-            .that(feature.eventsProduced)
-            .isEqualTo(setOf(Event.MediaSelectionConfirmed::class.java))
-    }
-
-    @Test
     fun testSelectionBarIsShown() {
         mainScope.runTest {
             val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
@@ -238,7 +231,10 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
                     PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
-                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                        SelectionBar(
+                            modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
+                            params = LocationParams.None
+                        )
                     }
                 }
             }
@@ -278,7 +274,10 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
                     PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
-                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                        SelectionBar(
+                            modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
+                            params = LocationParams.None
+                        )
                     }
                 }
             }
@@ -299,8 +298,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     fun testSelectionBarPrimaryAction() {
 
         mainScope.runTest {
-            val eventsSent = mutableListOf<Event>()
-            backgroundScope.launch { events.get().flow.toList(eventsSent) }
+            val clicked = CompletableDeferred<Boolean>()
             val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
                 CompositionLocalProvider(
@@ -311,7 +309,10 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
                     PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
-                        SelectionBar(modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR))
+                        SelectionBar(
+                            modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
+                            params = LocationParams.WithClickAction { clicked.complete(true) }
+                        )
                     }
                 }
             }
@@ -335,10 +336,10 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 .assert(hasClickAction())
                 .performClick()
 
-            advanceTimeBy(100)
-            assertWithMessage("Expected event was not dispatched")
-                .that(eventsSent)
-                .contains(Event.MediaSelectionConfirmed(FeatureToken.SELECTION_BAR.token))
+            val wasClicked = clicked.await()
+            assertWithMessage("Expected primary action to invoke click handler")
+                .that(wasClicked)
+                .isTrue()
         }
     }
 }

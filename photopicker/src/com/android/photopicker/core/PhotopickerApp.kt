@@ -17,11 +17,9 @@
 package com.android.photopicker.core
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -101,7 +99,6 @@ fun PhotopickerAppWithBottomSheet(
                 scrimColor = Color.Transparent,
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                contentWindowInsets = { WindowInsets.systemBars },
             ) {
                 Box(
                     modifier = Modifier.fillMaxHeight(),
@@ -189,31 +186,12 @@ fun PhotopickerMain(bannerManager: BannerManager) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
-            // The navigation bar and profile switcher are drawn above the navigation graph
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .padding(horizontal = MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LocalFeatureManager.current.composeLocation(
-                    Location.PROFILE_SELECTOR,
-                    maxSlots = 1,
-                    // Weight should match the overflow menu slot so they are the same size.
-                    modifier = Modifier.weight(1f),
-                )
-                LocalFeatureManager.current.composeLocation(
-                    Location.NAVIGATION_BAR,
-                    maxSlots = 1,
-                    modifier = Modifier,
-                )
-                LocalFeatureManager.current.composeLocation(
-                    Location.OVERFLOW_MENU,
-                    // Weight should match the profile switcher slot so they are the same size.
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            // The navigation bar and banners are drawn above the navigation graph
+            LocalFeatureManager.current.composeLocation(
+                Location.NAVIGATION_BAR,
+                maxSlots = 1,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Box(modifier = Modifier.animateContentSize()) {
                 currentBanner?.let {

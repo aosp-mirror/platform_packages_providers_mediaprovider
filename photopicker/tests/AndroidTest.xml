@@ -28,4 +28,14 @@
     <option name="package" value="com.android.photopicker.tests"/>
     <option name="hidden-api-checks" value="false"/>
   </test>
+
+  <option name="test-tag" value="PhotopickerTests" />
+  <option
+      name="config-descriptor:metadata"
+      key="mainline-param"
+      value="com.google.android.mediaprovider.apex" />
+
+  <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
+      <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />
+  </object>
 </configuration>

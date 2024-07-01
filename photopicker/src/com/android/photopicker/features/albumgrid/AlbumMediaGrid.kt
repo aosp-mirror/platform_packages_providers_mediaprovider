@@ -17,31 +17,16 @@
 package com.android.photopicker.features.albumgrid
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.paging.compose.LazyPagingItems
+import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
@@ -54,14 +39,10 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
-import com.android.photopicker.data.model.Media
-import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.features.preview.PreviewFeature
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-
-/** Padding measurement for the text shown as the heading for album content grid. */
-private val MEASUREMENT_DISPLAY_NAME_PADDING = 15.dp
 
 /**
  * Primary composable for drawing the Album content grid on
@@ -72,26 +53,40 @@ private val MEASUREMENT_DISPLAY_NAME_PADDING = 15.dp
  * @param flow - stateflow holding the album for which the media needs to be presented.
  */
 @Composable
-fun AlbumMediaGrid(flow: StateFlow<Group.Album?>) {
+fun AlbumMediaGrid(
+    flow: StateFlow<Group.Album?>,
+    viewModel: AlbumGridViewModel = obtainViewModel()
+) {
     val albumState by flow.collectAsStateWithLifecycle(initialValue = null)
     val album = albumState
-    if (album != null) {
-        InitialiseAlbumMedia(album = album)
+
+    when (album) {
+        null -> {}
+        else -> {
+            AlbumMediaGrid(albumItems = viewModel.getAlbumMedia(album))
+        }
     }
 }
 
 /** Initialises all the states and media source required to load media for the input [album]. */
 @Composable
-private fun InitialiseAlbumMedia(
-    album: Group.Album,
+private fun AlbumMediaGrid(
+    albumItems: Flow<PagingData<MediaGridItem>>,
     viewModel: AlbumGridViewModel = obtainViewModel(),
 ) {
     val featureManager = LocalFeatureManager.current
     val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
 
-    val itemFlow = remember(album.id) { viewModel.getAlbumMedia(album) }
-    val items = itemFlow.collectAsLazyPagingItems()
+    val navController = LocalNavController.current
+
+    val items = albumItems.collectAsLazyPagingItems()
+
+    // Collect the selection to notify the mediaGrid of selection changes.
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
+
+    val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val selectionLimitExceededMessage =
+        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
 
     // Use the expanded layout any time the Width is Medium or larger.
     val isExpandedScreen: Boolean =
@@ -102,87 +97,29 @@ private fun InitialiseAlbumMedia(
         }
 
     val state = rememberLazyGridState()
-    AlbumMediaGridView(
-        album,
-        isExpandedScreen,
-        viewModel,
-        isPreviewEnabled,
-        items,
-        selection,
-        state,
-    )
-}
-
-/**
- * Composable responsible for generating the UI for album media view which includes back button,
- * display name for the album and a grid populated by the album media.
- */
-@Composable
-private fun AlbumMediaGridView(
-    album: Group.Album,
-    isExpandedScreen: Boolean,
-    viewModel: AlbumGridViewModel,
-    isPreviewEnabled: Boolean,
-    items: LazyPagingItems<MediaGridItem>,
-    selection: Set<Media>,
-    state: LazyGridState,
-) {
-    val navController = LocalNavController.current
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxSize()) {
-        // Container encapsulating the album title followed by the album content in the form of a
-        // grid, the content also includes date and month separators.
-        Column {
-            // top horizontal bar to handle the back button and the name of the album
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // back button
-                IconButton(onClick = { navController.navigateToAlbumGrid() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        // For accessibility
-                        contentDescription = stringResource(R.string.photopicker_back_option),
-                        tint = MaterialTheme.colorScheme.onSurface,
+    // Container encapsulating the album title followed by the album content in the form of a
+    // grid, the content also includes date and month separators.
+    Column(modifier = Modifier.fillMaxSize()) {
+        mediaGrid(
+            // Album content grid
+            items = items,
+            isExpandedScreen = isExpandedScreen,
+            selection = selection,
+            onItemClick = { item ->
+                if (item is MediaGridItem.MediaItem) {
+                    viewModel.handleAlbumMediaGridItemSelection(
+                        item.media,
+                        selectionLimitExceededMessage
                     )
                 }
-                // Album name
-                Text(
-                    text = album.displayName,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                    modifier = Modifier.padding(vertical = MEASUREMENT_DISPLAY_NAME_PADDING),
-                )
-            }
-
-            val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
-            val selectionLimitExceededMessage =
-                stringResource(
-                    R.string.photopicker_selection_limit_exceeded_snackbar,
-                    selectionLimit
-                )
-
-            mediaGrid(
-                // Album content grid
-                items = items,
-                isExpandedScreen = isExpandedScreen,
-                selection = selection,
-                onItemClick = { item ->
-                    if (item is MediaGridItem.MediaItem) {
-                        viewModel.handleAlbumMediaGridItemSelection(
-                            item.media,
-                            selectionLimitExceededMessage
-                        )
-                    }
-                },
-                onItemLongPress = { item ->
-                    // If the [PreviewFeature] is enabled, launch the preview route.
-                    if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
-                        navController.navigateToPreviewMedia(item.media)
-                    }
-                },
-                state = state,
-            )
-        }
+            },
+            onItemLongPress = { item ->
+                // If the [PreviewFeature] is enabled, launch the preview route.
+                if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
+                    navController.navigateToPreviewMedia(item.media)
+                }
+            },
+            state = state,
+        )
     }
 }

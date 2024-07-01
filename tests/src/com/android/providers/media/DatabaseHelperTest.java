@@ -72,7 +72,10 @@ public class DatabaseHelperTest {
     @Before
     public void setUp() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
-                .adoptShellPermissionIdentity(Manifest.permission.INTERACT_ACROSS_USERS);
+                .adoptShellPermissionIdentity(
+                        Manifest.permission.INTERACT_ACROSS_USERS,
+                        android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
+                        android.Manifest.permission.READ_DEVICE_CONFIG);
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         sIsolatedContext = new IsolatedContext(context, TAG, /*asFuseThread*/ false);
         sProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);

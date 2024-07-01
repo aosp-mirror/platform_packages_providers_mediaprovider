@@ -30,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.android.photopicker.R
@@ -63,10 +62,7 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
 
         // Wrapped in a box to consume anything in the incoming modifier.
         Box(modifier = modifier) {
-            IconButton(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                onClick = { expanded = !expanded }
-            ) {
+            IconButton(onClick = { expanded = !expanded }) {
                 Icon(
                     Icons.Filled.MoreVert,
                     contentDescription =
@@ -90,8 +86,7 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
     } else {
         // FeatureManager reported a size of 0 for [Location.OVERFLOW_MENU_ITEMS], thus there is no
         // need to show the overflow anchor. In order to keep the layout stable, consume the
-        // incoming
-        // modifier with a spacer element.
+        // incoming modifier with a spacer element.
         Spacer(modifier)
     }
 }

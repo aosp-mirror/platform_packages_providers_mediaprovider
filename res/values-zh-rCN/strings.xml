@@ -62,7 +62,7 @@
     <string name="picker_photos" msgid="7415035516411087392">"照片"</string>
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
-    <string name="picker_albums" msgid="4822511902115299142">"影集"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"相册"</string>
     <string name="picker_preview" msgid="6257414886055861039">"预览"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"切换到工作资料"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"切换到个人资料"</string>

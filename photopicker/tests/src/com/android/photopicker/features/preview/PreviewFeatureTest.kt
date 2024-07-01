@@ -355,6 +355,49 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 .isEqualTo(TEST_MEDIA_IMAGE)
         }
 
+    /** Ensures that the PreviewMedia route navigate back button. */
+    @Test
+    fun testNavigateBack() =
+        mainScope.runTest {
+            val resources = getTestableContext().getResources()
+
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
+                    callPhotopickerMain(
+                        featureManager = featureManager,
+                        selection = selection,
+                        events = events,
+                        bannerManager = bannerManager.get(),
+                    )
+                }
+            }
+
+            val initialRoute = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Unable to find initial route").that(initialRoute).isNotNull()
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({
+                navController.navigateToPreviewMedia(TEST_MEDIA_IMAGE)
+            })
+
+            assertWithMessage("Expected route to be preview/media")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.PREVIEW_MEDIA.route)
+
+            composeTestRule
+                .onNode(
+                    hasContentDescription(resources.getString(R.string.photopicker_back_option))
+                )
+                .assert(hasClickAction())
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            assertWithMessage("Expected route to be initial route")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(initialRoute)
+        }
+
     @Test
     fun testNavigateToPreviewVideo() =
         mainScope.runTest {

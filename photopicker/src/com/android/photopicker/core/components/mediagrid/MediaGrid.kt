@@ -16,6 +16,9 @@
 
 package com.android.photopicker.core.components
 
+import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO
@@ -44,7 +47,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -52,6 +54,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,6 +65,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
@@ -119,7 +124,13 @@ private val MEASUREMENT_SELECTED_CORNER_RADIUS = 16.dp
 private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 
 /** The radius to use for the corners of grid cells that are selected */
-private val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+
+/** The size for the icon used inside the default album thumbnails */
+val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE = 56.dp
+
+/** The padding for the icon for the default album thumbnails */
+val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING = 16.dp
 
 /**
  * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
@@ -429,13 +440,13 @@ private fun defaultBuildAlbumItem(
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
-                        onClick(
-                            action = {
-                                onClick?.invoke(item)
-                                /* eventHandled= */ true
-                            }
-                        )
-                    }
+                    onClick(
+                        action = {
+                            onClick?.invoke(item)
+                            /* eventHandled= */ true
+                        }
+                    )
+                }
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { onClick?.invoke(item) },
@@ -446,20 +457,44 @@ private fun defaultBuildAlbumItem(
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                     // Container for albums and their title
                     Column {
-                        // Load the media item through the Glide entrypoint.
-                        loadMedia(
-                            media = item.album,
-                            resolution = Resolution.THUMBNAIL,
-                            // Modifier for album thumbnail
-                            modifier =
+                        // In the current implementation for AlbumsGrid, favourites and videos are
+                        // 2 mandatory albums and are shown even when they contain no data. For this
+                        // case they have special thumbnails associated with them.
+                        with(item.album) {
+                            val modifier =
                                 Modifier.fillMaxWidth()
                                     .clip(
                                         RoundedCornerShape(
                                             MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS
                                         )
                                     )
-                                    .aspectRatio(1f),
-                        )
+                                    .aspectRatio(1f)
+                            when {
+                                id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
+                                    DefaultAlbumIcon(
+                                        /* icon */ Icons.Outlined.StarOutline,
+                                        modifier
+                                    )
+                                }
+
+                                id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
+                                    DefaultAlbumIcon(
+                                        /* icon */ Icons.Outlined.Videocam,
+                                        modifier
+                                    )
+                                }
+                                // Load the media item through the Glide entrypoint.
+                                else -> {
+                                    loadMedia(
+                                        media = item.album,
+                                        resolution = Resolution.THUMBNAIL,
+                                        // Modifier for album thumbnail
+                                        modifier = modifier
+                                    )
+                                }
+                            }
+                        }
+
                         // Album title shown below the album thumbnail.
                         Box {
                             Text(
@@ -484,5 +519,35 @@ private fun defaultBuildAlbumItem(
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
         Text(item.label)
+    }
+}
+
+/**
+ * Creates an image which can be used as a default thumbnail, this image is creates using the
+ * provided [ImageVector].
+ *
+ * These image vectors a part of androidx androidx.compose.material.icons library.
+ */
+@Composable
+fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
+    Box(
+        // Modifier for album thumbnail
+        modifier = modifier.background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Or provide a suitable content description
+            modifier = Modifier
+                // Equivalent to layout_width and layout_height
+                .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceContainer, // Background color
+                    shape = CircleShape // Circular background
+                )
+                // Padding inside the circle
+                .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
+                .clip(CircleShape), // Clip the image to a circle
+        )
     }
 }

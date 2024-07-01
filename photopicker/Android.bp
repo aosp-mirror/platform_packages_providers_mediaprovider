@@ -6,7 +6,10 @@ package {
 android_library {
     name: "PhotopickerLib",
     manifest: "AndroidManifest.xml",
-    srcs: ["src/**/*.kt"],
+    srcs: [
+        "src/**/*.kt",
+        ":statslog-mediaprovider-java-gen",
+    ],
     resource_dirs: ["res"],
     sdk_version: "module_current",
     min_sdk_version: "30",
@@ -14,7 +17,12 @@ android_library {
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-statsd",
     ],
+    javacflags: [
+        "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
+    ],
+    kotlincflags: ["-Xjvm-default=all"],
     static_libs: [
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",
@@ -33,6 +41,8 @@ android_library {
         "androidx.paging_paging-common-ktx",
         "androidx.paging_paging-compose",
         "androidx.paging_paging-runtime",
+        "androidx.room_room-runtime",
+        "androidx.room_room-ktx",
         // glide and dependencies
         "androidx.exifinterface_exifinterface",
         "androidx.vectordrawable_vectordrawable-animated",
@@ -56,6 +66,7 @@ android_library {
     ],
     plugins: [
         "glide-annotation-processor",
+        "androidx.room_room-compiler-plugin",
     ],
 }
 

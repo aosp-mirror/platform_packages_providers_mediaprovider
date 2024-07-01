@@ -41,5 +41,7 @@
   <!-- Content description for a button which performs back option -->
   <string name="photopicker_back_option" translation_description="Button content description that gives the user the option to navigate back to the parent view.">Back</string>
 
+  <!-- Button label for the banner dismiss button -->
+  <string name="photopicker_dismiss_banner_button_label" translation_description="Button label that gives the user the option to dismiss an informational banner">Dismiss</string>
 
 </resources>

@@ -57,8 +57,10 @@ import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -77,6 +79,7 @@ import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -114,6 +117,7 @@ import org.mockito.MockitoAnnotations
     ActivityModule::class,
     ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
     ViewModelModule::class,
 )
 @HiltAndroidTest
@@ -162,6 +166,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
 
     val TEST_MEDIA_IMAGE =
         Media.Image(
@@ -269,24 +274,31 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 override fun onSurfaceDestroyed(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onSurfaceDestroyed(surfaceId)
                 }
+
                 override fun onMediaPlay(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onMediaPlay(surfaceId)
                 }
+
                 override fun onMediaPause(surfaceId: Int) {
                     mockCloudMediaSurfaceController.onMediaPause(surfaceId)
                 }
+
                 override fun onMediaSeekTo(surfaceId: Int, timestampMillis: Long) {
                     mockCloudMediaSurfaceController.onMediaSeekTo(surfaceId, timestampMillis)
                 }
+
                 override fun onConfigChange(bundle: Bundle) {
                     mockCloudMediaSurfaceController.onConfigChange(bundle)
                 }
+
                 override fun onDestroy() {
                     mockCloudMediaSurfaceController.onDestroy()
                 }
+
                 override fun onPlayerCreate() {
                     mockCloudMediaSurfaceController.onPlayerCreate()
                 }
+
                 override fun onPlayerRelease() {
                     mockCloudMediaSurfaceController.onPlayerRelease()
                 }
@@ -315,6 +327,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -350,6 +363,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -392,6 +406,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -400,6 +415,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.runOnUiThread({
                 navController.navigateToPreviewMedia(TEST_MEDIA_IMAGE)
             })
+
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
 
             composeTestRule.onNode(hasText(deselectButtonLabel)).assertDoesNotExist()
             composeTestRule
@@ -442,6 +461,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -476,6 +496,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -485,6 +506,10 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
+
+            // Wait for the flows to resolve and the UI to update.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
 
             assertWithMessage("Expected route to be preview/media")
                 .that(navController.currentBackStackEntry?.destination?.route)
@@ -538,6 +563,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
+                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -545,6 +571,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -580,6 +611,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -588,6 +620,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -622,6 +659,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -630,6 +668,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -662,6 +705,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -670,6 +714,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -677,7 +726,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -708,6 +757,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -716,6 +766,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -723,12 +778,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             advanceTimeBy(100)
@@ -783,6 +838,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -791,6 +847,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -798,12 +859,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -821,7 +882,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             verify(mockCloudMediaSurfaceController).onMediaPause(anyInt())
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_PAUSED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_PAUSED, null)
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
@@ -852,6 +913,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -860,6 +922,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -867,12 +934,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -923,6 +990,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -931,6 +999,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -938,12 +1011,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)
@@ -992,6 +1065,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -1000,6 +1074,11 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
             })
 
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
             composeTestRule.waitForIdle()
             advanceTimeBy(100)
 
@@ -1007,12 +1086,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val binder = bundle.getBinder(EXTRA_SURFACE_STATE_CALLBACK)
             val callback = ICloudMediaSurfaceStateChangedCallback.Stub.asInterface(binder)
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_READY, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_READY, null)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            callback.setPlaybackState(/*surfaceId=*/ 1, PLAYBACK_STATE_STARTED, null)
+            callback.setPlaybackState(/* surfaceId= */ 1, PLAYBACK_STATE_STARTED, null)
             verify(mockCloudMediaSurfaceController).onMediaPlay(anyInt())
 
             clearInvocations(mockCloudMediaSurfaceController)

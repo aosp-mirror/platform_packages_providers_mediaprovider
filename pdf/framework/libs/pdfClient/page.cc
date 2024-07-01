@@ -32,11 +32,14 @@
 #include "fpdf_doc.h"
 #include "fpdf_text.h"
 #include "fpdfview.h"
+#include "logging.h"
 #include "normalize.h"
 #include "rect.h"
 #include "utf.h"
 #include "utils/annot_hider.h"
 #include "utils/text.h"
+
+#define LOG_TAG "page"
 
 using std::vector;
 
@@ -75,11 +78,17 @@ Rectangle_i Page::Dimensions() const {
 }
 
 void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int clip_top,
-                  int clip_right, int clip_bottom, int render_mode, int hide_text_annots) {
+                  int clip_right, int clip_bottom, int render_mode, int show_annot_types,
+                  bool render_form_fields) {
     std::unordered_set<int> types;
-    if (hide_text_annots) {
-        types = {FPDF_ANNOT_TEXT, FPDF_ANNOT_HIGHLIGHT};
+    for (auto renderFlag_annot : renderFlagsAnnotsMap) {
+        if ((renderFlag_annot.first & show_annot_types) != 0) {
+            for (int annot_type : renderFlag_annot.second) {
+                types.insert(annot_type);
+            }
+        }
     }
+    if (render_form_fields) types.insert(FPDF_ANNOT_WIDGET);
     pdfClient_utils::AnnotHider annot_hider(page_.get(), types);
     int renderFlags = FPDF_REVERSE_BYTE_ORDER;
     if (render_mode == RENDER_MODE_FOR_DISPLAY) {
@@ -90,6 +99,10 @@ void Page::Render(FPDF_BITMAP bitmap, FS_MATRIX transform, int clip_left, int cl
 
     FS_RECTF clip = {(float)clip_left, (float)clip_top, (float)clip_right, (float)clip_bottom};
     FPDF_RenderPageBitmapWithMatrix(bitmap, page_.get(), &transform, &clip, renderFlags);
+
+    if (render_form_fields) {
+        form_filler_->RenderTile(page_.get(), bitmap, transform, clip, renderFlags);
+    }
 }
 
 Point_i Page::ApplyPageTransform(const Point_d& input) const {
@@ -304,7 +317,13 @@ vector<GotoLink> Page::GetGotoLinks() const {
 
         GotoLink goto_link = GotoLink{goto_link_rects, *goto_link_dest};
 
-        links.push_back(goto_link);
+        // Ensure that links are within page bounds
+        if (goto_link_dest->x >= 0 && goto_link_dest->y >= 0) {
+            links.push_back(goto_link);
+        } else {
+            LOGE("Goto Link out of bound (x=%f, y=%f). Page width=%d, height =%d",
+                 goto_link_dest->x, goto_link_dest->y, Width(), Height());
+        }
     }
     return links;
 }

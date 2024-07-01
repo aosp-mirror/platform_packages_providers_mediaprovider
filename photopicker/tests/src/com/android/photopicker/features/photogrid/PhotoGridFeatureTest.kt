@@ -42,8 +42,10 @@ import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
@@ -57,6 +59,7 @@ import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -84,6 +87,7 @@ import org.mockito.MockitoAnnotations
     ActivityModule::class,
     ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
     ViewModelModule::class,
 )
 @HiltAndroidTest
@@ -127,6 +131,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
 
     @Before
     fun setup() {
@@ -185,6 +190,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -209,6 +215,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -248,6 +255,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -274,6 +282,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 

@@ -65,7 +65,9 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.Size;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
@@ -319,6 +321,55 @@ public class MediaProviderTest {
         final Collection<Uri> uris = Arrays.asList(
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 42));
         assertNotNull(MediaStore.createWriteRequest(sIsolatedResolver, uris));
+    }
+
+    @Test
+    public void testRequestThumbnail_noAccess_throwsSecurityException() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        final String errorMessagetoThrow = "App not allowed to access";
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+                    boolean forWrite) {
+                throw new SecurityException(errorMessagetoThrow);
+            }
+
+            @Override
+            protected void storageNativeBootPropertyChangeListener() {
+                // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
+            }
+        };
+
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
+        Bundle extras = new Bundle();
+        extras.putSize(ContentResolver.EXTRA_SIZE , new Size(50, 50));
+
+        try (AssetFileDescriptor ignored = provider.openTypedAssetFile(uri, "image/*", extras)) {
+            fail("Expected Security Exception to throw");
+        } catch (Exception e) {
+            assertThat(e.getClass()).isEqualTo(SecurityException.class);
+            assertThat(e.getMessage()).isEqualTo(errorMessagetoThrow);
+        } finally {
+            testFile.delete();
+        }
     }
 
     @Test

@@ -136,6 +136,25 @@ android_test_helper_app {
     ],
 }
 
+android_test_helper_app {
+    name: "LegacyMediaProviderTestAppFor35",
+    manifest: "test_app/LegacyTestAppWithTargetSdk35.xml",
+    srcs: [
+        "test_app/src/**/*.java",
+        "src/com/android/providers/media/util/TestUtils.java",
+    ],
+    static_libs: [
+        "cts-install-lib",
+    ],
+    sdk_version: "test_current",
+    target_sdk_version: "35",
+    min_sdk_version: "30",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+}
+
 // This looks a bit awkward, but we need our tests to run against either
 // MediaProvider or MediaProviderGoogle, and we don't know which one is
 // on the device being tested, so we can't sign our tests with a key that
@@ -221,6 +240,7 @@ android_test {
 
     data: [
         ":LegacyMediaProviderTestApp",
+        ":LegacyMediaProviderTestAppFor35",
         ":MediaProviderTestAppForPermissionActivity",
         ":MediaProviderTestAppForPermissionActivity33",
         ":MediaProviderTestAppWithMediaPerms",

@@ -105,6 +105,10 @@ public class PermissionUtilsTest {
             "com.android.providers.media.testapp.legacy", 1, false,
             "LegacyMediaProviderTestApp.apk");
 
+    private static final TestApp LEGACY_TEST_APP_35 = new TestApp("LegacyTestAppWithTargetSdk35",
+            "com.android.providers.media.testapp.legacywithtargetsdk35", 1, false,
+            "LegacyMediaProviderTestAppFor35.apk");
+
     // Permission checks are based on uid, so we can pass -1 pid and avoid starting the test apps.
     private static final int TEST_APP_PID = -1;
 
@@ -202,7 +206,7 @@ public class PermissionUtilsTest {
             assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
             assertThat(checkPermissionShell(testAppUid)).isFalse();
             assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
-                        null,  /* isTargetSdkAtLeastS */ true)).isFalse();
+                        null,  /* isTargetSdkAtLeastV */ false)).isFalse();
             assertThat(checkPermissionInstallPackages(
                         getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
             assertThat(checkPermissionAccessMtp(
@@ -216,6 +220,31 @@ public class PermissionUtilsTest {
             assertMediaReadPermissions(TEST_APP_PID, testAppUid, packageName,
                 false /* targetSdkIsAtLeastT */, false /* expected */);
 
+        } finally {
+            dropShellPermission();
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM, codeName = "VIC")
+    public void testDefaultPermissionsOnLegacyTestAppWithTargetSdk35() throws Exception {
+        String packageName = LEGACY_TEST_APP_35.getPackageName();
+        int testAppUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+        adoptShellPermission(UPDATE_APP_OPS_STATS);
+
+        try {
+            assertThat(checkPermissionSelf(getContext(), TEST_APP_PID, testAppUid)).isFalse();
+            assertThat(checkPermissionShell(testAppUid)).isFalse();
+            assertThat(checkIsLegacyStorageGranted(getContext(), testAppUid, packageName,
+                    null,  /* isTargetSdkAtLeastV */ true)).isFalse();
+            assertThat(checkPermissionInstallPackages(
+                    getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
+            assertThat(checkPermissionAccessMtp(
+                    getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
+            assertThat(checkPermissionWriteStorage(
+                    getContext(), TEST_APP_PID, testAppUid, packageName, null)).isFalse();
+            assertThat(checkPermissionReadStorage(
+                    getContext(), TEST_APP_PID, testAppUid, packageName, null)).isTrue();
         } finally {
             dropShellPermission();
         }

@@ -23,6 +23,7 @@
         <option name="test-file-name" value="MediaProviderTestAppWithUserSelectedPerms.apk" />
         <option name="test-file-name" value="MediaProviderTestAppWithoutPerms.apk" />
         <option name="test-file-name" value="LegacyMediaProviderTestApp.apk" />
+        <option name="test-file-name" value="LegacyMediaProviderTestAppFor35.apk" />
         <option name="install-arg" value="-g" />
     </target_preparer>
 

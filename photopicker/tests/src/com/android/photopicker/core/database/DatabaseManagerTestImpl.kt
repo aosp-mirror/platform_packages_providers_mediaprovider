@@ -16,8 +16,27 @@
 
 package com.android.photopicker.core.database
 
+import com.android.photopicker.core.banners.BannerStateDao
+import org.mockito.Mockito.mock
+
 /**
  * This is a test implementation of [DatabaseManager] that will isolate the device state and mock
  * out any database interactions.
  */
-class DatabaseManagerTestImpl() : DatabaseManager
+class DatabaseManagerTestImpl() : DatabaseManager {
+
+    val bannerState = mock(BannerStateDao::class.java)
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> acquireDao(daoClass: Class<T>): T {
+        with(daoClass) {
+            return when {
+                isAssignableFrom(BannerStateDao::class.java) -> bannerState as T
+                else ->
+                    throw IllegalArgumentException(
+                        "Cannot acquire ${daoClass.simpleName} from DatabaseManagerImpl"
+                    )
+            }
+        }
+    }
+}

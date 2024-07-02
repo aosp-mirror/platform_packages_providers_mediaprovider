@@ -29,6 +29,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
@@ -42,6 +45,7 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.data.DataService
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 
 /**
@@ -65,6 +69,34 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
     }
 
     override val token = TAG
+
+    /** Only one banner is claimed */
+    override val ownedBanners = setOf(BannerDefinitions.CLOUD_CHOOSE_ACCOUNT)
+
+    override suspend fun getBannerPriority(
+        banner: BannerDefinitions,
+        bannerState: BannerState?,
+        config: PhotopickerConfiguration,
+        dataService: DataService,
+    ): Int {
+        // If the banner reports as being dismissed, don't show it.
+        if (bannerState?.dismissed == true) {
+            return Priority.DISABLED.priority
+        }
+
+        // Otherwise, show it with medium priority.
+        return Priority.HIGH.priority
+    }
+
+    override fun buildBanner(banner: BannerDefinitions): Banner {
+        return object : Banner {
+            override val declaration = BannerDefinitions.CLOUD_CHOOSE_ACCOUNT
+
+            @Composable override fun buildTitle() = "Choose Account Title"
+
+            @Composable override fun buildMessage() = "Choose Account Message"
+        }
+    }
 
     /** Events consumed by the Photo grid */
     override val eventsConsumed = emptySet<RegisteredEventClass>()

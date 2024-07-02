@@ -24,7 +24,7 @@ android_test {
     // compile for all architecture.
     compile_multilib: "both",
     srcs: ["src/**/*.java"],
-    min_sdk_version: "30",
+    min_sdk_version: "31",
     sdk_version: "module_current",
     target_sdk_version: "35",
     defaults: [

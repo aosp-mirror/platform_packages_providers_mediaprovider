@@ -33,4 +33,5 @@ android_test {
     ],
 
     certificate: "media",
+    min_sdk_version: "30",
 }

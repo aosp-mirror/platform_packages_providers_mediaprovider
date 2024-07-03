@@ -41,10 +41,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
 import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.obtainViewModel
 
 /* Size of the spacer between dialog elements. */
 private val MEASUREMENT_DIALOG_SPACER_SIZE = 24.dp
@@ -71,7 +71,7 @@ fun MediaPreloader(
     // [Location.MEDIA_PRELOADER], only floating dialogs that sit above the app.
     @Suppress("UNUSED_PARAMETER") modifier: Modifier,
     params: LocationParams,
-    viewModel: MediaPreloaderViewModel = hiltViewModel(),
+    viewModel: MediaPreloaderViewModel = obtainViewModel(),
 ) {
 
     // Data flow from the view model for which Dialog to display.

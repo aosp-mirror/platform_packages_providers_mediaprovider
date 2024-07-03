@@ -65,6 +65,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
@@ -172,14 +173,14 @@ fun mediaGrid(
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
-    contentPadding: PaddingValues =
-        PaddingValues(bottom = MEASUREMENT_DEFAULT_CONTENT_PADDING),
+    contentPadding: PaddingValues = PaddingValues(bottom = MEASUREMENT_DEFAULT_CONTENT_PADDING),
     userScrollEnabled: Boolean = true,
     spanFactory: (item: MediaGridItem?, isExpandedScreen: Boolean) -> GridItemSpan =
         ::defaultBuildSpan,
     contentTypeFactory: (item: MediaGridItem?) -> Int = ::defaultBuildContentType,
     contentItemFactory:
-        @Composable (
+        @Composable
+        (
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
@@ -312,54 +313,61 @@ private fun defaultBuildMediaItem(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surfaceContainerHighest
                 ) {
-                    // Container for the image and selected icon
-                    Box {
+                    // Container for the image and it's mimetype icon
+                    Box(
+                        // Switch which modifier is getting applied based on if the item is
+                        // selected or not.
+                        modifier = if (isSelected) selectedModifier else baseModifier,
+                    ) {
 
-                        // Container for the image and it's mimetype icon
-                        Box(
-                            // Switch which modifier is getting applied based on if the item is
-                            // selected or not.
-                            modifier = if (isSelected) selectedModifier else baseModifier,
+                        // Load the media item through the Glide entrypoint.
+                        loadMedia(
+                            media = item.media,
+                            resolution = Resolution.THUMBNAIL,
+                        )
+
+                        // Scrim to separate the text and mimetypes from the image behind them.
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.2f),
+                            contentColor = Color.White,
                         ) {
-
-                            // Load the media item through the Glide entrypoint.
-                            loadMedia(
-                                media = item.media,
-                                resolution = Resolution.THUMBNAIL,
-                            )
-                            // Mimetype indicators
-                            Row(
-                                Modifier.align(Alignment.TopEnd)
-                                    .padding(MEASUREMENT_MIMETYPE_ICON_EDGE_PADDING),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
                             ) {
-                                if (item.media is Media.Video) {
-                                    Text(
-                                        text =
-                                            DateUtils.formatElapsedTime(
-                                                item.media.duration / 1000L
-                                            ),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                    Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
-                                    Icon(Icons.Filled.PlayCircle, contentDescription = null)
-                                } else {
-                                    when (item.media.standardMimeTypeExtension) {
-                                        _SPECIAL_FORMAT_GIF -> {
-                                            Icon(Icons.Filled.Gif, contentDescription = null)
+                                // Mimetype indicators
+                                Row(
+                                    Modifier.align(Alignment.TopEnd)
+                                        .padding(MEASUREMENT_MIMETYPE_ICON_EDGE_PADDING),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    if (item.media is Media.Video) {
+                                        Text(
+                                            text =
+                                                DateUtils.formatElapsedTime(
+                                                    item.media.duration / 1000L
+                                                ),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                        Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
+                                        Icon(Icons.Filled.PlayCircle, contentDescription = null)
+                                    } else {
+                                        when (item.media.standardMimeTypeExtension) {
+                                            _SPECIAL_FORMAT_GIF -> {
+                                                Icon(Icons.Filled.Gif, contentDescription = null)
+                                            }
+                                            _SPECIAL_FORMAT_MOTION_PHOTO,
+                                            _SPECIAL_FORMAT_ANIMATED_WEBP -> {
+                                                Icon(
+                                                    Icons.Filled.MotionPhotosOn,
+                                                    contentDescription = null
+                                                )
+                                            }
+                                            else -> {}
                                         }
-                                        _SPECIAL_FORMAT_MOTION_PHOTO,
-                                        _SPECIAL_FORMAT_ANIMATED_WEBP -> {
-                                            Icon(
-                                                Icons.Filled.MotionPhotosOn,
-                                                contentDescription = null
-                                            )
-                                        }
-                                        else -> {}
                                     }
-                                }
-                            } // Mimetype row
-                        } // Image + Mimetype box
+                                } // Mimetype row
+                            } // Image + Mimetype box
+                        } // Scrim
 
                         // Wrap the icon in a full size box with the same internal padding that
                         // selected images use to ensure it is positioned correctly, relative to the
@@ -398,8 +406,7 @@ private fun defaultBuildMediaItem(
                                                 CircleShape
                                             )
                                             // Border color should match the surface that is behind
-                                            // the
-                                            // image.
+                                            // the image.
                                             .border(
                                                 MEASUREMENT_SELECTED_ICON_BORDER,
                                                 MaterialTheme.colorScheme.surfaceVariant,
@@ -409,18 +416,18 @@ private fun defaultBuildMediaItem(
                                         stringResource(R.string.photopicker_item_selected),
                                     // For now, this is a lovely shade of dark green to match
                                     // the mocks.
-                                    tint = CustomAccentColorScheme.current
-                                        .getAccentColorIfDefinedOrElse(
-                                            /* fallback */ MaterialTheme.colorScheme.primary
-                                        ),
+                                    tint =
+                                        CustomAccentColorScheme.current
+                                            .getAccentColorIfDefinedOrElse(
+                                                /* fallback */ MaterialTheme.colorScheme.primary
+                                            ),
                                 )
-                            }
-                        } // Icon Container
-                    } // Image + Icon Container
+                            } // Icon Container
+                        } // Image + Icon Container
+                    }
                 } // Surface
             } // Box for GridCell
         }
-
         else -> {}
     }
 }
@@ -440,13 +447,13 @@ private fun defaultBuildAlbumItem(
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
-                    onClick(
-                        action = {
-                            onClick?.invoke(item)
-                            /* eventHandled= */ true
-                        }
-                    )
-                }
+                        onClick(
+                            action = {
+                                onClick?.invoke(item)
+                                /* eventHandled= */ true
+                            }
+                        )
+                    }
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { onClick?.invoke(item) },
@@ -476,12 +483,8 @@ private fun defaultBuildAlbumItem(
                                         modifier
                                     )
                                 }
-
                                 id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
-                                    DefaultAlbumIcon(
-                                        /* icon */ Icons.Outlined.Videocam,
-                                        modifier
-                                    )
+                                    DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
                                 }
                                 // Load the media item through the Glide entrypoint.
                                 else -> {
@@ -538,16 +541,17 @@ fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
         Icon(
             imageVector = icon,
             contentDescription = null, // Or provide a suitable content description
-            modifier = Modifier
-                // Equivalent to layout_width and layout_height
-                .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainer, // Background color
-                    shape = CircleShape // Circular background
-                )
-                // Padding inside the circle
-                .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
-                .clip(CircleShape), // Clip the image to a circle
+            modifier =
+                Modifier
+                    // Equivalent to layout_width and layout_height
+                    .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainer, // Background color
+                        shape = CircleShape // Circular background
+                    )
+                    // Padding inside the circle
+                    .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
+                    .clip(CircleShape), // Clip the image to a circle
         )
     }
 }

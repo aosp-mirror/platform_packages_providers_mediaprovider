@@ -4,5 +4,17 @@
       "name": "PhotopickerTests",
       "options": []
     }
+  ],
+  "mediaprovider-mainline-presubmit": [
+    {
+      "name": "PhotopickerTests",
+      "options": []
+    }
+  ],
+  "mainline-presubmit": [
+    {
+      "name": "PhotopickerTests[com.google.android.mediaprovider.apex]",
+      "options": []
+    }
   ]
 }

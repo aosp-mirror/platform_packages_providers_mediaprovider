@@ -25,6 +25,8 @@ import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_V
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.flags.Flags.enableStableUrisForExternalPrimaryVolume;
+import static com.android.providers.media.flags.Flags.enableStableUrisForPublicVolume;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -180,7 +182,7 @@ public class DatabaseBackupAndRecovery {
     public static final String STABLE_URI_EXTERNAL_PROPERTY =
             "persist.sys.fuse.backup.external_volume_backup";
 
-    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = true;
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
 
     public static final String STABLE_URI_PUBLIC_PROPERTY =
             "persist.sys.fuse.backup.public_db_backup";
@@ -228,13 +230,14 @@ public class DatabaseBackupAndRecovery {
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mIsStableUriEnabledForExternal
                         || mConfigStore.isStableUrisForExternalVolumeEnabled()
+                        || enableStableUrisForExternalPrimaryVolume()
                         || SystemProperties.getBoolean(STABLE_URI_EXTERNAL_PROPERTY,
                         /* defaultValue */ STABLE_URI_EXTERNAL_PROPERTY_VALUE);
             default:
                 // public volume
                 return mIsStableUrisEnabledForPublic
-                        || isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                        && mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || enableStableUrisForPublicVolume()
                         || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
                         /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
         }

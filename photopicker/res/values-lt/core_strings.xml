@@ -25,4 +25,6 @@
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Nuotraukos"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albumai"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Atgal"</string>
+    <!-- no translation found for photopicker_dismiss_banner_button_label (2309894998787905178) -->
+    <skip />
 </resources>

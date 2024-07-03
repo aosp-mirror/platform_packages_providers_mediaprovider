@@ -85,7 +85,7 @@
     <string name="picker_category_camera" msgid="4857367052026843664">"Kamera"</string>
     <string name="picker_category_downloads" msgid="793866660287361900">"Nedlastinger"</string>
     <string name="picker_category_favorites" msgid="7008495397818966088">"Favoritter"</string>
-    <string name="picker_category_screenshots" msgid="7216102327587644284">"Skjermdumper"</string>
+    <string name="picker_category_screenshots" msgid="7216102327587644284">"Skjermbilder"</string>
     <!-- no translation found for picker_category_videos (1478458836380241356) -->
     <skip />
     <string name="picker_motion_photo_text" msgid="5016603812468180816">"Levende bilde"</string>

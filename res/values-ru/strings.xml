@@ -59,7 +59,7 @@
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Нет поддерживаемых фото или видео"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомов нет."</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Посмотреть выбранное"</string>
-    <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Фото"</string>
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Альбомы"</string>

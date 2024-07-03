@@ -25,4 +25,5 @@
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"ఫోటోలు"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ఆల్బమ్‌లు"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"వెనుకకు"</string>
+    <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"విస్మరించండి"</string>
 </resources>

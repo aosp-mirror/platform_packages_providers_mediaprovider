@@ -144,7 +144,7 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                // todo(349796461): Handle this in the backend
+                // todo(b/349796461): Handle this in the backend
                 EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
             )
 
@@ -191,7 +191,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                EXTRA_INTENT_ACTION to intent?.action
+                // todo(b/349796461): Handle this in the backend
+                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
             )
 
         try {
@@ -240,7 +241,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                EXTRA_INTENT_ACTION to intent?.action
+                // todo(b/349796461): Handle this in the backend
+                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
             )
 
         try {

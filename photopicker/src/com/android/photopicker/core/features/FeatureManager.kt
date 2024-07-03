@@ -28,6 +28,7 @@ import com.android.photopicker.features.navigationbar.NavigationBarFeature
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.privacyexplainer.PrivacyExplainerFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
@@ -79,6 +80,7 @@ class FeatureManager(
                 SnackbarFeature.Registration,
                 CloudMediaFeature.Registration,
                 OverflowMenuFeature.Registration,
+                PrivacyExplainerFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */

@@ -38,6 +38,7 @@
 
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
+          android:icon="@mipmap/photopicker_app_icon"
           android:label="@string/photopicker_application_label"
           android:allowBackup="false"
           android:supportsRtl="true">

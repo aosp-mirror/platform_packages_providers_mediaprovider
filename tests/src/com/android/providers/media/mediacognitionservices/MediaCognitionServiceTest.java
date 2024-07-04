@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.CursorWindow;
 import android.net.Uri;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.platform.test.annotations.RequiresFlagsEnabled;
@@ -40,6 +41,7 @@ import android.provider.mediacognitionutils.ICognitionGetVersionsCallbackInterna
 import android.provider.mediacognitionutils.ICognitionProcessMediaCallbackInternal;
 import android.provider.mediacognitionutils.IMediaCognitionService;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
@@ -58,6 +60,8 @@ import java.util.concurrent.TimeUnit;
 
 
 @RequiresFlagsEnabled(Flags.FLAG_MEDIA_COGNITION_SERVICE)
+// TODO b/350880122 : Fix test that can't find IMediaCognitionService.aidl on R & S
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @RunWith(AndroidJUnit4.class)
 public class MediaCognitionServiceTest {
 

@@ -1,2 +1,5 @@
 rule com.android.modules.utils.** com.android.providers.media.internal.modules.utils.@1
 rule com.android.internal.logging.** com.android.providers.media.internal.logging.@1
+rule android.os.*FeatureFlags* com.android.providers.media.jarjar.@0
+rule android.os.FeatureFlags* com.android.providers.media.jarjar.@0
+rule android.os.Flags com.android.providers.media.jarjar.@0

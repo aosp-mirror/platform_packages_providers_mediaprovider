@@ -470,6 +470,75 @@ public class PickerDataLayerV2Test {
     }
 
     @Test
+    public void testQueryLocalMediaForPreview() {
+        Cursor cursorForMediaWithoutGrants = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS + 1,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursorForMediaWithGrants = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursorForMediaWithGrantsButDeSelected = getMediaCursor(LOCAL_ID_3, DATE_TAKEN_MS,
+                GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursorForMediaWithoutGrants,
+                /* writeCount */1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursorForMediaWithGrants,
+                /* writeCount */1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursorForMediaWithGrantsButDeSelected,
+                /* writeCount */1);
+
+        int testUid = 123;
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        String[] packageNames = new String[]{TEST_PACKAGE_NAME};
+        doReturn(packageNames).when(mMockPackageManager).getPackagesForUid(testUid);
+        // insert a grant for the second item inserted in media.
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2), /* writeCount */1);
+        // insert a grant for the third item inserted in media.
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_3), /* writeCount */1);
+
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
+
+        Bundle extras = getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                new ArrayList<>(Arrays.asList("video/*")),
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                testUid);
+
+        extras.putBoolean("is_preview_session", true);
+        extras.putBoolean("is_first_page", true);
+        extras.putStringArrayList("current_de_selection", new ArrayList<>(List.of(LOCAL_ID_3)));
+        extras.putStringArrayList("current_selection", new ArrayList<>(List.of(LOCAL_ID_1)));
+
+        // Expected result:
+        // 1. one item with LOCAL_ID_1 that has been added as current selection.
+        // 2. one item with LOCAL_ID_2 which is a pre-granted item.
+        // 3. item with LOCAL_ID_3 should not be included in the cursor because it is de-selected.
+
+        try (Cursor cr = PickerDataLayerV2.queryPreviewMedia(
+                mMockContext, extras)) {
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(2);
+
+            // verify item with isPreGranted as false.
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS + 1,
+                    MP4_VIDEO_MIME_TYPE, MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                    /* isPreGranted */ false);
+
+            // verify item with isPreGranted as true.
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE,
+                    MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                    /* isPreGranted */ true);
+        }
+    }
+
+    @Test
     public void testFetchMediaGrantsCount() {
         int testUid = 123;
         int userId = PickerSyncController.uidToUserId(testUid);

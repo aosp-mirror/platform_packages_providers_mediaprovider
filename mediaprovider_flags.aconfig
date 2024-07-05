@@ -88,3 +88,11 @@ flag {
     description: "This flag will enable stable uris for public volume"
     bug: "213931581"
 }
+
+flag {
+    name: "enable_backup_and_restore"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable backup and restore feature"
+    bug: "195138692"
+}

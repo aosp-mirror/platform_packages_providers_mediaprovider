@@ -12,6 +12,7 @@
         <package android:name="com.android.providers.media.testapp.withmediaperms" />
         <package android:name="com.android.providers.media.testapp.withuserselectedperms" />
         <package android:name="com.android.providers.media.testapp.legacy" />
+        <package android:name="com.android.providers.media.testapp.legacywithtargetsdk35" />
     </queries>
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

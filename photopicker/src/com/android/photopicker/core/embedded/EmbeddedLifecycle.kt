@@ -16,6 +16,8 @@
 package com.android.photopicker.core.embedded
 
 import android.os.Bundle
+import androidx.activity.OnBackPressedDispatcher
+import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -29,8 +31,8 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 
 /**
- * A custom [LifecycleOwner], [ViewModelStoreOwner] and [SavedStateRegistryOwner] for use with the
- * embedded runtime of Photopicker.
+ * A custom [LifecycleOwner], [ViewModelStoreOwner], [OnBackPressedDispatcherOwner] and
+ * [SavedStateRegistryOwner] for use with the embedded runtime of Photopicker.
  *
  * This class is only used for Embedded Photopicker, it is not invoked during the regular,
  * activity-based photopicker experience.
@@ -48,6 +50,7 @@ class EmbeddedLifecycle(viewModelFactory: ViewModelProvider.Factory) :
     LifecycleOwner,
     ViewModelStoreOwner,
     SavedStateRegistryOwner,
+    OnBackPressedDispatcherOwner,
     HasDefaultViewModelProviderFactory {
 
     companion object {
@@ -66,6 +69,12 @@ class EmbeddedLifecycle(viewModelFactory: ViewModelProvider.Factory) :
 
     override val savedStateRegistry: SavedStateRegistry =
         savedStateRegistryController.savedStateRegistry
+
+    /**
+     * This [OnBackPressedDispatcher] should be used to provide dispatcher for any
+     * [OnBackPressedCallback] in embedded session to [PhotopickerNavGraph]
+     */
+    override val onBackPressedDispatcher: OnBackPressedDispatcher = OnBackPressedDispatcher()
 
     /**
      * This [ViewModelStore] holds all of the Photopicker view models for an individual embedded

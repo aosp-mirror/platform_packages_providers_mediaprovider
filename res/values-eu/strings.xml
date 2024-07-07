@@ -54,7 +54,7 @@
     <string name="select" msgid="2704765470563027689">"Hautatu"</string>
     <string name="selected" msgid="9151797369975828124">"Hautatuta"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Hautatu <xliff:g id="COUNT_0">^1</xliff:g> elementu, gehienez}other{Hautatu <xliff:g id="COUNT_1">^1</xliff:g> elementu, gehienez}}"</string>
-    <string name="recent" msgid="6694613584743207874">"Azkenak"</string>
+    <string name="recent" msgid="6694613584743207874">"Azkenaldikoak"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Ez dago argazki edo bideorik"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Ez dago onartutako argazkirik edo bideorik"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ez dago albumik"</string>

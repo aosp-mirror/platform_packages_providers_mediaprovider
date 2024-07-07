@@ -63,7 +63,7 @@ class BannerTest {
 
             override fun onAction(context: Context) {}
 
-            override val icon = Icons.Filled.VerifiedUser
+            @Composable override fun getIcon() = Icons.Filled.VerifiedUser
 
             @Composable override fun iconContentDescription() = TEST_BANNER_1_ICON_DESCRIPTION
         }
@@ -87,7 +87,7 @@ class BannerTest {
 
             @Composable override fun buildMessage() = TEST_BANNER_2_MESSAGE
 
-            override val icon = Icons.Filled.VerifiedUser
+            @Composable override fun getIcon() = Icons.Filled.VerifiedUser
         }
 
     @Test

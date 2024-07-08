@@ -18,7 +18,9 @@ package com.android.providers.media.tools.photopickerv2
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.android.providers.media.tools.photopickerv2.navigation.NavGraph
+import androidx.compose.material3.MaterialTheme
+import com.android.providers.media.tools.photopickerv2.navigation.MainScreen
+
 /**
  *  Base Activity for this application.
  **/
@@ -26,8 +28,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // UI is triggered by the starting view set in the navigation graph.
-            NavGraph()
+            MaterialTheme(){
+                // UI is triggered by the starting view set in the navigation graph.
+                MainScreen()
+            }
         }
     }
 }
+

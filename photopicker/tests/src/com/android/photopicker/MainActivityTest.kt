@@ -25,6 +25,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.net.Uri
+import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
@@ -32,7 +33,10 @@ import android.test.mock.MockContentResolver
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ActivityScenario.launchActivityForResult
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
@@ -75,6 +79,7 @@ import org.mockito.MockitoAnnotations
 
 /** This test class will run Photopicker's actual MainActivity. */
 @UninstallModules(
+    ApplicationModule::class,
     ActivityModule::class,
     EmbeddedServiceModule::class,
 )
@@ -99,7 +104,7 @@ class MainActivityTest {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-    val contentResolver: ContentResolver = MockContentResolver()
+    @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
     @Before
     fun setup() {
@@ -108,13 +113,17 @@ class MainActivityTest {
         // Stubs for UserMonitor
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
         }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
-        }
+
         whenever(mockContext.contentResolver) { contentResolver }
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.packageName) { "com.android.photopicker" }
@@ -176,6 +185,38 @@ class MainActivityTest {
                     assertWithMessage("Expected configuration to contain caller's uid")
                         .that(configuration.callingPackageUid)
                         .isNotNull()
+                    assertWithMessage("Expected configuration to contain caller's display label")
+                        .that(configuration.callingPackageLabel)
+                        .isNotNull()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testMainActivitySetsCallerUserSelectImagesForApp() {
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                .setComponent(
+                    ComponentName(
+                        InstrumentationRegistry.getInstrumentation().targetContext,
+                        MainActivity::class.java
+                    )
+                )
+                .putExtra(Intent.EXTRA_UID, Process.myUid())
+
+        with(launchActivityForResult<MainActivity>(intent)) {
+            mainScope.runTest {
+                onActivity {
+                    advanceTimeBy(100)
+                    val configuration = configurationManager.configuration.value
+                    assertWithMessage("Expected configuration to contain caller's package name")
+                        .that(configuration.callingPackage)
+                        .isEqualTo("com.android.photopicker.tests")
+                    assertWithMessage("Expected configuration to contain caller's uid")
+                        .that(configuration.callingPackageUid)
+                        .isEqualTo(Process.myUid())
                     assertWithMessage("Expected configuration to contain caller's display label")
                         .that(configuration.callingPackageLabel)
                         .isNotNull()

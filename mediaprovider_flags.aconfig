@@ -64,3 +64,35 @@ flag {
     description: "This flag will enable the abstract service for media cognition processes"
     bug: "331771553"
 }
+
+flag {
+    name: "version_lockdown"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable updates to MediaStore versioning to make it more unique across apps."
+    bug: "349160128"
+}
+
+flag {
+    name: "enable_stable_uris_for_external_primary_volume"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable stable uris for external primary volume"
+    bug: "213931581"
+}
+
+flag {
+    name: "enable_stable_uris_for_public_volume"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable stable uris for public volume"
+    bug: "213931581"
+}
+
+flag {
+    name: "enable_backup_and_restore"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable backup and restore feature"
+    bug: "195138692"
+}

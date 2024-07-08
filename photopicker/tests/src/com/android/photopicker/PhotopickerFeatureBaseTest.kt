@@ -28,8 +28,10 @@ import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.PhotopickerMain
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
@@ -83,18 +85,21 @@ abstract class PhotopickerFeatureBaseTest {
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
 
         val resources = getTestableContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel())
-            .thenReturn(
-                resources.getString(R.string.photopicker_profile_primary_label),
-                resources.getString(R.string.photopicker_profile_managed_label),
-                resources.getString(R.string.photopicker_profile_unknown_label),
-            )
-        // Return default [UserProperties] for all [UserHandle]
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel())
+                .thenReturn(
+                    resources.getString(R.string.photopicker_profile_primary_label),
+                    resources.getString(R.string.photopicker_profile_managed_label),
+                    resources.getString(R.string.photopicker_profile_unknown_label),
+                )
+            // Return default [UserProperties] for all [UserHandle]
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
         }
 
         // Stubs for UserMonitor to acquire contentResolver for each User.
@@ -127,6 +132,7 @@ abstract class PhotopickerFeatureBaseTest {
         featureManager: FeatureManager,
         selection: Selection<Media>,
         events: Events,
+        bannerManager: BannerManager,
         photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration,
         navController: TestNavHostController = createNavController(),
     ) {
@@ -137,9 +143,9 @@ abstract class PhotopickerFeatureBaseTest {
             LocalNavController provides navController,
             LocalEvents provides events,
         ) {
-            PhotopickerTheme(
-                intent = photopickerConfiguration.intent
-            ) { PhotopickerMain() }
+            PhotopickerTheme(intent = photopickerConfiguration.intent) {
+                PhotopickerMain(bannerManager = bannerManager)
+            }
         }
     }
 }

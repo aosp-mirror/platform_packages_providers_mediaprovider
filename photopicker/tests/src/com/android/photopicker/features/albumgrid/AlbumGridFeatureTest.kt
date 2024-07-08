@@ -41,6 +41,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
@@ -130,6 +131,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     @Before
     fun setup() {

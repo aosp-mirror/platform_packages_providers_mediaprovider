@@ -127,7 +127,7 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     @Before
     fun setup() {
@@ -177,7 +177,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     selection = selection,
                     events = events,
                     bannerManager = bannerManager.get(),
-                    photopickerConfiguration = configurationManager.configuration.value
                 )
             }
             composeTestRule.waitForIdle()
@@ -221,7 +220,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     selection = selection,
                     events = events,
                     bannerManager = bannerManager.get(),
-                    photopickerConfiguration = configurationManager.configuration.value
                 )
             }
             composeTestRule.waitForIdle()

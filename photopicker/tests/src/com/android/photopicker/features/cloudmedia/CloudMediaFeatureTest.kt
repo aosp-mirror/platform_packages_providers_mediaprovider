@@ -40,6 +40,7 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
@@ -107,6 +108,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var featureManager: Lazy<FeatureManager>
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var events: Lazy<Events>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context

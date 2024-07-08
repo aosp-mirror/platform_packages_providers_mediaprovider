@@ -46,6 +46,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
@@ -127,6 +128,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager

@@ -111,7 +111,7 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var events: Events
 
     @Before

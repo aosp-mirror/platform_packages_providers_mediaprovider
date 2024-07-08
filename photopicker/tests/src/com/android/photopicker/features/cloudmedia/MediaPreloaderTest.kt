@@ -139,7 +139,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var events: Lazy<Events>
 
     val mediaToPreload = MutableSharedFlow<Set<Media>>()

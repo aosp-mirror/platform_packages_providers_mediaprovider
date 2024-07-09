@@ -63,6 +63,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -171,6 +172,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     val TEST_MEDIA_IMAGE =
         Media.Image(

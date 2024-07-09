@@ -39,6 +39,7 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
@@ -108,6 +109,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 

@@ -144,9 +144,9 @@ public class DatabaseBackupAndRecovery {
     };
 
     /**
-     * Wait time of 15 seconds in millis.
+     * Wait time of 20 seconds in millis.
      */
-    private static final long WAIT_TIME_15_SECONDS_IN_MILLIS = 15000;
+    private static final long WAIT_TIME_20_SECONDS_IN_MILLIS = 20000;
 
     /**
      * Number of records to read from leveldb in a JNI call.
@@ -889,7 +889,8 @@ public class DatabaseBackupAndRecovery {
     protected boolean insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
             String volumeName) {
         final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        return db.insert("files", null, values) != -1;
+        return db.insertWithOnConflict("files", null, values,
+                SQLiteDatabase.CONFLICT_REPLACE) != -1;
     }
 
     private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
@@ -966,7 +967,7 @@ public class DatabaseBackupAndRecovery {
             }
             final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
             // Wait for external primary to be attached as we use same thread for internal volume.
-            // Maximum wait for 10s
+            // Maximum wait for 20s
             getFuseDaemonForFileWithWait(new File(fuseFilePath));
             if (!isBackupPresent(volumeName)) {
                 throw new FileNotFoundException("Backup file not found for " + volumeName);
@@ -1095,7 +1096,7 @@ public class DatabaseBackupAndRecovery {
             throws FileNotFoundException, TimeoutException {
         pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
-                WAIT_TIME_15_SECONDS_IN_MILLIS);
+                WAIT_TIME_20_SECONDS_IN_MILLIS);
     }
 
     protected void setStableUrisGlobalFlag(String volumeName, boolean isEnabled) {
@@ -1254,7 +1255,7 @@ public class DatabaseBackupAndRecovery {
 
     private static void pollForExternalStorageMountedState() throws TimeoutException {
         final File target = Environment.getExternalStorageDirectory();
-        for (int i = 0; i < WAIT_TIME_15_SECONDS_IN_MILLIS / 100; i++) {
+        for (int i = 0; i < WAIT_TIME_20_SECONDS_IN_MILLIS / 100; i++) {
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))) {
                 return;
             }

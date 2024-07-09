@@ -28,8 +28,11 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
@@ -74,7 +77,9 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
@@ -100,12 +105,13 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-    lateinit var mockContentResolver: ContentResolver
+
+    @BindValue @ApplicationOwned lateinit var mockContentResolver: ContentResolver
 
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var events: Events
 
     @Before

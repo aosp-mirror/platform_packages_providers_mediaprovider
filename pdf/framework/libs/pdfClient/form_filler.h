@@ -49,8 +49,8 @@ class FormFiller : public FPDF_FORMFILLINFO {
     void NotifyBeforePageClose(FPDF_PAGE page);
 
     // Renders form widget content.
-    bool RenderTile(FPDF_PAGE page, int page_width, int page_height, const Rectangle_i& tile,
-                    FPDF_BITMAP bitmap) const;
+    bool RenderTile(FPDF_PAGE page, FPDF_BITMAP bitmap, FS_MATRIX transform, FS_RECTF clip,
+                    int render_mode) const;
 
     // Obtain information about the form widget at |point| on the page, if any.
     // |point| is in page coordinates.

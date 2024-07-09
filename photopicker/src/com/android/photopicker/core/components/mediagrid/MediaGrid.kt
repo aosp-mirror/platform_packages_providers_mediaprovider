@@ -16,6 +16,9 @@
 
 package com.android.photopicker.core.components
 
+import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO
@@ -44,7 +47,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -52,15 +54,20 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
@@ -107,7 +114,7 @@ private val MEASUREMENT_DURATION_TEXT_SPACER_SIZE = 2.dp
 private val MEASUREMENT_NOT_SELECTED_INTERNAL_PADDING = 0.dp
 
 /** The offset to apply to the selected icon to shift it over the corner of the image */
-private val MEASUREMENT_SELECTED_ICON_OFFSET = 4.dp
+private val MEASUREMENT_SELECTED_ICON_OFFSET = 8.dp
 
 /** Border width for the selected icon */
 private val MEASUREMENT_SELECTED_ICON_BORDER = 2.dp
@@ -119,7 +126,13 @@ private val MEASUREMENT_SELECTED_CORNER_RADIUS = 16.dp
 private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 
 /** The radius to use for the corners of grid cells that are selected */
-private val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+
+/** The size for the icon used inside the default album thumbnails */
+val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE = 56.dp
+
+/** The padding for the icon for the default album thumbnails */
+val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING = 16.dp
 
 /**
  * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
@@ -161,14 +174,14 @@ fun mediaGrid(
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
-    contentPadding: PaddingValues =
-        PaddingValues(bottom = MEASUREMENT_DEFAULT_CONTENT_PADDING),
+    contentPadding: PaddingValues = PaddingValues(bottom = MEASUREMENT_DEFAULT_CONTENT_PADDING),
     userScrollEnabled: Boolean = true,
     spanFactory: (item: MediaGridItem?, isExpandedScreen: Boolean) -> GridItemSpan =
         ::defaultBuildSpan,
     contentTypeFactory: (item: MediaGridItem?) -> Int = ::defaultBuildContentType,
     contentItemFactory:
-        @Composable (
+        @Composable
+        (
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
@@ -301,116 +314,124 @@ private fun defaultBuildMediaItem(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surfaceContainerHighest
                 ) {
-                    // Container for the image and selected icon
-                    Box {
+                    // Container for the image and it's mimetype icon
+                    Box(
+                        // Switch which modifier is getting applied based on if the item is
+                        // selected or not.
+                        modifier = if (isSelected) selectedModifier else baseModifier,
+                    ) {
 
-                        // Container for the image and it's mimetype icon
-                        Box(
-                            // Switch which modifier is getting applied based on if the item is
-                            // selected or not.
-                            modifier = if (isSelected) selectedModifier else baseModifier,
+                        // Load the media item through the Glide entrypoint.
+                        loadMedia(
+                            media = item.media,
+                            resolution = Resolution.THUMBNAIL,
+                        )
+
+                        // Scrim to separate the text and mimetypes from the image behind them.
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.2f),
+                            contentColor = Color.White,
                         ) {
+                            MimeTypeOverlay(item)
+                        } // Scrim
+                    }
 
-                            // Load the media item through the Glide entrypoint.
-                            loadMedia(
-                                media = item.media,
-                                resolution = Resolution.THUMBNAIL,
-                            )
-                            // Mimetype indicators
-                            Row(
-                                Modifier.align(Alignment.TopEnd)
-                                    .padding(MEASUREMENT_MIMETYPE_ICON_EDGE_PADDING),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                if (item.media is Media.Video) {
-                                    Text(
-                                        text =
-                                            DateUtils.formatElapsedTime(
-                                                item.media.duration / 1000L
-                                            ),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                    Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
-                                    Icon(Icons.Filled.PlayCircle, contentDescription = null)
-                                } else {
-                                    when (item.media.standardMimeTypeExtension) {
-                                        _SPECIAL_FORMAT_GIF -> {
-                                            Icon(Icons.Filled.Gif, contentDescription = null)
-                                        }
-                                        _SPECIAL_FORMAT_MOTION_PHOTO,
-                                        _SPECIAL_FORMAT_ANIMATED_WEBP -> {
-                                            Icon(
-                                                Icons.Filled.MotionPhotosOn,
-                                                contentDescription = null
-                                            )
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            } // Mimetype row
-                        } // Image + Mimetype box
-
-                        // Wrap the icon in a full size box with the same internal padding that
-                        // selected images use to ensure it is positioned correctly, relative to the
-                        // image it is drawing on top of.
-                        Box(
-                            modifier =
-                                Modifier.fillMaxSize()
-                                    .padding(MEASUREMENT_SELECTED_INTERNAL_PADDING)
-                        ) {
-
-                            // Animate the visibility of the selected icon based on the [isSelected]
-                            // attribute.
-                            AnimatedVisibility(
-                                modifier =
-                                    // This offset moves the icon in each axis from the corner
-                                    // origin. (So that the center of the icon is closer to the
-                                    // actual visual corner). The offset is applied to the animation
-                                    // wrapper so the animation origin moves with the icon itself.
-                                    Modifier.offset(
-                                        x = -MEASUREMENT_SELECTED_ICON_OFFSET,
-                                        y = -MEASUREMENT_SELECTED_ICON_OFFSET,
-                                    ),
-                                visible = isSelected,
-                                enter = scaleIn(),
-                                // No exit transition so it disappears on the next frame.
-                                exit = ExitTransition.None,
-                            ) {
-                                Icon(
-                                    Icons.Filled.CheckCircle,
-                                    modifier =
-                                        Modifier
-                                            // Background is necessary because the icon has negative
-                                            // space.
-                                            .background(
-                                                MaterialTheme.colorScheme.onPrimary,
-                                                CircleShape
-                                            )
-                                            // Border color should match the surface that is behind
-                                            // the
-                                            // image.
-                                            .border(
-                                                MEASUREMENT_SELECTED_ICON_BORDER,
-                                                MaterialTheme.colorScheme.surfaceVariant,
-                                                CircleShape
-                                            ),
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_item_selected),
-                                    // For now, this is a lovely shade of dark green to match
-                                    // the mocks.
-                                    tint = CustomAccentColorScheme.current
-                                        .getAccentColorIfDefinedOrElse(
-                                            /* fallback */ MaterialTheme.colorScheme.primary
-                                        ),
-                                )
-                            }
-                        } // Icon Container
-                    } // Image + Icon Container
+                    // This is outside the box that wraps the image so it doesn't get clipped
+                    // by the shape. Internally, it positions itself with similar padding.
+                    SelectedIconOverlay(isSelected)
                 } // Surface
-            } // Box for GridCell
-        }
-
+            } // Grid cell box
+        } // when MediaItem branch
         else -> {}
+    } // when
+}
+
+/**
+ * Generates a mimetype overlay for media items, if the mimetype is supported.
+ *
+ * @param item The MediaGridItem.MediaItem for the current grid cell.
+ */
+@Composable
+private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Row(
+            Modifier.align(AbsoluteAlignment.TopRight)
+                .padding(MEASUREMENT_MIMETYPE_ICON_EDGE_PADDING),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (item.media is Media.Video) {
+                Text(
+                    text = DateUtils.formatElapsedTime(item.media.duration / 1000L),
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
+                Icon(Icons.Filled.PlayCircle, contentDescription = null)
+            } else {
+                when (item.media.standardMimeTypeExtension) {
+                    _SPECIAL_FORMAT_GIF -> {
+                        Icon(Icons.Filled.Gif, contentDescription = null)
+                    }
+                    _SPECIAL_FORMAT_MOTION_PHOTO,
+                    _SPECIAL_FORMAT_ANIMATED_WEBP -> {
+                        Icon(Icons.Filled.MotionPhotosOn, contentDescription = null)
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Generates a Icon that will show and hide itself based on the [isSelected] property.
+ *
+ * @param isSelected if the current item is currently selected by the user.
+ */
+@Composable
+private fun SelectedIconOverlay(isSelected: Boolean) {
+
+    Box(modifier = Modifier.fillMaxSize().padding(MEASUREMENT_SELECTED_INTERNAL_PADDING)) {
+        // Animate the visibility of the selected icon based on the [isSelected]
+        // attribute.
+        AnimatedVisibility(
+            modifier =
+                Modifier.align(AbsoluteAlignment.TopLeft)
+                    // This offset moves the icon in each axis from the corner
+                    // origin. (So that the center of the icon is closer to the
+                    // actual visual corner). The offset is applied to the animation
+                    // wrapper so the animation origin moves with the icon itself.
+                    .offset(
+                        x = -MEASUREMENT_SELECTED_ICON_OFFSET,
+                        y = -MEASUREMENT_SELECTED_ICON_OFFSET,
+                    ),
+            visible = isSelected,
+            enter = scaleIn(),
+            // No exit transition so it disappears on the next frame.
+            exit = ExitTransition.None,
+        ) {
+            Icon(
+                Icons.Filled.CheckCircle,
+                modifier =
+                    Modifier
+                        // Background is necessary because the icon has negative
+                        // space.
+                        .background(MaterialTheme.colorScheme.onPrimary, CircleShape)
+                        // Border color should match the surface that is behind
+                        // the image.
+                        .border(
+                            MEASUREMENT_SELECTED_ICON_BORDER,
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        ),
+                contentDescription = stringResource(R.string.photopicker_item_selected),
+                tint =
+                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                        /* fallback */ MaterialTheme.colorScheme.primary
+                    ),
+            )
+        } // Image + Icon Container
     }
 }
 
@@ -446,20 +467,40 @@ private fun defaultBuildAlbumItem(
                 Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                     // Container for albums and their title
                     Column {
-                        // Load the media item through the Glide entrypoint.
-                        loadMedia(
-                            media = item.album,
-                            resolution = Resolution.THUMBNAIL,
-                            // Modifier for album thumbnail
-                            modifier =
+                        // In the current implementation for AlbumsGrid, favourites and videos are
+                        // 2 mandatory albums and are shown even when they contain no data. For this
+                        // case they have special thumbnails associated with them.
+                        with(item.album) {
+                            val modifier =
                                 Modifier.fillMaxWidth()
                                     .clip(
                                         RoundedCornerShape(
                                             MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS
                                         )
                                     )
-                                    .aspectRatio(1f),
-                        )
+                                    .aspectRatio(1f)
+                            when {
+                                id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
+                                    DefaultAlbumIcon(
+                                        /* icon */ Icons.Outlined.StarOutline,
+                                        modifier
+                                    )
+                                }
+                                id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
+                                    DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
+                                }
+                                // Load the media item through the Glide entrypoint.
+                                else -> {
+                                    loadMedia(
+                                        media = item.album,
+                                        resolution = Resolution.THUMBNAIL,
+                                        // Modifier for album thumbnail
+                                        modifier = modifier
+                                    )
+                                }
+                            }
+                        }
+
                         // Album title shown below the album thumbnail.
                         Box {
                             Text(
@@ -484,5 +525,36 @@ private fun defaultBuildAlbumItem(
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
         Text(item.label)
+    }
+}
+
+/**
+ * Creates an image which can be used as a default thumbnail, this image is creates using the
+ * provided [ImageVector].
+ *
+ * These image vectors a part of androidx androidx.compose.material.icons library.
+ */
+@Composable
+private fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
+    Box(
+        // Modifier for album thumbnail
+        modifier = modifier.background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null, // Or provide a suitable content description
+            modifier =
+                Modifier
+                    // Equivalent to layout_width and layout_height
+                    .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainer, // Background color
+                        shape = CircleShape // Circular background
+                    )
+                    // Padding inside the circle
+                    .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
+                    .clip(CircleShape), // Clip the image to a circle
+        )
     }
 }

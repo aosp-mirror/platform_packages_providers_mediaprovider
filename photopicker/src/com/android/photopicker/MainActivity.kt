@@ -19,6 +19,9 @@ package com.android.photopicker
 import android.content.ClipData
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager.ApplicationInfoFlags
+import android.content.pm.PackageManager.NameNotFoundException
+import android.content.pm.PackageManager.PackageInfoFlags
 import android.net.Uri
 import android.os.Bundle
 import android.os.UserHandle
@@ -33,8 +36,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -47,6 +52,7 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,6 +75,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var bannerManager: Lazy<BannerManager>
     @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
     // This needs to be injected lazily, to defer initialization until the action can be set
@@ -134,6 +141,9 @@ class MainActivity : Hilt_MainActivity() {
             finish()
         }
 
+        // Add information about the caller to the configuration.
+        setCallerInConfiguration()
+
         // Begin listening for events before starting the UI.
         listenForEvents()
 
@@ -161,6 +171,7 @@ class MainActivity : Hilt_MainActivity() {
                 PhotopickerTheme(intent = photopickerConfiguration.intent) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
+                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.
@@ -173,6 +184,15 @@ class MainActivity : Hilt_MainActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "MainActivity OnResume")
+
+        // Initialize / Refresh the banner state, it's possible that external state has changed if
+        // the activity is returning from the background.
+        lifecycleScope.launch { bannerManager.get().refreshBanners() }
     }
 
     /**
@@ -215,6 +235,79 @@ class MainActivity : Hilt_MainActivity() {
     }
 
     /**
+     * Sets the caller related fields in [PhotopickerConfiguration] with the calling application's
+     * information, if available. This should only be called once and will cause a configuration
+     * update.
+     */
+    private fun setCallerInConfiguration() {
+
+        val pm = getPackageManager()
+
+        var callingPackage: String?
+        var callingPackageUid: Int?
+
+        when (getIntent()?.getAction()) {
+            // For permission mode, the caller will always be the permission controller,
+            // and the permission controller will pass the UID of the app.
+            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
+
+                callingPackageUid = getIntent()?.extras?.getInt(Intent.EXTRA_UID)
+                checkNotNull(callingPackageUid) {
+                    "Photopicker cannot run in permission mode without Intent.EXTRA_UID set."
+                }
+                callingPackage =
+                    callingPackageUid.let {
+                        // In the case of multiple packages sharing a uid, use the first one.
+                        pm.getPackagesForUid(it)?.first()
+                    }
+            }
+
+            // Extract the caller from the activity class inputs
+            else -> {
+                callingPackage = getCallingPackage()
+                callingPackageUid =
+                    callingPackage?.let {
+                        try {
+                            if (SdkLevel.isAtLeastT()) {
+                                // getPackageUid API is T+
+                                pm.getPackageUid(it, PackageInfoFlags.of(0))
+                            } else {
+                                // Fallback for S or lower
+                                pm.getPackageUid(it, /* flags= */ 0)
+                            }
+                        } catch (e: NameNotFoundException) {
+                            null
+                        }
+                    }
+            }
+        }
+
+        val callingPackageLabel: String? =
+            callingPackage?.let {
+                try {
+                    if (SdkLevel.isAtLeastT()) {
+                        // getApplicationInfo API is T+
+                        pm.getApplicationLabel(
+                                pm.getApplicationInfo(it, ApplicationInfoFlags.of(0))
+                            )
+                            .toString() // convert CharSequence to String
+                    } else {
+                        // Fallback for S or lower
+                        pm.getApplicationLabel(pm.getApplicationInfo(it, /* flags= */ 0))
+                            .toString() // convert CharSequence to String
+                    }
+                } catch (e: NameNotFoundException) {
+                    null
+                }
+            }
+        configurationManager.setCaller(
+            callingPackage = callingPackage,
+            callingPackageUid = callingPackageUid,
+            callingPackageLabel = callingPackageLabel,
+        )
+    }
+
+    /**
      * Entrypoint for confirming the set of selected media and preparing the media for the calling
      * application.
      *
@@ -245,8 +338,8 @@ class MainActivity : Hilt_MainActivity() {
                 return
             }
         }
-
-        onMediaSelectionReady(snapshot)
+        val deselectionSnapshot = selection.get().getDeselection().toHashSet()
+        onMediaSelectionReady(snapshot, deselectionSnapshot)
     }
 
     /**
@@ -263,7 +356,7 @@ class MainActivity : Hilt_MainActivity() {
      * @see [setResultForApp] for modes where the Photopicker returns media directly to the caller
      * @see [issueGrantsForApp] for permission mode grant writing in MediaProvider
      */
-    private suspend fun onMediaSelectionReady(selection: Set<Media>) {
+    private suspend fun onMediaSelectionReady(selection: Set<Media>, deselection: Set<Media>) {
 
         val configuration = configurationManager.configuration.first()
 
@@ -279,7 +372,7 @@ class MainActivity : Hilt_MainActivity() {
                         ?: throw IllegalStateException(
                             "Expected a uid to provided by PermissionController."
                         )
-                issueGrantsForApp(selection, uid)
+                updateGrantsForApp(selection, deselection, uid)
             }
             else -> {}
         }
@@ -342,17 +435,28 @@ class MainActivity : Hilt_MainActivity() {
      * app that has invoked the permission controller, and thus caused PermissionController to open
      * photopicker).
      *
+     * In addition to this, the preGranted items that are now de-selected by the user, the app
+     * should no longer hold MediaGrants for them. This method takes care of revoking these grants.
+     *
      * This is part of the sequence of ending a Photopicker Session, and is done in place of
      * returning data to the caller.
      *
      * @param selection The prepared media that is ready to be returned to the caller.
+     * @param deselection The media for which the read grants should be revoked.
      * @param uid The uid of the calling application to issue media grants for.
      */
-    private suspend fun issueGrantsForApp(selection: Set<Media>, uid: Int) {
-
+    private suspend fun updateGrantsForApp(
+        selection: Set<Media>,
+        deselection: Set<Media>,
+        uid: Int
+    ) {
+        // Adding grants for items selected by the user.
         val uris: List<Uri> = selection.map { it.mediaUri }
-        // TODO: b/328189932 Diff the initial selection and revoke grants as needed.
         MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
+
+        // Removing grants for preGranted items that have now been de-selected by the user.
+        val urisForItemsToBeRevoked = deselection.map { it.mediaUri }
+        MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid, urisForItemsToBeRevoked)
 
         // No need to send any data back to the PermissionController, just send an OK signal
         // back to indicate the MediaGrants are available.
@@ -407,7 +511,7 @@ class MainActivity : Hilt_MainActivity() {
             isIntentReferredByDocumentsUi(getReferrer()) -> false
 
             // Ensure Photopicker can handle the specified MIME types.
-            canHandleIntentMimeTypes(intent) -> false
+            intent.canHandleGetContentIntentMimeTypes() -> false
             else -> true
         }
     }
@@ -439,49 +543,5 @@ class MainActivity : Hilt_MainActivity() {
      */
     private fun isIntentReferredByDocumentsUi(referrer: Uri?): Boolean {
         return referrer?.getHost() == getDocumentssUiComponentName()?.getPackageName()
-    }
-
-    /**
-     * Determines if [MainActivity] is capable of handling the [Intent.EXTRA_MIME_TYPES] provided to
-     * the activity in this Photopicker session.
-     *
-     * @return true if the list of mimetypes can be handled by Photopicker.
-     */
-    private fun canHandleIntentMimeTypes(intent: Intent): Boolean {
-
-        if (!intent.hasExtra(Intent.EXTRA_MIME_TYPES)) {
-            // If the incoming type is */* then Photopicker can't handle this mimetype
-            return isMediaMimeType(intent.getType())
-        }
-
-        val mimeTypes = intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)
-
-        mimeTypes?.let {
-
-            // If the list of MimeTypes is empty, nothing was explicitly set, so assume that
-            // non-media files should be displayed.
-            if (mimeTypes.size == 0) return false
-
-            // Ensure all mimetypes in the incoming filter list are supported
-            for (mimeType in mimeTypes) {
-                if (!isMediaMimeType(mimeType)) {
-                    return false
-                }
-            }
-        }
-            // Should not be null at this point (the intent contains the extra key),
-            // but better safe than sorry.
-            ?: return false
-
-        return true
-    }
-
-    /**
-     * Determines if the mimeType is a media mimetype that Photopicker can support.
-     *
-     * @return Whether the mimetype is supported by Photopicker.
-     */
-    private fun isMediaMimeType(mimeType: String?): Boolean {
-        return mimeType?.let { it.startsWith("image/") || it.startsWith("video/") } ?: false
     }
 }

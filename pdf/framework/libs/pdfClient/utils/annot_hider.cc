@@ -22,7 +22,7 @@
 namespace pdfClient_utils {
 
 AnnotHider::AnnotHider(FPDF_PAGE page, const std::unordered_set<int>& types) {
-    GetVisibleAnnotsOfType(page, types, &annots_);
+    GetVisibleAnnots(page, types, &annots_);
     HideAnnots(annots_);
 }
 

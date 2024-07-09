@@ -19,6 +19,7 @@ package com.android.photopicker.features.overflowmenu
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
@@ -49,7 +50,8 @@ class OverflowMenuFeature : PhotopickerUiFeature {
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
     /** Events produced by the OverflowMenu */
-    override val eventsProduced = setOf<RegisteredEventClass>()
+    override val eventsProduced =
+        setOf<RegisteredEventClass>(Event.LogPhotopickerUIEvent::class.java)
 
     @Composable
     override fun compose(location: Location, modifier: Modifier, params: LocationParams) {

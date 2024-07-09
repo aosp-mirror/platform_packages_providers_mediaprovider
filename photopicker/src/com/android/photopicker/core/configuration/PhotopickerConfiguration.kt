@@ -60,6 +60,7 @@ enum class PhotopickerRuntimeEnv {
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  * @property intent the [Intent] that Photopicker was launched with. This property is private to
  *   restrict access outside of this class.
+ * @property sessionId identifies the current photopicker session
  */
 data class PhotopickerConfiguration(
     val runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
@@ -75,6 +76,7 @@ data class PhotopickerConfiguration(
     val preSelectedUris: ArrayList<Uri>? = null,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
+    val sessionId: Int,
     private val intent: Intent? = null,
 ) {
 

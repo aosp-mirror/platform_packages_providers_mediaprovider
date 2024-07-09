@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.events
 
+import com.android.photopicker.data.model.Group
 import com.android.providers.media.MediaProviderStatsLog
 
 /* Convenience alias for classes that implement [Event] */
@@ -105,14 +106,21 @@ interface Event {
         val uiEvent: Telemetry.UiEvent
     ) : Event
 
+    data class LogPhotopickerAlbumOpenedUIEvent(
+        override val dispatcherToken: String,
+        val sessionId: Int,
+        val packageUid: Int,
+        val albumOpened: Group.Album
+    ) : Event
+
     /** Details out the information of a picker media item */
     data class ReportPhotopickerMediaItemStatus(
         override val dispatcherToken: String,
         val sessionId: Int,
         val mediaStatus: Telemetry.MediaStatus,
-        val mediaLocation: Telemetry.MediaLocation,
+        val selectionSource: Telemetry.MediaLocation,
         val itemPosition: Int,
-        val selectedAlbum: Telemetry.SelectedAlbum,
+        val selectedAlbum: Group.Album?,
         val mediaType: Telemetry.MediaType,
         val cloudOnly: Boolean,
         val pickerSize: Telemetry.PickerSize
@@ -228,6 +236,7 @@ interface Telemetry {
     /*
       Number of items allowed to be picked
     */
+    @Suppress("ktlint:standard:max-line-length")
     enum class PickerSelection(val selection: Int) {
         SINGLE(
             MediaProviderStatsLog
@@ -236,6 +245,10 @@ interface Telemetry {
         MULTIPLE(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_PERMITTED_SELECTION__MULTIPLE
+        ),
+        UNSET_PICKER_SELECTION(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_PERMITTED_SELECTION__UNSET_PICKER_PERMITTED_SELECTION
         )
     }
 
@@ -248,7 +261,11 @@ interface Telemetry {
         PRIVATE_SPACE(
             MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__USER_PROFILE__PRIVATE_SPACE
         ),
-        UNKNOWN(MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__USER_PROFILE__UNKNOWN)
+        UNKNOWN(MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__USER_PROFILE__UNKNOWN),
+        UNSET_USER_PROFILE(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SESSION_INFO_REPORTED__USER_PROFILE__UNSET_USER_PROFILE
+        )
     }
 
     /*
@@ -257,7 +274,13 @@ interface Telemetry {
     enum class PickerStatus(val status: Int) {
         OPENED(MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__OPENED),
         CANCELED(MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__CANCELED),
-        CONFIRMED(MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__CONFIRMED)
+        CONFIRMED(
+            MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__CONFIRMED
+        ),
+        UNSET_PICKER_STATUS(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__UNSET_PICKER_STATUS
+        )
     }
 
     /*
@@ -274,6 +297,9 @@ interface Telemetry {
         PERMISSION_MODE_PICKER(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_MODE__PERMISSION_MODE_PICKER
+        ),
+        UNSET_PICKER_MODE(
+            MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_MODE__UNSET_PICKER_MODE
         )
     }
 
@@ -292,6 +318,14 @@ interface Telemetry {
         BACK_BUTTON(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_CLOSE_METHOD__BACK_BUTTON
+        ),
+        SELECTION_CONFIRMED(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_CLOSE_METHOD__PICKER_SELECTION_CONFIRMED
+        ),
+        UNSET_PICKER_CLOSE_METHOD(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_CLOSE_METHOD__UNSET_PICKER_CLOSE_METHOD
         )
     }
 
@@ -300,7 +334,10 @@ interface Telemetry {
     */
     enum class PickerSize(val size: Int) {
         COLLAPSED(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__COLLAPSED),
-        EXPANDED(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__EXPANDED)
+        EXPANDED(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__EXPANDED),
+        UNSET_PICKER_SIZE(
+            MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__UNSET_PICKER_SIZE
+        )
     }
 
     /*
@@ -314,6 +351,14 @@ interface Telemetry {
         ACTION_GET_CONTENT(
             MediaProviderStatsLog
                 .PHOTOPICKER_API_INFO_REPORTED__PICKER_INTENT_ACTION__ACTION_GET_CONTENT
+        ),
+        ACTION_USER_SELECT(
+            MediaProviderStatsLog
+                .PHOTOPICKER_API_INFO_REPORTED__PICKER_INTENT_ACTION__ACTION_USER_SELECT
+        ),
+        UNSET_PICKER_INTENT_ACTION(
+            MediaProviderStatsLog
+                .PHOTOPICKER_API_INFO_REPORTED__PICKER_INTENT_ACTION__UNSET_PICKER_INTENT_ACTION
         )
     }
 
@@ -323,11 +368,18 @@ interface Telemetry {
     enum class MediaType(val type: Int) {
         PHOTO(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__PHOTO),
         VIDEO(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__VIDEO),
+        PHOTO_VIDEO(
+            MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__PHOTO_VIDEO
+        ),
         GIF(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__GIF),
         LIVE_PHOTO(
             MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__LIVE_PHOTO
         ),
-        OTHER(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__OTHER)
+        OTHER(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__OTHER),
+        UNSET_MEDIA_TYPE(
+            MediaProviderStatsLog
+                .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__UNSET_MEDIA_TYPE
+        )
     }
 
     /*
@@ -336,7 +388,10 @@ interface Telemetry {
     enum class SelectedTab(val tab: Int) {
         PHOTOS(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__PHOTOS),
         ALBUMS(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__ALBUMS),
-        COLLECTIONS(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__COLLECTIONS)
+        COLLECTIONS(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__COLLECTIONS),
+        UNSET_SELECTED_TAB(
+            MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__UNSET_SELECTED_TAB
+        )
     }
 
     /*
@@ -355,6 +410,10 @@ interface Telemetry {
         ),
         UNDEFINED_CLOUD(
             MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_ALBUM__UNDEFINED_CLOUD
+        ),
+        UNSET_SELECTED_ALBUM(
+            MediaProviderStatsLog
+                .PHOTOPICKER_API_INFO_REPORTED__SELECTED_ALBUM__UNSET_SELECTED_ALBUM
         )
     }
 
@@ -462,7 +521,8 @@ interface Telemetry {
         ),
         SELECT_SEARCH_CATEGORY(
             MediaProviderStatsLog.PHOTOPICKER_UIEVENT_LOGGED__UI_EVENT__SELECT_SEARCH_CATEGORY
-        )
+        ),
+        UNSET_UI_EVENT(MediaProviderStatsLog.PHOTOPICKER_UIEVENT_LOGGED__UI_EVENT__UNSET_UI_EVENT)
     }
 
     /*
@@ -474,6 +534,10 @@ interface Telemetry {
         ),
         UNSELECTED(
             MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_STATUS__UNSELECTED
+        ),
+        UNSET_MEDIA_STATUS(
+            MediaProviderStatsLog
+                .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_STATUS__UNSET_MEDIA_STATUS
         )
     }
 
@@ -485,7 +549,11 @@ interface Telemetry {
             MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__MAIN_GRID
         ),
         ALBUM(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__ALBUM),
-        GROUP(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__GROUP)
+        GROUP(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__GROUP),
+        UNSET_MEDIA_LOCATION(
+            MediaProviderStatsLog
+                .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__UNSET_MEDIA_LOCATION
+        )
     }
 
     /*
@@ -497,16 +565,25 @@ interface Telemetry {
         ),
         LONG_PRESS(
             MediaProviderStatsLog.PHOTOPICKER_PREVIEW_INFO_LOGGED__PREVIEW_MODE_ENTRY__LONG_PRESS
+        ),
+        UNSET_PREVIEW_MODE_ENTRY(
+            MediaProviderStatsLog
+                .PHOTOPICKER_PREVIEW_INFO_LOGGED__PREVIEW_MODE_ENTRY__UNSET_PREVIEW_MODE_ENTRY
         )
     }
 
     /*
     Defines different video playback user interactions
     */
+    @Suppress("ktlint:standard:max-line-length")
     enum class VideoPlayBackInteractions(val interaction: Int) {
         PLAY(MediaProviderStatsLog.PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__PLAY),
         PAUSE(MediaProviderStatsLog.PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__PAUSE),
-        MUTE(MediaProviderStatsLog.PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__MUTE)
+        MUTE(MediaProviderStatsLog.PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__MUTE),
+        UNSET_VIDEO_PLAYBACK_INTERACTION(
+            MediaProviderStatsLog
+                .PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__UNSET_VIDEO_PLAYBACK_INTERACTION
+        )
     }
 
     /*
@@ -519,6 +596,10 @@ interface Telemetry {
         CLOUD_SETTINGS(
             MediaProviderStatsLog
                 .PHOTOPICKER_MENU_INTERACTION_LOGGED__MENU_ITEM_SELECTED__CLOUD_SETTINGS
+        ),
+        UNSET_MENU_ITEM_SELECTED(
+            MediaProviderStatsLog
+                .PHOTOPICKER_MENU_INTERACTION_LOGGED__MENU_ITEM_SELECTED__UNSET_MENU_ITEM_SELECTED
         )
     }
 
@@ -539,6 +620,10 @@ interface Telemetry {
         ),
         CHOOSE_APP(
             MediaProviderStatsLog.PHOTOPICKER_BANNER_INTERACTION_LOGGED__BANNER_TYPE__CHOOSE_APP
+        ),
+        UNSET_BANNER_TYPE(
+            MediaProviderStatsLog
+                .PHOTOPICKER_BANNER_INTERACTION_LOGGED__BANNER_TYPE__UNSET_BANNER_TYPE
         )
     }
 
@@ -558,6 +643,10 @@ interface Telemetry {
         CLICK_BANNER(
             MediaProviderStatsLog
                 .PHOTOPICKER_BANNER_INTERACTION_LOGGED__USER_BANNER_INTERACTION__CLICK_BANNER
+        ),
+        UNSET_BANNER_INTERACTION(
+            MediaProviderStatsLog
+                .PHOTOPICKER_BANNER_INTERACTION_LOGGED__BANNER_TYPE__UNSET_BANNER_TYPE
         )
     }
 
@@ -574,6 +663,10 @@ interface Telemetry {
         SUGGESTED_SEARCHES(
             MediaProviderStatsLog
                 .PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__SUGGESTED_SEARCHES
+        ),
+        UNSET_SEARCH_METHOD(
+            MediaProviderStatsLog
+                .PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__UNSET_SEARCH_METHOD
         )
     }
 }

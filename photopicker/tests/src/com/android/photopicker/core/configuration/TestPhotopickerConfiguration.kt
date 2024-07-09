@@ -18,17 +18,22 @@ package com.android.photopicker.core.configuration
 
 import android.content.Intent
 import android.provider.MediaStore
+import com.android.photopicker.core.events.generatePickerSessionId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
+val testSessionId = generatePickerSessionId()
+
 /** A [PhotopickerConfiguration] that allows selection of only a single item. */
-val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 1)
+val SINGLE_SELECT_CONFIG =
+    PhotopickerConfiguration(action = "", selectionLimit = 1, sessionId = testSessionId)
 
 /** A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items. */
-val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
+val MULTI_SELECT_CONFIG =
+    PhotopickerConfiguration(action = "", selectionLimit = 50, sessionId = testSessionId)
 
 /** A test package name used in test photopicker configurations. */
 val TEST_CALLING_PACKAGE = "com.example.test"
@@ -47,6 +52,7 @@ val testPhotopickerConfiguration: PhotopickerConfiguration =
     PhotopickerConfiguration(
         action = "TEST_ACTION",
         intent = Intent("TEST_ACTION"),
+        sessionId = testSessionId
     )
 
 /**
@@ -57,6 +63,7 @@ val testActionPickImagesConfiguration: PhotopickerConfiguration =
     PhotopickerConfiguration(
         action = MediaStore.ACTION_PICK_IMAGES,
         intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+        sessionId = testSessionId
     )
 
 /**
@@ -67,6 +74,7 @@ val testGetContentConfiguration: PhotopickerConfiguration =
     PhotopickerConfiguration(
         action = Intent.ACTION_GET_CONTENT,
         intent = Intent(Intent.ACTION_GET_CONTENT),
+        sessionId = testSessionId
     )
 
 /**
@@ -80,6 +88,7 @@ val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
         callingPackage = TEST_CALLING_PACKAGE,
         callingPackageUid = TEST_CALLING_UID,
         callingPackageLabel = TEST_CALLING_PACKAGE_LABEL,
+        sessionId = testSessionId
     )
 
 /**
@@ -87,7 +96,11 @@ val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
  * [PhotopickerRuntimeEnv.EMBEDDED]
  */
 val testEmbeddedPhotopickerConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = "", runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED)
+    PhotopickerConfiguration(
+        action = "",
+        runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+        sessionId = testSessionId
+    )
 
 /**
  * Helper function to generate a [StateFlow] that mimics the flow emitted by the

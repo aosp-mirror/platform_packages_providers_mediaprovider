@@ -23,6 +23,7 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
@@ -59,7 +60,11 @@ class PreviewFeature : PhotopickerUiFeature {
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
     /** Events produced by the Preview page */
-    override val eventsProduced = emptySet<RegisteredEventClass>()
+    override val eventsProduced =
+        setOf<RegisteredEventClass>(
+            Event.LogPhotopickerUIEvent::class.java,
+            Event.LogPhotopickerPreviewInfo::class.java
+        )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(

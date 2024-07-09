@@ -34,49 +34,72 @@ import java.time.temporal.ChronoUnit
  *
  * It generates and returns its own fake data.
  */
-class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
+class FakeInMemoryMediaPagingSource
+private constructor(val DATA_SIZE: Int = DEFAULT_SIZE, private val DATA_LIST: List<Media>? = null) :
     PagingSource<MediaPageKey, Media>() {
 
+    companion object {
+        const val DEFAULT_SIZE = 10_000
+    }
+
+    constructor(dataSize: Int = 10_000) : this(dataSize, null)
+
+    constructor(dataList: List<Media>) : this(DEFAULT_SIZE, dataList)
+
     private val currentDateTime = LocalDateTime.now()
-    // Generate an internal dataset of size [DATA_SIZE], and hold it in a list in memory.
+
+    // If a [DATA_LIST] was provided, use it, otherwise generate a list of the requested size.
     val DATA =
-        buildList<Media>() {
-            for (i in 1..DATA_SIZE) {
-                add(
-                    Media.Image(
-                        mediaId = "$i",
-                        pickerId = i.toLong(),
-                        authority = "a",
-                        mediaSource = MediaSource.LOCAL,
-                        mediaUri = Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme("content")
-                                    authority("media")
-                                    path("picker")
-                                    path("a")
-                                    path("$i")
-                                }
-                                .build(),
-                        glideLoadableUri = Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme("content")
-                                    authority("a")
-                                    path("$i")
-                                }
-                                .build(),
-                        dateTakenMillisLong =
-                            currentDateTime
-                                .minus(i.toLong(), ChronoUnit.DAYS)
-                                .toEpochSecond(ZoneOffset.UTC) * 1000,
-                        sizeInBytes = 1000L,
-                        mimeType = "image/png",
-                        standardMimeTypeExtension = 1,
+        DATA_LIST
+            ?: buildList<Media>() {
+                for (i in 1..DATA_SIZE) {
+                    add(
+                        Media.Image(
+                            mediaId = "$i",
+                            pickerId = i.toLong(),
+                            authority = "a",
+                            mediaSource = MediaSource.LOCAL,
+                            mediaUri =
+                                Uri.EMPTY.buildUpon()
+                                    .apply {
+                                        scheme("content")
+                                        authority("media")
+                                        path("picker")
+                                        path("a")
+                                        path("$i")
+                                    }
+                                    .build(),
+                            glideLoadableUri =
+                                Uri.EMPTY.buildUpon()
+                                    .apply {
+                                        scheme("content")
+                                        authority("a")
+                                        path("$i")
+                                    }
+                                    .build(),
+                            dateTakenMillisLong =
+                                currentDateTime
+                                    .minus(i.toLong(), ChronoUnit.DAYS)
+                                    .toEpochSecond(ZoneOffset.UTC) * 1000,
+                            sizeInBytes = 1000L,
+                            mimeType = "image/png",
+                            standardMimeTypeExtension = 1,
+                        )
                     )
-                )
+                }
             }
-        }
 
     override suspend fun load(params: LoadParams<MediaPageKey>): LoadResult<MediaPageKey, Media> {
+
+        // Handle a data size of 0 for the first page, and return an empty page with no further
+        // keys.
+        if (DATA_SIZE == 0 && params.key == null) {
+            return LoadResult.Page(
+                data = emptyList(),
+                nextKey = null,
+                prevKey = null,
+            )
+        }
 
         // This is inefficient, but a reliable way to locate the record being requested by the
         // [MediaPageKey] without having to keep track of offsets.
@@ -85,7 +108,7 @@ class FakeInMemoryMediaPagingSource(val DATA_SIZE: Int = 10_000) :
             else DATA.indexOfFirst({ item -> item.pickerId == params.key?.pickerId ?: 1 })
 
         // The list is zero-based, and loadSize isn't; so, offset by 1
-        val endIndex = (startIndex + params.loadSize) - 1
+        val endIndex = Math.min((startIndex + params.loadSize) - 1, DATA.lastIndex)
 
         // Item at start position doesn't exist, so this isn't a valid page.
         if (DATA.getOrNull(startIndex) == null) {

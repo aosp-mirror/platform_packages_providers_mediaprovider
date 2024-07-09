@@ -71,6 +71,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable updates to MediaStore versioning to make it more unique across apps."
     bug: "349160128"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -79,6 +80,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable stable uris for external primary volume"
     bug: "213931581"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -87,6 +89,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable stable uris for public volume"
     bug: "213931581"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -95,4 +98,5 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable backup and restore feature"
     bug: "195138692"
+    is_fixed_read_only: true
 }

@@ -31,9 +31,9 @@
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"Refuser"</string>
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}one{+<xliff:g id="COUNT_1">^1</xliff:g>}many{+<xliff:g id="COUNT_1">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{Plus <xliff:g id="COUNT_0">^1</xliff:g> élément supplémentaire}one{Plus <xliff:g id="COUNT_1">^1</xliff:g> élément supplémentaire}many{Plus <xliff:g id="COUNT_1">^1</xliff:g> éléments supplémentaires}other{Plus <xliff:g id="COUNT_1">^1</xliff:g> éléments supplémentaires}}"</string>
-    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Effacer les fichiers temporaires des applications"</string>
+    <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Effacer les fichiers temporaires des applis"</string>
     <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"<xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> aimerait supprimer certains fichiers temporaires. Ceci peut entraîner une utilisation accrue de la pile ou des données cellulaires."</string>
-    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Suppression des fichiers temporaires des applications en cours…"</string>
+    <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Suppression des fichiers temporaires des applis en cours…"</string>
     <string name="clear" msgid="5524638938415865915">"Effacer"</string>
     <string name="allow" msgid="8885707816848569619">"Autoriser"</string>
     <string name="deny" msgid="6040983710442068936">"Refuser"</string>
@@ -68,16 +68,16 @@
     <string name="picker_personal_profile" msgid="639484258397758406">"Passez au profil personnel"</string>
     <string name="picker_personal_profile_label" msgid="6189198163209597344">"Personnel"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Il est interdit d\'accéder aux données professionnelles à partir d\'une application personnelle"</string>
-    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Il est interdit d\'accéder aux données personnelles à partir d\'une application professionnelle"</string>
-    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"L\'accès aux données du profil <xliff:g id="PROFILE1">%1$s</xliff:g> à partir d\'une application du profil <xliff:g id="PROFILE2">%2$s</xliff:g> n\'est pas permis"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Il est interdit d\'accéder aux données professionnelles à partir d\'une appli personnelle"</string>
+    <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Il est interdit d\'accéder aux données personnelles à partir d\'une appli professionnelle"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"L\'accès aux données du profil <xliff:g id="PROFILE1">%1$s</xliff:g> à partir d\'une appli du profil <xliff:g id="PROFILE2">%2$s</xliff:g> n\'est pas permis"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Passez au profil <xliff:g id="PROFILE">%s</xliff:g>"</string>
-    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Les applications professionnelles sont interrompues"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les applications du profil <xliff:g id="PROFILE">%s</xliff:g> sont interrompues"</string>
-    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Pour ouvrir des photos professionnelles, activez vos applications professionnelles, puis réessayez"</string>
-    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Pour ouvrir des photos du profil <xliff:g id="PROFILE1">%1$s</xliff:g>, activez les applications de votre profil <xliff:g id="PROFILE2">%2$s</xliff:g> et réessayez"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"Cette application ne peut accéder qu\'aux photos que vous sélectionnez"</string>
-    <string name="picker_header_permissions" msgid="675872774407768495">"Sélectionnez les photos et les vidéos auxquelles cette application peut accéder"</string>
+    <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Les applis professionnelles sont interrompues"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les applis du profil <xliff:g id="PROFILE">%s</xliff:g> sont interrompues"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Pour ouvrir des photos professionnelles, activez vos applis professionnelles, puis réessayez"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Pour ouvrir des photos du profil <xliff:g id="PROFILE1">%1$s</xliff:g>, activez les applis de votre profil <xliff:g id="PROFILE2">%2$s</xliff:g> et réessayez"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"Cette appli ne peut accéder qu\'aux photos que vous sélectionnez"</string>
+    <string name="picker_header_permissions" msgid="675872774407768495">"Sélectionnez les photos et les vidéos auxquelles cette appli peut accéder"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> élément}one{<xliff:g id="COUNT_1">^1</xliff:g> élément}many{<xliff:g id="COUNT_1">^1</xliff:g> éléments}other{<xliff:g id="COUNT_1">^1</xliff:g> éléments}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"Ajouter (<xliff:g id="COUNT">^1</xliff:g>)"</string>
     <string name="picker_add_button_multi_select_permissions" msgid="5138751105800138838">"Autoriser (<xliff:g id="COUNT">^1</xliff:g>)"</string>
@@ -110,12 +110,12 @@
     <string name="picker_banner_cloud_first_time_available_desc" msgid="5570916598348187607">"Vous pouvez sélectionner des photos du compte <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="picker_banner_cloud_account_changed_title" msgid="4825058474378077327">"Compte de <xliff:g id="APP_NAME">%1$s</xliff:g> mis à jour"</string>
     <string name="picker_banner_cloud_account_changed_desc" msgid="3433218869899792497">"Les photos de <xliff:g id="USER_ACCOUNT">%1$s</xliff:g> sont désormais incluses ici"</string>
-    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Choisir une application infonuagique multimédia"</string>
-    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Pour inclure les photos sauvegardées ici, choisissez une application infonuagique multimédia dans Paramètres"</string>
+    <string name="picker_banner_cloud_choose_app_title" msgid="3165966147547974251">"Choisir une appli infonuagique multimédia"</string>
+    <string name="picker_banner_cloud_choose_app_desc" msgid="2359212653555524926">"Pour inclure les photos sauvegardées ici, choisissez une appli infonuagique multimédia dans Paramètres"</string>
     <string name="picker_banner_cloud_choose_account_title" msgid="5010901185639577685">"Sélectionner un compte <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
-    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Pour inclure les photos de <xliff:g id="APP_NAME">%1$s</xliff:g> ici, choisissez un compte dans l\'application"</string>
+    <string name="picker_banner_cloud_choose_account_desc" msgid="8868134443673142712">"Pour inclure les photos de <xliff:g id="APP_NAME">%1$s</xliff:g> ici, choisissez un compte dans l\'appli"</string>
     <string name="picker_banner_cloud_dismiss_button" msgid="2935903078288463882">"Fermer"</string>
-    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Choisir une application"</string>
+    <string name="picker_banner_cloud_choose_app_button" msgid="934085679890435479">"Choisir une appli"</string>
     <string name="picker_banner_cloud_choose_account_button" msgid="7979484877116991631">"Choisir un compte"</string>
     <string name="picker_banner_cloud_change_account_button" msgid="8361239765828471146">"Changer de compte"</string>
     <string name="picker_loading_photos_message" msgid="6449180084857178949">"Chargement de vos photos en cours…"</string>
@@ -166,5 +166,5 @@
     <string name="dialog_error_title" msgid="636349284077820636">"Impossible de charger certaines photos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
     <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Accéder au nom de l\'ensemble propriétaire du contenu multimédia"</string>
-    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Autorise l\'application à accéder aux noms des ensembles propriétaires de tous les fichiers multimédias accessibles."</string>
+    <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Autorise l\'appli à accéder aux noms des ensembles propriétaires de tous les fichiers multimédias accessibles."</string>
 </resources>

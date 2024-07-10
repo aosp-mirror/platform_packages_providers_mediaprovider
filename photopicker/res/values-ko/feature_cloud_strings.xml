@@ -17,6 +17,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_overflow_menu_description" msgid="6548535301621140571">"Više"</string>
-    <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Medijska aplikacija u oblaku"</string>
+    <string name="photopicker_preloading_dialog_title" msgid="5873072481166085925">"선택한 미디어를 준비하는 중"</string>
+    <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>개 중 <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>개가 준비됨"</string>
+    <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"일부 사진을 로드할 수 없음"</string>
+    <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"나중에 다시 시도해 주세요. 사진은 문제가 해결된 후에 사용할 수 있습니다."</string>
 </resources>

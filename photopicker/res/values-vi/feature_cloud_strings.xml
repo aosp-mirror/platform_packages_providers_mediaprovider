@@ -17,6 +17,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_overflow_menu_description" msgid="6548535301621140571">"Više"</string>
-    <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Medijska aplikacija u oblaku"</string>
+    <string name="photopicker_preloading_dialog_title" msgid="5873072481166085925">"Đang chuẩn bị nội dung đa phương tiện mà bạn chọn"</string>
+    <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Đã sẵn sàng <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Không tải được một số ảnh"</string>
+    <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Hãy thử lại sau. Ảnh của bạn sẽ xuất hiện sau khi vấn đề được giải quyết."</string>
 </resources>

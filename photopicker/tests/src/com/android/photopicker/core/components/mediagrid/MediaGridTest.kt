@@ -60,6 +60,7 @@ import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
@@ -433,6 +434,64 @@ class MediaGridTest {
 
             // Ensure the selected semantics got applied to the selected node.
             composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
+        }
+    }
+
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
+    fun testMediaGridClickItemOrderedSelection() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+        val photopickerConfiguration: PhotopickerConfiguration =
+            testActionPickImagesConfiguration.copy(pickImagesInOrder = true)
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = photopickerConfiguration
+                        )
+                )
+
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false, photopickerConfiguration.intent) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performClick()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(1)
+
+            // Ensure the ordered selected semantics got applied to the selected node.
+            composeTestRule.waitUntilAtLeastOneExists(hasText("1"))
         }
     }
 

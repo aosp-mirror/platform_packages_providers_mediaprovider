@@ -57,11 +57,13 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,21 +75,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.circleBackground
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
 private val CELLS_PER_ROW = 3
@@ -112,6 +119,9 @@ private val MEASUREMENT_DURATION_TEXT_SPACER_SIZE = 2.dp
 
 /** The size of the "push in" when an item in the grid is not selected */
 private val MEASUREMENT_NOT_SELECTED_INTERNAL_PADDING = 0.dp
+
+/** The font size of the selected position number */
+private val MEASUREMENT_SELECTED_POSITION_FONT_SIZE = 14.sp
 
 /** The offset to apply to the selected icon to shift it over the corner of the image */
 private val MEASUREMENT_SELECTED_ICON_OFFSET = 8.dp
@@ -191,7 +201,13 @@ fun mediaGrid(
             ->
             when (item) {
                 is MediaGridItem.MediaItem ->
-                    defaultBuildMediaItem(item, isSelected, onClick, onLongPress)
+                    defaultBuildMediaItem(
+                        item = item,
+                        isSelected = isSelected,
+                        selectedPosition = selection.indexOf(item.media),
+                        onClick = onClick,
+                        onLongPress = onLongPress,
+                    )
                 is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick)
                 else -> {}
             }
@@ -259,6 +275,7 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
 private fun defaultBuildMediaItem(
     item: MediaGridItem,
     isSelected: Boolean,
+    selectedPosition: Int,
     onClick: ((item: MediaGridItem) -> Unit)?,
     onLongPress: ((item: MediaGridItem) -> Unit)?,
 ) {
@@ -338,7 +355,7 @@ private fun defaultBuildMediaItem(
 
                     // This is outside the box that wraps the image so it doesn't get clipped
                     // by the shape. Internally, it positions itself with similar padding.
-                    SelectedIconOverlay(isSelected)
+                    SelectedIconOverlay(isSelected, selectedPosition)
                 } // Surface
             } // Grid cell box
         } // when MediaItem branch
@@ -388,9 +405,10 @@ private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
  * Generates a Icon that will show and hide itself based on the [isSelected] property.
  *
  * @param isSelected if the current item is currently selected by the user.
+ * @param selectedIndex the index of the item in the selection set.
  */
 @Composable
-private fun SelectedIconOverlay(isSelected: Boolean) {
+private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
 
     Box(modifier = Modifier.fillMaxSize().padding(MEASUREMENT_SELECTED_INTERNAL_PADDING)) {
         // Animate the visibility of the selected icon based on the [isSelected]
@@ -411,26 +429,60 @@ private fun SelectedIconOverlay(isSelected: Boolean) {
             // No exit transition so it disappears on the next frame.
             exit = ExitTransition.None,
         ) {
-            Icon(
-                Icons.Filled.CheckCircle,
-                modifier =
-                    Modifier
-                        // Background is necessary because the icon has negative
-                        // space.
-                        .background(MaterialTheme.colorScheme.onPrimary, CircleShape)
-                        // Border color should match the surface that is behind
-                        // the image.
-                        .border(
-                            MEASUREMENT_SELECTED_ICON_BORDER,
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            CircleShape
-                        ),
-                contentDescription = stringResource(R.string.photopicker_item_selected),
-                tint =
-                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
-                        /* fallback */ MaterialTheme.colorScheme.primary
-                    ),
-            )
+            val configuration = LocalPhotopickerConfiguration.current
+            when (configuration.pickImagesInOrder) {
+                true -> {
+                    val numberFormatter = remember { NumberFormat.getInstance() }
+                    Text(
+                        // Since this is a 0-based index, increment it by 1 for displaying
+                        // to the user.
+                        text = numberFormatter.format(selectedIndex + 1),
+                        textAlign = TextAlign.Center,
+                        modifier =
+                            Modifier.circleBackground(
+                                color =
+                                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                                        /* fallback */ MaterialTheme.colorScheme.primary
+                                    ),
+                                padding = 1.dp,
+                                borderColor = MaterialTheme.colorScheme.surfaceVariant,
+                                borderWidth = MEASUREMENT_SELECTED_ICON_BORDER,
+                            ),
+                        style =
+                            LocalTextStyle.current.copy(
+                                fontSize = MEASUREMENT_SELECTED_POSITION_FONT_SIZE
+                            ),
+                        color =
+                            CustomAccentColorScheme.current
+                                .getTextColorForAccentComponentsIfDefinedOrElse(
+                                    MaterialTheme.colorScheme.onPrimary
+                                ),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+                false ->
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        modifier =
+                            Modifier
+                                // Background is necessary because the icon has negative
+                                // space.
+                                .background(MaterialTheme.colorScheme.onPrimary, CircleShape)
+                                // Border color should match the surface that is behind
+                                // the image.
+                                .border(
+                                    MEASUREMENT_SELECTED_ICON_BORDER,
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    CircleShape
+                                ),
+                        contentDescription = stringResource(R.string.photopicker_item_selected),
+                        tint =
+                            CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                                /* fallback */ MaterialTheme.colorScheme.primary
+                            ),
+                    )
+            }
         } // Image + Icon Container
     }
 }

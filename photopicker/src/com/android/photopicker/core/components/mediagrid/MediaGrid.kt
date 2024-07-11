@@ -325,6 +325,7 @@ private fun defaultBuildMediaItem(
                         loadMedia(
                             media = item.media,
                             resolution = Resolution.THUMBNAIL,
+                            modifier = Modifier.fillMaxSize(),
                         )
 
                         // Scrim to separate the text and mimetypes from the image behind them.

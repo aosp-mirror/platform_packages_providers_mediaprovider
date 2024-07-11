@@ -17,7 +17,11 @@
 package com.android.providers.media.photopicker.v2;
 
 import static com.android.providers.media.MediaGrants.MEDIA_GRANTS_TABLE;
+import static com.android.providers.media.MediaGrants.OWNER_PACKAGE_NAME_COLUMN;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
+import static com.android.providers.media.photopicker.PickerSyncController.getPackageNameFromUid;
+import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_GRANTS_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
@@ -28,6 +32,7 @@ import static java.util.Objects.requireNonNull;
 
 import android.annotation.UserIdInt;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ProviderInfo;
@@ -35,6 +40,7 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Bundle;
 import android.os.Process;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
@@ -102,6 +108,11 @@ public class PickerDataLayerV2 {
      * instead.
      */
     public static final String TABLE_CURRENT_GRANTS = "current_media_grants";
+
+    public static final String COLUMN_GRANTS_COUNT = "grants_count";
+
+    private static final String PROJECTION_GRANTS_COUNT = String.format("COUNT(*) AS %s",
+            COLUMN_GRANTS_COUNT);
 
     /**
      * Refresh the cloud provider in-memory cache in PickerSyncController.
@@ -253,6 +264,59 @@ public class PickerDataLayerV2 {
     }
 
     /**
+     * Queries the picker database and fetches the count of pre-granted media for the current
+     * package and userId.
+     *
+     * @return a [Cursor] containing only one column [COLUMN_GRANTS_COUNT] which have a single
+     * row representing the count.
+     */
+    static Cursor fetchMediaGrantsCount(
+            @NonNull Context appContext,
+            @NonNull Bundle queryArgs) {
+        String[] projectionIn = new String[]{PROJECTION_GRANTS_COUNT};
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+
+        waitForOngoingGrantsSync(appContext);
+
+        int packageUid = queryArgs.getInt(Intent.EXTRA_UID);
+        int userId = uidToUserId(packageUid);
+        String[] packageNames = getPackageNameFromUid(appContext,
+                packageUid);
+
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables(MEDIA_GRANTS_TABLE);
+        addWhereClausesForMediaGrantsTable(userId, packageNames, qb);
+
+        Cursor result = qb.query(database, projectionIn, null,
+                null, null, null, null);
+        return result;
+    }
+
+    /**
+     * Adds the clause to select rows based on calling packageName and userId.
+     */
+    private static void addWhereClausesForMediaGrantsTable(int userId,
+            @NonNull String[] packageNames, SQLiteQueryBuilder qb) {
+        // Add where clause for userId selection.
+        qb.appendWhereStandalone(
+                String.format(Locale.ROOT,
+                        "%s.%s = %d", MEDIA_GRANTS_TABLE, PACKAGE_USER_ID_COLUMN, userId));
+
+        // Add where clause for package name selection.
+        Objects.requireNonNull(packageNames);
+        StringBuilder packageSelection = new StringBuilder(OWNER_PACKAGE_NAME_COLUMN + " IN (");
+        for (int itr = 0; itr < packageNames.length; itr++) {
+            packageSelection.append("\'").append(packageNames[itr]).append("\',");
+        }
+        packageSelection.deleteCharAt(packageSelection.length() - 1);
+        packageSelection.append(")");
+
+        qb.appendWhereStandalone(packageSelection.toString());
+    }
+
+
+    /**
      * Query media from the database and prepare a cursor in response.
      *
      * We need to make multiple queries to prepare a response for the media query.
@@ -372,6 +436,15 @@ public class PickerDataLayerV2 {
             Log.i(TAG, "Finished waiting for cloud sync.  Is cloud sync complete: "
                     + syncIsComplete);
         }
+    }
+
+    private static void waitForOngoingGrantsSync(
+            @NonNull Context appContext) {
+        SyncCompletionWaiter.waitForSync(
+                getWorkManager(appContext),
+                SyncTrackerRegistry.getGrantsSyncTracker(),
+                IMMEDIATE_GRANTS_SYNC_WORK_NAME
+        );
     }
 
     /**
@@ -605,8 +678,8 @@ public class PickerDataLayerV2 {
             throw new IllegalArgumentException("Calling package uid in"
                     + "ACTION_USER_SELECT_IMAGES_FOR_APP mode should not be -1. Invalid UID");
         }
-        int userId = PickerSyncController.uidToUserId(callingPackageUid);
-        String[] packageNames = PickerSyncController.getPackageNameFromUid(appContext,
+        int userId = uidToUserId(callingPackageUid);
+        String[] packageNames = getPackageNameFromUid(appContext,
                 callingPackageUid);
         Objects.requireNonNull(packageNames);
         StringBuilder packageSelection = new StringBuilder("(");

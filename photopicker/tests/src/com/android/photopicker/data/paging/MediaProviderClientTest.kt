@@ -163,6 +163,20 @@ class MediaProviderClientTest {
     }
 
     @Test
+    fun testFetchMediaGrantsCount() = runTest {
+        testContentProvider.lastRefreshMediaRequest = null
+        val mediaProviderClient = MediaProviderClient()
+
+        val countOfGrants =
+            mediaProviderClient.fetchMediaGrantsCount(
+                contentResolver = testContentResolver,
+                callingPackageUid = testUserSelectImagesForAppConfiguration.callingPackageUid ?: -1,
+            )
+
+        assertThat(countOfGrants).isEqualTo(testContentProvider.TEST_GRANTS_COUNT)
+    }
+
+    @Test
     fun testRefreshLocalOnlyMedia() = runTest {
         testContentProvider.lastRefreshMediaRequest = null
         val mediaProviderClient = MediaProviderClient()

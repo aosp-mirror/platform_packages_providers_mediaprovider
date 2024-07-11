@@ -225,13 +225,15 @@ abstract class EmbeddedTestModule {
     @Provides
     fun createSelection(
         @Background scope: CoroutineScope,
-        configurationManager: ConfigurationManager
+        configurationManager: ConfigurationManager,
+        dataService: DataService
     ): Selection<Media> {
         return when (determineSelectionStrategy(configurationManager.configuration.value)) {
             SelectionStrategy.GRANTS_AWARE_SELECTION ->
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = dataService.preGrantedMediaCount,
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(

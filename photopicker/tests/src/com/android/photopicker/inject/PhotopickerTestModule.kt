@@ -232,6 +232,7 @@ abstract class PhotopickerTestModule {
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(

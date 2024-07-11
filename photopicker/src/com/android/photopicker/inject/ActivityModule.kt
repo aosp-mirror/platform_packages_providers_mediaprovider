@@ -300,6 +300,7 @@ class ActivityModule {
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -312,6 +313,7 @@ class ActivityModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount
                         )
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(

@@ -412,6 +412,7 @@ class PreviewViewModelTest {
                 GrantsAwareSelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
                 )
 
             val viewModel =

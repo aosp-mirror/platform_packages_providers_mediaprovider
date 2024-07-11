@@ -373,6 +373,7 @@ class EmbeddedServiceModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount,
                         )
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(

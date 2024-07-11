@@ -21,17 +21,16 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
-import com.android.photopicker.extensions.getPhotopickerMimeTypes
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -140,7 +139,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        intent: Intent?,
+        config: PhotopickerConfiguration
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle =
             bundleOf(
@@ -151,9 +150,8 @@ open class MediaProviderClient {
                     ArrayList<String>().apply {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
-                EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                // todo(b/349796461): Handle this in the backend
-                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action
             )
 
         try {
@@ -187,7 +185,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        intent: Intent?
+        config: PhotopickerConfiguration
     ): LoadResult<MediaPageKey, Group.Album> {
         val input: Bundle =
             bundleOf(
@@ -198,9 +196,8 @@ open class MediaProviderClient {
                     ArrayList<String>().apply {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
-                EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                // todo(b/349796461): Handle this in the backend
-                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action
             )
 
         try {
@@ -236,7 +233,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        intent: Intent?
+        config: PhotopickerConfiguration
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle =
             bundleOf(
@@ -248,9 +245,8 @@ open class MediaProviderClient {
                     ArrayList<String>().apply {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
-                EXTRA_MIME_TYPES to intent?.getPhotopickerMimeTypes(),
-                // todo(b/349796461): Handle this in the backend
-                EXTRA_INTENT_ACTION to (intent?.action ?: MediaStore.ACTION_PICK_IMAGES)
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action
             )
 
         try {
@@ -302,7 +298,7 @@ open class MediaProviderClient {
     fun refreshMedia(
         @Suppress("UNUSED_PARAMETER") providers: List<Provider>,
         resolver: ContentResolver,
-        intent: Intent?
+        config: PhotopickerConfiguration
     ) {
         val extras = Bundle()
 
@@ -313,8 +309,8 @@ open class MediaProviderClient {
         val initLocalOnlyMedia = false
 
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
-        extras.putStringArrayList(EXTRA_MIME_TYPES, intent?.getPhotopickerMimeTypes())
-        extras.putString(EXTRA_INTENT_ACTION, intent?.action)
+        extras.putStringArrayList(EXTRA_MIME_TYPES, config.mimeTypes)
+        extras.putString(EXTRA_INTENT_ACTION, config.action)
         refreshMedia(extras, resolver)
     }
 
@@ -327,14 +323,14 @@ open class MediaProviderClient {
         albumAuthority: String,
         providers: List<Provider>,
         resolver: ContentResolver,
-        intent: Intent?
+        config: PhotopickerConfiguration
     ) {
         val extras = Bundle()
         val initLocalOnlyMedia: Boolean =
             providers.all { provider -> (provider.mediaSource == MediaSource.LOCAL) }
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
-        extras.putStringArrayList(EXTRA_MIME_TYPES, intent?.getPhotopickerMimeTypes())
-        extras.putString(EXTRA_INTENT_ACTION, intent?.action)
+        extras.putStringArrayList(EXTRA_MIME_TYPES, config.mimeTypes)
+        extras.putString(EXTRA_INTENT_ACTION, config.action)
         extras.putString(EXTRA_ALBUM_ID, albumId)
         extras.putString(EXTRA_ALBUM_AUTHORITY, albumAuthority)
         refreshMedia(extras, resolver)

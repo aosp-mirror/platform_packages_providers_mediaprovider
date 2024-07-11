@@ -173,7 +173,7 @@ public class PickerSQLConstants {
         public String getProjection(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority,
-                @NonNull String intentAction
+                @Nullable String intentAction
         ) {
             switch (this) {
                 case WRAPPED_URI:
@@ -267,7 +267,7 @@ public class PickerSQLConstants {
         private String getWrappedUri(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority,
-                @NonNull String intentAction
+                @Nullable String intentAction
         ) {
             // The format is:
             // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>

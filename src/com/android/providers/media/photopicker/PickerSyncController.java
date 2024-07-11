@@ -86,6 +86,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -237,6 +238,40 @@ public class PickerSyncController {
         initCloudProvider();
     }
 
+    /**
+     * This method is called after the broadcast intent action {@link Intent.ACTION_BOOT_COMPLETE}
+     * is received.
+     */
+    public void onBootComplete() {
+        tryEnablingCloudMediaQueries(/* delay */ TimeUnit.MINUTES.toMillis(3));
+    }
+
+    private Integer mEnableCloudQueryRemainingRetry = 2;
+
+    /**
+     * Attempt to enable cloud media queries in Picker DB with a retry mechanism.
+     */
+    @VisibleForTesting
+    public void tryEnablingCloudMediaQueries(@NonNull long delay) {
+        Log.d(TAG, "Schedule enable cloud media query task.");
+
+        BackgroundThread.getHandler().postDelayed(() -> {
+            Log.d(TAG, "Attempting to enable cloud media queries.");
+            try {
+                maybeEnableCloudMediaQueries();
+            } catch (UnableToAcquireLockException | RequestObsoleteException | RuntimeException e) {
+                // Cloud media provider can return unexpected values if it's still bootstrapping.
+                // Retry in case a possibly transient error is encountered.
+                Log.d(TAG, "Error occurred, remaining retry count: "
+                        + mEnableCloudQueryRemainingRetry, e);
+                mEnableCloudQueryRemainingRetry--;
+                if (mEnableCloudQueryRemainingRetry >= 0) {
+                    tryEnablingCloudMediaQueries(/* delay */ TimeUnit.MINUTES.toMillis(3));
+                }
+            }
+        }, delay);
+    }
+
     @NonNull
     public PickerSyncLockManager getPickerSyncLockManager() {
         return mPickerSyncLockManager;
@@ -278,6 +313,40 @@ public class PickerSyncController {
         }
 
         Log.d(TAG, "Initialized cloud provider to: " + defaultInfo.authority);
+    }
+
+    /**
+     * Enables Cloud media queries if the Picker DB is in sync with the latest collection id.
+     * @throws RequestObsoleteException if the cloud authority changes during the operation.
+     * @throws UnableToAcquireLockException If the required locks cannot be acquired to complete the
+     * operation.
+     */
+    private void maybeEnableCloudMediaQueries()
+            throws RequestObsoleteException, UnableToAcquireLockException {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_SYNC_LOCK)) {
+            final String cloudProvider = getCloudProviderWithTimeout();
+            final SyncRequestParams params =
+                    getSyncRequestParams(cloudProvider, /* isLocal */ false);
+            switch (params.syncType) {
+                case SYNC_TYPE_NONE:
+                case SYNC_TYPE_MEDIA_INCREMENTAL:
+                case SYNC_TYPE_MEDIA_FULL:
+                    enablePickerCloudMediaQueries(cloudProvider, /* isLocal */ false);
+                    break;
+
+                case SYNC_TYPE_MEDIA_RESET:
+                case SYNC_TYPE_MEDIA_FULL_WITH_RESET:
+                    disablePickerCloudMediaQueries(/* isLocal */ false);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException(
+                            "Could not recognize sync type " + params.syncType);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not enable picker cloud media queries", e);
+        }
     }
 
     /**

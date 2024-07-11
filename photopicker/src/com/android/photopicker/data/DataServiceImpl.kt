@@ -419,7 +419,7 @@ class DataServiceImpl(
                             availableProviders,
                             mediaProviderClient,
                             dispatcher,
-                            config.value.intent,
+                            config.value,
                         )
 
                     Log.v(
@@ -445,7 +445,7 @@ class DataServiceImpl(
                     availableProviders,
                     mediaProviderClient,
                     dispatcher,
-                    config.value.intent,
+                    config.value,
                 )
 
             Log.v(
@@ -473,7 +473,7 @@ class DataServiceImpl(
                     availableProviders,
                     mediaProviderClient,
                     dispatcher,
-                    config.value.intent,
+                    config.value,
                 )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
@@ -521,7 +521,7 @@ class DataServiceImpl(
                 album.authority,
                 providers,
                 _activeContentResolver.value,
-                config.value.intent
+                config.value
             )
         } else {
             Log.e(
@@ -538,7 +538,7 @@ class DataServiceImpl(
             mediaProviderClient.refreshMedia(
                 availableProviders,
                 _activeContentResolver.value,
-                config.value.intent,
+                config.value,
             )
         } else {
             Log.w(DataService.TAG, "Cannot refresh media when there are no providers available")

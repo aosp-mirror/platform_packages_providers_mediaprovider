@@ -38,7 +38,7 @@ import java.util.function.Supplier;
  * Helper methods for public volume setup.
  */
 public class PublicVolumeSetupHelper {
-    private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(2);
+    private static final long POLLING_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(5);
     private static final long POLLING_SLEEP_MILLIS = 100;
     private static final String TAG = "TestUtils";
     private static boolean usingExistingPublicVolume = false;

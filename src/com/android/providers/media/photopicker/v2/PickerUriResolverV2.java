@@ -38,6 +38,7 @@ public class PickerUriResolverV2 {
     public static final String BASE_PICKER_PATH =
             PICKER_INTERNAL_PATH_SEGMENT + "/" + PICKER_V2_PATH_SEGMENT + "/";
     public static final String AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers";
+    public static final String COLLECTION_INFO_PATH_SEGMENT = "collection_info";
     public static final String MEDIA_PATH_SEGMENT = "media";
     public static final String ALBUM_PATH_SEGMENT = "album";
     public static final String UPDATE_PATH_SEGMENT = "update";
@@ -47,6 +48,7 @@ public class PickerUriResolverV2 {
     static final int PICKER_INTERNAL_ALBUM = 2;
     static final int PICKER_INTERNAL_ALBUM_CONTENT = 3;
     static final int PICKER_INTERNAL_AVAILABLE_PROVIDERS = 4;
+    static final int PICKER_INTERNAL_COLLECTION_INFO = 5;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({
@@ -55,6 +57,7 @@ public class PickerUriResolverV2 {
             PICKER_INTERNAL_ALBUM,
             PICKER_INTERNAL_ALBUM_CONTENT,
             PICKER_INTERNAL_AVAILABLE_PROVIDERS,
+            PICKER_INTERNAL_COLLECTION_INFO,
     })
     private @interface PickerQuery {}
 
@@ -72,6 +75,11 @@ public class PickerUriResolverV2 {
                 MediaStore.AUTHORITY,
                 BASE_PICKER_PATH + AVAILABLE_PROVIDERS_PATH_SEGMENT,
                 PICKER_INTERNAL_AVAILABLE_PROVIDERS
+        );
+        sUriMatcher.addURI(
+                MediaStore.AUTHORITY,
+                BASE_PICKER_PATH + COLLECTION_INFO_PATH_SEGMENT,
+                PICKER_INTERNAL_COLLECTION_INFO
         );
     }
 
@@ -100,6 +108,8 @@ public class PickerUriResolverV2 {
                         requireNonNull(albumId));
             case PICKER_INTERNAL_AVAILABLE_PROVIDERS:
                 return PickerDataLayerV2.queryAvailableProviders(appContext);
+            case PICKER_INTERNAL_COLLECTION_INFO:
+                return PickerDataLayerV2.queryCollectionInfo();
             default:
                 throw new UnsupportedOperationException("Could not recognize content URI " + uri);
         }

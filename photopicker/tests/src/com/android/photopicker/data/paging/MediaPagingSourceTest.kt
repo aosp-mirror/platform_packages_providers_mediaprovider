@@ -17,11 +17,11 @@
 package com.android.photopicker.features.data.paging
 
 import android.content.ContentResolver
-import android.content.Intent
 import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadParams
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.MediaPageKey
@@ -57,14 +57,14 @@ class MediaPagingSourceTest {
 
     @Test
     fun testLoad() = runTest {
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+        val config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
         val mediaPagingSource =
             MediaPagingSource(
                 contentResolver = contentResolver,
                 availableProviders = availableProviders,
                 mediaProviderClient = mockMediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                intent = intent
+                config = config
             )
 
         val pageKey: MediaPageKey = MediaPageKey()
@@ -80,6 +80,6 @@ class MediaPagingSourceTest {
         advanceTimeBy(100)
 
         verify(mockMediaProviderClient, times(1))
-            .fetchMedia(pageKey, pageSize, contentResolver, emptyList(), intent)
+            .fetchMedia(pageKey, pageSize, contentResolver, emptyList(), config)
     }
 }

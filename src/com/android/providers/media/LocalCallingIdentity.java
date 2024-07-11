@@ -84,7 +84,7 @@ public class LocalCallingIdentity {
     private final Object lock = new Object();
 
     @GuardedBy("lock")
-    private int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
+    private final int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -758,13 +758,6 @@ public class LocalCallingIdentity {
     protected void dump(String reason) {
         Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
                 + ". Reason: " + reason);
-        if (hasDeletedFileCount()) {
-            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
-                    getDeletedFileCountsBypassingDatabase()));
-        }
-    }
-
-    protected void dump() {
         if (hasDeletedFileCount()) {
             Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
                     getDeletedFileCountsBypassingDatabase()));

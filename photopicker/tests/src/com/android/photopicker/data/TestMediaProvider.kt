@@ -22,6 +22,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.test.mock.MockContentProvider
+import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
@@ -36,34 +37,37 @@ import java.util.UUID
  *
  * All not overridden / unimplemented operations will throw [UnsupportedOperationException].
  */
+val DEFAULT_PROVIDERS: List<Provider> =
+    listOf(Provider(authority = "test_authority", mediaSource = MediaSource.LOCAL, uid = 0))
 
-val DEFAULT_PROVIDERS: List<Provider> = listOf(
-    Provider(
-        authority = "test_authority",
-        mediaSource = MediaSource.LOCAL,
-        uid = 0
+val DEFAULT_COLLECTION_INFO: List<CollectionInfo> =
+    listOf(
+        CollectionInfo(
+            authority = "test_authority",
+            collectionId = "1",
+            accountName = "default@test.com"
+        )
     )
-)
 
-val DEFAULT_MEDIA: List<Media> = listOf(
-    createMediaImage(10),
-    createMediaImage(11),
-    createMediaImage(12),
-    createMediaImage(13),
-    createMediaImage(14),
-)
+val DEFAULT_MEDIA: List<Media> =
+    listOf(
+        createMediaImage(10),
+        createMediaImage(11),
+        createMediaImage(12),
+        createMediaImage(13),
+        createMediaImage(14),
+    )
 
-val DEFAULT_ALBUMS: List<Group.Album> = listOf(
-    createAlbum("Favorites"),
-    createAlbum("Downloads"),
-    createAlbum("CloudAlbum"),
-)
+val DEFAULT_ALBUMS: List<Group.Album> =
+    listOf(
+        createAlbum("Favorites"),
+        createAlbum("Downloads"),
+        createAlbum("CloudAlbum"),
+    )
 
 val DEFAULT_ALBUM_NAME = "album_id"
 
-val DEFAULT_ALBUM_MEDIA: Map<String, List<Media>> = mapOf(
-    DEFAULT_ALBUM_NAME to DEFAULT_MEDIA
-)
+val DEFAULT_ALBUM_MEDIA: Map<String, List<Media>> = mapOf(DEFAULT_ALBUM_NAME to DEFAULT_MEDIA)
 
 fun createMediaImage(pickerId: Long): Media {
     return Media.Image(
@@ -94,13 +98,14 @@ fun createAlbum(albumId: String): Group.Album {
 
 class TestMediaProvider(
     var providers: List<Provider> = DEFAULT_PROVIDERS,
+    var collectionInfos: List<CollectionInfo> = DEFAULT_COLLECTION_INFO,
     var media: List<Media> = DEFAULT_MEDIA,
     var albums: List<Group.Album> = DEFAULT_ALBUMS,
     var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
 
-    override fun query (
+    override fun query(
         uri: Uri,
         projection: Array<String>?,
         queryArgs: Bundle?,
@@ -108,6 +113,7 @@ class TestMediaProvider(
     ): Cursor? {
         return when (uri.lastPathSegment) {
             "available_providers" -> getAvailableProviders()
+            "collection_info" -> getCollectionInfo()
             "media" -> getMedia()
             "album" -> getAlbums()
             else -> {
@@ -122,12 +128,7 @@ class TestMediaProvider(
         }
     }
 
-    override fun call (
-            authority: String,
-            method: String,
-            arg: String?,
-            extras: Bundle?
-    ): Bundle? {
+    override fun call(authority: String, method: String, arg: String?, extras: Bundle?): Bundle? {
         return when (method) {
             "picker_media_init" -> {
                 initMedia(extras)
@@ -137,90 +138,111 @@ class TestMediaProvider(
         }
     }
 
-    /**
-     * Returns a [Cursor] with the providers currently in the [providers] list.
-     */
+    /** Returns a [Cursor] with the providers currently in the [providers] list. */
     private fun getAvailableProviders(): Cursor {
-        val cursor = MatrixCursor(arrayOf(
-            MediaProviderClient.AvailableProviderResponse.AUTHORITY.key,
-            MediaProviderClient.AvailableProviderResponse.MEDIA_SOURCE.key,
-            MediaProviderClient.AvailableProviderResponse.UID.key
-        ))
-        providers.forEach {
-            provider ->
-                cursor.addRow(
-                    arrayOf(
-                        provider.authority,
-                        provider.mediaSource.name,
-                        provider.uid.toString()
-                    )
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.AvailableProviderResponse.AUTHORITY.key,
+                    MediaProviderClient.AvailableProviderResponse.MEDIA_SOURCE.key,
+                    MediaProviderClient.AvailableProviderResponse.UID.key
                 )
+            )
+        providers.forEach { provider ->
+            cursor.addRow(
+                arrayOf(provider.authority, provider.mediaSource.name, provider.uid.toString())
+            )
+        }
+        return cursor
+    }
+
+    private fun getCollectionInfo(): Cursor {
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.CollectionInfoResponse.AUTHORITY.key,
+                    MediaProviderClient.CollectionInfoResponse.COLLECTION_ID.key,
+                    MediaProviderClient.CollectionInfoResponse.ACCOUNT_NAME.key
+                )
+            )
+        cursor.setExtras(Bundle())
+        collectionInfos.forEach { collectionInfo ->
+            cursor.addRow(
+                arrayOf(
+                    collectionInfo.authority,
+                    collectionInfo.collectionId,
+                    collectionInfo.accountName
+                )
+            )
+            cursor
+                .getExtras()
+                .putParcelable(collectionInfo.authority, collectionInfo.accountConfigurationIntent)
         }
         return cursor
     }
 
     private fun getMedia(mediaItems: List<Media> = media): Cursor {
-        val cursor = MatrixCursor(
-            arrayOf(
-                MediaProviderClient.MediaResponse.MEDIA_ID.key,
-                MediaProviderClient.MediaResponse.PICKER_ID.key,
-                MediaProviderClient.MediaResponse.AUTHORITY.key,
-                MediaProviderClient.MediaResponse.MEDIA_SOURCE.key,
-                MediaProviderClient.MediaResponse.MEDIA_URI.key,
-                MediaProviderClient.MediaResponse.LOADABLE_URI.key,
-                MediaProviderClient.MediaResponse.DATE_TAKEN.key,
-                MediaProviderClient.MediaResponse.SIZE.key,
-                MediaProviderClient.MediaResponse.MIME_TYPE.key,
-                MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
-                MediaProviderClient.MediaResponse.DURATION.key,
-            )
-        )
-        mediaItems.forEach {
-            mediaItem ->
-                cursor.addRow(
-                    arrayOf(
-                        mediaItem.mediaId,
-                        mediaItem.pickerId.toString(),
-                        mediaItem.authority,
-                        mediaItem.mediaSource.toString(),
-                        mediaItem.mediaUri.toString(),
-                        mediaItem.glideLoadableUri.toString(),
-                        mediaItem.dateTakenMillisLong.toString(),
-                        mediaItem.sizeInBytes.toString(),
-                        mediaItem.mimeType,
-                        mediaItem.standardMimeTypeExtension.toString(),
-                        if (mediaItem is Media.Video) mediaItem.duration else "0"
-                    )
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.MediaResponse.MEDIA_ID.key,
+                    MediaProviderClient.MediaResponse.PICKER_ID.key,
+                    MediaProviderClient.MediaResponse.AUTHORITY.key,
+                    MediaProviderClient.MediaResponse.MEDIA_SOURCE.key,
+                    MediaProviderClient.MediaResponse.MEDIA_URI.key,
+                    MediaProviderClient.MediaResponse.LOADABLE_URI.key,
+                    MediaProviderClient.MediaResponse.DATE_TAKEN.key,
+                    MediaProviderClient.MediaResponse.SIZE.key,
+                    MediaProviderClient.MediaResponse.MIME_TYPE.key,
+                    MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
+                    MediaProviderClient.MediaResponse.DURATION.key,
                 )
+            )
+        mediaItems.forEach { mediaItem ->
+            cursor.addRow(
+                arrayOf(
+                    mediaItem.mediaId,
+                    mediaItem.pickerId.toString(),
+                    mediaItem.authority,
+                    mediaItem.mediaSource.toString(),
+                    mediaItem.mediaUri.toString(),
+                    mediaItem.glideLoadableUri.toString(),
+                    mediaItem.dateTakenMillisLong.toString(),
+                    mediaItem.sizeInBytes.toString(),
+                    mediaItem.mimeType,
+                    mediaItem.standardMimeTypeExtension.toString(),
+                    if (mediaItem is Media.Video) mediaItem.duration else "0"
+                )
+            )
         }
         return cursor
     }
 
     private fun getAlbums(): Cursor {
-        val cursor = MatrixCursor(
-            arrayOf(
-                MediaProviderClient.AlbumResponse.ALBUM_ID.key,
-                MediaProviderClient.AlbumResponse.PICKER_ID.key,
-                MediaProviderClient.AlbumResponse.AUTHORITY.key,
-                MediaProviderClient.AlbumResponse.DATE_TAKEN.key,
-                MediaProviderClient.AlbumResponse.ALBUM_NAME.key,
-                MediaProviderClient.AlbumResponse.UNWRAPPED_COVER_URI.key,
-                MediaProviderClient.AlbumResponse.COVER_MEDIA_SOURCE.key,
-            )
-        )
-        albums.forEach {
-            album ->
-                cursor.addRow(
-                    arrayOf(
-                        album.id,
-                        album.pickerId.toString(),
-                        album.authority,
-                        album.dateTakenMillisLong.toString(),
-                        album.displayName,
-                        album.coverUri.toString(),
-                        album.coverMediaSource.toString(),
-                    )
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.AlbumResponse.ALBUM_ID.key,
+                    MediaProviderClient.AlbumResponse.PICKER_ID.key,
+                    MediaProviderClient.AlbumResponse.AUTHORITY.key,
+                    MediaProviderClient.AlbumResponse.DATE_TAKEN.key,
+                    MediaProviderClient.AlbumResponse.ALBUM_NAME.key,
+                    MediaProviderClient.AlbumResponse.UNWRAPPED_COVER_URI.key,
+                    MediaProviderClient.AlbumResponse.COVER_MEDIA_SOURCE.key,
                 )
+            )
+        albums.forEach { album ->
+            cursor.addRow(
+                arrayOf(
+                    album.id,
+                    album.pickerId.toString(),
+                    album.authority,
+                    album.dateTakenMillisLong.toString(),
+                    album.displayName,
+                    album.coverUri.toString(),
+                    album.coverMediaSource.toString(),
+                )
+            )
         }
         return cursor
     }
@@ -228,7 +250,6 @@ class TestMediaProvider(
     private fun getAlbumMedia(albumId: String): Cursor? {
         return getMedia(albumMedia.getOrDefault(albumId, emptyList()))
     }
-
 
     private fun initMedia(extras: Bundle?) {
         lastRefreshMediaRequest = extras

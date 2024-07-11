@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.AUTHORITY
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.MediaStore.MY_UID;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
@@ -476,11 +477,23 @@ public class PickerDataLayer {
     /**
      * Handles notification about media events like inserts/updates/deletes received from cloud or
      * local providers.
-     * @param localOnly - whether the media event is coming from the local provider
+     * @param localOnly True if the media event is coming from the local provider, otherwise false.
+     * @param authority Authority of the media event notification sender.
+     * @param extras Bundle containing additional arguments.
      */
-    public void handleMediaEventNotification(Boolean localOnly) {
+    public void handleMediaEventNotification(
+            boolean localOnly,
+            @NonNull String authority,
+            @Nullable Bundle extras) {
         try {
+            requireNonNull(authority);
             mSyncManager.syncMediaProactively(localOnly);
+
+            final String mediaCollectionId =
+                    (extras == null)
+                            ? null
+                            : extras.getString(EXTRA_MEDIA_COLLECTION_ID);
+            mSyncController.handleMediaEventNotification(localOnly, authority, mediaCollectionId);
         } catch (RuntimeException e) {
             // Catch any unchecked exceptions so that critical paths in MP that call this method are
             // not affected by Picker related issues.

@@ -34,8 +34,6 @@ import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOU
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
-import static java.util.Objects.requireNonNull;
-
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -55,6 +53,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -329,12 +328,12 @@ public class PickerUriResolver {
     }
 
     /**
-     * @param intentAction The intent action associated with the Picker session.
+     * @param intentAction The intent action associated with the Picker session. Note that the
+     *                     intent action could be null in case of embedded picker.
      * @return The Picker URI path segment.
      */
-    public static String getPickerSegmentFromIntentAction(String intentAction) {
-        requireNonNull(intentAction);
-        if (intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+    public static String getPickerSegmentFromIntentAction(@Nullable String intentAction) {
+        if (intentAction != null && intentAction.equals(Intent.ACTION_GET_CONTENT)) {
             return PICKER_GET_CONTENT_SEGMENT;
         }
         return PICKER_SEGMENT;

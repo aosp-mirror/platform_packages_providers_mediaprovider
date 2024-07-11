@@ -18,10 +18,12 @@ package com.android.photopicker.data
 
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
+import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -38,6 +40,12 @@ interface DataService {
 
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
+
+    /**
+     * A [Channel] that emits a [Unit] when a disruptive data change is observed in the backend. The
+     * UI can treat this emission as a signal to reset the UI.
+     */
+    val disruptiveDataUpdateChannel: Channel<Unit>
 
     /**
      * @param album This method creates and returns a paging source for media of the given album.
@@ -82,4 +90,10 @@ interface DataService {
      *   [Group.Album] to the data source. This signal tells the data source to refresh its cache.
      */
     suspend fun refreshAlbumMedia(album: Album)
+
+    /**
+     * @param A [Provider] object
+     * @return The [CollectionInfo] of the given [Provider].
+     */
+    suspend fun getCollectionInfo(provider: Provider): CollectionInfo
 }

@@ -5093,18 +5093,27 @@ public final class MediaStore {
     public static void notifyCloudMediaChangedEvent(@NonNull ContentResolver resolver,
             @NonNull String authority, @NonNull String currentMediaCollectionId)
             throws SecurityException {
-        if (!callForCloudProvider(resolver, NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL, authority)) {
+        Bundle extras = new Bundle();
+        extras.putString(CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID,
+                currentMediaCollectionId);
+        if (!callForCloudProvider(resolver, NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL, authority,
+                extras)) {
             throw new SecurityException("Failed to notify cloud media changed event");
         }
     }
 
     private static boolean callForCloudProvider(ContentResolver resolver, String method,
             String callingAuthority) {
+        return callForCloudProvider(resolver, method, callingAuthority, null);
+    }
+
+    private static boolean callForCloudProvider(ContentResolver resolver, String method,
+            String callingAuthority, Bundle extras) {
         Objects.requireNonNull(resolver);
         Objects.requireNonNull(method);
         Objects.requireNonNull(callingAuthority);
 
-        final Bundle out = resolver.call(AUTHORITY, method, callingAuthority, /* extras */ null);
+        final Bundle out = resolver.call(AUTHORITY, method, callingAuthority, /* extras */ extras);
         return out.getBoolean(EXTRA_CLOUD_PROVIDER_RESULT);
     }
 

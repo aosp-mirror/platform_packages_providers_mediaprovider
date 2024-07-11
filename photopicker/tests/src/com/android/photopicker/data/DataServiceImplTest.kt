@@ -28,6 +28,7 @@ import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
+import com.android.photopicker.data.DataServiceImplTest.Companion.availableProvidersUpdateUri
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -40,6 +41,7 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -102,35 +104,6 @@ class DataServiceImplTest {
     }
 
     @Test
-    fun testAvailableContentProviderFlow() = runTest {
-        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
-
-        val dataService: DataService =
-            DataServiceImpl(
-                userStatus = userStatusFlow,
-                scope = this.backgroundScope,
-                notificationService = notificationService,
-                mediaProviderClient = mediaProviderClient,
-                dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
-                featureManager = testFeatureManager,
-            )
-
-        val emissions = mutableListOf<List<Provider>>()
-        this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
-        advanceTimeBy(100)
-
-        // The first emission will be an empty string. The next emission will happen once Media
-        // Provider responds with the result of available providers.
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
-
-        assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority)
-            .isEqualTo(testContentProvider.providers[0].authority)
-    }
-
-    @Test
     fun testInitialAllowedProvider() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
 
@@ -149,13 +122,9 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        // The first emission will be an empty string. The next emission will happen once Media
-        // Provider responds with the result of available providers.
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
-
-        assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority)
+        assertThat(emissions.count()).isEqualTo(1)
+        assertThat(emissions.get(0).count()).isEqualTo(1)
+        assertThat(emissions.get(0).get(0).authority)
             .isEqualTo(testContentProvider.providers[0].authority)
     }
 
@@ -178,8 +147,7 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         testContentProvider.providers =
             mutableListOf(
@@ -191,26 +159,28 @@ class DataServiceImplTest {
 
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(3)
+        assertThat(emissions.count()).isEqualTo(2)
 
-        // The first emission will be an empty list.
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
-
-        // The next emission will happen once Media Provider responds with the result of
+        // The first emission will happen once Media Provider responds with the result of
         // available providers at the time of init.
-        assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority).isEqualTo("test_authority")
+        assertThat(emissions.get(0).count()).isEqualTo(1)
+        assertThat(emissions.get(0).get(0).authority).isEqualTo("test_authority")
 
         // The next emission happens when a change notification is dispatched.
-        assertThat(emissions.get(2).count()).isEqualTo(2)
-        assertThat(emissions.get(2).get(0).authority)
+        assertThat(emissions.get(1).count()).isEqualTo(2)
+        assertThat(emissions.get(1).get(0).authority)
             .isEqualTo(testContentProvider.providers[0].authority)
-        assertThat(emissions.get(2).get(1).authority)
+        assertThat(emissions.get(1).get(1).authority)
             .isEqualTo(testContentProvider.providers[1].authority)
     }
 
     @Test
     fun testAvailableProvidersCloudMediaFeatureDisabled() = runTest {
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
         val scope = TestScope()
         val dataService: DataService =
@@ -231,26 +201,17 @@ class DataServiceImplTest {
                     ),
             )
 
-        testContentProvider.providers =
-            mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
-            )
-
         val emissions = mutableListOf<List<Provider>>()
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
+        assertThat(emissions.count()).isEqualTo(1)
 
-        // The first emission will be an empty list.
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
-
-        // The next emission will happen once Media Provider responds with the result of
+        // The first emission will happen once Media Provider responds with the result of
         // available providers at the time of init. Check that the provider with MediaSource.REMOTE
         // is not part of the available providers.
-        assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority).isEqualTo("local_authority")
+        assertThat(emissions.get(0).count()).isEqualTo(1)
+        assertThat(emissions.get(0).get(0).authority).isEqualTo("local_authority")
     }
 
     @Test
@@ -272,8 +233,7 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         // A new user becomes active.
         userStatusFlow.update {
@@ -284,7 +244,7 @@ class DataServiceImplTest {
 
         // Since the active user did not change, no change should be observed in available
         // providers.
-        assertThat(emissions.count()).isEqualTo(2)
+        assertThat(emissions.count()).isEqualTo(1)
 
         // The active user changes
         val updatedContentProvider = TestMediaProvider()
@@ -306,24 +266,21 @@ class DataServiceImplTest {
 
         // Since the active user has changed, this should trigger a re-fetch of the active
         // providers.
-        assertThat(emissions.count()).isEqualTo(3)
+        assertThat(emissions.count()).isEqualTo(2)
 
-        // The first emission will be an empty list.
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
-
-        // The next emission will happen once Media Provider responds with the result of
+        // The first emission will happen once Media Provider responds with the result of
         // available providers at the time of init. This will be the last emission from the previous
         // content provider.
-        assertThat(emissions.get(1).count()).isEqualTo(1)
-        assertThat(emissions.get(1).get(0).authority)
+        assertThat(emissions.get(0).count()).isEqualTo(1)
+        assertThat(emissions.get(0).get(0).authority)
             .isEqualTo(testContentProvider.providers[0].authority)
 
         // The next emission happens when a change in active user is observed. This last emission
         // should come from the updated content provider.
-        assertThat(emissions.get(2).count()).isEqualTo(2)
-        assertThat(emissions.get(2).get(0).authority)
+        assertThat(emissions.get(1).count()).isEqualTo(2)
+        assertThat(emissions.get(1).get(0).authority)
             .isEqualTo(updatedContentProvider.providers[0].authority)
-        assertThat(emissions.get(2).get(1).authority)
+        assertThat(emissions.get(1).get(1).authority)
             .isEqualTo(updatedContentProvider.providers[1].authority)
     }
 
@@ -348,8 +305,7 @@ class DataServiceImplTest {
         advanceTimeBy(100)
 
         // Verify initial available provider emissions.
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         val defaultContentObserver: ContentObserver =
             object : ContentObserver(/* handler */ null) {
@@ -448,8 +404,7 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions.get(0)).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         val firstMediaPagingSource: PagingSource<MediaPageKey, Media> =
             dataService.mediaPagingSource()
@@ -470,7 +425,7 @@ class DataServiceImplTest {
 
         // Since the active user has changed, this should trigger a re-fetch of the active
         // providers.
-        assertThat(emissions.count()).isEqualTo(3)
+        assertThat(emissions.count()).isEqualTo(2)
 
         // Check that the previously created MediaPagingSource has been invalidated.
         assertThat(firstMediaPagingSource.invalid).isTrue()
@@ -501,8 +456,7 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions[0]).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         val firstAlbumPagingSource: PagingSource<MediaPageKey, Group.Album> =
             dataService.albumPagingSource()
@@ -522,7 +476,7 @@ class DataServiceImplTest {
 
         // Since the active user has changed, this should trigger a re-fetch of the active
         // providers.
-        assertThat(emissions.count()).isEqualTo(3)
+        assertThat(emissions.count()).isEqualTo(2)
 
         // Check that the previously created MediaPagingSource has been invalidated.
         assertThat(firstAlbumPagingSource.invalid).isTrue()
@@ -624,8 +578,7 @@ class DataServiceImplTest {
         this.backgroundScope.launch { dataService.availableProviders.toList(emissions) }
         advanceTimeBy(100)
 
-        assertThat(emissions.count()).isEqualTo(2)
-        assertThat(emissions[0]).isEqualTo(emptyList<Provider>())
+        assertThat(emissions.count()).isEqualTo(1)
 
         // Fetch album media the first time
         val albumId = testContentProvider.albumMedia.keys.first()
@@ -668,7 +621,7 @@ class DataServiceImplTest {
 
         // Since the active user has changed, this should trigger a re-fetch of the active
         // providers.
-        assertThat(emissions.count()).isEqualTo(3)
+        assertThat(emissions.count()).isEqualTo(2)
 
         // Fetch the album media again
         val secondAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
@@ -791,5 +744,116 @@ class DataServiceImplTest {
         // Check that a cache update request was not received a second time
         val lastAlbumMediaRefreshRequest = testContentProvider.lastRefreshMediaRequest
         assertThat(lastAlbumMediaRefreshRequest).isEqualTo(firstAlbumMediaRefreshRequest)
+    }
+
+    @Test
+    fun testDisruptiveDataUpdate() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+            )
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
+
+        val availableProviderEmissions = mutableListOf<List<Provider>>()
+        this.backgroundScope.launch {
+            dataService.availableProviders.toList(availableProviderEmissions)
+        }
+
+        val disruptiveDataUpdateEmissions = mutableListOf<Unit>()
+        this.backgroundScope.launch {
+            dataService.disruptiveDataUpdateChannel
+                .consumeAsFlow()
+                .toList(disruptiveDataUpdateEmissions)
+        }
+
+        advanceTimeBy(100)
+
+        // Verify init state
+        assertThat(availableProviderEmissions.count()).isEqualTo(1)
+        assertThat(disruptiveDataUpdateEmissions.count()).isEqualTo(0)
+
+        // Update the available providers
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+            )
+
+        notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
+        advanceTimeBy(100)
+
+        // Verify updated state. Since the new set of available providers is a superset of the
+        // previously available providers, this update is not a disruptive data update.
+        assertThat(availableProviderEmissions.count()).isEqualTo(2)
+        assertThat(disruptiveDataUpdateEmissions.count()).isEqualTo(0)
+
+        // Update the available providers again
+        testContentProvider.providers =
+            mutableListOf(
+                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+            )
+
+        notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
+        advanceTimeBy(100)
+
+        // Verify updated state. Since the new set of available providers is NOT a superset of the
+        // previously available providers, this update is a disruptive data update.
+        assertThat(availableProviderEmissions.count()).isEqualTo(3)
+        assertThat(disruptiveDataUpdateEmissions.count()).isEqualTo(1)
+    }
+
+    @Test
+    fun testCollectionInfoUpdate() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config = provideTestConfigurationFlow(this.backgroundScope),
+                featureManager = testFeatureManager,
+            )
+
+        val availableProviderEmissions = mutableListOf<List<Provider>>()
+        this.backgroundScope.launch {
+            dataService.availableProviders.toList(availableProviderEmissions)
+        }
+
+        advanceTimeBy(100)
+
+        // Verify init state
+        assertThat(availableProviderEmissions.count()).isEqualTo(1)
+        val collectionInfo = dataService.getCollectionInfo(testContentProvider.providers[0])
+        val expectedCollectionInfo =
+            collectionInfo.copy(collectionId = "2", accountName = "new@account.name")
+
+        // Update the collection info of the available provider
+        testContentProvider.collectionInfos = listOf(expectedCollectionInfo)
+
+        // Send a change notification to the UI
+        notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
+        advanceTimeBy(100)
+
+        // Verify that since the available providers did not change, a new value was not emitted.
+        assertThat(availableProviderEmissions.count()).isEqualTo(1)
+
+        // Verify that the collection info has been updated.
+        val updatedCollectionInfo = dataService.getCollectionInfo(testContentProvider.providers[0])
+        assertThat(updatedCollectionInfo).isEqualTo(expectedCollectionInfo)
     }
 }

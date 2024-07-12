@@ -101,14 +101,14 @@ fun MediaPreloader(
             MediaPreloaderLoadingDialog(
                 dialogData = data,
                 onDismissRequest = {
-                    viewModel.cancelPreload()
+                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
                 },
             )
         is PreloaderDialogData.PreloaderLoadingErrorDialog ->
             MediaPreloaderErrorDialog(
                 onDismissRequest = {
-                    viewModel.cancelPreload()
+                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
                 },
             )

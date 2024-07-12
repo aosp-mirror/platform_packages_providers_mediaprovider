@@ -69,6 +69,22 @@ public class PickerSQLConstants {
         }
     }
 
+    enum CollectionInfoResponse {
+        AUTHORITY("authority"),
+        COLLECTION_ID("collection_id"),
+        ACCOUNT_NAME("account_name");
+
+        private final String mColumnName;
+
+        CollectionInfoResponse(String columnName) {
+            this.mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
     /**
      * An enum that holds the DB columns names and projections for the Album SQL query response.
      */
@@ -157,7 +173,7 @@ public class PickerSQLConstants {
         public String getProjection(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority,
-                @NonNull String intentAction
+                @Nullable String intentAction
         ) {
             switch (this) {
                 case WRAPPED_URI:
@@ -251,7 +267,7 @@ public class PickerSQLConstants {
         private String getWrappedUri(
                 @Nullable String localAuthority,
                 @Nullable String cloudAuthority,
-                @NonNull String intentAction
+                @Nullable String intentAction
         ) {
             // The format is:
             // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>

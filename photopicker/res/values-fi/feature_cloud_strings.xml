@@ -17,6 +17,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_overflow_menu_description" msgid="6548535301621140571">"Više"</string>
-    <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Medijska aplikacija u oblaku"</string>
+    <string name="photopicker_preloading_dialog_title" msgid="5873072481166085925">"Valitsemaasi mediaa valmistellaan"</string>
+    <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g>/<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> valmiina"</string>
+    <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Joitain kuvia ei voi ladata"</string>
+    <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Yritä myöhemmin uudelleen. Kuvat ovat saatavilla, kun ongelma on korjattu."</string>
 </resources>

@@ -42,7 +42,7 @@ import java.util.Objects;
 public class MediaQuery {
     private final long mDateTakenMs;
     private final long mPickerId;
-    @NonNull
+    @Nullable
     private final String mIntentAction;
     @NonNull
     private final List<String> mProviders;
@@ -58,7 +58,7 @@ public class MediaQuery {
         mPickerId = queryArgs.getLong("picker_id", Long.MAX_VALUE);
         mDateTakenMs = queryArgs.getLong("date_taken_millis", Long.MAX_VALUE);
         mPageSize = queryArgs.getInt("page_size", Integer.MAX_VALUE);
-        mIntentAction = Objects.requireNonNull(queryArgs.getString("intent_action"));
+        mIntentAction = queryArgs.getString("intent_action");
 
         // Make deep copies of the arrays to avoid leaking changes made to the arrays.
         mProviders = new ArrayList<>(
@@ -86,7 +86,7 @@ public class MediaQuery {
         return mMimeTypes;
     }
 
-    @NonNull
+    @Nullable
     public String getIntentAction() {
         return mIntentAction;
     }

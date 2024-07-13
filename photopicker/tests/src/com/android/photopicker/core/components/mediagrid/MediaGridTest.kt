@@ -58,8 +58,11 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
@@ -383,7 +386,60 @@ class MediaGridTest {
 
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
-    fun testMediaGridClickItem() {
+    fun testMediaGridClickItemSingleSelect() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = SINGLE_SELECT_CONFIG
+                        )
+                )
+
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides SINGLE_SELECT_CONFIG
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false, SINGLE_SELECT_CONFIG.intent) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performClick()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(1)
+        }
+    }
+
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
+    fun testMediaGridClickItemMultiSelect() {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
@@ -392,12 +448,72 @@ class MediaGridTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG
+                        )
                 )
 
             composeTestRule.setContent {
-                val photopickerConfiguration: PhotopickerConfiguration =
-                    testPhotopickerConfiguration
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides MULTI_SELECT_CONFIG
+                ) {
+                    PhotopickerTheme(/* isDarkTheme */ false, SINGLE_SELECT_CONFIG.intent) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performClick()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(1)
+
+            // Ensure the selected semantics got applied to the selected node.
+            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
+        }
+    }
+
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
+    fun testMediaGridClickItemOrderedSelection() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+        val photopickerConfiguration: PhotopickerConfiguration =
+            testActionPickImagesConfiguration.copy(pickImagesInOrder = true, selectionLimit = 2)
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = photopickerConfiguration
+                        )
+                )
+
+            composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
@@ -431,8 +547,8 @@ class MediaGridTest {
                 .that(selection.snapshot().size)
                 .isEqualTo(1)
 
-            // Ensure the selected semantics got applied to the selected node.
-            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
+            // Ensure the ordered selected semantics got applied to the selected node.
+            composeTestRule.waitUntilAtLeastOneExists(hasText("1"))
         }
     }
 

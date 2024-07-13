@@ -205,11 +205,9 @@ class MainActivity : Hilt_MainActivity() {
         // will be enabled for the user to confirm the selection.
         if (configurationManager.configuration.value.selectionLimit == 1) {
             lifecycleScope.launch {
-                withContext(background) {
-                    selection.get().flow.collect {
-                        if (it.size == 1) {
-                            onMediaSelectionConfirmed()
-                        }
+                selection.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect {
+                    if (it.size == 1) {
+                        launch { onMediaSelectionConfirmed() }
                     }
                 }
             }

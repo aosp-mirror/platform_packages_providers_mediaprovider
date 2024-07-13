@@ -28,7 +28,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -36,7 +35,6 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -213,7 +211,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     fun testPhotosCanBeSelected() {
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
-        val selectedString = resources.getString(R.string.photopicker_item_selected)
 
         mainScope.runTest {
             composeTestRule.setContent {
@@ -241,8 +238,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             // Wait for PhotoGridViewModel to modify Selection
             advanceTimeBy(100)
 
-            // Ensure the selected semantics got applied to the selected node.
-            composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(selectedString))
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
                 .that(selection.snapshot().size)

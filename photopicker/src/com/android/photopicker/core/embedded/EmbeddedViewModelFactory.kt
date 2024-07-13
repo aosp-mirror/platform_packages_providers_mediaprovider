@@ -81,7 +81,8 @@ class EmbeddedViewModelFactory(
                         null,
                         backgroundDispatcher,
                         selection.get(),
-                        userMonitor.get()
+                        userMonitor.get(),
+                        configurationManager.get(),
                     )
                         as T
                 isAssignableFrom(PhotoGridViewModel::class.java) ->

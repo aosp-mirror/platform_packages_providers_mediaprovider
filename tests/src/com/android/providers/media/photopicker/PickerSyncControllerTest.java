@@ -20,6 +20,7 @@ import static com.android.providers.media.PickerProviderMediaGenerator.MediaGene
 import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
+import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -1886,7 +1887,6 @@ public class PickerSyncControllerTest {
                 .isTrue();
     }
 
-
     @Test
     public void testLocalCollectionInfoCacheRecoversFromInvalidState() throws Exception {
         mController = PickerSyncController.initialize(
@@ -2001,6 +2001,28 @@ public class PickerSyncControllerTest {
 
         // Verify that cloud media queries are disabled after receiving the notification.
         assertThat(mFacade.getCloudProvider()).isNull();
+    }
+
+    @Test
+    public void testOnBootComplete() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Cloud media queries should be disabled before sync.")
+                .that(mFacade.getCloudProvider()).isNull();
+
+        mController.syncAllMedia();
+        assertWithMessage("Cloud media queries should be enabled after sync.")
+                .that(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Disable cloud queries to simulate what happens when the device reboots.
+        mFacade.setCloudProvider(/* authority */ null);
+        assertWithMessage("Cloud media queries should be disabled.")
+                .that(mFacade.getCloudProvider()).isNull();
+
+        // Try to re-enable cloud media queries.
+        mController.tryEnablingCloudMediaQueries(/* delay */ 0);
+        waitForIdle();
+        assertWithMessage("Cloud media queries should be enabled.")
+                .that(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {

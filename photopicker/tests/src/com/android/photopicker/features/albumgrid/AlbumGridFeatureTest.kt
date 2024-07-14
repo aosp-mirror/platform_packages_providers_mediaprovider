@@ -20,8 +20,12 @@ import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.UserManager
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.test.mock.MockContentResolver
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -50,7 +54,11 @@ import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.data.DataService
+import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource.Companion.TEST_ALBUM_NAME_PREFIX
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
@@ -132,6 +140,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject lateinit var dataService: DataService
 
     @Before
     fun setup() {
@@ -288,4 +297,224 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                 .that(route)
                 .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
         }
+
+    @Test
+    fun testAlbumMediaShowsEmptyStateWhenEmpty() {
+
+        val testDataService = dataService as? TestDataServiceImpl
+        checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
+
+        // Force the data service to return no data for all test sources during this test.
+        testDataService.albumMediaSetSize = 0
+
+        val resources = getTestableContext().getResources()
+
+        mainScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                    bannerManager = bannerManager.get(),
+                )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            advanceTimeBy(100)
+
+            val testAlbumDisplayName = TEST_ALBUM_NAME_PREFIX + "1"
+            // In the [FakeInMemoryPagingSource] the albums are names using TEST_ALBUM_NAME_PREFIX
+            // appended by a count in their sequence. Verify that an album with the name exists
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).assertIsDisplayed()
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_photos_empty_state_title)))
+                .assertIsDisplayed()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_photos_empty_state_body)))
+                .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testEmptyStateContentForFavorites() {
+
+        val testDataService = dataService as? TestDataServiceImpl
+        checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
+
+        // Force the data service to return no data for all test sources during this test.
+        testDataService.albumMediaSetSize = 0
+        testDataService.albumsList =
+            listOf(
+                Group.Album(
+                    id = ALBUM_ID_FAVORITES,
+                    pickerId = 1234L,
+                    authority = "a",
+                    displayName = "Favorites",
+                    coverUri =
+                        Uri.EMPTY.buildUpon()
+                            .apply {
+                                scheme("content")
+                                authority("a")
+                                path("1234")
+                            }
+                            .build(),
+                    dateTakenMillisLong = 12345678L,
+                    coverMediaSource = MediaSource.LOCAL,
+                )
+            )
+
+        val resources = getTestableContext().getResources()
+
+        mainScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                    bannerManager = bannerManager.get(),
+                )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            val testAlbumDisplayName = "Favorites"
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(
+                    hasText(resources.getString(R.string.photopicker_favorites_empty_state_title))
+                )
+                .assertIsDisplayed()
+
+            composeTestRule
+                .onNode(
+                    hasText(resources.getString(R.string.photopicker_favorites_empty_state_body))
+                )
+                .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testEmptyStateContentForVideos() {
+
+        val testDataService = dataService as? TestDataServiceImpl
+        checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
+
+        // Force the data service to return no data for all test sources during this test.
+        testDataService.albumMediaSetSize = 0
+        testDataService.albumsList =
+            listOf(
+                Group.Album(
+                    id = ALBUM_ID_VIDEOS,
+                    pickerId = 1234L,
+                    authority = "a",
+                    displayName = "Videos",
+                    coverUri =
+                        Uri.EMPTY.buildUpon()
+                            .apply {
+                                scheme("content")
+                                authority("a")
+                                path("1234")
+                            }
+                            .build(),
+                    dateTakenMillisLong = 12345678L,
+                    coverMediaSource = MediaSource.LOCAL,
+                )
+            )
+
+        val resources = getTestableContext().getResources()
+
+        mainScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                    bannerManager = bannerManager.get(),
+                )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            advanceTimeBy(100)
+
+            val testAlbumDisplayName = "Videos"
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_videos_empty_state_title)))
+                .assertIsDisplayed()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_videos_empty_state_body)))
+                .assertIsDisplayed()
+        }
+    }
 }

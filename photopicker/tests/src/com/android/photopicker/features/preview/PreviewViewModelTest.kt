@@ -737,7 +737,7 @@ class PreviewViewModelTest {
         if (SdkLevel.isAtLeastT()) {
             return bundle?.getParcelable(EXTRA_SIZE, Point::class.java)
         } else {
-            return bundle?.getParcelable(EXTRA_SIZE) as? Point
+            @Suppress("DEPRECATION") return bundle?.getParcelable(EXTRA_SIZE) as? Point
         }
     }
 

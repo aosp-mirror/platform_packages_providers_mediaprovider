@@ -609,8 +609,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             :
                                     MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__EXTERNAL);
             Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
-            // Delete old data and create new schema.
-            recreateLatestSchema(db);
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
@@ -629,16 +627,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     protected String getExternalStorageDbXattrPath() {
         return DATA_MEDIA_XATTR_DIRECTORY_PATH;
-    }
-
-    @GuardedBy("sRecoveryLock")
-    private void recreateLatestSchema(SQLiteDatabase db) {
-        mSchemaLock.writeLock().lock();
-        try {
-            createLatestSchema(db);
-        } finally {
-            mSchemaLock.writeLock().unlock();
-        }
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {

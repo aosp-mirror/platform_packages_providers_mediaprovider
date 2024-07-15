@@ -20,7 +20,9 @@ import static com.android.providers.media.PickerProviderMediaGenerator.MediaGene
 import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.REFRESH_UI_PICKER_INTERNAL_OBSERVABLE_URI;
 import static com.android.providers.media.photopicker.NotificationContentObserver.MEDIA;
+import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +59,7 @@ import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1882,6 +1885,144 @@ public class PickerSyncControllerTest {
         assertWithMessage("Cloud media should be included in the picker media queries")
                 .that(shouldQueryCloudMedia)
                 .isTrue();
+    }
+
+    @Test
+    public void testLocalCollectionInfoCacheRecoversFromInvalidState() throws Exception {
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
+        mLocalMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // has not run yet.
+        final ProviderCollectionInfo collectionInfo =
+                mController.getLocalProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_1);
+    }
+
+    @Test
+    public void testCloudCollectionInfoCacheRecoversFromInvalidState() throws Exception {
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY); //Don't sync
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // has not been performed.
+        ProviderCollectionInfo collectionInfo =
+                mController.getCloudProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_1);
+
+        mController.setCloudProvider(CLOUD_SECONDARY_PROVIDER_AUTHORITY); //Don't sync
+        mCloudSecondaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // with the new cloud provider has not been performed.
+        collectionInfo = mController.getCloudProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(CLOUD_SECONDARY_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_2);
+    }
+
+    @Test
+    public void testLocalCollectionInfoCacheUpdatesOnSync() throws Exception {
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
+        mLocalMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // has not run yet.
+        ProviderCollectionInfo collectionInfo =
+                mController.getLocalProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_1);
+
+        mLocalMediaGenerator.setMediaCollectionId(COLLECTION_2);
+        mController.syncAllMedia();
+
+        // Verify that collection info cache updates after running a sync.
+        collectionInfo = mController.getLocalProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(LOCAL_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_2);
+    }
+
+    @Test
+    public void testCloudCollectionInfoCacheUpdatesOnSync() throws Exception {
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
+        mController.setCloudProvider(CLOUD_PRIMARY_PROVIDER_AUTHORITY); //Don't sync
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // has not been performed.
+        ProviderCollectionInfo collectionInfo =
+                mController.getCloudProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_1);
+
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_2);
+        mController.syncAllMedia();
+
+        // Verify that collection info cache updates after running a sync.
+        collectionInfo = mController.getCloudProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_2);
+    }
+
+    @Test
+    public void testHandleMediaEventChangeNotification() throws Exception {
+        mController = PickerSyncController.initialize(
+                mContext, mFacade, mConfigStore, mLockManager, LOCAL_PROVIDER_AUTHORITY);
+        mCloudPrimaryMediaGenerator.setMediaCollectionId(COLLECTION_1);
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Verify that collection info cache fetches and returns the latest value, even when a sync
+        // has not been performed.
+        ProviderCollectionInfo collectionInfo =
+                mController.getCloudProviderLatestCollectionInfo();
+        assertThat(collectionInfo).isNotNull();
+        assertThat(collectionInfo.getAuthority()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertThat(collectionInfo.getCollectionId()).isEqualTo(COLLECTION_1);
+
+        // Verify that cloud media queries are enabled after the sync.
+        assertThat(mFacade.getCloudProvider()).isNotNull();
+
+        // Send media event notification with a different collection id.
+        mController.handleMediaEventNotification(
+                /* isLocal */ false, CLOUD_PRIMARY_PROVIDER_AUTHORITY, COLLECTION_2);
+
+        // Verify that cloud media queries are disabled after receiving the notification.
+        assertThat(mFacade.getCloudProvider()).isNull();
+    }
+
+    @Test
+    public void testOnBootComplete() {
+        mController.setCloudProvider(/* authority */ CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        assertWithMessage("Cloud media queries should be disabled before sync.")
+                .that(mFacade.getCloudProvider()).isNull();
+
+        mController.syncAllMedia();
+        assertWithMessage("Cloud media queries should be enabled after sync.")
+                .that(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+
+        // Disable cloud queries to simulate what happens when the device reboots.
+        mFacade.setCloudProvider(/* authority */ null);
+        assertWithMessage("Cloud media queries should be disabled.")
+                .that(mFacade.getCloudProvider()).isNull();
+
+        // Try to re-enable cloud media queries.
+        mController.tryEnablingCloudMediaQueries(/* delay */ 0);
+        waitForIdle();
+        assertWithMessage("Cloud media queries should be enabled.")
+                .that(mFacade.getCloudProvider()).isEqualTo(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
     }
 
     private static void addMedia(MediaGenerator generator, Pair<String, String> media) {

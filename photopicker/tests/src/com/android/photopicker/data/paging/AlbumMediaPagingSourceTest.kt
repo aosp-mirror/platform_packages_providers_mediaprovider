@@ -47,7 +47,8 @@ import org.mockito.MockitoAnnotations
 class AlbumMediaPagingSourceTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
-    private val availableProviders: List<Provider> = listOf(Provider("auth", MediaSource.LOCAL, 0))
+    private val availableProviders: List<Provider> =
+        listOf(Provider("auth", MediaSource.LOCAL, 0, ""))
 
     @Mock private lateinit var mockMediaProviderClient: MediaProviderClient
 

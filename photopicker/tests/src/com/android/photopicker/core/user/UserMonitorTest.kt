@@ -24,6 +24,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.content.pm.UserProperties
+import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
@@ -121,10 +122,7 @@ class UserMonitorTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel()) { PLATFORM_PROVIDED_PROFILE_LABEL }
+
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.contentResolver) { mockContentResolver }
@@ -149,16 +147,22 @@ class UserMonitorTest {
             listOf(mockResolveInfo)
         }
 
-        whenever(mockUserManager.getUserProperties(USER_HANDLE_PRIMARY)) {
-            UserProperties.Builder().build()
-        }
-        // By default, allow managed profile to be available
-        whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
-            UserProperties.Builder()
-                .setCrossProfileContentSharingStrategy(
-                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
-                )
-                .build()
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { PLATFORM_PROVIDED_PROFILE_LABEL }
+            whenever(mockUserManager.getUserProperties(USER_HANDLE_PRIMARY)) {
+                UserProperties.Builder().build()
+            }
+            // By default, allow managed profile to be available
+            whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+                UserProperties.Builder()
+                    .setCrossProfileContentSharingStrategy(
+                        UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                    )
+                    .build()
+            }
         }
     }
 
@@ -188,8 +192,9 @@ class UserMonitorTest {
 
     /** Ensures profiles with a cross profile forwarding intent are active */
     @Test
-    fun testProfilesForCrossProfileIntentForwarding() {
+    fun testProfilesForCrossProfileIntentForwardingVPlus() {
 
+        assumeTrue(SdkLevel.isAtLeastV())
         whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
             UserProperties.Builder()
                 .setCrossProfileContentSharingStrategy(
@@ -223,6 +228,38 @@ class UserMonitorTest {
             }
         }
     }
+
+    /** Ensures profiles with a cross profile forwarding intent are active */
+    @Test
+    fun testProfilesForCrossProfileIntentForwardingUMinus() {
+
+        assumeFalse(SdkLevel.isAtLeastV())
+        val mockResolveInfo = mock(ResolveInfo::class.java)
+        whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
+        whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
+            listOf(mockResolveInfo)
+        }
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                assertUserStatusIsEqualIgnoringFields(reportedStatus, initialExpectedStatus)
+            }
+        }
+    }
+
     /**
      * Ensures that profiles that explicitly request not to be shown in sharing surfaces are not
      * included
@@ -757,6 +794,138 @@ class UserMonitorTest {
 
             assertThat(emissions.last().activeUserProfile.identifier)
                 .isEqualTo(PRIMARY_PROFILE_BASE.identifier)
+        }
+    }
+
+    @Test
+    fun testProfileDisableWhileInQuietModeVPlus() {
+        assumeTrue(SdkLevel.isAtLeastV())
+
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { true }
+        whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+            UserProperties.Builder().setShowInQuietMode(SHOW_IN_QUIET_MODE_HIDDEN).build()
+        }
+
+        val initialState =
+            UserStatus(
+                activeUserProfile =
+                    UserProfile(
+                        identifier = USER_ID_PRIMARY,
+                        profileType = UserProfile.ProfileType.PRIMARY,
+                    ),
+                allProfiles =
+                    listOf(
+                        UserProfile(
+                            identifier = USER_ID_PRIMARY,
+                            profileType = UserProfile.ProfileType.PRIMARY,
+                        ),
+                        UserProfile(
+                            identifier = USER_ID_MANAGED,
+                            profileType = UserProfile.ProfileType.MANAGED,
+                            disabledReasons =
+                                setOf(
+                                    UserProfile.DisabledReason.QUIET_MODE,
+                                    UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
+                                )
+                        )
+                    ),
+                activeContentResolver = mockContentResolver
+            )
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            val emissions = mutableListOf<UserStatus>()
+            backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
+            advanceTimeBy(100)
+
+            backgroundScope.launch {
+                val switchResult =
+                    userMonitor.requestSwitchActiveUserProfile(
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
+                    )
+                assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
+            }
+
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialState)
+        }
+    }
+
+    @Test
+    fun testProfileDisableWhileInQuietModeUMinus() {
+        assumeFalse(SdkLevel.isAtLeastV())
+
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { true }
+
+        val initialState =
+            UserStatus(
+                activeUserProfile =
+                    UserProfile(
+                        identifier = USER_ID_PRIMARY,
+                        profileType = UserProfile.ProfileType.PRIMARY,
+                    ),
+                allProfiles =
+                    listOf(
+                        UserProfile(
+                            identifier = USER_ID_PRIMARY,
+                            profileType = UserProfile.ProfileType.PRIMARY,
+                        ),
+                        UserProfile(
+                            identifier = USER_ID_MANAGED,
+                            profileType = UserProfile.ProfileType.MANAGED,
+                            disabledReasons =
+                                setOf(
+                                    UserProfile.DisabledReason.QUIET_MODE,
+                                )
+                        )
+                    ),
+                activeContentResolver = mockContentResolver
+            )
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            val emissions = mutableListOf<UserStatus>()
+            backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
+            advanceTimeBy(100)
+
+            backgroundScope.launch {
+                val switchResult =
+                    userMonitor.requestSwitchActiveUserProfile(
+                        UserProfile(identifier = USER_ID_MANAGED),
+                        mockContext
+                    )
+                assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
+            }
+
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(1)
+            assertUserStatusIsEqualIgnoringFields(emissions.get(0), initialState)
         }
     }
 

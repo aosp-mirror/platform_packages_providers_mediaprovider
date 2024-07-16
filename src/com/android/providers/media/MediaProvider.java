@@ -29,6 +29,7 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.MediaStore.EXTRA_IS_STABLE_URIS_ENABLED;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
@@ -1016,7 +1017,8 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -1055,7 +1057,8 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1115,7 +1118,8 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
@@ -1486,35 +1490,23 @@ public class MediaProvider extends ContentProvider {
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
 
-        // Enable various Photopicker activities based on ConfigStore state.
-        boolean isModernPickerEnabled = mConfigStore.isModernPickerEnabled();
+        // Notify the Photopicker that DeviceConfig has changed for T+ devices.
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        if (SdkLevel.isAtLeastT()) {
+            getContext().sendBroadcast(intent, MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION);
+        }
 
-        // ACTION_PICK_IMAGES
-        setComponentEnabledSetting(
-                "PhotoPickerActivity", /* isEnabled= */ !isModernPickerEnabled);
-
-        // ACTION_GET_CONTENT
         boolean isGetContentTakeoverEnabled = false;
 
-        // If the modern picker is enabled, allow it to handle GET_CONTENT.
-        // This logic only exists to check for specific S device settings
-        // and the modern picker is T+ only.
-        if (!isModernPickerEnabled) {
-            if (SdkLevel.isAtLeastT()) {
-                isGetContentTakeoverEnabled = true;
-            } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-                isGetContentTakeoverEnabled = true;
-            } else {
-                isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
-            }
+        if (SdkLevel.isAtLeastT()) {
+            isGetContentTakeoverEnabled = true;
+        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
+            isGetContentTakeoverEnabled = true;
+        } else {
+            isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
         }
         setComponentEnabledSetting(
                 "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
-
-        // ACTION_USER_SELECT_FOR_APP
-        // The modern picker does not yet handle USER_SELECT_FOR_APP.
-        setComponentEnabledSetting("PhotoPickerUserSelectActivity",
-                mConfigStore.isUserSelectForAppEnabled());
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -6838,7 +6830,7 @@ public class MediaProvider extends ContentProvider {
                 return getResultForIsCurrentCloudProviderCall(arg);
             }
             case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
-                return getResultForNotifyCloudMediaChangedEvent(arg);
+                return getResultForNotifyCloudMediaChangedEvent(arg, extras);
             }
             case MediaStore.USES_FUSE_PASSTHROUGH: {
                 return getResultForUsesFusePassThrough(arg);
@@ -7333,10 +7325,10 @@ public class MediaProvider extends ContentProvider {
     }
 
     @NotNull
-    private Bundle getResultForNotifyCloudMediaChangedEvent(String arg) {
+    private Bundle getResultForNotifyCloudMediaChangedEvent(String arg, Bundle extras) {
         final boolean notifyCloudEventResult;
         if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false);
+            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false, arg, extras);
             notifyCloudEventResult = true;
         } else {
             notifyCloudEventResult = false;
@@ -9588,7 +9580,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void deleteAndInvalidate(@NonNull Path path) {
-        deleteAndInvalidate(path.toFile());
+        if (path == null) {
+            return;
+        }
+
+        String fileName = path.getFileName().toString();
+        // Delete and invalidate all files except .nomedia and .database_uuid
+        if (!fileName.equalsIgnoreCase(MEDIA_IGNORE_FILENAME)
+                && !fileName.equalsIgnoreCase(FILE_DATABASE_UUID)) {
+            deleteAndInvalidate(path.toFile());
+        }
     }
 
     private void deleteAndInvalidate(@NonNull File file) {

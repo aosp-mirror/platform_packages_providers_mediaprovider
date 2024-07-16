@@ -19,7 +19,11 @@ package com.android.photopicker.features.photogrid
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -27,11 +31,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -39,6 +46,7 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
@@ -52,10 +60,10 @@ import com.android.photopicker.features.preview.PreviewFeature
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
  *
  * @param viewModel - A viewModel override for the composable. Normally, this is fetched via hilt
- *   from the backstack entry by using hiltViewModel()
+ *   from the backstack entry by using obtainViewModel()
  */
 @Composable
-fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
+fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
     val navController = LocalNavController.current
     val items = viewModel.data.collectAsLazyPagingItems()
     val featureManager = LocalFeatureManager.current
@@ -94,27 +102,48 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = hiltViewModel()) {
                 )
             }
     ) {
-        mediaGrid(
-            items = items,
-            isExpandedScreen = isExpandedScreen,
-            selection = selection,
-            onItemClick = { item ->
-                if (item is MediaGridItem.MediaItem) {
-                    viewModel.handleGridItemSelection(
-                        item = item.media,
-                        selectionLimitExceededMessage = selectionLimitExceededMessage
-                    )
-                }
-            },
-            onItemLongPress = { item ->
-                // If the [PreviewFeature] is enabled, launch the preview route.
-                if (isPreviewEnabled) {
-                    if (item is MediaGridItem.MediaItem)
-                        navController.navigateToPreviewMedia(item.media)
-                }
-            },
-            state = state,
-        )
+        val isEmptyAndNoMorePages =
+            items.itemCount == 0 &&
+                items.loadState.source.append is LoadState.NotLoading &&
+                items.loadState.source.append.endOfPaginationReached
+
+        when {
+            isEmptyAndNoMorePages -> {
+                val localConfig = LocalConfiguration.current
+                val emptyStatePadding =
+                    remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
+                EmptyState(
+                    // Provide 20% of screen height as empty space above
+                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    icon = Icons.Outlined.Image,
+                    title = stringResource(R.string.photopicker_photos_empty_state_title),
+                    body = stringResource(R.string.photopicker_photos_empty_state_body),
+                )
+            }
+            else -> {
+                mediaGrid(
+                    items = items,
+                    isExpandedScreen = isExpandedScreen,
+                    selection = selection,
+                    onItemClick = { item ->
+                        if (item is MediaGridItem.MediaItem) {
+                            viewModel.handleGridItemSelection(
+                                item = item.media,
+                                selectionLimitExceededMessage = selectionLimitExceededMessage
+                            )
+                        }
+                    },
+                    onItemLongPress = { item ->
+                        // If the [PreviewFeature] is enabled, launch the preview route.
+                        if (isPreviewEnabled) {
+                            if (item is MediaGridItem.MediaItem)
+                                navController.navigateToPreviewMedia(item.media)
+                        }
+                    },
+                    state = state,
+                )
+            }
+        }
     }
 }
 

@@ -17,14 +17,25 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for photopicker_application_label (7272391964836190376) -->
-    <skip />
+    <string name="photopicker_application_label" msgid="7272391964836190376">"相片和影片"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"媒體"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"已選取"</string>
     <string name="photopicker_add_button_label" msgid="6805332693977632142">"新增 <xliff:g id="COUNT">(%1$s)</xliff:g> 張相片"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"最多可選取 <xliff:g id="COUNT">%1$s</xliff:g> 個項目"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"相片"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"相簿"</string>
+    <!-- no translation found for photopicker_photos_empty_state_title (7018770515431149456) -->
+    <skip />
+    <!-- no translation found for photopicker_photos_empty_state_body (5959729294856198675) -->
+    <skip />
+    <!-- no translation found for photopicker_favorites_empty_state_title (3855048169943856242) -->
+    <skip />
+    <!-- no translation found for photopicker_favorites_empty_state_body (3265404004750778533) -->
+    <skip />
+    <!-- no translation found for photopicker_videos_empty_state_title (159181717463348909) -->
+    <skip />
+    <!-- no translation found for photopicker_videos_empty_state_body (5149028843414577039) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"返回"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"關閉"</string>
 </resources>

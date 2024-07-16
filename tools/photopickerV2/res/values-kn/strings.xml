@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"ಫೋಟೋ ಪಿಕರ್"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Docs UI"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"ಪಿಕರ್ ಆಯ್ಕೆ"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"ಚಿತ್ರಗಳನ್ನು ಆರಿಸಿ"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"ಆ್ಯಕ್ಷನ್ ಗೆಟ್ ಕಂಟೆಂಟ್"</string>
+    <string name="display_images_in_order" msgid="7880116254468536174">"ಕ್ರಮವಾಗಿ ಚಿತ್ರಗಳನ್ನು ಪ್ರದರ್ಶಿಸಿ"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"ಬಹು ಆಯ್ಕೆಗಳನ್ನು ಆರಿಸಲು ಅನುಮತಿ ನೀಡಿ"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"ಗರಿಷ್ಠ ಸಂಖ್ಯೆಯ ಮಾಧ್ಯಮ ಐಟಂಗಳು"</string>
+    <string name="enter_valid_number" msgid="5077320506805084248">"ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ಮೌಲ್ಯದ ಮಾನ್ಯವಾದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ"</string>
+    <string name="pick_media" msgid="5269447618857205416">"ಮಾಧ್ಯಮವನ್ನು ಆರಿಸಿ"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ"</string>
+</resources>

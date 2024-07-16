@@ -15,7 +15,7 @@
 android_test {
     name: "PdfUnitTests",
     manifest: "AndroidManifest.xml",
-    test_config: "AndroidTest.xml",
+    test_config: "PdfUnitTests.xml",
     test_suites: [
         "general-tests",
         "mts-mediaprovider",
@@ -23,7 +23,7 @@ android_test {
     // Test coverage system runs on different devices. Need to
     // compile for all architecture.
     compile_multilib: "both",
-    srcs: ["src/**/*.java"],
+    srcs: ["src/android/graphics/pdf/logging/PdfEventLoggerTest.java"],
     min_sdk_version: "31",
     sdk_version: "module_current",
     target_sdk_version: "35",
@@ -47,5 +47,40 @@ android_test {
         "android.test.mock",
         "android.test.runner",
         "framework-pdf.impl",
+    ],
+}
+
+android_test {
+    name: "PdfCompatChangesTest",
+    manifest: "AndroidManifest.xml",
+    test_config: "PdfCompatChangesTest.xml",
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+    compile_multilib: "both",
+    srcs: ["src/android/graphics/pdf/PdfCompatChangesTest.java"],
+    min_sdk_version: "34",
+    sdk_version: "module_current",
+    // Important: Target SDK version cannot increase beyond 34 due to compat change overrides
+    target_sdk_version: "34",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
+    static_libs: [
+        "androidx.test.runner",
+        "compatibility-device-util-axt",
+        "mockito-target-extended-minus-junit4",
+        "truth",
+        "services.core",
+        "androidx.test.ext.truth",
+        "platform-compat-test-rules",
+    ],
+    libs: [
+        "android.test.base",
+        "android.test.mock",
+        "android.test.runner",
+        "framework-pdf.impl",
+        "framework-pdf-v.impl",
     ],
 }

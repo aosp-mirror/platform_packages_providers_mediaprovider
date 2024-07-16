@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"Birač slika"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Korisnički interfejs Dokumenata"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"Izbor birača"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker verzije 2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"Izaberite slike"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"Radnja preuzimanja sadržaja"</string>
+    <string name="display_images_in_order" msgid="7880116254468536174">"Prikazujte slike u navedenom redosledu"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"Dozvolite izbor više stavki"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"Maksimalan broj medijskih elemenata"</string>
+    <string name="enter_valid_number" msgid="5077320506805084248">"Unesite važeći broj veći od jedan"</string>
+    <string name="pick_media" msgid="5269447618857205416">"Izaberite medije"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"Radimo na tome"</string>
+</resources>

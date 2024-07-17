@@ -100,3 +100,11 @@ flag {
     bug: "195138692"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "enable_embedded_photopicker"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether the embedded photopicker is enabled"
+    bug: "353634929"
+}

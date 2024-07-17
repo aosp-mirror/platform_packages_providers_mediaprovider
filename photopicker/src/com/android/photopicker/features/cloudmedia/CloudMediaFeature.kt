@@ -67,7 +67,9 @@ class CloudMediaFeature : PhotopickerUiFeature {
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
             Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
-            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.HIGH.priority),
+            // Medium priority for OVERFLOW_MENU_ITEMS so that [BrowseFeature] can
+            // have the top spot if it's enabled.
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority),
         )
     }
 

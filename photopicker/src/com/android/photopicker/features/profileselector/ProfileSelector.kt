@@ -27,9 +27,9 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,16 +43,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
 /** Entry point for the profile selector. */
 @Composable
 fun ProfileSelector(
     modifier: Modifier = Modifier,
-    viewModel: ProfileSelectorViewModel = hiltViewModel(),
+    viewModel: ProfileSelectorViewModel = obtainViewModel(),
 ) {
 
     // Collect selection to ensure this is recomposed when the selection is updated.
@@ -74,7 +74,7 @@ fun ProfileSelector(
         val currentProfile by viewModel.selectedProfile.collectAsStateWithLifecycle()
         var expanded by remember { mutableStateOf(false) }
         Box(modifier = modifier) {
-            OutlinedIconButton(
+            IconButton(
                 modifier = Modifier.align(Alignment.CenterStart),
                 onClick = { expanded = !expanded }
             ) {

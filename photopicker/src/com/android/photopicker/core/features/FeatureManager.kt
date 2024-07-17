@@ -23,11 +23,13 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.browse.BrowseFeature
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.privacyexplainer.PrivacyExplainerFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
@@ -79,6 +81,8 @@ class FeatureManager(
                 SnackbarFeature.Registration,
                 CloudMediaFeature.Registration,
                 OverflowMenuFeature.Registration,
+                PrivacyExplainerFeature.Registration,
+                BrowseFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -92,6 +96,20 @@ class FeatureManager(
             setOf(
                 Event.MediaSelectionConfirmed::class.java,
                 Event.ShowSnackbarMessage::class.java,
+                Event.ReportPhotopickerSessionInfo::class.java,
+                Event.ReportPhotopickerApiInfo::class.java,
+                Event.LogPhotopickerUIEvent::class.java,
+                Event.ReportPhotopickerMediaItemStatus::class.java,
+                Event.LogPhotopickerPreviewInfo::class.java,
+                Event.LogPhotopickerMenuInteraction::class.java,
+                Event.LogPhotopickerBannerInteraction::class.java,
+                Event.LogPhotopickerMediaLibraryInfo::class.java,
+                Event.LogPhotopickerPageInfo::class.java,
+                Event.ReportPhotopickerMediaGridSyncInfo::class.java,
+                Event.ReportPhotopickerAlbumSyncInfo::class.java,
+                Event.ReportPhotopickerSearchInfo::class.java,
+                Event.ReportSearchDataExtractionDetails::class.java,
+                Event.ReportEmbeddedPhotopickerInfo::class.java
             )
     }
 

@@ -48,16 +48,16 @@ import com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper;
 import com.android.providers.media.photopicker.v2.model.FavoritesMediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
+import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 import com.android.providers.media.photopicker.v2.model.VideoMediaQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-
+import java.util.Objects;
 
 /**
- * This class handles Photo Picker content queries.
+ * This class handles Photo Picker content queries.\
  */
 public class PickerDataLayerV2 {
     private static final String TAG = "PickerDataLayerV2";
@@ -138,12 +138,7 @@ public class PickerDataLayerV2 {
             cursors.add(getCloudAlbumsCursor(appContext, query, localAuthority, cloudAuthority));
         }
 
-        for (Iterator<AlbumsCursorWrapper> iterator = cursors.iterator(); iterator.hasNext(); ) {
-            if (iterator.next() == null) {
-                iterator.remove();
-            }
-        }
-
+        cursors.removeIf(Objects::isNull);
         if (cursors.isEmpty()) {
             Log.e(TAG, "No albums available");
             return null;
@@ -407,8 +402,8 @@ public class PickerDataLayerV2 {
                         PickerSQLConstants.MediaResponse
                                 .AUTHORITY.getProjection(localAuthority, cloudAuthority),
                         PickerSQLConstants.MediaResponse.MEDIA_SOURCE.getProjection(),
-                        PickerSQLConstants.MediaResponse
-                                .WRAPPED_URI.getProjection(localAuthority, cloudAuthority),
+                        PickerSQLConstants.MediaResponse.WRAPPED_URI.getProjection(
+                                localAuthority, cloudAuthority, query.getIntentAction()),
                         PickerSQLConstants.MediaResponse
                                 .UNWRAPPED_URI.getProjection(localAuthority, cloudAuthority),
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection(),
@@ -533,7 +528,11 @@ public class PickerDataLayerV2 {
             @Nullable String cloudAuthority) {
         final MediaQuery query;
         if (albumId.equals(AlbumColumns.ALBUM_ID_VIDEOS)) {
-            query = new VideoMediaQuery(queryArgs, 1);
+            VideoMediaQuery videoQuery = new VideoMediaQuery(queryArgs, 1);
+            if (!videoQuery.shouldDisplayVideosAlbum()) {
+                return null;
+            }
+            query = videoQuery;
         } else if (albumId.equals(AlbumColumns.ALBUM_ID_FAVORITES)) {
             query = new FavoritesMediaQuery(queryArgs, 1);
         } else {
@@ -870,6 +869,42 @@ public class PickerDataLayerV2 {
         }
     }
 
+    /**
+     * @return a cursor with the Collection Info for all the available providers.
+     */
+    public static Cursor queryCollectionInfo() {
+        try {
+            final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+            final String[] columnNames = Arrays
+                    .stream(PickerSQLConstants.CollectionInfoResponse.values())
+                    .map(PickerSQLConstants.CollectionInfoResponse::getColumnName)
+                    .toArray(String[]::new);
+            final MatrixCursor matrixCursor = new MatrixCursor(columnNames, /*initialCapacity */ 2);
+            Bundle extras = new Bundle();
+            matrixCursor.setExtras(extras);
+            final ProviderCollectionInfo localCollectionInfo =
+                    syncController.getLocalProviderLatestCollectionInfo();
+            addCollectionInfoToCursor(
+                    matrixCursor,
+                    localCollectionInfo
+            );
+
+            final ProviderCollectionInfo cloudCollectionInfo =
+                    syncController.getCloudProviderLatestCollectionInfo();
+            if (cloudCollectionInfo != null
+                    && syncController.shouldQueryCloudMedia(cloudCollectionInfo.getAuthority())) {
+                addCollectionInfoToCursor(
+                        matrixCursor,
+                        cloudCollectionInfo
+                );
+            }
+
+            return matrixCursor;
+        } catch (IllegalStateException e) {
+            throw new RuntimeException("Unexpected internal error occurred", e);
+        }
+    }
+
     private static void addAvailableProvidersToCursor(
             @NonNull MatrixCursor cursor,
             @NonNull String authority,
@@ -881,6 +916,24 @@ public class PickerDataLayerV2 {
                 .add(PickerSQLConstants.AvailableProviderResponse.MEDIA_SOURCE.getColumnName(),
                         source.name())
                 .add(PickerSQLConstants.AvailableProviderResponse.UID.getColumnName(), uid);
+    }
+
+    private static void addCollectionInfoToCursor(
+            @NonNull MatrixCursor cursor,
+            @NonNull ProviderCollectionInfo providerCollectionInfo) {
+        if (providerCollectionInfo != null) {
+            cursor.newRow()
+                    .add(PickerSQLConstants.CollectionInfoResponse.AUTHORITY.getColumnName(),
+                            providerCollectionInfo.getAuthority())
+                    .add(PickerSQLConstants.CollectionInfoResponse.COLLECTION_ID.getColumnName(),
+                            providerCollectionInfo.getCollectionId())
+                    .add(PickerSQLConstants.CollectionInfoResponse.ACCOUNT_NAME.getColumnName(),
+                            providerCollectionInfo.getAccountName());
+
+            Bundle extras = cursor.getExtras();
+            extras.putParcelable(providerCollectionInfo.getAuthority(),
+                    providerCollectionInfo.getAccountConfigurationIntent());
+        }
     }
 
     /**

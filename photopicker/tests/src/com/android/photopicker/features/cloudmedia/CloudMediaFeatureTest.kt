@@ -33,9 +33,14 @@ import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
@@ -71,7 +76,9 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
@@ -95,11 +102,13 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    val contentResolver: ContentResolver = MockContentResolver()
+    @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var events: Lazy<Events>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
@@ -135,6 +144,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 featureManager = featureManager.get(),
                 selection = selection.get(),
                 events = events.get(),
+                bannerManager = bannerManager.get(),
             )
         }
 
@@ -184,6 +194,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 featureManager = featureManager.get(),
                 selection = selection.get(),
                 events = events.get(),
+                bannerManager = bannerManager.get(),
             )
         }
 

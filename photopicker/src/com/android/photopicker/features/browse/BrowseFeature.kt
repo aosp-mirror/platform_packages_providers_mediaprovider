@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.cloudmedia
+package com.android.photopicker.features.browse
 
 import android.content.Intent
-import android.provider.MediaStore
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv.ACTIVITY
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
@@ -34,42 +36,35 @@ import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
+import kotlinx.coroutines.launch
 
 /**
- * Feature class for the Photopicker's cloud media implementation.
+ * Feature class for the Photopicker's browse functionality.
  *
- * This feature adds the Cloud media preloader for preloading off-device content before the
- * Photopicker session ends.
+ * This feature adds the Browse option to the overflow menu when the session is in
+ * ACTION_GET_CONTENT.
  */
-class CloudMediaFeature : PhotopickerUiFeature {
+class BrowseFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerCloudMediaFeature"
+        override val TAG: String = "PhotopickerBrowseFeature"
 
         override fun isEnabled(config: PhotopickerConfiguration): Boolean {
-
-            // Cloud media is not available in permission mode.
-            if (config.action == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) return false
-
-            return true
+            // Browse is only available for ACTION_GET_CONTENT when in the activity runtime env
+            return config.action == Intent.ACTION_GET_CONTENT && config.runtimeEnv == ACTIVITY
         }
 
-        override fun build(featureManager: FeatureManager) = CloudMediaFeature()
+        override fun build(featureManager: FeatureManager) = BrowseFeature()
     }
 
-    override val token = FeatureToken.CLOUD_MEDIA.token
+    override val token = FeatureToken.BROWSE.token
 
-    /** Events consumed by Cloud Media */
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
-    /** Events produced by the Cloud Media */
-    override val eventsProduced = setOf<RegisteredEventClass>()
+    override val eventsProduced = setOf<RegisteredEventClass>(Event.BrowseToDocumentsUi::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
-            Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
-            // Medium priority for OVERFLOW_MENU_ITEMS so that [BrowseFeature] can
-            // have the top spot if it's enabled.
-            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority),
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.HIGH.priority),
         )
     }
 
@@ -84,15 +79,17 @@ class CloudMediaFeature : PhotopickerUiFeature {
         params: LocationParams,
     ) {
         when (location) {
-            Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
             Location.OVERFLOW_MENU_ITEMS -> {
-                val context = LocalContext.current
                 val clickAction = params as? LocationParams.WithClickAction
+                val scope = rememberCoroutineScope()
+                val events = LocalEvents.current
                 OverflowMenuItem(
-                    label = stringResource(R.string.photopicker_overflow_cloud_media_app),
+                    label = stringResource(R.string.photopicker_overflow_browse),
                     onClick = {
+                        scope.launch {
+                            events.dispatch(Event.BrowseToDocumentsUi(dispatcherToken = token))
+                        }
                         clickAction?.onClick()
-                        context.startActivity(Intent(MediaStore.ACTION_PICK_IMAGES_SETTINGS))
                     }
                 )
             }

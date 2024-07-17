@@ -17,14 +17,19 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for photopicker_application_label (7272391964836190376) -->
-    <skip />
+    <string name="photopicker_application_label" msgid="7272391964836190376">"ఫోటోలు &amp; వీడియోలు"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"మీడియా"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"ఎంచుకోబడింది"</string>
     <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g>ను జోడించండి"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"గరిష్ఠంగా <xliff:g id="COUNT">%1$s</xliff:g> ఐటెమ్‌లను ఎంచుకోండి"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"ఫోటోలు"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ఆల్బమ్‌లు"</string>
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ఇంకా ఫోటోలు ఏవీ లేవు"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ఫోటోలు, వీడియోలను క్యాప్చర్ చేయడాన్ని ప్రారంభించండి"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ఇంకా ఫేవరెట్స్ ఏవీ లేవు"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"ఇది స్టార్ ఉన్న లేదా ఫేవరెట్స్‌గా మార్క్ చేసిన ఐటెమ్‌లను సేకరించే ఆటోమేటిక్ ఆల్బమ్"</string>
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ఇంకా వీడియోలు ఏవీ లేవు"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"ఇది మీ అన్ని వీడియోలను సేకరించే ఆటోమేటిక్ ఆల్బమ్"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"వెనుకకు"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"విస్మరించండి"</string>
 </resources>

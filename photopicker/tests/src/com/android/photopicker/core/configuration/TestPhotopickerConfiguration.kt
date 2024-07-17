@@ -24,14 +24,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
-/**
- * A [PhotopickerConfiguration] that allows selection of only a single item.
- */
+/** A [PhotopickerConfiguration] that allows selection of only a single item. */
 val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 1)
 
-/**
- * A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items.
- */
+/** A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items. */
 val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
 
 /**
@@ -73,6 +69,13 @@ val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
         action = MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
         intent = Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP),
     )
+
+/**
+ * A [PhotopickerConfiguration] that can be used for codepaths that utilize
+ * [PhotopickerRuntimeEnv.EMBEDDED]
+ */
+val testEmbeddedPhotopickerConfiguration: PhotopickerConfiguration =
+    PhotopickerConfiguration(action = "", runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED)
 
 /**
  * Helper function to generate a [StateFlow] that mimics the flow emitted by the

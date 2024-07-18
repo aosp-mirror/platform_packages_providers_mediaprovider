@@ -226,6 +226,7 @@ class MainActivity : Hilt_MainActivity() {
                      * confirming their selection of Media in the UI.
                      */
                     is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
+                    is Event.BrowseToDocumentsUi -> referToDocumentsUi()
                     else -> {}
                 }
             }

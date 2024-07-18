@@ -17,10 +17,6 @@
 package com.android.photopicker.data.model
 
 import android.content.Intent
-import kotlin.collections.HashMap
-import kotlin.collections.Map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /** Contains the collection info of a given Provider. */
 data class CollectionInfo(
@@ -29,38 +25,3 @@ data class CollectionInfo(
     val accountName: String? = null,
     val accountConfigurationIntent: Intent? = null
 )
-
-/**
- * A Utility class that tracks and updates the currently known Collection Info for the given
- * Providers.
- */
-class CollectionInfoState {
-    private val providerCollectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
-    private val mutex = Mutex()
-
-    suspend fun clear() {
-        mutex.withLock { providerCollectionInfo.clear() }
-    }
-
-    suspend fun updateCollectionInfo(
-        availableProviders: List<Provider>,
-        collectionInfo: List<CollectionInfo>
-    ) {
-        val availableProviderAuthorities: Map<String, Provider> =
-            availableProviders.map { it.authority to it }.toMap()
-        mutex.withLock {
-            providerCollectionInfo.clear()
-            collectionInfo.forEach {
-                if (availableProviderAuthorities.containsKey(it.authority)) {
-                    providerCollectionInfo.put(availableProviderAuthorities.get(it.authority)!!, it)
-                }
-            }
-        }
-    }
-
-    suspend fun getCollectionInfo(provider: Provider): CollectionInfo {
-        mutex.withLock {
-            return providerCollectionInfo.getOrDefault(provider, CollectionInfo(provider.authority))
-        }
-    }
-}

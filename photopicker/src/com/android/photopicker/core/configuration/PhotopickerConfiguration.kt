@@ -38,10 +38,12 @@ enum class PhotopickerRuntimeEnv {
  * @property runtimeEnv The current Photopicker runtime environment, this should never be changed
  *   during configuration updates.
  * @property action the [Intent#getAction] that Photopicker is currently serving.
- * @property intent the [Intent] that Photopicker was launched with.
  * @property callingPackage the package name of the caller
  * @property callingPackageUid the uid of the caller
  * @property callingPackageLabel the display label of the caller that can be shown to the user
+ * @property intent the [Intent] that Photopicker was launched with.
+ * @property accentColor the accent color (if valid) from
+ *   [MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR]
  * @property mimeTypes the mimetypes to filter all media requests with for the current session.
  * @property pickImagesInOrder whether to show check marks as ordered number values for selected
  *   media.
@@ -60,6 +62,7 @@ data class PhotopickerConfiguration(
     val callingPackageUid: Int? = null,
     val callingPackageLabel: String? = null,
     val intent: Intent? = null,
+    val accentColor: Long? = null,
     val mimeTypes: ArrayList<String> = arrayListOf("image/*", "video/*"),
     val pickImagesInOrder: Boolean = false,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,

@@ -150,7 +150,7 @@ abstract class PhotopickerFeatureBaseTest {
             LocalNavController provides navController,
             LocalEvents provides events,
         ) {
-            PhotopickerTheme(intent = photopickerConfiguration.intent) {
+            PhotopickerTheme(config = photopickerConfiguration) {
                 PhotopickerMain(bannerManager = bannerManager)
             }
         }

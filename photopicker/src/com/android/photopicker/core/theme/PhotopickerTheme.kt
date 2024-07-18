@@ -16,7 +16,6 @@
 
 package com.android.photopicker.core.theme
 
-import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -30,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.platform.LocalContext
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.theme.typography.TypeScaleTokens
 import com.android.photopicker.core.theme.typography.TypefaceNames
 import com.android.photopicker.core.theme.typography.TypefaceTokens
@@ -46,11 +46,11 @@ import com.android.photopicker.core.theme.typography.photopickerTypography
 @Composable
 fun PhotopickerTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
-    intent: Intent?,
+    config: PhotopickerConfiguration,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val accentColorHelper = AccentColorHelper(intent)
+    val accentColorHelper = AccentColorHelper(config.accentColor ?: -1)
 
     // If a custom accent color hasn't been set, use a dynamic theme for colors
     val accentColorIsNotSpecified = remember { accentColorHelper.getAccentColor().isUnspecified }

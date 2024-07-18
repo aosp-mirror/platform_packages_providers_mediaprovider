@@ -27,7 +27,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.platform.LocalContext
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.theme.typography.TypeScaleTokens
@@ -52,32 +52,36 @@ fun PhotopickerTheme(
     val context = LocalContext.current
     val accentColorHelper = AccentColorHelper(intent)
 
+    // If a custom accent color hasn't been set, use a dynamic theme for colors
+    val accentColorIsNotSpecified = remember { accentColorHelper.getAccentColor().isUnspecified }
+
+    // Assemble Light & Dark themes, both color sets are needed to generate the [FixedAccentColors].
+    val darkTheme = remember {
+        when (accentColorIsNotSpecified) {
+            true ->
+                if (SdkLevel.isAtLeastS()) dynamicDarkColorScheme(context) else darkColorScheme()
+            false -> darkColorScheme()
+        }
+    }
+
+    val lightTheme = remember {
+        when (accentColorIsNotSpecified) {
+            true ->
+                if (SdkLevel.isAtLeastS()) dynamicLightColorScheme(context) else lightColorScheme()
+            false -> lightColorScheme()
+        }
+    }
+
+    // Choose which colorScheme to use based on if the device is in dark mode or not.
     val colorScheme =
         remember(isDarkTheme) {
-            when {
-                // When the accent color is available then the generic theme for the picker should
-                // be the static baseline material theme. This will be used for any components that
-                // are not highlighted with accent colors.
-                (accentColorHelper.getAccentColor() != Color.Unspecified) -> {
-                    if (isDarkTheme) {
-                        darkColorScheme()
-                    } else {
-                        lightColorScheme()
-                    }
-                }
-                else -> {
-                    if (SdkLevel.isAtLeastS()) {
-                        if (isDarkTheme) {
-                            dynamicDarkColorScheme(context)
-                        } else {
-                            dynamicLightColorScheme(context)
-                        }
-                    } else {
-                        null
-                    }
-                }
+            when (isDarkTheme) {
+                true -> darkTheme
+                false -> lightTheme
             }
-        } ?: MaterialTheme.colorScheme
+        }
+    val fixedAccentColors =
+        FixedAccentColors.build(lightColors = lightTheme, darkColors = darkTheme)
 
     // Generate the typography for the theme based on context.
     val typefaceNames = remember(context) { TypefaceNames.get(context) }
@@ -95,6 +99,7 @@ fun PhotopickerTheme(
     ) {
         CompositionLocalProvider(
             LocalWindowSizeClass provides windowSizeClass,
+            LocalFixedAccentColors provides fixedAccentColors,
             CustomAccentColorScheme provides
                 AccentColorScheme(accentColorHelper = accentColorHelper),
         ) {

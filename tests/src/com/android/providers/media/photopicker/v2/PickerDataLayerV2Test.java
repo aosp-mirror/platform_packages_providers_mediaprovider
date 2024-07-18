@@ -49,11 +49,13 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
@@ -156,6 +158,18 @@ public class PickerDataLayerV2Test {
         doReturn(/* cloudProviderAuthority */ null)
                 .when(mMockSyncController).getCloudProviderOrDefault(any());
 
+        final ProviderInfo providerInfo = new ProviderInfo();
+        providerInfo.packageName = LOCAL_PROVIDER;
+        providerInfo.name = "LOCAL_PROVIDER";
+        final ApplicationInfo applicationInfo = new ApplicationInfo();
+        applicationInfo.nonLocalizedLabel = providerInfo.name;
+        providerInfo.applicationInfo = applicationInfo;
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        doReturn(providerInfo)
+                .when(mMockPackageManager)
+                .resolveContentProvider(any(), anyInt());
+
         try (Cursor availableProviders = PickerDataLayerV2.queryAvailableProviders(mMockContext)) {
             availableProviders.moveToFirst();
 
@@ -191,6 +205,15 @@ public class PickerDataLayerV2Test {
                                     PickerSQLConstants.AvailableProviderResponse
                                             .UID.getColumnName()))
             );
+
+            assertEquals(
+                    "Local provider's label is not correct",
+                    /* expected */ "LOCAL_PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
+            );
         }
     }
 
@@ -200,15 +223,19 @@ public class PickerDataLayerV2Test {
         final int cloudUID = Integer.MAX_VALUE;
         final ProviderInfo providerInfo = new ProviderInfo();
         providerInfo.packageName = CLOUD_PROVIDER;
+        providerInfo.name = "PROVIDER";
+        final ApplicationInfo applicationInfo = new ApplicationInfo();
+        applicationInfo.nonLocalizedLabel = providerInfo.name;
+        providerInfo.applicationInfo = applicationInfo;
 
         doReturn(mMockPackageManager)
                 .when(mMockContext).getPackageManager();
         doReturn(cloudUID)
                 .when(mMockPackageManager)
-                .getPackageUid(CLOUD_PROVIDER, 0);
+                .getPackageUid(any(), anyInt());
         doReturn(providerInfo)
                 .when(mMockPackageManager)
-                .resolveContentProvider(CLOUD_PROVIDER, 0);
+                .resolveContentProvider(any(), anyInt());
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
@@ -249,6 +276,15 @@ public class PickerDataLayerV2Test {
                                             .UID.getColumnName()))
             );
 
+            assertEquals(
+                    "Local provider's label is not correct",
+                    /* expected */ "PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
+            );
+
             availableProviders.moveToNext();
 
             assertEquals(
@@ -276,6 +312,15 @@ public class PickerDataLayerV2Test {
                             availableProviders.getColumnIndexOrThrow(
                                     PickerSQLConstants.AvailableProviderResponse
                                             .UID.getColumnName()))
+            );
+
+            assertEquals(
+                    "Cloud provider's label is not correct",
+                    /* expected */ "PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
             );
         }
     }

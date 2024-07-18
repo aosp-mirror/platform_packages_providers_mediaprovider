@@ -56,7 +56,8 @@ public class PickerSQLConstants {
     enum AvailableProviderResponse {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
-        UID("uid");
+        UID("uid"),
+        DISPLAY_NAME("display_name");
 
         private final String mColumnName;
 

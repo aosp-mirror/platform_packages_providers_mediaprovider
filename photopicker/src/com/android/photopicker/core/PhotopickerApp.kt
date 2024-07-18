@@ -28,7 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +66,10 @@ import kotlinx.coroutines.launch
 private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 private val MEASUREMENT_BANNER_PADDING =
     PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
+
+/* Spacing around the selection bar and the edges of the screen */
+private val SELECTION_BAR_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 64.dp)
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is
@@ -115,9 +119,9 @@ fun PhotopickerAppWithBottomSheet(
         Column(
             modifier =
                 // Apply WindowInsets to this wrapping column to prevent the Bottom Sheet
-                // from drawing over the system bars.
+                // from drawing over the status bars.
                 Modifier.windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Vertical)
+                    WindowInsets.statusBars.only(WindowInsetsSides.Vertical)
                 )
         ) {
             BottomSheetScaffold(
@@ -151,6 +155,7 @@ fun PhotopickerAppWithBottomSheet(
                             LocalFeatureManager.current.composeLocation(
                                 Location.SELECTION_BAR,
                                 maxSlots = 1,
+                                modifier = Modifier.padding(SELECTION_BAR_PADDING),
                                 params =
                                     LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                             )

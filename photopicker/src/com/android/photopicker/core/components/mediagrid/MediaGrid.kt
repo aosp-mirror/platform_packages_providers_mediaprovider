@@ -136,13 +136,19 @@ private val MEASUREMENT_SELECTED_CORNER_RADIUS = 16.dp
 private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 
 /** The radius to use for the corners of grid cells that are selected */
-val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 16.dp
 
 /** The size for the icon used inside the default album thumbnails */
 val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE = 56.dp
 
 /** The padding for the icon for the default album thumbnails */
 val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING = 16.dp
+
+/** Additional padding between album items */
+val MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING = 16.dp
+
+/** Size of the spacer between the album icon and the album display label */
+val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 8.dp
 
 /**
  * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
@@ -507,8 +513,8 @@ private fun defaultBuildAlbumItem(
 ) {
     when (item) {
         is MediaGridItem.AlbumItem -> {
-            // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
-            Box(
+
+            Column(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
                         onClick(
@@ -523,56 +529,45 @@ private fun defaultBuildAlbumItem(
                             onTap = { onClick?.invoke(item) },
                         )
                     }
+                    .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
             ) {
-                // A background surface that is shown behind albums grid.
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                    // Container for albums and their title
-                    Column {
-                        // In the current implementation for AlbumsGrid, favourites and videos are
-                        // 2 mandatory albums and are shown even when they contain no data. For this
-                        // case they have special thumbnails associated with them.
-                        with(item.album) {
-                            val modifier =
-                                Modifier.fillMaxWidth()
-                                    .clip(
-                                        RoundedCornerShape(
-                                            MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS
-                                        )
-                                    )
-                                    .aspectRatio(1f)
-                            when {
-                                id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
-                                    DefaultAlbumIcon(
-                                        /* icon */ Icons.Outlined.StarOutline,
-                                        modifier
-                                    )
-                                }
-                                id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
-                                    DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
-                                }
-                                // Load the media item through the Glide entrypoint.
-                                else -> {
-                                    loadMedia(
-                                        media = item.album,
-                                        resolution = Resolution.THUMBNAIL,
-                                        // Modifier for album thumbnail
-                                        modifier = modifier
-                                    )
-                                }
-                            }
+                // In the current implementation for AlbumsGrid, favourites and videos are
+                // 2 mandatory albums and are shown even when they contain no data. For this
+                // case they have special thumbnails associated with them.
+                with(item.album) {
+                    val modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                            .aspectRatio(1f)
+                    when {
+                        id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.StarOutline, modifier)
                         }
-
-                        // Album title shown below the album thumbnail.
-                        Box {
-                            Text(
-                                text = item.album.displayName,
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1
+                        id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
+                        }
+                        // Load the media item through the Glide entrypoint.
+                        else -> {
+                            loadMedia(
+                                media = item.album,
+                                resolution = Resolution.THUMBNAIL,
+                                // Modifier for album thumbnail
+                                modifier = modifier
                             )
                         }
-                    } // Album Container
-                } // Album cell surface
-            } // Box for the grid cell
+                    }
+                }
+
+                Spacer(Modifier.size(MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE))
+                // Album title shown below the album thumbnail.
+                Text(
+                    text = item.album.displayName,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            } // Album cell column
         }
         else -> {}
     }
@@ -597,25 +592,33 @@ private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
  */
 @Composable
 private fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
-    Box(
-        // Modifier for album thumbnail
-        modifier = modifier.background(MaterialTheme.colorScheme.surface),
-        contentAlignment = Alignment.Center
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null, // Or provide a suitable content description
-            modifier =
-                Modifier
-                    // Equivalent to layout_width and layout_height
-                    .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer, // Background color
-                        shape = CircleShape // Circular background
-                    )
-                    // Padding inside the circle
-                    .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
-                    .clip(CircleShape), // Clip the image to a circle
-        )
+        Box(
+            // Modifier for album thumbnail
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null, // Or provide a suitable content description
+                modifier =
+                    Modifier
+                        // Equivalent to layout_width and layout_height
+                        .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainer, // Background color
+                            shape = CircleShape // Circular background
+                        )
+                        // Padding inside the circle
+                        .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
+                        .clip(CircleShape), // Clip the image to a circle
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }

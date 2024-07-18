@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.data.model
+package com.android.photopicker.core.components
 
-import android.content.Intent
+import androidx.compose.ui.unit.dp
 
-/** Contains the collection info of a given Provider. */
-data class CollectionInfo(
-    val authority: String,
-    val collectionId: String? = null,
-    val accountName: String? = null,
-    val accountConfigurationIntent: Intent? = null
-)
+/**
+ * There is no access to the internal ElevationTokens in material3, so this provides them to
+ * photopicker to keep them easy to update if the spec changes.
+ *
+ * Taken from: https://m3.material.io/styles/elevation/tokens
+ */
+object ElevationTokens {
+    val Level0 = 0.0.dp
+    val Level1 = 1.0.dp
+    val Level2 = 3.0.dp
+    val Level3 = 6.0.dp
+    val Level4 = 8.0.dp
+    val Level5 = 12.0.dp
+}

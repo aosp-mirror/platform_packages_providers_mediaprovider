@@ -80,6 +80,12 @@ interface DataService {
     ): PagingSource<MediaPageKey, Media>
 
     /**
+     * Ensures that the available providers cache is up to date and returns the latest available
+     * providers.
+     */
+    suspend fun ensureProviders()
+
+    /**
      * Sends a refresh media notification to the data source. This signal tells the data source to
      * refresh its cache.
      */

@@ -216,6 +216,9 @@ public final class MediaStore {
     public static final String GET_MEDIA_URI_CALL = "get_media_uri";
 
     /** {@hide} */
+    public static final String ENSURE_PROVIDERS_CALL = "ensure_providers_call";
+
+    /** {@hide} */
     public static final String GET_REDACTED_MEDIA_URI_CALL = "get_redacted_media_uri";
     /** {@hide} */
     public static final String GET_REDACTED_MEDIA_URI_LIST_CALL = "get_redacted_media_uri_list";

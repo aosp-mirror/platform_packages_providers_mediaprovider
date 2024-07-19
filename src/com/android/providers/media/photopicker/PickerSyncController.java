@@ -321,7 +321,7 @@ public class PickerSyncController {
      * @throws UnableToAcquireLockException If the required locks cannot be acquired to complete the
      * operation.
      */
-    private void maybeEnableCloudMediaQueries()
+    public void maybeEnableCloudMediaQueries()
             throws RequestObsoleteException, UnableToAcquireLockException {
         try (CloseableReentrantLock ignored =
                      mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_SYNC_LOCK)) {

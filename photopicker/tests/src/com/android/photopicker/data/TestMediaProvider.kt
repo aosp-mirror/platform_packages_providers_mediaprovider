@@ -38,7 +38,14 @@ import java.util.UUID
  * All not overridden / unimplemented operations will throw [UnsupportedOperationException].
  */
 val DEFAULT_PROVIDERS: List<Provider> =
-    listOf(Provider(authority = "test_authority", mediaSource = MediaSource.LOCAL, uid = 0))
+    listOf(
+        Provider(
+            authority = "test_authority",
+            mediaSource = MediaSource.LOCAL,
+            uid = 0,
+            displayName = "Test app"
+        )
+    )
 
 val DEFAULT_COLLECTION_INFO: List<CollectionInfo> =
     listOf(
@@ -145,12 +152,18 @@ class TestMediaProvider(
                 arrayOf(
                     MediaProviderClient.AvailableProviderResponse.AUTHORITY.key,
                     MediaProviderClient.AvailableProviderResponse.MEDIA_SOURCE.key,
-                    MediaProviderClient.AvailableProviderResponse.UID.key
+                    MediaProviderClient.AvailableProviderResponse.UID.key,
+                    MediaProviderClient.AvailableProviderResponse.DISPLAY_NAME.key
                 )
             )
         providers.forEach { provider ->
             cursor.addRow(
-                arrayOf(provider.authority, provider.mediaSource.name, provider.uid.toString())
+                arrayOf(
+                    provider.authority,
+                    provider.mediaSource.name,
+                    provider.uid.toString(),
+                    provider.displayName
+                )
             )
         }
         return cursor

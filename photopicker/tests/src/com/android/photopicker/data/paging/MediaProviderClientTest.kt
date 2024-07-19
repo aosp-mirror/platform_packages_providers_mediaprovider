@@ -62,7 +62,7 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0)),
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
                 config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
             )
 
@@ -82,12 +82,23 @@ class MediaProviderClientTest {
         val mediaProviderClient = MediaProviderClient()
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 1),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 1,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 2
+                    uid = 2,
+                    displayName = ""
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -115,11 +126,17 @@ class MediaProviderClientTest {
         val mediaProviderClient = MediaProviderClient()
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 1
+                    uid = 1,
+                    displayName = ""
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -154,11 +171,17 @@ class MediaProviderClientTest {
         val albumAuthority = "album_authority"
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 1
+                    uid = 1,
+                    displayName = ""
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -195,7 +218,7 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0)),
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
                 config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES),
             )
 
@@ -222,7 +245,7 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0)),
+                availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0, "")),
                 config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES),
             )
 

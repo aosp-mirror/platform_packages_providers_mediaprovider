@@ -51,7 +51,7 @@ private val CELLS_PER_ROW_FOR_ALBUM_GRID = 2
 private val CELLS_PER_ROW_EXPANDED_FOR_ALBUM_GRID = 3
 
 /** The amount of padding to use around each cell in the albums grid. */
-private val MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID = 20.dp
+private val MEASUREMENT_HORIZONTAL_CELL_SPACING_ALBUM_GRID = 16.dp
 
 /**
  * Primary composable for drawing the main AlbumGrid on [PhotopickerDestinations.ALBUM_GRID]

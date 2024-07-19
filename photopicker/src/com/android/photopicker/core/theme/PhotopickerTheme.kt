@@ -30,6 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.core.theme.typography.TypeScaleTokens
+import com.android.photopicker.core.theme.typography.TypefaceNames
+import com.android.photopicker.core.theme.typography.TypefaceTokens
+import com.android.photopicker.core.theme.typography.TypographyTokens
+import com.android.photopicker.core.theme.typography.photopickerTypography
 
 /**
  * This composable generates all the theme related elements and creates the wrapping [MaterialTheme]
@@ -74,15 +79,24 @@ fun PhotopickerTheme(
             }
         } ?: MaterialTheme.colorScheme
 
+    // Generate the typography for the theme based on context.
+    val typefaceNames = remember(context) { TypefaceNames.get(context) }
+    val typography =
+        remember(typefaceNames) {
+            photopickerTypography(TypographyTokens(TypeScaleTokens(TypefaceTokens(typefaceNames))))
+        }
+
     // Calculate the current screen size
     val windowSizeClass: WindowSizeClass = calculateWindowSizeClass()
 
-    MaterialTheme(colorScheme) {
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = typography,
+    ) {
         CompositionLocalProvider(
             LocalWindowSizeClass provides windowSizeClass,
-            CustomAccentColorScheme provides AccentColorScheme(
-                accentColorHelper = accentColorHelper
-            ),
+            CustomAccentColorScheme provides
+                AccentColorScheme(accentColorHelper = accentColorHelper),
         ) {
             content()
         }

@@ -19,7 +19,9 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
+import androidx.compose.ui.graphics.isUnspecified
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
@@ -130,18 +132,17 @@ class ConfigurationManager(
      * If Photopicker is running inside of an activity, it's important that this method is called
      * before the FeatureManager is started to prevent the feature manager being re-initialized.
      */
-    fun setIntent(intent: Intent?) {
+    fun setIntent(intent: Intent) {
         Log.d(TAG, "New intent received: $intent : Configuration will now update.")
 
         // Check for [MediaStore.EXTRA_PICK_IMAGES_MAX] and update the selection limit accordingly.
         val selectionLimit =
-            intent?.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
-                ?: DEFAULT_SELECTION_LIMIT
+            intent.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
 
         // MimeTypes can explicitly be passed in the intent extras, so extract them if they exist
         // (and are actually a media mimetype that is supported). If nothing is in the intent,
         // just set what is already set in the current configuration.
-        val mimeTypes = intent?.getPhotopickerMimeTypes() ?: _configuration.value.mimeTypes
+        val mimeTypes = intent.getPhotopickerMimeTypes() ?: _configuration.value.mimeTypes
 
         /**
          * Pick images in order is a combination of circumstances:
@@ -149,20 +150,29 @@ class ConfigurationManager(
          * - The extra must be requested from the caller in the intent
          */
         val pickImagesInOrder =
-            intent?.getPickImagesInOrderEnabled(default = false) ?: false && (selectionLimit > 1)
+            intent.getPickImagesInOrderEnabled(default = false) && (selectionLimit > 1)
 
         /** Handle [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra if it's in the intent */
-        val startDestination =
-            intent?.getStartDestination(default = PhotopickerDestinations.DEFAULT)
-                ?: _configuration.value.startDestination
+        val startDestination = intent.getStartDestination(default = PhotopickerDestinations.DEFAULT)
 
-        // Use updateAndGet to ensure the value is set before this method returns so the new intent
-        // is immediately available to new subscribers.
+        /** Check if the accent color was set and is valid. */
+        val accentColor =
+            with(AccentColorHelper.withIntent(intent)) {
+                if (getAccentColor().isUnspecified) {
+                    null
+                } else {
+                    inputColor
+                }
+            }
+
+        // Use updateAndGet to ensure the value is set before this method returns so the new
+        // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
             it.copy(
-                action = intent?.getAction() ?: "",
+                action = intent.getAction() ?: "",
                 intent = intent,
                 selectionLimit = selectionLimit,
+                accentColor = accentColor,
                 mimeTypes = mimeTypes,
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,

@@ -51,7 +51,7 @@ class EmptyStateTest {
                 LocalPhotopickerConfiguration provides testPhotopickerConfiguration
             ) {
                 // PhotopickerTheme is needed for CustomAccentColor support
-                PhotopickerTheme(intent = null) {
+                PhotopickerTheme(config = testPhotopickerConfiguration) {
                     EmptyState(
                         icon = Icons.Outlined.Image,
                         title = EMPTY_STATE_TEST_TITLE,

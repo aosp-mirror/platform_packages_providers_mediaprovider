@@ -172,7 +172,7 @@ class MainActivity : Hilt_MainActivity() {
                 LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
             ) {
-                PhotopickerTheme(intent = photopickerConfiguration.intent) {
+                PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
                         bannerManager = bannerManager.get(),
@@ -369,7 +369,7 @@ class MainActivity : Hilt_MainActivity() {
                 setResultForApp(selection, canSelectMultiple = configuration.selectionLimit > 1)
             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
                 val uid =
-                    configuration.intent?.getExtras()?.getInt(Intent.EXTRA_UID)
+                    getIntent().getExtras()?.getInt(Intent.EXTRA_UID)
                         // If the permission controller did not provide a uid, there is no way to
                         // continue.
                         ?: throw IllegalStateException(

@@ -6817,6 +6817,15 @@ public class MediaProvider extends ContentProvider {
                             getSecurityExceptionMessage("GET_CLOUD_PROVIDER_DETAILS"));
                 }
             }
+            case MediaStore.ENSURE_PROVIDERS_CALL: {
+                if (isCallerPhotoPicker()) {
+                    PickerDataLayerV2.ensureProviders();
+                    return new Bundle();
+                } else  {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("ENSURE_PROVIDERS_CALL"));
+                }
+            }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
             }

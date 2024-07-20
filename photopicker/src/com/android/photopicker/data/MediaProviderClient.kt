@@ -71,6 +71,7 @@ open class MediaProviderClient {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
         UID("uid"),
+        DISPLAY_NAME("display_name")
     }
 
     enum class CollectionInfoResponse(val key: String) {
@@ -130,6 +131,20 @@ open class MediaProviderClient {
                 }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch available providers", e)
+        }
+    }
+
+    /** Ensure that available providers are up to date. */
+    fun ensureProviders(contentResolver: ContentResolver) {
+        try {
+            contentResolver.call(
+                MEDIA_PROVIDER_AUTHORITY,
+                "ensure_providers_call",
+                /* arg */ null,
+                null,
+            )
+        } catch (e: RuntimeException) {
+            throw RuntimeException("ensure providers failed", e)
         }
     }
 
@@ -361,6 +376,12 @@ open class MediaProviderClient {
                             cursor.getInt(
                                 cursor.getColumnIndexOrThrow(AvailableProviderResponse.UID.key)
                             ),
+                        displayName =
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    AvailableProviderResponse.DISPLAY_NAME.key
+                                )
+                            )
                     )
                 )
             } while (cursor.moveToNext())

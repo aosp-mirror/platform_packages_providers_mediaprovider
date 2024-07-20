@@ -23,6 +23,7 @@ package com.android.photopicker.core.features
 enum class FeatureToken(val token: String) {
     // keep-sorted start
     ALBUM_GRID("ALBUM_GRID"),
+    BROWSE("BROWSE"),
     CLOUD_MEDIA("CLOUD_MEDIA"),
     CORE("CORE"),
     NAVIGATION_BAR("NAVIGATION_BAR"),

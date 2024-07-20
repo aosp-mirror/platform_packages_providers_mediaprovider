@@ -405,7 +405,7 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides SINGLE_SELECT_CONFIG
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false, SINGLE_SELECT_CONFIG.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ { item ->
@@ -459,7 +459,7 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides MULTI_SELECT_CONFIG
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false, SINGLE_SELECT_CONFIG.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ { item ->
@@ -517,7 +517,7 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false, photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ { item ->
@@ -571,7 +571,7 @@ class MediaGridTest {
                 CompositionLocalProvider(
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false, photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ {},

@@ -231,7 +231,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalNavController provides createNavController(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.None
@@ -274,7 +274,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalEvents provides events.get(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.None
@@ -309,7 +309,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalNavController provides createNavController(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.WithClickAction { clicked.complete(true) }
@@ -354,7 +354,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalNavController provides createNavController(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.None,

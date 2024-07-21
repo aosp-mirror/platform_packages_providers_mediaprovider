@@ -17,17 +17,18 @@
 package com.android.photopicker.data.model
 
 /**
- * This class respresents a data source that can provide data displayed on the Photopicker app.
- * For instance, all classes that implement [CloudMediaProvider] are [Provider]-s.
+ * This class respresents a data source that can provide data displayed on the Photopicker app. For
+ * instance, all classes that implement [CloudMediaProvider] are [Provider]-s.
  */
 data class Provider(
-        /**
-         * Provider authority can uniquely identify a ContentProvider. The ContentResolver object
-         * parses out the authority from content URI and uses it to resolve the provider.
-         */
-        val authority: String,
-        val mediaSource: MediaSource,
-
-        /** The user id of the [Provider]. This is required for logging purposes. */
-        val uid: Int
+    /**
+     * Provider authority can uniquely identify a ContentProvider. The ContentResolver object parses
+     * out the authority from content URI and uses it to resolve the provider.
+     */
+    val authority: String,
+    val mediaSource: MediaSource,
+    /** The user id of the [Provider]. This is required for logging purposes. */
+    val uid: Int,
+    /** The user display name of the Provider. */
+    val displayName: String
 )

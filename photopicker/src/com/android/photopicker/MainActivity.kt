@@ -28,10 +28,13 @@ import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -127,7 +130,8 @@ class MainActivity : Hilt_MainActivity() {
             referToDocumentsUi()
         }
 
-        enableEdgeToEdge()
+        // Set a Black color scrim behind the status bar.
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.Black.toArgb()))
 
         // Set the action before allowing FeatureManager to be initialized, so that it receives
         // the correct config with this activity's action.
@@ -168,7 +172,7 @@ class MainActivity : Hilt_MainActivity() {
                 LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
             ) {
-                PhotopickerTheme(intent = photopickerConfiguration.intent) {
+                PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
                         bannerManager = bannerManager.get(),
@@ -226,6 +230,7 @@ class MainActivity : Hilt_MainActivity() {
                      * confirming their selection of Media in the UI.
                      */
                     is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
+                    is Event.BrowseToDocumentsUi -> referToDocumentsUi()
                     else -> {}
                 }
             }
@@ -364,7 +369,7 @@ class MainActivity : Hilt_MainActivity() {
                 setResultForApp(selection, canSelectMultiple = configuration.selectionLimit > 1)
             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
                 val uid =
-                    configuration.intent?.getExtras()?.getInt(Intent.EXTRA_UID)
+                    getIntent().getExtras()?.getInt(Intent.EXTRA_UID)
                         // If the permission controller did not provide a uid, there is no way to
                         // continue.
                         ?: throw IllegalStateException(

@@ -89,4 +89,7 @@ class TestDataServiceImpl() : DataService {
 
     override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
         CollectionInfo(provider.authority)
+
+    override suspend fun ensureProviders() =
+        throw NotImplementedError("This method is not implemented yet.")
 }

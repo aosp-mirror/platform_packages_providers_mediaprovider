@@ -207,7 +207,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo("TEST_ACTION")
-            assertThat(emissions.last().intent).isNotNull()
         }
     }
 
@@ -281,7 +280,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
         }
@@ -317,7 +315,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png"))
         }
     }
@@ -354,7 +351,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -395,7 +391,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -459,7 +454,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().pickImagesInOrder).isTrue()
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
@@ -502,7 +496,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.ALBUM_GRID)
         }
@@ -544,7 +537,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.PHOTO_GRID)
         }
@@ -587,7 +579,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination).isEqualTo(PhotopickerDestinations.DEFAULT)
         }
     }

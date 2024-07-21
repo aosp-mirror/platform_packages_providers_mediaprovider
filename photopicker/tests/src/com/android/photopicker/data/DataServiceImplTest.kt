@@ -151,8 +151,18 @@ class DataServiceImplTest {
 
         testContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
@@ -178,8 +188,18 @@ class DataServiceImplTest {
     fun testAvailableProvidersCloudMediaFeatureDisabled() = runTest {
         testContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
         val scope = TestScope()
@@ -251,8 +271,18 @@ class DataServiceImplTest {
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
         updatedContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         userStatusFlow.update {
@@ -341,8 +371,18 @@ class DataServiceImplTest {
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
         updatedContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         userStatusFlow.update {
@@ -415,8 +455,18 @@ class DataServiceImplTest {
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
         updatedContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
@@ -467,8 +517,18 @@ class DataServiceImplTest {
         val updatedContentResolver: ContentResolver = ContentResolver.wrap(updatedContentProvider)
         updatedContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
@@ -611,9 +671,15 @@ class DataServiceImplTest {
                 Provider(
                     authority = testContentProvider.providers[0].authority,
                     mediaSource = MediaSource.LOCAL,
-                    uid = 0
+                    uid = 0,
+                    displayName = ""
                 ),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         userStatusFlow.update { it.copy(activeContentResolver = updatedContentResolver) }
@@ -752,7 +818,12 @@ class DataServiceImplTest {
 
         testContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         val dataService: DataService =
@@ -787,8 +858,18 @@ class DataServiceImplTest {
         // Update the available providers
         testContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
@@ -802,7 +883,12 @@ class DataServiceImplTest {
         // Update the available providers again
         testContentProvider.providers =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
             )
 
         notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)

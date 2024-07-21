@@ -31,6 +31,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -230,7 +231,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalNavController provides createNavController(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.None
@@ -273,7 +274,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalEvents provides events.get(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.None
@@ -308,7 +309,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalNavController provides createNavController(),
                     LocalPhotopickerConfiguration provides photopickerConfiguration,
                 ) {
-                    PhotopickerTheme(false, intent = photopickerConfiguration.intent) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
                             params = LocationParams.WithClickAction { clicked.complete(true) }
@@ -323,11 +324,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             val resources = getTestableContext().getResources()
-            val buttonLabel =
-                resources.getString(
-                    R.string.photopicker_add_button_label,
-                    selection.get().snapshot().size
-                )
+            val buttonLabel = resources.getString(R.string.photopicker_done_button_label)
 
             // Find the button, ensure it has a registered click handler, is displayed.
             composeTestRule
@@ -340,6 +337,58 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             assertWithMessage("Expected primary action to invoke click handler")
                 .that(wasClicked)
                 .isTrue()
+        }
+    }
+
+    @Test
+    fun testSelectionBarClearSelection() {
+
+        mainScope.runTest {
+            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
+
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalFeatureManager provides featureManager.get(),
+                    LocalSelection provides selection.get(),
+                    LocalEvents provides events.get(),
+                    LocalNavController provides createNavController(),
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
+                        SelectionBar(
+                            modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
+                            params = LocationParams.None,
+                        )
+                    }
+                }
+            }
+
+            // Populate selection with an item, and wait for animations to complete.
+            selection.get().add(MEDIA_ITEM)
+
+            assertWithMessage("Expected selection to contain an item.")
+                .that(selection.get().snapshot().size)
+                .isEqualTo(1)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            val resources = getTestableContext().getResources()
+            val clearDescription =
+                resources.getString(R.string.photopicker_clear_selection_button_description)
+
+            // Find the button, ensure it has a registered click handler, is displayed.
+            composeTestRule
+                .onNode(hasContentDescription(clearDescription))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+                .performClick()
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected selection to be cleared.")
+                .that(selection.get().snapshot())
+                .isEmpty()
         }
     }
 }

@@ -108,3 +108,12 @@ flag {
     description: "This flag controls whether the embedded photopicker is enabled"
     bug: "353634929"
 }
+
+flag {
+    name: "enable_oem_metadata"
+    is_exported: true
+    is_fixed_read_only: true
+    namespace: "mediaprovider"
+    description: "This flag will enable support for OEM metadata column"
+    bug: "352528480"
+}

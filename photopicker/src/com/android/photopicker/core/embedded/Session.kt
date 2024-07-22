@@ -172,6 +172,10 @@ open class Session(
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
 
+    fun getView() = _view
+
+    private val _embeddedStateManager = EmbeddedStateManager()
+
     open val surfacePackage: SurfaceControlViewHost.SurfacePackage
         get() {
             return checkNotNull(_host.surfacePackage) { "SurfacePackage was null" }
@@ -303,6 +307,9 @@ open class Session(
                                 .configuration
                                 .collectAsStateWithLifecycle()
 
+                        val embeddedState by
+                            _embeddedStateManager.state.collectAsStateWithLifecycle()
+
                         // Provide values to the entire compose stack.
                         CompositionLocalProvider(
                             LocalFeatureManager provides _dependencies.featureManager().get(),
@@ -314,8 +321,18 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
+                            LocalEmbeddedState provides embeddedState
                         ) {
-                            PhotopickerTheme(config = photopickerConfiguration) { PhotopickerApp() }
+                            val currentEmbeddedState =
+                                checkNotNull(LocalEmbeddedState.current) {
+                                    "Embedded state cannot be null when runtime env is embedded."
+                                }
+                            PhotopickerTheme(
+                                isDarkTheme = currentEmbeddedState.isDarkTheme,
+                                config = photopickerConfiguration
+                            ) {
+                                PhotopickerApp()
+                            }
                         }
                     }
                 }
@@ -396,14 +413,26 @@ open class Session(
     }
 
     override fun notifyResized(width: Int, height: Int) {
-        TODO("Not yet implemented")
+        _host.relayout(width, height)
+        _embeddedStateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
-        TODO("Not yet implemented")
+        if (configuration == null) return
+
+        // Check for dark theme
+        val isNewThemeDark =
+            (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+
+        // Update embedded state manager
+        _embeddedStateManager.setIsDarkTheme(isNewThemeDark)
+
+        // Pass the configuration change along to the view
+        _view.dispatchConfigurationChanged(configuration)
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        TODO("Not yet implemented")
+        _embeddedStateManager.setIsExpanded(isExpanded)
     }
 }

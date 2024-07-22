@@ -145,6 +145,14 @@ fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
         if (mimeTypes.all { mimeType -> isMediaMimeType(mimeType) }) {
             return mimeTypes.toCollection(ArrayList())
         } else {
+
+            // If the current action is ACTION_PICK_IMAGES then */* is a valid input that should
+            // be interpreted as "all media mimetypes"
+            if (action.equals(MediaStore.ACTION_PICK_IMAGES)) {
+                if (it.contains("*/*")) {
+                    return arrayListOf("image/*", "video/*")
+                }
+            }
             // Picker can be opened from Documents UI by the user. In this case, the intent action
             // will be Intent.ACTION_GET_CONTENT and the mime types may contain non-media types.
             // Don't apply any MIME type filters in this case. Otherwise, throw an exception.
@@ -161,6 +169,14 @@ fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
             if (isMediaMimeType(it)) {
                 return arrayListOf(it)
             } else {
+
+                // If the current action is ACTION_PICK_IMAGES then */* is a valid input that should
+                // be interpreted as "all media mimetypes"
+                if (action.equals(MediaStore.ACTION_PICK_IMAGES)) {
+                    if (it == "*/*") {
+                        return arrayListOf("image/*", "video/*")
+                    }
+                }
                 // Picker can be opened from Documents UI by the user. In this case, the intent
                 // action will be Intent.ACTION_GET_CONTENT and the mime types may contain non-media
                 // types. Don't apply any MIME type filters in this case. Otherwise, throw an

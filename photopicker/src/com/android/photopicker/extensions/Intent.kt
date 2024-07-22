@@ -48,6 +48,13 @@ fun Intent.getPhotopickerSelectionLimitOrDefault(default: Int): Int {
                 "EXTRA_PICK_IMAGES_MAX is not allowed for ACTION_GET_CONTENT, " +
                     "use ACTION_PICK_IMAGES instead."
             )
+        }
+        // Handle [Intent.EXTRA_ALLOW_MULTIPLE] for GET_CONTENT takeover.
+        else if (
+            getAction() == Intent.ACTION_GET_CONTENT &&
+                getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+        ) {
+            MediaStore.getPickImagesMaxLimit()
         } else {
             // No EXTRA_PICK_IMAGES_MAX was set, return the provided default
             default

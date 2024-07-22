@@ -30,6 +30,52 @@ import org.junit.runner.RunWith
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class IntentTest {
+
+    @Test
+    fun testGetSelectionLimitFromIntentActionPickImages() {
+
+        val intent =
+            Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 50)
+            }
+
+        /* Use a different default that what's in the intent */
+        val limit = intent.getPhotopickerSelectionLimitOrDefault(default = 25)
+
+        assertThat(limit).isEqualTo(50)
+    }
+
+    @Test
+    fun testGetSelectionLimitFromIntentActionPickImagesDefault() {
+
+        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+        /* Use a different default that what's in the intent */
+        val limit = intent.getPhotopickerSelectionLimitOrDefault(default = 25)
+
+        assertThat(limit).isEqualTo(25)
+    }
+
+    @Test
+    fun testGetSelectionLimitFromIntentGetContentDefault() {
+
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        /* Use a different default that what's in the intent */
+        val limit = intent.getPhotopickerSelectionLimitOrDefault(default = 25)
+
+        assertThat(limit).isEqualTo(25)
+    }
+
+    @Test
+    fun testGetSelectionLimitFromIntentGetContent() {
+
+        val intent =
+            Intent(Intent.ACTION_GET_CONTENT).apply { putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true) }
+        /* Use a different default that what's in the intent */
+        val limit = intent.getPhotopickerSelectionLimitOrDefault(default = 25)
+
+        assertThat(limit).isEqualTo(MediaStore.getPickImagesMaxLimit())
+    }
+
     @Test
     fun testGetMimeTypeFromIntentActionPickImages() {
         val mimeTypes: List<String> = mutableListOf("image/*", "video/mp4", "image/gif")

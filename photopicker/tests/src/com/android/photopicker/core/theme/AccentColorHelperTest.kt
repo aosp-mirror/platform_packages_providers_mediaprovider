@@ -98,6 +98,17 @@ class AccentColorHelperTest {
     }
 
     @Test
+    fun testAccentColorHelper_textColorAlwaysUnspecifiedIfAccentColorUnspecified() {
+
+        // Intent with no custom color set
+        var pickerIntent = Intent(MediaStore.ACTION_PICK_IMAGES)
+
+        val accentColorHelper = AccentColorHelper.withIntent(pickerIntent)
+        assertThat(accentColorHelper.getAccentColor()).isEqualTo(Color.Unspecified)
+        assertThat(accentColorHelper.getTextColorForAccentComponents()).isEqualTo(Color.Unspecified)
+    }
+
+    @Test
     fun testAccentColorHelper_textColorForDifferentLuminance_changesAccordingly() {
         // helper class reads colors from input intent and validates it.
         // create input intent:

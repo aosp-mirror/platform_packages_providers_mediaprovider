@@ -92,4 +92,7 @@ class TestDataServiceImpl() : DataService {
 
     override suspend fun ensureProviders() =
         throw NotImplementedError("This method is not implemented yet.")
+
+    override fun getAllAllowedProviders(): List<Provider> =
+        throw NotImplementedError("This method is not implemented yet.")
 }

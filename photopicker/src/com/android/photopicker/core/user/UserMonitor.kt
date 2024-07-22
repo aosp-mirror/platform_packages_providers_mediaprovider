@@ -395,7 +395,7 @@ class UserMonitor(
             }
 
         return UserProfile(
-            identifier = handle.getIdentifier(),
+            handle = handle,
             icon = icon,
             label = label,
             profileType =

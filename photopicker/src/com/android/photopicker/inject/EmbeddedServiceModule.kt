@@ -217,7 +217,8 @@ class EmbeddedServiceModule {
         userMonitor: UserMonitor,
         notificationService: NotificationService,
         configurationManager: ConfigurationManager,
-        featureManager: FeatureManager
+        featureManager: FeatureManager,
+        @ApplicationContext appContext: Context
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -233,7 +234,8 @@ class EmbeddedServiceModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext
                 )
         }
         return dataService

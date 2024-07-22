@@ -62,9 +62,8 @@ class AccentColorHelper(val inputColor: Long) {
     private val DARK_TEXT_COLOR = "#000000"
     private val LIGHT_TEXT_COLOR = "#FFFFFF"
 
-    private var accentColor = Color.Unspecified
-
-    private var textColorForAccentComponents = Color.Unspecified
+    private val accentColor: Color
+    private val textColorForAccentComponents: Color
 
     init {
 
@@ -75,15 +74,21 @@ class AccentColorHelper(val inputColor: Long) {
         // color.
         if (inputColor > -1 && accentColor.isUnspecified) {
             throw IllegalArgumentException("Color not valid for accent color")
-        } else {
-            textColorForAccentComponents =
+        }
+
+        // Set the Text Color only if the accentColor is not Unspecified
+        textColorForAccentComponents =
+            if (accentColor.isUnspecified) {
+                Color.Unspecified
+            } else {
+
                 Color(
                     android.graphics.Color.parseColor(
                         if (isAccentColorBright(accentColor.luminance())) DARK_TEXT_COLOR
                         else LIGHT_TEXT_COLOR,
                     ),
                 )
-        }
+            }
     }
 
     /**

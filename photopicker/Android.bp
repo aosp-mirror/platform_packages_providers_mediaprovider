@@ -22,7 +22,10 @@ android_library {
     javacflags: [
         "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
     ],
-    kotlincflags: ["-Xjvm-default=all"],
+    kotlincflags: [
+        "-Werror",
+        "-Xjvm-default=all",
+    ],
     static_libs: [
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",

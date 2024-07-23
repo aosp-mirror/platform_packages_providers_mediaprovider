@@ -379,4 +379,33 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 .that(configuration.callingPackageLabel)
                 .isNotNull()
         }
+
+    @Test
+    fun testSessionSetsEmbeddedPhotopickerFeatureInfoInConfiguration() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+            val entryPoint = EntryPoints.get(component, Session.EmbeddedEntryPoint::class.java)
+
+            // Create a session with the component and let it initialize.
+            getSessionUnderTest(component)
+            advanceTimeBy(100)
+
+            val configuration = entryPoint.configurationManager().get().configuration.value
+            assertWithMessage(
+                    "Expected configuration to contain the featureInfo max selection limit"
+                )
+                .that(configuration.selectionLimit)
+                .isEqualTo(featureInfo.maxSelectionLimit)
+            assertWithMessage("Expected configuration to contain the featureInfo mime types")
+                .that(configuration.mimeTypes)
+                .isEqualTo(featureInfo.mimeTypes)
+            assertWithMessage(
+                    "Expected configuration to contain the featureInfo ordered selection flag"
+                )
+                .that(configuration.pickImagesInOrder)
+                .isEqualTo(featureInfo.isOrderedSelection)
+            assertWithMessage("Expected configuration to contain the featureInfo pre-selected URIs")
+                .that(configuration.preSelectedUris)
+                .isEqualTo(featureInfo.preSelectedUris)
+        }
 }

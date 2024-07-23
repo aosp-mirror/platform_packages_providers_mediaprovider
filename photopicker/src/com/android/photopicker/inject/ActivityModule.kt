@@ -187,7 +187,8 @@ class ActivityModule {
         @ActivityRetainedScoped userMonitor: UserMonitor,
         @ActivityRetainedScoped notificationService: NotificationService,
         @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped featureManager: FeatureManager
+        @ActivityRetainedScoped featureManager: FeatureManager,
+        @ApplicationContext appContext: Context,
     ): DataService {
         if (!::dataService.isInitialized) {
             Log.d(
@@ -202,7 +203,8 @@ class ActivityModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext,
                 )
         }
         return dataService

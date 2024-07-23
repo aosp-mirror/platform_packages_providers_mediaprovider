@@ -170,7 +170,7 @@ class ConfigurationManagerTest {
                     expectedConfiguration.copy(
                         flags =
                             PhotopickerFlags(
-                                CLOUD_ALLOWED_PROVIDERS = "testallowlist",
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("testallowlist"),
                                 CLOUD_MEDIA_ENABLED = !FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
                                 PRIVATE_SPACE_ENABLED = !FEATURE_PRIVATE_SPACE_ENABLED.second,
                             )

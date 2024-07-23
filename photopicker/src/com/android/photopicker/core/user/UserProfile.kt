@@ -15,6 +15,7 @@
  */
 package com.android.photopicker.core.user
 
+import android.os.UserHandle
 import androidx.compose.ui.graphics.ImageBitmap
 
 /**
@@ -28,12 +29,13 @@ import androidx.compose.ui.graphics.ImageBitmap
  * @property enabled if the profile is currently enabled to for use in Photopicker.
  */
 data class UserProfile(
-    val identifier: Int,
+    val handle: UserHandle,
     val icon: ImageBitmap? = null,
     val label: String? = null,
     val profileType: ProfileType = ProfileType.UNKNOWN,
     val disabledReasons: Set<DisabledReason> = emptySet(),
 ) {
+    val identifier: Int = handle.getIdentifier()
 
     /** A custom equals operator to not consider the value of the Icon field when it is not null */
     override fun equals(other: Any?): Boolean {

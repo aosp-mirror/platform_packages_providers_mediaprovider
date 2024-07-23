@@ -130,6 +130,18 @@ constructor(
         }
     }
 
+    fun toggleInSelection(
+        media: Collection<Media>,
+        onSelectionLimitExceeded: () -> Unit,
+    ) {
+        scope.launch {
+            val result = selection.toggleAll(media)
+            if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                onSelectionLimitExceeded()
+            }
+        }
+    }
+
     /**
      * Provides a flow containing paging data for items that needs to be displayed on the preview
      * view.

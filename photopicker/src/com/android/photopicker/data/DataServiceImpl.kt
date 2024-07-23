@@ -17,8 +17,12 @@
 package com.android.photopicker.data
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
+import android.provider.CloudMediaProviderContract
 import android.util.Log
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -78,7 +82,8 @@ class DataServiceImpl(
     private val notificationService: NotificationService,
     private val mediaProviderClient: MediaProviderClient,
     private val config: StateFlow<PhotopickerConfiguration>,
-    private val featureManager: FeatureManager
+    private val featureManager: FeatureManager,
+    private val appContext: Context
 ) : DataService {
     private val _activeContentResolver =
         MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
@@ -509,6 +514,41 @@ class DataServiceImpl(
     override suspend fun ensureProviders() {
         mediaProviderClient.ensureProviders(_activeContentResolver.value)
         updateAvailableProviders(fetchAvailableProviders())
+    }
+
+    override fun getAllAllowedProviders(): List<Provider> {
+        val configSnapshot = config.value
+        val user = userStatus.value.activeUserProfile.handle
+        val enforceAllowlist = configSnapshot.flags.CLOUD_ENFORCE_PROVIDER_ALLOWLIST
+        val allowlist = configSnapshot.flags.CLOUD_ALLOWED_PROVIDERS
+        val intent = Intent(CloudMediaProviderContract.PROVIDER_INTERFACE)
+        val packageManager = appContext.getPackageManager()
+        val allProviders: List<ResolveInfo> =
+            packageManager.queryIntentContentProvidersAsUser(intent, /* flags */ 0, user)
+
+        val allowedProviders =
+            allProviders
+                .filter {
+                    it.providerInfo.authority != null &&
+                        CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
+                            it.providerInfo.readPermission
+                        ) &&
+                        (!enforceAllowlist || allowlist.contains(it.providerInfo.packageName))
+                }
+                .map {
+                    Provider(
+                        authority = it.providerInfo.authority,
+                        mediaSource = MediaSource.REMOTE,
+                        uid =
+                            packageManager.getPackageUid(
+                                it.providerInfo.packageName,
+                                /* flags */ 0
+                            ),
+                        displayName = it.loadLabel(packageManager) as? String ?: ""
+                    )
+                }
+
+        return allowedProviders
     }
 
     /**

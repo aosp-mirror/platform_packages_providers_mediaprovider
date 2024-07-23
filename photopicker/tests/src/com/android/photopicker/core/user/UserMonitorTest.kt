@@ -70,21 +70,11 @@ class UserMonitorTest {
 
     private val USER_HANDLE_PRIMARY: UserHandle
     private val USER_ID_PRIMARY: Int = 0
-    private val PRIMARY_PROFILE_BASE =
-        UserProfile(
-            identifier = USER_ID_PRIMARY,
-            profileType = UserProfile.ProfileType.PRIMARY,
-            label = PLATFORM_PROVIDED_PROFILE_LABEL
-        )
+    private val PRIMARY_PROFILE_BASE: UserProfile
 
     private val USER_HANDLE_MANAGED: UserHandle
     private val USER_ID_MANAGED: Int = 10
-    private val MANAGED_PROFILE_BASE =
-        UserProfile(
-            identifier = USER_ID_MANAGED,
-            profileType = UserProfile.ProfileType.MANAGED,
-            label = PLATFORM_PROVIDED_PROFILE_LABEL
-        )
+    private val MANAGED_PROFILE_BASE: UserProfile
 
     private val initialExpectedStatus: UserStatus
     private val mockContentResolver: ContentResolver = mock(ContentResolver::class.java)
@@ -104,11 +94,27 @@ class UserMonitorTest {
         parcel1.writeInt(USER_ID_PRIMARY)
         parcel1.setDataPosition(0)
         USER_HANDLE_PRIMARY = UserHandle(parcel1)
+        parcel1.recycle()
+
+        PRIMARY_PROFILE_BASE =
+            UserProfile(
+                handle = USER_HANDLE_PRIMARY,
+                profileType = UserProfile.ProfileType.PRIMARY,
+                label = PLATFORM_PROVIDED_PROFILE_LABEL
+            )
 
         val parcel2 = Parcel.obtain()
         parcel2.writeInt(USER_ID_MANAGED)
         parcel2.setDataPosition(0)
         USER_HANDLE_MANAGED = UserHandle(parcel2)
+        parcel2.recycle()
+
+        MANAGED_PROFILE_BASE =
+            UserProfile(
+                handle = USER_HANDLE_MANAGED,
+                profileType = UserProfile.ProfileType.MANAGED,
+                label = PLATFORM_PROVIDED_PROFILE_LABEL
+            )
 
         initialExpectedStatus =
             UserStatus(
@@ -623,7 +629,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED),
+                        UserProfile(handle = USER_HANDLE_MANAGED),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
@@ -654,17 +660,17 @@ class UserMonitorTest {
             UserStatus(
                 activeUserProfile =
                     UserProfile(
-                        identifier = USER_ID_PRIMARY,
+                        handle = USER_HANDLE_PRIMARY,
                         profileType = UserProfile.ProfileType.PRIMARY,
                     ),
                 allProfiles =
                     listOf(
                         UserProfile(
-                            identifier = USER_ID_PRIMARY,
+                            handle = USER_HANDLE_PRIMARY,
                             profileType = UserProfile.ProfileType.PRIMARY,
                         ),
                         UserProfile(
-                            identifier = USER_ID_MANAGED,
+                            handle = USER_HANDLE_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
                             disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE)
                         )
@@ -692,7 +698,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED),
+                        UserProfile(handle = USER_HANDLE_MANAGED),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
@@ -722,6 +728,12 @@ class UserMonitorTest {
                     USER_HANDLE_PRIMARY
                 )
 
+            val parcel = Parcel.obtain()
+            parcel.writeInt(/* userId */ 999) // Unknown user id
+            parcel.setDataPosition(0)
+            val unknownUserHandle = UserHandle(parcel)
+            parcel.recycle()
+
             val emissions = mutableListOf<UserStatus>()
             backgroundScope.launch { userMonitor.userStatus.toList(emissions) }
             advanceTimeBy(100)
@@ -729,7 +741,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = 999),
+                        UserProfile(handle = unknownUserHandle),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_UNKNOWN_PROFILE)
@@ -772,7 +784,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED),
+                        UserProfile(handle = USER_HANDLE_MANAGED),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
@@ -810,17 +822,17 @@ class UserMonitorTest {
             UserStatus(
                 activeUserProfile =
                     UserProfile(
-                        identifier = USER_ID_PRIMARY,
+                        handle = USER_HANDLE_PRIMARY,
                         profileType = UserProfile.ProfileType.PRIMARY,
                     ),
                 allProfiles =
                     listOf(
                         UserProfile(
-                            identifier = USER_ID_PRIMARY,
+                            handle = USER_HANDLE_PRIMARY,
                             profileType = UserProfile.ProfileType.PRIMARY,
                         ),
                         UserProfile(
-                            identifier = USER_ID_MANAGED,
+                            handle = USER_HANDLE_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
                             disabledReasons =
                                 setOf(
@@ -852,7 +864,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED),
+                        UserProfile(handle = USER_HANDLE_MANAGED),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
@@ -875,17 +887,17 @@ class UserMonitorTest {
             UserStatus(
                 activeUserProfile =
                     UserProfile(
-                        identifier = USER_ID_PRIMARY,
+                        handle = USER_HANDLE_PRIMARY,
                         profileType = UserProfile.ProfileType.PRIMARY,
                     ),
                 allProfiles =
                     listOf(
                         UserProfile(
-                            identifier = USER_ID_PRIMARY,
+                            handle = USER_HANDLE_PRIMARY,
                             profileType = UserProfile.ProfileType.PRIMARY,
                         ),
                         UserProfile(
-                            identifier = USER_ID_MANAGED,
+                            handle = USER_HANDLE_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
                             disabledReasons =
                                 setOf(
@@ -916,7 +928,7 @@ class UserMonitorTest {
             backgroundScope.launch {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
-                        UserProfile(identifier = USER_ID_MANAGED),
+                        UserProfile(handle = USER_HANDLE_MANAGED),
                         mockContext
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)

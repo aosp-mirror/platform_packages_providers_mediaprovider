@@ -31,6 +31,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -224,12 +225,6 @@ class MainActivity : Hilt_MainActivity() {
             events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
                 ->
                 when (event) {
-
-                    /**
-                     * [MediaSelectionConfirmed] will be dispatched in response to the user
-                     * confirming their selection of Media in the UI.
-                     */
-                    is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
                     is Event.BrowseToDocumentsUi -> referToDocumentsUi()
                     else -> {}
                 }
@@ -320,7 +315,8 @@ class MainActivity : Hilt_MainActivity() {
      * This will result in access being issued to the calling app if the media can be successfully
      * prepared.
      */
-    private suspend fun onMediaSelectionConfirmed() {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    suspend fun onMediaSelectionConfirmed() {
 
         val snapshot = selection.get().snapshot()
         // Determine if any preload of the selected media needs to happen, and

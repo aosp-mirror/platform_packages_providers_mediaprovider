@@ -16,12 +16,14 @@
 
 package com.android.photopicker.core.configuration
 
+import com.android.photopicker.util.hashCodeOf
+
 // Flag namespace for mediaprovider
 val NAMESPACE_MEDIAPROVIDER = "mediaprovider"
 
 // Cloud feature flags, and their default values.
 val FEATURE_CLOUD_MEDIA_FEATURE_ENABLED = Pair("cloud_media_feature_enabled", true)
-val FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST = Pair("allowed_cloud_providers", "")
+val FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST = Pair("allowed_cloud_providers", arrayOf<String>())
 val FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST = Pair("cloud_media_enforce_provider_allowlist", true)
 
 // Private space feature flags, and their default values.
@@ -32,9 +34,42 @@ val FEATURE_PICKER_CHOICE_MANAGED_SELECTION = Pair("picker_choice_managed_select
 
 /** Data object that represents flag values in [DeviceConfig]. */
 data class PhotopickerFlags(
-    val CLOUD_ALLOWED_PROVIDERS: String = FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second,
+    /**
+     * Use arrays to get around type erasure when casting device config value String value to the
+     * type Array<String> in [DeviceConfigProxyImpl].
+     */
+    val CLOUD_ALLOWED_PROVIDERS: Array<String> = FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second,
     val CLOUD_ENFORCE_PROVIDER_ALLOWLIST: Boolean = FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.second,
     val CLOUD_MEDIA_ENABLED: Boolean = FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
     val PRIVATE_SPACE_ENABLED: Boolean = FEATURE_PRIVATE_SPACE_ENABLED.second,
     val MANAGED_SELECTION_ENABLED: Boolean = FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second
-)
+) {
+    /**
+     * Implement a custom equals method to correctly check the equality of the Array member
+     * variables in [PhotopickerFlags].
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is PhotopickerFlags) return false
+        if (!CLOUD_ALLOWED_PROVIDERS.contentEquals(other.CLOUD_ALLOWED_PROVIDERS)) return false
+        if (CLOUD_ENFORCE_PROVIDER_ALLOWLIST != other.CLOUD_ENFORCE_PROVIDER_ALLOWLIST) return false
+        if (CLOUD_MEDIA_ENABLED != other.CLOUD_MEDIA_ENABLED) return false
+        if (PRIVATE_SPACE_ENABLED != other.PRIVATE_SPACE_ENABLED) return false
+        if (MANAGED_SELECTION_ENABLED != other.MANAGED_SELECTION_ENABLED) return false
+
+        return true
+    }
+
+    /**
+     * Implement a custom hashcode method to correctly check the equality of the Array member
+     * variables in [PhotopickerFlags].
+     */
+    override fun hashCode(): Int =
+        hashCodeOf(
+            CLOUD_ALLOWED_PROVIDERS,
+            CLOUD_ENFORCE_PROVIDER_ALLOWLIST,
+            CLOUD_MEDIA_ENABLED,
+            PRIVATE_SPACE_ENABLED,
+            MANAGED_SELECTION_ENABLED
+        )
+}

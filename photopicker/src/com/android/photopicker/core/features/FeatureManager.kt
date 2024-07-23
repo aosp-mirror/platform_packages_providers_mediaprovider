@@ -86,15 +86,11 @@ class FeatureManager(
             )
 
         /* The list of events that the core library consumes. */
-        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> =
-            setOf(
-                Event.MediaSelectionConfirmed::class.java,
-            )
+        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> = setOf()
 
         /* The list of events that the core library produces. */
         val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> =
             setOf(
-                Event.MediaSelectionConfirmed::class.java,
                 Event.ShowSnackbarMessage::class.java,
                 Event.ReportPhotopickerSessionInfo::class.java,
                 Event.ReportPhotopickerApiInfo::class.java,

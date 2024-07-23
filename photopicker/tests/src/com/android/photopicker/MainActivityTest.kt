@@ -41,9 +41,7 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.features.FeatureToken.CORE
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -246,10 +244,10 @@ class MainActivityTest {
 
         with(launchActivityForResult<MainActivity>(intent)) {
             mainScope.runTest {
-                onActivity {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -290,10 +288,10 @@ class MainActivityTest {
 
         with(launchActivityForResult<MainActivity>(intent)) {
             mainScope.runTest {
-                onActivity {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -334,10 +332,10 @@ class MainActivityTest {
 
         with(launchActivityForResult<MainActivity>(intent)) {
             mainScope.runTest {
-                onActivity {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.addAll(selectedItems)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 

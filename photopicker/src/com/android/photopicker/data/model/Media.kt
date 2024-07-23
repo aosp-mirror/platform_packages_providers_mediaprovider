@@ -21,6 +21,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.android.photopicker.core.glide.GlideLoadable
 import com.android.photopicker.core.glide.Resolution
+import com.android.photopicker.util.hashCodeOf
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
@@ -219,20 +220,3 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         }
     }
 }
-
-/**
- * Custom hashing function to generate a stable hash code value of a [Media] object given the input
- * values. (Although there is nothing specific about this function that ties it to the [Media]
- * class.)
- *
- * There is perhaps a couple of reasons for choosing 31. The main reason is that it is a prime
- * number and prime numbers have better distribution results in hashing algorithms, by other words
- * the hashing outputs have less collisions for different inputs.
- *
- * The second reason is because 31 has a nice property – its multiplication can be replaced by a
- * bitwise shift which is faster than the standard multiplication: 31 * i == (i << 5) - i
- *
- * Modern VMs (such as the Android runtime) will perform this optimization automatically.
- */
-private fun hashCodeOf(vararg values: Any?) =
-    values.fold(0) { acc, value -> (acc * 31) + value.hashCode() }

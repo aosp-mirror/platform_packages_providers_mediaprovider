@@ -303,9 +303,7 @@ class FeatureManagerTest {
                 )
             )
 
-        whenever(mockSimpleUiFeature.eventsConsumed) {
-            setOf(Event.MediaSelectionConfirmed::class.java)
-        }
+        whenever(mockSimpleUiFeature.eventsConsumed) { setOf(TestEventDoNotUse::class.java) }
         whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
 
         runTest {

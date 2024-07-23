@@ -85,6 +85,9 @@ interface DataService {
      */
     suspend fun ensureProviders()
 
+    /** Returns all allowed providers for the given user. */
+    fun getAllAllowedProviders(): List<Provider>
+
     /**
      * Sends a refresh media notification to the data source. This signal tells the data source to
      * refresh its cache.

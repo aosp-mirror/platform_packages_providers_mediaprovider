@@ -64,10 +64,8 @@ import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
@@ -96,8 +94,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -439,66 +435,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 .isEqualTo(TEST_MEDIA_VIDEO)
         }
 
-    /** Ensures that the Preview Media route can toggle the displayed item in the selection. */
-    @Test
-    fun testPreviewMediaToggleSelection() =
-        mainScope.runTest {
-            val resources = getTestableContext().getResources()
-            val selectButtonLabel = resources.getString(R.string.photopicker_select_button_label)
-            val deselectButtonLabel =
-                resources.getString(R.string.photopicker_deselect_button_label)
-
-            composeTestRule.setContent {
-                // Set an explicit size to prevent errors in glide being unable to measure
-                Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
-                    callPhotopickerMain(
-                        featureManager = featureManager,
-                        selection = selection,
-                        events = events,
-                        bannerManager = bannerManager.get(),
-                    )
-                }
-            }
-
-            // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({
-                navController.navigateToPreviewMedia(TEST_MEDIA_IMAGE)
-            })
-
-            // Wait for the flows to resolve and the UI to update.
-            composeTestRule.waitForIdle()
-            advanceTimeBy(100)
-
-            composeTestRule.onNode(hasText(deselectButtonLabel)).assertDoesNotExist()
-            composeTestRule
-                .onNode(hasText(selectButtonLabel))
-                .assertIsDisplayed()
-                .assert(hasClickAction())
-                .performClick()
-
-            // Allow selection to update
-            advanceTimeBy(100)
-
-            assertWithMessage("Expected selection to contain media item")
-                .that(selection.snapshot())
-                .contains(TEST_MEDIA_IMAGE)
-
-            composeTestRule.onNode(hasText(selectButtonLabel)).assertDoesNotExist()
-
-            composeTestRule
-                .onNode(hasText(deselectButtonLabel))
-                .assertIsDisplayed()
-                .assert(hasClickAction())
-                .performClick()
-
-            // Allow selection to update
-            advanceTimeBy(100)
-
-            assertWithMessage("Expected selection to contain media item")
-                .that(selection.snapshot())
-                .doesNotContain(TEST_MEDIA_IMAGE)
-        }
-
     /** Ensures the PreviewSelection route can be navigated to. */
     @Test
     fun testNavigateToPreviewSelection() =
@@ -533,11 +469,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testPreviewSelectionActions() =
         mainScope.runTest {
-            val resources = getTestableContext().getResources()
-            val selectButtonLabel = resources.getString(R.string.photopicker_select_button_label)
-            val deselectButtonLabel =
-                resources.getString(R.string.photopicker_deselect_button_label)
-
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -552,6 +483,18 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
             selection.add(TEST_MEDIA_IMAGE)
             advanceTimeBy(100)
+
+            val resources = getTestableContext().getResources()
+            val selectButtonLabel =
+                resources.getString(
+                    R.string.photopicker_select_button_label,
+                    selection.snapshot().size
+                )
+            val deselectButtonLabel =
+                resources.getString(
+                    R.string.photopicker_deselect_button_label,
+                    selection.snapshot().size
+                )
 
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
@@ -595,16 +538,9 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 .contains(TEST_MEDIA_IMAGE)
         }
 
-    /** Ensures the feature emits its registered [Event.MediaSelectionConfirmed] event. */
     @Test
-    fun testPreviewEmitsMediaSelectionConfirmedEvent() =
+    fun testPreviewDoneNavigatesBack() =
         mainScope.runTest {
-            selection.add(TEST_MEDIA_IMAGE)
-            advanceTimeBy(100)
-
-            val eventsSent = mutableListOf<Event>()
-            backgroundScope.launch { events.flow.toList(eventsSent) }
-
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -616,6 +552,9 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     )
                 }
             }
+
+            val initialRoute = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("initial route was null").that(initialRoute).isNotNull()
 
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
@@ -632,11 +571,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             val resources = getTestableContext().getResources()
-            val buttonLabel =
-                resources.getString(
-                    R.string.photopicker_add_button_label,
-                    selection.snapshot().size
-                )
+            val buttonLabel = resources.getString(R.string.photopicker_done_button_label)
 
             composeTestRule
                 .onNode(hasText(buttonLabel))
@@ -644,11 +579,13 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                 .assert(hasClickAction())
                 .performClick()
 
+            composeTestRule.waitForIdle()
+
             // Allow selection to update
             advanceTimeBy(100)
-            assertWithMessage("Expected event was not dispatched")
-                .that(eventsSent)
-                .contains(Event.MediaSelectionConfirmed(FeatureToken.PREVIEW.token))
+            assertWithMessage("Expected route to be the initial route")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(initialRoute)
         }
 
     /** Ensures the VideoUi creates a RemoteSurfaceController */

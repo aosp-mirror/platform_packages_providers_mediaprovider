@@ -55,8 +55,10 @@ import com.android.providers.media.photopicker.v2.model.VideoMediaQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class handles Photo Picker content queries.\
@@ -64,9 +66,25 @@ import java.util.Objects;
 public class PickerDataLayerV2 {
     private static final String TAG = "PickerDataLayerV2";
     private static final int CLOUD_SYNC_TIMEOUT_MILLIS = 500;
-    public static final List<String> sMergedAlbumIds = List.of(
+    // Local and merged albums have a predefined order that they should be displayed in. They always
+    // need to be displayed above the cloud albums too.
+    public static final List<String> PINNED_ALBUMS_ORDER = List.of(
+            AlbumColumns.ALBUM_ID_FAVORITES,
+            AlbumColumns.ALBUM_ID_CAMERA,
+            AlbumColumns.ALBUM_ID_VIDEOS,
+            AlbumColumns.ALBUM_ID_SCREENSHOTS,
+            AlbumColumns.ALBUM_ID_DOWNLOADS
+    );
+    // Set of known merged albums.
+    public static final Set<String> MERGED_ALBUMS = Set.of(
             AlbumColumns.ALBUM_ID_FAVORITES,
             AlbumColumns.ALBUM_ID_VIDEOS
+    );
+    // Set of known local albums.
+    public static final Set<String> LOCAL_ALBUMS = Set.of(
+            AlbumColumns.ALBUM_ID_CAMERA,
+            AlbumColumns.ALBUM_ID_SCREENSHOTS,
+            AlbumColumns.ALBUM_ID_DOWNLOADS
     );
 
     /**
@@ -130,35 +148,45 @@ public class PickerDataLayerV2 {
                 syncController.getCloudProviderOrDefault(/* defaultValue */ null);
         final boolean shouldShowCloudAlbums = syncController.shouldQueryCloudMedia(
                 query.getProviders(), cloudAuthority);
-        final List<AlbumsCursorWrapper> cursors = new ArrayList<>();
+        final List<AlbumsCursorWrapper> allAlbumCursors = new ArrayList<>();
 
-        if (shouldShowLocalAlbums || shouldShowCloudAlbums) {
-            cursors.add(getMergedAlbumsCursor(
-                    AlbumColumns.ALBUM_ID_FAVORITES, queryArgs, database,
-                    shouldShowLocalAlbums ? localAuthority : null,
-                    shouldShowCloudAlbums ? cloudAuthority : null));
+        final String effectiveLocalAuthority = shouldShowLocalAlbums ? localAuthority : null;
+        final String effectiveCloudAuthority = shouldShowCloudAlbums ? cloudAuthority : null;
 
-            cursors.add(getMergedAlbumsCursor(
-                    AlbumColumns.ALBUM_ID_VIDEOS, queryArgs, database,
-                    shouldShowLocalAlbums ? localAuthority : null,
-                    shouldShowCloudAlbums ? cloudAuthority : null));
+        // Get all local albums from the local provider in separate cursors to facilitate zipping
+        // them with merged albums.
+        final Map<String, AlbumsCursorWrapper> localAlbums = getLocalAlbumCursors(
+                appContext, query, effectiveLocalAuthority);
+
+        // Add Pinned album cursors to the list of all album cursors in the order in which they
+        // should be displayed. Note that pinned albums can only be local and merged albums.
+        for (String albumId: PINNED_ALBUMS_ORDER) {
+            final AlbumsCursorWrapper albumCursor;
+            if (MERGED_ALBUMS.contains(albumId)) {
+                albumCursor = getMergedAlbumsCursor(albumId, queryArgs, database,
+                        effectiveLocalAuthority, effectiveCloudAuthority);
+            } else if (LOCAL_ALBUMS.contains(albumId)) {
+                albumCursor = localAlbums.getOrDefault(albumId, null);
+            } else {
+                Log.e(TAG, "Could not recognize pinned album id, skipping it : " + albumId);
+                albumCursor = null;
+            }
+            allAlbumCursors.add(albumCursor);
         }
 
-        if (shouldShowLocalAlbums) {
-            cursors.add(getLocalAlbumsCursor(appContext, query, localAuthority));
-        }
+        // Add cloud albums at the end.
+        allAlbumCursors.add(getCloudAlbumsCursor(appContext, query, effectiveLocalAuthority,
+                effectiveCloudAuthority));
 
-        if (shouldShowCloudAlbums) {
-            cursors.add(getCloudAlbumsCursor(appContext, query, localAuthority, cloudAuthority));
-        }
+        // Remove empty cursors.
+        allAlbumCursors.removeIf(it -> it == null || !it.moveToFirst());
 
-        cursors.removeIf(Objects::isNull);
-        if (cursors.isEmpty()) {
+        if (allAlbumCursors.isEmpty()) {
             Log.e(TAG, "No albums available");
             return null;
         } else {
-            Cursor mergeCursor = new MergeCursor(cursors.toArray(new Cursor[0]));
-            Log.i(TAG, "Returning " + mergeCursor.getCount() + " albums metadata");
+            Cursor mergeCursor = new MergeCursor(allAlbumCursors.toArray(new Cursor[0]));
+            Log.i(TAG, "Returning " + mergeCursor.getCount() + " albums' metadata");
             return mergeCursor;
         }
     }
@@ -188,7 +216,7 @@ public class PickerDataLayerV2 {
                         ? cloudAuthority
                         : null;
 
-        if (isMergedAlbum(albumId)) {
+        if (MERGED_ALBUMS.contains(albumId)) {
             return queryMergedAlbumMedia(
                     albumId,
                     appContext,
@@ -540,6 +568,11 @@ public class PickerDataLayerV2 {
             @NonNull SQLiteDatabase database,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
+        if (localAuthority == null && cloudAuthority == null) {
+            Log.e(TAG, "Cannot get merged albums when no providers are available");
+            return null;
+        }
+
         final MediaQuery query;
         if (albumId.equals(AlbumColumns.ALBUM_ID_VIDEOS)) {
             VideoMediaQuery videoQuery = new VideoMediaQuery(queryArgs, 1);
@@ -614,18 +647,78 @@ public class PickerDataLayerV2 {
     }
 
     /**
-     * Returns local albums cursor after fetching them from the local provider.
+     * Returns local albums in individial cursors mapped against their album id after fetching them
+     * from the local provider.
      *
      * @param appContext The application context.
      * @param query Query arguments that will be used to filter albums.
      * @param localAuthority Authority of the local media provider.
      */
     @Nullable
-    private static AlbumsCursorWrapper getLocalAlbumsCursor(
+    private static Map<String, AlbumsCursorWrapper> getLocalAlbumCursors(
             @NonNull Context appContext,
             @NonNull MediaQuery query,
-            @NonNull String localAuthority) {
-        return getCMPAlbumsCursor(appContext, query, localAuthority, localAuthority);
+            @Nullable String localAuthority) {
+        if (localAuthority == null) {
+            Log.d(TAG, "Cannot fetch local albums when local authority is null.");
+            return null;
+        }
+
+        final Cursor localAlbumsCursor =
+                getAlbumsCursorFromProvider(appContext, query, localAuthority);
+
+        final Map<String, AlbumsCursorWrapper> localAlbumsMap = new HashMap<>();
+        if (localAlbumsCursor != null && localAlbumsCursor.moveToFirst()) {
+            do {
+                try {
+                    final String albumId =
+                            localAlbumsCursor.getString(
+                                    localAlbumsCursor.getColumnIndex(AlbumColumns.ID));
+                    final MatrixCursor albumCursor =
+                            new MatrixCursor(localAlbumsCursor.getColumnNames());
+                    MatrixCursor.RowBuilder builder = albumCursor.newRow();
+                    for (String columnName : localAlbumsCursor.getColumnNames()) {
+                        final int columnIndex = localAlbumsCursor.getColumnIndex(columnName);
+                        switch (localAlbumsCursor.getType(columnIndex)) {
+                            case Cursor.FIELD_TYPE_INTEGER:
+                                builder.add(columnName, localAlbumsCursor.getInt(columnIndex));
+                                break;
+                            case Cursor.FIELD_TYPE_FLOAT:
+                                builder.add(columnName, localAlbumsCursor.getFloat(columnIndex));
+                                break;
+                            case Cursor.FIELD_TYPE_BLOB:
+                                builder.add(columnName, localAlbumsCursor.getBlob(columnIndex));
+                                break;
+                            case Cursor.FIELD_TYPE_NULL:
+                                builder.add(columnName, null);
+                                break;
+                            case Cursor.FIELD_TYPE_STRING:
+                                builder.add(columnName, localAlbumsCursor.getString(columnIndex));
+                                break;
+                            default:
+                                throw new IllegalArgumentException(
+                                        "Could not recognize column type "
+                                                + localAlbumsCursor.getType(columnIndex));
+                        }
+                    }
+                    localAlbumsMap.put(
+                            albumId,
+                            new AlbumsCursorWrapper(albumCursor,
+                                    /* coverAuthority */ localAuthority,
+                                    /* localAuthority */ localAuthority)
+                    );
+                } catch (RuntimeException e) {
+                    Log.e(TAG,
+                            "Could not read album cursor values received from local provider", e);
+                }
+            } while(localAlbumsCursor.moveToNext());
+        }
+
+        // Close localAlbumsCursor because it's data was copied into new Cursor(s) and it won't
+        // be used again.
+        if (localAlbumsCursor != null) localAlbumsCursor.close();
+
+        return localAlbumsMap;
     }
 
     /**
@@ -640,34 +733,37 @@ public class PickerDataLayerV2 {
     private static AlbumsCursorWrapper getCloudAlbumsCursor(
             @NonNull Context appContext,
             @NonNull MediaQuery query,
-            @NonNull String localAuthority,
-            @NonNull String cloudAuthority) {
-        return getCMPAlbumsCursor(appContext, query, localAuthority, cloudAuthority);
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority) {
+        if (cloudAuthority == null) {
+            Log.d(TAG, "Cannot fetch cloud albums when cloud authority is null.");
+            return null;
+        }
+
+        final Cursor cursor = getAlbumsCursorFromProvider(appContext, query, cloudAuthority);
+        return cursor == null
+                ? null
+                : new AlbumsCursorWrapper(cursor, cloudAuthority, localAuthority);
     }
 
     /**
      * Returns {@link AlbumsCursorWrapper} object that wraps the albums cursor response from the
-     * CMP.
+     * provider.
      *
      * @param appContext The application context.
      * @param query Query arguments that will be used to filter albums.
-     * @param localAuthority Authority of the local media provider.
-     * @param cmpAuthority Authority of the cloud media provider.
+     * @param providerAuthority Authority of the cloud media provider.
      */
     @Nullable
-    private static AlbumsCursorWrapper getCMPAlbumsCursor(
+    private static Cursor getAlbumsCursorFromProvider(
             @NonNull Context appContext,
             @NonNull MediaQuery query,
-            @NonNull String localAuthority,
-            @NonNull String cmpAuthority) {
-        final Cursor cursor = appContext.getContentResolver().query(
-                getAlbumUri(cmpAuthority),
+            @NonNull String providerAuthority) {
+        return appContext.getContentResolver().query(
+                getAlbumUri(providerAuthority),
                 /* projection */ null,
                 query.prepareCMPQueryArgs(),
                 /* cancellationSignal */ null);
-        return cursor == null
-                ? null
-                : new AlbumsCursorWrapper(cursor, cmpAuthority, localAuthority);
     }
 
     /**
@@ -962,14 +1058,6 @@ public class PickerDataLayerV2 {
             extras.putParcelable(providerCollectionInfo.getAuthority(),
                     providerCollectionInfo.getAccountConfigurationIntent());
         }
-    }
-
-    /**
-     * @param albumId Album identifier.
-     * @return True if the given album id matches the album id of any merged album.
-     */
-    private static boolean isMergedAlbum(@NonNull String albumId) {
-        return sMergedAlbumIds.contains(albumId);
     }
 
     /**

@@ -48,6 +48,13 @@ fun Intent.getPhotopickerSelectionLimitOrDefault(default: Int): Int {
                 "EXTRA_PICK_IMAGES_MAX is not allowed for ACTION_GET_CONTENT, " +
                     "use ACTION_PICK_IMAGES instead."
             )
+        }
+        // Handle [Intent.EXTRA_ALLOW_MULTIPLE] for GET_CONTENT takeover.
+        else if (
+            getAction() == Intent.ACTION_GET_CONTENT &&
+                getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+        ) {
+            MediaStore.getPickImagesMaxLimit()
         } else {
             // No EXTRA_PICK_IMAGES_MAX was set, return the provided default
             default
@@ -145,6 +152,14 @@ fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
         if (mimeTypes.all { mimeType -> isMediaMimeType(mimeType) }) {
             return mimeTypes.toCollection(ArrayList())
         } else {
+
+            // If the current action is ACTION_PICK_IMAGES then */* is a valid input that should
+            // be interpreted as "all media mimetypes"
+            if (action.equals(MediaStore.ACTION_PICK_IMAGES)) {
+                if (it.contains("*/*")) {
+                    return arrayListOf("image/*", "video/*")
+                }
+            }
             // Picker can be opened from Documents UI by the user. In this case, the intent action
             // will be Intent.ACTION_GET_CONTENT and the mime types may contain non-media types.
             // Don't apply any MIME type filters in this case. Otherwise, throw an exception.
@@ -161,6 +176,14 @@ fun Intent.getPhotopickerMimeTypes(): ArrayList<String>? {
             if (isMediaMimeType(it)) {
                 return arrayListOf(it)
             } else {
+
+                // If the current action is ACTION_PICK_IMAGES then */* is a valid input that should
+                // be interpreted as "all media mimetypes"
+                if (action.equals(MediaStore.ACTION_PICK_IMAGES)) {
+                    if (it == "*/*") {
+                        return arrayListOf("image/*", "video/*")
+                    }
+                }
                 // Picker can be opened from Documents UI by the user. In this case, the intent
                 // action will be Intent.ACTION_GET_CONTENT and the mime types may contain non-media
                 // types. Don't apply any MIME type filters in this case. Otherwise, throw an

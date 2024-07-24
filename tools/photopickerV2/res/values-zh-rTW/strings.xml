@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"相片挑選工具 V2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"相片挑選工具"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"文件使用者介面"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"選擇挑選工具"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"相片挑選工具 V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"選擇圖片"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"操作取得內容"</string>
+    <string name="display_images_in_order" msgid="7880116254468536174">"依序顯示圖片"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"允許多選"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"媒體數量上限"</string>
+    <string name="enter_valid_number" msgid="5077320506805084248">"輸入大於一的有效數字"</string>
+    <string name="pick_media" msgid="5269447618857205416">"選擇媒體"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"處理中"</string>
+</resources>

@@ -118,7 +118,7 @@ public class PickerNotificationSender {
     public static void notifyMergedAlbumMediaChange(
             @NonNull Context context,
             @NonNull String localAuthority) {
-        for (String mergedAlbumId: PickerDataLayerV2.sMergedAlbumIds) {
+        for (String mergedAlbumId: PickerDataLayerV2.MERGED_ALBUMS) {
             Log.d(TAG, "Sending a notification for merged album media update " + mergedAlbumId);
 
             // By default, always keep merged album authority as local.

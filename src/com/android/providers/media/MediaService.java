@@ -46,6 +46,9 @@ public class MediaService extends JobIntentService {
     private static final String ACTION_SCAN_VOLUME
             = "com.android.providers.media.action.SCAN_VOLUME";
 
+    private static final String ACTION_RECOVER_PUBLIC_VOLUMES
+            = "com.android.providers.media.action.RECOVER_PUBLIC_VOLUMES";
+
     private static final String EXTRA_MEDIAVOLUME = "MediaVolume";
 
     private static final String EXTRA_SCAN_REASON = "scan_reason";
@@ -55,6 +58,11 @@ public class MediaService extends JobIntentService {
         Intent intent = new Intent(ACTION_SCAN_VOLUME);
         intent.putExtra(EXTRA_MEDIAVOLUME, volume) ;
         intent.putExtra(EXTRA_SCAN_REASON, reason);
+        enqueueWork(context, intent);
+    }
+
+    public static void queuePublicVolumeRecovery(Context context) {
+        Intent intent = new Intent(ACTION_RECOVER_PUBLIC_VOLUMES);
         enqueueWork(context, intent);
     }
 
@@ -93,6 +101,10 @@ public class MediaService extends JobIntentService {
                     final MediaVolume volume = intent.getParcelableExtra(EXTRA_MEDIAVOLUME);
                     int reason = intent.getIntExtra(EXTRA_SCAN_REASON, REASON_DEMAND);
                     onScanVolume(this, volume, reason);
+                    break;
+                }
+                case ACTION_RECOVER_PUBLIC_VOLUMES: {
+                    onPublicVolumeRecovery();
                     break;
                 }
                 default: {
@@ -145,6 +157,17 @@ public class MediaService extends JobIntentService {
         } else {
             Log.e(TAG, "Couldn't retrieve StorageVolume from intent");
         }
+    }
+
+    private void onPublicVolumeRecovery() {
+        new Thread(() -> {
+            try (ContentProviderClient cpc = getContentResolver()
+                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+                ((MediaProvider) cpc.getLocalContentProvider()).recoverPublicVolumes();
+            } catch (Exception e) {
+                Log.e(TAG, "Exception while starting public volume recovery thread", e);
+            }
+        }).start();
     }
 
     public static void onScanVolume(Context context, MediaVolume volume, int reason)

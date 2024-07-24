@@ -13,5 +13,5 @@
     <string name="max_number_of_media_items" msgid="2736386927806685966">"حداکثر تعداد فایل رسانه‌ای"</string>
     <string name="enter_valid_number" msgid="5077320506805084248">"عدد معتبری که بزرگ‌تر از یک باشد وارد کنید"</string>
     <string name="pick_media" msgid="5269447618857205416">"انتخاب رسانه"</string>
-    <string name="working_on_it" msgid="1373762827081252341">"درحال کار کردن روی آن هستیم"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"مشغول تهیه پاسخ"</string>
 </resources>

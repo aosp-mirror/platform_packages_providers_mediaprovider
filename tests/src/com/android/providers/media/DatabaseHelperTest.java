@@ -633,7 +633,7 @@ public class DatabaseHelperTest {
         public DatabaseHelperU(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
                     null, MediaProvider.MIGRATION_LISTENER, null, false,
-                    new DatabaseBackupAndRecovery(new TestConfigStore(),
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
                             new VolumeCache(context, new UserCache(context))));
         }
 

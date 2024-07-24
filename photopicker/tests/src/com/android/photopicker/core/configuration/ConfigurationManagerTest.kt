@@ -180,6 +180,51 @@ class ConfigurationManagerTest {
     }
 
     /**
+     * Checks that the [ConfigurationManager] correctly identifies an authority in the device config
+     * and converts it into a package name before emitting a new [PhotopickerConfiguration].
+     */
+    @Test
+    fun testAllowlistedPackagesAreBackwardCompatible() = runTest {
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+            )
+        // Expect the default configuration with an action matching the test action.
+        val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+        val emissions = mutableListOf<PhotopickerConfiguration>()
+        backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+        // wait for ConfigurationManager to register a listener
+        advanceTimeBy(100)
+
+        deviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+            "test.cmp1,test.cmp2.cloudprovider,test.cmp3.cloudpicker"
+        )
+
+        // wait for debounce
+        advanceTimeBy(1100)
+
+        assertThat(emissions.size).isEqualTo(2)
+        assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        assertThat(emissions.last())
+            .isEqualTo(
+                expectedConfiguration.copy(
+                    flags =
+                        PhotopickerFlags(
+                            CLOUD_ALLOWED_PROVIDERS =
+                                arrayOf("test.cmp1", "test.cmp2", "test.cmp3"),
+                        )
+                )
+            )
+    }
+
+    /**
      * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
      * expected action.
      */

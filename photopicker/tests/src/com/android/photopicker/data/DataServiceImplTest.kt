@@ -17,18 +17,26 @@
 package com.android.photopicker.data
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.pm.PackageManager
+import android.content.pm.ProviderInfo
+import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
+import android.os.Parcel
+import android.os.UserHandle
+import android.provider.CloudMediaProviderContract
 import androidx.paging.PagingSource
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerFlags
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
-import com.android.photopicker.data.DataServiceImplTest.Companion.availableProvidersUpdateUri
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -37,6 +45,7 @@ import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.tests.utils.mockito.nonNullableAny
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
+import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +62,8 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.any
+import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -62,15 +73,27 @@ import org.mockito.Mockito.verify
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataServiceImplTest {
     companion object {
+        private fun createUserHandle(userId: Int = 0): UserHandle {
+            val parcel = Parcel.obtain()
+            parcel.writeInt(userId)
+            parcel.setDataPosition(0)
+            val userHandle = UserHandle(parcel)
+            parcel.recycle()
+            return userHandle
+        }
+
         private val albumMediaUpdateUri =
             Uri.parse("content://media/picker_internal/v2/album/update")
         private val mediaUpdateUri = Uri.parse("content://media/picker_internal/v2/media/update")
         private val availableProvidersUpdateUri =
             Uri.parse("content://media/picker_internal/v2/available_providers/update")
         private val userProfilePrimary: UserProfile =
-            UserProfile(identifier = 0, profileType = UserProfile.ProfileType.PRIMARY)
+            UserProfile(handle = createUserHandle(0), profileType = UserProfile.ProfileType.PRIMARY)
         private val userProfileManaged: UserProfile =
-            UserProfile(identifier = 10, profileType = UserProfile.ProfileType.MANAGED)
+            UserProfile(
+                handle = createUserHandle(10),
+                profileType = UserProfile.ProfileType.MANAGED
+            )
     }
 
     private lateinit var testFeatureManager: FeatureManager
@@ -79,6 +102,8 @@ class DataServiceImplTest {
     private lateinit var notificationService: TestNotificationServiceImpl
     private lateinit var mediaProviderClient: MediaProviderClient
     private lateinit var userStatus: UserStatus
+    private lateinit var mockContext: Context
+    private lateinit var mockPackageManager: PackageManager
 
     @Before
     fun setup() {
@@ -87,6 +112,8 @@ class DataServiceImplTest {
         testContentResolver = ContentResolver.wrap(testContentProvider)
         notificationService = TestNotificationServiceImpl()
         mediaProviderClient = MediaProviderClient()
+        mockContext = mock(Context::class.java)
+        mockPackageManager = mock(PackageManager::class.java)
         userStatus =
             UserStatus(
                 activeUserProfile = userProfilePrimary,
@@ -116,6 +143,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -141,6 +169,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -219,6 +248,7 @@ class DataServiceImplTest {
                         setOf<RegisteredEventClass>(),
                         setOf<RegisteredEventClass>(),
                     ),
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -247,6 +277,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -328,6 +359,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -438,6 +470,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -499,6 +532,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         // Check initial available provider emissions
@@ -561,6 +595,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
         advanceTimeBy(100)
 
@@ -631,6 +666,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         // Check initial available provider emissions
@@ -718,6 +754,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
         advanceTimeBy(100)
 
@@ -760,6 +797,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
         advanceTimeBy(100)
 
@@ -835,6 +873,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -913,6 +952,7 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
+                appContext = mockContext
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -941,5 +981,241 @@ class DataServiceImplTest {
         // Verify that the collection info has been updated.
         val updatedCollectionInfo = dataService.getCollectionInfo(testContentProvider.providers[0])
         assertThat(updatedCollectionInfo).isEqualTo(expectedCollectionInfo)
+    }
+
+    @Test
+    fun testGetAllAllowedProviders() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val cloudProvider1 =
+            Provider(
+                "cloud_primary",
+                MediaSource.REMOTE,
+                /* uid */ 0,
+                /* displayName */ "primary cloud provider"
+            )
+        val cloudProvider2 =
+            Provider(
+                "cloud_secondary",
+                MediaSource.REMOTE,
+                /* uid */ 1,
+                /* displayName */ "secondary cloud provider"
+            )
+        val resolveInfo1 = createResolveInfo(cloudProvider1)
+        val resolveInfo2 = createResolveInfo(cloudProvider2)
+
+        whenever(mockContext.getPackageManager()) { mockPackageManager }
+        whenever(mockPackageManager.queryIntentContentProvidersAsUser(any(), anyInt(), any())) {
+            listOf(resolveInfo1, resolveInfo2)
+        }
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config =
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "test_action",
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_ALLOWED_PROVIDERS =
+                                            arrayOf(
+                                                cloudProvider1.authority,
+                                                cloudProvider2.authority
+                                            ),
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                    )
+                            )
+                    ),
+                featureManager = testFeatureManager,
+                appContext = mockContext
+            )
+
+        val actualAllAllowedProviders = dataService.getAllAllowedProviders()
+        assertThat(actualAllAllowedProviders.count()).isEqualTo(2)
+        assertThat(actualAllAllowedProviders[0].authority).isEqualTo(cloudProvider1.authority)
+        assertThat(actualAllAllowedProviders[1].authority).isEqualTo(cloudProvider2.authority)
+    }
+
+    @Test
+    fun testGetAllAllowedProvidersWhenAllowlistIsEnforced() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val cloudProvider1 =
+            Provider(
+                "cloud_primary",
+                MediaSource.REMOTE,
+                /* uid */ 0,
+                /* displayName */ "primary cloud provider"
+            )
+        val cloudProvider2 =
+            Provider(
+                "cloud_secondary",
+                MediaSource.REMOTE,
+                /* uid */ 1,
+                /* displayName */ "secondary cloud provider"
+            )
+        val resolveInfo1 = createResolveInfo(cloudProvider1)
+        val resolveInfo2 = createResolveInfo(cloudProvider2)
+
+        whenever(mockContext.getPackageManager()) { mockPackageManager }
+        whenever(mockPackageManager.queryIntentContentProvidersAsUser(any(), anyInt(), any())) {
+            listOf(resolveInfo1, resolveInfo2)
+        }
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config =
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "test_action",
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf(cloudProvider1.authority),
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                    )
+                            )
+                    ),
+                featureManager = testFeatureManager,
+                appContext = mockContext
+            )
+
+        val actualAllAllowedProviders = dataService.getAllAllowedProviders()
+        assertThat(actualAllAllowedProviders.count()).isEqualTo(1)
+        assertThat(actualAllAllowedProviders[0].authority).isEqualTo(cloudProvider1.authority)
+    }
+
+    @Test
+    fun testGetAllAllowedProvidersWhenDeviceHasLimitedProviders() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val cloudProvider1 =
+            Provider(
+                "cloud_primary",
+                MediaSource.REMOTE,
+                /* uid */ 0,
+                /* displayName */ "primary cloud provider"
+            )
+        val cloudProvider2 =
+            Provider(
+                "cloud_secondary",
+                MediaSource.REMOTE,
+                /* uid */ 1,
+                /* displayName */ "secondary cloud provider"
+            )
+        val resolveInfo2 = createResolveInfo(cloudProvider2)
+
+        whenever(mockContext.getPackageManager()) { mockPackageManager }
+        whenever(mockPackageManager.queryIntentContentProvidersAsUser(any(), anyInt(), any())) {
+            listOf(resolveInfo2)
+        }
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config =
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "test_action",
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_ALLOWED_PROVIDERS =
+                                            arrayOf(
+                                                cloudProvider1.authority,
+                                                cloudProvider2.authority
+                                            ),
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                    )
+                            )
+                    ),
+                featureManager = testFeatureManager,
+                appContext = mockContext
+            )
+
+        val actualAllAllowedProviders = dataService.getAllAllowedProviders()
+        assertThat(actualAllAllowedProviders.count()).isEqualTo(1)
+        assertThat(actualAllAllowedProviders[0].authority).isEqualTo(cloudProvider2.authority)
+    }
+
+    @Test
+    fun testGetAllAllowedProvidersWhenAllowlistIsNotEnforced() = runTest {
+        val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        val cloudProvider1 =
+            Provider(
+                "cloud_primary",
+                MediaSource.REMOTE,
+                /* uid */ 0,
+                /* displayName */ "primary cloud provider"
+            )
+        val cloudProvider2 =
+            Provider(
+                "cloud_secondary",
+                MediaSource.REMOTE,
+                /* uid */ 1,
+                /* displayName */ "secondary cloud provider"
+            )
+        val resolveInfo1 = createResolveInfo(cloudProvider1)
+        val resolveInfo2 = createResolveInfo(cloudProvider2)
+
+        whenever(mockContext.getPackageManager()) { mockPackageManager }
+        whenever(mockPackageManager.queryIntentContentProvidersAsUser(any(), anyInt(), any())) {
+            listOf(resolveInfo1, resolveInfo2)
+        }
+
+        val dataService: DataService =
+            DataServiceImpl(
+                userStatus = userStatusFlow,
+                scope = this.backgroundScope,
+                notificationService = notificationService,
+                mediaProviderClient = mediaProviderClient,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                config =
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "test_action",
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf(),
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = false
+                                    )
+                            )
+                    ),
+                featureManager = testFeatureManager,
+                appContext = mockContext
+            )
+
+        val actualAllAllowedProviders = dataService.getAllAllowedProviders()
+        assertThat(actualAllAllowedProviders.count()).isEqualTo(2)
+        assertThat(actualAllAllowedProviders[0].authority).isEqualTo(cloudProvider1.authority)
+        assertThat(actualAllAllowedProviders[1].authority).isEqualTo(cloudProvider2.authority)
+    }
+
+    private fun createResolveInfo(provider: Provider): ResolveInfo {
+        val resolveInfo = ResolveInfo()
+        resolveInfo.nonLocalizedLabel = provider.displayName
+        resolveInfo.providerInfo = ProviderInfo()
+        resolveInfo.providerInfo.authority = provider.authority
+        resolveInfo.providerInfo.packageName = provider.authority
+        resolveInfo.providerInfo.readPermission =
+            CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION
+        return resolveInfo
     }
 }

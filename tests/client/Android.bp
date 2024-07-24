@@ -16,6 +16,7 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":mediaprovider-testutils",
+        ":mediaprovider-library",
     ],
 
     libs: [
@@ -32,4 +33,5 @@ android_test {
     ],
 
     certificate: "media",
+    min_sdk_version: "30",
 }

@@ -46,7 +46,6 @@ import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.CloudProviderQueryExtras;
 import com.android.providers.media.photopicker.data.ExternalDbFacade;
 
-
 import java.io.FileNotFoundException;
 
 /**
@@ -71,7 +70,7 @@ public class PhotoPickerProvider extends CloudMediaProvider {
                 CloudProviderQueryExtras.fromCloudMediaBundle(extras);
 
         return mDbFacade.queryMedia(queryExtras.getGeneration(), queryExtras.getAlbumId(),
-                queryExtras.getMimeTypes());
+                queryExtras.getMimeTypes(), queryExtras.getPageSize(), queryExtras.getPageToken());
     }
 
     @Override

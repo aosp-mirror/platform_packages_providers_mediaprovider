@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_VIEW_CREATED;
+
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -26,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.model.Category;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
 import java.util.List;
 
@@ -50,12 +53,14 @@ class AlbumsTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onChooseAppBannerEventListener,
             @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
-            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
+            @NonNull PickerViewModel pickerViewModel) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
                 onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
-                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener,
+                pickerViewModel);
         mOnAlbumClickListener = onAlbumClickListener;
         mHasMimeTypeFilter = hasMimeTypeFilter;
     }
@@ -64,7 +69,8 @@ class AlbumsTabAdapter extends TabAdapter {
     @Override
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_album_grid);
-        return new AlbumGridHolder(view, mImageLoader, mHasMimeTypeFilter, mOnAlbumClickListener);
+        return new AlbumGridHolder(
+                view, mImageLoader, mHasMimeTypeFilter, mPickerViewModel, mOnAlbumClickListener);
     }
 
     @Override
@@ -80,10 +86,10 @@ class AlbumsTabAdapter extends TabAdapter {
     }
 
     void updateCategoryList(@NonNull List<Category> categoryList) {
-        setAllItems(categoryList);
+        setAllItems(categoryList, /* reset */ ACTION_VIEW_CREATED);
     }
 
     interface OnAlbumClickListener {
-        void onAlbumClick(@NonNull Category category);
+        void onAlbumClick(@NonNull Category category, int position);
     }
 }

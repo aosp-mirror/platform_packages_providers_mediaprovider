@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -69,22 +70,28 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
     }
 
     @Override
-    protected boolean isBackupPresent() {
+    protected boolean isBackupPresent(String volumeName) {
         return true;
     }
 
     @Override
-    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath, long waitTime)
+    protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
             throws FileNotFoundException {
         return null;
     }
 
     @Override
-    protected void setupVolumeDbBackupAndRecovery(String volumeName, File volumePath) {
-        return;
-    }
+    protected void setupVolumeDbBackupAndRecovery(String volumeName) {}
 
     public void setBackedUpData(Map<String, BackupIdRow> backedUpData) {
         this.mBackedUpData = backedUpData;
+    }
+
+    @Override
+    protected void removeRecoveryDataForUserId(int removedUserId) {
+    }
+
+    @Override
+    public void removeRecoveryDataExceptValidUsers(List<String> validUsers) {
     }
 }

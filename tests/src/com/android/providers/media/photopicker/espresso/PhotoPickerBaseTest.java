@@ -29,12 +29,15 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Process;
 import android.provider.MediaStore;
 import android.system.ErrnoException;
 import android.system.Os;
 
 import androidx.core.util.Supplier;
+import androidx.lifecycle.MutableLiveData;
 import androidx.test.InstrumentationRegistry;
+import androidx.work.testing.WorkManagerTestInitHelper;
 
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
@@ -54,9 +57,11 @@ import java.util.concurrent.TimeoutException;
 
 public class PhotoPickerBaseTest {
     protected static final int PICKER_TAB_RECYCLERVIEW_ID = R.id.picker_tab_recyclerview;
+    protected static final int TAB_VIEW_PAGER_ID = R.id.picker_tab_viewpager;
     protected static final int TAB_LAYOUT_ID = R.id.tab_layout;
     protected static final int PICKER_PHOTOS_STRING_ID = R.string.picker_photos;
     protected static final int PICKER_ALBUMS_STRING_ID = R.string.picker_albums;
+    protected static final int PICKER_VIDEOS_STRING_ID = R.string.picker_videos;
     protected static final int PREVIEW_VIEW_PAGER_ID = R.id.preview_viewPager;
     protected static final int ICON_CHECK_ID = R.id.icon_check;
     protected static final int ICON_THUMBNAIL_ID = R.id.icon_thumbnail;
@@ -67,6 +72,12 @@ public class PhotoPickerBaseTest {
     protected static final int PREVIEW_MOTION_PHOTO_ID = R.id.preview_motion_photo;
     protected static final int PREVIEW_ADD_OR_SELECT_BUTTON_ID = R.id.preview_add_or_select_button;
     protected static final int PRIVACY_TEXT_ID = R.id.privacy_text;
+    protected static final String GIF_IMAGE_MIME_TYPE = "image/gif";
+    protected static final String ANIMATED_WEBP_MIME_TYPE = "image/webp";
+    protected static final String JPEG_IMAGE_MIME_TYPE = "image/jpeg";
+    protected static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
+
+    protected static final String MANAGED_SELECTION_ENABLED_EXTRA = "MANAGED_SELECTION_ENABLE";
 
     protected static final int DIMEN_PREVIEW_ADD_OR_SELECT_WIDTH
             = R.dimen.preview_add_or_select_width;
@@ -112,11 +123,22 @@ public class PhotoPickerBaseTest {
         sUserSelectImagesForAppIntent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
         sUserSelectImagesForAppIntent.addCategory(Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
         Bundle extras = new Bundle();
-        extras.putInt(Intent.EXTRA_UID, 1234);
+        extras.putInt(Intent.EXTRA_UID, Process.myUid());
         sUserSelectImagesForAppIntent.putExtras(extras);
     }
 
-    private static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
+    private static final Intent sPickerChoiceManagedSelectionIntent;
+    static {
+        sPickerChoiceManagedSelectionIntent = new Intent(
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        sPickerChoiceManagedSelectionIntent.addCategory(
+                Intent.CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST);
+        Bundle extras = new Bundle();
+        extras.putInt(Intent.EXTRA_UID, Process.myUid());
+        extras.putBoolean(MANAGED_SELECTION_ENABLED_EXTRA, true);
+        sPickerChoiceManagedSelectionIntent.putExtras(extras);
+    }
+    public static final File IMAGE_1_FILE = new File(Environment.getExternalStorageDirectory(),
             Environment.DIRECTORY_DCIM + "/Camera"
                     + "/image_" + System.currentTimeMillis() + ".jpeg");
     private static final File IMAGE_2_FILE = new File(Environment.getExternalStorageDirectory(),
@@ -148,6 +170,9 @@ public class PhotoPickerBaseTest {
         return sUserSelectImagesForAppIntent;
     }
 
+    public static Intent getPickerChoiceManagedSelectionIntent() {
+        return sPickerChoiceManagedSelectionIntent;
+    }
     public static Intent getMultiSelectionIntent(int max) {
         final Intent intent = new Intent(sMultiSelectionIntent);
         Bundle extras = new Bundle();
@@ -181,6 +206,8 @@ public class PhotoPickerBaseTest {
 
         sUserIdManager = mock(UserIdManager.class);
         when(sUserIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+
+        WorkManagerTestInitHelper.initializeTestWorkManager(sIsolatedContext);
 
         createFiles();
     }
@@ -283,6 +310,7 @@ public class PhotoPickerBaseTest {
             updateIsManagedUserSelected(/* isManagedUserSelected */ true);
             return null;
         }).when(sUserIdManager).setManagedAsCurrentUserProfile();
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(true));
     }
 
     /**
@@ -307,6 +335,7 @@ public class PhotoPickerBaseTest {
         when(sUserIdManager.isWorkProfileOff()).thenReturn(false);
         when(sUserIdManager.isCrossProfileAllowed()).thenReturn(false);
         when(sUserIdManager.isManagedUserSelected()).thenReturn(true);
+        when(sUserIdManager.getCrossProfileAllowed()).thenReturn(new MutableLiveData<>(false));
     }
 
     private static void updateIsManagedUserSelected(boolean isManagedUserSelected) {

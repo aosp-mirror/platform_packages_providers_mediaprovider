@@ -71,16 +71,20 @@ class TestDeviceConfigProxyImpl(
         // and in the case it cannot be cast to the type, instead default back to the provided
         // default value which is known to match the correct type.
         // As a result, we silence the unchecked cast compiler warnings in the block below.
-        return when (defaultValue) {
-            is Boolean -> {
+        return when {
+            defaultValue is Boolean -> {
                 @Suppress("UNCHECKED_CAST") return (rawValue?.toBoolean() as? T) ?: defaultValue
             }
-            is String -> {
+            defaultValue is String -> {
                 @Suppress("UNCHECKED_CAST") return (rawValue as? T) ?: defaultValue
             }
+            (defaultValue is Array<*> && defaultValue.isArrayOf<String>()) ->
+                @Suppress("UNCHECKED_CAST")
+                return rawValue?.split(",")?.toTypedArray<String>() as? T ?: defaultValue
             else -> defaultValue
         }
     }
+
     /**
      * Returns this [DeviceConfigProxy] implementation to an empty state. Drops all known
      * namespaces, flags values. Drops all known listeners.

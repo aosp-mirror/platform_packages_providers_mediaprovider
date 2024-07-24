@@ -70,7 +70,7 @@ flag {
     is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable updates to MediaStore versioning to make it more unique across apps."
-    bug: "349160128"
+    bug: "343977174"
     is_fixed_read_only: true
 }
 

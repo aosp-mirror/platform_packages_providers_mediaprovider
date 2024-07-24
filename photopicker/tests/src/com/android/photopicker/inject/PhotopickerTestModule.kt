@@ -117,6 +117,8 @@ abstract class PhotopickerTestModule {
         databaseManager: DatabaseManager,
         featureManager: FeatureManager,
         dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
     ): BannerManager {
         return BannerManagerImpl(
             backgroundScope,
@@ -125,6 +127,8 @@ abstract class PhotopickerTestModule {
             databaseManager,
             featureManager,
             dataService,
+            userMonitor,
+            processOwnerHandle,
         )
     }
 

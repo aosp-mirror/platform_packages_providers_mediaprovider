@@ -162,6 +162,8 @@ class EmbeddedServiceModule {
         databaseManager: DatabaseManager,
         featureManager: FeatureManager,
         dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
     ): BannerManager {
         if (::bannerManager.isInitialized) {
             return bannerManager
@@ -175,6 +177,8 @@ class EmbeddedServiceModule {
                     databaseManager,
                     featureManager,
                     dataService,
+                    userMonitor,
+                    processOwnerHandle,
                 )
             return bannerManager
         }

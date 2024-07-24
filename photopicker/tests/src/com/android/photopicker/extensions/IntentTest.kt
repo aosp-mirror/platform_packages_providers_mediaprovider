@@ -41,6 +41,19 @@ class IntentTest {
     }
 
     @Test
+    fun testGetMimeTypeFromIntentActionPickImagesWithWildcards() {
+        val intent = Intent(MediaStore.ACTION_PICK_IMAGES).apply { setType("*/*") }
+
+        val mimeTypes: List<String> = mutableListOf("*/*")
+        val intent2 = Intent(MediaStore.ACTION_PICK_IMAGES)
+        intent2.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+
+        val expectedMimeTypes = arrayListOf("image/*", "video/*")
+        assertThat(intent.getPhotopickerMimeTypes()).isEqualTo(expectedMimeTypes)
+        assertThat(intent2.getPhotopickerMimeTypes()).isEqualTo(expectedMimeTypes)
+    }
+
+    @Test
     fun testGetInvalidMimeTypeFromIntentActionPickImages() {
         val mimeTypes: List<String> = mutableListOf("image/*", "application/binary", "image/gif")
         val intent = Intent(MediaStore.ACTION_PICK_IMAGES)

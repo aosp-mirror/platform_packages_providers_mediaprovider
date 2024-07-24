@@ -1740,7 +1740,7 @@ public class FileUtils {
             // Returns true If .nomedia file is empty or content doesn't match |dir|
             // Returns false otherwise
             return !expectedPath.isPresent()
-                    || !expectedPath.get().equals(dir.getPath());
+                    || !expectedPath.get().equalsIgnoreCase(dir.getPath());
         } catch (IOException e) {
             Log.w(TAG, "Failed to read directory dirty" + dir);
             return true;
@@ -1848,5 +1848,17 @@ public class FileUtils {
     public static String getCanonicalPath(@NonNull String path) throws IOException {
         Objects.requireNonNull(path);
         return new File(path).getCanonicalPath();
+    }
+
+    /**
+     * A wrapper for {@link File#getCanonicalFile()} that catches {@link IOException}-s and
+     * re-throws them as {@link RuntimeException}-s.
+     *
+     * @see File#getCanonicalFile()
+     */
+    @NonNull
+    public static File canonicalize(@NonNull File file) throws IOException {
+        Objects.requireNonNull(file);
+        return file.getCanonicalFile();
     }
 }

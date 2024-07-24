@@ -54,6 +54,9 @@ java_sdk_library {
         "test_com.android.mediaprovider",
     ],
     min_sdk_version: "30",
+    lint: {
+        baseline_filename: "lint-baseline.xml",
+    },
 }
 
 filegroup {

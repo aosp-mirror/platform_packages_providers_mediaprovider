@@ -1,0 +1,9 @@
+// Baseline format: 1.0
+RequiresPermission: android.provider.MediaStore#canManageMedia(android.content.Context):
+    Method 'canManageMedia' documentation mentions permissions without declaring @RequiresPermission
+RequiresPermission: android.provider.MediaStore#setRequireOriginal(android.net.Uri):
+    Method 'setRequireOriginal' documentation mentions permissions without declaring @RequiresPermission
+
+
+SdkConstant: android.provider.MediaStore#ACTION_USER_SELECT_IMAGES_FOR_APP:
+    Field 'ACTION_USER_SELECT_IMAGES_FOR_APP' is missing @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)

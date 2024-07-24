@@ -1,6 +1,7 @@
 package {
     // See: http://go/android-license-faq
     default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_android_storage",
 }
 
 android_app {
@@ -20,16 +21,20 @@ android_app {
         "modules-utils-build",
         "modules-utils-uieventlogger-interface",
         "glide-prebuilt",
+        "glide-integration-recyclerview-prebuilt",
+        "glide-integration-webpdecoder-prebuilt",
         "glide-gifdecoder-prebuilt",
         "glide-disklrucache-prebuilt",
         "glide-annotation-and-compiler-prebuilt",
         "androidx.fragment_fragment",
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
+        "androidx.work_work-runtime",
         "exoplayer-mediaprovider-ui",
         "modules-utils-shell-command-handler",
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
+        "mediaprovider_flags_java_lib",
     ],
 
     libs: [
@@ -47,6 +52,7 @@ android_app {
         "libfuse_jni",
         "libfuse",
     ],
+    use_embedded_native_libs: true,
 
     resource_dirs: [
         "res",
@@ -89,10 +95,7 @@ android_app {
         ],
     },
 
-    required: ["preinstalled-packages-com.android.providers.media.module.xml"],
-
     lint: {
-        strict_updatability_linting: true,
         baseline_filename: "lint-baseline.xml",
     },
 
@@ -117,7 +120,6 @@ filegroup {
 java_library {
     name: "mediaprovider-database",
     srcs: [
-        "src/com/android/providers/media/LegacyDatabaseHelper.java",
         "src/com/android/providers/media/util/DatabaseUtils.java",
         "src/com/android/providers/media/util/FileUtils.java",
         "src/com/android/providers/media/util/ForegroundThread.java",
@@ -140,7 +142,7 @@ java_library {
         "framework-mediaprovider",
     ],
     lint: {
-        baseline_filename: "lint-baseline.xml",
+        baseline_filename: "lint-baseline2.xml",
     },
 }
 
@@ -167,4 +169,20 @@ prebuilt_etc {
 sh_binary {
     name: "media_provider",
     src: "cli/media_provider_cli_wrapper.sh",
+}
+
+aconfig_declarations {
+    name: "mediaprovider_flags",
+    package: "com.android.providers.media.flags",
+    container: "com.android.mediaprovider",
+    srcs: ["mediaprovider_flags.aconfig"],
+}
+
+java_aconfig_library {
+    name: "mediaprovider_flags_java_lib",
+    aconfig_declarations: "mediaprovider_flags",
+    min_sdk_version: "30",
+    apex_available: [
+        "com.android.mediaprovider",
+    ],
 }

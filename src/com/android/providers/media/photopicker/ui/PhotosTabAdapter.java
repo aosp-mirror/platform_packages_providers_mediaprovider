@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.ui;
 
+import static com.android.providers.media.photopicker.ui.ItemsAction.ACTION_CLEAR_AND_UPDATE_LIST;
+
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -29,7 +31,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.providers.media.R;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.model.Item;
+import com.android.providers.media.photopicker.util.AccentColorResources;
 import com.android.providers.media.photopicker.util.DateTimeUtils;
+import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
+
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,20 +44,21 @@ import java.util.List;
 /**
  * Adapts from model to something RecyclerView understands.
  */
-class PhotosTabAdapter extends TabAdapter {
+public class PhotosTabAdapter extends TabAdapter {
 
     private static final int RECENT_MINIMUM_COUNT = 12;
-
+    private final LifecycleOwner mLifecycleOwner;
     private final boolean mShowRecentSection;
-    private final View.OnClickListener mOnMediaItemClickListener;
-    private final View.OnLongClickListener mOnMediaItemLongClickListener;
+    private final OnMediaItemClickListener mOnMediaItemClickListener;
     private final Selection mSelection;
+    private final ViewPreloadSizeProvider mPreloadSizeProvider;
+
+    private final View.OnHoverListener mOnMediaItemHoverListener;
 
     PhotosTabAdapter(boolean showRecentSection,
             @NonNull Selection selection,
             @NonNull ImageLoader imageLoader,
-            @NonNull View.OnClickListener onMediaItemClickListener,
-            @NonNull View.OnLongClickListener onMediaItemLongClickListener,
+            @NonNull OnMediaItemClickListener onMediaItemClickListener,
             @NonNull LifecycleOwner lifecycleOwner,
             @NonNull LiveData<String> cloudMediaProviderAppTitle,
             @NonNull LiveData<String> cloudMediaAccountName,
@@ -62,16 +69,22 @@ class PhotosTabAdapter extends TabAdapter {
             @NonNull OnBannerEventListener onChooseAppBannerEventListener,
             @NonNull OnBannerEventListener onCloudMediaAvailableBannerEventListener,
             @NonNull OnBannerEventListener onAccountUpdatedBannerEventListener,
-            @NonNull OnBannerEventListener onChooseAccountBannerEventListener) {
+            @NonNull OnBannerEventListener onChooseAccountBannerEventListener,
+            @NonNull View.OnHoverListener onMediaItemHoverListener,
+            @NonNull ViewPreloadSizeProvider preloadSizeProvider,
+            @NonNull PickerViewModel pickerViewModel) {
         super(imageLoader, lifecycleOwner, cloudMediaProviderAppTitle, cloudMediaAccountName,
                 shouldShowChooseAppBanner, shouldShowCloudMediaAvailableBanner,
                 shouldShowAccountUpdatedBanner, shouldShowChooseAccountBanner,
                 onChooseAppBannerEventListener, onCloudMediaAvailableBannerEventListener,
-                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener);
+                onAccountUpdatedBannerEventListener, onChooseAccountBannerEventListener,
+                pickerViewModel);
+        mLifecycleOwner = lifecycleOwner;
         mShowRecentSection = showRecentSection;
         mSelection = selection;
         mOnMediaItemClickListener = onMediaItemClickListener;
-        mOnMediaItemLongClickListener = onMediaItemLongClickListener;
+        mOnMediaItemHoverListener = onMediaItemHoverListener;
+        mPreloadSizeProvider = preloadSizeProvider;
     }
 
     @NonNull
@@ -85,10 +98,18 @@ class PhotosTabAdapter extends TabAdapter {
     @Override
     RecyclerView.ViewHolder createMediaItemViewHolder(@NonNull ViewGroup viewGroup) {
         final View view = getView(viewGroup, R.layout.item_photo_grid);
-        view.setOnClickListener(mOnMediaItemClickListener);
-        view.setOnLongClickListener(mOnMediaItemLongClickListener);
-
-        return new MediaItemGridViewHolder(view, mImageLoader, mSelection.canSelectMultiple());
+        final MediaItemGridViewHolder viewHolder =
+                new MediaItemGridViewHolder(
+                        mLifecycleOwner,
+                        view,
+                        mImageLoader,
+                        mOnMediaItemClickListener,
+                        mOnMediaItemHoverListener,
+                        mPickerViewModel,
+                        mSelection.canSelectMultiple(),
+                        mSelection.isSelectionOrdered());
+        mPreloadSizeProvider.setView(viewHolder.getThumbnailImageView());
+        return viewHolder;
     }
 
     @Override
@@ -97,17 +118,31 @@ class PhotosTabAdapter extends TabAdapter {
         final DateHeaderViewHolder dateHeaderVH = (DateHeaderViewHolder) viewHolder;
 
         dateHeaderVH.bind(dateHeader);
+        TextView titleTextView = dateHeaderVH.title;
+        if (mPickerViewModel.getPickerAccentColorParameters().isCustomPickerColorSet()) {
+            titleTextView.setTextColor(
+                    mPickerViewModel.getPickerAccentColorParameters().getThemeBasedColor(
+                            AccentColorResources.ON_SURFACE_COLOR_LIGHT,
+                            AccentColorResources.ON_SURFACE_COLOR_DARK));
+        }
     }
 
     @Override
     void onBindMediaItemViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
         final Item item = (Item) getAdapterItem(position);
-        final MediaItemGridViewHolder mediaItemVH  = (MediaItemGridViewHolder) viewHolder;
+        final MediaItemGridViewHolder mediaItemVH = (MediaItemGridViewHolder) viewHolder;
 
         final boolean isSelected = mSelection.canSelectMultiple()
                 && mSelection.isItemSelected(item);
-        mediaItemVH.bind(item, isSelected);
 
+        if (isSelected) {
+            mSelection.addCheckedItemIndex(item, position);
+        }
+
+        mediaItemVH.bind(item, isSelected);
+        if (isSelected && mSelection.isSelectionOrdered()) {
+            mediaItemVH.setSelectionOrder(mSelection.getSelectedItemOrder(item));
+        }
         // We also need to set Item as a tag so that OnClick/OnLongClickListeners can then
         // retrieve it.
         mediaItemVH.itemView.setTag(item);
@@ -119,11 +154,15 @@ class PhotosTabAdapter extends TabAdapter {
     }
 
     @Override
-    boolean isItemTypeMediaItem(int position) {
+    public boolean isItemTypeMediaItem(int position) {
         return getAdapterItem(position) instanceof Item;
     }
 
     void setMediaItems(@NonNull List<Item> mediaItems) {
+        setMediaItems(mediaItems, ACTION_CLEAR_AND_UPDATE_LIST);
+    }
+
+    void setMediaItems(@NonNull List<Item> mediaItems, @ItemsAction.Type int action) {
         final List<Object> mediaItemsWithDateHeaders;
         if (!mediaItems.isEmpty()) {
             // We'll have at least one section
@@ -155,9 +194,7 @@ class PhotosTabAdapter extends TabAdapter {
         } else {
             mediaItemsWithDateHeaders = Collections.emptyList();
         }
-        setAllItems(mediaItemsWithDateHeaders);
-
-        notifyDataSetChanged();
+        setAllItems(mediaItemsWithDateHeaders, action);
     }
 
     @VisibleForTesting
@@ -185,5 +222,11 @@ class PhotosTabAdapter extends TabAdapter {
                 title.setText(DateTimeUtils.getDateHeaderString(dateHeader.timestamp));
             }
         }
+    }
+
+    interface OnMediaItemClickListener {
+        void onItemClick(@NonNull View view, int position, MediaItemGridViewHolder viewHolder);
+
+        boolean onItemLongClick(@NonNull View view, int position);
     }
 }

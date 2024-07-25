@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.getGeneration;
+
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -36,6 +38,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
+import android.content.ContentInterface;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
@@ -53,6 +56,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.MediaStore;
@@ -88,6 +92,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -304,7 +309,7 @@ public class MediaProviderTest {
     public void testMetadata() {
         assertNotNull(MediaStore.getVersion(sIsolatedContext,
                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
-        assertNotNull(MediaStore.getGeneration(sIsolatedResolver,
+        assertNotNull(getGeneration(sIsolatedResolver,
                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
     }
 
@@ -1816,6 +1821,23 @@ public class MediaProviderTest {
         } finally {
             file.delete();
         }
+    }
+
+    @Test
+    public void testNoExceptionOnGetGeneration() throws RemoteException {
+        ContentInterface contentInterface = Mockito.mock(MediaProvider.class);
+        Mockito.doReturn(null).when(contentInterface).call(Mockito.anyString(),
+                Mockito.anyString(), Mockito.any(String.class), Mockito.any(Bundle.class));
+
+        ContentResolver contentResolver = ContentResolver.wrap(contentInterface);
+
+        try {
+            long generation = getGeneration(contentResolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            assertEquals(0, generation);
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e.getMessage());
+        }
+
     }
 
     private void testRedactionForFileExtension(int resId, String extension) throws Exception {

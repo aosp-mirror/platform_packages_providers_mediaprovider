@@ -566,14 +566,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
-        tryRecoverDatabase(db);
+        if (isInternal()) {
+            tryRecoverDatabase(db, MediaStore.VOLUME_INTERNAL);
+        } else {
+            tryRecoverDatabase(db, MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            mDatabaseBackupAndRecovery.queuePublicVolumeRecovery(mContext);
+        }
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
-    private void tryRecoverDatabase(SQLiteDatabase db) {
-        String volumeName =
-                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL_PRIMARY;
+    public void tryRecoverPublicVolume(String volumeName) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            return;
+        }
+        tryRecoverDatabase(super.getWritableDatabase(), mVolumeName);
+    }
+
+    private void tryRecoverDatabase(SQLiteDatabase db, String volumeName) {
+        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            // Implement for public volume
+            return;
+        }
+
         if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }

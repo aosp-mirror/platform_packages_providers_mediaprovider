@@ -7476,6 +7476,19 @@ public class MediaProvider extends ContentProvider {
         mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
     }
 
+    public void recoverPublicVolumes() {
+        for (MediaVolume mediaVolume : mVolumeCache.getExternalVolumes()) {
+            if (mediaVolume.isPublicVolume()) {
+                try {
+                    mExternalDatabase.tryRecoverPublicVolume(mediaVolume.getName());
+                } catch (Exception e) {
+                    Log.e(TAG, "Exception while recovering public volume: "
+                            + mediaVolume.getName());
+                }
+            }
+        }
+    }
+
     private void syncAllMedia() {
         // Clear the binder calling identity so that we can sync the unexported
         // local_provider while running as MediaProvider

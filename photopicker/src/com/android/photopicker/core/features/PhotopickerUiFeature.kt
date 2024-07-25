@@ -81,9 +81,10 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * only be called for any [BannerDefinition]s that are in the [ownedBanners] declaration.
      *
      * @param banner The [BannerDefinitions] that should be constructed.
+     * @param dataService A dataService that can be used to fetch external data.
      * @return A [Banner] implementation for the requested [BannerDefinitions]
      */
-    fun buildBanner(banner: BannerDefinitions): Banner {
+    suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
         throw IllegalArgumentException("Cannot build the requested banner: ${banner.id}")
     }
 

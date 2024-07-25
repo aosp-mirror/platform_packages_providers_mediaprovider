@@ -21,6 +21,7 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.modules.utils.build.SdkLevel
@@ -130,6 +131,9 @@ open class MediaProviderClient {
                     return getListOfProviders(cursor!!)
                 }
         } catch (e: RuntimeException) {
+            // If we can't fetch the available providers, basic functionality of photopicker does
+            // not work. In order to catch this earlier in testing, throw an error instead of
+            // silencing it.
             throw RuntimeException("Could not fetch available providers", e)
         }
     }
@@ -144,7 +148,7 @@ open class MediaProviderClient {
                 null,
             )
         } catch (e: RuntimeException) {
-            throw RuntimeException("ensure providers failed", e)
+            Log.e(TAG, "Ensure providers failed", e)
         }
     }
 
@@ -289,6 +293,13 @@ open class MediaProviderClient {
         }
     }
 
+    /**
+     * Tries to fetch the latest collection info for the available providers.
+     *
+     * @param resolver The [ContentResolver] of the current active user
+     * @return list of [CollectionInfo]
+     * @throws RuntimeException if data source is unable to fetch the collection info.
+     */
     fun fetchCollectionInfo(resolver: ContentResolver): List<CollectionInfo> {
         try {
             resolver
@@ -579,7 +590,7 @@ open class MediaProviderClient {
                 extras
             )
         } catch (e: RuntimeException) {
-            throw RuntimeException("Could not send refresh media call to Media Provider $extras", e)
+            Log.e(TAG, "Could not send refresh media call to Media Provider $extras", e)
         }
     }
 }

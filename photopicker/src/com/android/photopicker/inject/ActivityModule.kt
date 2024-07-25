@@ -116,6 +116,8 @@ class ActivityModule {
         databaseManager: DatabaseManager,
         featureManager: FeatureManager,
         dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
     ): BannerManager {
         if (::bannerManager.isInitialized) {
             return bannerManager
@@ -129,6 +131,8 @@ class ActivityModule {
                     databaseManager,
                     featureManager,
                     dataService,
+                    userMonitor,
+                    processOwnerHandle,
                 )
             return bannerManager
         }

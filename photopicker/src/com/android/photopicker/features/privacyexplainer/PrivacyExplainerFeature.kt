@@ -74,7 +74,7 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
         }
     }
 
-    override fun buildBanner(banner: BannerDefinitions): Banner {
+    override suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
         return when (banner) {
             BannerDefinitions.PRIVACY_EXPLAINER ->
                 object : Banner {

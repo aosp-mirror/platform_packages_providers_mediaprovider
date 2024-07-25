@@ -29,4 +29,35 @@
     <!-- Preloader Error dialog message -->
     <string name="photopicker_preloading_dialog_error_message" translation_description="A generic error message letting the user know there was an issue loading their photos.">Try again later. Your photos will be available once the issue is resolved.</string>
 
+    <!-- Title for the banner notifying the user that the cloud media is now available in the photopicker [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_media_available_title"
+        translation_description="Banner title that tells users their backed up cloud media is available">Backed up photos now included</string>
+
+    <!-- Description for the banner notifying the user that the cloud media is now available in the picker [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_media_available_message"
+        translation_description="Banner message that tells user which account and application are providing cloud media to the photopicker">You can select photos from <xliff:g id="app_name" example="Photos">%1$s</xliff:g> account <xliff:g id="user_account" example="johndoe123@gmail.com">%2$s</xliff:g></string>
+
+    <!-- Title for the banner notifying the user to choose an account in the cloud media app [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_choose_account_title"
+        translation_description="Banner title that tells prompts the user to visit the cloud providers settings page and choose an account.">Choose <xliff:g id="app_name" example="Photos">%1$s</xliff:g> account</string>
+
+    <!-- Description for the banner notifying the user to choose an account in the cloud media app [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_choose_account_message"
+        translation_description="Banner message that tells users to visit the cloud providers account settings page to choose an account.">To include photos from <xliff:g id="app_name" example="Photos">%1$s</xliff:g> here, choose an account in the app</string>
+
+    <!-- Choose account button for banners [CHAR LIMIT=25] -->
+    <string name="photopicker_banner_cloud_choose_account_button"
+        translation_description="Button text that takes the user to the account settings page.">Choose account</string>
+
+    <!-- Title for the banner notifying the user to choose a cloud media app in the picker [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_choose_provider_title"
+        translation_description="Banner title that tells the user to select a cloud application to provide cloud media">Choose cloud media app</string>
+
+    <!-- Description for the banner notifying the user to choose a cloud provider app in the picker [CHAR LIMIT=NONE] -->
+    <string name="photopicker_banner_cloud_choose_provider_message"
+        translation_description="Banner message informing the user to select a cloud media app to see photos backed up in the cloud.">To include backed up photos here, choose a cloud media app in Settings</string>
+
+        <!-- Choose app button for banners [CHAR LIMIT=25] -->
+    <string name="photopicker_banner_cloud_choose_app_button"
+        translation_description="Button label that takes the user to the cloud provider settings page to select an app.">Choose app</string>
 </resources>

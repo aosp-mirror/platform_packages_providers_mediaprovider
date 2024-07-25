@@ -227,10 +227,12 @@ class ConfigurationManager(
     private fun getFlagsFromDeviceConfig(): PhotopickerFlags {
         return PhotopickerFlags(
             CLOUD_ALLOWED_PROVIDERS =
-                deviceConfigProxy.getFlag(
-                    NAMESPACE_MEDIAPROVIDER,
-                    /* key= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
-                    /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second
+                getAllowlistedPackages(
+                    deviceConfigProxy.getFlag(
+                        NAMESPACE_MEDIAPROVIDER,
+                        /* key= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+                        /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second
+                    )
                 ),
             CLOUD_ENFORCE_PROVIDER_ALLOWLIST =
                 deviceConfigProxy.getFlag(
@@ -257,5 +259,36 @@ class ConfigurationManager(
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
         )
+    }
+
+    /**
+     * BACKWARD COMPATIBILITY WORKAROUND Initially, instead of using package names when
+     * allow-listing and setting the system default CloudMediaProviders we used authorities.
+     *
+     * This, however, introduced a vulnerability, so we switched to using package names. But, by
+     * then, we had been allow-listing and setting default CMPs using authorities.
+     *
+     * Luckily for us, all of those CMPs had authorities in one the following formats:
+     * "${package-name}.cloudprovider" or "${package-name}.picker", e.g. "com.hooli.android.photos"
+     * package would implement a CMP with "com.hooli.android.photos.cloudpicker" authority.
+     *
+     * So, in order for the old allow-listings and defaults to work now, we try to extract package
+     * names from authorities by removing the ".cloudprovider" and ".cloudpicker" suffixes.
+     *
+     * In the future, we'll need to be careful if package names of cloud media apps end with
+     * "cloudprovider" or "cloudpicker".
+     */
+    private fun getAllowlistedPackages(allowedProvidersArray: Array<String>): Array<String> {
+        return allowedProvidersArray
+            .map {
+                when {
+                    it.endsWith(".cloudprovider") ->
+                        it.substring(0, it.length - ".cloudprovider".length)
+                    it.endsWith(".cloudpicker") ->
+                        it.substring(0, it.length - ".cloudpicker".length)
+                    else -> it
+                }
+            }
+            .toTypedArray<String>()
     }
 }

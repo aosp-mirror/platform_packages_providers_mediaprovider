@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -35,32 +34,25 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.android.providers.media.tools.photopickerv2.utils.NavigationComponent
 
-
 /**
- * NavGraph is the main navigation graph of the app.
- * It contains the three tabs of the app :
- * PhotoPicker
- * DocsUI
- * PickerChoice
+ * MainScreen sets up the Scaffold with a bottom navigation bar
+ * and hosts the NavGraph for navigation between the tabs.
  */
 @SuppressLint
 @Composable
-fun NavGraph() {
+fun MainScreen() {
     val navController = rememberNavController()
     val pickerRoutes = listOf(
         NavigationItem.PhotoPicker,
         NavigationItem.DocsUI,
         NavigationItem.PickerChoice
     )
-    val selectedRoute = rememberSaveable { mutableStateOf(NavigationItem.PhotoPicker.route) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: selectedRoute.value
+    val currentRoute = navBackStackEntry?.destination?.route ?: NavigationItem.PhotoPicker.route
 
     Scaffold(
         /**
@@ -77,22 +69,22 @@ fun NavGraph() {
             )
         }
     ) { innerPadding ->
-        NavigationHost(navController = navController, modifier = Modifier.padding(innerPadding))
+        NavGraph(navController = navController, modifier = Modifier.padding(innerPadding))
     }
 }
 
 /**
- * NavigationHost is the navigation host for the app.
- * It is responsible for navigating between the three tabs of the app :
+ * NavGraph is the main navigation graph of the app.
+ * It contains the three tabs of the app :
  * PhotoPicker
  * DocsUI
  * PickerChoice
  */
 @SuppressLint
 @Composable
-fun NavigationHost(navController: NavController, modifier: Modifier = Modifier) {
+fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
-        navController = navController as NavHostController,
+        navController = navController,
         startDestination = NavigationItem.PhotoPicker.route,
         modifier = modifier
     ) {

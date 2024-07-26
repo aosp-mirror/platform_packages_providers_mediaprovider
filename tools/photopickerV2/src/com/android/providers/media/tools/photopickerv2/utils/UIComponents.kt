@@ -17,12 +17,21 @@ package com.android.providers.media.tools.photopickerv2.utils
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -32,6 +41,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +53,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import com.android.providers.media.tools.photopickerv2.R
 import com.android.providers.media.tools.photopickerv2.navigation.NavigationItem
@@ -65,14 +80,12 @@ fun PhotoPickerTitle(label: String = stringResource(id = R.string.title_photopic
  * @param label the label to be displayed next to the switch component.
  * @param checked the state of the switch component.
  * @param onCheckedChange the callback function to be called when the switch component is changed.
- * @param enabled the enabled state of the switch component.
  */
 @Composable
 fun SwitchComponent(
     label: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true
+    onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -83,14 +96,13 @@ fun SwitchComponent(
         Text(
             text = label,
             modifier = Modifier.weight(1f),
-            color = if (enabled) Color.Black else Color.Gray,
+            color = Color.Black,
             fontWeight = FontWeight.Medium,
             fontSize = 16.sp,
         )
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled
+            onCheckedChange = onCheckedChange
         )
     }
 }
@@ -102,7 +114,6 @@ fun SwitchComponent(
  * @param onValueChange the callback function to be called when the text field component is changed.
  * @param label the label to be displayed next to the text field component.
  * @param keyboardOptions the keyboard options to be used for the text field component.
- * @param enabled the enabled state of the text field component.
  * @param modifier the modifier to be applied to the text field component.
  */
 @Composable
@@ -111,7 +122,6 @@ fun TextFieldComponent(
     onValueChange: (String) -> Unit,
     label: String,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
@@ -121,8 +131,7 @@ fun TextFieldComponent(
         keyboardOptions = keyboardOptions,
         modifier = modifier
             .fillMaxWidth()
-            .background(if (enabled) Color.Transparent else Color.Gray),
-        enabled = enabled
+            .background(Color.Transparent)
     )
 }
 
@@ -147,21 +156,20 @@ fun ErrorMessage(
  *
  * @param label the label to be displayed on the button component.
  * @param onClick the callback function to be called when the button component is clicked.
- * @param enabled the enabled state of the button component.
  * @param modifier the modifier to be applied to the button component.
+ * @param colors the color of the button.
  */
 @Composable
 fun ButtonComponent(
     label: String,
     onClick: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
 ) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(),
-        modifier = modifier.fillMaxWidth(),
-        enabled = enabled
+        colors = colors,
+        modifier = modifier.fillMaxWidth()
     ) {
         Text(label)
     }
@@ -204,4 +212,101 @@ fun NavigationComponent(
     }
 }
 
+/**
+ * DropdownList is a composable function that creates a dropdown list component.
+ *
+ * @param label The label to be displayed above the dropdown list.
+ * @param options A list of options to be displayed in the dropdown list.
+ * @param selectedOption The currently selected option.
+ * @param onOptionSelected A callback function that gets called when an option is selected.
+ * @param enabled A boolean flag to enable or disable the dropdown list.
+ */
+@Composable
+fun DropdownList(
+    label: String,
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+    enabled: Boolean
+) {
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
+    Column {
+        Text(
+            text = label,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp),
+            color = if (enabled) Color.Black else Color.Gray
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (enabled) Color.Transparent else Color.Gray)
+                .clickable { if (enabled) isExpanded = true },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = selectedOption,
+                color = if (enabled) Color.Black else Color.Gray,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+
+        if (isExpanded) {
+            Popup(
+                alignment = Alignment.TopCenter,
+                properties = PopupProperties(
+                    excludeFromSystemGesture = true,
+                ),
+                onDismissRequest = { isExpanded = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(scrollState)
+                        .border(1.dp, Color.Gray)
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    options.forEachIndexed { index, option ->
+                        if (index != 0) {
+                            HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (enabled) {
+                                        onOptionSelected(option)
+                                        isExpanded = false
+                                    }
+                                }
+                                .background(if (enabled) Color.Transparent else Color.LightGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = option,
+                                color = if (enabled) Color.Black else Color.Gray,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+enum class LaunchLocation {
+    PHOTOS_TAB,
+    ALBUMS_TAB;
+
+    companion object {
+        fun getListOfAvailableLocations(): List<String> {
+            return values().toList().map { it -> it.name }
+        }
+    }
+}

@@ -24,15 +24,18 @@ import android.os.UserHandle
 import android.os.UserManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.PhotopickerMain
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
@@ -55,6 +58,10 @@ import org.mockito.Mockito.anyString
 abstract class PhotopickerFeatureBaseTest {
 
     lateinit var navController: TestNavHostController
+
+    // Hilt can't inject fields in the super class, so mark the field as abstract to force the
+    // implementer to provide.
+    abstract var configurationManager: ConfigurationManager
 
     /** A default implementation for retrieving a real context object for use during tests. */
     protected fun getTestableContext(): Context {
@@ -83,18 +90,21 @@ abstract class PhotopickerFeatureBaseTest {
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
 
         val resources = getTestableContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel())
-            .thenReturn(
-                resources.getString(R.string.photopicker_profile_primary_label),
-                resources.getString(R.string.photopicker_profile_managed_label),
-                resources.getString(R.string.photopicker_profile_unknown_label),
-            )
-        // Return default [UserProperties] for all [UserHandle]
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel())
+                .thenReturn(
+                    resources.getString(R.string.photopicker_profile_primary_label),
+                    resources.getString(R.string.photopicker_profile_managed_label),
+                    resources.getString(R.string.photopicker_profile_unknown_label),
+                )
+            // Return default [UserProperties] for all [UserHandle]
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
         }
 
         // Stubs for UserMonitor to acquire contentResolver for each User.
@@ -127,9 +137,12 @@ abstract class PhotopickerFeatureBaseTest {
         featureManager: FeatureManager,
         selection: Selection<Media>,
         events: Events,
-        photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration,
+        bannerManager: BannerManager,
         navController: TestNavHostController = createNavController(),
     ) {
+        val photopickerConfiguration by
+            configurationManager.configuration.collectAsStateWithLifecycle()
+
         CompositionLocalProvider(
             LocalFeatureManager provides featureManager,
             LocalSelection provides selection,
@@ -137,9 +150,9 @@ abstract class PhotopickerFeatureBaseTest {
             LocalNavController provides navController,
             LocalEvents provides events,
         ) {
-            PhotopickerTheme(
-                intent = photopickerConfiguration.intent
-            ) { PhotopickerMain() }
+            PhotopickerTheme(config = photopickerConfiguration) {
+                PhotopickerMain(bannerManager = bannerManager)
+            }
         }
     }
 }

@@ -16,10 +16,10 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="android.graphics.pdf.tests"
+          package="android.graphics.pdf"
           android:targetSandboxVersion="2">
 
-    <!-- The application has to be debuggable for static mocking to work. -->
+    <!-- The application has to be debuggable for compat change overrides and static mocking to work. -->
     <application
         android:debuggable="true"
         android:label="PDF Viewer Device Test Cases">
@@ -28,7 +28,5 @@
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:label="PDF Viewer Unit Test cases"
-                     android:targetPackage="android.graphics.pdf.tests"/>
-    <uses-sdk android:minSdkVersion="31" android:targetSdkVersion="35"/>
-
+                     android:targetPackage="android.graphics.pdf"/>
 </manifest>

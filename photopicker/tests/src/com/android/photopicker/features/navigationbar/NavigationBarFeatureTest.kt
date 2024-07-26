@@ -37,6 +37,8 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
@@ -52,6 +54,7 @@ import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -94,11 +97,12 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -120,6 +124,8 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     @Before
     fun setup() {
@@ -186,12 +192,13 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
                 .getResources()
                 .getString(R.string.photopicker_albums_nav_button_label)
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
+                    bannerManager = bannerManager.get(),
                 )
             }
 

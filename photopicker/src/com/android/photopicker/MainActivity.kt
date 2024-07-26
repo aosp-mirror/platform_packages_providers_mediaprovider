@@ -28,10 +28,14 @@ import android.os.UserHandle
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -39,6 +43,7 @@ import androidx.lifecycle.lifecycleScope
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.PhotopickerAppWithBottomSheet
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -50,6 +55,7 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
@@ -74,8 +80,10 @@ import kotlinx.coroutines.withContext
 class MainActivity : Hilt_MainActivity() {
 
     @Inject @ActivityRetainedScoped lateinit var configurationManager: ConfigurationManager
+    @Inject @ActivityRetainedScoped lateinit var bannerManager: Lazy<BannerManager>
     @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
+    @Inject @ActivityRetainedScoped lateinit var dataService: Lazy<DataService>
     // This needs to be injected lazily, to defer initialization until the action can be set
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
@@ -125,7 +133,8 @@ class MainActivity : Hilt_MainActivity() {
             referToDocumentsUi()
         }
 
-        enableEdgeToEdge()
+        // Set a Black color scrim behind the status bar.
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.Black.toArgb()))
 
         // Set the action before allowing FeatureManager to be initialized, so that it receives
         // the correct config with this activity's action.
@@ -166,9 +175,10 @@ class MainActivity : Hilt_MainActivity() {
                 LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
             ) {
-                PhotopickerTheme(intent = photopickerConfiguration.intent) {
+                PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
+                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.
@@ -183,6 +193,22 @@ class MainActivity : Hilt_MainActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "MainActivity OnResume")
+
+        // Initialize / Refresh the banner state, it's possible that external state has changed if
+        // the activity is returning from the background.
+        lifecycleScope.launch {
+            withContext(background) {
+                // Always ensure providers before requesting a banner refresh, banners depend on
+                // having accurate provider information to generate the correct banners.
+                dataService.get().ensureProviders()
+                bannerManager.get().refreshBanners()
+            }
+        }
+    }
+
     /**
      * A collector that starts when Photopicker is running in single-select mode. This collector
      * will trigger [onMediaSelectionConfirmed] when the first (and only) item is selected.
@@ -193,11 +219,9 @@ class MainActivity : Hilt_MainActivity() {
         // will be enabled for the user to confirm the selection.
         if (configurationManager.configuration.value.selectionLimit == 1) {
             lifecycleScope.launch {
-                withContext(background) {
-                    selection.get().flow.collect {
-                        if (it.size == 1) {
-                            onMediaSelectionConfirmed()
-                        }
+                selection.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect {
+                    if (it.size == 1) {
+                        launch { onMediaSelectionConfirmed() }
                     }
                 }
             }
@@ -210,12 +234,7 @@ class MainActivity : Hilt_MainActivity() {
             events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
                 ->
                 when (event) {
-
-                    /**
-                     * [MediaSelectionConfirmed] will be dispatched in response to the user
-                     * confirming their selection of Media in the UI.
-                     */
-                    is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
+                    is Event.BrowseToDocumentsUi -> referToDocumentsUi()
                     else -> {}
                 }
             }
@@ -230,7 +249,46 @@ class MainActivity : Hilt_MainActivity() {
     private fun setCallerInConfiguration() {
 
         val pm = getPackageManager()
-        val callingPackage: String? = getCallingPackage()
+
+        var callingPackage: String?
+        var callingPackageUid: Int?
+
+        when (getIntent()?.getAction()) {
+            // For permission mode, the caller will always be the permission controller,
+            // and the permission controller will pass the UID of the app.
+            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
+
+                callingPackageUid = getIntent()?.extras?.getInt(Intent.EXTRA_UID)
+                checkNotNull(callingPackageUid) {
+                    "Photopicker cannot run in permission mode without Intent.EXTRA_UID set."
+                }
+                callingPackage =
+                    callingPackageUid.let {
+                        // In the case of multiple packages sharing a uid, use the first one.
+                        pm.getPackagesForUid(it)?.first()
+                    }
+            }
+
+            // Extract the caller from the activity class inputs
+            else -> {
+                callingPackage = getCallingPackage()
+                callingPackageUid =
+                    callingPackage?.let {
+                        try {
+                            if (SdkLevel.isAtLeastT()) {
+                                // getPackageUid API is T+
+                                pm.getPackageUid(it, PackageInfoFlags.of(0))
+                            } else {
+                                // Fallback for S or lower
+                                pm.getPackageUid(it, /* flags= */ 0)
+                            }
+                        } catch (e: NameNotFoundException) {
+                            null
+                        }
+                    }
+            }
+        }
+
         val callingPackageLabel: String? =
             callingPackage?.let {
                 try {
@@ -244,20 +302,6 @@ class MainActivity : Hilt_MainActivity() {
                         // Fallback for S or lower
                         pm.getApplicationLabel(pm.getApplicationInfo(it, /* flags= */ 0))
                             .toString() // convert CharSequence to String
-                    }
-                } catch (e: NameNotFoundException) {
-                    null
-                }
-            }
-        val callingPackageUid: Int? =
-            callingPackage?.let {
-                try {
-                    if (SdkLevel.isAtLeastT()) {
-                        // getPackageUid API is T+
-                        pm.getPackageUid(it, PackageInfoFlags.of(0))
-                    } else {
-                        // Fallback for S or lower
-                        pm.getPackageUid(it, /* flags= */ 0)
                     }
                 } catch (e: NameNotFoundException) {
                     null
@@ -280,7 +324,8 @@ class MainActivity : Hilt_MainActivity() {
      * This will result in access being issued to the calling app if the media can be successfully
      * prepared.
      */
-    private suspend fun onMediaSelectionConfirmed() {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    suspend fun onMediaSelectionConfirmed() {
 
         val snapshot = selection.get().snapshot()
         // Determine if any preload of the selected media needs to happen, and
@@ -329,7 +374,7 @@ class MainActivity : Hilt_MainActivity() {
                 setResultForApp(selection, canSelectMultiple = configuration.selectionLimit > 1)
             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP -> {
                 val uid =
-                    configuration.intent?.getExtras()?.getInt(Intent.EXTRA_UID)
+                    getIntent().getExtras()?.getInt(Intent.EXTRA_UID)
                         // If the permission controller did not provide a uid, there is no way to
                         // continue.
                         ?: throw IllegalStateException(

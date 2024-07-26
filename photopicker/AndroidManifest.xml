@@ -38,6 +38,7 @@
 
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
+          android:icon="@mipmap/photopicker_app_icon"
           android:label="@string/photopicker_application_label"
           android:allowBackup="false"
           android:supportsRtl="true">
@@ -75,6 +76,25 @@
             <category android:name="android.intent.category.DEFAULT"/>
             <data android:mimeType="image/*"/>
             <data android:mimeType="video/*"/>
+        </intent-filter>
+    </activity-alias>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerUserSelectActivity"
+        android:targetActivity="com.android.photopicker.MainActivity"
+        android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
+        android:exported="true"
+        android:enabled="false"
+        android:excludeFromRecents="true">
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="image/*" />
+            <data android:mimeType="video/*" />
+        </intent-filter>
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
         </intent-filter>
     </activity-alias>
 

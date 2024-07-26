@@ -20,6 +20,8 @@ import android.content.Context
 import android.os.Parcel
 import android.os.UserHandle
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -104,6 +106,30 @@ abstract class PhotopickerTestModule {
                 userMonitor,
             )
         return embeddedViewModelFactory
+    }
+
+    @Singleton
+    @Provides
+    fun provideBannerManager(
+        @Background backgroundScope: CoroutineScope,
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        configurationManager: ConfigurationManager,
+        databaseManager: DatabaseManager,
+        featureManager: FeatureManager,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
+    ): BannerManager {
+        return BannerManagerImpl(
+            backgroundScope,
+            backgroundDispatcher,
+            configurationManager,
+            databaseManager,
+            featureManager,
+            dataService,
+            userMonitor,
+            processOwnerHandle,
+        )
     }
 
     @Singleton

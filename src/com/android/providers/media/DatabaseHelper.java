@@ -566,14 +566,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
-        tryRecoverDatabase(db);
+        if (isInternal()) {
+            tryRecoverDatabase(db, MediaStore.VOLUME_INTERNAL);
+        } else {
+            tryRecoverDatabase(db, MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            mDatabaseBackupAndRecovery.queuePublicVolumeRecovery(mContext);
+        }
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
-    private void tryRecoverDatabase(SQLiteDatabase db) {
-        String volumeName =
-                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL_PRIMARY;
+    public void tryRecoverPublicVolume(String volumeName) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            return;
+        }
+        tryRecoverDatabase(super.getWritableDatabase(), mVolumeName);
+    }
+
+    private void tryRecoverDatabase(SQLiteDatabase db, String volumeName) {
+        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            // Implement for public volume
+            return;
+        }
+
         if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
@@ -609,8 +626,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             :
                                     MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__EXTERNAL);
             Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
-            // Delete old data and create new schema.
-            recreateLatestSchema(db);
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
@@ -629,16 +644,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     protected String getExternalStorageDbXattrPath() {
         return DATA_MEDIA_XATTR_DIRECTORY_PATH;
-    }
-
-    @GuardedBy("sRecoveryLock")
-    private void recreateLatestSchema(SQLiteDatabase db) {
-        mSchemaLock.writeLock().lock();
-        try {
-            createLatestSchema(db);
-        } finally {
-            mSchemaLock.writeLock().unlock();
-        }
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -1142,7 +1147,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
-                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL)");
+                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL,"
+                + "oem_metadata BLOB DEFAULT NULL)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1635,7 +1641,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ",_modifier";
     }
 
-    private static void makePristineTriggers(SQLiteDatabase db) {
+    @VisibleForTesting
+    static void makePristineTriggers(SQLiteDatabase db) {
         // drop all triggers
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
@@ -1682,7 +1689,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " BEGIN SELECT _DELETE(" + deleteArg + "); END");
     }
 
-    private static void makePristineIndexes(SQLiteDatabase db) {
+    @VisibleForTesting
+    static void makePristineIndexes(SQLiteDatabase db) {
         // drop all indexes
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
                 null, null, null, null);
@@ -1967,6 +1975,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 UserHandle.myUserId()));
     }
 
+    private static void updateAddOemMetadata(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN oem_metadata BLOB DEFAULT NULL;");
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -2024,7 +2036,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    public static final int VERSION_LATEST = VERSION_U;
+    static final int VERSION_V = 1500;
+    public static final int VERSION_LATEST = VERSION_V;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -2251,6 +2264,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1409) {
                 updateAddDateModifiedAndGenerationModifiedIndexes(db);
+            }
+
+            if (fromVersion < 1500) {
+                updateAddOemMetadata(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

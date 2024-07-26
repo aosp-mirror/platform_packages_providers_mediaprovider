@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">PhotoPickerToolV2</string>
+
+    <string name="tab_photopicker">Photo Picker</string>
+    <string name="tab_docsui">Docs UI</string>
+    <string name="tab_pickerchoice">Picker Choice</string>
+    <string name="title_photopicker">PhotoPicker V2</string>
+    <string name="pick_images">Pick Images</string>
+    <string name="action_get_content">Action Get Content</string>
+    <string name="open_document">Open Document</string>
+    <string name="open_document_tree">Open Document Tree</string>
+    <string name="display_images_in_order">Display Images in Order</string>
+    <string name="show_images_only"> Show Images Only</string>
+    <string name="show_videos_only"> Show Videos Only</string>
+    <string name="select_mime_type">Select Mime Type</string>
+    <string name="select_launch_tab">Select Launch Tab</string>
+    <string name="allow_multiple_selection">Allow Multiple Selection</string>
+    <string name="allow_custom_mime_type">Allow Custom Mime Type</string>
+    <string name="max_number_of_media_items">Max number of media items</string>
+    <string name="enter_valid_number">Enter a valid number greater than one</string>
+    <string name="pick_media">Pick Media</string>
+    <string name="working_on_it">Working on it</string>
+</resources>

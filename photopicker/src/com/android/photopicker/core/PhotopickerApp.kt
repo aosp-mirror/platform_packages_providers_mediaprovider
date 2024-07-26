@@ -16,10 +16,10 @@
 
 package com.android.photopicker.core
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -28,20 +28,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
@@ -50,8 +61,15 @@ import com.android.photopicker.core.navigation.PhotopickerNavGraph
 import com.android.photopicker.data.model.Media
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
+private val MEASUREMENT_BANNER_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
+
+/* Spacing around the selection bar and the edges of the screen */
+private val SELECTION_BAR_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 64.dp)
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is
@@ -64,6 +82,7 @@ private val MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING = 12.dp
 @Composable
 fun PhotopickerAppWithBottomSheet(
     onDismissRequest: () -> Unit,
+    bannerManager: BannerManager,
     onMediaSelectionConfirmed: () -> Unit,
     preloadMedia: Flow<Set<Media>>,
     obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
@@ -71,65 +90,95 @@ fun PhotopickerAppWithBottomSheet(
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
-    val state = rememberModalBottomSheetState()
+
+    val state =
+        rememberBottomSheetScaffoldState(
+            bottomSheetState =
+                rememberStandardBottomSheetState(
+                    initialValue = SheetValue.PartiallyExpanded,
+                    confirmValueChange = { sheetValue ->
+                        when (sheetValue) {
+                            // When the sheet is hidden, trigger the onDismissRequest
+                            SheetValue.Hidden -> onDismissRequest()
+                            else -> {}
+                        }
+                        true // allow all value changes
+                    },
+
+                    // Allow a hidden state to close the bottom sheet.
+                    skipHiddenState = false
+                )
+        )
+
+    // Photopicker's BottomSheet peeks at 75% of screen height.
+    val localConfig = LocalConfiguration.current
+    val sheetPeekHeight = remember(localConfig) { (localConfig.screenHeightDp * .75).dp }
+
     // Provide the NavController to the rest of the Compose stack.
     CompositionLocalProvider(LocalNavController provides navController) {
         Column(
             modifier =
                 // Apply WindowInsets to this wrapping column to prevent the Bottom Sheet
-                // from drawing over the system bars.
+                // from drawing over the status bars.
                 Modifier.windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Vertical)
+                    WindowInsets.statusBars.only(WindowInsetsSides.Vertical)
                 )
         ) {
-            ModalBottomSheet(
-                sheetState = state,
-                onDismissRequest = onDismissRequest,
-                scrimColor = Color.Transparent,
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                contentWindowInsets = { WindowInsets.systemBars },
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxHeight(),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    PhotopickerMain()
-                    Column(
-                        modifier =
-                            // Some elements needs to be drawn over the UI inside of the
-                            // BottomSheet A negative y offset will move it from the bottom of the
-                            // content to the bottom of the onscreen BottomSheet.
-                            Modifier.offset {
-                                IntOffset(x = 0, y = -state.requireOffset().toInt())
-                            },
+            BottomSheetScaffold(
+                containerColor = Color.Transparent, // The color used behind the BottomSheet
+                scaffoldState = state,
+                sheetPeekHeight = sheetPeekHeight,
+                sheetContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetContentColor = MaterialTheme.colorScheme.onSurface,
+                sheetContent = {
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.BottomCenter
                     ) {
-                        LocalFeatureManager.current.composeLocation(
-                            Location.SNACK_BAR,
-                            maxSlots = 1,
-                        )
-                        LocalFeatureManager.current.composeLocation(
-                            Location.SELECTION_BAR,
-                            maxSlots = 1,
-                            params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
-                        )
-                    }
-                }
-                // If a [MEDIA_PRELOADER] is configured in the current session, attach it
-                // to the compose UI here, so that any dialogs it shows are drawn overtop
-                // of the application.
-                LocalFeatureManager.current.composeLocation(
-                    Location.MEDIA_PRELOADER,
-                    maxSlots = 1,
-                    params =
-                        object : LocationParams.WithMediaPreloader {
-                            override fun obtainDeferred(): CompletableDeferred<Boolean> {
-                                return obtainPreloaderDeferred()
-                            }
-
-                            override val preloadMedia = preloadMedia
+                        PhotopickerMain(bannerManager)
+                        Column(
+                            modifier =
+                                // Some elements needs to be drawn over the UI inside of the
+                                // BottomSheet A negative y offset will move it from the bottom of
+                                // the content to the bottom of the onscreen BottomSheet.
+                                Modifier.offset {
+                                    IntOffset(
+                                        x = 0,
+                                        y = -state.bottomSheetState.requireOffset().toInt()
+                                    )
+                                },
+                        ) {
+                            LocalFeatureManager.current.composeLocation(
+                                Location.SNACK_BAR,
+                                maxSlots = 1,
+                            )
+                            LocalFeatureManager.current.composeLocation(
+                                Location.SELECTION_BAR,
+                                maxSlots = 1,
+                                modifier = Modifier.padding(SELECTION_BAR_PADDING),
+                                params =
+                                    LocationParams.WithClickAction { onMediaSelectionConfirmed() }
+                            )
                         }
-                )
+                    }
+                    // If a [MEDIA_PRELOADER] is configured in the current session, attach it
+                    // to the compose UI here, so that any dialogs it shows are drawn overtop
+                    // of the application.
+                    LocalFeatureManager.current.composeLocation(
+                        Location.MEDIA_PRELOADER,
+                        maxSlots = 1,
+                        params =
+                            object : LocationParams.WithMediaPreloader {
+                                override fun obtainDeferred(): CompletableDeferred<Boolean> {
+                                    return obtainPreloaderDeferred()
+                                }
+
+                                override val preloadMedia = preloadMedia
+                            }
+                    )
+                }
+            ) {
+                // Intentionally empty, this is the background content behind the BottomSheet.
             }
         }
     }
@@ -142,13 +191,15 @@ fun PhotopickerAppWithBottomSheet(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotopickerApp() {
+fun PhotopickerApp(bannerManager: BannerManager) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
 
     // Provide the NavController to the rest of the Compose stack.
-    CompositionLocalProvider(LocalNavController provides navController) { PhotopickerMain() }
+    CompositionLocalProvider(LocalNavController provides navController) {
+        PhotopickerMain(bannerManager)
+    }
 }
 
 /**
@@ -167,34 +218,38 @@ fun PhotopickerApp() {
  * - PhotopickerTheme
  */
 @Composable
-fun PhotopickerMain() {
+fun PhotopickerMain(bannerManager: BannerManager) {
+
+    val currentBanner by bannerManager.flow.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
-            // The navigation bar and profile switcher are drawn above the navigation graph
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .padding(horizontal = MEASUREMENT_BOTTOM_SHEET_EDGE_PADDING),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LocalFeatureManager.current.composeLocation(
-                    Location.PROFILE_SELECTOR,
-                    maxSlots = 1,
-                    // Weight should match the overflow menu slot so they are the same size.
-                    modifier = Modifier.weight(1f),
-                )
-                LocalFeatureManager.current.composeLocation(
-                    Location.NAVIGATION_BAR,
-                    maxSlots = 1,
-                    modifier = Modifier,
-                )
-                LocalFeatureManager.current.composeLocation(
-                    Location.OVERFLOW_MENU,
-                    // Weight should match the profile switcher slot so they are the same size.
-                    modifier = Modifier.weight(1f),
-                )
+            // The navigation bar and banners are drawn above the navigation graph
+            LocalFeatureManager.current.composeLocation(
+                Location.NAVIGATION_BAR,
+                maxSlots = 1,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Box(modifier = Modifier.animateContentSize()) {
+                currentBanner?.let {
+                    Banner(
+                        it,
+                        modifier = Modifier.padding(MEASUREMENT_BANNER_PADDING),
+                        onDismiss = {
+                            scope.launch {
+                                val declaration = it.declaration
+                                if (declaration is BannerDefinitions) {
+                                    bannerManager.markBannerAsDismissed(declaration)
+                                }
+                                bannerManager.refreshBanners()
+                            }
+                        }
+                    )
+                }
             }
+
             // Initialize the navigation graph.
             PhotopickerNavGraph()
         }

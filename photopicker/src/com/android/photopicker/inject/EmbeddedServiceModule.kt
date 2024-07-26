@@ -22,6 +22,8 @@ import android.os.UserHandle
 import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -72,6 +74,7 @@ class EmbeddedServiceModule {
 
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
+    private lateinit var bannerManager: BannerManager
     private lateinit var configurationManager: ConfigurationManager
     private lateinit var databaseManager: DatabaseManager
     private lateinit var dataService: DataService
@@ -150,6 +153,37 @@ class EmbeddedServiceModule {
         }
     }
 
+    /** Provider for an implementation of [BannerManager]. */
+    @Provides
+    fun provideBannerManager(
+        @Background backgroundScope: CoroutineScope,
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        configurationManager: ConfigurationManager,
+        databaseManager: DatabaseManager,
+        featureManager: FeatureManager,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
+    ): BannerManager {
+        if (::bannerManager.isInitialized) {
+            return bannerManager
+        } else {
+            Log.d(TAG, "BannerManager requested and initializing.")
+            bannerManager =
+                BannerManagerImpl(
+                    backgroundScope,
+                    backgroundDispatcher,
+                    configurationManager,
+                    databaseManager,
+                    featureManager,
+                    dataService,
+                    userMonitor,
+                    processOwnerHandle,
+                )
+            return bannerManager
+        }
+    }
+
     /** Provider for the [ConfigurationManager]. */
     @Provides
     fun provideConfigurationManager(
@@ -187,7 +221,8 @@ class EmbeddedServiceModule {
         userMonitor: UserMonitor,
         notificationService: NotificationService,
         configurationManager: ConfigurationManager,
-        featureManager: FeatureManager
+        featureManager: FeatureManager,
+        @ApplicationContext appContext: Context
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -203,7 +238,8 @@ class EmbeddedServiceModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext
                 )
         }
         return dataService

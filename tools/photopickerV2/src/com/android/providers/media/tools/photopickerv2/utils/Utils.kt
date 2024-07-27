@@ -38,7 +38,7 @@ fun isImage(context: Context, uri: Uri): Boolean {
  *
  * @param photoPickerViewModel The PhotoPickerViewModel instance to reset.
  */
-fun resetApp(photoPickerViewModel: PhotoPickerViewModel) {
+fun resetMedia(photoPickerViewModel: PhotoPickerViewModel) {
     photoPickerViewModel.updateSelectedMediaList(emptyList())
 }
 

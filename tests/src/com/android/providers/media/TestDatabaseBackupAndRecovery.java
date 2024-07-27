@@ -16,6 +16,7 @@
 
 package com.android.providers.media;
 
+import android.content.Context;
 import android.provider.MediaStore;
 
 import com.android.providers.media.fuse.FuseDaemon;
@@ -98,5 +99,9 @@ public class TestDatabaseBackupAndRecovery extends DatabaseBackupAndRecovery {
 
     @Override
     protected void waitForVolumeToBeAttached(Set<String> setupCompleteVolumes) {
+    }
+
+    @Override
+    protected void queuePublicVolumeRecovery(Context context) {
     }
 }

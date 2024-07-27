@@ -29,6 +29,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * A test implementation of [DataService] that provides fake, in memory paging sources that isolate
@@ -51,7 +52,16 @@ class TestDataServiceImpl() : DataService {
     var albumMediaSetSize: Int = FakeInMemoryMediaPagingSource.DEFAULT_SIZE
     var albumMediaList: List<Media>? = null
 
-    override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
+    val _availableProviders = MutableStateFlow<List<Provider>>(emptyList())
+    override val availableProviders: StateFlow<List<Provider>> = _availableProviders
+
+    var allowedProviders: List<Provider> = emptyList()
+
+    val collectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
+
+    fun setAvailableProviders(newProviders: List<Provider>) {
+        _availableProviders.update { newProviders }
+    }
 
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
         return albumMediaList?.let { FakeInMemoryMediaPagingSource(it) }
@@ -88,8 +98,9 @@ class TestDataServiceImpl() : DataService {
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
 
     override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
-        CollectionInfo(provider.authority)
+        collectionInfo.getOrElse(provider, { CollectionInfo(provider.authority) })
 
-    override suspend fun ensureProviders() =
-        throw NotImplementedError("This method is not implemented yet.")
+    override suspend fun ensureProviders() {}
+
+    override fun getAllAllowedProviders(): List<Provider> = allowedProviders
 }

@@ -110,8 +110,9 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -272,7 +273,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudMediaAvailableBanner() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.
@@ -337,7 +338,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudMediaAvailableBannerAsDismissed() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.
@@ -406,7 +407,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudChooseAccountBanner() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.
@@ -462,7 +463,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudChooseAccountBannerAsDismissed() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.
@@ -531,7 +532,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudChooseProviderBanner() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.
@@ -576,7 +577,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testCloudChooseProviderBannerAsDismissed() =
-        mainScope.runTest {
+        testScope.runTest {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
 
             // Treat privacy explainer as already dismissed since it's a higher priority.

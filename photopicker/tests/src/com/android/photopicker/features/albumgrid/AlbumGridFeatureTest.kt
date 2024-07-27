@@ -112,11 +112,12 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -185,7 +186,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testNavigateAlbumGridAndAlbumsAreVisible() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
@@ -220,7 +221,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testAlbumsCanBeSelected() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
@@ -264,7 +265,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSwipeLeftToNavigateToPhotoGrid() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -309,7 +310,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         val resources = getTestableContext().getResources()
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
@@ -389,7 +390,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         val resources = getTestableContext().getResources()
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(
@@ -471,7 +472,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         val resources = getTestableContext().getResources()
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 callPhotopickerMain(

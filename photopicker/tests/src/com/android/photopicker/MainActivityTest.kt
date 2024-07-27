@@ -89,8 +89,9 @@ class MainActivityTest {
 
     val testDispatcher = StandardTestDispatcher()
     /** Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -142,7 +143,7 @@ class MainActivityTest {
 
     @Test
     fun testMainActivitySetsActivityAction() {
-        mainScope.runTest {
+        testScope.runTest {
             val intent =
                 Intent()
                     .setAction(MediaStore.ACTION_PICK_IMAGES)
@@ -173,7 +174,7 @@ class MainActivityTest {
                     )
                 )
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity {
                     advanceTimeBy(100)
                     val configuration = configurationManager.configuration.value
@@ -205,7 +206,7 @@ class MainActivityTest {
                 .putExtra(Intent.EXTRA_UID, Process.myUid())
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity {
                     advanceTimeBy(100)
                     val configuration = configurationManager.configuration.value
@@ -243,7 +244,7 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
@@ -287,7 +288,7 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
@@ -331,7 +332,7 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity { activity ->
                     mainScope.launch {
                         selection.addAll(selectedItems)

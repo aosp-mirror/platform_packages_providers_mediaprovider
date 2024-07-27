@@ -136,11 +136,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -321,7 +322,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures that the PreviewMedia route can be navigated to with an Image payload. */
     @Test
     fun testNavigateToPreviewImage() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -360,7 +361,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures that the PreviewMedia route navigate back button. */
     @Test
     fun testNavigateBack() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
 
             composeTestRule.setContent {
@@ -402,7 +403,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testNavigateToPreviewVideo() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -438,7 +439,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the PreviewSelection route can be navigated to. */
     @Test
     fun testNavigateToPreviewSelection() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -468,7 +469,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
      */
     @Test
     fun testPreviewSelectionActions() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -540,7 +541,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPreviewDoneNavigatesBack() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
@@ -591,7 +592,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi creates a RemoteSurfaceController */
     @Test
     fun testVideoUiCreatesRemoteSurfaceController() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -639,7 +640,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi notifies of surfaceCreation */
     @Test
     fun testVideoUiNotifySurfaceCreated() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -685,7 +686,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi attempts to play videos when the controller indicates it is ready. */
     @Test
     fun testVideoUiRequestsPlayWhenMediaReady() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -723,7 +724,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi auto shows & hides the player controls. */
     @Test
     fun testVideoUiShowsAndHidesPlayerControls() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
 
             val playButtonDescription =
@@ -810,7 +811,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi Play/Pause buttons work correctly. */
     @Test
     fun testVideoUiPlayPauseButtonOnClick() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
 
             val playButtonDescription =
@@ -886,7 +887,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi Mute/UnMute buttons work correctly. */
     @Test
     fun testVideoUiMuteButtonOnClick() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
             val muteButtonDescription =
                 resources.getString(R.string.photopicker_video_mute_button_description)
@@ -962,7 +963,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi shows an error dialog for temporary failures. */
     @Test
     fun testVideoUiRetriablePlaybackError() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
 
             val retryButtonLabel =
@@ -1040,7 +1041,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     /** Ensures the VideoUi shows a snackbar for permanent failures. */
     @Test
     fun testVideoUiPermanentPlaybackError() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
 
             val errorMessage =

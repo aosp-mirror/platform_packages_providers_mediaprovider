@@ -336,6 +336,7 @@ public final class PdfRendererPreV implements AutoCloseable {
 
         private Page(int index) {
             this.mIndex = index;
+            mPdfProcessor.retainPage(mIndex);
             mWidth = mPdfProcessor.getPageWidth(index);
             mHeight = mPdfProcessor.getPageHeight(index);
         }

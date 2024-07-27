@@ -110,8 +110,9 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -221,7 +222,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarIsShown() {
-        mainScope.runTest {
+        testScope.runTest {
             val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
                 CompositionLocalProvider(
@@ -259,7 +260,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 SimpleUiFeature.Registration,
             )
 
-        mainScope.runTest {
+        testScope.runTest {
             val testFeatureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
@@ -298,7 +299,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testSelectionBarPrimaryAction() {
 
-        mainScope.runTest {
+        testScope.runTest {
             val clicked = CompletableDeferred<Boolean>()
             val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
             composeTestRule.setContent {
@@ -343,7 +344,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testSelectionBarClearSelection() {
 
-        mainScope.runTest {
+        testScope.runTest {
             val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
 
             composeTestRule.setContent {

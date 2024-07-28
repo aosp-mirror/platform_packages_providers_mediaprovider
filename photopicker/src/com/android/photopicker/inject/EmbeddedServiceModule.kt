@@ -162,6 +162,8 @@ class EmbeddedServiceModule {
         databaseManager: DatabaseManager,
         featureManager: FeatureManager,
         dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
     ): BannerManager {
         if (::bannerManager.isInitialized) {
             return bannerManager
@@ -175,6 +177,8 @@ class EmbeddedServiceModule {
                     databaseManager,
                     featureManager,
                     dataService,
+                    userMonitor,
+                    processOwnerHandle,
                 )
             return bannerManager
         }
@@ -217,7 +221,8 @@ class EmbeddedServiceModule {
         userMonitor: UserMonitor,
         notificationService: NotificationService,
         configurationManager: ConfigurationManager,
-        featureManager: FeatureManager
+        featureManager: FeatureManager,
+        @ApplicationContext appContext: Context
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -233,7 +238,8 @@ class EmbeddedServiceModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext
                 )
         }
         return dataService

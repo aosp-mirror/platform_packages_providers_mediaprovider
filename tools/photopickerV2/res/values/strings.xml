@@ -12,7 +12,7 @@
     <string name="display_images_in_order">Display Images in Order</string>
     <string name="show_images_only"> Show Images Only</string>
     <string name="show_videos_only"> Show Videos Only</string>
-    <string name="select_mime_type">Select Mime Type</string>
+    <string name="enter_mime_type">Enter Mime Type</string>
     <string name="select_launch_tab">Select Launch Tab</string>
     <string name="allow_multiple_selection">Allow Multiple Selection</string>
     <string name="allow_custom_mime_type">Allow Custom Mime Type</string>

@@ -18,6 +18,7 @@ package com.android.providers.media.tools.photopickerv2.utils
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import com.android.providers.media.tools.photopickerv2.docsui.DocsUIViewModel
 import com.android.providers.media.tools.photopickerv2.photopicker.PhotoPickerViewModel
 
 /**
@@ -40,6 +41,15 @@ fun isImage(context: Context, uri: Uri): Boolean {
  */
 fun resetMedia(photoPickerViewModel: PhotoPickerViewModel) {
     photoPickerViewModel.updateSelectedMediaList(emptyList())
+}
+
+/**
+ * Resets the selected media in the provided DocsUIViewModel.
+ *
+ * @param docsUIViewModel The DocsUIViewModel instance to reset.
+ */
+fun resetMedia(docsUIViewModel: DocsUIViewModel) {
+    docsUIViewModel.updateSelectedMediaList(emptyList())
 }
 
 

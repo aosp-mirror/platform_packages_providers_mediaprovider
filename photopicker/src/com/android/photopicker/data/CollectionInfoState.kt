@@ -17,6 +17,7 @@
 package com.android.photopicker.data
 
 import android.content.ContentResolver
+import android.util.Log
 import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Provider
 import kotlin.collections.HashMap
@@ -34,6 +35,10 @@ class CollectionInfoState(
     private val activeContentResolver: StateFlow<ContentResolver>,
     private val availableProviders: StateFlow<List<Provider>>
 ) {
+    companion object {
+        private const val TAG = "CollectionInfoState"
+    }
+
     private val providerCollectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
     private val mutex = Mutex()
 
@@ -86,11 +91,15 @@ class CollectionInfoState(
         var cachedCollectionInfo = getCachedCollectionInfo(provider)
 
         if (cachedCollectionInfo == null) {
-            val collectionInfos =
-                mediaProviderClient.fetchCollectionInfo(activeContentResolver.value)
-            updateCollectionInfo(collectionInfos)
+            try {
+                val collectionInfos =
+                    mediaProviderClient.fetchCollectionInfo(activeContentResolver.value)
+                updateCollectionInfo(collectionInfos)
 
-            cachedCollectionInfo = getCachedCollectionInfo(provider)
+                cachedCollectionInfo = getCachedCollectionInfo(provider)
+            } catch (e: RuntimeException) {
+                Log.e(TAG, "Could not refresh collection info cache", e)
+            }
         }
 
         return cachedCollectionInfo ?: CollectionInfo(provider.authority)

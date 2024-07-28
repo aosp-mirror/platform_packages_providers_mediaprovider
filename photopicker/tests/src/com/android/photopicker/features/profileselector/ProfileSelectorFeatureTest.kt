@@ -101,11 +101,12 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -146,7 +147,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testProfileSelectorIsShownWithMultipleProfiles() =
-        mainScope.runTest {
+        testScope.runTest {
 
             // Initial setup state: Two profiles (Personal/Work), both enabled
             whenever(mockUserManager.userProfiles) { listOf(userHandle, USER_HANDLE_MANAGED) }
@@ -175,7 +176,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testProfileSelectorIsNotShownOnlyOneProfile() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -197,7 +198,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testHideQuietModeProfilesWhenRequestedPostV() {
-        mainScope.runTest {
+        testScope.runTest {
             assumeTrue(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 
@@ -301,7 +302,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testAvailableProfilesAreDisplayedPostV() =
-        mainScope.runTest {
+        testScope.runTest {
             assumeTrue(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 
@@ -376,7 +377,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testAvailableProfilesAreDisplayedPreV() =
-        mainScope.runTest {
+        testScope.runTest {
             assumeFalse(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 

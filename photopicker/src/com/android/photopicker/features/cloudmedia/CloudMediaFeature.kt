@@ -23,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.android.photopicker.R
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
@@ -33,6 +36,10 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.data.DataService
+import com.android.photopicker.data.model.CollectionInfo
+import com.android.photopicker.data.model.MediaSource
+import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
 
 /**
@@ -57,6 +64,106 @@ class CloudMediaFeature : PhotopickerUiFeature {
     }
 
     override val token = FeatureToken.CLOUD_MEDIA.token
+
+    override val ownedBanners: Set<BannerDefinitions> =
+        setOf(
+            BannerDefinitions.CLOUD_CHOOSE_ACCOUNT,
+            BannerDefinitions.CLOUD_CHOOSE_PROVIDER,
+            BannerDefinitions.CLOUD_MEDIA_AVAILABLE,
+        )
+
+    override suspend fun getBannerPriority(
+        banner: BannerDefinitions,
+        bannerState: BannerState?,
+        config: PhotopickerConfiguration,
+        dataService: DataService,
+    ): Int {
+
+        // If any of the banners owned by [CloudMediaFeature] have been previously dismissed, then
+        // return a disabled priority.
+        if (bannerState?.dismissed == true) {
+            return Priority.DISABLED.priority
+        }
+
+        // Attempt to find a [REMOTE] provider in the available list of providers.
+        val currentCloudProvider: Provider? =
+            dataService.availableProviders.value.firstOrNull {
+                it.mediaSource == MediaSource.REMOTE
+            }
+
+        // If one is found, fetch the collectionInfo for that provider.
+        val collectionInfo: CollectionInfo? =
+            currentCloudProvider?.let { dataService.getCollectionInfo(it) }
+
+        return when (banner) {
+            BannerDefinitions.CLOUD_CHOOSE_PROVIDER -> {
+                if (
+                    currentCloudProvider == null &&
+                        dataService.getAllAllowedProviders().isNotEmpty()
+                ) {
+                    return Priority.MEDIUM.priority
+                } else {
+                    return Priority.DISABLED.priority
+                }
+            }
+            BannerDefinitions.CLOUD_CHOOSE_ACCOUNT -> {
+                collectionInfo?.let {
+                    if (it.accountName == null) {
+                        Priority.MEDIUM.priority
+                    } else {
+                        Priority.DISABLED.priority
+                    }
+                } ?: Priority.DISABLED.priority
+            }
+            BannerDefinitions.CLOUD_MEDIA_AVAILABLE -> {
+
+                collectionInfo?.let {
+                    if (it.accountName != null && it.collectionId != null) {
+                        Priority.MEDIUM.priority
+                    } else {
+                        Priority.DISABLED.priority
+                    }
+                } ?: Priority.DISABLED.priority
+            }
+            else ->
+                throw IllegalArgumentException("$TAG cannot build the requested banner: $banner")
+        }
+    }
+
+    override suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
+
+        val cloudProvider: Provider? =
+            dataService.availableProviders.value.firstOrNull {
+                it.mediaSource == MediaSource.REMOTE
+            }
+
+        val collectionInfo: CollectionInfo? =
+            cloudProvider?.let { dataService.getCollectionInfo(it) }
+
+        return when (banner) {
+            BannerDefinitions.CLOUD_CHOOSE_PROVIDER -> cloudChooseProviderBanner
+            BannerDefinitions.CLOUD_CHOOSE_ACCOUNT ->
+                buildCloudChooseAccountBanner(
+                    cloudProvider =
+                        checkNotNull(cloudProvider) { "cloudProvider was null during buildBanner" },
+                    collectionInfo =
+                        checkNotNull(collectionInfo) {
+                            "collectionInfo was null during buildBanner"
+                        }
+                )
+            BannerDefinitions.CLOUD_MEDIA_AVAILABLE ->
+                buildCloudMediaAvailableBanner(
+                    cloudProvider =
+                        checkNotNull(cloudProvider) { "cloudProvider was null during buildBanner" },
+                    collectionInfo =
+                        checkNotNull(collectionInfo) {
+                            "collectionInfo was null during buildBanner"
+                        },
+                )
+            else ->
+                throw IllegalArgumentException("$TAG cannot build the requested banner: $banner")
+        }
+    }
 
     /** Events consumed by Cloud Media */
     override val eventsConsumed = setOf<RegisteredEventClass>()

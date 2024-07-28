@@ -35,6 +35,7 @@ import static com.android.providers.media.flags.Flags.enableStableUrisForExterna
 import static com.android.providers.media.flags.Flags.enableStableUrisForPublicVolume;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
@@ -956,6 +957,10 @@ public class DatabaseBackupAndRecovery {
         }
 
         return null;
+    }
+
+    protected void queuePublicVolumeRecovery(Context context) {
+        MediaService.queuePublicVolumeRecovery(context);
     }
 
     protected void recoverData(SQLiteDatabase db, String volumeName) throws Exception {

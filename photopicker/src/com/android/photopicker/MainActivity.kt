@@ -31,6 +31,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -54,6 +55,7 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
@@ -81,6 +83,7 @@ class MainActivity : Hilt_MainActivity() {
     @Inject @ActivityRetainedScoped lateinit var bannerManager: Lazy<BannerManager>
     @Inject @ActivityRetainedScoped lateinit var processOwnerUserHandle: UserHandle
     @Inject @ActivityRetainedScoped lateinit var selection: Lazy<Selection<Media>>
+    @Inject @ActivityRetainedScoped lateinit var dataService: Lazy<DataService>
     // This needs to be injected lazily, to defer initialization until the action can be set
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
@@ -196,7 +199,14 @@ class MainActivity : Hilt_MainActivity() {
 
         // Initialize / Refresh the banner state, it's possible that external state has changed if
         // the activity is returning from the background.
-        lifecycleScope.launch { bannerManager.get().refreshBanners() }
+        lifecycleScope.launch {
+            withContext(background) {
+                // Always ensure providers before requesting a banner refresh, banners depend on
+                // having accurate provider information to generate the correct banners.
+                dataService.get().ensureProviders()
+                bannerManager.get().refreshBanners()
+            }
+        }
     }
 
     /**
@@ -224,12 +234,6 @@ class MainActivity : Hilt_MainActivity() {
             events.get().flow.flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).collect { event
                 ->
                 when (event) {
-
-                    /**
-                     * [MediaSelectionConfirmed] will be dispatched in response to the user
-                     * confirming their selection of Media in the UI.
-                     */
-                    is Event.MediaSelectionConfirmed -> onMediaSelectionConfirmed()
                     is Event.BrowseToDocumentsUi -> referToDocumentsUi()
                     else -> {}
                 }
@@ -320,7 +324,8 @@ class MainActivity : Hilt_MainActivity() {
      * This will result in access being issued to the calling app if the media can be successfully
      * prepared.
      */
-    private suspend fun onMediaSelectionConfirmed() {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    suspend fun onMediaSelectionConfirmed() {
 
         val snapshot = selection.get().snapshot()
         // Determine if any preload of the selected media needs to happen, and

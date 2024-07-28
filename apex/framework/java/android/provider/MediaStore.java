@@ -78,8 +78,6 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.flags.Flags;
 
-import com.android.providers.media.flags.Flags;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1239,6 +1237,14 @@ public final class MediaStore {
     public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
             "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
 
+    /**
+     * Permission that grants access to {@link MediaColumns#OEM_METADATA}
+     * of every accessible media file.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+    public static final String ACCESS_OEM_METADATA_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_OEM_METADATA";
+
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
             MATCH_DEFAULT,
@@ -2116,6 +2122,13 @@ public final class MediaStore {
          */
         @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
         public static final String CAPTURE_FRAMERATE = "capture_framerate";
+
+        /**
+         * Column which allows OEMs to store custom metadata for a media file.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+        @Column(value = Cursor.FIELD_TYPE_BLOB, readOnly = true)
+        public static final String OEM_METADATA = "oem_metadata";
 
         // HAS_IMAGE is ignored
         // IMAGE_COUNT is ignored

@@ -158,6 +158,7 @@ fun ErrorMessage(
  * @param onClick the callback function to be called when the button component is clicked.
  * @param modifier the modifier to be applied to the button component.
  * @param colors the color of the button.
+ * @param enabled the enabled state of the button component.
  */
 @Composable
 fun ButtonComponent(
@@ -165,11 +166,13 @@ fun ButtonComponent(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
         colors = colors,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled
     ) {
         Text(label)
     }

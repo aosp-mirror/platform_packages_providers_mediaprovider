@@ -17,12 +17,11 @@
 package com.android.photopicker.features.data.paging
 
 import android.content.ContentResolver
-import android.content.Intent
 import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.photopicker.core.configuration.IllegalIntentExtraException
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.Group
@@ -30,10 +29,8 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
-import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -65,8 +62,8 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0)),
-                intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
+                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()
@@ -85,22 +82,33 @@ class MediaProviderClientTest {
         val mediaProviderClient = MediaProviderClient()
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
-                Provider(authority = "cloud_authority", mediaSource = MediaSource.REMOTE, uid = 1),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
+                Provider(
+                    authority = "cloud_authority",
+                    mediaSource = MediaSource.REMOTE,
+                    uid = 1,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 2
+                    uid = 2,
+                    displayName = ""
                 ),
             )
-        val mimeTypes: List<String> = mutableListOf("image/gif", "video/*")
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+        val mimeTypes = arrayListOf("image/gif", "video/*")
+        val config =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
 
         mediaProviderClient.refreshMedia(
             providers = providers,
             resolver = testContentResolver,
-            intent = intent,
+            config = config,
         )
 
         assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
@@ -118,21 +126,27 @@ class MediaProviderClientTest {
         val mediaProviderClient = MediaProviderClient()
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 1
+                    uid = 1,
+                    displayName = ""
                 ),
             )
-        val mimeTypes: List<String> = mutableListOf("image/gif", "video/*")
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+        val mimeTypes = arrayListOf("image/gif", "video/*")
+        val config =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
 
         mediaProviderClient.refreshMedia(
             providers = providers,
             resolver = testContentResolver,
-            intent = intent,
+            config = config,
         )
 
         assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
@@ -157,23 +171,29 @@ class MediaProviderClientTest {
         val albumAuthority = "album_authority"
         val providers: List<Provider> =
             mutableListOf(
-                Provider(authority = "local_authority", mediaSource = MediaSource.LOCAL, uid = 0),
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = ""
+                ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
-                    uid = 1
+                    uid = 1,
+                    displayName = ""
                 ),
             )
-        val mimeTypes: List<String> = mutableListOf("image/gif", "video/*")
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+        val mimeTypes = arrayListOf("image/gif", "video/*")
+        val config =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
 
         mediaProviderClient.refreshAlbumMedia(
             albumId = albumId,
             albumAuthority = albumAuthority,
             providers = providers,
             resolver = testContentResolver,
-            intent = intent,
+            config = config,
         )
 
         assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
@@ -198,8 +218,8 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0)),
-                intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
+                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES),
             )
 
         assertThat(albumLoadResult is LoadResult.Page).isTrue()
@@ -225,8 +245,8 @@ class MediaProviderClientTest {
                 pageKey = MediaPageKey(),
                 pageSize = 5,
                 contentResolver = testContentResolver,
-                availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0)),
-                intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+                availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0, "")),
+                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES),
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()
@@ -238,63 +258,5 @@ class MediaProviderClientTest {
         for (index in albumMedia.indices) {
             assertThat(albumMedia[index]).isEqualTo(expectedAlbumMedia[index])
         }
-    }
-
-    @Test
-    fun testGetMimeTypeFromIntentActionPickImages() {
-        val mimeTypes: List<String> = mutableListOf("image/*", "video/mp4", "image/gif")
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
-
-        val resultMimeTypeFilter = intent.getPhotopickerMimeTypes()
-        assertThat(resultMimeTypeFilter).isEqualTo(mimeTypes)
-    }
-
-    @Test
-    fun testGetInvalidMimeTypeFromIntentActionPickImages() {
-        val mimeTypes: List<String> = mutableListOf("image/*", "application/binary", "image/gif")
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
-
-        assertThrows(IllegalIntentExtraException::class.java) { intent.getPhotopickerMimeTypes() }
-    }
-
-    @Test
-    fun testGetMimeTypeFromIntentActionGetContent() {
-        val mimeTypes: List<String> = mutableListOf("image/*", "video/mp4", "image/gif")
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
-
-        val resultMimeTypeFilter = intent.getPhotopickerMimeTypes()
-        assertThat(resultMimeTypeFilter).isEqualTo(mimeTypes)
-    }
-
-    @Test
-    fun testGetInvalidMimeTypeFromIntentActionGetContent() {
-        val mimeTypes: List<String> = mutableListOf("image/*", "application/binary", "image/gif")
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
-
-        val resultMimeTypeFilter = intent.getPhotopickerMimeTypes()
-        assertThat(resultMimeTypeFilter).isNull()
-    }
-
-    @Test
-    fun testGetTypeFromIntent() {
-        val mimeType: String = "image/gif"
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.setType(mimeType)
-
-        val resultMimeTypeFilter = intent.getPhotopickerMimeTypes()
-        assertThat(resultMimeTypeFilter).isEqualTo(mutableListOf(mimeType))
-    }
-
-    @Test
-    fun testGetInvalidTypeFromIntent() {
-        val mimeType: String = "application/binary"
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
-        intent.setType(mimeType)
-
-        assertThrows(IllegalIntentExtraException::class.java) { intent.getPhotopickerMimeTypes() }
     }
 }

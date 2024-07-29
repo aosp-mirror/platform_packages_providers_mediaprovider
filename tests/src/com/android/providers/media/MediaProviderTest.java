@@ -827,6 +827,12 @@ public class MediaProviderTest {
             protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
             }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
+            }
         };
 
         final ProviderInfo info = sIsolatedContext.getPackageManager()
@@ -1295,6 +1301,12 @@ public class MediaProviderTest {
             @Override
             protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
             }
         };
         final ProviderInfo info = sIsolatedContext.getPackageManager()

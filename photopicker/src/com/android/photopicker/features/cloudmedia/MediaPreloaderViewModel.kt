@@ -21,6 +21,7 @@ import androidx.annotation.GuardedBy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
@@ -96,6 +97,7 @@ constructor(
     @Background private val backgroundDispatcher: CoroutineDispatcher,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
+    private val configurationManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
@@ -390,12 +392,22 @@ constructor(
      *
      * NOTE: This does not cancel any file open calls that have already started, but will prevent
      * any additional file open calls from being started.
+     *
+     * @param deferred The [CompletableDeferred] for the job to cancel, if one exists.
      */
-    fun cancelPreload() {
+    fun cancelPreload(deferred: CompletableDeferred<Boolean>? = null) {
         job?.let {
             it.cancel()
             Log.i(CloudMediaFeature.TAG, "Preload operation was cancelled.")
         }
+
+        // In the event of single selection mode, the selection needs to be cleared.
+        if (configurationManager.configuration.value.selectionLimit == 1) {
+            scope.launch { selection.clear() }
+        }
+
+        // If a deferred was passed, mark it as failed.
+        deferred?.complete(false)
 
         // Drop any pending heartbeats as the monitor job is being shutdown.
         @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class) heartbeat.resetReplayCache()

@@ -185,10 +185,9 @@ open class Session(
 
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
+    private val _stateManager: EmbeddedStateManager
 
     fun getView() = _view
-
-    private val _embeddedStateManager = EmbeddedStateManager()
 
     open val surfacePackage: SurfaceControlViewHost.SurfacePackage
         get() {
@@ -247,6 +246,8 @@ open class Session(
         Log.d(TAG, "EmbeddedConfiguration is stable, UI will now start.")
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
+        // This initialization should happen only after receiving the [_host]
+        _stateManager = EmbeddedStateManager(_host)
         runBlocking(_main) { _host.setView(_view, width, height) }
 
         // Start listening to selection/deselection events for this Session so
@@ -321,8 +322,7 @@ open class Session(
                                 .configuration
                                 .collectAsStateWithLifecycle()
 
-                        val embeddedState by
-                            _embeddedStateManager.state.collectAsStateWithLifecycle()
+                        val embeddedState by _stateManager.state.collectAsStateWithLifecycle()
 
                         // Provide values to the entire compose stack.
                         CompositionLocalProvider(
@@ -430,7 +430,7 @@ open class Session(
 
     override fun notifyResized(width: Int, height: Int) {
         _host.relayout(width, height)
-        _embeddedStateManager.triggerRecompose()
+        _stateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
@@ -442,13 +442,13 @@ open class Session(
                 Configuration.UI_MODE_NIGHT_YES
 
         // Update embedded state manager
-        _embeddedStateManager.setIsDarkTheme(isNewThemeDark)
+        _stateManager.setIsDarkTheme(isNewThemeDark)
 
         // Pass the configuration change along to the view
         _view.dispatchConfigurationChanged(configuration)
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        _embeddedStateManager.setIsExpanded(isExpanded)
+        _stateManager.setIsExpanded(isExpanded)
     }
 }

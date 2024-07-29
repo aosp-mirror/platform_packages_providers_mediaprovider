@@ -51,7 +51,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -62,6 +65,7 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -286,7 +290,9 @@ fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
     // the view immediately.
     val disruptCounter by disruptiveDataNotification.collectAsStateWithLifecycle(initialValue = 0)
     watchForDataDisruptions(disruptCounter)
-
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
             // The navigation bar and banners are drawn above the navigation graph
@@ -294,7 +300,15 @@ fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
                 LocalFeatureManager.current.composeLocation(
                     Location.NAVIGATION_BAR,
                     maxSlots = 1,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            Modifier.fillMaxWidth()
+                                .transferTouchesToHostInEmbedded(
+                                    host = host,
+                                )
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
                 )
             }
 

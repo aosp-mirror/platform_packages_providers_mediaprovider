@@ -267,15 +267,8 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                     onValueChange = { customMimeType ->
                         customMimeTypeInput = customMimeType
                     },
-                    label = stringResource(id = R.string.select_mime_type)
+                    label = stringResource(id = R.string.enter_mime_type)
                 )
-            }
-
-            // To toggle show images only and show videos only switches
-            if (showImagesOnly) {
-                showVideosOnly = false
-            } else if (showVideosOnly) {
-                showImagesOnly = false
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -328,7 +321,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
         ButtonComponent(
             label = stringResource(R.string.pick_media),
             onClick = {
-                // Resetting the maxSelection input box when allowMultiple is deselected
+                // Resetting the maxSelection input box when allowMultiple is unselected
                 if (!allowMultiple) {
                     maxSelectionLimitError = ""
                     selectionErrorMessage = ""
@@ -336,7 +329,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                     maxMediaItemsDisplayed = 10
                 }
 
-                // Resetting the custom Mime Type Box when allowCustomMimeType is deselected
+                // Resetting the custom Mime Type Box when allowCustomMimeType is unselected
                 if (!allowCustomMimeType) {
                     customMimeTypeInput = ""
                 }

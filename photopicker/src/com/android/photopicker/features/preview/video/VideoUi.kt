@@ -41,13 +41,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeOff
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.PauseCircle
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -61,13 +63,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.android.photopicker.R
+import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.delay
@@ -88,7 +91,7 @@ private val MEASUREMENT_PLAY_PAUSE_ICON_SIZE = 48.dp
 
 /** Padding between the edge of the screen and the Player controls box. */
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL = 8.dp
-private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 128.dp
+private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 16.dp
 
 /** Delay in milliseconds before the player controls are faded. */
 private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 3000L
@@ -112,7 +115,7 @@ fun VideoUi(
     audioIsMuted: Boolean,
     onRequestAudioMuteChange: (Boolean) -> Unit,
     snackbarHostState: SnackbarHostState,
-    viewModel: PreviewViewModel = hiltViewModel(),
+    viewModel: PreviewViewModel = obtainViewModel(),
 ) {
 
     /**
@@ -296,7 +299,10 @@ private fun VideoPlayer(
             when (playbackInfo.state) {
                 PlaybackState.UNKNOWN,
                 PlaybackState.BUFFERING -> {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
                 }
                 else -> {}
             }
@@ -432,42 +438,49 @@ private fun VideoPlayerControls(
             FilledTonalIconButton(
                 modifier = Modifier.align(Alignment.Center).size(MEASUREMENT_PLAY_PAUSE_ICON_SIZE),
                 onClick = { onPlayPauseClicked() },
+                colors =
+                    IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Color.Black.copy(alpha = 0.4f),
+                        contentColor = Color.White,
+                    ),
             ) {
                 when (currentPlaybackState) {
                     PlaybackState.STARTED ->
                         Icon(
-                            Icons.Filled.PauseCircle,
+                            Icons.Outlined.Pause,
                             contentDescription =
                                 stringResource(R.string.photopicker_video_pause_button_description),
-                            modifier = Modifier.size(MEASUREMENT_PLAY_PAUSE_ICON_SIZE)
                         )
                     else ->
                         Icon(
-                            Icons.Filled.PlayCircle,
+                            Icons.Outlined.PlayArrow,
                             contentDescription =
                                 stringResource(R.string.photopicker_video_play_button_description),
-                            modifier = Modifier.size(MEASUREMENT_PLAY_PAUSE_ICON_SIZE)
                         )
                 }
             }
 
             // Mute / UnMute button (bottom right for LTR layouts)
-            FilledTonalIconButton(
+            IconButton(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 onClick = onToggleAudioMute,
             ) {
                 when (audioIsMuted) {
                     false ->
                         Icon(
-                            Icons.AutoMirrored.Filled.VolumeUp,
+                            Icons.AutoMirrored.Outlined.VolumeUp,
                             contentDescription =
-                                stringResource(R.string.photopicker_video_mute_button_description)
+                                stringResource(R.string.photopicker_video_mute_button_description),
+                            tint = Color.White,
                         )
                     true ->
                         Icon(
-                            Icons.AutoMirrored.Filled.VolumeOff,
+                            Icons.AutoMirrored.Outlined.VolumeOff,
                             contentDescription =
-                                stringResource(R.string.photopicker_video_unmute_button_description)
+                                stringResource(
+                                    R.string.photopicker_video_unmute_button_description
+                                ),
+                            tint = Color.White,
                         )
                 }
             }
@@ -614,7 +627,7 @@ private fun rememberAudioFocus(
 private fun producePlaybackInfo(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = hiltViewModel()
+    viewModel: PreviewViewModel = obtainViewModel()
 ): State<PlaybackInfo> {
 
     return produceState<PlaybackInfo>(
@@ -650,7 +663,7 @@ private fun producePlaybackInfo(
 private fun produceAspectRatio(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = hiltViewModel()
+    viewModel: PreviewViewModel = obtainViewModel()
 ): State<Float?> {
 
     return produceState<Float?>(

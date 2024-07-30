@@ -17,22 +17,33 @@
 package com.android.photopicker.data
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
+import android.provider.CloudMediaProviderContract
 import android.util.Log
 import androidx.paging.PagingSource
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.CloudMediaProviderDetails
+import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.AlbumMediaPagingSource
 import com.android.photopicker.data.paging.AlbumPagingSource
 import com.android.photopicker.data.paging.MediaPagingSource
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,16 +63,17 @@ import kotlinx.coroutines.sync.withLock
  * [MediaProvider].
  *
  * Underlying data changes in [MediaProvider] are observed using [ContentObservers]. When a change
- * in data is observed, the data is re-fetched from the [MediaProvider] process and the new data
- * is emitted to the [StateFlows]-s.
+ * in data is observed, the data is re-fetched from the [MediaProvider] process and the new data is
+ * emitted to the [StateFlows]-s.
  *
  * @param userStatus A [StateFlow] with the current active user's details.
  * @param scope The [CoroutineScope] the data flows will be shared in.
  * @param dispatcher A [CoroutineDispatcher] to run the coroutines in.
  * @param notificationService An instance of [NotificationService] responsible to listen to data
- * change notifications.
+ *   change notifications.
  * @param mediaProviderClient An instance of [MediaProviderClient] responsible to get data from
- * MediaProvider.
+ *   MediaProvider.
+ * @param config [StateFlow] that emits [PhotopickerConfiguration] changes.
  */
 class DataServiceImpl(
     private val userStatus: StateFlow<UserStatus>,
@@ -69,9 +81,12 @@ class DataServiceImpl(
     private val dispatcher: CoroutineDispatcher,
     private val notificationService: NotificationService,
     private val mediaProviderClient: MediaProviderClient,
+    private val config: StateFlow<PhotopickerConfiguration>,
+    private val featureManager: FeatureManager,
+    private val appContext: Context
 ) : DataService {
-    private val _activeContentResolver = MutableStateFlow<ContentResolver>(
-            userStatus.value.activeContentResolver)
+    private val _activeContentResolver =
+        MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
 
     // Keep track of the photo grid media and album grid paging source so that we can invalidate
     // them in case the underlying data changes.
@@ -85,7 +100,8 @@ class DataServiceImpl(
     // it is assumed that a refresh request was already sent to the data source once in the session
     // and there is no need to send it again, even if the paging source is invalid.
     private val albumMediaPagingSources:
-            MutableMap<String, MutableMap<String, AlbumMediaPagingSource>> = mutableMapOf()
+        MutableMap<String, MutableMap<String, AlbumMediaPagingSource>> =
+        mutableMapOf()
 
     // An internal lock to allow thread-safe updates to the [MediaPagingSource] and
     // [AlbumPagingSource].
@@ -112,20 +128,20 @@ class DataServiceImpl(
     private var albumMediaUpdateCallbackFlow: Flow<Pair<String, String>>? = null
 
     /**
-     * Saves the current job that collects the [availableProviderCallbackFlow].
-     * Cancel this job when there is a change in the [_activeContentResolver]
+     * Saves the current job that collects the [availableProviderCallbackFlow]. Cancel this job when
+     * there is a change in the [_activeContentResolver]
      */
     private var availableProviderCollectJob: Job? = null
 
     /**
-     * Saves the current job that collects the [mediaUpdateCallbackFlow].
-     * Cancel this job when there is a change in the [_activeContentResolver]
+     * Saves the current job that collects the [mediaUpdateCallbackFlow]. Cancel this job when there
+     * is a change in the [_activeContentResolver]
      */
     private var mediaUpdateCollectJob: Job? = null
 
     /**
-     * Saves the current job that collects the [albumMediaUpdateCallbackFlow].
-     * Cancel this job when there is a change in the [_activeContentResolver]
+     * Saves the current job that collects the [albumMediaUpdateCallbackFlow]. Cancel this job when
+     * there is a change in the [_activeContentResolver]
      */
     private var albumMediaUpdateCollectJob: Job? = null
 
@@ -134,19 +150,21 @@ class DataServiceImpl(
      * providers. The [availableProviderCallbackFlow] can change if the active user in a session has
      * changed.
      *
-     * The initial value of this flow is an empty list to avoid an IPC to fetch the actual value
-     * from Media Provider from the main thread.
+     * This flow is directly initialized with the available providers fetched from the data source
+     * because if we initialize with a default empty list here, all PagingSource objects will get
+     * created with an empty provider list and result in a transient error state.
      */
-    private val _availableProviders: MutableStateFlow<List<Provider>> =
-        MutableStateFlow(emptyList())
+    private val _availableProviders: MutableStateFlow<List<Provider>> by lazy {
+        MutableStateFlow(fetchAvailableProviders())
+    }
 
     /**
      * Create an immutable state flow from the callback flow [_availableProviders]. The state flow
      * helps retain and provide immediate access to the last emitted value.
      *
      * The producer block remains active for some time after the last observer stops collecting.
-     * This helps retain the flow through transient changes like activity recreation due to
-     * config changes.
+     * This helps retain the flow through transient changes like activity recreation due to config
+     * changes.
      *
      * Note that [StateFlow] automatically filters out subsequent repetitions of the same value.
      */
@@ -156,6 +174,12 @@ class DataServiceImpl(
             SharingStarted.WhileSubscribed(FLOW_TIMEOUT_MILLI_SECONDS),
             _availableProviders.value
         )
+
+    // Contains collection info cache
+    private val collectionInfoState =
+        CollectionInfoState(mediaProviderClient, _activeContentResolver, availableProviders)
+
+    override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
 
     companion object {
         const val FLOW_TIMEOUT_MILLI_SECONDS: Long = 5000
@@ -167,11 +191,11 @@ class DataServiceImpl(
                 Log.d(DataService.TAG, "Available providers have changed to $providers.")
 
                 mediaPagingSourceMutex.withLock {
-                    mediaPagingSources.forEach {
-                        mediaPagingSource -> mediaPagingSource.invalidate()
+                    mediaPagingSources.forEach { mediaPagingSource ->
+                        mediaPagingSource.invalidate()
                     }
-                    albumPagingSources.forEach {
-                        albumPagingSource -> albumPagingSource.invalidate()
+                    albumPagingSources.forEach { albumPagingSource ->
+                        albumPagingSource.invalidate()
                     }
 
                     mediaPagingSources.clear()
@@ -179,9 +203,9 @@ class DataServiceImpl(
                 }
 
                 albumMediaPagingSourceMutex.withLock {
-                    albumMediaPagingSources.values.forEach {
-                        albumMediaPagingSourceMap -> albumMediaPagingSourceMap.values.forEach {
-                            albumMediaPagingSource -> albumMediaPagingSource.invalidate()
+                    albumMediaPagingSources.values.forEach { albumMediaPagingSourceMap ->
+                        albumMediaPagingSourceMap.values.forEach { albumMediaPagingSource ->
+                            albumMediaPagingSource.invalidate()
                         }
                     }
                     albumMediaPagingSources.clear()
@@ -198,53 +222,56 @@ class DataServiceImpl(
                 availableProviderCollectJob?.cancel()
                 availableProviderCallbackFlow = initAvailableProvidersFlow(activeContentResolver)
 
-                availableProviderCollectJob = scope.launch(dispatcher) {
-                    availableProviderCallbackFlow?.collect { providers: List<Provider> ->
-                        Log.d(DataService.TAG, "Available providers update notification " +
-                                "received $providers")
+                availableProviderCollectJob =
+                    scope.launch(dispatcher) {
+                        availableProviderCallbackFlow?.collect { providers: List<Provider> ->
+                            Log.d(
+                                DataService.TAG,
+                                "Available providers update notification received $providers"
+                            )
 
-                        // Send refresh media request to Photo Picker.
-                        // TODO(b/340246010): This is required even when  there is no change in the
-                        //  [availableProviders] state flow because PhotoPicker relies on the UI to
-                        //  trigger a sync when the cloud provider changes. Further, a successful
-                        //  sync enables cloud queries, which then updates the UI.
-                        refreshMedia(providers)
-
-                        _availableProviders.update { providers }
+                            updateAvailableProviders(providers)
+                        }
                     }
-                }
 
                 // Stop collecting media updates from previously initialized callback flow.
                 mediaUpdateCollectJob?.cancel()
                 mediaUpdateCallbackFlow = initMediaUpdateFlow(activeContentResolver)
 
-                mediaUpdateCollectJob = scope.launch(dispatcher) {
-                    mediaUpdateCallbackFlow?.collect {
-                        Log.d(DataService.TAG, "Media update notification received")
-                        mediaPagingSourceMutex.withLock {
-                            mediaPagingSources.forEach {
-                                mediaPagingSource -> mediaPagingSource.invalidate()
+                mediaUpdateCollectJob =
+                    scope.launch(dispatcher) {
+                        mediaUpdateCallbackFlow?.collect {
+                            Log.d(DataService.TAG, "Media update notification received")
+                            mediaPagingSourceMutex.withLock {
+                                mediaPagingSources.forEach { mediaPagingSource ->
+                                    mediaPagingSource.invalidate()
+                                }
                             }
                         }
                     }
-                }
 
                 // Stop collecting album media updates from previously initialized callback flow.
                 albumMediaUpdateCollectJob?.cancel()
                 albumMediaUpdateCallbackFlow = initAlbumMediaUpdateFlow(activeContentResolver)
 
-                albumMediaUpdateCollectJob = scope.launch(dispatcher) {
-                    albumMediaUpdateCallbackFlow?.collect {
-                        (albumAuthority, albumId): Pair<String, String> ->
-                            Log.d(DataService.TAG, "Album media update notification " +
+                albumMediaUpdateCollectJob =
+                    scope.launch(dispatcher) {
+                        albumMediaUpdateCallbackFlow?.collect {
+                            (albumAuthority, albumId): Pair<String, String> ->
+                            Log.d(
+                                DataService.TAG,
+                                "Album media update notification " +
                                     "received for album authority $albumAuthority " +
-                                    "and album id $albumId")
+                                    "and album id $albumId"
+                            )
                             albumMediaPagingSourceMutex.withLock {
                                 albumMediaPagingSources
-                                        .get(albumAuthority)?.get(albumId)?.invalidate()
+                                    .get(albumAuthority)
+                                    ?.get(albumId)
+                                    ?.invalidate()
                             }
+                        }
                     }
-                }
             }
         }
 
@@ -260,64 +287,60 @@ class DataServiceImpl(
      * [ContentObserver] and emits updated list of available providers.
      */
     private fun initAvailableProvidersFlow(resolver: ContentResolver): Flow<List<Provider>> =
-            callbackFlow<Unit> {
-        // Define a callback that tries sending a [Unit] in the [Channel].
-        val observer = object : ContentObserver(/* handler */ null) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
+        callbackFlow<Unit> {
+                // Define a callback that tries sending a [Unit] in the [Channel].
+                val observer =
+                    object : ContentObserver(/* handler */ null) {
+                        override fun onChange(selfChange: Boolean, uri: Uri?) {
+                            trySend(Unit)
+                        }
+                    }
+
+                // Register the content observer callback.
+                notificationService.registerContentObserverCallback(
+                    resolver,
+                    AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI,
+                    /* notifyForDescendants */ true,
+                    observer
+                )
+
+                // Trigger the first fetch of available providers.
                 trySend(Unit)
+
+                // Unregister when the flow is closed.
+                awaitClose {
+                    notificationService.unregisterContentObserverCallback(resolver, observer)
+                }
             }
-        }
-
-        // Register the content observer callback.
-        notificationService.registerContentObserverCallback(
-            resolver,
-            AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI,
-            /* notifyForDescendants */ true,
-            observer
-        )
-
-        // Trigger the first fetch of available providers.
-        trySend(Unit)
-
-        // Unregister when the flow is closed.
-        awaitClose {
-            notificationService.unregisterContentObserverCallback(
-                resolver,
-                observer
-            )
-        }
-    }.map {
-        // Fetch the available providers again when a change is detected.
-        mediaProviderClient.fetchAvailableProviders(resolver)
-    }
+            .map {
+                // Fetch the available providers again when a change is detected.
+                fetchAvailableProviders()
+            }
 
     /**
      * Creates a callback flow that emits a [Unit] when an update in media is observed using
      * [ContentObserver] notifications.
      */
-    private fun initMediaUpdateFlow(resolver: ContentResolver): Flow<Unit> = callbackFlow<Unit> {
-        val observer = object : ContentObserver(/* handler */ null) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
-                trySend(Unit)
-            }
-        }
+    private fun initMediaUpdateFlow(resolver: ContentResolver): Flow<Unit> =
+        callbackFlow<Unit> {
+            val observer =
+                object : ContentObserver(/* handler */ null) {
+                    override fun onChange(selfChange: Boolean, uri: Uri?) {
+                        trySend(Unit)
+                    }
+                }
 
-        // Register the content observer callback.
-        notificationService.registerContentObserverCallback(
-            resolver,
-            MEDIA_CHANGE_NOTIFICATION_URI,
-            /* notifyForDescendants */ true,
-            observer
-        )
-
-        // Unregister when the flow is closed.
-        awaitClose {
-            notificationService.unregisterContentObserverCallback(
+            // Register the content observer callback.
+            notificationService.registerContentObserverCallback(
                 resolver,
+                MEDIA_CHANGE_NOTIFICATION_URI,
+                /* notifyForDescendants */ true,
                 observer
             )
+
+            // Unregister when the flow is closed.
+            awaitClose { notificationService.unregisterContentObserverCallback(resolver, observer) }
         }
-    }
 
     /**
      * Creates a callback flow that emits the album ID when an update in the album's media is
@@ -325,17 +348,20 @@ class DataServiceImpl(
      */
     private fun initAlbumMediaUpdateFlow(resolver: ContentResolver): Flow<Pair<String, String>> =
         callbackFlow {
-            val observer = object : ContentObserver(/* handler */ null) {
-                override fun onChange(selfChange: Boolean, uri: Uri?) {
-                    // Verify that album authority and album ID is present in the URI
-                    if (uri?.pathSegments?.size ==
-                            (2 + ALBUM_CHANGE_NOTIFICATION_URI.pathSegments.size)) {
-                        val albumAuthority = uri.pathSegments[uri.pathSegments.size - 2] ?: ""
-                        val albumID = uri.pathSegments[uri.pathSegments.size - 1] ?: ""
-                        trySend(Pair(albumAuthority, albumID))
+            val observer =
+                object : ContentObserver(/* handler */ null) {
+                    override fun onChange(selfChange: Boolean, uri: Uri?) {
+                        // Verify that album authority and album ID is present in the URI
+                        if (
+                            uri?.pathSegments?.size ==
+                                (2 + ALBUM_CHANGE_NOTIFICATION_URI.pathSegments.size)
+                        ) {
+                            val albumAuthority = uri.pathSegments[uri.pathSegments.size - 2] ?: ""
+                            val albumID = uri.pathSegments[uri.pathSegments.size - 1] ?: ""
+                            trySend(Pair(albumAuthority, albumID))
+                        }
                     }
                 }
-            }
 
             // Register the content observer callback.
             notificationService.registerContentObserverCallback(
@@ -346,57 +372,60 @@ class DataServiceImpl(
             )
 
             // Unregister when the flow is closed.
-            awaitClose {
-                notificationService.unregisterContentObserverCallback(
-                    resolver,
-                    observer
-                )
-            }
+            awaitClose { notificationService.unregisterContentObserverCallback(resolver, observer) }
         }
 
-    override fun albumMediaPagingSource(album: Album):
-            PagingSource<MediaPageKey, Media> = runBlocking {
-        refreshAlbumMedia(album)
+    override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> =
+        runBlocking {
+            refreshAlbumMedia(album)
 
-        albumMediaPagingSourceMutex.withLock {
-            val albumMap = albumMediaPagingSources.getOrDefault(album.authority, mutableMapOf())
+            albumMediaPagingSourceMutex.withLock {
+                val albumMap = albumMediaPagingSources.getOrDefault(album.authority, mutableMapOf())
 
-            if (!albumMap.containsKey(album.id) || albumMap[album.id]!!.invalid) {
-                val availableProviders: List<Provider> = availableProviders.value
-                val contentResolver: ContentResolver = _activeContentResolver.value
-                val albumMediaPagingSource = AlbumMediaPagingSource(
-                    album.id,
-                    album.authority,
-                    contentResolver,
-                    availableProviders,
-                    mediaProviderClient,
-                    dispatcher
-                )
+                if (!albumMap.containsKey(album.id) || albumMap[album.id]!!.invalid) {
+                    val availableProviders: List<Provider> = availableProviders.value
+                    val contentResolver: ContentResolver = _activeContentResolver.value
+                    val albumMediaPagingSource =
+                        AlbumMediaPagingSource(
+                            album.id,
+                            album.authority,
+                            contentResolver,
+                            availableProviders,
+                            mediaProviderClient,
+                            dispatcher,
+                            config.value,
+                        )
 
-                Log.v(DataService.TAG, "Created an album media paging source that queries " +
-                    "$availableProviders")
+                    Log.v(
+                        DataService.TAG,
+                        "Created an album media paging source that queries " + "$availableProviders"
+                    )
 
-                albumMap[album.id] = albumMediaPagingSource
-                albumMediaPagingSources[album.authority] = albumMap
+                    albumMap[album.id] = albumMediaPagingSource
+                    albumMediaPagingSources[album.authority] = albumMap
+                }
+
+                albumMap[album.id]!!
             }
-
-            albumMap[album.id]!!
         }
-    }
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
             val contentResolver: ContentResolver = _activeContentResolver.value
-            val albumPagingSource = AlbumPagingSource(
-                contentResolver,
-                availableProviders,
-                mediaProviderClient,
-                dispatcher
-            )
+            val albumPagingSource =
+                AlbumPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                )
 
-            Log.v(DataService.TAG, "Created an album paging source that queries " +
-                    "$availableProviders")
+            Log.v(
+                DataService.TAG,
+                "Created an album paging source that queries " + "$availableProviders"
+            )
 
             albumPagingSources.add(albumPagingSource)
             albumPagingSource
@@ -412,12 +441,14 @@ class DataServiceImpl(
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
             val contentResolver: ContentResolver = _activeContentResolver.value
-            val mediaPagingSource = MediaPagingSource(
-                contentResolver,
-                availableProviders,
-                mediaProviderClient,
-                dispatcher
-            )
+            val mediaPagingSource =
+                MediaPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
 
@@ -425,6 +456,12 @@ class DataServiceImpl(
             mediaPagingSource
         }
     }
+
+    override fun previewMediaPagingSource(
+        currentSelection: Set<Media>,
+        currentDeselection: Set<Media>
+    ): PagingSource<MediaPageKey, Media> =
+        throw NotImplementedError("This method is not implemented yet.")
 
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value
@@ -435,42 +472,153 @@ class DataServiceImpl(
         albumMediaPagingSourceMutex.withLock {
             // Send album media refresh request only when the album media paging source is not
             // already cached.
-            if (albumMediaPagingSources.containsKey(album.authority) &&
-                    albumMediaPagingSources[album.authority]!!.containsKey(album.id)) {
-                Log.i(DataService.TAG, "A media paging source is available for " +
-                        "album ${album.id}. Not sending a refresh album media request.")
+            if (
+                albumMediaPagingSources.containsKey(album.authority) &&
+                    albumMediaPagingSources[album.authority]!!.containsKey(album.id)
+            ) {
+                Log.i(
+                    DataService.TAG,
+                    "A media paging source is available for " +
+                        "album ${album.id}. Not sending a refresh album media request."
+                )
                 return
             }
         }
 
         val providers = availableProviders.value
-        val isAlbumProviderAvailable = providers.any { provider ->
-            provider.authority == album.authority
-        }
+        val isAlbumProviderAvailable =
+            providers.any { provider -> provider.authority == album.authority }
 
         if (isAlbumProviderAvailable) {
             mediaProviderClient.refreshAlbumMedia(
                 album.id,
                 album.authority,
                 providers,
-                _activeContentResolver.value
+                _activeContentResolver.value,
+                config.value
             )
         } else {
-            Log.e(DataService.TAG, "Available providers $providers " +
-                "does not contain album authority ${album.authority}. " +
-                "Skip sending refresh album media request.")
+            Log.e(
+                DataService.TAG,
+                "Available providers $providers " +
+                    "does not contain album authority ${album.authority}. " +
+                    "Skip sending refresh album media request."
+            )
         }
     }
 
+    override suspend fun getCollectionInfo(provider: Provider): CollectionInfo {
+        return collectionInfoState.getCollectionInfo(provider)
+    }
+
+    override suspend fun ensureProviders() {
+        mediaProviderClient.ensureProviders(_activeContentResolver.value)
+        updateAvailableProviders(fetchAvailableProviders())
+    }
+
+    override fun getAllAllowedProviders(): List<Provider> {
+        val configSnapshot = config.value
+        val user = userStatus.value.activeUserProfile.handle
+        val enforceAllowlist = configSnapshot.flags.CLOUD_ENFORCE_PROVIDER_ALLOWLIST
+        val allowlist = configSnapshot.flags.CLOUD_ALLOWED_PROVIDERS
+        val intent = Intent(CloudMediaProviderContract.PROVIDER_INTERFACE)
+        val packageManager = appContext.getPackageManager()
+        val allProviders: List<ResolveInfo> =
+            packageManager.queryIntentContentProvidersAsUser(intent, /* flags */ 0, user)
+
+        val allowedProviders =
+            allProviders
+                .filter {
+                    it.providerInfo.authority != null &&
+                        CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
+                            it.providerInfo.readPermission
+                        ) &&
+                        (!enforceAllowlist || allowlist.contains(it.providerInfo.packageName))
+                }
+                .map {
+                    Provider(
+                        authority = it.providerInfo.authority,
+                        mediaSource = MediaSource.REMOTE,
+                        uid =
+                            packageManager.getPackageUid(
+                                it.providerInfo.packageName,
+                                /* flags */ 0
+                            ),
+                        displayName = it.loadLabel(packageManager) as? String ?: ""
+                    )
+                }
+
+        return allowedProviders
+    }
+
+    /**
+     * Sends an update to the [_availableProviders] State flow. Collection info cache gets cleared
+     * because it is potentially stale. If the new set of available providers does not contain all
+     * of the previously available providers, then the UI should ideally clear itself immediately to
+     * avoid displaying any media items from a clud provider that is not currently available. To
+     * communicate this with the UI, [disruptiveDataUpdateChannel] might emit a Unit object.
+     *
+     * @param providers The list of new available providers.
+     */
+    private suspend fun updateAvailableProviders(providers: List<Provider>) {
+        // Send refresh media request to Photo Picker.
+        // TODO(b/340246010): This is required even when there is no change in
+        // the [availableProviders] state flow because PhotoPicker relies on the
+        // UI to trigger a sync when the cloud provider changes. Further, a
+        // successful sync enables cloud queries, which then updates the UI.
+        refreshMedia(providers)
+
+        val previouslyAvailableProviders = _availableProviders.value
+
+        _availableProviders.update { providers }
+
+        // If the available providers are not a superset of previously available
+        // providers, this is a disruptive data update that should ideally
+        // reset the UI.
+        if (!providers.containsAll(previouslyAvailableProviders)) {
+            Log.d(DataService.TAG, "Sending a disruptive data update notification.")
+            disruptiveDataUpdateChannel.send(Unit)
+        }
+
+        // Clear collection info cache immediately and update the cache from
+        // data source in a child coroutine.
+        collectionInfoState.clear()
+    }
+
+    /**
+     * Sends a refresh media notification to the data source. This signal tells the data source to
+     * refresh its cache.
+     *
+     * @param providers The list of currently available providers.
+     */
     private fun refreshMedia(availableProviders: List<Provider>) {
         if (availableProviders.isNotEmpty()) {
             mediaProviderClient.refreshMedia(
                 availableProviders,
-                _activeContentResolver.value
+                _activeContentResolver.value,
+                config.value,
             )
         } else {
-            Log.w(DataService.TAG,
-                "Cannot refresh media when there are no providers available")
+            Log.w(DataService.TAG, "Cannot refresh media when there are no providers available")
         }
+    }
+
+    /**
+     * Fetch available providers from the data source and return it. If the [CloudMediaFeature] is
+     * turned off, the available list of providers received from the data source will filter out all
+     * providers that serve [MediaSource.Remote] items.
+     */
+    private fun fetchAvailableProviders(): List<Provider> {
+        var availableProviders =
+            mediaProviderClient.fetchAvailableProviders(_activeContentResolver.value)
+        if (!featureManager.isFeatureEnabled(CloudMediaFeature::class.java)) {
+            availableProviders = availableProviders.filter { it.mediaSource != MediaSource.REMOTE }
+            Log.i(
+                DataService.TAG,
+                "Cloud media feature is not enabled, available providers are " +
+                    "updated to  $availableProviders"
+            )
+        }
+        return availableProviders
     }
 }

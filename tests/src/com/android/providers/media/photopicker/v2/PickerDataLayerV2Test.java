@@ -49,14 +49,17 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.database.Cursor;
+import android.database.MergeCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -86,6 +89,7 @@ import org.mockito.Mock;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class PickerDataLayerV2Test {
     @Mock
@@ -156,6 +160,18 @@ public class PickerDataLayerV2Test {
         doReturn(/* cloudProviderAuthority */ null)
                 .when(mMockSyncController).getCloudProviderOrDefault(any());
 
+        final ProviderInfo providerInfo = new ProviderInfo();
+        providerInfo.packageName = LOCAL_PROVIDER;
+        providerInfo.name = "LOCAL_PROVIDER";
+        final ApplicationInfo applicationInfo = new ApplicationInfo();
+        applicationInfo.nonLocalizedLabel = providerInfo.name;
+        providerInfo.applicationInfo = applicationInfo;
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        doReturn(providerInfo)
+                .when(mMockPackageManager)
+                .resolveContentProvider(any(), anyInt());
+
         try (Cursor availableProviders = PickerDataLayerV2.queryAvailableProviders(mMockContext)) {
             availableProviders.moveToFirst();
 
@@ -191,6 +207,15 @@ public class PickerDataLayerV2Test {
                                     PickerSQLConstants.AvailableProviderResponse
                                             .UID.getColumnName()))
             );
+
+            assertEquals(
+                    "Local provider's label is not correct",
+                    /* expected */ "LOCAL_PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
+            );
         }
     }
 
@@ -200,15 +225,19 @@ public class PickerDataLayerV2Test {
         final int cloudUID = Integer.MAX_VALUE;
         final ProviderInfo providerInfo = new ProviderInfo();
         providerInfo.packageName = CLOUD_PROVIDER;
+        providerInfo.name = "PROVIDER";
+        final ApplicationInfo applicationInfo = new ApplicationInfo();
+        applicationInfo.nonLocalizedLabel = providerInfo.name;
+        providerInfo.applicationInfo = applicationInfo;
 
         doReturn(mMockPackageManager)
                 .when(mMockContext).getPackageManager();
         doReturn(cloudUID)
                 .when(mMockPackageManager)
-                .getPackageUid(CLOUD_PROVIDER, 0);
+                .getPackageUid(any(), anyInt());
         doReturn(providerInfo)
                 .when(mMockPackageManager)
-                .resolveContentProvider(CLOUD_PROVIDER, 0);
+                .resolveContentProvider(any(), anyInt());
 
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
@@ -249,6 +278,15 @@ public class PickerDataLayerV2Test {
                                             .UID.getColumnName()))
             );
 
+            assertEquals(
+                    "Local provider's label is not correct",
+                    /* expected */ "PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
+            );
+
             availableProviders.moveToNext();
 
             assertEquals(
@@ -276,6 +314,15 @@ public class PickerDataLayerV2Test {
                             availableProviders.getColumnIndexOrThrow(
                                     PickerSQLConstants.AvailableProviderResponse
                                             .UID.getColumnName()))
+            );
+
+            assertEquals(
+                    "Cloud provider's label is not correct",
+                    /* expected */ "PROVIDER",
+                    availableProviders.getString(
+                            availableProviders.getColumnIndexOrThrow(
+                                    PickerSQLConstants.AvailableProviderResponse
+                                            .DISPLAY_NAME.getColumnName()))
             );
         }
     }
@@ -478,6 +525,51 @@ public class PickerDataLayerV2Test {
 
             cr.moveToNext();
             assertMediaCursor(cr, CLOUD_ID_2, CLOUD_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testQueryMediaActionGetContent() {
+        Cursor cursor1 = getMediaCursor(CLOUD_ID_1, DATE_TAKEN_MS + 1, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 1, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor2 = getMediaCursor(CLOUD_ID_2, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursor3 = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS, GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor3, 1);
+
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        final Bundle mediaQueryExtras = getMediaQueryExtras(Long.MAX_VALUE,
+                Long.MAX_VALUE, /* pageSize */ 3,
+                new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
+        mediaQueryExtras.putString("intent_action", Intent.ACTION_GET_CONTENT);
+        try (Cursor cr = PickerDataLayerV2.queryMedia(mMockContext, mediaQueryExtras)) {
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(3);
+
+            cr.moveToFirst();
+            // CLOUD_ID_1 has the most recent date taken.
+            assertMediaCursor(cr, CLOUD_ID_1, CLOUD_PROVIDER, DATE_TAKEN_MS + 1,
+                    MP4_VIDEO_MIME_TYPE, Intent.ACTION_GET_CONTENT);
+
+            cr.moveToNext();
+            // LOCAL_ID_1 and CLOUD_ID_3 have the same date taken but the Picker ID of LOCAL_ID_1
+            // should be greater.
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE,
+                    Intent.ACTION_GET_CONTENT);
+
+            cr.moveToNext();
+            assertMediaCursor(cr, CLOUD_ID_2, CLOUD_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE,
+                    Intent.ACTION_GET_CONTENT);
         }
     }
 
@@ -1220,13 +1312,13 @@ public class PickerDataLayerV2Test {
 
             cr.moveToFirst();
             assertAlbumCursor(cr,
-                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
-                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_1);
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
-                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
-                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_1);
         }
     }
 
@@ -1280,19 +1372,29 @@ public class PickerDataLayerV2Test {
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
 
-        Cursor cursor2 = getAlbumCursor(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
-                DATE_TAKEN_MS, LOCAL_ID_2, LOCAL_PROVIDER);
-        mLocalProvider.setQueryResult(cursor2);
+        List<Cursor> localAlbumCursors = new ArrayList<>();
+        localAlbumCursors.add(getAlbumCursor(
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS,
+                DATE_TAKEN_MS, LOCAL_ID_2, LOCAL_PROVIDER));
+        localAlbumCursors.add(getAlbumCursor(
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
+                DATE_TAKEN_MS, LOCAL_ID_2, LOCAL_PROVIDER));
+        localAlbumCursors.add(getAlbumCursor(
+                CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                DATE_TAKEN_MS, LOCAL_ID_2, LOCAL_PROVIDER));
+        MergeCursor allLocalAlbumsCursor =
+                new MergeCursor(localAlbumCursors.toArray(new Cursor[0]));
+        mLocalProvider.setQueryResult(allLocalAlbumsCursor);
 
-        Cursor cursor3 = getAlbumCursor("CloudAlbum", DATE_TAKEN_MS, CLOUD_ID_1, CLOUD_PROVIDER);
-        mCloudProvider.setQueryResult(cursor3);
+        Cursor cursor5 = getAlbumCursor("CloudAlbum", DATE_TAKEN_MS, CLOUD_ID_1, CLOUD_PROVIDER);
+        mCloudProvider.setQueryResult(cursor5);
 
         try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(4);
+                    .that(cr.getCount()).isEqualTo(6);
 
             cr.moveToFirst();
             // Favorites albums will be displayed by default
@@ -1303,13 +1405,24 @@ public class PickerDataLayerV2Test {
 
             cr.moveToNext();
             assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
+
+            cr.moveToNext();
+            assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_1);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
-                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
+
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
+
 
             cr.moveToNext();
             assertAlbumCursor(cr, /* albumId */ "CloudAlbum", CLOUD_PROVIDER,
@@ -1546,6 +1659,12 @@ public class PickerDataLayerV2Test {
 
     private static void assertMediaCursor(Cursor cursor, String id, String authority,
             Long dateTaken, String mimeType) {
+        assertMediaCursor(cursor, id, authority, dateTaken, mimeType,
+                MediaStore.ACTION_PICK_IMAGES);
+    }
+
+    private static void assertMediaCursor(Cursor cursor, String id, String authority,
+            Long dateTaken, String mimeType, String intent) {
         assertWithMessage("Unexpected value of id in the media cursor.")
                 .that(cursor.getString(cursor.getColumnIndexOrThrow(
                         PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
@@ -1566,13 +1685,12 @@ public class PickerDataLayerV2Test {
                         PickerSQLConstants.MediaResponse.MIME_TYPE.getProjectedName())))
                 .isEqualTo(mimeType);
 
-        //TODO(b/329122491): Uncomment URI tests when cloud ids with special characters are handled.
-//        final Uri expectedUri = getMediaUri(id, authority);
+        final Uri expectedUri = getMediaUri(id, authority, intent);
 
-//        assertWithMessage("Unexpected value of uri in the media cursor.")
-//                .that(cursor.getString(cursor.getColumnIndexOrThrow(
-//                        PickerSQLConstants.MediaResponse.URI.getProjectedName())))
-//                .isEqualTo(expectedUri.toString());
+        assertWithMessage("Unexpected value of uri in the media cursor.")
+                .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaResponse.WRAPPED_URI.getProjectedName())))
+                .isEqualTo(expectedUri.toString());
     }
 
     private static void assertAlbumCursor(Cursor cursor, String albumId, String authority,
@@ -1621,10 +1739,10 @@ public class PickerDataLayerV2Test {
                 .isEqualTo(mediaSource);
     }
 
-    private static Uri getMediaUri(String id, String authority) {
+    private static Uri getMediaUri(String id, String authority, String intent) {
         return PickerUriResolver.wrapProviderUri(
                 ItemsProvider.getItemsUri(id, authority, UserId.CURRENT_USER),
-                Intent.ACTION_PICK,
+                intent,
                 MediaStore.MY_USER_ID
         );
     }
@@ -1636,6 +1754,7 @@ public class PickerDataLayerV2Test {
         extras.putLong("date_taken_millis", dateTakenMillis);
         extras.putInt("page_size", pageSize);
         extras.putStringArrayList("providers", providers);
+        extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
         return extras;
     }
 

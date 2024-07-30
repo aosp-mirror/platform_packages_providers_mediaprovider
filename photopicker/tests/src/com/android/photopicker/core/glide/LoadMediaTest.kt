@@ -24,11 +24,19 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.provider.CloudMediaProviderContract
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.Background
+import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
+import com.android.photopicker.core.Main
+import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.GlideLoadableIdlingResource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.capture
@@ -42,11 +50,20 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import com.google.common.truth.Truth.assertThat
+import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import org.junit.After
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -71,7 +88,12 @@ import org.mockito.MockitoAnnotations
  *
  * This test will replace the bindings in [ApplicationModule], so the module is uninstalled.
  */
-@UninstallModules(ApplicationModule::class)
+@UninstallModules(
+    ActivityModule::class,
+    ApplicationModule::class,
+    ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
+)
 @HiltAndroidTest
 class LoadMediaTest {
 
@@ -81,6 +103,20 @@ class LoadMediaTest {
 
     private val glideIdlingResource: GlideLoadableIdlingResource = GlideLoadableIdlingResource()
     private lateinit var provider: MockContentProviderWrapper
+
+    /* Setup dependencies for the UninstallModules for the test class. */
+    @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
+
+    val testDispatcher = StandardTestDispatcher()
+
+    /* Overrides for ActivityModule */
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
+
+    /* Overrides for the ConcurrencyModule */
+    @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
+    @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
     /** Replace the injected ContentResolver binding in [ApplicationModule] with this test value. */
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
@@ -140,7 +176,64 @@ class LoadMediaTest {
 
     /** Ensures that a [GlideLoadable] can be loaded via the [loadMedia] composable using Glide. */
     @Test
-    fun testLoadMediaGenericThumbnailResolution() {
+    fun testLoadMediaGenericThumbnailResolutionSMinus() {
+        assumeFalse(SdkLevel.isAtLeastT())
+
+        // Return a resource png so the request is actually backed by something.
+        whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
+            InstrumentationRegistry.getInstrumentation()
+                .getContext()
+                .getResources()
+                .openRawResourceFd(R.drawable.android)
+        }
+
+        composeTestRule.setContent {
+            loadMedia(
+                media = loadable,
+                resolution = Resolution.THUMBNAIL,
+                requestBuilderTransformation = ::setupRequestListener,
+            )
+        }
+
+        // Wait for the [GlideLoadableIdlingResource] to indicate the glide loading
+        // pipeline is idle.
+        composeTestRule.waitForIdle()
+
+        verify(mockContentProvider)
+            .openTypedAssetFile(
+                capture(uri),
+                capture(mimeType),
+                capture(options),
+                any(CancellationSignal::class.java)
+            )
+
+        assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
+
+        // Glide can only load images, so ensure we're requesting the correct mimeType.
+        assertThat(mimeType.getValue()).isEqualTo(DEFAULT_IMAGE_MIME_TYPE)
+
+        // Ensure the CloudProvider is being told to return a preview thumbnail, in case the
+        // loadable is a video.
+        assertThat(
+                options.getValue().getBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL)
+            )
+            .isTrue()
+
+        // This is a request for thumbnail, this needs to be set to get cached thumbnails from
+        // MediaProvider.
+        assertThat(options.getValue().getBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB))
+            .isTrue()
+
+        // Ensure the object is a Point, but the actual size doesn't matter in this context.
+        @Suppress("DEPRECATION")
+        assertThat(options.getValue().getParcelable(ContentResolver.EXTRA_SIZE) as? Point)
+            .isNotNull()
+    }
+
+    /** Ensures that a [GlideLoadable] can be loaded via the [loadMedia] composable using Glide. */
+    @Test
+    fun testLoadMediaGenericThumbnailResolutionTPlus() {
+        assumeTrue(SdkLevel.isAtLeastT())
 
         // Return a resource png so the request is actually backed by something.
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
@@ -194,7 +287,67 @@ class LoadMediaTest {
 
     /** Ensures that a [GlideLoadable] can be loaded via the [loadMedia] composable using Glide. */
     @Test
-    fun testLoadMediaGenericFullResolution() {
+    fun testLoadMediaGenericFullResolutionSMinus() {
+        assumeFalse(SdkLevel.isAtLeastT())
+
+        // Return a resource png so the request is actually backed by something.
+        whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
+            InstrumentationRegistry.getInstrumentation()
+                .getContext()
+                .getResources()
+                .openRawResourceFd(R.drawable.android)
+        }
+
+        composeTestRule.setContent {
+            loadMedia(
+                media = loadable,
+                resolution = Resolution.FULL,
+                requestBuilderTransformation = ::setupRequestListener,
+            )
+        }
+
+        // Wait for the [GlideLoadableIdlingResource] to indicate the glide loading
+        // pipeline is idle.
+        composeTestRule.waitForIdle()
+
+        verify(mockContentProvider)
+            .openTypedAssetFile(
+                capture(uri),
+                capture(mimeType),
+                capture(options),
+                any(CancellationSignal::class.java)
+            )
+
+        assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
+
+        // Glide can only load images, so ensure we're requesting the correct mimeType.
+        assertThat(mimeType.getValue()).isEqualTo(DEFAULT_IMAGE_MIME_TYPE)
+
+        // Ensure the CloudProvider is being told to return a preview thumbnail, in case the
+        // loadable is a video.
+        assertThat(
+                options.getValue().getBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL)
+            )
+            .isTrue()
+
+        // This should not be in the bundle, but the default value returned will be false.
+        assertThat(
+                options.getValue().containsKey(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB)
+            )
+            .isFalse()
+        assertThat(options.getValue().getBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB))
+            .isFalse()
+
+        // Ensure the object is a Point, but the actual size doesn't matter in this context.
+        @Suppress("DEPRECATION")
+        assertThat(options.getValue().getParcelable(ContentResolver.EXTRA_SIZE) as? Point)
+            .isNotNull()
+    }
+
+    /** Ensures that a [GlideLoadable] can be loaded via the [loadMedia] composable using Glide. */
+    @Test
+    fun testLoadMediaGenericFullResolutionTPlus() {
+        assumeTrue(SdkLevel.isAtLeastT())
 
         // Return a resource png so the request is actually backed by something.
         whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {

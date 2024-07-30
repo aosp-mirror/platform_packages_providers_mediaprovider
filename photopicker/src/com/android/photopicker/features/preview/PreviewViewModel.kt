@@ -29,14 +29,19 @@ import android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROL
 import android.provider.ICloudMediaSurfaceController
 import android.provider.ICloudMediaSurfaceStateChangedCallback
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
+import com.android.photopicker.core.selection.SelectionStrategy
 import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -45,6 +50,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -65,6 +71,7 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
+    private val dataService: DataService,
 ) : ViewModel() {
 
     companion object {
@@ -75,6 +82,12 @@ constructor(
         private val REMOTE_PREVIEW_PROVIDER_AUTHORITY =
             "com.android.providers.media.remote_video_preview"
     }
+
+    // Request Media in batches of 10 items
+    private val PREVIEW_PAGER_PAGE_SIZE = 10
+
+    // Keep up to 5 pages loaded in memory before unloading pages.
+    private val PREVIEW_PAGER_MAX_ITEMS_IN_MEMORY = PREVIEW_PAGER_PAGE_SIZE * 5
 
     // Check if a scope override was injected before using the default [viewModelScope]
     private val scope: CoroutineScope =
@@ -90,9 +103,14 @@ constructor(
      */
     val selectionSnapshot = MutableStateFlow<Set<Media>>(emptySet())
 
+    val deselectionSnapshot = MutableStateFlow<Set<Media>>(emptySet())
+
     /** Trigger a new snapshot of the selection. */
     fun takeNewSelectionSnapshot() {
-        scope.launch { selectionSnapshot.update { selection.snapshot() } }
+        scope.launch {
+            selectionSnapshot.update { selection.snapshot() }
+            deselectionSnapshot.update { selection.getDeselection().toHashSet() }
+        }
     }
 
     /**
@@ -110,6 +128,57 @@ constructor(
                 onSelectionLimitExceeded()
             }
         }
+    }
+
+    fun toggleInSelection(
+        media: Collection<Media>,
+        onSelectionLimitExceeded: () -> Unit,
+    ) {
+        scope.launch {
+            val result = selection.toggleAll(media)
+            if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                onSelectionLimitExceeded()
+            }
+        }
+    }
+
+    /**
+     * Provides a flow containing paging data for items that needs to be displayed on the preview
+     * view.
+     *
+     * It takes into account pre-grants, selections and de-selections.
+     */
+    fun getPreviewMediaIncludingPreGrantedItems(
+        selectionSet: Set<Media>,
+        photopickerConfiguration: PhotopickerConfiguration,
+        isSingleItemPreview: Boolean = false,
+    ): Flow<PagingData<Media>> {
+        val flow =
+            if (isSingleItemPreview) flowOf(PagingData.from(selectionSet.toList()))
+            else {
+                when (SelectionStrategy.determineSelectionStrategy(photopickerConfiguration)) {
+                    SelectionStrategy.DEFAULT -> flowOf(PagingData.from(selectionSet.toList()))
+                    SelectionStrategy.GRANTS_AWARE_SELECTION -> {
+                        val pager =
+                            Pager(
+                                PagingConfig(
+                                    pageSize = PREVIEW_PAGER_PAGE_SIZE,
+                                    maxSize = PREVIEW_PAGER_MAX_ITEMS_IN_MEMORY
+                                )
+                            ) {
+                                dataService.previewMediaPagingSource(
+                                    selectionSnapshot.value,
+                                    deselectionSnapshot.value
+                                )
+                            }
+                        pager.flow
+                    }
+                }
+            }
+
+        /** Export the data from the pager and prepare it for use in the [Preview] */
+        val data = flow.cachedIn(scope)
+        return data
     }
 
     /**

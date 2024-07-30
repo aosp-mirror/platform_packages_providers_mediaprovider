@@ -53,6 +53,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -327,6 +328,18 @@ public class PickerUriResolver {
     }
 
     /**
+     * @param intentAction The intent action associated with the Picker session. Note that the
+     *                     intent action could be null in case of embedded picker.
+     * @return The Picker URI path segment.
+     */
+    public static String getPickerSegmentFromIntentAction(@Nullable String intentAction) {
+        if (intentAction != null && intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+            return PICKER_GET_CONTENT_SEGMENT;
+        }
+        return PICKER_SEGMENT;
+    }
+
+    /**
      * Creates a picker uri incorporating authority, user id and cloud provider.
      */
     public static Uri wrapProviderUri(Uri uri, String action, int userId) {
@@ -336,11 +349,7 @@ public class PickerUriResolver {
         }
 
         Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
-        if (action.equalsIgnoreCase(Intent.ACTION_GET_CONTENT)) {
-            builder.appendPath(PICKER_GET_CONTENT_SEGMENT);
-        } else {
-            builder.appendPath(PICKER_SEGMENT);
-        }
+        builder.appendPath(getPickerSegmentFromIntentAction(action));
         builder.appendPath(String.valueOf(userId));
         builder.appendPath(uri.getHost());
 

@@ -23,6 +23,7 @@ import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.graphics.Point
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
 import android.os.UserHandle
@@ -49,12 +50,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
+import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -76,8 +82,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.any
@@ -88,6 +92,8 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
+// TODO(b/340770526) Fix tests that can't access [ICloudMediaSurfaceController] on R & S.
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -142,6 +148,37 @@ class PreviewViewModelTest {
             standardMimeTypeExtension = 1,
         )
 
+    val TEST_PRE_GRANTED_MEDIA_IMAGE =
+        Media.Image(
+            mediaId = "id2",
+            pickerId = 1000L,
+            authority = "a",
+            mediaSource = MediaSource.LOCAL,
+            mediaUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("media")
+                        path("picker")
+                        path("a")
+                        path("id")
+                    }
+                    .build(),
+            glideLoadableUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority(MockContentProviderWrapper.AUTHORITY)
+                        path("id")
+                    }
+                    .build(),
+            dateTakenMillisLong = 123456789L,
+            sizeInBytes = 1000L,
+            mimeType = "image/png",
+            standardMimeTypeExtension = 1,
+            isPreGranted = true,
+        )
+
     val TEST_MEDIA_VIDEO =
         Media.Video(
             mediaId = "video_id",
@@ -175,8 +212,18 @@ class PreviewViewModelTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
+            whenever(mockUserManager.getUserBadge()) {
+                InstrumentationRegistry.getInstrumentation()
+                    .getContext()
+                    .getResources()
+                    .getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
         }
 
         // Stub for MockContentResolver constructor
@@ -194,13 +241,6 @@ class PreviewViewModelTest {
         whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
             mockContext
         }
-        whenever(mockUserManager.getUserBadge()) {
-            InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
 
         // Stubs for creating the RemoteSurfaceController
         whenever(
@@ -221,7 +261,7 @@ class PreviewViewModelTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 )
@@ -237,6 +277,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             assertWithMessage("Unexpected selection start size")
@@ -264,13 +305,66 @@ class PreviewViewModelTest {
         }
     }
 
+    @Test
+    fun testToggleInSelectionCollectionUpdatesSelection() {
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG,
+                        ),
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl()
+                )
+
+            assertWithMessage("Unexpected selection start size")
+                .that(selection.snapshot().size)
+                .isEqualTo(0)
+
+            // Toggle the item into the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            // Wait for selection update.
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection did not contain expected item")
+                .that(selection.snapshot())
+                .containsExactly(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO)
+
+            // Toggle the item out of the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection contains unexpected item")
+                .that(selection.snapshot())
+                .isEmpty()
+        }
+    }
+
     /** Ensures the selection is not snapshotted until requested. */
     @Test
     fun testSnapshotSelection() {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
@@ -287,6 +381,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             var snapshot = viewModel.selectionSnapshot.first()
@@ -308,13 +403,58 @@ class PreviewViewModelTest {
         }
     }
 
+    /** Ensures the deselection is snapshotted when requested. */
+    @Test
+    fun testDeselectionSnapshotIsPopulated() {
+
+        runTest {
+            val selection =
+                GrantsAwareSelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl()
+                )
+
+            // remove a pre-granted item and it should be added to the deselection snapshot.
+            selection.remove(TEST_PRE_GRANTED_MEDIA_IMAGE)
+
+            viewModel.takeNewSelectionSnapshot()
+
+            // Wait for snapshot
+            advanceTimeBy(100)
+            var snapshot = viewModel.selectionSnapshot.value
+            var deselectionSnapshot = viewModel.deselectionSnapshot.value
+
+            assertWithMessage("Selection snapshot did not match expected")
+                .that(snapshot)
+                .isEqualTo(emptySet<Media>())
+
+            assertWithMessage("Deselection snapshot did not match expected")
+                .that(deselectionSnapshot)
+                .isEqualTo(setOf(TEST_PRE_GRANTED_MEDIA_IMAGE))
+        }
+    }
+
     /** Ensures the creation parameters of remote surface controllers. */
     @Test
     fun testRemotePreviewControllerCreation() {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
@@ -330,6 +470,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             val controller =
@@ -368,7 +509,7 @@ class PreviewViewModelTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
@@ -384,6 +525,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             val controller =
@@ -437,14 +579,21 @@ class PreviewViewModelTest {
                     ) {}
 
                     override fun onSurfaceDestroyed(surfaceId: Int) {}
+
                     override fun onMediaPlay(surfaceId: Int) {}
+
                     override fun onMediaPause(surfaceId: Int) {}
+
                     override fun onMediaSeekTo(surfaceId: Int, timestampMillis: Long) {}
+
                     override fun onConfigChange(bundle: Bundle) {}
+
                     override fun onDestroy() {
                         mockController.onDestroy()
                     }
+
                     override fun onPlayerCreate() {}
+
                     override fun onPlayerRelease() {}
                 }
 
@@ -459,7 +608,7 @@ class PreviewViewModelTest {
                 bundleOf(EXTRA_SURFACE_CONTROLLER to controllerProxy)
             }
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
@@ -475,6 +624,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)
@@ -490,7 +640,7 @@ class PreviewViewModelTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
@@ -506,6 +656,7 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    dataService = TestDataServiceImpl()
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)
@@ -542,12 +693,7 @@ class PreviewViewModelTest {
                 .that(mediaSizeChangedInfo.authority)
                 .isEqualTo(MockContentProviderWrapper.AUTHORITY)
             assertWithMessage("MEDIA_SIZE_CHANGED emitted state was invalid")
-                .that(
-                    mediaSizeChangedInfo.playbackStateInfo?.getParcelable(
-                        EXTRA_SIZE,
-                        Point::class.java
-                    )
-                )
+                .that(getPointFromParcelableSafe(mediaSizeChangedInfo.playbackStateInfo))
                 .isEqualTo(Point(100, 200))
 
             callback.setPlaybackState(1, PLAYBACK_STATE_BUFFERING, null)
@@ -633,6 +779,19 @@ class PreviewViewModelTest {
                         authority = MockContentProviderWrapper.AUTHORITY
                     )
                 )
+        }
+    }
+
+    /**
+     * Uses the correct version of [getParcelable] based on platform sdk.
+     *
+     * @return The EXTRA_SIZE [Point], if it exists.
+     */
+    private fun getPointFromParcelableSafe(bundle: Bundle?): Point? {
+        if (SdkLevel.isAtLeastT()) {
+            return bundle?.getParcelable(EXTRA_SIZE, Point::class.java)
+        } else {
+            @Suppress("DEPRECATION") return bundle?.getParcelable(EXTRA_SIZE) as? Point
         }
     }
 

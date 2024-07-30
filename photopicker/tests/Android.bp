@@ -30,6 +30,7 @@ android_test {
         "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
+        "flag-junit",
         "hilt_android",
         "hilt_android_testing",
         "mockito-target",

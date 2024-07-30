@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.android.photopicker.core
 
 import android.content.Context
@@ -54,6 +53,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 
 /**
  * Injection Module that provides access to objects bound to a single [EmbeddedServiceComponent].
@@ -88,12 +88,17 @@ class EmbeddedServiceModule {
     private lateinit var userMonitor: UserMonitor
 
     @Provides
-    fun provideEmbeddedLifecycle(viewModelFactory: EmbeddedViewModelFactory): EmbeddedLifecycle {
+    fun provideEmbeddedLifecycle(
+        viewModelFactory: EmbeddedViewModelFactory,
+        @Main dispatcher: CoroutineDispatcher
+    ): EmbeddedLifecycle {
         if (::embeddedLifecycle.isInitialized) {
             return embeddedLifecycle
         } else {
             Log.d(TAG, "Initializing custom embedded lifecycle.")
-            embeddedLifecycle = EmbeddedLifecycle(viewModelFactory)
+
+            // This must initialize on the MainThread so the Lifecycle state can be set.
+            embeddedLifecycle = runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
             return embeddedLifecycle
         }
     }
@@ -131,6 +136,7 @@ class EmbeddedServiceModule {
     @Background
     fun provideBackgroundScope(
         @Background dispatcher: CoroutineDispatcher,
+        @Main mainDispatcher: CoroutineDispatcher,
         embeddedLifecycle: EmbeddedLifecycle,
     ): CoroutineScope {
         if (::backgroundScope.isInitialized) {
@@ -138,17 +144,24 @@ class EmbeddedServiceModule {
         } else {
             Log.d(TAG, "Initializing background scope.")
             backgroundScope = CoroutineScope(SupervisorJob() + dispatcher)
-            embeddedLifecycle.lifecycle.addObserver(
-                LifecycleEventObserver { _, event ->
-                    when (event) {
-                        Lifecycle.Event.ON_DESTROY -> {
-                            Log.d(TAG, "Embedded lifecycle is ending, cancelling background scope.")
-                            backgroundScope.cancel()
+
+            // addObserver must be called from the main thread
+            runBlocking(mainDispatcher) {
+                embeddedLifecycle.lifecycle.addObserver(
+                    LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_DESTROY -> {
+                                Log.d(
+                                    TAG,
+                                    "Embedded lifecycle is ending, cancelling background scope."
+                                )
+                                backgroundScope.cancel()
+                            }
+                            else -> {}
                         }
-                        else -> {}
                     }
-                }
-            )
+                )
+            }
             return backgroundScope
         }
     }
@@ -311,17 +324,21 @@ class EmbeddedServiceModule {
         } else {
             Log.d(TAG, "Initializing main scope.")
             mainScope = CoroutineScope(SupervisorJob() + dispatcher)
-            embeddedLifecycle.lifecycle.addObserver(
-                LifecycleEventObserver { _, event ->
-                    when (event) {
-                        Lifecycle.Event.ON_DESTROY -> {
-                            Log.d(TAG, "Embedded lifecycle is ending, cancelling main scope.")
-                            mainScope.cancel()
+
+            // addObserver must be called from the main thread
+            runBlocking(dispatcher) {
+                embeddedLifecycle.lifecycle.addObserver(
+                    LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_DESTROY -> {
+                                Log.d(TAG, "Embedded lifecycle is ending, cancelling main scope.")
+                                mainScope.cancel()
+                            }
+                            else -> {}
                         }
-                        else -> {}
                     }
-                }
-            )
+                )
+            }
             return mainScope
         }
     }

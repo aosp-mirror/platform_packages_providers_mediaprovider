@@ -63,6 +63,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable the abstract service for media cognition processes"
     bug: "331771553"
+    is_fixed_read_only: true
 }
 
 flag {

@@ -17,37 +17,127 @@ package com.android.photopicker.core.embedded
 
 import android.app.Service
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
+import android.provider.EmbeddedPhotopickerFeatureInfo
+import android.provider.IEmbeddedPhotopickerClient
+import android.util.Log
+import androidx.annotation.RequiresApi
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.EmbeddedServiceComponentBuilder
+import com.android.providers.media.flags.Flags.enableEmbeddedPhotopicker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+/**
+ * This service is the client's entrypoint into the embedded Photopicker.
+ *
+ * It is responsible for creating new [Session]s for every EmbeddedPhotopickerProvider#openSession
+ * call. The service has one-to-many relationship with client apps and one-to-many relationship with
+ * [Session] i.e. multiple client apps can request multiple [Session] through this service.
+ *
+ * Service returns binder instance of [IEmbeddedPhotoPicker] when bound.
+ *
+ * NOTE: This service requires the [FLAGS.ENABLE_EMBEDDED_PHOTOPICKER] to be enabled, or onBind
+ * requests will be ignored.
+ *
+ * @see EmbeddedPhotopickerImpl for implementation of [IEmbeddedPhotoPicker]
+ * @see Session for implementation of [EmbeddedPhotopickerSession]
+ * @see android.provider.EmbeddedPhotoPickerProvider#openSession for api surface
+ */
 @AndroidEntryPoint(Service::class)
 class EmbeddedService : Hilt_EmbeddedService() {
 
-    /** A builder to obtain an [EmbeddedServiceComponent] for a new [Session]. */
+    // A builder that can be used to build a unique set of hilt containers to supply individual
+    // dependencies for each embedded photopicker session.
     @Inject lateinit var embeddedServiceComponentBuilder: EmbeddedServiceComponentBuilder
+
+    // A list that keeps track of all sessions created by this instance of the bound
+    // EmbeddedService.
+    private val allSessions: MutableList<Session> = mutableListOf()
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedService"
     }
 
+    // The binder object that is sent to all clients that bind this service.
+    private val _binder: IBinder? =
+        if (SdkLevel.isAtLeastU() && enableEmbeddedPhotopicker()) {
+            EmbeddedPhotopickerImpl(sessionFactory = ::buildSession)
+        } else {
+            // Embedded Photopicker is only available on U+ devices when the build flag is enabled.
+            // When those conditions aren't meant, this is null to reject any bind requests on
+            // devices that aren't at least on SdkLevel U+ with the correct flag settings.
+            null
+        }
+
     override fun onBind(intent: Intent?): IBinder? {
-        throw NotImplementedError(
-            "onBind is not yet implemented for Photopicker's embedded service."
-        )
+
+        // If _binder is null, the device Sdk is too low, or a required flag was not enabled, and so
+        // this session will be ignored.
+        if (_binder == null) {
+            Log.w(TAG, "onBind was attempted, but EmbeddedPhotopicker is not available.")
+        }
+        return _binder
     }
 
     override fun onCreate() {
         super.onCreate()
-        throw NotImplementedError(
-            "onCreate is not yet implemented for Photopicker's embedded service."
-        )
     }
 
     override fun onDestroy() {
-        throw NotImplementedError(
-            "onDestroy is not yet implemented for Photopicker's embedded service."
-        )
+        super.onDestroy()
+        if (SdkLevel.isAtLeastU()) {
+            cleanupSessions()
+        }
+    }
+
+    /**
+     * Ensures that all sessions opened by this service were closed so that the resources are
+     * released.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun cleanupSessions() {
+        for (session in allSessions) {
+            if (session.isActive) {
+                session.close()
+            }
+        }
+    }
+
+    /**
+     * The [Session] factory used by the Binder implementation the client receives. After the
+     * session is created the service retains a reference to it to ensure resources are closed in
+     * the onDestroy.
+     *
+     * @See Session constructor for parameter details.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun buildSession(
+        packageName: String,
+        uid: Int,
+        hostToken: IBinder,
+        displayId: Int,
+        width: Int,
+        height: Int,
+        featureInfo: EmbeddedPhotopickerFeatureInfo,
+        // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
+        clientCallback: IEmbeddedPhotopickerClient,
+    ): Session {
+        val newSession =
+            Session(
+                context = this,
+                component = embeddedServiceComponentBuilder.build(),
+                clientPackageName = packageName,
+                clientUid = uid,
+                width = width,
+                height = height,
+                displayId = displayId,
+                hostToken = hostToken,
+                featureInfo = featureInfo,
+                clientCallback = clientCallback,
+            )
+        allSessions.add(newSession)
+        return newSession
     }
 }

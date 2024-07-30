@@ -61,6 +61,7 @@ android_library {
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_coroutines",
+        "mediaprovider_flags_java_lib",
         "modules-utils-build",
     ],
     apex_available: [

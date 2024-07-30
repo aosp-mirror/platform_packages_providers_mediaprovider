@@ -53,9 +53,9 @@ import kotlinx.coroutines.runBlocking
 import org.mockito.Mockito.mock
 
 /**
- * A basic Hilt test module that resolves common injected dependencies. Tests can install extend and
- * install this module to customize dependencies on a per test suite basis and avoid a lot of DI
- * setup of classes that may not be used in the test cases.
+ * A basic Hilt test module that resolves common injected dependencies. Tests can install this
+ * module to customize dependencies on a per test suite basis and avoid a lot of DI setup of classes
+ * that may not be used in the test cases.
  *
  * For the purposes of the test case, all of these values are provided as [@Singleton] to ensure
  * that each injector receives the same value.
@@ -64,12 +64,11 @@ import org.mockito.Mockito.mock
  * by the test class directly via [@BindValue] and [TestScope]
  *
  * Note: This module is not actually Installed into the Hilt graph. @DisableInstallInCheck prevents
- * this module from being installed, each test will extend & install this module independently.
+ * this module from being installed, each test will install this module independently.
  */
 @Module
 @DisableInstallInCheck
-abstract class PhotopickerTestModule {
-
+abstract class EmbeddedTestModule {
     @Singleton
     @Provides
     fun provideTestMockContext(): Context {
@@ -85,8 +84,9 @@ abstract class PhotopickerTestModule {
         viewModelFactory: EmbeddedViewModelFactory,
         @Main dispatcher: CoroutineDispatcher
     ): EmbeddedLifecycle {
-        // Force Lifecycle to be created on the MainDispatcher
-        val embeddedLifecycle = runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
+        val embeddedLifecycle =
+            // Force Lifecycle to be created on the MainDispatcher
+            runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
         return embeddedLifecycle
     }
 
@@ -146,7 +146,7 @@ abstract class PhotopickerTestModule {
         deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
         return ConfigurationManager(
-            PhotopickerRuntimeEnv.ACTIVITY,
+            PhotopickerRuntimeEnv.EMBEDDED,
             scope,
             dispatcher,
             deviceConfigProxy,

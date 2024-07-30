@@ -14,6 +14,13 @@
      limitations under the License.
 -->
 <configuration description="Runs Tests for MediaProvder.">
+
+    <target_preparer class="com.android.tradefed.targetprep.DeviceSetup">
+        <option name="force-skip-system-props" value="true" />
+        <option name="set-global-setting" key="verifier_engprod" value="1" />
+        <option name="set-global-setting" key="verifier_verify_adb_installs" value="0" />
+    </target_preparer>
+
     <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
         <option name="test-file-name" value="MediaProviderTests.apk" />
         <option name="test-file-name" value="MediaProviderTestAppForPermissionActivity.apk" />

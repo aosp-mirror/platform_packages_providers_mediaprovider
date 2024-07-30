@@ -363,9 +363,9 @@ import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
- * Separate databases are kept for each external storage card we see (using the
- * card's ID as an index).  The content visible at content://media/external/...
- * changes with the card.
+ * A single database keep track of media files on external storage
+ * The content visible at content://media/external/... is a combined view of all media files on all
+ * available external storage devices
  */
 public class MediaProvider extends ContentProvider {
     /**

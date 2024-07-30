@@ -158,6 +158,7 @@ class MediaGridTest {
     lateinit var flow: Flow<PagingData<MediaGridItem>>
 
     private val MEDIA_GRID_TEST_TAG = "media_grid"
+    private val BANNER_CONTENT_TEST_TAG = "banner_content"
     private val CUSTOM_ITEM_TEST_TAG = "custom_item"
     private val CUSTOM_ITEM_SEPARATOR_TAG = "custom_separator"
     private val CUSTOM_ITEM_FACTORY_TEXT = "custom item factory"
@@ -245,6 +246,7 @@ class MediaGridTest {
         selection: SelectionImpl<Media>,
         onItemClick: (MediaGridItem) -> Unit,
         onItemLongPress: (MediaGridItem) -> Unit = {},
+        bannerContent: (@Composable () -> Unit)? = null,
     ) {
         val items = flow.collectAsLazyPagingItems()
         val selected by selection.flow.collectAsStateWithLifecycle()
@@ -254,6 +256,7 @@ class MediaGridTest {
             selection = selected,
             onItemClick = onItemClick,
             onItemLongPress = onItemLongPress,
+            bannerContent = bannerContent,
             modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG)
         )
     }
@@ -309,6 +312,33 @@ class MediaGridTest {
         }
 
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+        mediaGrid.assertIsDisplayed()
+    }
+
+    /** Ensures the MediaGrid shows any banner content that is provided. */
+    @Test
+    fun testMediaGridDisplaysBannerContent() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
+
+        composeTestRule.setContent {
+            grid(
+                selection = selection,
+                onItemClick = {},
+                onItemLongPress = {},
+                bannerContent = {
+                    Text(
+                        text = "bannerContent",
+                        modifier = Modifier.testTag(BANNER_CONTENT_TEST_TAG)
+                    )
+                }
+            )
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(BANNER_CONTENT_TEST_TAG))
         mediaGrid.assertIsDisplayed()
     }
 

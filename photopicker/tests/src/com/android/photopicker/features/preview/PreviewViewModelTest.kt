@@ -55,6 +55,7 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.SelectionImpl
@@ -301,6 +302,59 @@ class PreviewViewModelTest {
             assertWithMessage("Selection contains unexpected item")
                 .that(selection.snapshot())
                 .doesNotContain(TEST_MEDIA_IMAGE)
+        }
+    }
+
+    @Test
+    fun testToggleInSelectionCollectionUpdatesSelection() {
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG,
+                        ),
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl()
+                )
+
+            assertWithMessage("Unexpected selection start size")
+                .that(selection.snapshot().size)
+                .isEqualTo(0)
+
+            // Toggle the item into the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            // Wait for selection update.
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection did not contain expected item")
+                .that(selection.snapshot())
+                .containsExactly(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO)
+
+            // Toggle the item out of the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection contains unexpected item")
+                .that(selection.snapshot())
+                .isEmpty()
         }
     }
 
@@ -737,7 +791,7 @@ class PreviewViewModelTest {
         if (SdkLevel.isAtLeastT()) {
             return bundle?.getParcelable(EXTRA_SIZE, Point::class.java)
         } else {
-            return bundle?.getParcelable(EXTRA_SIZE) as? Point
+            @Suppress("DEPRECATION") return bundle?.getParcelable(EXTRA_SIZE) as? Point
         }
     }
 

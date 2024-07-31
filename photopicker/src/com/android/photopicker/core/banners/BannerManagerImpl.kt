@@ -16,11 +16,13 @@
 
 package com.android.photopicker.core.banners
 
+import android.os.UserHandle
 import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.extensions.pmap
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,8 +30,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
@@ -41,6 +46,8 @@ class BannerManagerImpl(
     private val databaseManager: DatabaseManager,
     private val featureManager: FeatureManager,
     private val dataService: DataService,
+    private val userMonitor: UserMonitor,
+    private val processOwnerHandle: UserHandle
 ) : BannerManager {
 
     companion object {
@@ -50,6 +57,18 @@ class BannerManagerImpl(
 
     val _flow: MutableStateFlow<Banner?> = MutableStateFlow(null)
     override val flow: StateFlow<Banner?> = _flow
+
+    init {
+        // Observe Profile switches and always force banner refresh when the
+        // user changes the active profile.
+        scope.launch {
+            userMonitor.userStatus
+                .drop(1)
+                .map { it.activeUserProfile }
+                .distinctUntilChanged()
+                .collect { refreshBanners() }
+        }
+    }
 
     /**
      * Attempt to show the requested banner.
@@ -142,6 +161,21 @@ class BannerManagerImpl(
     override suspend fun refreshBanners() {
         Log.d(TAG, "Refresh of banners was requested.")
 
+        // [BannerState] is not accessible cross-profile, so any time the [activeUserProfile]
+        // is not the Process owner's profile, banners need to be hidden to avoid showing
+        // banner content that is not relevant to the active profile.
+        if (
+            userMonitor.userStatus.value.activeUserProfile.handle.identifier !=
+                processOwnerHandle.getIdentifier()
+        ) {
+            Log.d(
+                TAG,
+                "User profile has been changed and is no longer owner, banners will be cleared."
+            )
+            _flow.updateAndGet { null }
+            return
+        }
+
         // Force this work to the background
         withContext(backgroundDispatcher) {
 
@@ -211,6 +245,6 @@ class BannerManagerImpl(
                 .filter { it.ownedBanners.contains(banner) }
                 .firstOrNull()
         checkNotNull(feature) { "Could not find an enabled builder for $banner" }
-        return feature.buildBanner(banner)
+        return feature.buildBanner(banner, dataService)
     }
 }

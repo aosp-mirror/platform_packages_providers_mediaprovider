@@ -39,6 +39,7 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
@@ -97,8 +98,9 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -108,6 +110,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
@@ -138,7 +141,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testOverflowMenuAnchorShownIfMenuItemsExist() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
@@ -180,7 +183,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testOverflowMenuAnchorHiddenWhenNoMenuItemsExist() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
@@ -220,7 +223,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testOverflowMenuIsHiddenAfterItemSelected() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),

@@ -45,6 +45,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
@@ -100,11 +101,12 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -115,6 +117,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var userHandle: UserHandle
     @Inject lateinit var bannerManager: Lazy<BannerManager>
+    @Inject override lateinit var configurationManager: ConfigurationManager
 
     @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
@@ -144,7 +147,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testProfileSelectorIsShownWithMultipleProfiles() =
-        mainScope.runTest {
+        testScope.runTest {
 
             // Initial setup state: Two profiles (Personal/Work), both enabled
             whenever(mockUserManager.userProfiles) { listOf(userHandle, USER_HANDLE_MANAGED) }
@@ -173,7 +176,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testProfileSelectorIsNotShownOnlyOneProfile() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -195,7 +198,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testHideQuietModeProfilesWhenRequestedPostV() {
-        mainScope.runTest {
+        testScope.runTest {
             assumeTrue(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 
@@ -299,7 +302,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testAvailableProfilesAreDisplayedPostV() =
-        mainScope.runTest {
+        testScope.runTest {
             assumeTrue(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 
@@ -374,7 +377,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testAvailableProfilesAreDisplayedPreV() =
-        mainScope.runTest {
+        testScope.runTest {
             assumeFalse(SdkLevel.isAtLeastV())
             val resources = getTestableContext().getResources()
 

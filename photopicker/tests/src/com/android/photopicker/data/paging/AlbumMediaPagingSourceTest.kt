@@ -17,11 +17,11 @@
 package com.android.photopicker.features.data.paging
 
 import android.content.ContentResolver
-import android.content.Intent
 import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadParams
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.MediaPageKey
@@ -47,7 +47,8 @@ import org.mockito.MockitoAnnotations
 class AlbumMediaPagingSourceTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
-    private val availableProviders: List<Provider> = listOf(Provider("auth", MediaSource.LOCAL, 0))
+    private val availableProviders: List<Provider> =
+        listOf(Provider("auth", MediaSource.LOCAL, 0, ""))
 
     @Mock private lateinit var mockMediaProviderClient: MediaProviderClient
 
@@ -60,7 +61,7 @@ class AlbumMediaPagingSourceTest {
     fun testLoad() = runTest {
         val albumId = "test-album-id"
         val albumAuthority = availableProviders[0].authority
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+        val config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
         val albumMediaPagingSource =
             AlbumMediaPagingSource(
                 albumId = albumId,
@@ -69,7 +70,7 @@ class AlbumMediaPagingSourceTest {
                 availableProviders = availableProviders,
                 mediaProviderClient = mockMediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                intent = intent
+                config = config
             )
 
         val pageKey = MediaPageKey()
@@ -92,7 +93,7 @@ class AlbumMediaPagingSourceTest {
                 pageSize,
                 contentResolver,
                 availableProviders,
-                intent
+                config
             )
     }
 }

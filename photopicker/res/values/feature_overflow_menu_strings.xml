@@ -21,5 +21,8 @@
     <!-- Overflow menu cloud settings label -->
     <string name="photopicker_overflow_cloud_media_app" translation_description="Menu item label that directs the user to a settings page for their cloud media application.">Cloud media app</string>
 
+    <!-- Overflow menu browse label followed by ellipsis-->
+    <string name="photopicker_overflow_browse" translation_description="Menu item label that directs the user to a different application to browse all files in another interface.">Browse&#8230;</string>
+
 </resources>
 

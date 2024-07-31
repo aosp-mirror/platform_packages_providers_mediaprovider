@@ -17,12 +17,20 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_application_label" msgid="3482718304682270084">"میڈیا منتخب کنندہ"</string>
+    <string name="photopicker_application_label" msgid="7272391964836190376">"تصاویر اور ویڈیوز"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"میڈیا"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"منتخب کردہ"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g> کو شامل کریں"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"ہو گیا"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"سبھی کو غیر منتخب کریں"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> آئٹمز تک منتخب کریں"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"تصاویر"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"البمز"</string>
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ابھی تک کوئی تصویر نہیں ہے"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"تصاویر اور ویڈیوز کیپچر کرنا شروع کریں"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"اب تک کوئی پسندیدہ نہیں"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"یہ ایک خودکار البم ہے جو ستارہ لگے ہوئے یا پسندیدہ کے طور پر نشان زد کیے ہوئے آئٹمز کو جمع کرتا ہے"</string>
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ابھی تک کوئی ویڈیو نہیں ہے"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"یہ ایک خودکار البم ہے جو آپ کی تمام ویڈیوز کو جمع کرتا ہے"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"پیچھے جائیں"</string>
+    <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"برخاست کریں"</string>
 </resources>

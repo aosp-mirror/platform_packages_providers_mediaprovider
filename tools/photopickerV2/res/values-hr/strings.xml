@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"Alat za odabir fotografija"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Korisničko sučelje Dokumenata"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"Odabir alata za odabir"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"Odaberite slike"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"Radnja dohvaćanja sadržaja"</string>
+    <!-- no translation found for open_document (8593796561386540777) -->
+    <skip />
+    <!-- no translation found for open_document_tree (8979404185180480396) -->
+    <skip />
+    <string name="display_images_in_order" msgid="7880116254468536174">"Prikaži slike prema redoslijedu"</string>
+    <!-- no translation found for show_images_only (6365019348435132030) -->
+    <skip />
+    <!-- no translation found for show_videos_only (7302756380142587762) -->
+    <skip />
+    <!-- no translation found for enter_mime_type (6599304148898478294) -->
+    <skip />
+    <!-- no translation found for select_launch_tab (1219436289162294907) -->
+    <skip />
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"Dopusti višestruki izbor"</string>
+    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
+    <skip />
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"Maksimalan broj medijskih datoteka"</string>
+    <!-- no translation found for enter_valid_number (650407643348891234) -->
+    <skip />
+    <string name="pick_media" msgid="5269447618857205416">"Odaberite medije"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"Radimo na tome"</string>
+</resources>

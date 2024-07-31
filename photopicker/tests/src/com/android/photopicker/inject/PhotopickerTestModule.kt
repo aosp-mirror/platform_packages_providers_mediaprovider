@@ -20,6 +20,7 @@ import android.content.Context
 import android.os.Parcel
 import android.os.UserHandle
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.Main
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
@@ -48,6 +49,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import org.mockito.Mockito.mock
 
 /**
@@ -79,8 +81,12 @@ abstract class PhotopickerTestModule {
 
     @Singleton
     @Provides
-    fun provideEmbeddedLifecycle(viewModelFactory: EmbeddedViewModelFactory): EmbeddedLifecycle {
-        val embeddedLifecycle = EmbeddedLifecycle(viewModelFactory)
+    fun provideEmbeddedLifecycle(
+        viewModelFactory: EmbeddedViewModelFactory,
+        @Main dispatcher: CoroutineDispatcher
+    ): EmbeddedLifecycle {
+        // Force Lifecycle to be created on the MainDispatcher
+        val embeddedLifecycle = runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
         return embeddedLifecycle
     }
 
@@ -117,6 +123,8 @@ abstract class PhotopickerTestModule {
         databaseManager: DatabaseManager,
         featureManager: FeatureManager,
         dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
     ): BannerManager {
         return BannerManagerImpl(
             backgroundScope,
@@ -125,6 +133,8 @@ abstract class PhotopickerTestModule {
             databaseManager,
             featureManager,
             dataService,
+            userMonitor,
+            processOwnerHandle,
         )
     }
 

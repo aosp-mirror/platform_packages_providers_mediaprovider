@@ -170,13 +170,58 @@ class ConfigurationManagerTest {
                     expectedConfiguration.copy(
                         flags =
                             PhotopickerFlags(
-                                CLOUD_ALLOWED_PROVIDERS = "testallowlist",
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("testallowlist"),
                                 CLOUD_MEDIA_ENABLED = !FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
                                 PRIVATE_SPACE_ENABLED = !FEATURE_PRIVATE_SPACE_ENABLED.second,
                             )
                     )
                 )
         }
+    }
+
+    /**
+     * Checks that the [ConfigurationManager] correctly identifies an authority in the device config
+     * and converts it into a package name before emitting a new [PhotopickerConfiguration].
+     */
+    @Test
+    fun testAllowlistedPackagesAreBackwardCompatible() = runTest {
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+            )
+        // Expect the default configuration with an action matching the test action.
+        val expectedConfiguration = PhotopickerConfiguration(action = "")
+
+        val emissions = mutableListOf<PhotopickerConfiguration>()
+        backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+        // wait for ConfigurationManager to register a listener
+        advanceTimeBy(100)
+
+        deviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+            "test.cmp1,test.cmp2.cloudprovider,test.cmp3.cloudpicker"
+        )
+
+        // wait for debounce
+        advanceTimeBy(1100)
+
+        assertThat(emissions.size).isEqualTo(2)
+        assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        assertThat(emissions.last())
+            .isEqualTo(
+                expectedConfiguration.copy(
+                    flags =
+                        PhotopickerFlags(
+                            CLOUD_ALLOWED_PROVIDERS =
+                                arrayOf("test.cmp1", "test.cmp2", "test.cmp3"),
+                        )
+                )
+            )
     }
 
     /**
@@ -207,7 +252,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo("TEST_ACTION")
-            assertThat(emissions.last().intent).isNotNull()
         }
     }
 
@@ -281,7 +325,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
         }
@@ -317,7 +360,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png"))
         }
     }
@@ -354,7 +396,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -395,7 +436,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -459,7 +499,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().pickImagesInOrder).isTrue()
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
@@ -502,7 +541,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.ALBUM_GRID)
         }
@@ -544,7 +582,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.PHOTO_GRID)
         }
@@ -587,7 +624,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination).isEqualTo(PhotopickerDestinations.DEFAULT)
         }
     }

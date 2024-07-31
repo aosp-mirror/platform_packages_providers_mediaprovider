@@ -21,6 +21,12 @@ import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_NEXT_ROW_ID
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__BACKUP_MISSING;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__FUSE_DAEMON_TIMEOUT;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__GET_BACKUP_DATA_FAILURE;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__OTHER_ERROR;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__SUCCESS;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__VOLUME_NOT_ATTACHED;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
@@ -29,6 +35,7 @@ import static com.android.providers.media.flags.Flags.enableStableUrisForExterna
 import static com.android.providers.media.flags.Flags.enableStableUrisForPublicVolume;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
@@ -140,9 +147,9 @@ public class DatabaseBackupAndRecovery {
     };
 
     /**
-     * Wait time of 15 seconds in millis.
+     * Wait time of 20 seconds in millis.
      */
-    private static final long WAIT_TIME_15_SECONDS_IN_MILLIS = 15000;
+    private static final long WAIT_TIME_20_SECONDS_IN_MILLIS = 20000;
 
     /**
      * Number of records to read from leveldb in a JNI call.
@@ -306,7 +313,7 @@ public class DatabaseBackupAndRecovery {
             } else {
                 return;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             MediaProviderStatsLog.write(
                     MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                     MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__FAILURE, vol);
@@ -413,11 +420,11 @@ public class DatabaseBackupAndRecovery {
         try {
             fuseDaemonExternalPrimary = getFuseDaemonForFileWithWait(
                     new File(EXTERNAL_PRIMARY_ROOT_PATH));
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             Log.e(TAG,
-                    "Fuse Daemon not found for primary external storage, skipping backing up of "
-                            + volumeName,
-                    e);
+                    "Error occurred while retrieving the Fuse Daemon for the external primary, "
+                            + "skipping backing up of "
+                            + volumeName, e);
             return;
         }
         FuseDaemon fuseDaemonPublicVolume;
@@ -425,9 +432,9 @@ public class DatabaseBackupAndRecovery {
             try {
                 fuseDaemonPublicVolume = getFuseDaemonForFileWithWait(new File(
                         getFuseFilePathFromVolumeName(volumeName)));
-            } catch (FileNotFoundException e) {
+            } catch (Exception e) {
                 Log.e(TAG,
-                        "Fuse Daemon not found for "
+                        "Error occurred while retrieving the Fuse Daemon for "
                                 + getFuseFilePathFromVolumeName(volumeName)
                                 + ", skipping backing up of " + volumeName,
                         e);
@@ -518,18 +525,14 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit) {
+    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit)
+            throws IOException, UnsupportedOperationException {
         if (!isStableUrisEnabled(volumeName)) {
-            return new String[0];
+            throw new UnsupportedOperationException("Stable Uris are not enabled");
         }
 
-        try {
-            return getFuseDaemonForPath(getFuseFilePathFromVolumeName(volumeName))
-                    .readBackedUpFilePaths(volumeName, lastReadValue, limit);
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in reading backed up file paths for volume: " + volumeName, e);
-            return new String[0];
-        }
+        return getFuseDaemonForPath(getFuseFilePathFromVolumeName(volumeName))
+                .readBackedUpFilePaths(volumeName, lastReadValue, limit);
     }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
@@ -890,7 +893,8 @@ public class DatabaseBackupAndRecovery {
     protected boolean insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
             String volumeName) {
         final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        return db.insert("files", null, values) != -1;
+        return db.insertWithOnConflict("files", null, values,
+                SQLiteDatabase.CONFLICT_REPLACE) != -1;
     }
 
     private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
@@ -955,69 +959,109 @@ public class DatabaseBackupAndRecovery {
         return null;
     }
 
-    protected void recoverData(SQLiteDatabase db, String volumeName) throws Exception{
-        if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
-                && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
-            // todo: implement for public volume
-            return;
-        }
+    protected void queuePublicVolumeRecovery(Context context) {
+        MediaService.queuePublicVolumeRecovery(context);
+    }
+
+    protected void recoverData(SQLiteDatabase db, String volumeName) throws Exception {
+        long rowsRecovered = 0, dirtyRowsCount = 0, insertionFailuresCount = 0,
+                totalLevelDbRows = 0;
         final long startTime = SystemClock.elapsedRealtime();
-        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
-        // Wait for external primary to be attached as we use same thread for internal volume.
-        // Maximum wait for 10s
-        getFuseDaemonForFileWithWait(new File(fuseFilePath));
-        if (!isBackupPresent(volumeName)) {
-            throw new FileNotFoundException("Backup file not found for " + volumeName);
-        }
-
-        Log.d(TAG, "Backup is present for " + volumeName);
         try {
-            waitForVolumeToBeAttached(mSetupCompleteVolumes);
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Volume not attached in given time. Cannot recover data.", e);
-        }
-
-        long rowsRecovered = 0;
-        long dirtyRowsCount = 0;
-        String[] backedUpFilePaths;
-        String lastReadValue = "";
-
-        while (true) {
-            backedUpFilePaths = readBackedUpFilePaths(volumeName, lastReadValue,
-                    LEVEL_DB_READ_LIMIT);
-            if (backedUpFilePaths.length == 0) {
-                break;
+            if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                    && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
+                // todo: implement for public volume
+                return;
+            }
+            final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
+            // Wait for external primary to be attached as we use same thread for internal volume.
+            // Maximum wait for 20s
+            getFuseDaemonForFileWithWait(new File(fuseFilePath));
+            if (!isBackupPresent(volumeName)) {
+                throw new FileNotFoundException("Backup file not found for " + volumeName);
             }
 
-            // Reset cached owner id relation map
-            sOwnerIdRelationMap = null;
-            for (String filePath : backedUpFilePaths) {
-                Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
-                if (fileRow.isPresent()) {
-                    if (fileRow.get().getIsDirty()) {
-                        dirtyRowsCount++;
-                        continue;
-                    }
+            Log.d(TAG, "Backup is present for " + volumeName);
+            try {
+                waitForVolumeToBeAttached(mSetupCompleteVolumes);
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Volume not attached in given time. Cannot recover data.", e);
+            }
 
-                    if(insertDataInDatabase(db, fileRow.get(), filePath, volumeName)) {
-                        rowsRecovered++;
+            String[] backedUpFilePaths;
+            String lastReadValue = "";
+            while (true) {
+                backedUpFilePaths = readBackedUpFilePaths(volumeName, lastReadValue,
+                        LEVEL_DB_READ_LIMIT);
+                if (backedUpFilePaths == null || backedUpFilePaths.length == 0) {
+                    break;
+                }
+                totalLevelDbRows += backedUpFilePaths.length;
+
+                // Reset cached owner id relation map
+                sOwnerIdRelationMap = null;
+                for (String filePath : backedUpFilePaths) {
+                    Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
+                    if (fileRow.isPresent()) {
+                        if (fileRow.get().getIsDirty()) {
+                            dirtyRowsCount++;
+                            continue;
+                        }
+
+                        if (insertDataInDatabase(db, fileRow.get(), filePath, volumeName)) {
+                            rowsRecovered++;
+                        } else {
+                            insertionFailuresCount++;
+                        }
                     }
                 }
-            }
 
-            // Read less rows than expected
-            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
-                break;
+                // Read less rows than expected
+                if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                    break;
+                }
+                lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
             }
-            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__SUCCESS);
+            Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume: %s."
+                            + " Total rows in levelDB: %d.", rowsRecovered, volumeName,
+                    totalLevelDbRows));
+            Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+        } catch (TimeoutException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__FUSE_DAEMON_TIMEOUT);
+            throw e;
+        } catch (FileNotFoundException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__BACKUP_MISSING);
+            throw e;
+        } catch (IOException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__GET_BACKUP_DATA_FAILURE);
+            throw e;
+        } catch (IllegalStateException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__VOLUME_NOT_ATTACHED);
+            throw e;
+        } catch (Exception e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__OTHER_ERROR);
+            throw e;
         }
-        long recoveryTime = SystemClock.elapsedRealtime() - startTime;
-        MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
-                getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
-        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
-                volumeName));
-        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
     }
 
     void resetLastBackedUpGenerationNumber(String volumeName) {
@@ -1057,10 +1101,10 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
-            throws FileNotFoundException {
+            throws FileNotFoundException, TimeoutException {
         pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
-                WAIT_TIME_15_SECONDS_IN_MILLIS);
+                WAIT_TIME_20_SECONDS_IN_MILLIS);
     }
 
     protected void setStableUrisGlobalFlag(String volumeName, boolean isEnabled) {
@@ -1186,6 +1230,14 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
+    private void publishRecoveryMetric(String volumeName, long recoveryTime, long rowsRecovered,
+            long dirtyRowsCount, long totalLevelDbRows, long insertionFailureCount, int status) {
+        MediaProviderStatsLog.write(
+                MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
+                getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered,
+                dirtyRowsCount, totalLevelDbRows, insertionFailureCount, status);
+    }
+
     protected static List<String> getInvalidUsersList(List<String> recoveryData,
             List<String> validUsers) {
         Set<String> presentUserIdsAsXattr = new HashSet<>();
@@ -1209,16 +1261,16 @@ public class DatabaseBackupAndRecovery {
         return presentUserIdsAsXattr.stream().collect(Collectors.toList());
     }
 
-    private static void pollForExternalStorageMountedState() {
+    private static void pollForExternalStorageMountedState() throws TimeoutException {
         final File target = Environment.getExternalStorageDirectory();
-        for (int i = 0; i < WAIT_TIME_15_SECONDS_IN_MILLIS / 100; i++) {
+        for (int i = 0; i < WAIT_TIME_20_SECONDS_IN_MILLIS / 100; i++) {
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))) {
                 return;
             }
             Log.v(TAG, "Waiting for external storage...");
             SystemClock.sleep(100);
         }
-        throw new RuntimeException("Timed out while waiting for ExternalStorageState "
+        throw new TimeoutException("Timed out while waiting for ExternalStorageState "
                 + "to be MEDIA_MOUNTED");
     }
 

@@ -37,6 +37,14 @@ import com.android.providers.media.photopicker.PickerSyncController;
 public class PickerNotificationSender {
     private static final String TAG = "PickerNotificationSender";
 
+    /**
+     * Flag for {@link #notifyChange(Uri, ContentObserver, int)} to indicate that this notification
+     * should not be subject to any delays when dispatching to apps running in the background.
+     * Using this flag may negatively impact system health and performance, and should be used
+     * sparingly.
+     */
+    public static final int NOTIFY_NO_DELAY = 1 << 15;
+
     private static final Uri AVAILABLE_PROVIDERS_UPDATE_URI = new Uri.Builder()
             .scheme(ContentResolver.SCHEME_CONTENT)
             .authority(MediaStore.AUTHORITY)
@@ -70,8 +78,8 @@ public class PickerNotificationSender {
      */
     public static void notifyAvailableProvidersChange(@NonNull Context context) {
         Log.d(TAG, "Sending a notification for available providers update");
-        context.getContentResolver()
-                .notifyChange(AVAILABLE_PROVIDERS_UPDATE_URI, /* observer= */ null);
+        context.getContentResolver().notifyChange(
+                AVAILABLE_PROVIDERS_UPDATE_URI, /* observer= */ null, NOTIFY_NO_DELAY);
     }
 
     /**
@@ -110,7 +118,7 @@ public class PickerNotificationSender {
     public static void notifyMergedAlbumMediaChange(
             @NonNull Context context,
             @NonNull String localAuthority) {
-        for (String mergedAlbumId: PickerDataLayerV2.sMergedAlbumIds) {
+        for (String mergedAlbumId: PickerDataLayerV2.MERGED_ALBUMS) {
             Log.d(TAG, "Sending a notification for merged album media update " + mergedAlbumId);
 
             // By default, always keep merged album authority as local.

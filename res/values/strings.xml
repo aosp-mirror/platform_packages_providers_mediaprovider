@@ -22,7 +22,7 @@
     <string name="storage_description">Local storage</string>
 
     <!-- Label to show to user for this package and for Photo picker. -->
-    <string name="picker_app_label">Media picker</string>
+    <string name="picker_app_label">Media Storage</string>
 
     <!-- Description line for music artists in the search/suggestion results -->
     <string name="artist_label">Artist</string>
@@ -522,10 +522,10 @@
     <string name="safety_protection_icon_label">Safety protection</string>
 
     <!-- Transcode alert channel name. -->
-    <string name="transcode_alert_channel">Native Transcode Alerts</string>
+    <string name="transcode_alert_channel">Transcoding Notifications</string>
 
     <!-- Transcode progress channel name. -->
-    <string name="transcode_progress_channel">Native Transcode Progress</string>
+    <string name="transcode_progress_channel">Transcoding Progress</string>
 
     <!-- Dialog error message-->
     <string name="dialog_error_message">Try again later. Your photos will be available once the issue is resolved.</string>

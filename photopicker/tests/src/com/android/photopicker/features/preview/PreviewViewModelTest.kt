@@ -23,6 +23,7 @@ import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.graphics.Point
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
 import android.os.UserHandle
@@ -49,9 +50,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.SelectionImpl
@@ -88,6 +92,8 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
+// TODO(b/340770526) Fix tests that can't access [ICloudMediaSurfaceController] on R & S.
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -206,8 +212,18 @@ class PreviewViewModelTest {
     fun setup() {
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
+            whenever(mockUserManager.getUserBadge()) {
+                InstrumentationRegistry.getInstrumentation()
+                    .getContext()
+                    .getResources()
+                    .getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
         }
 
         // Stub for MockContentResolver constructor
@@ -225,13 +241,6 @@ class PreviewViewModelTest {
         whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
             mockContext
         }
-        whenever(mockUserManager.getUserBadge()) {
-            InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
 
         // Stubs for creating the RemoteSurfaceController
         whenever(
@@ -293,6 +302,59 @@ class PreviewViewModelTest {
             assertWithMessage("Selection contains unexpected item")
                 .that(selection.snapshot())
                 .doesNotContain(TEST_MEDIA_IMAGE)
+        }
+    }
+
+    @Test
+    fun testToggleInSelectionCollectionUpdatesSelection() {
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG,
+                        ),
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl()
+                )
+
+            assertWithMessage("Unexpected selection start size")
+                .that(selection.snapshot().size)
+                .isEqualTo(0)
+
+            // Toggle the item into the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            // Wait for selection update.
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection did not contain expected item")
+                .that(selection.snapshot())
+                .containsExactly(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO)
+
+            // Toggle the item out of the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection contains unexpected item")
+                .that(selection.snapshot())
+                .isEmpty()
         }
     }
 
@@ -631,12 +693,7 @@ class PreviewViewModelTest {
                 .that(mediaSizeChangedInfo.authority)
                 .isEqualTo(MockContentProviderWrapper.AUTHORITY)
             assertWithMessage("MEDIA_SIZE_CHANGED emitted state was invalid")
-                .that(
-                    mediaSizeChangedInfo.playbackStateInfo?.getParcelable(
-                        EXTRA_SIZE,
-                        Point::class.java
-                    )
-                )
+                .that(getPointFromParcelableSafe(mediaSizeChangedInfo.playbackStateInfo))
                 .isEqualTo(Point(100, 200))
 
             callback.setPlaybackState(1, PLAYBACK_STATE_BUFFERING, null)
@@ -722,6 +779,19 @@ class PreviewViewModelTest {
                         authority = MockContentProviderWrapper.AUTHORITY
                     )
                 )
+        }
+    }
+
+    /**
+     * Uses the correct version of [getParcelable] based on platform sdk.
+     *
+     * @return The EXTRA_SIZE [Point], if it exists.
+     */
+    private fun getPointFromParcelableSafe(bundle: Bundle?): Point? {
+        if (SdkLevel.isAtLeastT()) {
+            return bundle?.getParcelable(EXTRA_SIZE, Point::class.java)
+        } else {
+            @Suppress("DEPRECATION") return bundle?.getParcelable(EXTRA_SIZE) as? Point
         }
     }
 

@@ -1,7 +1,10 @@
 android_test {
 
     name: "PhotopickerTests",
-    test_suites: ["general-tests"],
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.kt"],
     compile_multilib: "both",
@@ -27,6 +30,7 @@ android_test {
         "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
+        "flag-junit",
         "hilt_android",
         "hilt_android_testing",
         "mockito-target",

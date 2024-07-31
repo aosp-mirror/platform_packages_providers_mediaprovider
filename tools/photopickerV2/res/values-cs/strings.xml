@@ -8,10 +8,25 @@
     <string name="title_photopicker" msgid="3154038243490840415">"Výběr fotek V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Vyberte obrázky"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Akce načtení obsahu"</string>
+    <!-- no translation found for open_document (8593796561386540777) -->
+    <skip />
+    <!-- no translation found for open_document_tree (8979404185180480396) -->
+    <skip />
     <string name="display_images_in_order" msgid="7880116254468536174">"Zobrazit obrázky popořadě"</string>
+    <!-- no translation found for show_images_only (6365019348435132030) -->
+    <skip />
+    <!-- no translation found for show_videos_only (7302756380142587762) -->
+    <skip />
+    <!-- no translation found for enter_mime_type (6599304148898478294) -->
+    <skip />
+    <!-- no translation found for select_launch_tab (1219436289162294907) -->
+    <skip />
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Povolit více výběrů"</string>
+    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
+    <skip />
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Maximální počet mediálních položek"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Zadejte platný počet vyšší než jedna"</string>
+    <!-- no translation found for enter_valid_number (650407643348891234) -->
+    <skip />
     <string name="pick_media" msgid="5269447618857205416">"Vyberte média"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Pracujeme na tom"</string>
 </resources>

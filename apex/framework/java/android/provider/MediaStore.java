@@ -4655,6 +4655,10 @@ public final class MediaStore {
         final Bundle in = new Bundle();
         in.putString(Intent.EXTRA_TEXT, volumeName);
         final Bundle out = resolver.call(AUTHORITY, GET_GENERATION_CALL, null, in);
+        if (out == null) {
+            return 0;
+        }
+
         return out.getLong(Intent.EXTRA_INDEX);
     }
 

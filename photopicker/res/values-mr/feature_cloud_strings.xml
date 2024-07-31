@@ -21,4 +21,20 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> पैकी <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> तयार"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"काही फोटो लोड करू शकत नाही"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"नंतर पुन्हा प्रयत्न करा. समस्येचे निराकरण झाल्यावर तुमचे फोटो उपलब्ध होतील."</string>
+    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
+    <skip />
+    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
+    <skip />
 </resources>

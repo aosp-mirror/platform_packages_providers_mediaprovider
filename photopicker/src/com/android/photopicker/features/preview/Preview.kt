@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.ButtonDefaults
@@ -148,7 +147,7 @@ fun PreviewSelection(
             ) {
                 Row(
                     modifier =
-                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 4.dp),
+                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 8.dp),
                 ) {
                     // back button
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -186,7 +185,9 @@ fun PreviewSelection(
                         ) {
                             if (currentSelection.contains(selection.get(state.currentPage))) {
                                 Icon(
-                                    Icons.Filled.CheckCircle,
+                                    ImageVector.vectorResource(
+                                        R.drawable.photopicker_selected_media
+                                    ),
                                     modifier =
                                         Modifier
                                             // Background is necessary because the icon has negative
@@ -227,7 +228,7 @@ fun PreviewSelection(
                 Row(
                     modifier =
                         Modifier.fillMaxWidth()
-                            .padding(bottom = 68.dp, start = 4.dp, end = 16.dp, top = 12.dp),
+                            .padding(bottom = 48.dp, start = 4.dp, end = 16.dp, top = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if (previewSingleItem) {

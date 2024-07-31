@@ -69,7 +69,7 @@ private val MEASUREMENT_BANNER_PADDING =
 
 /* Spacing around the selection bar and the edges of the screen */
 private val SELECTION_BAR_PADDING =
-    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 64.dp)
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 48.dp)
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is

@@ -53,6 +53,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
@@ -60,7 +61,6 @@ import com.android.photopicker.inject.EmbeddedTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.bumptech.glide.Glide
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.EntryPoints
@@ -103,6 +103,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : EmbeddedTestModule()
@@ -205,7 +206,6 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
         // mocks from Hilt and mocks aren't leaked between tests.
         session?.close()
         session = null
-        Glide.tearDown()
     }
 
     /**

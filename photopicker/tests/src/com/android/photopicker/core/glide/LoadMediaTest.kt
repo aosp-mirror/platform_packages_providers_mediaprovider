@@ -41,7 +41,6 @@ import com.android.photopicker.test.utils.GlideLoadableIdlingResource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -98,8 +97,9 @@ import org.mockito.MockitoAnnotations
 class LoadMediaTest {
 
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
-    @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
+    @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeTestRule = createComposeRule()
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     private val glideIdlingResource: GlideLoadableIdlingResource = GlideLoadableIdlingResource()
     private lateinit var provider: MockContentProviderWrapper
@@ -168,10 +168,6 @@ class LoadMediaTest {
     fun teardown() {
         composeTestRule.unregisterIdlingResource(glideIdlingResource)
         glideIdlingResource.reset()
-
-        // It is important to tearDown glide after every test to ensure it picks up the updated
-        // mocks from Hilt and mocks aren't leaked between tests.
-        Glide.tearDown()
     }
 
     /** Ensures that a [GlideLoadable] can be loaded via the [loadMedia] composable using Glide. */

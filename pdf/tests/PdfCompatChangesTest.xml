@@ -26,12 +26,19 @@
 
     <!-- Install test -->
     <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
-        <option name="test-file-name" value="PdfUnitTests.apk"/>
+        <option name="test-file-name" value="PdfCompatChangesTest.apk"/>
         <option name="cleanup-apks" value="true"/>
     </target_preparer>
 
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
-        <option name="package" value="android.graphics.pdf.tests"/>
+        <option name="package" value="android.graphics.pdf"/>
         <option name="runner" value="androidx.test.runner.AndroidJUnitRunner"/>
     </test>
+
+    <!-- Collect the files generated on error -->
+    <metrics_collector class="com.android.tradefed.device.metric.FilePullerLogCollector">
+        <option name="directory-keys" value="/sdcard/PdfRendererCompatChangesTest" />
+        <option name="collect-on-run-ended-only" value="true" />
+        <option name="clean-up" value="true" />
+    </metrics_collector>
 </configuration>

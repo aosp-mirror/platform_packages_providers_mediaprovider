@@ -114,11 +114,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -139,7 +140,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: ConfigurationManager
     @Inject lateinit var events: Lazy<Events>
 
     val mediaToPreload = MutableSharedFlow<Set<Media>>()
@@ -232,7 +233,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testMediaPreloaderCompletesDeferredWhenSuccessful() =
-        mainScope.runTest {
+        testScope.runTest {
             var preloadDeferred = CompletableDeferred<Boolean>()
 
             composeTestRule.setContent {
@@ -271,7 +272,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testMediaPreloaderShowsLoadingDialog() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
             val loadingDialogTitle =
                 resources.getString(R.string.photopicker_preloading_dialog_title)
@@ -317,7 +318,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testMediaPreloaderCancelPreloadFromLoadingDialog() =
-        mainScope.runTest {
+        testScope.runTest {
             val resources = getTestableContext().getResources()
             val loadingDialogTitle =
                 resources.getString(R.string.photopicker_preloading_dialog_title)
@@ -369,7 +370,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testMediaPreloaderLoadsRemoteMedia() =
-        mainScope.runTest {
+        testScope.runTest {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
@@ -407,7 +408,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testMediaPreloaderFailureShowsErrorDialog() =
-        mainScope.runTest {
+        testScope.runTest {
             var preloadDeferred = CompletableDeferred<Boolean>()
             val resources = getTestableContext().getResources()
             val errorDialogTitle =

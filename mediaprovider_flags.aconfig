@@ -63,6 +63,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable the abstract service for media cognition processes"
     bug: "331771553"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -70,7 +71,8 @@ flag {
     is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable updates to MediaStore versioning to make it more unique across apps."
-    bug: "349160128"
+    bug: "343977174"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -79,6 +81,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable stable uris for external primary volume"
     bug: "213931581"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -87,4 +90,31 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable stable uris for public volume"
     bug: "213931581"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_backup_and_restore"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable backup and restore feature"
+    bug: "195138692"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_embedded_photopicker"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether the embedded photopicker is enabled"
+    bug: "353634929"
+}
+
+flag {
+    name: "enable_oem_metadata"
+    is_exported: true
+    is_fixed_read_only: true
+    namespace: "mediaprovider"
+    description: "This flag will enable support for OEM metadata column"
+    bug: "352528480"
 }

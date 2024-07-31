@@ -86,8 +86,10 @@ interface Banner {
      * An (optional) icon that may be associated with the Banner. Exact display details are up to
      * the implementation.
      */
-    val icon: ImageVector?
-        get() = null
+    @Composable
+    fun getIcon(): ImageVector? {
+        return null
+    }
 
     /**
      * [Composable] function that returns an optional localized content description for the provided
@@ -137,7 +139,7 @@ fun Banner(
                 horizontalArrangement = Arrangement.spacedBy(MEASUREMENT_BANNER_ICON_GAP_SIZE),
             ) {
                 // Not all Banners provide an Icon
-                banner.icon?.let {
+                banner.getIcon()?.let {
                     Icon(
                         it,
                         contentDescription = banner.iconContentDescription(),

@@ -20,6 +20,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.graphics.luminance
 
 /**
@@ -30,52 +31,65 @@ import androidx.compose.ui.graphics.luminance
  *
  * This feature can only be used for photo picker opened in [MediaStore#ACTION_PICK_IMAGES] mode.
  */
-class AccentColorHelper(
-    intent: Intent?
-) {
-    private val DARK_TEXT_COLOR = "#000000"
-    private val LIGHT_TEXT_COLOR = "#FFFFFF"
+class AccentColorHelper(val inputColor: Long) {
 
-    private var accentColor = Color.Unspecified
+    companion object {
 
-    private var textColorForAccentComponents = Color.Unspecified
+        /**
+         * Creates a [AccentColorHelper] using an Intent. This builder will try to locate an accent
+         * color long by checking the Intent's extras for a [EXTRA_PICK_IMAGES_ACCENT_COLOR] key and
+         * providing that to the AccentColorHelper's constructor.
+         *
+         * @return AccentColorHelper built from the intent's extras
+         */
+        fun withIntent(intent: Intent): AccentColorHelper {
 
-    init {
-        intent?.let {
             val extras: Bundle? = intent.extras
-            val inputColor = extras?.getLong(
-                MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR,
-                -1
-            ) ?: -1
-
-            if (inputColor > -1) { // if the accent color is present in extras.
-                if (intent.action != MediaStore.ACTION_PICK_IMAGES) {
-                    throw IllegalArgumentException(
-                        "Accent color customisation is not " + "available for " + intent.action +
-                                " action.",
-                    )
-                }
-                accentColor = checkColorValidityAndGetColor(inputColor)
-
-                // pickerAccentColor being equal to Color.Unspecified would mean that the color
-                // passed as an input does not satisfy the validity tests for being an accent
-                // color.
-                if (accentColor != Color.Unspecified) {
-                    textColorForAccentComponents = Color(
-                        android.graphics.Color.parseColor(
-                            if (isAccentColorBright(accentColor.luminance()))
-                                DARK_TEXT_COLOR
-                            else
-                                LIGHT_TEXT_COLOR,
-                        ),
-                    )
-                } else {
-                    throw IllegalArgumentException("Color not valid for accent color")
-                }
+            if (
+                extras != null &&
+                    extras.containsKey(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR) &&
+                    intent.action != MediaStore.ACTION_PICK_IMAGES
+            ) {
+                throw IllegalArgumentException(
+                    "Accent color customisation is not available for ${intent.action}"
+                )
             }
+            val inputColor = extras?.getLong(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, -1) ?: -1
+            return AccentColorHelper(inputColor)
         }
     }
 
+    private val DARK_TEXT_COLOR = "#000000"
+    private val LIGHT_TEXT_COLOR = "#FFFFFF"
+
+    private val accentColor: Color
+    private val textColorForAccentComponents: Color
+
+    init {
+
+        accentColor = checkColorValidityAndGetColor(inputColor)
+
+        // accentColor being equal to [Color.Unspecified] would mean that the color
+        // passed as an input does not satisfy the validity tests for being an accent
+        // color.
+        if (inputColor > -1 && accentColor.isUnspecified) {
+            throw IllegalArgumentException("Color not valid for accent color")
+        }
+
+        // Set the Text Color only if the accentColor is not Unspecified
+        textColorForAccentComponents =
+            if (accentColor.isUnspecified) {
+                Color.Unspecified
+            } else {
+
+                Color(
+                    android.graphics.Color.parseColor(
+                        if (isAccentColorBright(accentColor.luminance())) DARK_TEXT_COLOR
+                        else LIGHT_TEXT_COLOR,
+                    ),
+                )
+            }
+    }
 
     /**
      * Checks input color validity and returns the color without alpha component if valid, or -1.
@@ -91,7 +105,6 @@ class AccentColorHelper(
         return Color(inputColor)
     }
 
-
     /**
      * Returns true if the input color is within the range of [0.05 to 0.9] so that the color works
      * both on light and dark background. Range has been set by testing with different colors.
@@ -100,9 +113,7 @@ class AccentColorHelper(
         return luminance >= 0.05 && luminance < 0.9
     }
 
-    /**
-     * Indicates if the accent color is bright (luminance >= 0.6).
-     */
+    /** Indicates if the accent color is bright (luminance >= 0.6). */
     private fun isAccentColorBright(accentColorLuminance: Float): Boolean =
         accentColorLuminance >= 0.6
 

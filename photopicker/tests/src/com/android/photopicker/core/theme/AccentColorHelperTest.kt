@@ -50,11 +50,12 @@ class AccentColorHelperTest {
         // Verify that the helper does not work with [Intent.ACTION_GET_CONTENT] intent action.
         pickerIntent.setAction(MediaStore.ACTION_PICK_IMAGES)
         pickerIntent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, validAccentColor)
-        val accentColorHelperPickImagesMode = AccentColorHelper(pickerIntent)
+        val accentColorHelperPickImagesMode = AccentColorHelper.withIntent(pickerIntent)
         assertThat(accentColorHelperPickImagesMode.getAccentColor()).isNotEqualTo(Color.Unspecified)
-        assertThat(accentColorHelperPickImagesMode.getAccentColor()).isEqualTo(
-            createColorFromLongFormat(validAccentColor),
-        )
+        assertThat(accentColorHelperPickImagesMode.getAccentColor())
+            .isEqualTo(
+                createColorFromLongFormat(validAccentColor),
+            )
     }
 
     @Test
@@ -87,12 +88,24 @@ class AccentColorHelperTest {
 
         // Verify that the helper works with valid color
         pickerIntent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, validAccentColor)
-        val accentColorHelperInvalidInputColor = AccentColorHelper(pickerIntent)
+        val accentColorHelperInvalidInputColor = AccentColorHelper.withIntent(pickerIntent)
         assertThat(accentColorHelperInvalidInputColor.getAccentColor())
             .isNotEqualTo(Color.Unspecified)
-        assertThat(accentColorHelperInvalidInputColor.getAccentColor()).isEqualTo(
-            createColorFromLongFormat(validAccentColor),
-        )
+        assertThat(accentColorHelperInvalidInputColor.getAccentColor())
+            .isEqualTo(
+                createColorFromLongFormat(validAccentColor),
+            )
+    }
+
+    @Test
+    fun testAccentColorHelper_textColorAlwaysUnspecifiedIfAccentColorUnspecified() {
+
+        // Intent with no custom color set
+        var pickerIntent = Intent(MediaStore.ACTION_PICK_IMAGES)
+
+        val accentColorHelper = AccentColorHelper.withIntent(pickerIntent)
+        assertThat(accentColorHelper.getAccentColor()).isEqualTo(Color.Unspecified)
+        assertThat(accentColorHelper.getTextColorForAccentComponents()).isEqualTo(Color.Unspecified)
     }
 
     @Test
@@ -105,31 +118,37 @@ class AccentColorHelperTest {
 
         // Verify that the helper works with validAccentColorWithHighLuminance. In this case the
         // text color set should be white since the accent color is dark.
-        pickerIntent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR,
-            validAccentColorWithHighLuminance)
-        val accentColorHelperHighLuminance = AccentColorHelper(pickerIntent)
+        pickerIntent.putExtra(
+            MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR,
+            validAccentColorWithHighLuminance
+        )
+        val accentColorHelperHighLuminance = AccentColorHelper.withIntent(pickerIntent)
+        assertThat(accentColorHelperHighLuminance.getAccentColor()).isNotEqualTo(Color.Unspecified)
         assertThat(accentColorHelperHighLuminance.getAccentColor())
-            .isNotEqualTo(Color.Unspecified)
-        assertThat(accentColorHelperHighLuminance.getAccentColor()).isEqualTo(
-            createColorFromLongFormat(validAccentColorWithHighLuminance),
-        )
-        assertThat(accentColorHelperHighLuminance.getTextColorForAccentComponents()).isEqualTo(
-            Color.White,
-        )
+            .isEqualTo(
+                createColorFromLongFormat(validAccentColorWithHighLuminance),
+            )
+        assertThat(accentColorHelperHighLuminance.getTextColorForAccentComponents())
+            .isEqualTo(
+                Color.White,
+            )
 
         // Verify that the helper works with validAccentColorWithLowLuminance. In this case the
         // text color set should be black since the accent color is light.
-        pickerIntent.putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR,
-            validAccentColorWithLowLuminance)
-        val accentColorHelperLowLuminance = AccentColorHelper(pickerIntent)
+        pickerIntent.putExtra(
+            MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR,
+            validAccentColorWithLowLuminance
+        )
+        val accentColorHelperLowLuminance = AccentColorHelper.withIntent(pickerIntent)
+        assertThat(accentColorHelperLowLuminance.getAccentColor()).isNotEqualTo(Color.Unspecified)
         assertThat(accentColorHelperLowLuminance.getAccentColor())
-            .isNotEqualTo(Color.Unspecified)
-        assertThat(accentColorHelperLowLuminance.getAccentColor()).isEqualTo(
-            createColorFromLongFormat(validAccentColorWithLowLuminance),
-        )
-        assertThat(accentColorHelperLowLuminance.getTextColorForAccentComponents()).isEqualTo(
-            Color.Black,
-        )
+            .isEqualTo(
+                createColorFromLongFormat(validAccentColorWithLowLuminance),
+            )
+        assertThat(accentColorHelperLowLuminance.getTextColorForAccentComponents())
+            .isEqualTo(
+                Color.Black,
+            )
     }
 
     private fun createColorFromLongFormat(color: Long): Color {
@@ -142,7 +161,7 @@ class AccentColorHelperTest {
 
     private fun assertExceptionThrownDueToInvalidInput(pickerIntent: Intent) {
         try {
-            AccentColorHelper(pickerIntent)
+            AccentColorHelper.withIntent(pickerIntent)
             Assert.fail("Should have failed since the input was invalid")
         } catch (exception: IllegalArgumentException) {
             // expected result, yippee!!

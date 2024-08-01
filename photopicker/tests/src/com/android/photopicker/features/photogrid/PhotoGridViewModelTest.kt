@@ -24,6 +24,8 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
 import com.android.photopicker.core.selection.SelectionImpl
@@ -73,6 +75,8 @@ class PhotoGridViewModelTest {
             mimeType = "image/png",
             standardMimeTypeExtension = 1,
         )
+    val updatedMediaItem =
+        mediaItem.copy(mediaItemAlbum = null, selectionSource = Telemetry.MediaLocation.MAIN_GRID)
 
     @Test
     fun testPhotoGridItemClickedUpdatesSelection() {
@@ -115,9 +119,10 @@ class PhotoGridViewModelTest {
             // Wait for selection update.
             advanceTimeBy(100)
 
+            // The selected media item gets updated with the Selectable interface values
             assertWithMessage("Selection did not contain expected item")
                 .that(selection.snapshot())
-                .contains(mediaItem)
+                .contains(updatedMediaItem)
 
             // Toggle the item out of the selection
             viewModel.handleGridItemSelection(mediaItem, "")
@@ -126,7 +131,7 @@ class PhotoGridViewModelTest {
 
             assertWithMessage("Selection contains unexpected item")
                 .that(selection.snapshot())
-                .doesNotContain(mediaItem)
+                .doesNotContain(updatedMediaItem)
         }
     }
 
@@ -144,7 +149,8 @@ class PhotoGridViewModelTest {
                                 PhotopickerConfiguration(
                                     action = "TEST_ACTION",
                                     intent = null,
-                                    selectionLimit = 0
+                                    selectionLimit = 0,
+                                    sessionId = generatePickerSessionId()
                                 )
                         )
                 )
@@ -182,7 +188,6 @@ class PhotoGridViewModelTest {
             // Toggle the item into the selection
             val errorMessage = "test"
             viewModel.handleGridItemSelection(mediaItem, errorMessage)
-
             // Wait for selection update.
             advanceTimeBy(100)
 

@@ -148,7 +148,7 @@ abstract class PhotopickerFeatureBaseTest {
             LocalSelection provides selection,
             LocalPhotopickerConfiguration provides photopickerConfiguration,
             LocalNavController provides navController,
-            LocalEvents provides events,
+            LocalEvents provides events
         ) {
             PhotopickerTheme(config = photopickerConfiguration) {
                 PhotopickerMain(bannerManager = bannerManager)

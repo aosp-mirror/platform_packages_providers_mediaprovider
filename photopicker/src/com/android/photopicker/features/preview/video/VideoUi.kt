@@ -91,7 +91,7 @@ private val MEASUREMENT_PLAY_PAUSE_ICON_SIZE = 48.dp
 
 /** Padding between the edge of the screen and the Player controls box. */
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL = 8.dp
-private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 16.dp
+private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 12.dp
 
 /** Delay in milliseconds before the player controls are faded. */
 private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 3000L

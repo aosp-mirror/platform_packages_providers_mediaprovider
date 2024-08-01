@@ -580,7 +580,7 @@ private fun defaultBuildAlbumItem(
 @Composable
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
-        Text(item.label)
+        Text(item.label, style = MaterialTheme.typography.titleSmall)
     }
 }
 

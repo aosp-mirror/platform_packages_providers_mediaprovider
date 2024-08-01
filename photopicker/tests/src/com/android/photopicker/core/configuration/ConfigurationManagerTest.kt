@@ -25,6 +25,7 @@ import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,6 +50,7 @@ class ConfigurationManagerTest {
     // Isolate the test device by providing a test wrapper around device config so that the
     // tests can control the flag values that are returned.
     val deviceConfigProxy = TestDeviceConfigProxyImpl()
+    val sessionId = generatePickerSessionId()
 
     @Before
     fun setup() {
@@ -67,10 +69,11 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
 
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             backgroundScope.launch {
                 val reportedConfiguration = configurationManager.configuration.first()
@@ -85,7 +88,6 @@ class ConfigurationManagerTest {
      */
     @Test
     fun testConfigurationEmitsFlagChanges() {
-
         runTest {
             val configurationManager =
                 ConfigurationManager(
@@ -93,9 +95,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -137,9 +140,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -195,9 +199,10 @@ class ConfigurationManagerTest {
                 scope = this.backgroundScope,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 deviceConfigProxy,
+                sessionId = sessionId
             )
         // Expect the default configuration with an action matching the test action.
-        val expectedConfiguration = PhotopickerConfiguration(action = "")
+        val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
         val emissions = mutableListOf<PhotopickerConfiguration>()
         backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -242,9 +247,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -261,6 +267,7 @@ class ConfigurationManagerTest {
 
     @Test
     fun testSetCallerUpdatesConfiguration() {
+
         runTest {
             val configurationManager =
                 ConfigurationManager(
@@ -268,9 +275,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -315,9 +323,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -350,9 +359,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -386,9 +396,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -426,9 +437,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -462,6 +474,7 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             assertThrows(IllegalIntentExtraException::class.java) {
                 configurationManager.setIntent(intent)
@@ -489,9 +502,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -531,9 +545,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -572,9 +587,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -614,9 +630,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -651,9 +668,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -688,9 +706,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -728,9 +747,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -772,9 +792,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -811,12 +832,14 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
             val expectedConfiguration =
                 PhotopickerConfiguration(
                     runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                     action = "",
+                    sessionId = sessionId
                 )
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
@@ -852,12 +875,14 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
             val expectedConfiguration =
                 PhotopickerConfiguration(
                     runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                     action = "",
+                    sessionId = sessionId
                 )
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
@@ -889,12 +914,14 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
             val expectedConfiguration =
                 PhotopickerConfiguration(
                     runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                     action = "",
+                    sessionId = sessionId
                 )
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
@@ -929,12 +956,14 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
             val expectedConfiguration =
                 PhotopickerConfiguration(
                     runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                     action = "",
+                    sessionId = sessionId
                 )
 
             val emissions = mutableListOf<PhotopickerConfiguration>()

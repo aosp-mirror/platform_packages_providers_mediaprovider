@@ -36,6 +36,7 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
@@ -76,6 +77,8 @@ class FeatureManagerTest {
             HighPriorityUiFeature.Registration,
             AlwaysDisabledFeature.Registration,
         )
+
+    val sessionId = generatePickerSessionId()
 
     @Composable
     private fun featureManagerTestUiComposeTop(
@@ -263,6 +266,7 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = true,
+                    sessionId = sessionId
                 )
             )
 
@@ -300,6 +304,7 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = false,
+                    sessionId = sessionId
                 )
             )
 

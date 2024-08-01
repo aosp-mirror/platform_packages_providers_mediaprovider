@@ -60,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,12 +71,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 /** [AudioAttributes] to use with all VideoUi instances. */
 private val AUDIO_ATTRIBUTES =
@@ -115,6 +122,7 @@ fun VideoUi(
     audioIsMuted: Boolean,
     onRequestAudioMuteChange: (Boolean) -> Unit,
     snackbarHostState: SnackbarHostState,
+    singleItemPreview: Boolean,
     viewModel: PreviewViewModel = obtainViewModel(),
 ) {
 
@@ -145,6 +153,25 @@ fun VideoUi(
     val aspectRatio by produceAspectRatio(surfaceId, video)
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
+
+    // Log that the video audio is muted
+    if (singleItemPreview && audioIsMuted) {
+        LaunchedEffect(video) {
+            events.dispatch(
+                Event.LogPhotopickerPreviewInfo(
+                    FeatureToken.PREVIEW.token,
+                    configuration.sessionId,
+                    Telemetry.PreviewModeEntry.LONG_PRESS,
+                    previewItemCount = 1,
+                    Telemetry.MediaType.VIDEO,
+                    Telemetry.VideoPlayBackInteractions.MUTE
+                )
+            )
+        }
+    }
 
     /** Run these effects when a new PlaybackInfo is received */
     LaunchedEffect(playbackInfo) {
@@ -200,8 +227,41 @@ fun VideoUi(
             areControlsVisible = areControlsVisible,
             onPlayPause = {
                 when (playbackInfo.state) {
-                    PlaybackState.STARTED -> controller.onMediaPause(surfaceId)
-                    PlaybackState.PAUSED -> controller.onMediaPlay(surfaceId)
+                    PlaybackState.STARTED -> {
+                        if (singleItemPreview) {
+                            // Log video playback interactions
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerPreviewInfo(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        Telemetry.PreviewModeEntry.LONG_PRESS,
+                                        previewItemCount = 1,
+                                        Telemetry.MediaType.VIDEO,
+                                        Telemetry.VideoPlayBackInteractions.PLAY
+                                    )
+                                )
+                            }
+                        }
+                        controller.onMediaPause(surfaceId)
+                    }
+                    PlaybackState.PAUSED -> {
+                        if (singleItemPreview) {
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerPreviewInfo(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        Telemetry.PreviewModeEntry.LONG_PRESS,
+                                        previewItemCount = 1,
+                                        Telemetry.MediaType.VIDEO,
+                                        Telemetry.VideoPlayBackInteractions.PAUSE
+                                    )
+                                )
+                            }
+                        }
+                        controller.onMediaPlay(surfaceId)
+                    }
                     else -> {}
                 }
             },

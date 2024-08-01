@@ -27,6 +27,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.CloudMediaProviderDetails
@@ -84,7 +85,8 @@ class DataServiceImpl(
     private val mediaProviderClient: MediaProviderClient,
     private val config: StateFlow<PhotopickerConfiguration>,
     private val featureManager: FeatureManager,
-    private val appContext: Context
+    private val appContext: Context,
+    private val events: Events,
 ) : DataService {
     private val _activeContentResolver =
         MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
@@ -405,6 +407,7 @@ class DataServiceImpl(
                             mediaProviderClient,
                             dispatcher,
                             config.value,
+                            events,
                         )
 
                     Log.v(
@@ -430,7 +433,8 @@ class DataServiceImpl(
                     availableProviders,
                     mediaProviderClient,
                     dispatcher,
-                    config.value
+                    config.value,
+                    events,
                 )
 
             Log.v(
@@ -459,6 +463,7 @@ class DataServiceImpl(
                     mediaProviderClient,
                     dispatcher,
                     config.value,
+                    events,
                 )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")

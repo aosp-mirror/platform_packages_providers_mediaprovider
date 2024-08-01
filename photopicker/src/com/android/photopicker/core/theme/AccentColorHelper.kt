@@ -135,4 +135,9 @@ class AccentColorHelper(val inputColor: Long) {
     fun getTextColorForAccentComponents(): Color {
         return textColorForAccentComponents
     }
+
+    /** Indicates that a valid accent color is used for the photopicker theme */
+    fun isValidAccentColorSet(): Boolean {
+        return accentColor != Color.Unspecified
+    }
 }

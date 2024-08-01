@@ -61,12 +61,14 @@ import kotlinx.coroutines.launch
  *   in.
  * @property deviceConfigProxy This is provided to the ConfigurationManager to better support
  *   testing various device flags, without relying on the device's actual flags at test time.
+ * @property sessionId A randomly generated integer to identify the current photopicker session
  */
 class ConfigurationManager(
     private val runtimeEnv: PhotopickerRuntimeEnv,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val deviceConfigProxy: DeviceConfigProxy,
+    private val sessionId: Int,
 ) {
 
     companion object {
@@ -262,6 +264,7 @@ class ConfigurationManager(
                 runtimeEnv = runtimeEnv,
                 action = "",
                 flags = getFlagsFromDeviceConfig(),
+                sessionId = sessionId,
             )
 
         Log.d(TAG, "Startup configuration: $config")

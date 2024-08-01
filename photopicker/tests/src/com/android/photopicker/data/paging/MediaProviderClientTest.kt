@@ -24,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.Group
@@ -41,6 +42,7 @@ import org.junit.runner.RunWith
 class MediaProviderClientTest {
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val testContentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
+    private val sessionId = generatePickerSessionId()
 
     @Test
     fun testFetchAvailableProviders() = runTest {
@@ -65,7 +67,11 @@ class MediaProviderClientTest {
                 pageSize = 5,
                 contentResolver = testContentResolver,
                 availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
-                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId
+                    )
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()
@@ -105,7 +111,11 @@ class MediaProviderClientTest {
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
         val config =
-            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
+            PhotopickerConfiguration(
+                action = MediaStore.ACTION_PICK_IMAGES,
+                mimeTypes = mimeTypes,
+                sessionId = sessionId
+            )
 
         mediaProviderClient.refreshMedia(
             providers = providers,
@@ -197,7 +207,11 @@ class MediaProviderClientTest {
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
         val config =
-            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
+            PhotopickerConfiguration(
+                action = MediaStore.ACTION_PICK_IMAGES,
+                mimeTypes = mimeTypes,
+                sessionId = sessionId
+            )
 
         mediaProviderClient.refreshMedia(
             providers = providers,
@@ -242,7 +256,11 @@ class MediaProviderClientTest {
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
         val config =
-            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, mimeTypes = mimeTypes)
+            PhotopickerConfiguration(
+                action = MediaStore.ACTION_PICK_IMAGES,
+                mimeTypes = mimeTypes,
+                sessionId = sessionId
+            )
 
         mediaProviderClient.refreshAlbumMedia(
             albumId = albumId,
@@ -275,7 +293,11 @@ class MediaProviderClientTest {
                 pageSize = 5,
                 contentResolver = testContentResolver,
                 availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
-                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId
+                    ),
             )
 
         assertThat(albumLoadResult is LoadResult.Page).isTrue()
@@ -302,7 +324,11 @@ class MediaProviderClientTest {
                 pageSize = 5,
                 contentResolver = testContentResolver,
                 availableProviders = listOf(Provider(albumAuthority, MediaSource.LOCAL, 0, "")),
-                config = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId
+                    ),
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()

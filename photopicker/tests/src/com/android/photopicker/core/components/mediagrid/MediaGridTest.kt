@@ -67,6 +67,7 @@ import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -301,7 +302,8 @@ class MediaGridTest {
         val selection =
             SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         composeTestRule.setContent {
@@ -321,7 +323,8 @@ class MediaGridTest {
         val selection =
             SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         composeTestRule.setContent {
@@ -348,7 +351,8 @@ class MediaGridTest {
         val selection =
             SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         // Modify the pager and flow to get data from the FakeInMemoryAlbumPagingSource.
@@ -381,7 +385,8 @@ class MediaGridTest {
         val selection =
             SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         composeTestRule.setContent {
@@ -422,7 +427,8 @@ class MediaGridTest {
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
                             defaultConfiguration = SINGLE_SELECT_CONFIG
-                        )
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -476,7 +482,8 @@ class MediaGridTest {
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
                             defaultConfiguration = MULTI_SELECT_CONFIG
-                        )
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -534,7 +541,8 @@ class MediaGridTest {
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
                             defaultConfiguration = photopickerConfiguration
-                        )
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -586,7 +594,8 @@ class MediaGridTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -643,7 +652,8 @@ class MediaGridTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -670,7 +680,8 @@ class MediaGridTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
@@ -705,7 +716,8 @@ class MediaGridTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {

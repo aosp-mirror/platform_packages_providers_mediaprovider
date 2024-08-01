@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> အနက် <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> အသင့်ဖြစ်ပြီ"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"ဓာတ်ပုံအချို့ကို ဖွင့်၍မရပါ"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"နောက်မှထပ်စမ်းပါ။ ပြဿနာကို ဖြေရှင်းပြီးသည့်အခါ သင့်ဓာတ်ပုံများကို ရနိုင်မည်။"</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"အရန်သိမ်းထားသော ဓာတ်ပုံများ ယခုထည့်သွင်းထားပြီ"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"<xliff:g id="APP_NAME">%1$s</xliff:g> အကောင့် <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> မှ ဓာတ်ပုံများ ရွေးနိုင်သည်"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"<xliff:g id="APP_NAME">%1$s</xliff:g> အကောင့်ရွေးရန်"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"<xliff:g id="APP_NAME">%1$s</xliff:g> မှ ဓာတ်ပုံများကို ဤနေရာတွင်ထည့်သွင်းရန် အက်ပ်၌ အကောင့်ရွေးပါ"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"အကောင့်ရွေးရန်"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Cloud မီဒီယာအက်ပ် ရွေးရန်"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"အရန်သိမ်းထားသော ဓာတ်ပုံများ ဤနေရာတွင်ထည့်သွင်းရန် ဆက်တင်များ၌ cloud မီဒီယာအက်ပ် ရွေးပါ"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"အက်ပ်ရွေးရန်"</string>
 </resources>

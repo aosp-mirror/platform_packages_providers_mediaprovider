@@ -94,6 +94,7 @@ open class MediaProviderClient {
         MIME_TYPE("mime_type"),
         STANDARD_MIME_TYPE_EXT("standard_mime_type_extension"),
         DURATION("duration_millis"),
+        IS_PRE_GRANTED("is_pre_granted"),
     }
 
     /** Contains all optional and mandatory keys for data in the Media query response extras. */
@@ -170,7 +171,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
 
         try {
@@ -216,7 +218,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
 
         try {
@@ -265,7 +268,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
 
         try {
@@ -337,6 +341,7 @@ open class MediaProviderClient {
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
         extras.putStringArrayList(EXTRA_MIME_TYPES, config.mimeTypes)
         extras.putString(EXTRA_INTENT_ACTION, config.action)
+        extras.putInt(Intent.EXTRA_UID, config.callingPackageUid ?: -1)
         refreshMedia(extras, resolver)
     }
 
@@ -469,7 +474,8 @@ open class MediaProviderClient {
                 val mimeType: String = getString(getColumnIndexOrThrow(MediaResponse.MIME_TYPE.key))
                 val standardMimeTypeExtension: Int =
                     getInt(getColumnIndexOrThrow(MediaResponse.STANDARD_MIME_TYPE_EXT.key))
-
+                val isPregranted: Int =
+                    getInt(getColumnIndexOrThrow(MediaResponse.IS_PRE_GRANTED.key))
                 if (mimeType.startsWith("image/")) {
                     result.add(
                         Media.Image(
@@ -483,6 +489,7 @@ open class MediaProviderClient {
                             sizeInBytes = sizeInBytes,
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
+                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
                         )
                     )
                 } else if (mimeType.startsWith("video/")) {
@@ -499,6 +506,7 @@ open class MediaProviderClient {
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
                             duration = getInt(getColumnIndexOrThrow(MediaResponse.DURATION.key)),
+                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
                         )
                     )
                 } else {

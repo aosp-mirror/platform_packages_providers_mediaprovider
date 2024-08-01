@@ -24,6 +24,7 @@ import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.t
 import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
@@ -41,6 +42,7 @@ import androidx.work.Worker;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -67,8 +69,9 @@ public class PickerSyncManager {
     public static final int SYNC_LOCAL_ONLY = 1;
     public static final int SYNC_CLOUD_ONLY = 2;
     public static final int SYNC_LOCAL_AND_CLOUD = 3;
+    public static final int SYNC_MEDIA_GRANTS = 4;
 
-    @IntDef(value = { SYNC_LOCAL_ONLY, SYNC_CLOUD_ONLY, SYNC_LOCAL_AND_CLOUD })
+    @IntDef(value = { SYNC_LOCAL_ONLY, SYNC_CLOUD_ONLY, SYNC_LOCAL_AND_CLOUD, SYNC_MEDIA_GRANTS })
     @Retention(RetentionPolicy.SOURCE)
     public @interface SyncSource {}
 
@@ -96,6 +99,9 @@ public class PickerSyncManager {
     public static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
     public static final String PERIODIC_ALBUM_RESET_WORK_NAME;
     private static final String ENDLESS_WORK_NAME;
+    public static final String IMMEDIATE_GRANTS_SYNC_WORK_NAME;
+    public static final String SHOULD_SYNC_GRANTS;
+    public static final String EXTRA_MIME_TYPES;
 
     static {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
@@ -104,15 +110,19 @@ public class PickerSyncManager {
         final String syncAllSuffix = "ALL";
         final String syncLocalSuffix = "LOCAL";
         final String syncCloudSuffix = "CLOUD";
+        final String syncGrantsSuffix = "GRANTS";
 
         PERIODIC_ALBUM_RESET_WORK_NAME = "RESET_ALBUM_MEDIA_PERIODIC";
         PERIODIC_SYNC_WORK_NAME = syncPeriodicPrefix + syncAllSuffix;
         PROACTIVE_LOCAL_SYNC_WORK_NAME = syncProactivePrefix + syncLocalSuffix;
         PROACTIVE_SYNC_WORK_NAME = syncProactivePrefix + syncAllSuffix;
+        IMMEDIATE_GRANTS_SYNC_WORK_NAME = syncImmediatePrefix + syncGrantsSuffix;
         IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
         IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
         ENDLESS_WORK_NAME = "ENDLESS_WORK";
+        SHOULD_SYNC_GRANTS = "SHOULD_SYNC_GRANTS";
+        EXTRA_MIME_TYPES = "mime_types";
     }
 
     private final WorkManager mWorkManager;
@@ -255,14 +265,57 @@ public class PickerSyncManager {
     /**
      * Use this method for reactive syncs which are user triggered.
      *
-     * @param shouldSyncLocalOnlyData if true indicates that the sync should only be triggered with
-     *                                the local provider. Otherwise, sync will be triggered for both
-     *                                local and cloud provider.
+     * @param pickerSyncRequestExtras extras used to figure out which all syncs to trigger.
      */
-    public void syncMediaImmediately(boolean shouldSyncLocalOnlyData) {
+    public void syncMediaImmediately(PickerSyncRequestExtras pickerSyncRequestExtras) {
+
+        if (mConfigStore.isModernPickerEnabled()) {
+            // sync for grants is only required for the modern picker, the java picker uses
+            // MediaStore to directly fetch the grants for all purposes of selection.
+            syncGrantsImmediately(
+                    IMMEDIATE_GRANTS_SYNC_WORK_NAME,
+                    pickerSyncRequestExtras.getCallingPackageUid(),
+                    pickerSyncRequestExtras.isShouldSyncGrants(),
+                    pickerSyncRequestExtras.getMimeTypes());
+        }
+
         syncMediaImmediately(PickerSyncManager.SYNC_LOCAL_ONLY, IMMEDIATE_LOCAL_SYNC_WORK_NAME);
-        if (!shouldSyncLocalOnlyData) {
+        if (!pickerSyncRequestExtras.shouldSyncLocalOnlyData()) {
             syncMediaImmediately(PickerSyncManager.SYNC_CLOUD_ONLY, IMMEDIATE_CLOUD_SYNC_WORK_NAME);
+        }
+    }
+
+    /**
+     * Use this method for reactive syncs for grants from the external database.
+     */
+    private void syncGrantsImmediately(@NonNull String workName, int callingPackageUid,
+            boolean shouldSyncGrants, String[] mimeTypes) {
+        final Data inputData = new Data(
+                Map.of(
+                        Intent.EXTRA_UID, callingPackageUid,
+                        SHOULD_SYNC_GRANTS, shouldSyncGrants,
+                        EXTRA_MIME_TYPES, mimeTypes
+                )
+        );
+
+        final OneTimeWorkRequest syncRequestForGrants =
+                buildOneTimeWorkerRequest(ImmediateGrantsSyncWorker.class, inputData);
+
+        // Track the new sync request(s)
+        trackNewSyncRequests(PickerSyncManager.SYNC_MEDIA_GRANTS, syncRequestForGrants.getId());
+
+        // Enqueue grants sync request
+        try {
+            final Operation enqueueOperation = mWorkManager
+                    .enqueueUniqueWork(workName, ExistingWorkPolicy.APPEND_OR_REPLACE,
+                            syncRequestForGrants);
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue expedited picker grants sync request", e);
+            markSyncAsComplete(PickerSyncManager.SYNC_MEDIA_GRANTS,
+                    syncRequestForGrants.getId());
         }
     }
 

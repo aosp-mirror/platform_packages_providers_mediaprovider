@@ -30,6 +30,15 @@ val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit 
 /** A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items. */
 val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
 
+/** A test package name used in test photopicker configurations. */
+val TEST_CALLING_PACKAGE = "com.example.test"
+
+/** A test calling uid used in test photopicker configurations. */
+val TEST_CALLING_UID = 1234
+
+/** A test package label used in test photopicker configurations. */
+val TEST_CALLING_PACKAGE_LABEL = "test_app"
+
 /**
  * A [PhotopickerConfiguration] that can be used with most tests, that comes with sensible default
  * values.
@@ -68,6 +77,9 @@ val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
     PhotopickerConfiguration(
         action = MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
         intent = Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP),
+        callingPackage = TEST_CALLING_PACKAGE,
+        callingPackageUid = TEST_CALLING_UID,
+        callingPackageLabel = TEST_CALLING_PACKAGE_LABEL,
     )
 
 /**

@@ -50,6 +50,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
@@ -100,6 +101,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()

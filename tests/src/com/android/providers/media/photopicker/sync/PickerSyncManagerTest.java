@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SHOULD_SYNC_GRANTS;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -47,6 +49,7 @@ import androidx.work.WorkRequest;
 
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -254,15 +257,55 @@ public class PickerSyncManagerTest {
     }
 
     @Test
+    public void testImmediateGrantsSync() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        mConfigStore.setIsModernPickerEnabled(true);
+        reset(mMockWorkManager);
+        mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
+                /* albumAuthority */ null, /* initLocalDataOnly */ true,
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null));
+        verify(mMockWorkManager, times(2))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(2);
+
+        // work request 0 is for grants sync.
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(ImmediateGrantsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(Intent.EXTRA_UID, -1))
+                .isEqualTo(0);
+        assertThat(workRequest.getWorkSpec().input
+                .getBoolean(SHOULD_SYNC_GRANTS, false))
+                .isEqualTo(true);
+    }
+
+    @Test
     public void testImmediateLocalSync() {
+        mConfigStore.setIsModernPickerEnabled(true);
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         reset(mMockWorkManager);
-        mPickerSyncManager.syncMediaImmediately(true);
-        verify(mMockWorkManager, times(1))
+        mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
+                /* albumAuthority */ null, /* initLocalDataOnly */ true,
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+        verify(mMockWorkManager, times(2))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
-        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(2);
+
+        // work request 0 is for grants sync, so use request number 1 for local syncs.
+        WorkRequest workRequest = workRequestList.get(1);
         assertThat(workRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateSyncWorker.class.getName());
         assertThat(workRequest.getWorkSpec().expedited).isTrue();
@@ -276,19 +319,24 @@ public class PickerSyncManagerTest {
 
     @Test
     public void testImmediateCloudSync() {
+        mConfigStore.setIsModernPickerEnabled(true);
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         reset(mMockWorkManager);
 
-        mPickerSyncManager.syncMediaImmediately(false);
-        verify(mMockWorkManager, times(2))
+        mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
+                /* albumAuthority */ null, /* initLocalDataOnly */ false,
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+        verify(mMockWorkManager, times(3))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
         final List<OneTimeWorkRequest> workRequestList =
                 mOneTimeWorkRequestArgumentCaptor.getAllValues();
-        assertThat(workRequestList.size()).isEqualTo(2);
+        assertThat(workRequestList.size()).isEqualTo(3);
 
-        WorkRequest localWorkRequest = workRequestList.get(0);
+        // work request 0 is for grants sync, 1 for local syncs and 2 for cloud syncs.
+
+        WorkRequest localWorkRequest = workRequestList.get(1);
         assertThat(localWorkRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateSyncWorker.class.getName());
         assertThat(localWorkRequest.getWorkSpec().expedited).isTrue();
@@ -299,7 +347,7 @@ public class PickerSyncManagerTest {
                 .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
                 .isEqualTo(SYNC_LOCAL_ONLY);
 
-        WorkRequest cloudWorkRequest = workRequestList.get(1);
+        WorkRequest cloudWorkRequest = workRequestList.get(2);
         assertThat(cloudWorkRequest.getWorkSpec().workerClassName)
                 .isEqualTo(ImmediateSyncWorker.class.getName());
         assertThat(cloudWorkRequest.getWorkSpec().expedited).isTrue();

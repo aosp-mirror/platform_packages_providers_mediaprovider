@@ -56,7 +56,7 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
     private final List<Uri> mPreSelectedUris;
 
     @NonNull
-    private static final List<String> DEFAULT_MIME_TYPES = Arrays.asList("*/*");
+    private static final List<String> DEFAULT_MIME_TYPES = Arrays.asList("image/*", "video/*");
     @ColorLong
     private static final long DEFAULT_ACCENT_COLOR = -1;
     private static final boolean DEFAULT_ORDERED_SELECTION = false;

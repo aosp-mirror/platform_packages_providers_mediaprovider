@@ -59,8 +59,16 @@ class TestDataServiceImpl() : DataService {
 
     val collectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
 
+    private var _preGrantsCount = MutableStateFlow(/* default value */ 0)
+
     fun setAvailableProviders(newProviders: List<Provider>) {
         _availableProviders.update { newProviders }
+    }
+
+    override val preGrantedMediaCount: StateFlow<Int> = _preGrantsCount
+
+    fun setInitPreGrantsCount(count: Int) {
+        _preGrantsCount.update { count }
     }
 
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
@@ -103,4 +111,8 @@ class TestDataServiceImpl() : DataService {
     override suspend fun ensureProviders() {}
 
     override fun getAllAllowedProviders(): List<Provider> = allowedProviders
+
+    override fun refreshPreGrantedItemsCount() {
+        // no_op
+    }
 }

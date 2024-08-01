@@ -25,6 +25,8 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLO
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_PROVIDER;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.DATE_TAKEN_MS;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GENERATION_MODIFIED;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GIF_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.JPEG_IMAGE_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_1;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_2;
@@ -32,17 +34,19 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOC
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_4;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_PROVIDER;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.MP4_VIDEO_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.PNG_IMAGE_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.STANDARD_MIME_TYPE_EXTENSION;
-import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.TEST_PACKAGE_NAME;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddAlbumMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddMediaOperation;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertInsertGrantsOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCursor;
-import static com.android.providers.media.photopicker.util.PickerDbTestUtils.GIF_IMAGE_MIME_TYPE;
-import static com.android.providers.media.photopicker.util.PickerDbTestUtils.PNG_IMAGE_MIME_TYPE;
-import static com.android.providers.media.photopicker.util.PickerDbTestUtils.JPEG_IMAGE_MIME_TYPE;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaGrantsCursor;
+import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.COLUMN_GRANTS_COUNT;
 import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -64,6 +68,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Process;
+import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.test.mock.MockContentProvider;
@@ -413,6 +418,112 @@ public class PickerDataLayerV2Test {
 
             cr.moveToNext();
             assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE);
+        }
+    }
+
+    @Test
+    public void testQueryLocalMediaWithGrants() {
+        Cursor cursorForMediaWithoutGrants = getMediaCursor(LOCAL_ID_1, DATE_TAKEN_MS + 1,
+                GENERATION_MODIFIED, /* mediaStoreUri */ null, /* sizeBytes */ 1,
+                MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+        Cursor cursorForMediaWithGrants = getMediaCursor(LOCAL_ID_2, DATE_TAKEN_MS,
+                GENERATION_MODIFIED,
+                /* mediaStoreUri */ null, /* sizeBytes */ 2, MP4_VIDEO_MIME_TYPE,
+                STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
+
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursorForMediaWithoutGrants,
+                /* writeCount */1);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursorForMediaWithGrants,
+                /* writeCount */1);
+        int testUid = 123;
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        String[] packageNames = new String[]{TEST_PACKAGE_NAME};
+        doReturn(packageNames).when(mMockPackageManager).getPackagesForUid(testUid);
+        // insert a grant for the second item inserted in media.
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2), /* writeCount */1);
+
+        doReturn(false).when(mMockSyncController).shouldQueryCloudMedia(any());
+
+        try (Cursor cr = PickerDataLayerV2.queryMedia(
+                mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 3,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)),
+                        new ArrayList<>(Arrays.asList("video/*")),
+                        MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                        testUid))) {
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(2);
+
+            // verify item with isPreGranted as false.
+            cr.moveToFirst();
+            assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS + 1,
+                    MP4_VIDEO_MIME_TYPE, MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                    /* isPreGranted */ false);
+
+            // verify item with isPreGranted as true.
+            cr.moveToNext();
+            assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE,
+                    MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+                    /* isPreGranted */ true);
+        }
+    }
+
+    @Test
+    public void testFetchMediaGrantsCount() {
+        int testUid = 123;
+        int userId = PickerSyncController.uidToUserId(testUid);
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        String[] packageNames = new String[]{TEST_PACKAGE_NAME};
+        doReturn(packageNames).when(mMockPackageManager).getPackagesForUid(testUid);
+
+
+        // insert 2 grants corresponding to testUid.
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_1, TEST_PACKAGE_NAME, userId), /* writeCount */1);
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME, userId), /* writeCount */1);
+
+        // insert grants with different packageName or userIds.
+        String TEST_PACKAGE_NAME_2 = "package.name.two";
+        int TEST_USER_ID_2 = 10;
+
+        // same id but different packageName
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME_2,
+                UserHandle.myUserId()), /* writeCount */1);
+        // same id but different userId
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME,
+                TEST_USER_ID_2), /* writeCount */1);
+        // both packageName and userId different
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME_2, TEST_USER_ID_2), 1);
+        // every aspect different
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_3, TEST_PACKAGE_NAME_2, TEST_USER_ID_2), 1);
+
+        Bundle input = new Bundle();
+        input.putInt(Intent.EXTRA_UID, testUid);
+
+        try (Cursor cr = PickerDataLayerV2.fetchMediaGrantsCount(
+                mMockContext, input)) {
+
+            // cursor should only contain 1 row that represents the count.
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(1);
+
+            // verify that the cursor contains the count. Ensure that only 2 grants are considered
+            // even when there were total 4 grants inserted. This ensures that the grants were
+            // filtered properly based on the packageName and UserId.
+            cr.moveToFirst();
+            int columnIndexForCount = cr.getColumnIndex(COLUMN_GRANTS_COUNT);
+            assertWithMessage(
+                    "column index should not be -1.")
+                    .that(columnIndexForCount).isNotEqualTo(-1);
+            assertWithMessage(
+                    "Unexpected number grants count, expected to be 2.")
+                    .that(cr.getInt(columnIndexForCount)).isEqualTo(2);
         }
     }
 
@@ -1660,11 +1771,16 @@ public class PickerDataLayerV2Test {
     private static void assertMediaCursor(Cursor cursor, String id, String authority,
             Long dateTaken, String mimeType) {
         assertMediaCursor(cursor, id, authority, dateTaken, mimeType,
-                MediaStore.ACTION_PICK_IMAGES);
+                MediaStore.ACTION_PICK_IMAGES, /* isPreGranted */ false);
+    }
+    private static void assertMediaCursor(Cursor cursor, String id, String authority,
+            Long dateTaken, String mimeType, String intent) {
+        assertMediaCursor(cursor, id, authority, dateTaken, mimeType,
+                intent, /* isPreGranted */ false);
     }
 
     private static void assertMediaCursor(Cursor cursor, String id, String authority,
-            Long dateTaken, String mimeType, String intent) {
+            Long dateTaken, String mimeType, String intent, boolean isPreGranted) {
         assertWithMessage("Unexpected value of id in the media cursor.")
                 .that(cursor.getString(cursor.getColumnIndexOrThrow(
                         PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
@@ -1691,6 +1807,11 @@ public class PickerDataLayerV2Test {
                 .that(cursor.getString(cursor.getColumnIndexOrThrow(
                         PickerSQLConstants.MediaResponse.WRAPPED_URI.getProjectedName())))
                 .isEqualTo(expectedUri.toString());
+
+        assertWithMessage("Unexpected value of grants in the media cursor.")
+                .that(cursor.getInt(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaResponse.IS_PRE_GRANTED.getProjectedName())))
+                .isEqualTo(isPreGranted ? 1 : 0);
     }
 
     private static void assertAlbumCursor(Cursor cursor, String albumId, String authority,
@@ -1748,30 +1869,46 @@ public class PickerDataLayerV2Test {
     }
 
     private Bundle getMediaQueryExtras(Long pickerId, Long dateTakenMillis, int pageSize,
-            ArrayList<String> providers) {
+            List<String> providers) {
         Bundle extras = new Bundle();
         extras.putLong("picker_id", pickerId);
         extras.putLong("date_taken_millis", dateTakenMillis);
         extras.putInt("page_size", pageSize);
-        extras.putStringArrayList("providers", providers);
+        extras.putStringArrayList("providers", new ArrayList<>(providers));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
         return extras;
     }
 
     private Bundle getMediaQueryExtras(Long pickerId, Long dateTakenMillis, int pageSize,
-            ArrayList<String> providers, ArrayList<String> mimeTypes) {
+            List<String> providers, List<String> mimeTypes) {
         Bundle extras = getMediaQueryExtras(
                 pickerId,
                 dateTakenMillis,
                 pageSize,
                 providers
         );
-        extras.putStringArrayList("mime_types", mimeTypes);
+        extras.putStringArrayList("mime_types", new ArrayList<>(mimeTypes));
+        return extras;
+    }
+
+    private Bundle getMediaQueryExtras(
+            Long pickerId, Long dateTakenMillis, int pageSize,
+            List<String> providers, List<String> mimeTypes,
+            String intentAction, int callingUid) {
+        Bundle extras = getMediaQueryExtras(
+                pickerId,
+                dateTakenMillis,
+                pageSize,
+                providers,
+                mimeTypes
+        );
+        extras.putInt(Intent.EXTRA_UID, callingUid);
+        extras.putString("intent_action", intentAction);
         return extras;
     }
 
     private Bundle getAlbumMediaQueryExtras(Long pickerId, Long dateTakenMillis, int pageSize,
-            ArrayList<String> providers, String albumAuthority) {
+            List<String> providers, String albumAuthority) {
         Bundle extras = getMediaQueryExtras(
                 pickerId,
                 dateTakenMillis,

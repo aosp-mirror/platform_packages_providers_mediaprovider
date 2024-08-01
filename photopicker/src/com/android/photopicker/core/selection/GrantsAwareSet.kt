@@ -21,9 +21,8 @@ import com.android.photopicker.data.model.Grantable
 /**
  * A specialized set implementation that is aware of both user selections and pre-granted elements.
  *
- * This class extends the behavior of a standard set by incorporating pre-granted elements
- * into its logic. An element is considered to be part of the set if either:
- *
+ * This class extends the behavior of a standard set by incorporating pre-granted elements into its
+ * logic. An element is considered to be part of the set if either:
  * 1. It has been explicitly selected by the user.
  * 2. It is pre-granted and hasn't been explicitly de-selected by the user.
  *
@@ -33,32 +32,28 @@ import com.android.photopicker.data.model.Grantable
  *
  * @property selection The set of elements explicitly selected by the user.
  * @property deSelection The set of pre-granted elements that have been explicitly de-selected.
- * @property preGrantedelementsCount The number of pre-granted elements (not including those in `deSelection`).
+ * @property preGrantedElementsCount The number of pre-granted elements (not including those in
+ *   `deSelection`).
  */
 class GrantsAwareSet<T : Grantable>(
     val selection: Set<T>,
     val deSelection: Set<T>,
-    val preGrantedelementsCount: Int = 0,
+    private val preGrantedElementsCount: Int = 0,
 ) : Set<T> {
 
-    /**
-     * Size of the set based on current selection and preGranted elements.
-     */
-    override val size: Int = selection.size - deSelection.size + preGrantedelementsCount
+    /** Size of the set based on current selection and preGranted elements. */
+    override val size: Int = selection.size - deSelection.size + preGrantedElementsCount
 
     /**
      * Checks if the set contains a specific element.
      *
      * This implementation considers two scenarios:
-     *
      * 1. **Direct Presence in the Selection:**
-     *    - Returns `true` if the `element` is directly present in the current user selection.
-     *
+     *     - Returns `true` if the `element` is directly present in the current user selection.
      * 2. **Pre-Granted Media:**
-     *    - If the `element` is a `Media` object:
-     *        - Returns `true` if the `Media` is pre-granted (via `isPreGranted()`) AND
-     *          it is not present in the deSelection set (i.e., the user has not explicitly
-     *          de-selected it).
+     *     - If the `element` is a `Media` object:
+     *         - Returns `true` if the `Media` is pre-granted (via `isPreGranted()`) AND it is not
+     *           present in the deSelection set (i.e., the user has not explicitly de-selected it).
      *
      * @param element The element to check for.
      * @return `true` if the element is considered to be in the set, `false` otherwise.
@@ -97,9 +92,7 @@ class GrantsAwareSet<T : Grantable>(
         return selection.iterator()
     }
 
-    /**
-     * Checks if all elements provided in the input are present in the set.
-     */
+    /** Checks if all elements provided in the input are present in the set. */
     override fun containsAll(elements: Collection<T>): Boolean {
         for (element in elements) {
             if (!contains(element)) {

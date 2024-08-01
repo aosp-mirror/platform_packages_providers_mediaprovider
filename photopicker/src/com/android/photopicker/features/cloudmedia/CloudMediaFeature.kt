@@ -19,6 +19,7 @@ package com.android.photopicker.features.cloudmedia
 import android.content.Intent
 import android.provider.MediaStore
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -26,8 +27,12 @@ import com.android.photopicker.R
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerState
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.FeatureToken
@@ -41,6 +46,7 @@ import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
+import kotlinx.coroutines.launch
 
 /**
  * Feature class for the Photopicker's cloud media implementation.
@@ -169,7 +175,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
     /** Events produced by the Cloud Media */
-    override val eventsProduced = setOf<RegisteredEventClass>()
+    override val eventsProduced =
+        setOf<RegisteredEventClass>(
+            Event.LogPhotopickerMenuInteraction::class.java,
+            Event.LogPhotopickerUIEvent::class.java
+        )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
@@ -190,6 +200,9 @@ class CloudMediaFeature : PhotopickerUiFeature {
         modifier: Modifier,
         params: LocationParams,
     ) {
+        val events = LocalEvents.current
+        val scope = rememberCoroutineScope()
+        val configuration = LocalPhotopickerConfiguration.current
         when (location) {
             Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
             Location.OVERFLOW_MENU_ITEMS -> {
@@ -200,6 +213,18 @@ class CloudMediaFeature : PhotopickerUiFeature {
                     onClick = {
                         clickAction?.onClick()
                         context.startActivity(Intent(MediaStore.ACTION_PICK_IMAGES_SETTINGS))
+                        // Dispatch event to log user's interactiuon with the cloud settings menu
+                        // item in the photopicker
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerMenuInteraction(
+                                    token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.MenuItemSelected.CLOUD_SETTINGS
+                                )
+                            )
+                        }
                     }
                 )
             }

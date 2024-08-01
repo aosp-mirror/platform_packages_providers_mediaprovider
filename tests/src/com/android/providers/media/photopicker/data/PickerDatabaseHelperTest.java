@@ -28,6 +28,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
+import com.android.providers.media.MediaGrants;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +41,7 @@ public class PickerDatabaseHelperTest {
     private static final String TEST_PICKER_DB = "test_picker";
     static final String MEDIA_TABLE = "media";
     static final String ALBUM_MEDIA_TABLE = "album_media";
+    static final String GRANTS_TABLE = "media_grants";
 
     private static final String KEY_LOCAL_ID = "local_id";
     private static final String KEY_CLOUD_ID = "cloud_id";
@@ -149,6 +151,38 @@ public class PickerDatabaseHelperTest {
                     assertThat(cr.getLong(6)).isEqualTo(DURATION_MS);
                     assertThat(cr.getString(7)).isEqualTo(MIME_TYPE);
                     assertThat(cr.getInt(8)).isEqualTo(STANDARD_MIME_TYPE_EXTENSION);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testGrantsColumns() {
+        String[] projection = new String[] {
+                MediaGrants.FILE_ID_COLUMN,
+                MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                MediaGrants.PACKAGE_USER_ID_COLUMN
+        };
+
+        try (PickerDatabaseHelper helper = new PickerDatabaseHelperT(sIsolatedContext)) {
+            SQLiteDatabase db = helper.getWritableDatabase();
+
+            int testInputId = 1234;
+            // All fields specified
+            ContentValues values = new ContentValues();
+            values.put(MediaGrants.FILE_ID_COLUMN, testInputId);
+            values.put(MediaGrants.OWNER_PACKAGE_NAME_COLUMN, "abc");
+            values.put(MediaGrants.PACKAGE_USER_ID_COLUMN, 123);
+            assertThat(db.insert(GRANTS_TABLE, null, values))
+                    .isNotEqualTo(-1);
+
+            try (Cursor cr = db.query(GRANTS_TABLE, projection, null,
+                    null, null, null, null)) {
+                assertThat(cr.getCount()).isEqualTo(1);
+                while (cr.moveToNext()) {
+                    assertThat(cr.getInt(0)).isEqualTo(testInputId);
+                    assertThat(cr.getString(1)).isEqualTo("abc");
+                    assertThat(cr.getInt(2)).isEqualTo(123);
                 }
             }
         }

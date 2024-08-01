@@ -31,6 +31,7 @@ android_test {
         "androidx.test.core",
         "androidx.test.rules",
         "flag-junit",
+        "glide-mocks",
         "hilt_android",
         "hilt_android_testing",
         "mockito-target",

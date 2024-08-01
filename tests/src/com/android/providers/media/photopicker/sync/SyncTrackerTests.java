@@ -64,6 +64,8 @@ public class SyncTrackerTests {
 
     @Test
     public void getSyncTrackerFromRegistry() {
+        assertThat(SyncTrackerRegistry.getGrantsSyncTracker())
+                .isNotNull();
         assertThat(SyncTrackerRegistry.getSyncTracker(/* isLocal */ true))
                 .isEqualTo(SyncTrackerRegistry.getLocalSyncTracker());
         assertThat(SyncTrackerRegistry.getSyncTracker(/* isLocal */ false))

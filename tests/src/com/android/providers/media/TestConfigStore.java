@@ -37,6 +37,7 @@ public class TestConfigStore implements ConfigStore {
     private boolean mCloudMediaInPhotoPickerEnabled = false;
     private boolean mPrivateSpaceEnabled = false;
 
+    private boolean mIsModernPickerEnabled = false;
     private boolean mPickerChoiceManagedSelectionEnabled = false;
     private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
     private @Nullable String mDefaultCloudProviderPackage = null;
@@ -46,6 +47,10 @@ public class TestConfigStore implements ConfigStore {
         mAllowedCloudProviderPackages = Arrays.asList(providers);
         mCloudMediaInPhotoPickerEnabled = true;
         notifyObservers();
+    }
+
+    public void setIsModernPickerEnabled(boolean isModernPickerEnabled) {
+        mIsModernPickerEnabled = isModernPickerEnabled;
     }
 
     /**
@@ -66,6 +71,11 @@ public class TestConfigStore implements ConfigStore {
     @Override
    public boolean isPrivateSpaceInPhotoPickerEnabled() {
         return mPrivateSpaceEnabled;
+    }
+
+    @Override
+    public boolean isModernPickerEnabled() {
+        return mIsModernPickerEnabled;
     }
 
     public void enableCloudMediaFeature() {

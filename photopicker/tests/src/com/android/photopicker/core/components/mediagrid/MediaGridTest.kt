@@ -64,6 +64,7 @@ import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Group
@@ -78,7 +79,6 @@ import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.bumptech.glide.Glide
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -100,7 +100,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -130,6 +129,7 @@ class MediaGridTest {
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeTestRule = createComposeRule()
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /**
      * MediaGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
@@ -234,13 +234,6 @@ class MediaGridTest {
         // Keep the flow processing out of the composable as that drastically cuts down on the
         // flakiness of individual test runs.
         flow = pager.flow.toMediaGridItemFromMedia().insertMonthSeparators()
-    }
-
-    @After()
-    fun teardown() {
-        // It is important to tearDown glide after every test to ensure it picks up the updated
-        // mocks from Hilt and mocks aren't leaked between tests.
-        Glide.tearDown()
     }
 
     /**

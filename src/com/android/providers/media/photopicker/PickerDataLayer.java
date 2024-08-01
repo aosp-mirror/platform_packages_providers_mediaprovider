@@ -177,7 +177,7 @@ public class PickerDataLayer {
                             getWorkManager(mContext),
                             SyncTrackerRegistry.getLocalSyncTracker(),
                             IMMEDIATE_LOCAL_SYNC_WORK_NAME);
-                    Log.i(TAG, "Local sync is complete");
+                    Log.i(TAG, "Grants sync and Local sync is complete");
 
                     // Wait for on cloud sync with timeout
                     if (!isLocalOnly) {
@@ -436,7 +436,7 @@ public class PickerDataLayer {
                     + " Should sync with local provider only: "
                     + syncRequestExtras.shouldSyncLocalOnlyData());
 
-            mSyncManager.syncMediaImmediately(syncRequestExtras.shouldSyncLocalOnlyData());
+            mSyncManager.syncMediaImmediately(syncRequestExtras);
         } else {
             // Sync album media data
             Log.i(TAG, String.format("Init data request for album content of: %s"

@@ -53,6 +53,11 @@ import androidx.navigation.compose.rememberNavController
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
@@ -69,7 +74,7 @@ private val MEASUREMENT_BANNER_PADDING =
 
 /* Spacing around the selection bar and the edges of the screen */
 private val SELECTION_BAR_PADDING =
-    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 64.dp)
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 48.dp)
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is
@@ -90,6 +95,9 @@ fun PhotopickerAppWithBottomSheet(
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
 
     val state =
         rememberBottomSheetScaffoldState(
@@ -100,7 +108,29 @@ fun PhotopickerAppWithBottomSheet(
                         when (sheetValue) {
                             // When the sheet is hidden, trigger the onDismissRequest
                             SheetValue.Hidden -> onDismissRequest()
-                            else -> {}
+                            // Log picker state change
+                            SheetValue.Expanded ->
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerUIEvent(
+                                            FeatureToken.CORE.token,
+                                            configuration.sessionId,
+                                            configuration.callingPackageUid ?: -1,
+                                            Telemetry.UiEvent.EXPAND_PICKER
+                                        )
+                                    )
+                                }
+                            SheetValue.PartiallyExpanded ->
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerUIEvent(
+                                            FeatureToken.CORE.token,
+                                            configuration.sessionId,
+                                            configuration.callingPackageUid ?: -1,
+                                            Telemetry.UiEvent.COLLAPSE_PICKER
+                                        )
+                                    )
+                                }
                         }
                         true // allow all value changes
                     },
@@ -115,7 +145,9 @@ fun PhotopickerAppWithBottomSheet(
     val sheetPeekHeight = remember(localConfig) { (localConfig.screenHeightDp * .75).dp }
 
     // Provide the NavController to the rest of the Compose stack.
-    CompositionLocalProvider(LocalNavController provides navController) {
+    CompositionLocalProvider(
+        LocalNavController provides navController,
+    ) {
         Column(
             modifier =
                 // Apply WindowInsets to this wrapping column to prevent the Bottom Sheet
@@ -189,7 +221,6 @@ fun PhotopickerAppWithBottomSheet(
  * the top-most [@Composable] in the view based application. This should not be called by any
  * Activity code, and should only be called inside of the ComposeView [setContent] block.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotopickerApp(bannerManager: BannerManager) {
     // Initialize and remember the NavController. This needs to be provided before the call to
@@ -216,6 +247,7 @@ fun PhotopickerApp(bannerManager: BannerManager) {
  * - LocalPhotopickerConfiguration
  * - LocalSelection
  * - PhotopickerTheme
+ * - LocalPickerSheetStateValue
  */
 @Composable
 fun PhotopickerMain(bannerManager: BannerManager) {

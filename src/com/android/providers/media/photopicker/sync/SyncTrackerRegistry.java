@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.sync;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_MEDIA_GRANTS;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
@@ -33,6 +34,7 @@ public class SyncTrackerRegistry {
     private static SyncTracker sLocalAlbumSyncTracker = new SyncTracker();
     private static SyncTracker sCloudSyncTracker = new SyncTracker();
     private static SyncTracker sCloudAlbumSyncTracker = new SyncTracker();
+    private static SyncTracker sGrantsSyncTracker = new SyncTracker();
 
     public static SyncTracker getLocalSyncTracker() {
         return sLocalSyncTracker;
@@ -59,6 +61,15 @@ public class SyncTrackerRegistry {
         sLocalAlbumSyncTracker = localAlbumSyncTracker;
     }
 
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setGrantsSyncTracker(
+            SyncTracker grantsSyncTracker) {
+        sGrantsSyncTracker = grantsSyncTracker;
+    }
+
     public static SyncTracker getCloudSyncTracker() {
         return sCloudSyncTracker;
     }
@@ -83,6 +94,10 @@ public class SyncTrackerRegistry {
     public static void setCloudAlbumSyncTracker(
             SyncTracker cloudAlbumSyncTracker) {
         sCloudAlbumSyncTracker = cloudAlbumSyncTracker;
+    }
+
+    public static SyncTracker getGrantsSyncTracker() {
+        return sGrantsSyncTracker;
     }
 
     /**
@@ -125,6 +140,9 @@ public class SyncTrackerRegistry {
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudSyncTracker().createSyncFuture(syncRequestId);
         }
+        if (syncSource == SYNC_MEDIA_GRANTS) {
+            getGrantsSyncTracker().createSyncFuture(syncRequestId);
+        }
     }
 
     /**
@@ -153,6 +171,9 @@ public class SyncTrackerRegistry {
         }
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudSyncTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_MEDIA_GRANTS) {
+            getGrantsSyncTracker().markSyncCompleted(syncRequestId);
         }
     }
 

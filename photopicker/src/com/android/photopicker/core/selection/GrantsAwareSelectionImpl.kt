@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.selection
 
+import android.util.Log
 import androidx.annotation.GuardedBy
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -26,8 +27,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -55,17 +58,20 @@ import kotlinx.coroutines.sync.withLock
  * @property scope A [CoroutineScope] that the flow is shared and updated in.
  * @property initialSelection A collection to include initial selection value.
  * @property configuration a collectable [StateFlow] of configuration changes
- * @property preGrantedItemsCount represents the total number of grants help by the current package.
+ * @property preGrantedItemsCount represents the flow for total number of grants help by the current
+ *   package.
  */
 class GrantsAwareSelectionImpl<T : Grantable>(
     val scope: CoroutineScope,
     val initialSelection: Collection<T>? = null,
     private val configuration: StateFlow<PhotopickerConfiguration>,
-    val preGrantedItemsCount: Int = 0,
+    private val preGrantedItemsCount: StateFlow<Int?>,
 ) : Selection<T> {
 
+    private val TAG = "GrantsAwareSelection"
     // An internal mutex is used to enforce thread-safe access of the selection set.
     private val mutex = Mutex()
+
     private val _deSelection: LinkedHashSet<T> = LinkedHashSet()
     private val _selection: LinkedHashSet<T> = LinkedHashSet()
 
@@ -73,10 +79,24 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     override val flow: StateFlow<GrantsAwareSet<T>>
 
     init {
+        scope.launch {
+            // Observe the refresh of the stateFlow that holds the count of pre-granted media.
+            // Note that this will always be null in case the intent action is anything other than
+            // [MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP].
+            preGrantedItemsCount
+                .filter { it != null }
+                .collect {
+                    Log.i(TAG, "Received notification for preGranted media count.")
+                    updateFlow()
+                }
+        }
         if (initialSelection != null) {
             _selection.addAll(initialSelection)
         }
-        _flow = MutableStateFlow(GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount))
+        _flow =
+            MutableStateFlow(
+                GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount.value ?: 0)
+            )
         flow =
             _flow.stateIn(
                 scope,
@@ -134,8 +154,8 @@ class GrantsAwareSelectionImpl<T : Grantable>(
             val itemsWithPregrants = LinkedHashSet<T>()
             val itemsToAdd = LinkedHashSet<T>()
 
-            for (item in items){
-                if (item.isPreGranted){
+            for (item in items) {
+                if (item.isPreGranted) {
                     itemsWithPregrants.add(item)
                 } else {
                     itemsToAdd.add(item)
@@ -153,7 +173,8 @@ class GrantsAwareSelectionImpl<T : Grantable>(
         }
     }
 
-    /** Empties the current selection of objects, returning the selection to an empty state.
+    /**
+     * Empties the current selection of objects, returning the selection to an empty state.
      *
      * Also, any pre-granted item that was de-selected will now reset i.e. no grants will be
      * revoked.
@@ -171,8 +192,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     @GuardedBy("mutex")
     override suspend fun contains(item: T): Boolean {
         return mutex.withLock {
-            _selection.contains(item) ||
-                    (item.isPreGranted && !_deSelection.contains(item))
+            _selection.contains(item) || (item.isPreGranted && !_deSelection.contains(item))
         }
     }
 
@@ -203,6 +223,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     /**
      * Removes the requested item from the selection. If the item is not in the selection, this has
      * no effect. Afterwards, will emit the new selection into the exposed flow.
+     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")
@@ -224,6 +245,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
      *
      * If one or more items are not present in the selection, this has no effect. Afterwards, will
      * emit the new selection into the exposed flow.
+     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")
@@ -231,8 +253,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
         return mutex.withLock {
             _selection.removeAll(items)
             for (item in items) {
-                if (item.isPreGranted)
-                    _deSelection.add(item)
+                if (item.isPreGranted) _deSelection.add(item)
             }
             updateFlow()
             SUCCESS
@@ -249,7 +270,11 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     override suspend fun snapshot(): Set<T> {
         return mutex.withLock {
             // Create a new [grantsSet] to emit updated values.
-            GrantsAwareSet(_selection.toSet(), _deSelection.toSet(), preGrantedItemsCount)
+            GrantsAwareSet(
+                _selection.toSet(),
+                _deSelection.toSet(),
+                preGrantedItemsCount.value ?: 0
+            )
         }
     }
 
@@ -260,8 +285,8 @@ class GrantsAwareSelectionImpl<T : Grantable>(
      * such an item is toggled, if it is not part of _deSelection then it is added to _deselection
      * otherwise removed from it.
      *
-     * For non preGranted items: if the item is already in the selection, it is removed.
-     * If the item is not in the selection, it is added.
+     * For non preGranted items: if the item is already in the selection, it is removed. If the item
+     * is not in the selection, it is added.
      *
      * Afterwards, will emit the new selection into the exposed flow.
      *
@@ -354,14 +379,12 @@ class GrantsAwareSelectionImpl<T : Grantable>(
      */
     @GuardedBy("mutex")
     override suspend fun getDeselection(): Collection<T> {
-        return mutex.withLock {
-            _deSelection.toSet()
-        }
+        return mutex.withLock { _deSelection.toSet() }
     }
 
     /** Internal method that snapshots the current selection and emits it to the exposed flow. */
     private suspend fun updateFlow() {
-        _flow.update { GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount) }
+        _flow.update { GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount.value ?: 0) }
     }
 
     /**

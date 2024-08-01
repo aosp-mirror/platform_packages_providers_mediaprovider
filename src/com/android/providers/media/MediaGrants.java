@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
+import android.annotation.Nullable;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -156,10 +157,13 @@ public class MediaGrants {
      * Returns the cursor for file data of items for which the passed package has READ_GRANTS.
      *
      * @param packageNames  the package name that has access.
-     * @param packageUserId the user_id of the package
+     * @param packageUserId the user_id of the package.
+     * @param mimeTypes the mimeTypes of items for which the grants needs to be returned.
+     * @param availableVolumes volumes that are available, grants for items only in these volumes
+     *                         should be considered.
      */
-    Cursor getMediaGrantsForPackages(String[] packageNames, int packageUserId,
-            String[] mimeTypes, String[] availableVolumes)
+    Cursor getMediaGrantsForPackages(@NonNull String[] packageNames, int packageUserId,
+            @Nullable String[] mimeTypes, @NonNull String[] availableVolumes)
             throws IllegalArgumentException {
         Objects.requireNonNull(packageNames);
         return mExternalDatabase.runWithoutTransaction((db) -> {
@@ -178,7 +182,9 @@ public class MediaGrants {
                             .build());
 
             return queryBuilder.query(db,
-                    new String[]{FILE_ID_COLUMN, PACKAGE_USER_ID_COLUMN}, null,
+                    new String[]{FILE_ID_COLUMN,
+                            String.format("%s.%s", MEDIA_GRANTS_TABLE, OWNER_PACKAGE_NAME_COLUMN),
+                            PACKAGE_USER_ID_COLUMN}, null,
                     selectionArgs, null, null, null, null, null);
         });
     }

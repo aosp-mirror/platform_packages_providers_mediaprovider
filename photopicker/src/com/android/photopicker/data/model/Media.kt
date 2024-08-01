@@ -19,6 +19,8 @@ package com.android.photopicker.data.model
 import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.compose.material3.ExperimentalMaterial3Api
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.glide.GlideLoadable
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.util.hashCodeOf
@@ -26,7 +28,7 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
 /** Holds metadata for a type of media item like [Image] or [Video]. */
-sealed interface Media : GlideLoadable, Grantable, Parcelable {
+sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
     /** This is the ID that provider has shared with Picker */
     val mediaId: String
 
@@ -40,7 +42,22 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
     val sizeInBytes: Long
     val mimeType: String
     val standardMimeTypeExtension: Int
+    override val selectionSource: Telemetry.MediaLocation?
+    override val mediaItemAlbum: Group.Album?
     override val isPreGranted: Boolean
+
+    companion object {
+        fun withSelectable(
+            item: Media,
+            selectionSource: Telemetry.MediaLocation,
+            album: Group.Album?
+        ): Media {
+            return when (item) {
+                is Image -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
+                is Video -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
+            }
+        }
+    }
 
     override fun getSignature(resolution: Resolution): ObjectKey {
         return ObjectKey("${mediaUri}_$resolution")
@@ -80,8 +97,10 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         out.writeInt(standardMimeTypeExtension)
     }
 
+    // TODO Make selectable values hold UNSET values instead of null
     /** Holds metadata for an image item. */
-    data class Image(
+    data class Image
+    constructor(
         override val mediaId: String,
         override val pickerId: Long,
         override val authority: String,
@@ -93,6 +112,8 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
         override val isPreGranted: Boolean = false,
+        override val selectionSource: Telemetry.MediaLocation? = null,
+        override val mediaItemAlbum: Group.Album? = null
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -124,6 +145,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
 
         companion object CREATOR : Parcelable.Creator<Image> {
 
+            @OptIn(ExperimentalMaterial3Api::class)
             override fun createFromParcel(parcel: Parcel): Image {
                 val image =
                     Image(
@@ -148,8 +170,10 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         }
     }
 
+    // TODO Make selectable values hold UNSET values instead of null
     /** Holds metadata for a video item. */
-    data class Video(
+    data class Video
+    constructor(
         override val mediaId: String,
         override val pickerId: Long,
         override val authority: String,
@@ -162,6 +186,8 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         override val standardMimeTypeExtension: Int,
         val duration: Int,
         override val isPreGranted: Boolean = false,
+        override val selectionSource: Telemetry.MediaLocation? = null,
+        override val mediaItemAlbum: Group.Album? = null
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -194,6 +220,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
 
         companion object CREATOR : Parcelable.Creator<Video> {
 
+            @OptIn(ExperimentalMaterial3Api::class)
             override fun createFromParcel(parcel: Parcel): Video {
                 val video =
                     Video(

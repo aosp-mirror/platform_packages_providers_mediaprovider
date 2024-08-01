@@ -111,6 +111,7 @@ class TestMediaProvider(
     var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
+    var TEST_GRANTS_COUNT = 2
 
     override fun query(
         uri: Uri,
@@ -123,6 +124,7 @@ class TestMediaProvider(
             "collection_info" -> getCollectionInfo()
             "media" -> getMedia()
             "album" -> getAlbums()
+            "media_grants_count" -> fetchMediaGrantsCount()
             else -> {
                 val pathSegments: MutableList<String> = uri.getPathSegments()
                 if (pathSegments.size == 4 && pathSegments[2].equals("album")) {
@@ -209,6 +211,7 @@ class TestMediaProvider(
                     MediaProviderClient.MediaResponse.MIME_TYPE.key,
                     MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
                     MediaProviderClient.MediaResponse.DURATION.key,
+                    MediaProviderClient.MediaResponse.IS_PRE_GRANTED.key,
                 )
             )
         mediaItems.forEach { mediaItem ->
@@ -224,7 +227,8 @@ class TestMediaProvider(
                     mediaItem.sizeInBytes.toString(),
                     mediaItem.mimeType,
                     mediaItem.standardMimeTypeExtension.toString(),
-                    if (mediaItem is Media.Video) mediaItem.duration else "0"
+                    if (mediaItem is Media.Video) mediaItem.duration else "0",
+                    if (mediaItem.isPreGranted) 1 else 0,
                 )
             )
         }
@@ -257,6 +261,12 @@ class TestMediaProvider(
                 )
             )
         }
+        return cursor
+    }
+
+    private fun fetchMediaGrantsCount(): Cursor {
+        val cursor = MatrixCursor(arrayOf("grants_count"))
+        cursor.addRow(arrayOf(TEST_GRANTS_COUNT))
         return cursor
     }
 

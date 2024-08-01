@@ -16,8 +16,18 @@
 
 package com.android.photopicker.core.events
 
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
+import android.util.Log
 import com.android.photopicker.core.Background
+import com.android.photopicker.data.DataService
+import com.android.photopicker.data.model.Group
+import com.android.photopicker.data.model.MediaSource
 import com.android.providers.media.MediaProviderStatsLog
+import dagger.Lazy
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -26,7 +36,30 @@ import kotlinx.coroutines.launch
  * Photopicker telemetry class which intercepts the incoming events dispatched by various components
  * and maps them to their respective logging proto. All the logging occurs in background scope.
  */
-class PhotopickerEventLogger {
+class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
+
+    private val TAG = "PhotopickerEventLogger"
+
+    /** Maps album id to the corresponding selected album enum values */
+    private val mapAlbumIdToSelectedAlbum =
+        hashMapOf(
+            ALBUM_ID_CAMERA to Telemetry.SelectedAlbum.CAMERA,
+            ALBUM_ID_SCREENSHOTS to Telemetry.SelectedAlbum.SCREENSHOTS,
+            ALBUM_ID_FAVORITES to Telemetry.SelectedAlbum.FAVOURITES,
+            ALBUM_ID_VIDEOS to Telemetry.SelectedAlbum.VIDEOS,
+            ALBUM_ID_DOWNLOADS to Telemetry.SelectedAlbum.DOWNLOADS
+        )
+
+    /** Maps album id to the corresponding selected album enum values */
+    private val mapAlbumIdToAlbumOpened =
+        hashMapOf(
+            ALBUM_ID_CAMERA to Telemetry.UiEvent.ALBUM_CAMERA_OPEN,
+            ALBUM_ID_SCREENSHOTS to Telemetry.UiEvent.ALBUM_SCREENSHOTS_OPEN,
+            ALBUM_ID_FAVORITES to Telemetry.UiEvent.ALBUM_FAVOURITES_OPEN,
+            ALBUM_ID_VIDEOS to Telemetry.UiEvent.ALBUM_VIDEOS_OPEM,
+            ALBUM_ID_DOWNLOADS to Telemetry.UiEvent.ALBUM_DOWNLOADS_OPEN
+        )
+
     fun start(
         scope: CoroutineScope,
         @Background backgroundDispatcher: CoroutineDispatcher,
@@ -69,20 +102,56 @@ class PhotopickerEventLogger {
                     }
                     is Event.LogPhotopickerUIEvent -> {
                         MediaProviderStatsLog.write(
-                            MediaProviderStatsLog.UI_EVENT_REPORTED,
+                            MediaProviderStatsLog.PHOTOPICKER_UI_EVENT_LOGGED,
                             event.sessionId,
                             event.packageUid,
                             event.uiEvent.event
                         )
                     }
+                    is Event.LogPhotopickerAlbumOpenedUIEvent -> {
+                        val album = event.albumOpened
+                        val albumOpened =
+                            mapAlbumIdToAlbumOpened.getOrDefault(
+                                album.id,
+                                when (getAlbumDataSource(album)) {
+                                    MediaSource.REMOTE -> Telemetry.UiEvent.ALBUM_FROM_CLOUD_OPEN
+                                    // TODO replace with LOCAL value once added
+                                    MediaSource.LOCAL -> Telemetry.UiEvent.ALBUM_FROM_CLOUD_OPEN
+                                }
+                            )
+                        MediaProviderStatsLog.write(
+                            MediaProviderStatsLog.PHOTOPICKER_UI_EVENT_LOGGED,
+                            event.sessionId,
+                            event.packageUid,
+                            albumOpened.event
+                        )
+                    }
                     is Event.ReportPhotopickerMediaItemStatus -> {
+                        val mediaAlbum = event.selectedAlbum
+                        val selectedAlbum: Telemetry.SelectedAlbum =
+                            if (
+                                event.selectionSource == Telemetry.MediaLocation.ALBUM &&
+                                    mediaAlbum != null
+                            ) {
+                                mapAlbumIdToSelectedAlbum.getOrDefault(
+                                    mediaAlbum.id,
+                                    when (getAlbumDataSource(mediaAlbum)) {
+                                        MediaSource.REMOTE ->
+                                            Telemetry.SelectedAlbum.UNDEFINED_CLOUD
+                                        MediaSource.LOCAL -> Telemetry.SelectedAlbum.UNDEFINED_LOCAL
+                                    }
+                                )
+                            } else {
+                                Telemetry.SelectedAlbum.UNSET_SELECTED_ALBUM
+                            }
+
                         MediaProviderStatsLog.write(
                             MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED,
                             event.sessionId,
                             event.mediaStatus.status,
-                            event.mediaLocation.location,
+                            event.selectionSource.location,
                             event.itemPosition,
-                            event.selectedAlbum.album,
+                            selectedAlbum.album,
                             event.mediaType.type,
                             event.cloudOnly,
                             event.pickerSize.size
@@ -188,5 +257,27 @@ class PhotopickerEventLogger {
                 }
             }
         }
+    }
+
+    /**
+     * Fetch the data source of the album by matching it against the authority of the provider so
+     * that we do not have to depend on glide's internal implementation(by using
+     * album.getDataSource()) to fetch the album's data source
+     */
+    private fun getAlbumDataSource(album: Group.Album): MediaSource {
+        for (provider in dataService.get().availableProviders.value) {
+            if (provider.authority == album.authority) {
+                return provider.mediaSource
+            }
+        }
+        Log.w(
+            TAG,
+            "Unable to find an authority match with any provider for album " +
+                album.displayName +
+                " with authority " +
+                album.authority +
+                " while fetching the album data source"
+        )
+        return MediaSource.LOCAL
     }
 }

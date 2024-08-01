@@ -25,6 +25,7 @@ import androidx.paging.cachedIn
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -129,9 +130,16 @@ constructor(
      * in the viewModelScope to ensure they aren't cancelled if the user navigates away from the
      * AlbumMediaGrid composable.
      */
-    fun handleAlbumMediaGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
+    fun handleAlbumMediaGridItemSelection(
+        item: Media,
+        selectionLimitExceededMessage: String,
+        album: Group.Album
+    ) {
+        // Update the selectable values in the received media item.
+        val updatedMediaItem =
+            Media.withSelectable(item, /* selectionSource */ Telemetry.MediaLocation.ALBUM, album)
         scope.launch {
-            val result = selection.toggle(item)
+            val result = selection.toggle(updatedMediaItem)
             if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
                 events.dispatch(
                     Event.ShowSnackbarMessage(ALBUM_GRID.token, selectionLimitExceededMessage)

@@ -29,8 +29,10 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -45,6 +47,10 @@ import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -56,6 +62,7 @@ import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Primary composable for drawing the Album content grid on
@@ -101,6 +108,9 @@ private fun AlbumMediaGrid(
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
     val selectionLimitExceededMessage =
         stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
 
     // Use the expanded layout any time the Width is Medium or larger.
     val isExpandedScreen: Boolean =
@@ -144,18 +154,52 @@ private fun AlbumMediaGrid(
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleAlbumMediaGridItemSelection(
                                 item.media,
-                                selectionLimitExceededMessage
+                                selectionLimitExceededMessage,
+                                album
                             )
                         }
                     },
                     onItemLongPress = { item ->
+                        // Dispatch UI event to log long pressing the media item
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.PREVIEW.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
+                                )
+                            )
+                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
+                            // Dispatch UI event to log entry into preview mode
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                    )
+                                )
+                            }
                             navController.navigateToPreviewMedia(item.media)
                         }
                     },
                     state = state,
                 )
+                LaunchedEffect(Unit) {
+                    // Dispatch UI event to log loading of album contents
+                    events.dispatch(
+                        Event.LogPhotopickerUIEvent(
+                            FeatureToken.PHOTO_GRID.token,
+                            configuration.sessionId,
+                            configuration.callingPackageUid ?: -1,
+                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS
+                        )
+                    )
+                }
             }
         }
     }

@@ -31,6 +31,7 @@ import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -218,6 +219,7 @@ class EmbeddedServiceModule {
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
                     /* deviceConfigProxy= */ deviceConfigProxy,
+                    /* sessionId */ generatePickerSessionId(),
                 )
             return configurationManager
         }
@@ -235,7 +237,8 @@ class EmbeddedServiceModule {
         notificationService: NotificationService,
         configurationManager: ConfigurationManager,
         featureManager: FeatureManager,
-        @ApplicationContext appContext: Context
+        @ApplicationContext appContext: Context,
+        events: Events,
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -252,7 +255,8 @@ class EmbeddedServiceModule {
                     MediaProviderClient(),
                     configurationManager.configuration,
                     featureManager,
-                    appContext
+                    appContext,
+                    events,
                 )
         }
         return dataService
@@ -373,6 +377,7 @@ class EmbeddedServiceModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount,
                         )
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(

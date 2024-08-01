@@ -36,7 +36,12 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
 import com.android.photopicker.core.selection.SelectionStrategy
@@ -72,6 +77,8 @@ constructor(
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
     private val dataService: DataService,
+    private val events: Events,
+    private val configManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
@@ -289,6 +296,19 @@ constructor(
 
         val binder = controllerBundle.getBinder(EXTRA_SURFACE_CONTROLLER)
 
+        val configuration = configManager.configuration.value
+        // UI event to mark the start of surface controller creation
+        scope.launch {
+            events.dispatch(
+                Event.LogPhotopickerUIEvent(
+                    FeatureToken.PREVIEW.token,
+                    configuration.sessionId,
+                    configuration.callingPackageUid ?: -1,
+                    Telemetry.UiEvent.CREATE_SURFACE_CONTROLLER_START
+                )
+            )
+        }
+
         // Produce the [RemotePreviewControllerInfo] and save it for future re-use.
         val controllerInfo =
             RemotePreviewControllerInfo(
@@ -314,6 +334,18 @@ constructor(
 
             try {
                 controllerInfo.controller.onDestroy()
+                val configuration = configManager.configuration.value
+                // UI event to mark the end of surface controller creation
+                scope.launch {
+                    events.dispatch(
+                        Event.LogPhotopickerUIEvent(
+                            FeatureToken.PREVIEW.token,
+                            configuration.sessionId,
+                            configuration.callingPackageUid ?: -1,
+                            Telemetry.UiEvent.CREATE_SURFACE_CONTROLLER_END
+                        )
+                    )
+                }
             } catch (e: RemoteException) {
                 Log.d(TAG, "Failed to destroy surface controller.", e)
             }

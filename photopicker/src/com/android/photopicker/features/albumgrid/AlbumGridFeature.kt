@@ -64,7 +64,12 @@ class AlbumGridFeature : PhotopickerUiFeature {
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
     /** Events produced by the Album grid */
-    override val eventsProduced = setOf(Event.ShowSnackbarMessage::class.java)
+    override val eventsProduced =
+        setOf(
+            Event.ShowSnackbarMessage::class.java,
+            Event.LogPhotopickerUIEvent::class.java,
+            Event.LogPhotopickerAlbumOpenedUIEvent::class.java
+        )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(

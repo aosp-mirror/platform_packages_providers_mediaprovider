@@ -95,6 +95,7 @@ class FeatureManager(
                 Event.ReportPhotopickerSessionInfo::class.java,
                 Event.ReportPhotopickerApiInfo::class.java,
                 Event.LogPhotopickerUIEvent::class.java,
+                Event.LogPhotopickerAlbumOpenedUIEvent::class.java,
                 Event.ReportPhotopickerMediaItemStatus::class.java,
                 Event.LogPhotopickerPreviewInfo::class.java,
                 Event.LogPhotopickerMenuInteraction::class.java,

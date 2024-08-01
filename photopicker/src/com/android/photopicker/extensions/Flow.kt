@@ -20,6 +20,8 @@ import androidx.paging.PagingData
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.user.UserProfile
+import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import java.time.LocalDateTime
@@ -55,11 +57,11 @@ fun Flow<PagingData<Group.Album>>.toMediaGridItemFromAlbum(): Flow<PagingData<Me
  * [Media] grid representation wrappers) and processes them inserting month separators in between
  * items that have different month.
  *
- * TODO(b/323830434): Update logic for separators after 4th row when UX finalizes.
- * Note: This does not include a separator for the first month of data.
- *
  * @return A [PagingData<MediaGridItem] that can be processed further, or provided to the
  *   [MediaGrid].
+ *
+ * TODO(b/323830434): Update logic for separators after 4th row when UX finalizes. Note: This does
+ *   not include a separator for the first month of data.
  */
 fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
     Flow<PagingData<MediaGridItem>> {
@@ -96,6 +98,20 @@ fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
                 // Both Media have the same month, so no separator needed between the two.
                 null
             }
+        }
+    }
+}
+
+/**
+ * An extension function which filters all the available user profiles based on whether a profile is
+ * hidden or not.
+ *
+ * @return A list of all the user profiles available to the photopicker
+ */
+fun Flow<UserStatus>.getUserProfilesVisibleToPhotopicker(): Flow<List<UserProfile>> {
+    return this.map {
+        it.allProfiles.filterNot {
+            it.disabledReasons.contains(UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW)
         }
     }
 }

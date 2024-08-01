@@ -66,6 +66,7 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
@@ -129,6 +130,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -457,6 +459,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
 
             // Navigate on the UI thread (similar to a click handler)
             composeTestRule.runOnUiThread({ navController.navigateToPreviewSelection() })
+            composeTestRule.waitForIdle()
 
             assertWithMessage("Expected route to be preview/selection")
                 .that(navController.currentBackStackEntry?.destination?.route)

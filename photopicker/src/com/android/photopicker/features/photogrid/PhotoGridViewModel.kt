@@ -23,6 +23,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -103,9 +104,19 @@ constructor(
      * in the viewModelScope to ensure they aren't canceled if the user navigates away from the
      * PhotoGrid composable.
      */
-    fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
+    fun handleGridItemSelection(
+        item: Media,
+        selectionLimitExceededMessage: String,
+    ) {
+        // Update the selectable values in the received media object.
+        val updatedMediaItem =
+            Media.withSelectable(
+                item, /* selectionSource */
+                Telemetry.MediaLocation.MAIN_GRID, /* album */
+                null
+            )
         scope.launch {
-            val result = selection.toggle(item)
+            val result = selection.toggle(updatedMediaItem)
             if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
                 scope.launch {
                     events.dispatch(

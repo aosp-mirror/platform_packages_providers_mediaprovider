@@ -208,8 +208,9 @@ open class Session(
                 callingPackageLabel = clientPackageLabel
             )
 
-        // TODO(b/350965066): set featureInfo in the ConfigurationManager and hand any errors back
-        // to the client
+        // Update the [PhotopickerConfiguration] associated with the session using the
+        // [EmbeddedPhotopickerFeatureInfo].
+        _dependencies.configurationManager().get().setEmbeddedPhotopickerFeatureInfo(featureInfo)
 
         // Configuration is now stable, so the view can be created.
         // NOTE: Do not update the configuration after this line, it will cause the UI to

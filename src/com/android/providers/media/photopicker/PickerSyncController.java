@@ -17,16 +17,18 @@
 package com.android.providers.media.photopicker;
 
 import static android.content.ContentResolver.EXTRA_HONORED_ARGS;
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
 import static android.provider.CloudMediaProviderContract.EXTRA_ALBUM_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.MEDIA_COLLECTION_ID;
-import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
+import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.PER_USER_RANGE;
 
 import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
@@ -40,15 +42,19 @@ import static com.android.providers.media.photopicker.NotificationContentObserve
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
 import android.annotation.IntDef;
+import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.os.Trace;
 import android.os.storage.StorageManager;
 import android.provider.CloudMediaProvider;
@@ -159,6 +165,18 @@ public class PickerSyncController {
     private ProviderCollectionInfo mLatestCloudProviderCollectionInfo;
     @Nullable
     private static PickerSyncController sInstance;
+
+    /**
+     * This URI path when used in a MediaProvider.query() method redirects the call to media_grants
+     * table present in the external database.
+     */
+    private static final String MEDIA_GRANTS_URI_PATH = "content://media/media_grants";
+
+    /**
+     * Extra that can be passed in the grants sync query to ensure only the data corresponding to
+     * the required mimeTypes is synced.
+     */
+    public static final String EXTRA_MEDIA_GRANTS_MIME_TYPES = "media_grant_mime_type_selection";
 
     /**
      * Initialize {@link PickerSyncController} object.{@link PickerSyncController} should only be
@@ -2067,5 +2085,99 @@ public class PickerSyncController {
                 Log.e(TAG, "Could not handle media event notification", e);
             }
         }
+    }
+
+    /**
+     * Executes a sync for grants from the external database to the picker database.
+     *
+     * This should only be called when the picker is in MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP
+     * action. It requires a valid packageUid and mimeTypes with which the picker was invoked to
+     * ensure that the sync only happens for the items that:
+     * <li>match the mimeTypes</li>
+     * <li>are granted to the package and userId corresponding to the provided packageUid</li>
+     *
+     * It fetches the rows from media_grants table in the external.db that matches the criteria and
+     * inserts them in the media_grants table in picker.db
+     */
+    public void executeGrantsSync(
+            boolean shouldSyncGrants, int packageUid,
+            String[] mimeTypes) {
+        // empty the grants table.
+        executeClearAllGrants(packageUid);
+
+        // sync all grants into the table
+        if (shouldSyncGrants) {
+            final ContentResolver resolver = mContext.getContentResolver();
+            try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+                assert client != null;
+                final Bundle extras = new Bundle();
+                extras.putInt(Intent.EXTRA_UID, packageUid);
+                extras.putStringArray(EXTRA_MEDIA_GRANTS_MIME_TYPES, mimeTypes);
+                try (Cursor c = client.query(Uri.parse(MEDIA_GRANTS_URI_PATH),
+                        /* projection= */ null,
+                        /* queryArgs= */ extras,
+                        null)) {
+                    Trace.beginSection(traceSectionName(
+                            "executeGrantsSync", /* isLocal */ true));
+                    try (PickerDbFacade.DbWriteOperation operation =
+                                 mDbFacade.beginInsertGrantsOperation()) {
+                        int grantsInsertedCount = operation.execute(c);
+                        operation.setSuccess();
+                        Log.i(TAG, "Successfully executed grants sync operation operation."
+                                + " Result count: " + grantsInsertedCount);
+                    } finally {
+                        Trace.endSection();
+                    }
+                }
+            } catch (RemoteException e) {
+                Log.e(TAG, "Remote exception received while fetching grants. " +  e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Before a sync for grants is initiated, this method is used to clear any stale grants that
+     * exists in the database.
+     *
+     * This should only be called when the picker is in MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP
+     * action. It requires a valid packageUid with which the picker was invoked to
+     * ensure that all the rows that represents the items granted to the package and userId
+     * corresponding to the provided packageUid are cleared from the media_grants table in picker.db
+     */
+    private void executeClearAllGrants(int packageUid) {
+        Trace.beginSection(traceSectionName("executeClearAllGrants", /* isLocal */ true));
+        int userId = uidToUserId(packageUid);
+        String[] packageNames = getPackageNameFromUid(mContext, packageUid);
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mDbFacade.beginClearGrantsOperation(packageNames, userId)) {
+            final int clearedGrantsCount = operation.execute(/* cursor */ null);
+            operation.setSuccess();
+
+            Log.i(TAG, "Successfully executed clear grants operation."
+                    + " Result count: " + clearedGrantsCount);
+        } catch (SQLException e) {
+            Log.e(TAG, "Unable to clear grants for this session: " + e.getMessage());
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    /**
+     * Returns an Array of packageNames corresponding to the input package uid.
+     */
+    public static String[] getPackageNameFromUid(Context context, int callingPackageUid) {
+        final PackageManager pm = context.getPackageManager();
+        return pm.getPackagesForUid(callingPackageUid);
+    }
+
+    /**
+     * Generates and returns userId from the input package uid.
+     */
+    public static int uidToUserId(int uid) {
+        // Get the userId from packageUid as the initiator could be a cloned app, which
+        // accesses Media via MP of its parent user and Binder's callingUid reflects
+        // the latter.
+        return uid / PER_USER_RANGE;
     }
 }

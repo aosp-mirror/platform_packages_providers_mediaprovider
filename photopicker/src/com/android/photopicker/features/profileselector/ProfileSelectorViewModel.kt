@@ -21,12 +21,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.SwitchUserProfileResult
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.getUserProfilesVisibleToPhotopicker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +53,8 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
+    private val events: Events,
+    private val configurationManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
@@ -64,12 +72,7 @@ constructor(
     /** All of the profiles that are available to Photopicker */
     val allProfiles: StateFlow<List<UserProfile>> =
         userMonitor.userStatus
-            // For any profiles that contain a [QUIET_MODE_DO_NOT_SHOW] reason, this profile
-            // should be skipped as it is currently in quiet mode and the profile specs
-            // state it should be hidden from sharing surfaces when it is in quiet mode.
-            .map {
-                it.allProfiles.filterNot { it.disabledReasons.contains(QUIET_MODE_DO_NOT_SHOW) }
-            }
+            .getUserProfilesVisibleToPhotopicker()
             .stateIn(
                 scope,
                 SharingStarted.WhileSubscribed(),
@@ -103,6 +106,16 @@ constructor(
                 // If the profile is actually changed, ensure the selection is cleared since
                 // content cannot be chosen from multiple profiles simultaneously.
                 selection.clear()
+                val configuration = configurationManager.configuration.value
+                // Log switching user profile in the picker
+                events.dispatch(
+                    Event.LogPhotopickerUIEvent(
+                        FeatureToken.PROFILE_SELECTOR.token,
+                        configuration.sessionId,
+                        configuration.callingPackageUid ?: -1,
+                        Telemetry.UiEvent.SWITCH_USER_PROFILE
+                    )
+                )
             }
         }
     }

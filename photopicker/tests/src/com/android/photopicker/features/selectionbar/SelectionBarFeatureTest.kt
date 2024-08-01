@@ -51,9 +51,11 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
@@ -103,11 +105,13 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
 
     val testDispatcher = StandardTestDispatcher()
+    val sessionId = generatePickerSessionId()
 
     /* Overrides for ActivityModule */
     val testScope: TestScope = TestScope(testDispatcher)
@@ -184,19 +188,32 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarIsEnabledWithSelectionLimit() {
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION", selectionLimit = 5)
+        val configOne =
+            PhotopickerConfiguration(
+                action = "TEST_ACTION",
+                selectionLimit = 5,
+                sessionId = sessionId
+            )
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
             .isEqualTo(true)
 
         val configTwo =
-            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, selectionLimit = 5)
+            PhotopickerConfiguration(
+                action = MediaStore.ACTION_PICK_IMAGES,
+                selectionLimit = 5,
+                sessionId = sessionId
+            )
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configTwo))
             .isEqualTo(true)
 
         val configThree =
-            PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT, selectionLimit = 5)
+            PhotopickerConfiguration(
+                action = Intent.ACTION_GET_CONTENT,
+                selectionLimit = 5,
+                sessionId = sessionId
+            )
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configThree))
             .isEqualTo(true)
@@ -204,17 +221,19 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSelectionBarNotEnabledForSingleSelect() {
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
+        val configOne = PhotopickerConfiguration(action = "TEST_ACTION", sessionId = sessionId)
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
             .isEqualTo(false)
 
-        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+        val configTwo =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, sessionId = sessionId)
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configTwo))
             .isEqualTo(false)
 
-        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
+        val configThree =
+            PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT, sessionId = sessionId)
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configThree))
             .isEqualTo(false)

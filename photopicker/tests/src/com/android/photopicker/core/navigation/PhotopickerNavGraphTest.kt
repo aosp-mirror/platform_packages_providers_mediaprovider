@@ -32,6 +32,7 @@ import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
@@ -56,6 +57,7 @@ class PhotopickerNavGraphTest {
 
     lateinit var navController: TestNavHostController
     lateinit var featureManager: FeatureManager
+    private val sessionId = generatePickerSessionId()
 
     val testRegistrations =
         setOf(
@@ -86,7 +88,8 @@ class PhotopickerNavGraphTest {
     @Composable
     private fun testNavGraph(
         featureManager: FeatureManager,
-        configuration: PhotopickerConfiguration = PhotopickerConfiguration(action = "")
+        configuration: PhotopickerConfiguration =
+            PhotopickerConfiguration(action = "", sessionId = sessionId)
     ) {
         navController = TestNavHostController(LocalContext.current)
         navController.navigatorProvider.addNavigator(ComposeNavigator())
@@ -150,7 +153,8 @@ class PhotopickerNavGraphTest {
         val config =
             PhotopickerConfiguration(
                 action = "",
-                startDestination = PhotopickerDestinations.ALBUM_GRID
+                startDestination = PhotopickerDestinations.ALBUM_GRID,
+                sessionId = sessionId
             )
         composeTestRule.setContent { testNavGraph(featureManager, config) }
 
@@ -165,7 +169,8 @@ class PhotopickerNavGraphTest {
         val config =
             PhotopickerConfiguration(
                 action = "",
-                startDestination = PhotopickerDestinations.PHOTO_GRID
+                startDestination = PhotopickerDestinations.PHOTO_GRID,
+                sessionId = sessionId
             )
         composeTestRule.setContent { testNavGraph(featureManager, config) }
 

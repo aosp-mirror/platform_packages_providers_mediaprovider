@@ -41,6 +41,9 @@ interface DataService {
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
 
+    /** Count of all preGranted media for the current package and userID. */
+    val preGrantedMediaCount: StateFlow<Int?>
+
     /**
      * A [Channel] that emits a [Unit] when a disruptive data change is observed in the backend. The
      * UI can treat this emission as a signal to reset the UI.
@@ -105,4 +108,7 @@ interface DataService {
      * @return The [CollectionInfo] of the given [Provider].
      */
     suspend fun getCollectionInfo(provider: Provider): CollectionInfo
+
+    /** Refreshes the [preGrantedMediaCount] with the latest value in the data source. */
+    fun refreshPreGrantedItemsCount()
 }

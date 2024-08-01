@@ -419,7 +419,7 @@ class DataServiceImpl(
                     availableProviders,
                     mediaProviderClient,
                     dispatcher,
-                    config.value,
+                    config.value
                 )
 
             Log.v(

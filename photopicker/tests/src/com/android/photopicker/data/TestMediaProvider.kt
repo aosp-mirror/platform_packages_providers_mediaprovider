@@ -209,6 +209,7 @@ class TestMediaProvider(
                     MediaProviderClient.MediaResponse.MIME_TYPE.key,
                     MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
                     MediaProviderClient.MediaResponse.DURATION.key,
+                    MediaProviderClient.MediaResponse.IS_PRE_GRANTED.key,
                 )
             )
         mediaItems.forEach { mediaItem ->
@@ -224,7 +225,8 @@ class TestMediaProvider(
                     mediaItem.sizeInBytes.toString(),
                     mediaItem.mimeType,
                     mediaItem.standardMimeTypeExtension.toString(),
-                    if (mediaItem is Media.Video) mediaItem.duration else "0"
+                    if (mediaItem is Media.Video) mediaItem.duration else "0",
+                    if (mediaItem.isPreGranted) 1 else 0,
                 )
             )
         }

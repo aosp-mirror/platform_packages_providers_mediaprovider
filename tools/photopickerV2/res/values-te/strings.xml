@@ -8,10 +8,18 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"ఇమేజ్‌లను ఎంచుకోండి"</string>
     <string name="action_get_content" msgid="4319210475508093083">"కంటెంట్ పొందడానికి సంబంధించిన చర్య"</string>
+    <string name="open_document" msgid="8593796561386540777">"డాక్యుమెంట్‌ను తెరవండి"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"డాక్యుమెంట్ ట్రీని తెరవండి"</string>
     <string name="display_images_in_order" msgid="7880116254468536174">"ఇమేజ్‌లను ఆర్డర్‌లో డిస్‌ప్లే చేయండి"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"ఇమేజ్‌లను మాత్రమే చూపండి"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"వీడియోలను మాత్రమే చూడండి"</string>
+    <!-- no translation found for enter_mime_type (6599304148898478294) -->
+    <skip />
+    <string name="select_launch_tab" msgid="1219436289162294907">"లాంచ్ ట్యాబ్‌ను ఎంచుకోండి"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"పలు ఎంపికలను అనుమతించండి"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"అనుకూల MIME రకాన్ని అనుమతించండి"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"మీడియా ఫైల్స్ గరిష్ఠ సంఖ్య"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"ఒకటి కంటే ఎక్కువ చెల్లుబాటు అయ్యే సంఖ్యను ఎంటర్ చేయండి"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"ఒకటి కంటే ఎక్కువ చెల్లుబాటు అయ్యే నంబర్‌ను ఎంటర్ చేయండి"</string>
     <string name="pick_media" msgid="5269447618857205416">"మీడియాను ఎంచుకోండి"</string>
     <string name="working_on_it" msgid="1373762827081252341">"ఆ పనిలోనే ఉన్నాను"</string>
 </resources>

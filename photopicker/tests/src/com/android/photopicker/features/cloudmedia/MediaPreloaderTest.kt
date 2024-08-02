@@ -52,6 +52,7 @@ import com.android.photopicker.core.configuration.testGetContentConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
@@ -240,7 +241,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalEvents provides events.get()
                 ) {
                     featureManager
                         .get()
@@ -282,7 +284,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalEvents provides events.get()
                 ) {
                     featureManager
                         .get()
@@ -328,7 +331,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalEvents provides events.get()
                 ) {
                     featureManager
                         .get()
@@ -376,7 +380,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalEvents provides events.get()
                 ) {
                     featureManager
                         .get()
@@ -423,7 +428,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalEvents provides events.get()
                 ) {
                     featureManager
                         .get()

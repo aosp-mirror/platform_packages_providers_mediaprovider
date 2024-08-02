@@ -46,6 +46,7 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.get
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaGrantsCursor;
+import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.COLUMN_GRANTS_COUNT;
 import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -67,6 +68,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Process;
+import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.test.mock.MockContentProvider;
@@ -464,6 +466,64 @@ public class PickerDataLayerV2Test {
             assertMediaCursor(cr, LOCAL_ID_2, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE,
                     MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
                     /* isPreGranted */ true);
+        }
+    }
+
+    @Test
+    public void testFetchMediaGrantsCount() {
+        int testUid = 123;
+        int userId = PickerSyncController.uidToUserId(testUid);
+        doReturn(mMockPackageManager)
+                .when(mMockContext).getPackageManager();
+        String[] packageNames = new String[]{TEST_PACKAGE_NAME};
+        doReturn(packageNames).when(mMockPackageManager).getPackagesForUid(testUid);
+
+
+        // insert 2 grants corresponding to testUid.
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_1, TEST_PACKAGE_NAME, userId), /* writeCount */1);
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME, userId), /* writeCount */1);
+
+        // insert grants with different packageName or userIds.
+        String TEST_PACKAGE_NAME_2 = "package.name.two";
+        int TEST_USER_ID_2 = 10;
+
+        // same id but different packageName
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME_2,
+                UserHandle.myUserId()), /* writeCount */1);
+        // same id but different userId
+        assertInsertGrantsOperation(mFacade, getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME,
+                TEST_USER_ID_2), /* writeCount */1);
+        // both packageName and userId different
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_2, TEST_PACKAGE_NAME_2, TEST_USER_ID_2), 1);
+        // every aspect different
+        assertInsertGrantsOperation(mFacade,
+                getMediaGrantsCursor(LOCAL_ID_3, TEST_PACKAGE_NAME_2, TEST_USER_ID_2), 1);
+
+        Bundle input = new Bundle();
+        input.putInt(Intent.EXTRA_UID, testUid);
+
+        try (Cursor cr = PickerDataLayerV2.fetchMediaGrantsCount(
+                mMockContext, input)) {
+
+            // cursor should only contain 1 row that represents the count.
+            assertWithMessage(
+                    "Unexpected number of rows in media query result")
+                    .that(cr.getCount()).isEqualTo(1);
+
+            // verify that the cursor contains the count. Ensure that only 2 grants are considered
+            // even when there were total 4 grants inserted. This ensures that the grants were
+            // filtered properly based on the packageName and UserId.
+            cr.moveToFirst();
+            int columnIndexForCount = cr.getColumnIndex(COLUMN_GRANTS_COUNT);
+            assertWithMessage(
+                    "column index should not be -1.")
+                    .that(columnIndexForCount).isNotEqualTo(-1);
+            assertWithMessage(
+                    "Unexpected number grants count, expected to be 2.")
+                    .that(cr.getInt(columnIndexForCount)).isEqualTo(2);
         }
     }
 

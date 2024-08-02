@@ -40,9 +40,11 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
+import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
@@ -167,6 +169,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }
@@ -248,6 +251,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }

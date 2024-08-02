@@ -15,10 +15,15 @@
  */
 package com.android.providers.media.tools.photopickerv2.utils
 
+import android.content.ContentResolver
+import android.database.Cursor
+import android.net.Uri
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +63,9 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import com.android.providers.media.tools.photopickerv2.R
 import com.android.providers.media.tools.photopickerv2.navigation.NavigationItem
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * PhotoPickerTitle is a composable function that displays the title of the PhotoPicker app.
@@ -303,13 +311,95 @@ fun DropdownList(
     }
 }
 
+@Composable
+fun MetaDataDetails(
+    uri: Uri,
+    contentResolver: ContentResolver,
+    showMetaData: Boolean,
+    inDocsUITab: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        if (showMetaData) {
+            val cursor: Cursor? = contentResolver.query(
+                uri, null, null, null, null
+            )
+            cursor?.use {
+                // Metadata Details for PhotoPicker Tab and PickerChoice Tab
+                if (!inDocsUITab){
+                    if (it.moveToNext()) {
+                        val mediaUri = it.getString(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.DATA))
+                        val displayName = it.getString(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.DISPLAY_NAME))
+                        val size = it.getLong(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.SIZE))
+                        val sizeInKB = size / 1000
+                        val dateTaken = it.getLong(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.DATE_TAKEN))
+
+                        val duration =
+                            it.getLong(it.getColumnIndexOrThrow(MediaStore.Images.Media.DURATION))
+                        val durationInSec = duration / 1000
+                        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        val dateString = formatter.format(Date(dateTaken))
+
+                        Column {
+                            Text(
+                                text = "Meta Data Details:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp,
+                            )
+                            Text(text = "URI: $mediaUri")
+                            Text(text = "Display Name: $displayName")
+                            Text(text = "Size: $sizeInKB KB")
+                            Text(text = "Date Taken: $dateString")
+                            Text(text = "Duration: $durationInSec s")
+                        }
+                    }
+                } else {
+                    // Metadata Details for DocsUI Tab
+                    if (it.moveToNext()){
+                        val documentID = it.getLong(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.DOCUMENT_ID))
+                        val mimeType = it.getString(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.MIME_TYPE))
+                        val displayName =
+                            it.getString(it.getColumnIndexOrThrow(
+                                MediaStore.Images.Media.DISPLAY_NAME))
+                        val size = it.getLong(it.getColumnIndexOrThrow(
+                            MediaStore.Images.Media.SIZE))
+                        val sizeInKB = size / 1000
+                        Column {
+                            Text(
+                                text = "Meta Data Details:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp,
+                            )
+
+                            Text(text = "Document ID: $documentID")
+                            Text(text = "Display Name: $displayName")
+                            Text(text = "Size: $sizeInKB KB")
+                            Text(text = "Mime Type: $mimeType")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 enum class LaunchLocation {
     PHOTOS_TAB,
     ALBUMS_TAB;
 
     companion object {
         fun getListOfAvailableLocations(): List<String> {
-            return values().toList().map { it -> it.name }
+            return entries.map { it -> it.name }
         }
     }
 }

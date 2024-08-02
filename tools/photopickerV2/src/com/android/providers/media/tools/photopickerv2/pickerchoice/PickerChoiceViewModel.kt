@@ -26,7 +26,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.core.os.bundleOf
@@ -74,7 +73,7 @@ class PickerChoiceViewModel(application: Application) : AndroidViewModel(applica
             videosOnly -> {
                 _permissionRequest.value = arrayOf(READ_MEDIA_VIDEO)
             }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+            else -> {
                 _permissionRequest.value = arrayOf(
                     READ_MEDIA_IMAGES,
                     READ_MEDIA_VIDEO,
@@ -93,12 +92,10 @@ class PickerChoiceViewModel(application: Application) : AndroidViewModel(applica
      * is granted, it shows a toast indicating partial access. Otherwise,
      * it shows a toast indicating access denied.
      */
-    @RequiresApi(Build.VERSION_CODES.R)
     fun checkPermissions(contentResolver: ContentResolver) {
         val context = getApplication<Application>().applicationContext
         when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-                    ContextCompat.checkSelfPermission(context, READ_MEDIA_VISUAL_USER_SELECTED) ==
+            ContextCompat.checkSelfPermission(context, READ_MEDIA_VISUAL_USER_SELECTED) ==
                     PERMISSION_GRANTED -> {
                 Toast.makeText(context, "Partial access on Android 14 or higher",
                     Toast.LENGTH_SHORT).show()
@@ -110,7 +107,6 @@ class PickerChoiceViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     private fun fetchMedia(contentResolver: ContentResolver) {
         viewModelScope.launch {
             _media.value = getMedia(contentResolver)
@@ -123,7 +119,6 @@ class PickerChoiceViewModel(application: Application) : AndroidViewModel(applica
         val size: Long,
         val mimeType: String,
     )
-    @RequiresApi(Build.VERSION_CODES.R)
     private suspend fun getMedia(
         contentResolver: ContentResolver
     ): List<Media> = withContext(Dispatchers.IO) {
@@ -134,15 +129,12 @@ class PickerChoiceViewModel(application: Application) : AndroidViewModel(applica
             MediaStore.MediaColumns.MIME_TYPE,
         )
 
-        val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            MediaStore.Files.getContentUri("external")
-        }
+        val collectionUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
 
         val mediaList = mutableListOf<Media>()
 
         // TODO:  BuildCompat.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 12
+        // @riyaghai : Please add this dependency in Android.bp
         val queryArgs = if (Build.VERSION.SDK_INT > Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             latestSelectionOnly.value == true
         ) {

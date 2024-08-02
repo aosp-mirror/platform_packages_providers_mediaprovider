@@ -133,7 +133,8 @@ fun PreviewSelection(
                 viewModel
                     .getPreviewMediaIncludingPreGrantedItems(
                         selectionSnapshot,
-                        LocalPhotopickerConfiguration.current
+                        LocalPhotopickerConfiguration.current,
+                        /* isSingleItemPreview */ false
                     )
                     .collectAsLazyPagingItems()
             }

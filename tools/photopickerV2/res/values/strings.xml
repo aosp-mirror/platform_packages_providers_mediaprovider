@@ -20,4 +20,14 @@
     <string name="enter_valid_number">Enter a valid number greater than one</string>
     <string name="pick_media">Pick Media</string>
     <string name="working_on_it">Working on it</string>
+    <string name="enable_preselection">Enable Pre-selection</string>
+    <string name="request_permissions">Request Permissions</string>
+    <string name="request_permissions_for">Request Permissions for:</string>
+    <string name="picker_choice_unsupported">
+        Picker Choice feature is only available for devices with Android U and above.
+        \n\nPlease upgrade your device to use this feature.</string>
+    <string name="images">Images</string>
+    <string name="videos">Videos</string>
+    <string name="both_images_and_videos">Both Images and Videos</string>
+    <string name="show_latest_selection_only">Show Latest Selection Only</string>
 </resources>

@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -370,7 +369,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxSize()
+                            .height(600.dp)
                             .padding(top = 8.dp)
                     )
                 } else {
@@ -384,7 +383,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(600.dp)
                             .padding(top = 8.dp)
                     )
                 }

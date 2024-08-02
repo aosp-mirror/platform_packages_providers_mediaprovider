@@ -46,6 +46,7 @@ public class MediaQuery {
     private final String mIntentAction;
     @NonNull
     private final List<String> mProviders;
+    private final int mCallingPackageUid;
     // If this is not null or empty, only fetch the rows that match at least one of the
     // given mime types.
     @Nullable
@@ -69,6 +70,8 @@ public class MediaQuery {
 
         // This is true by default.
         mShouldDedupe = true;
+
+        mCallingPackageUid = queryArgs.getInt(Intent.EXTRA_UID, -1);
     }
 
     @NonNull
@@ -89,6 +92,10 @@ public class MediaQuery {
     @Nullable
     public String getIntentAction() {
         return mIntentAction;
+    }
+
+    public int getCallingPackageUid() {
+        return mCallingPackageUid;
     }
 
     /**

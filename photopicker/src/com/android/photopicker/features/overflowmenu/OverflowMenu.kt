@@ -31,15 +31,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
 import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
+import kotlinx.coroutines.launch
 
 /**
  * Top of the OverflowMenu feature.
@@ -63,10 +70,30 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
     // Only show the overflow menu anchor if there will actually be items to select.
     if (LocalFeatureManager.current.getSizeOfLocationInRegistry(Location.OVERFLOW_MENU_ITEMS) > 0) {
         var expanded by remember { mutableStateOf(false) }
+        val events = LocalEvents.current
+        val scope = rememberCoroutineScope()
+        val configuration = LocalPhotopickerConfiguration.current
 
         // Wrapped in a box to consume anything in the incoming modifier.
         Box(modifier = modifier) {
-            IconButton(onClick = { expanded = !expanded }) {
+            IconButton(
+                onClick = {
+                    expanded = !expanded
+                    // Dispatch UI event to log interaction with picker menu
+                    if (expanded) {
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.OVERFLOW_MENU.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.PICKER_MENU_CLICK
+                                )
+                            )
+                        }
+                    }
+                }
+            ) {
                 Icon(
                     Icons.Filled.MoreVert,
                     contentDescription =

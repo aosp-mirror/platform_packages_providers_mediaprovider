@@ -49,20 +49,19 @@ class DocsUIViewModel(
         launcher: (Intent) -> Unit
     ): String? {
 
-        var finalMimeType = ""
-        if (allowCustomMimeType) finalMimeType = customMimeTypeInput
-        else if (selectedMimeType != "") finalMimeType = selectedMimeType
-        else finalMimeType = "*/*"
-
         val intent = if (isActionGetContentSelected) {
             Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = finalMimeType
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
                 addCategory(Intent.CATEGORY_OPENABLE)
             }
         } else if (isOpenDocumentSelected) {
             Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                type = finalMimeType
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
                 addCategory(Intent.CATEGORY_OPENABLE)
             }

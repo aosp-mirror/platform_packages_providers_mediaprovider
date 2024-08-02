@@ -21,6 +21,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.Telemetry
@@ -51,6 +53,7 @@ constructor(
     private val selection: Selection<Media>,
     private val dataService: DataService,
     private val events: Events,
+    private val bannerManager: BannerManager,
 ) : ViewModel() {
 
     // Check if a scope override was injected before using the default [viewModelScope]
@@ -98,6 +101,22 @@ constructor(
             // This ensures that the list position and state will be remembered by the MediaGrid
             // when navigating back to the PhotoGrid route.
             .cachedIn(scope)
+
+    /** Export the [Banner] flow from BannerManager to the UI */
+    val banners = bannerManager.flow
+
+    /**
+     * Dismissal handler from the UI to mark a particular banner as dismissed by the user. This call
+     * is handed off to the bannerManager to persist any relevant dismissal state.
+     *
+     * Afterwards, refreshBanners is called to check for any new Banners from [BannerManager].
+     */
+    fun markBannerAsDismissed(banner: BannerDefinitions) {
+        scope.launch {
+            bannerManager.markBannerAsDismissed(banner)
+            bannerManager.refreshBanners()
+        }
+    }
 
     /**
      * Click handler that is called when items in the grid are clicked. Selection updates are made

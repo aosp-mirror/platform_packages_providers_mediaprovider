@@ -16,8 +16,11 @@
 
 package com.android.photopicker.features.photogrid
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,6 +43,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
@@ -49,6 +54,7 @@ import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -62,6 +68,9 @@ import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.launch
+
+private val MEASUREMENT_BANNER_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
 
 /**
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
@@ -143,10 +152,17 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 )
             }
             else -> {
+
+                // When the PhotoGrid is ready to show, also collect the latest banner
+                // data from [BannerManager] so it can be placed inside of the mediaGrid's
+                // scroll container.
+                val currentBanner by viewModel.banners.collectAsStateWithLifecycle()
+
                 mediaGrid(
                     items = items,
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
+                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(
@@ -210,6 +226,36 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * A container that animates its size to show the banner if one is defined. It also handles the
+ * banner's onDismiss action by sending the dismissal to the [PhotoGridViewModel].
+ *
+ * @param currentBanner The current banner that [BannerManager] is exposing.
+ */
+@Composable
+private fun AnimatedBannerWrapper(
+    currentBanner: Banner?,
+    viewModel: PhotoGridViewModel = obtainViewModel(),
+) {
+    Box(modifier = Modifier.animateContentSize()) {
+        currentBanner?.let {
+            Banner(
+                it,
+                modifier = Modifier.padding(MEASUREMENT_BANNER_PADDING),
+                onDismiss = {
+                    val declaration = it.declaration
+
+                    // Coerce the type back to [BannerDefinitions]
+                    // so that it can be dismissed.
+                    if (declaration is BannerDefinitions) {
+                        viewModel.markBannerAsDismissed(declaration)
+                    }
+                }
+            )
         }
     }
 }

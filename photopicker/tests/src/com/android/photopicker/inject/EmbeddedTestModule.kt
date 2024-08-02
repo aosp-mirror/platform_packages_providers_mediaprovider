@@ -97,6 +97,7 @@ abstract class EmbeddedTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -106,6 +107,7 @@ abstract class EmbeddedTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,

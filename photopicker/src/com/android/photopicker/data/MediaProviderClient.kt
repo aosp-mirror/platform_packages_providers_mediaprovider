@@ -47,6 +47,7 @@ open class MediaProviderClient {
         private const val EXTRA_LOCAL_ONLY = "is_local_only"
         private const val EXTRA_ALBUM_ID = "album_id"
         private const val EXTRA_ALBUM_AUTHORITY = "album_authority"
+        private const val COLUMN_GRANTS_COUNT = "grants_count"
     }
 
     /** Contains all optional and mandatory keys required to make a Media query */
@@ -221,7 +222,6 @@ open class MediaProviderClient {
                 EXTRA_INTENT_ACTION to config.action,
                 Intent.EXTRA_UID to config.callingPackageUid,
             )
-
         try {
             return contentResolver
                 .query(
@@ -318,6 +318,45 @@ open class MediaProviderClient {
                 }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch collection info", e)
+        }
+    }
+
+    /**
+     * Fetches the count of pre-granted media for a given package from the MediaProvider.
+     *
+     * This function is designed to be used within the MediaProvider client-side context. It queries
+     * the `MEDIA_GRANTS_URI` using a Bundle containing the calling package's UID to retrieve the
+     * count of media grants.
+     *
+     * @param contentResolver The ContentResolver used to interact with the MediaProvider.
+     * @param callingPackageUid The UID of the calling package (app) for which to fetch the count.
+     * @return The count of media grants for the calling package.
+     * @throws RuntimeException if an error occurs during the query or fetching of the grants count.
+     */
+    fun fetchMediaGrantsCount(contentResolver: ContentResolver, callingPackageUid: Int): Int {
+        if (callingPackageUid < 0) {
+            // return with 0 value since the input callingUid is invalid.
+            Log.e(TAG, "invalid calling package UID.")
+            throw IllegalArgumentException("Invalid input for uid.")
+        }
+        // Create a Bundle containing the calling package's UID. This is used as a selection
+        // argument for the query.
+        val input: Bundle = bundleOf(Intent.EXTRA_UID to callingPackageUid)
+
+        try {
+            contentResolver.query(MEDIA_GRANTS_COUNT_URI, /* projection */ null, input, null).use {
+                cursor ->
+                if (cursor != null && cursor.moveToFirst()) {
+                    // Move the cursor to the first row and extract the count.
+
+                    return cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_GRANTS_COUNT))
+                } else {
+                    // return 0 if cursor is empty.
+                    return 0
+                }
+            }
+        } catch (e: Exception) {
+            throw RuntimeException("Could not fetch media grants count. ", e)
         }
     }
 

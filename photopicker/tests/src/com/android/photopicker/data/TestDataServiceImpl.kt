@@ -97,8 +97,11 @@ class TestDataServiceImpl() : DataService {
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> {
+        // re-using the media source, modify as per future test usage.
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
+    }
 
     override suspend fun refreshMedia() =
         throw NotImplementedError("This method is not implemented yet.")

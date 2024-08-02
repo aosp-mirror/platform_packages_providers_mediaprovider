@@ -19,6 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.net.Uri
 import android.os.SystemProperties
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 
@@ -53,10 +54,13 @@ enum class PhotopickerRuntimeEnv {
  *   set or set to too large a limit.
  * @property startDestination the start destination that should be consider the "home" view the user
  *   is shown for the session.
+ * @property preSelectedUris an [ArrayList] of the [Uri]s of the items selected by the user in the
+ *   previous photopicker sessions launched via the same calling app.
  * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  * @property intent the [Intent] that Photopicker was launched with. This property is private to
  *   restrict access outside of this class.
+ * @property sessionId identifies the current photopicker session
  */
 data class PhotopickerConfiguration(
     val runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
@@ -69,8 +73,10 @@ data class PhotopickerConfiguration(
     val pickImagesInOrder: Boolean = false,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
     val startDestination: PhotopickerDestinations = PhotopickerDestinations.DEFAULT,
+    val preSelectedUris: ArrayList<Uri>? = null,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
+    val sessionId: Int,
     private val intent: Intent? = null,
 ) {
 

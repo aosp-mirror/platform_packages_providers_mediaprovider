@@ -83,6 +83,7 @@ class EmbeddedViewModelFactory(
                         selection.get(),
                         userMonitor.get(),
                         configurationManager.get(),
+                        events.get(),
                     )
                         as T
                 isAssignableFrom(PhotoGridViewModel::class.java) ->
@@ -90,11 +91,25 @@ class EmbeddedViewModelFactory(
                     PhotoGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
                 isAssignableFrom(PreviewViewModel::class.java) ->
                     @Suppress("UNCHECKED_CAST")
-                    PreviewViewModel(null, selection.get(), userMonitor.get(), dataService.get())
+                    PreviewViewModel(
+                        null,
+                        selection.get(),
+                        userMonitor.get(),
+                        dataService.get(),
+                        events.get(),
+                        configurationManager.get()
+                    )
                         as T
                 isAssignableFrom(ProfileSelectorViewModel::class.java) ->
                     @Suppress("UNCHECKED_CAST")
-                    ProfileSelectorViewModel(null, selection.get(), userMonitor.get()) as T
+                    ProfileSelectorViewModel(
+                        null,
+                        selection.get(),
+                        userMonitor.get(),
+                        events.get(),
+                        configurationManager.get()
+                    )
+                        as T
                 else ->
                     throw IllegalArgumentException(
                         "Unknown ViewModel class: ${modelClass.simpleName}"

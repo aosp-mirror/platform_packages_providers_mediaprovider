@@ -264,6 +264,11 @@ public class PickerDbTestUtils {
 
     public static Cursor getMediaGrantsCursor(
             String id) {
+        return getMediaGrantsCursor(id, TEST_PACKAGE_NAME, UserHandle.myUserId());
+    }
+
+    public static Cursor getMediaGrantsCursor(
+            String id, String packageName, int userId) {
         String[] projectionKey =
                 new String[]{
                         MediaGrants.FILE_ID_COLUMN,
@@ -274,8 +279,8 @@ public class PickerDbTestUtils {
         String[] projectionValue =
                 new String[]{
                         id,
-                        TEST_PACKAGE_NAME,
-                        String.valueOf(UserHandle.myUserId())
+                        packageName,
+                        String.valueOf(userId)
                 };
 
         MatrixCursor c = new MatrixCursor(projectionKey);

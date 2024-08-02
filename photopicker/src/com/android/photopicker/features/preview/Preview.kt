@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +69,12 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.glide.RESOLUTION_REQUESTED
 import com.android.photopicker.core.glide.Resolution
@@ -82,6 +88,7 @@ import com.android.photopicker.core.theme.LocalFixedAccentColors
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Entry point for the [PhotopickerDestinations.PREVIEW_SELECTION] and
@@ -148,7 +155,7 @@ fun PreviewSelection(
             ) {
                 Row(
                     modifier =
-                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 4.dp),
+                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 8.dp),
                 ) {
                     // back button
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -174,9 +181,9 @@ fun PreviewSelection(
                             Modifier.align(Alignment.Center),
                             selection,
                             state,
-                            snackbarHostState
+                            snackbarHostState,
+                            /* singleItemPreview */ previewSingleItem
                         )
-
                         IconButton(
                             modifier = Modifier.align(Alignment.TopStart),
                             onClick = {
@@ -186,7 +193,9 @@ fun PreviewSelection(
                         ) {
                             if (currentSelection.contains(selection.get(state.currentPage))) {
                                 Icon(
-                                    Icons.Filled.CheckCircle,
+                                    ImageVector.vectorResource(
+                                        R.drawable.photopicker_selected_media
+                                    ),
                                     modifier =
                                         Modifier
                                             // Background is necessary because the icon has negative
@@ -227,7 +236,7 @@ fun PreviewSelection(
                 Row(
                     modifier =
                         Modifier.fillMaxWidth()
-                            .padding(bottom = 68.dp, start = 4.dp, end = 16.dp, top = 12.dp),
+                            .padding(bottom = 48.dp, start = 4.dp, end = 16.dp, top = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     if (previewSingleItem) {
@@ -310,7 +319,8 @@ private fun PreviewPager(
     modifier: Modifier,
     selection: LazyPagingItems<Media>,
     state: PagerState,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    singleItemPreview: Boolean,
 ) {
     // Preview session state to keep track if the video player's audio is muted.
     var audioIsMuted by remember { mutableStateOf(true) }
@@ -322,9 +332,15 @@ private fun PreviewPager(
         val media = selection.get(page)
         if (media != null) {
             when (media) {
-                is Media.Image -> ImageUi(media)
+                is Media.Image -> ImageUi(media, singleItemPreview)
                 is Media.Video ->
-                    VideoUi(media, audioIsMuted, { audioIsMuted = it }, snackbarHostState)
+                    VideoUi(
+                        media,
+                        audioIsMuted,
+                        { audioIsMuted = it },
+                        snackbarHostState,
+                        singleItemPreview
+                    )
             }
         }
     }
@@ -336,7 +352,32 @@ private fun PreviewPager(
  * @param image
  */
 @Composable
-private fun ImageUi(image: Media.Image) {
+private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
+    if (singleItemPreview) {
+        val events = LocalEvents.current
+        val scope = rememberCoroutineScope()
+        val configuration = LocalPhotopickerConfiguration.current
+
+        scope.launch {
+            val mediaType =
+                if (image.mimeType.contains("gif")) {
+                    Telemetry.MediaType.GIF
+                } else {
+                    Telemetry.MediaType.PHOTO
+                }
+            // Mark entry into preview mode by long pressing on the media item
+            events.dispatch(
+                Event.LogPhotopickerPreviewInfo(
+                    FeatureToken.PREVIEW.token,
+                    configuration.sessionId,
+                    Telemetry.PreviewModeEntry.LONG_PRESS,
+                    previewItemCount = 1,
+                    mediaType,
+                    Telemetry.VideoPlayBackInteractions.UNSET_VIDEO_PLAYBACK_INTERACTION
+                )
+            )
+        }
+    }
     loadMedia(
         media = image,
         resolution = Resolution.FULL,
@@ -355,9 +396,20 @@ private fun ImageUi(image: Media.Image) {
 @Composable
 fun PreviewSelectionButton(modifier: Modifier) {
     val navController = LocalNavController.current
+    val events = LocalEvents.current
+    val scope = rememberCoroutineScope()
+    // TODO(b/353659535): Use Selection.size api when available
+    val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
+    val previewItemCount = currentSelection.size
+    val configuration = LocalPhotopickerConfiguration.current
 
     TextButton(
-        onClick = navController::navigateToPreviewSelection,
+        onClick = {
+            scope.launch {
+                logPreviewSelectionButtonClicked(configuration, previewItemCount, events)
+            }
+            navController.navigateToPreviewSelection()
+        },
         modifier = modifier,
     ) {
         Text(
@@ -368,4 +420,45 @@ fun PreviewSelectionButton(modifier: Modifier) {
                 )
         )
     }
+}
+
+/**
+ * Dispatches all the relevant logging events for the picker's preview mode when the Preview button
+ * is clicked
+ */
+private suspend fun logPreviewSelectionButtonClicked(
+    configuration: PhotopickerConfiguration,
+    previewItemCount: Int,
+    events: Events,
+) {
+    // Log preview item details
+    events.dispatch(
+        Event.LogPhotopickerPreviewInfo(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            Telemetry.PreviewModeEntry.VIEW_SELECTED,
+            previewItemCount,
+            Telemetry.MediaType.UNSET_MEDIA_TYPE,
+            Telemetry.VideoPlayBackInteractions.UNSET_VIDEO_PLAYBACK_INTERACTION
+        )
+    )
+
+    // Log preview related UI events including clicking the 'preview' button
+    events.dispatch(
+        Event.LogPhotopickerUIEvent(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            configuration.callingPackageUid ?: -1,
+            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+        )
+    )
+
+    events.dispatch(
+        Event.LogPhotopickerUIEvent(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            configuration.callingPackageUid ?: -1,
+            Telemetry.UiEvent.PICKER_CLICK_VIEW_SELECTED
+        )
+    )
 }

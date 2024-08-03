@@ -363,9 +363,9 @@ import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
- * Separate databases are kept for each external storage card we see (using the
- * card's ID as an index).  The content visible at content://media/external/...
- * changes with the card.
+ * A single database keep track of media files on external storage
+ * The content visible at content://media/external/... is a combined view of all media files on all
+ * available external storage devices
  */
 public class MediaProvider extends ContentProvider {
     /**
@@ -6877,16 +6877,7 @@ public class MediaProvider extends ContentProvider {
         int userId;
         final List<Uri> uris;
         String[] packageNames;
-        if (checkPermissionSelf(caller)) {
-            final PackageManager pm = getContext().getPackageManager();
-            final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageNames = pm.getPackagesForUid(packageUid);
-            // Get the userId from packageUid as the initiator could be a cloned app, which
-            // accesses Media via MP of its parent user and Binder's callingUid reflects
-            // the latter.
-            userId = uidToUserId(packageUid);
-            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
-        } else if (checkPermissionShell(caller)) {
+        if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
             // (as string).
             if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
@@ -6899,10 +6890,19 @@ public class MediaProvider extends ContentProvider {
             // Caller is always shell which may not have the desired userId. Hence, use
             // UserId from the MediaProvider process itself.
             userId = UserHandle.myUserId();
+        } else if (checkPermissionSelf(caller) || isCallerPhotoPicker()) {
+            final PackageManager pm = getContext().getPackageManager();
+            final int packageUid = extras.getInt(Intent.EXTRA_UID);
+            packageNames = pm.getPackagesForUid(packageUid);
+            // Get the userId from packageUid as the initiator could be a cloned app, which
+            // accesses Media via MP of its parent user and Binder's callingUid reflects
+            // the latter.
+            userId = uidToUserId(packageUid);
+            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
         } else {
             // All other callers are unauthorized.
             throw new SecurityException(
-                    getSecurityExceptionMessage("read media grants"));
+                    getSecurityExceptionMessage("revoke media grants"));
         }
 
         mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
@@ -7162,7 +7162,21 @@ public class MediaProvider extends ContentProvider {
         int userId;
         final List<Uri> uris;
         String packageName;
-        if (checkPermissionSelf(caller)) {
+        if (checkPermissionShell(caller)) {
+            // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
+            // and EXTRA_PACKAGE_NAME (as string).
+            if (!extras.containsKey(MediaStore.EXTRA_URI)
+                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                throw new IllegalArgumentException(
+                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
+            }
+            packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Caller is always shell which may not have the desired userId. Hence, use
+            // UserId from the MediaProvider process itself.
+            userId = UserHandle.myUserId();
+
+        } else if (checkPermissionSelf(caller) || isCallerPhotoPicker()) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
             if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
@@ -7189,19 +7203,6 @@ public class MediaProvider extends ContentProvider {
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-        } else if (checkPermissionShell(caller)) {
-            // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
-            // and EXTRA_PACKAGE_NAME (as string).
-            if (!extras.containsKey(MediaStore.EXTRA_URI)
-                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
-                throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
-            }
-            packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
-            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
-            // Caller is always shell which may not have the desired userId. Hence, use
-            // UserId from the MediaProvider process itself.
-            userId = UserHandle.myUserId();
         } else {
             // All other callers are unauthorized.
 

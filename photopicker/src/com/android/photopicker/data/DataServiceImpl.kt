@@ -23,9 +23,11 @@ import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
 import android.provider.CloudMediaProviderContract
+import android.provider.MediaStore
 import android.util.Log
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.CloudMediaProviderDetails
@@ -83,13 +85,18 @@ class DataServiceImpl(
     private val mediaProviderClient: MediaProviderClient,
     private val config: StateFlow<PhotopickerConfiguration>,
     private val featureManager: FeatureManager,
-    private val appContext: Context
+    private val appContext: Context,
+    private val events: Events,
 ) : DataService {
     private val _activeContentResolver =
         MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
 
-    // Keep track of the photo grid media and album grid paging source so that we can invalidate
-    // them in case the underlying data changes.
+    // Here default value being null signifies that the look up for the grants has not happened yet.
+    // Use [refreshPreGrantedItemsCount] to populate this with the latest value.
+    private var _preGrantedMediaCount: MutableStateFlow<Int?> = MutableStateFlow(null)
+
+    // Keep track of the photo grid media, album grid and preview media paging sources so that we
+    // can invalidate them in case the underlying data changes.
     private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
     private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
@@ -180,6 +187,12 @@ class DataServiceImpl(
         CollectionInfoState(mediaProviderClient, _activeContentResolver, availableProviders)
 
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
+
+    /**
+     * Same as [_preGrantedMediaCount] but as an immutable StateFlow. The count contains the latest
+     * value set during the most recent [refreshPreGrantedItemsCount] call.
+     */
+    override val preGrantedMediaCount: StateFlow<Int?> = _preGrantedMediaCount
 
     companion object {
         const val FLOW_TIMEOUT_MILLI_SECONDS: Long = 5000
@@ -394,6 +407,7 @@ class DataServiceImpl(
                             mediaProviderClient,
                             dispatcher,
                             config.value,
+                            events,
                         )
 
                     Log.v(
@@ -420,6 +434,7 @@ class DataServiceImpl(
                     mediaProviderClient,
                     dispatcher,
                     config.value,
+                    events,
                 )
 
             Log.v(
@@ -448,6 +463,7 @@ class DataServiceImpl(
                     mediaProviderClient,
                     dispatcher,
                     config.value,
+                    events,
                 )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
@@ -460,8 +476,35 @@ class DataServiceImpl(
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> = runBlocking {
+        mediaPagingSourceMutex.withLock {
+            val availableProviders: List<Provider> = availableProviders.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
+            val mediaPagingSource =
+                MediaPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                    events,
+                    /* is_preview_request */ true,
+                    currentSelection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
+                    currentDeselection
+                        .mapNotNull { it.mediaId }
+                        .toCollection(
+                            ArrayList(),
+                        ),
+                )
+
+            Log.v(
+                DataService.TAG,
+                "Created a media paging source that queries database for" + "preview items."
+            )
+            mediaPagingSources.add(mediaPagingSource)
+            mediaPagingSource
+        }
+    }
 
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value
@@ -568,6 +611,9 @@ class DataServiceImpl(
         // successful sync enables cloud queries, which then updates the UI.
         refreshMedia(providers)
 
+        // refresh count for preGranted media.
+        refreshPreGrantedItemsCount()
+
         val previouslyAvailableProviders = _availableProviders.value
 
         _availableProviders.update { providers }
@@ -583,6 +629,24 @@ class DataServiceImpl(
         // Clear collection info cache immediately and update the cache from
         // data source in a child coroutine.
         collectionInfoState.clear()
+    }
+
+    override fun refreshPreGrantedItemsCount() {
+        // value for _preGrantedMediaCount being null signifies that the count has not been fetched
+        // yet for this photopicker session.
+        // This should only be used in ACTION_USER_SELECT_IMAGES_FOR_APP mode since grants only
+        // exist for this mode.
+        if (
+            _preGrantedMediaCount.value == null &&
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(config.value.action)
+        ) {
+            _preGrantedMediaCount.update {
+                mediaProviderClient.fetchMediaGrantsCount(
+                    _activeContentResolver.value,
+                    config.value.callingPackageUid ?: -1
+                )
+            }
+        }
     }
 
     /**

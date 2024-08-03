@@ -45,9 +45,11 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerStateDao
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
@@ -85,6 +87,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.anyString
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -140,6 +144,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var dataService: DataService
+    @Inject lateinit var databaseManager: DatabaseManager
 
     val sessionId = generatePickerSessionId()
 
@@ -202,7 +207,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -226,7 +230,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -264,7 +267,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -291,7 +293,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -328,7 +329,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -343,6 +343,41 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(hasText(resources.getString(R.string.photopicker_photos_empty_state_body)))
                 .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testShowsBannersInGrid() {
+
+        testScope.runTest {
+            val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
+            whenever(bannerStateDao.getBannerState(anyString(), anyInt())) { null }
+
+            configurationManager.setCaller(
+                callingPackage = "com.android.test.package",
+                callingPackageUid = 12345,
+                callingPackageLabel = "Test Package",
+            )
+            advanceTimeBy(100)
+
+            bannerManager.get().refreshBanners()
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            val resources = getTestableContext().getResources()
+            val expectedPrivacyMessage =
+                resources.getString(R.string.photopicker_privacy_explainer, "Test Package")
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule.onNode(hasText(expectedPrivacyMessage)).assertIsDisplayed()
         }
     }
 }

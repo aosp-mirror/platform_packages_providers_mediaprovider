@@ -86,7 +86,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
             preGrantedItemsCount
                 .filter { it != null }
                 .collect {
-                    Log.i(TAG, "Received notification for preGranted media count.")
+                    Log.i(TAG, "Received notification for preGranted media count. ")
                     updateFlow()
                 }
         }

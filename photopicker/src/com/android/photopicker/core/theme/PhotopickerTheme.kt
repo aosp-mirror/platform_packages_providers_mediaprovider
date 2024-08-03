@@ -76,8 +76,28 @@ fun PhotopickerTheme(
     val colorScheme =
         remember(isDarkTheme) {
             when (isDarkTheme) {
-                true -> darkTheme
-                false -> lightTheme
+                true ->
+                    if (accentColorHelper.getAccentColor().isUnspecified) {
+                        darkTheme
+                    } else {
+                        // When an accent color has been specified, set primary and onPrimary
+                        // in the theme to use the accent color.
+                        darkTheme.copy(
+                            primary = accentColorHelper.getAccentColor(),
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                        )
+                    }
+                false ->
+                    if (accentColorHelper.getAccentColor().isUnspecified) {
+                        lightTheme
+                    } else {
+                        lightTheme.copy(
+                            // When an accent color has been specified, set primary and onPrimary
+                            // in the theme to use the accent color.
+                            primary = accentColorHelper.getAccentColor(),
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                        )
+                    }
             }
         }
     val fixedAccentColors =

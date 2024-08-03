@@ -44,6 +44,9 @@ class MediaPagingSource(
     private val dispatcher: CoroutineDispatcher,
     private val configuration: PhotopickerConfiguration,
     private val events: Events,
+    private val isPreviewSession: Boolean = false,
+    private val currentSelection: List<String> = emptyList(),
+    private val currentDeSelection: List<String> = emptyList(),
 ) : PagingSource<MediaPageKey, Media>() {
     companion object {
         val TAG: String = "PickerMediaPagingSource"
@@ -59,14 +62,27 @@ class MediaPagingSource(
                     if (availableProviders.isEmpty()) {
                         throw IllegalArgumentException("No available providers found.")
                     }
-
-                    mediaProviderClient.fetchMedia(
-                        pageKey,
-                        pageSize,
-                        contentResolver,
-                        availableProviders,
-                        configuration
-                    )
+                    if (isPreviewSession) {
+                        mediaProviderClient.fetchPreviewMedia(
+                            pageKey,
+                            pageSize,
+                            contentResolver,
+                            availableProviders,
+                            configuration,
+                            currentSelection,
+                            currentDeSelection,
+                            // only true for first page or refreshes.
+                            /* isFirstPage */ (params.key == null)
+                        )
+                    } else {
+                        mediaProviderClient.fetchMedia(
+                            pageKey,
+                            pageSize,
+                            contentResolver,
+                            availableProviders,
+                            configuration
+                        )
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Could not fetch page from Media provider", e)
                     LoadResult.Error(e)

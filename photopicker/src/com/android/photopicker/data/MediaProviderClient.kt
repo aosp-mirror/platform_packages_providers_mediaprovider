@@ -117,6 +117,13 @@ open class MediaProviderClient {
         COVER_MEDIA_SOURCE("media_source")
     }
 
+    /** Contains all optional and mandatory keys for the Preview Media Query. */
+    enum class PreviewMediaQuery(val key: String) {
+        CURRENT_SELECTION("current_selection"),
+        CURRENT_DE_SELECTION("current_de_selection"),
+        IS_FIRST_PAGE("is_first_page")
+    }
+
     /** Fetch available [Provider]-s from the Media Provider process. */
     fun fetchAvailableProviders(
         contentResolver: ContentResolver,
@@ -160,7 +167,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle =
             bundleOf(
@@ -198,6 +205,59 @@ open class MediaProviderClient {
                 }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch media", e)
+        }
+    }
+
+    /** Fetch a list of [Media] from MediaProvider for the given page key. */
+    fun fetchPreviewMedia(
+        pageKey: MediaPageKey,
+        pageSize: Int,
+        contentResolver: ContentResolver,
+        availableProviders: List<Provider>,
+        config: PhotopickerConfiguration,
+        currentSelection: List<String> = emptyList(),
+        currentDeSelection: List<String> = emptyList(),
+        isFirstPage: Boolean = false,
+    ): LoadResult<MediaPageKey, Media> {
+        val input: Bundle =
+            bundleOf(
+                MediaQuery.PICKER_ID.key to pageKey.pickerId,
+                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
+                MediaQuery.PAGE_SIZE.key to pageSize,
+                MediaQuery.PROVIDERS.key to
+                    ArrayList<String>().apply {
+                        availableProviders.forEach { provider -> add(provider.authority) }
+                    },
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
+                PreviewMediaQuery.CURRENT_SELECTION.key to currentSelection,
+                PreviewMediaQuery.CURRENT_DE_SELECTION.key to currentDeSelection,
+                PreviewMediaQuery.IS_FIRST_PAGE.key to isFirstPage,
+            )
+
+        try {
+            return contentResolver
+                .query(
+                    MEDIA_PREVIEW_URI,
+                    /* projection */ null,
+                    input,
+                    /* cancellationSignal */ null // TODO
+                )
+                .use { cursor ->
+                    cursor?.let {
+                        LoadResult.Page(
+                            data = cursor.getListOfMedia(),
+                            prevKey = cursor.getPrevPageKey(),
+                            nextKey = cursor.getNextPageKey()
+                        )
+                    }
+                        ?: throw IllegalStateException(
+                            "Received a null response from Content Provider"
+                        )
+                }
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch preview media", e)
         }
     }
 

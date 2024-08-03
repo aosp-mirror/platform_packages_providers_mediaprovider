@@ -62,7 +62,6 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -81,7 +80,6 @@ import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
-import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -170,7 +168,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-    @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject override lateinit var configurationManager: ConfigurationManager
 
     val TEST_MEDIA_IMAGE =
@@ -332,7 +329,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
-                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -373,7 +369,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
-                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -411,7 +406,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -449,7 +443,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
-                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -480,7 +473,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
-                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -552,7 +544,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         featureManager = featureManager,
                         selection = selection,
                         events = events,
-                        bannerManager = bannerManager.get(),
                     )
                 }
             }
@@ -601,7 +592,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -649,7 +639,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -695,7 +684,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -747,7 +735,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -828,7 +815,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -903,7 +889,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -980,7 +965,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -1055,7 +1039,6 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 

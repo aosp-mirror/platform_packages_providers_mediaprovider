@@ -16,7 +16,6 @@
 
 package com.android.photopicker.core
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -48,11 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import com.android.photopicker.core.banners.Banner
-import com.android.photopicker.core.banners.BannerDefinitions
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
@@ -87,7 +82,6 @@ private val SELECTION_BAR_PADDING =
 @Composable
 fun PhotopickerAppWithBottomSheet(
     onDismissRequest: () -> Unit,
-    bannerManager: BannerManager,
     onMediaSelectionConfirmed: () -> Unit,
     preloadMedia: Flow<Set<Media>>,
     obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
@@ -167,7 +161,7 @@ fun PhotopickerAppWithBottomSheet(
                         modifier = Modifier.fillMaxHeight(),
                         contentAlignment = Alignment.BottomCenter
                     ) {
-                        PhotopickerMain(bannerManager)
+                        PhotopickerMain()
                         Column(
                             modifier =
                                 // Some elements needs to be drawn over the UI inside of the
@@ -222,15 +216,13 @@ fun PhotopickerAppWithBottomSheet(
  * Activity code, and should only be called inside of the ComposeView [setContent] block.
  */
 @Composable
-fun PhotopickerApp(bannerManager: BannerManager) {
+fun PhotopickerApp() {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
 
     // Provide the NavController to the rest of the Compose stack.
-    CompositionLocalProvider(LocalNavController provides navController) {
-        PhotopickerMain(bannerManager)
-    }
+    CompositionLocalProvider(LocalNavController provides navController) { PhotopickerMain() }
 }
 
 /**
@@ -250,10 +242,7 @@ fun PhotopickerApp(bannerManager: BannerManager) {
  * - LocalPickerSheetStateValue
  */
 @Composable
-fun PhotopickerMain(bannerManager: BannerManager) {
-
-    val currentBanner by bannerManager.flow.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+fun PhotopickerMain() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
@@ -263,24 +252,6 @@ fun PhotopickerMain(bannerManager: BannerManager) {
                 maxSlots = 1,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Box(modifier = Modifier.animateContentSize()) {
-                currentBanner?.let {
-                    Banner(
-                        it,
-                        modifier = Modifier.padding(MEASUREMENT_BANNER_PADDING),
-                        onDismiss = {
-                            scope.launch {
-                                val declaration = it.declaration
-                                if (declaration is BannerDefinitions) {
-                                    bannerManager.markBannerAsDismissed(declaration)
-                                }
-                                bannerManager.refreshBanners()
-                            }
-                        }
-                    )
-                }
-            }
 
             // Initialize the navigation graph.
             PhotopickerNavGraph()

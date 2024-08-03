@@ -209,7 +209,6 @@ class MainActivity : Hilt_MainActivity() {
                 PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
-                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.

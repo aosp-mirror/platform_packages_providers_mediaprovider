@@ -95,8 +95,8 @@ class DataServiceImpl(
     // Use [refreshPreGrantedItemsCount] to populate this with the latest value.
     private var _preGrantedMediaCount: MutableStateFlow<Int?> = MutableStateFlow(null)
 
-    // Keep track of the photo grid media and album grid paging source so that we can invalidate
-    // them in case the underlying data changes.
+    // Keep track of the photo grid media, album grid and preview media paging sources so that we
+    // can invalidate them in case the underlying data changes.
     private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
     private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
@@ -476,8 +476,35 @@ class DataServiceImpl(
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> = runBlocking {
+        mediaPagingSourceMutex.withLock {
+            val availableProviders: List<Provider> = availableProviders.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
+            val mediaPagingSource =
+                MediaPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                    events,
+                    /* is_preview_request */ true,
+                    currentSelection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
+                    currentDeselection
+                        .mapNotNull { it.mediaId }
+                        .toCollection(
+                            ArrayList(),
+                        ),
+                )
+
+            Log.v(
+                DataService.TAG,
+                "Created a media paging source that queries database for" + "preview items."
+            )
+            mediaPagingSources.add(mediaPagingSource)
+            mediaPagingSource
+        }
+    }
 
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value

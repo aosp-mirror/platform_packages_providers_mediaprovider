@@ -17,10 +17,11 @@ package com.android.providers.media.tools.photopickerv2.docsui
 
 import android.app.Activity
 import android.net.Uri
-import android.widget.Toast
+import android.os.Build
 import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +54,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.android.providers.media.tools.photopickerv2.R
 import com.android.providers.media.tools.photopickerv2.utils.ButtonComponent
+import com.android.providers.media.tools.photopickerv2.utils.MetaDataDetails
 import com.android.providers.media.tools.photopickerv2.utils.SwitchComponent
 import com.android.providers.media.tools.photopickerv2.utils.TextFieldComponent
 import com.android.providers.media.tools.photopickerv2.utils.isImage
@@ -63,6 +65,7 @@ import com.bumptech.glide.integration.compose.GlideImage
 /**
  * This is the screen for the DocsUI tab.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
@@ -75,6 +78,7 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
 
     var isActionGetContentSelected by remember { mutableStateOf(true) }
     var isOpenDocumentSelected by remember { mutableStateOf(false) }
+    var isCreateDocumentSelected by remember { mutableStateOf(false) }
 
     var allowCustomMimeType by remember { mutableStateOf(false) }
     var selectedMimeType by remember { mutableStateOf("") }
@@ -82,6 +86,9 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
 
     var showImagesOnly by remember { mutableStateOf(false) }
     var showVideosOnly by remember { mutableStateOf(false) }
+
+    // Meta Data Details
+    var showMetaData by remember { mutableStateOf(false) }
 
     // Color of ACTION_GET_CONTENT and OPEN_DOCUMENT button
     val getContentColor = if (isActionGetContentSelected){
@@ -92,7 +99,13 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
         ButtonDefaults.buttonColors()
     } else ButtonDefaults.buttonColors(Color.Gray)
 
-    val openDocumentTreeColor = if (!isActionGetContentSelected && !isOpenDocumentSelected) {
+    val createDocumentColor = if (isCreateDocumentSelected) {
+        ButtonDefaults.buttonColors()
+    } else ButtonDefaults.buttonColors(Color.Gray)
+
+    val openDocumentTreeColor = if (!isActionGetContentSelected &&
+        !isOpenDocumentSelected &&
+        !isCreateDocumentSelected) {
         ButtonDefaults.buttonColors()
     } else ButtonDefaults.buttonColors(Color.Gray)
 
@@ -127,10 +140,12 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
     fun resetFeatureComponents(
         isGetContentSelected: Boolean,
         isOpenDocumentIntentSelected: Boolean,
+        isCreateDocumentIntentSelected: Boolean,
         selectedButtonType: Int
     ) {
         isActionGetContentSelected = isGetContentSelected
         isOpenDocumentSelected = isOpenDocumentIntentSelected
+        isCreateDocumentSelected = isCreateDocumentIntentSelected
         selectedButton = selectedButtonType
         allowMultiple = false
         showImagesOnly = false
@@ -167,6 +182,7 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
                     resetFeatureComponents(
                         isGetContentSelected = true,
                         isOpenDocumentIntentSelected = false,
+                        isCreateDocumentIntentSelected = false,
                         selectedButtonType = R.string.action_get_content
                     )
                 },
@@ -180,11 +196,12 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
                     resetFeatureComponents(
                         isGetContentSelected = false,
                         isOpenDocumentIntentSelected = true,
+                        isCreateDocumentIntentSelected = false,
                         selectedButtonType = R.string.open_document
                     )
                 },
                 modifier = Modifier.weight(1f),
-                colors = openDocumentColor,
+                colors = openDocumentColor
             )
         }
 
@@ -201,11 +218,26 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
                     resetFeatureComponents(
                         isGetContentSelected = false,
                         isOpenDocumentIntentSelected = false,
+                        isCreateDocumentIntentSelected = false,
                         selectedButtonType = R.string.open_document_tree
                     )
                 },
                 modifier = Modifier.weight(1f),
                 colors = openDocumentTreeColor
+            )
+
+            ButtonComponent(
+                label = stringResource(R.string.create_document),
+                onClick = {
+                    resetFeatureComponents(
+                        isGetContentSelected = false,
+                        isOpenDocumentIntentSelected = false,
+                        isCreateDocumentIntentSelected = true,
+                        selectedButtonType = R.string.create_document
+                    )
+                },
+                modifier = Modifier.weight(1f),
+                colors = createDocumentColor
             )
         }
 
@@ -286,60 +318,92 @@ fun DocsUIScreen(docsUIViewModel: DocsUIViewModel = viewModel()) {
 
         // Pick Media Button
         ButtonComponent(
-            label = stringResource(R.string.pick_media),
+            label = if (!isCreateDocumentSelected) {
+                stringResource(R.string.pick_media)
+            } else {
+                stringResource(R.string.create_file)
+            },
             onClick = {
+
+
                 // Resetting the custom Mime Type Box when allowCustomMimeType is unselected
                 if (!allowCustomMimeType){
                     customMimeTypeInput = ""
                 }
 
+                /*  TODO: (@adityasngh) please check the URI below and fix this intent.
+                // For CREATE_DOCUMENT intent
+                val initialUri = Uri.parse("content://some/initial/uri")
+
                 val errorMessage = docsUIViewModel.validateAndLaunchPicker(
                     isActionGetContentSelected = isActionGetContentSelected,
                     isOpenDocumentSelected = isOpenDocumentSelected,
+                    isCreateDocumentSelected = isCreateDocumentSelected,
                     allowMultiple = allowMultiple,
                     selectedMimeType = selectedMimeType,
                     allowCustomMimeType = allowCustomMimeType,
                     customMimeTypeInput = customMimeTypeInput,
+                    pickerInitialUri = initialUri,
                     launcher = launcher::launch
                 )
                 if (errorMessage != null) {
                     Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                 }
+                */
             }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Column {
-            resultMedia.forEach { uri ->
-                if (isImage(context, uri)) {
-                    // To display image
-                    GlideImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxSize()
-                            .padding(top = 8.dp)
-                    )
-                } else {
-                    AndroidView(
-                        // To display video
-                        factory = { ctx ->
-                            VideoView(ctx).apply {
-                                setVideoURI(uri)
-                                start()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(600.dp)
-                            .padding(top = 8.dp)
-                    )
+            if (isActionGetContentSelected || isOpenDocumentSelected){
+                // Switch for showing meta data
+                SwitchComponent(
+                    label = stringResource(R.string.show_metadata),
+                    checked = showMetaData,
+                    onCheckedChange = { showMetaData = it }
+                )
+            }
+
+            if (!isCreateDocumentSelected){
+                resultMedia.forEach { uri ->
+                    if (showMetaData) {
+                        MetaDataDetails(
+                            uri = uri,
+                            contentResolver = context.contentResolver,
+                            showMetaData = showMetaData,
+                            inDocsUITab = true
+                        )
+                    }
+                    if (isImage(context, uri)) {
+                        // To display image
+                        GlideImage(
+                            model = uri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxSize()
+                                .padding(top = 8.dp)
+                        )
+                    } else {
+                        AndroidView(
+                            // To display video
+                            factory = { ctx ->
+                                VideoView(ctx).apply {
+                                    setVideoURI(uri)
+                                    start()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(600.dp)
+                                .padding(top = 8.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(thickness = 6.dp)
+                    Spacer(modifier = Modifier.height(17.dp))
                 }
-                Spacer(modifier = Modifier.height(20.dp))
-                HorizontalDivider(thickness = 6.dp)
-                Spacer(modifier = Modifier.height(17.dp))
             }
         }
     }

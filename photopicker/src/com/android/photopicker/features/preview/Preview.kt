@@ -133,7 +133,8 @@ fun PreviewSelection(
                 viewModel
                     .getPreviewMediaIncludingPreGrantedItems(
                         selectionSnapshot,
-                        LocalPhotopickerConfiguration.current
+                        LocalPhotopickerConfiguration.current,
+                        /* isSingleItemPreview */ false
                     )
                     .collectAsLazyPagingItems()
             }
@@ -286,7 +287,12 @@ private fun SelectionButton(
         },
         colors =
             ButtonDefaults.textButtonColors(
-                contentColor = LocalFixedAccentColors.current.primaryFixedDim
+                contentColor =
+                    // The background color for Preview is always fixed to Black, so when the
+                    // custom accent color is defined, switch to a White color for this button
+                    // so it doesn't clash with the custom color.
+                    if (CustomAccentColorScheme.current.isAccentColorDefined()) Color.White
+                    else LocalFixedAccentColors.current.primaryFixedDim
             )
     ) {
         if (currentSelection.size > 0) {

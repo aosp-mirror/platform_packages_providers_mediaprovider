@@ -22,7 +22,6 @@ import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
 import static com.android.providers.media.photopicker.PickerSyncController.getPackageNameFromUid;
 import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
-import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_GRANTS_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
@@ -50,7 +49,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.sync.SyncCompletionWaiter;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
@@ -61,6 +59,7 @@ import com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper;
 import com.android.providers.media.photopicker.v2.model.FavoritesMediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
+import com.android.providers.media.photopicker.v2.model.PreviewMediaQuery;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 import com.android.providers.media.photopicker.v2.model.VideoMediaQuery;
 
@@ -102,12 +101,25 @@ public class PickerDataLayerV2 {
     );
 
     /**
+     * Table used to store the items for which the app hold read grants but have been de-selected
+     * by the user in the current photo-picker session.
+     */
+    public static final String DE_SELECTIONS_TABLE = "de_selections";
+
+    /**
+     * Table used to store the items for which the app hold read grants but have been de-selected
+     * by the user in the current photo-picker session, filtered by calling package name and userId.
+     */
+    public static final String CURRENT_DE_SELECTIONS_TABLE = "current_de_selections";
+
+    private static final String IS_FIRST_PAGE = "is_first_page";
+    /**
      * In SQL joins for media_grants table, it is filtered to only provide the rows corresponding to
      * the current package and userId. This is the name for the filtered table that is computed in a
      * sub-query. Any references to the columns for media_grants table should use this table name
      * instead.
      */
-    public static final String TABLE_CURRENT_GRANTS = "current_media_grants";
+    public static final String CURRENT_GRANTS_TABLE = "current_media_grants";
 
     public static final String COLUMN_GRANTS_COUNT = "grants_count";
 
@@ -147,6 +159,42 @@ public class PickerDataLayerV2 {
                 syncController.shouldQueryCloudMedia(query.getProviders(), cloudAuthority)
                         ? cloudAuthority
                         : null;
+
+        return queryMediaInternal(
+                appContext,
+                syncController,
+                query,
+                effectiveLocalAuthority,
+                effectiveCloudAuthority
+        );
+    }
+
+    /**
+     * Returns a cursor with the Photo Picker media in response.
+     *
+     * @param appContext The application context.
+     * @param queryArgs The arguments help us filter on the media query to yield the desired
+     *                  results.
+     */
+    @NonNull
+    static Cursor queryPreviewMedia(@NonNull Context appContext, @NonNull Bundle queryArgs) {
+        final PreviewMediaQuery query = new PreviewMediaQuery(queryArgs);
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final String effectiveLocalAuthority =
+                query.getProviders().contains(syncController.getLocalProvider())
+                        ? syncController.getLocalProvider()
+                        : null;
+        final String cloudAuthority = syncController
+                .getCloudProviderOrDefault(/* defaultValue */ null);
+        final String effectiveCloudAuthority =
+                syncController.shouldQueryCloudMedia(query.getProviders(), cloudAuthority)
+                        ? cloudAuthority
+                        : null;
+
+        if (queryArgs.getBoolean(IS_FIRST_PAGE)) {
+            PreviewMediaQuery.insertDeSelections(appContext, syncController,
+                    query.getCallingPackageUid(), query.getCurrentDeSelection());
+        }
 
         return queryMediaInternal(
                 appContext,
@@ -286,7 +334,7 @@ public class PickerDataLayerV2 {
 
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(MEDIA_GRANTS_TABLE);
-        addWhereClausesForMediaGrantsTable(userId, packageNames, qb);
+        addWhereClausesForPackageAndUserIdSelection(userId, packageNames, MEDIA_GRANTS_TABLE, qb);
 
         Cursor result = qb.query(database, projectionIn, null,
                 null, null, null, null);
@@ -296,25 +344,18 @@ public class PickerDataLayerV2 {
     /**
      * Adds the clause to select rows based on calling packageName and userId.
      */
-    private static void addWhereClausesForMediaGrantsTable(int userId,
-            @NonNull String[] packageNames, SQLiteQueryBuilder qb) {
+    public static void addWhereClausesForPackageAndUserIdSelection(int userId,
+            @NonNull String[] packageNames, String table, SQLiteQueryBuilder qb) {
         // Add where clause for userId selection.
         qb.appendWhereStandalone(
                 String.format(Locale.ROOT,
-                        "%s.%s = %d", MEDIA_GRANTS_TABLE, PACKAGE_USER_ID_COLUMN, userId));
+                        "%s.%s = %d", table, PACKAGE_USER_ID_COLUMN, userId));
 
         // Add where clause for package name selection.
         Objects.requireNonNull(packageNames);
-        StringBuilder packageSelection = new StringBuilder(OWNER_PACKAGE_NAME_COLUMN + " IN (");
-        for (int itr = 0; itr < packageNames.length; itr++) {
-            packageSelection.append("\'").append(packageNames[itr]).append("\',");
-        }
-        packageSelection.deleteCharAt(packageSelection.length() - 1);
-        packageSelection.append(")");
-
-        qb.appendWhereStandalone(packageSelection.toString());
+        qb.appendWhereStandalone(getPackageSelectionWhereClause(packageNames,
+                table).toString());
     }
-
 
     /**
      * Query media from the database and prepare a cursor in response.
@@ -346,7 +387,6 @@ public class PickerDataLayerV2 {
     ) {
         try {
             final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
-
             waitForOngoingSync(appContext, localAuthority, cloudAuthority, query.getIntentAction());
 
             try {
@@ -362,7 +402,6 @@ public class PickerDataLayerV2 {
                         ),
                         /* selectionArgs */ null
                 );
-
                 Bundle extraArgs = new Bundle();
                 Cursor nextPageKeyCursor = database.rawQuery(
                         getMediaNextPageKeyQuery(
@@ -389,17 +428,13 @@ public class PickerDataLayerV2 {
                         /* selectionArgs */ null
                 );
                 addPrevPageKey(extraArgs, prevPageKeyCursor);
-
                 database.setTransactionSuccessful();
-
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
                 return pageData;
             } finally {
                 database.endTransaction();
             }
-
-
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
         }
@@ -542,7 +577,7 @@ public class PickerDataLayerV2 {
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
-                .setTables(getTableWithRequiredJoins(table, appContext,
+                .setTables(query.getTableWithRequiredJoins(table.toString(), appContext,
                         query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of(
                         PickerSQLConstants.MediaResponse.MEDIA_ID.getProjection(),
@@ -598,8 +633,8 @@ public class PickerDataLayerV2 {
 
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(
-                        getTableWithRequiredJoins(table, appContext, query.getCallingPackageUid(),
-                                query.getIntentAction()))
+                        query.getTableWithRequiredJoins(table.toString(), appContext,
+                                query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of(
                         PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection()
@@ -641,8 +676,8 @@ public class PickerDataLayerV2 {
             @Nullable String cloudAuthority) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(
-                        getTableWithRequiredJoins(table, appContext, query.getCallingPackageUid(),
-                                query.getIntentAction()))
+                        query.getTableWithRequiredJoins(table.toString(), appContext,
+                                        query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of(
                         PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection()
@@ -665,47 +700,21 @@ public class PickerDataLayerV2 {
         return queryBuilder.buildQuery();
     }
 
-    private static String getTableWithRequiredJoins(PickerSQLConstants.Table table,
-            @NonNull Context appContext, int callingPackageUid, String intentAction) {
+    /**
+     * Returns a clause that can be used to filter OWNER_PACKAGE_NAME_COLUMN using the input
+     * packageNames in a query.
+     */
+    public static @NonNull StringBuilder getPackageSelectionWhereClause(String[] packageNames,
+            String table) {
+        StringBuilder packageSelection = new StringBuilder();
+        String packageColumn = String.format("%s.%s", table, OWNER_PACKAGE_NAME_COLUMN);
+        packageSelection.append(packageColumn).append(" IN (\'");
 
-        // Table should only be joined is the picker is in ACTION_USER_SELECT_IMAGES_FOR_APP action
-        // and the required parameters are present.
-        if (!MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
-            return table.name();
-        }
-        Objects.requireNonNull(appContext);
-        if (callingPackageUid == -1) {
-            throw new IllegalArgumentException("Calling package uid in"
-                    + "ACTION_USER_SELECT_IMAGES_FOR_APP mode should not be -1. Invalid UID");
-        }
-        int userId = uidToUserId(callingPackageUid);
-        String[] packageNames = getPackageNameFromUid(appContext,
-                callingPackageUid);
-        Objects.requireNonNull(packageNames);
-        StringBuilder packageSelection = new StringBuilder("(");
-        for (int itr = 0; itr < packageNames.length; itr++) {
-            packageSelection.append("\"").append(packageNames[itr]).append("\",");
-        }
-        packageSelection.deleteCharAt(packageSelection.length() - 1);
-        packageSelection.append(")");
-        String tables = String.format(Locale.ROOT,
-                "%s LEFT JOIN ("
-                        + "Select %s.%s from %s WHERE "
-                        + "owner_package_name IN %s AND "
-                        + "package_user_id = %d) "
-                        + "AS %s ON %s.%s = %s.%s ",
-                table,
-                MEDIA_GRANTS_TABLE,
-                MediaGrants.FILE_ID_COLUMN,
-                MEDIA_GRANTS_TABLE,
-                packageSelection,
-                userId,
-                TABLE_CURRENT_GRANTS,
-                table,
-                KEY_LOCAL_ID,
-                TABLE_CURRENT_GRANTS,
-                MediaGrants.FILE_ID_COLUMN);
-        return tables;
+        String joinedPackageNames = String.join("\',\'", packageNames);
+        packageSelection.append(joinedPackageNames);
+
+        packageSelection.append("\')");
+        return packageSelection;
     }
 
     /**

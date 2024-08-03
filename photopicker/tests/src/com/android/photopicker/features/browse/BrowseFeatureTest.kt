@@ -36,7 +36,6 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
@@ -112,7 +111,6 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
-    @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var events: Lazy<Events>
     @Inject override lateinit var configurationManager: ConfigurationManager
 
@@ -158,7 +156,6 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -198,7 +195,6 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
 

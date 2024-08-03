@@ -300,9 +300,7 @@ open class Session(
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
                         ) {
-                            PhotopickerTheme(config = photopickerConfiguration) {
-                                PhotopickerApp(_dependencies.bannerManager().get())
-                            }
+                            PhotopickerTheme(config = photopickerConfiguration) { PhotopickerApp() }
                         }
                     }
                 }

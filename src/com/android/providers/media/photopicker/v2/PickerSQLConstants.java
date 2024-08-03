@@ -317,7 +317,7 @@ public class PickerSQLConstants {
         private String getIsPregranted(String intentAction) {
             if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
                 return String.format("CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
-                        PickerDataLayerV2.TABLE_CURRENT_GRANTS, MediaGrants.FILE_ID_COLUMN);
+                        PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN);
             } else {
                 return "0"; // default case for other intent actions
             }

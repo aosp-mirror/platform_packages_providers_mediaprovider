@@ -23,9 +23,7 @@ import androidx.compose.ui.graphics.isUnspecified
 /** CompositionLocal used to pass [AccentColorScheme] down the tree. */
 val CustomAccentColorScheme =
     staticCompositionLocalOf<AccentColorScheme> {
-        throw IllegalStateException(
-            "No CustomAccentColorScheme configured."
-        )
+        throw IllegalStateException("No CustomAccentColorScheme configured.")
     }
 
 /**
@@ -49,6 +47,13 @@ class AccentColorScheme(accentColorHelper: AccentColorHelper) {
             false -> accentColor
         }
     }
+
+    /**
+     * Returns if an accentColor is defined for this color scheme.
+     *
+     * @return true if [accentColor] is a defined color.
+     */
+    fun isAccentColorDefined() = !accentColor.isUnspecified
 
     /**
      * Returns the appropriate text color for components using the accent color as the background

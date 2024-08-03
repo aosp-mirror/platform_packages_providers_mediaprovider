@@ -134,7 +134,7 @@ public class PickerSyncRequestExtras {
      * Returns true if grants should be synced, false otherwise.
      */
     public boolean isShouldSyncGrants() {
-        return mInitLocalOnlyData && mShouldSyncGrants;
+        return mShouldSyncGrants;
     }
 
     /**

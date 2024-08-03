@@ -188,7 +188,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 featureManager = featureManager.get(),
                 selection = selection.get(),
                 events = events.get(),
-                bannerManager = bannerManager.get(),
             )
         }
 
@@ -238,7 +237,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 featureManager = featureManager.get(),
                 selection = selection.get(),
                 events = events.get(),
-                bannerManager = bannerManager.get(),
             )
         }
 
@@ -330,7 +328,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -399,7 +396,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -455,7 +451,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -524,7 +519,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -569,7 +563,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -627,7 +620,6 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager.get(),
                     selection = selection.get(),
                     events = events.get(),
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()

@@ -21,6 +21,7 @@ import android.net.Uri
 import com.android.providers.media.tools.photopickerv2.docsui.DocsUIViewModel
 import com.android.providers.media.tools.photopickerv2.photopicker.PhotoPickerViewModel
 
+// This function is to check if the type of URI is image
 /**
  * isImage checks if the provided URI points to an image file.
  *
@@ -51,6 +52,3 @@ fun resetMedia(photoPickerViewModel: PhotoPickerViewModel) {
 fun resetMedia(docsUIViewModel: DocsUIViewModel) {
     docsUIViewModel.updateSelectedMediaList(emptyList())
 }
-
-
-

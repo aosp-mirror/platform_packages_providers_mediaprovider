@@ -179,7 +179,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -222,7 +221,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()

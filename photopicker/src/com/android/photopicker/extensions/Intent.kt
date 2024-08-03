@@ -55,6 +55,8 @@ fun Intent.getPhotopickerSelectionLimitOrDefault(default: Int): Int {
                 getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
         ) {
             MediaStore.getPickImagesMaxLimit()
+        } else if (getAction() == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) {
+            MediaStore.getPickImagesMaxLimit()
         } else {
             // No EXTRA_PICK_IMAGES_MAX was set, return the provided default
             default

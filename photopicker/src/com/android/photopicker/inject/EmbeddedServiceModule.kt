@@ -109,6 +109,7 @@ class EmbeddedServiceModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -122,6 +123,7 @@ class EmbeddedServiceModule {
                 EmbeddedViewModelFactory(
                     backgroundDispatcher,
                     configurationManager,
+                    bannerManager,
                     dataService,
                     events,
                     featureManager,

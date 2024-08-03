@@ -16,24 +16,35 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.MEDIA_GRANTS_TABLE;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
+import static com.android.providers.media.photopicker.PickerSyncController.getPackageNameFromUid;
+import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_VISIBLE;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_MIME_TYPE;
+import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.CURRENT_GRANTS_TABLE;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.MediaGrants;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -65,12 +76,10 @@ public class MediaQuery {
         mProviders = new ArrayList<>(
                 Objects.requireNonNull(queryArgs.getStringArrayList("providers")));
         mMimeTypes = queryArgs.getStringArrayList("mime_types") != null
-                ? new ArrayList<>(queryArgs.getStringArrayList("mime_types"))
-                : null;
+                ? new ArrayList<>(queryArgs.getStringArrayList("mime_types")) : null;
 
         // This is true by default.
         mShouldDedupe = true;
-
         mCallingPackageUid = queryArgs.getInt(Intent.EXTRA_UID, -1);
     }
 
@@ -98,6 +107,7 @@ public class MediaQuery {
         return mCallingPackageUid;
     }
 
+
     /**
      * Create and return a bundle for extras for CMP queries made from Media Provider.
      */
@@ -108,6 +118,62 @@ public class MediaQuery {
             queryArgs.putStringArray(Intent.EXTRA_MIME_TYPES, mMimeTypes.toArray(new String[0]));
         }
         return queryArgs;
+    }
+
+    /**
+     * Returns the table that should be used in the query operations including any joins that are
+     * required with other tables in the database.
+     */
+    public String getTableWithRequiredJoins(String table,
+            @NonNull Context appContext, int callingPackageUid, String intentAction) {
+
+        if (!MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
+            // No joins are required for a ACTION_USER_SELECT_IMAGES_FOR_APP action query.
+            return table;
+        }
+        Objects.requireNonNull(appContext);
+        if (callingPackageUid == -1) {
+            throw new IllegalArgumentException("Calling package uid in"
+                    + "ACTION_USER_SELECT_IMAGES_FOR_APP mode should not be -1. Invalid UID");
+        }
+
+        int userId = uidToUserId(callingPackageUid);
+        String[] packageNames = getPackageNameFromUid(appContext,
+                callingPackageUid);
+        Objects.requireNonNull(packageNames);
+        StringBuilder packageSelection =
+                PickerDataLayerV2.getPackageSelectionWhereClause(packageNames, MEDIA_GRANTS_TABLE);
+
+        // The following join is performed for the query media operation to obtain information on
+        // which items are preGranted.
+        String filterQueryBasedOnPackageNameAndUserId =
+                "(SELECT %s.%s FROM %s "
+                + "WHERE "
+                + " %s AND "
+                + "%s = %d) "
+                + "AS %s";
+
+        String filteredMediaGrantsTable = String.format(
+                Locale.ROOT,
+                filterQueryBasedOnPackageNameAndUserId,
+                MEDIA_GRANTS_TABLE,
+                FILE_ID_COLUMN,
+                MEDIA_GRANTS_TABLE,
+                packageSelection,
+                PACKAGE_USER_ID_COLUMN,
+                userId,
+                CURRENT_GRANTS_TABLE);
+
+        return String.format(
+                "%s LEFT JOIN %s"
+                        + " ON %s.%s = %s.%s ",
+                table,
+                filteredMediaGrantsTable,
+                table,
+                KEY_LOCAL_ID,
+                CURRENT_GRANTS_TABLE,
+                MediaGrants.FILE_ID_COLUMN
+        );
     }
 
     /**

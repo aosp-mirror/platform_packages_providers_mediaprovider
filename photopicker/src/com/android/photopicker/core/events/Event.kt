@@ -16,6 +16,8 @@
 
 package com.android.photopicker.core.events
 
+import com.android.photopicker.core.banners.BannerDeclaration
+import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.data.model.Group
 import com.android.providers.media.MediaProviderStatsLog
 
@@ -624,7 +626,31 @@ interface Telemetry {
         UNSET_BANNER_TYPE(
             MediaProviderStatsLog
                 .PHOTOPICKER_BANNER_INTERACTION_LOGGED__BANNER_TYPE__UNSET_BANNER_TYPE
-        )
+        );
+
+        companion object {
+
+            /**
+             * Attempts to map a [BannerDeclaration] to the [BannerType] enum for logging banner
+             * related data. At worst, will return [UNSET_BANNER_TYPE] for a banner without a
+             * mapping.
+             *
+             * @param declaration The [BannerDeclaration] to convert to a [BannerType]
+             * @return The corresponding [BannerType] or [UNSET_BANNER_TYPE] if a mapping isn't
+             *   found.
+             */
+            fun fromBannerDeclaration(declaration: BannerDeclaration): BannerType {
+                return when (declaration.id) {
+                    BannerDefinitions.CLOUD_CHOOSE_ACCOUNT.id -> BannerType.CHOOSE_ACCOUNT
+                    BannerDefinitions.CLOUD_CHOOSE_PROVIDER.id -> BannerType.CHOOSE_APP
+                    BannerDefinitions.CLOUD_MEDIA_AVAILABLE.id -> BannerType.CLOUD_MEDIA_AVAILABLE
+                    BannerDefinitions.CLOUD_UPDATED_ACCOUNT.id -> BannerType.ACCOUNT_UPDATED
+                    // TODO(b/357010907): add a BannerType enum for the PRIVACY_EXPLAINER
+                    BannerDefinitions.PRIVACY_EXPLAINER.id -> BannerType.UNSET_BANNER_TYPE
+                    else -> BannerType.UNSET_BANNER_TYPE
+                }
+            }
+        }
     }
 
     /*

@@ -221,6 +221,7 @@ fun mediaGrid(
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
     },
+    bannerContent: (@Composable () -> Unit)? = null,
 ) {
     LazyVerticalGrid(
         columns = columns,
@@ -231,6 +232,21 @@ fun mediaGrid(
         horizontalArrangement = Arrangement.spacedBy(gridCellPadding),
         verticalArrangement = Arrangement.spacedBy(gridCellPadding),
     ) {
+
+        // If banner content was passed add it to the grid as a full span item
+        // so that it appears inside the scroll container.
+        bannerContent?.let {
+            item(
+                span = {
+                    if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
+                    else GridItemSpan(CELLS_PER_ROW)
+                }
+            ) {
+                it()
+            }
+        }
+
+        // Add the media items from the LazyPagingItems
         items(
             count = items.itemCount,
             key = { index -> MediaGridItem.keyFactory(items.peek(index), index) },
@@ -580,7 +596,7 @@ private fun defaultBuildAlbumItem(
 @Composable
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
-        Text(item.label)
+        Text(item.label, style = MaterialTheme.typography.titleSmall)
     }
 }
 

@@ -14,6 +14,7 @@ android_app {
         "androidx.activity_activity-compose",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime-livedata",
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui",
         "androidx.core_core-ktx",
@@ -40,6 +41,6 @@ android_app {
     ],
     srcs: ["src/**/*.kt"],
     sdk_version: "module_current",
-    target_sdk_version: "30",
-    min_sdk_version: "30",
+    target_sdk_version: "34",
+    min_sdk_version: "34",
 }

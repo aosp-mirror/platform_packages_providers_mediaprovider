@@ -15,7 +15,6 @@
 */
 package com.android.providers.media.tools.photopickerv2.navigation
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -42,7 +41,6 @@ import com.android.providers.media.tools.photopickerv2.utils.NavigationComponent
  * MainScreen sets up the Scaffold with a bottom navigation bar
  * and hosts the NavGraph for navigation between the tabs.
  */
-@SuppressLint
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
@@ -80,7 +78,6 @@ fun MainScreen() {
  * DocsUI
  * PickerChoice
  */
-@SuppressLint
 @Composable
 fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(

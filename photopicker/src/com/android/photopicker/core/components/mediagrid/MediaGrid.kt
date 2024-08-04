@@ -50,7 +50,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
@@ -72,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -148,7 +148,7 @@ val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING = 16.dp
 val MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING = 16.dp
 
 /** Size of the spacer between the album icon and the album display label */
-val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 8.dp
+val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 12.dp
 
 /**
  * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
@@ -221,6 +221,7 @@ fun mediaGrid(
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
     },
+    bannerContent: (@Composable () -> Unit)? = null,
 ) {
     LazyVerticalGrid(
         columns = columns,
@@ -231,6 +232,21 @@ fun mediaGrid(
         horizontalArrangement = Arrangement.spacedBy(gridCellPadding),
         verticalArrangement = Arrangement.spacedBy(gridCellPadding),
     ) {
+
+        // If banner content was passed add it to the grid as a full span item
+        // so that it appears inside the scroll container.
+        bannerContent?.let {
+            item(
+                span = {
+                    if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
+                    else GridItemSpan(CELLS_PER_ROW)
+                }
+            ) {
+                it()
+            }
+        }
+
+        // Add the media items from the LazyPagingItems
         items(
             count = items.itemCount,
             key = { index -> MediaGridItem.keyFactory(items.peek(index), index) },
@@ -477,7 +493,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                     }
                     false ->
                         Icon(
-                            Icons.Filled.CheckCircle,
+                            ImageVector.vectorResource(R.drawable.photopicker_selected_media),
                             modifier =
                                 Modifier
                                     // Background is necessary because the icon has negative
@@ -487,7 +503,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                                     // the image.
                                     .border(
                                         MEASUREMENT_SELECTED_ICON_BORDER,
-                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surfaceContainerHighest,
                                         CircleShape
                                     ),
                             contentDescription = stringResource(R.string.photopicker_item_selected),
@@ -580,7 +596,7 @@ private fun defaultBuildAlbumItem(
 @Composable
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
-        Text(item.label)
+        Text(item.label, style = MaterialTheme.typography.titleSmall)
     }
 }
 

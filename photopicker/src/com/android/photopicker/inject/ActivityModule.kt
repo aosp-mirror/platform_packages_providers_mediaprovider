@@ -28,6 +28,7 @@ import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -160,6 +161,7 @@ class ActivityModule {
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
                     /* deviceConfigProxy= */ deviceConfigProxy,
+                    /* sessionId */ generatePickerSessionId(),
                 )
             return configurationManager
         }
@@ -193,6 +195,7 @@ class ActivityModule {
         @ActivityRetainedScoped configurationManager: ConfigurationManager,
         @ActivityRetainedScoped featureManager: FeatureManager,
         @ApplicationContext appContext: Context,
+        events: Events,
     ): DataService {
         if (!::dataService.isInitialized) {
             Log.d(
@@ -209,6 +212,7 @@ class ActivityModule {
                     configurationManager.configuration,
                     featureManager,
                     appContext,
+                    events,
                 )
         }
         return dataService
@@ -300,6 +304,7 @@ class ActivityModule {
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -312,6 +317,7 @@ class ActivityModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount
                         )
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(

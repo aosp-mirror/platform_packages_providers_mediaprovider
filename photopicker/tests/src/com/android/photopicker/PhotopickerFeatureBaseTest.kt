@@ -33,7 +33,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.PhotopickerMain
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
@@ -137,7 +136,6 @@ abstract class PhotopickerFeatureBaseTest {
         featureManager: FeatureManager,
         selection: Selection<Media>,
         events: Events,
-        bannerManager: BannerManager,
         navController: TestNavHostController = createNavController(),
     ) {
         val photopickerConfiguration by
@@ -148,11 +146,9 @@ abstract class PhotopickerFeatureBaseTest {
             LocalSelection provides selection,
             LocalPhotopickerConfiguration provides photopickerConfiguration,
             LocalNavController provides navController,
-            LocalEvents provides events,
+            LocalEvents provides events
         ) {
-            PhotopickerTheme(config = photopickerConfiguration) {
-                PhotopickerMain(bannerManager = bannerManager)
-            }
+            PhotopickerTheme(config = photopickerConfiguration) { PhotopickerMain() }
         }
     }
 }

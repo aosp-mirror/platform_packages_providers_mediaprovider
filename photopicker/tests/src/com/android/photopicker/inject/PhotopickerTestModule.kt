@@ -20,6 +20,7 @@ import android.content.Context
 import android.os.Parcel
 import android.os.UserHandle
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.Main
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
@@ -31,6 +32,7 @@ import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -48,6 +50,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import org.mockito.Mockito.mock
 
 /**
@@ -79,8 +82,12 @@ abstract class PhotopickerTestModule {
 
     @Singleton
     @Provides
-    fun provideEmbeddedLifecycle(viewModelFactory: EmbeddedViewModelFactory): EmbeddedLifecycle {
-        val embeddedLifecycle = EmbeddedLifecycle(viewModelFactory)
+    fun provideEmbeddedLifecycle(
+        viewModelFactory: EmbeddedViewModelFactory,
+        @Main dispatcher: CoroutineDispatcher
+    ): EmbeddedLifecycle {
+        // Force Lifecycle to be created on the MainDispatcher
+        val embeddedLifecycle = runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
         return embeddedLifecycle
     }
 
@@ -90,6 +97,7 @@ abstract class PhotopickerTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -99,6 +107,7 @@ abstract class PhotopickerTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,
@@ -144,6 +153,7 @@ abstract class PhotopickerTestModule {
             scope,
             dispatcher,
             deviceConfigProxy,
+            generatePickerSessionId()
         )
     }
 
@@ -226,6 +236,7 @@ abstract class PhotopickerTestModule {
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(

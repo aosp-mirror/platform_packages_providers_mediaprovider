@@ -37,7 +37,6 @@ class PhotoPickerViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
 
-
     private val _selectedMedia = MutableStateFlow<List<Uri>>(emptyList())
     val selectedMedia: StateFlow<List<Uri>> = _selectedMedia
 
@@ -67,16 +66,28 @@ class PhotoPickerViewModel(
         customMimeTypeInput: String,
         isOrderSelectionEnabled: Boolean,
         selectedLaunchTab: LaunchLocation,
+        accentColor: String,
+        isPreSelectionEnabled: Boolean,
         launcher: (Intent) -> Unit
     ): String? {
         if (!isActionGetContentSelected && allowMultiple){
             if (maxMediaItemsDisplayed <= 1) {
-                return "Enter a valid number greater than one"
+                return "Enter a valid count greater than one"
             }
 
             if (maxMediaItemsDisplayed > _pickImagesMaxSelectionLimit) {
                 return "Set media item limit within $_pickImagesMaxSelectionLimit items"
             }
+        }
+
+        if (accentColor == "") {
+            return "Enter an accent color"
+        }
+
+        val accentColorLong: Long = try {
+            android.graphics.Color.parseColor(accentColor).toLong()
+        } catch (e: IllegalArgumentException) {
+            android.graphics.Color.parseColor("#FF6200EE").toLong() // Default color
         }
 
         val intent = if (isActionGetContentSelected) {
@@ -105,16 +116,23 @@ class PhotoPickerViewModel(
                     if (selectedLaunchTab == LaunchLocation.ALBUMS_TAB) 0 else 1
                 )
                 putExtra(MediaStore.EXTRA_PICK_IMAGES_IN_ORDER, isOrderSelectionEnabled)
+                putExtra(MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR, accentColorLong)
+                if (isPreSelectionEnabled){
+                    Intent(putParcelableArrayListExtra(
+                        "android.provider.extra.PICKER_PRE_SELECTION_URIS",
+                        ArrayList(_selectedMedia.value)
+                    ))
+                }
             }
         }
+
         try {
             launcher(intent)
         } catch (e: ActivityNotFoundException) {
             val errorMessage =
-                "No Activity found to handle Intent with type \"" + intent.getType() + "\""
+                "No Activity found to handle Intent with type \"" + intent.type + "\""
             Toast.makeText(getApplication(), errorMessage, Toast.LENGTH_SHORT).show()
         }
         return null
     }
 }
-

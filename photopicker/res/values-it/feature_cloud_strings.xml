@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> su <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> pronti"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Impossibile caricare alcune foto"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Riprova più tardi. Le tue foto saranno disponibili dopo aver risolto il problema."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Ora sono incluse le foto di cui hai eseguito il backup"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Puoi selezionare foto dall\'account <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> nell\'app <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Scegli un account <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Per includere qui le foto di <xliff:g id="APP_NAME">%1$s</xliff:g>, scegli un account nell\'app"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Scegli account"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Scegli un\'app multimediale con funzionalità cloud"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Per includere qui le foto di cui hai eseguito il backup, scegli un\'app multimediale con funzionalità cloud nelle Impostazioni"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Scegli app"</string>
 </resources>

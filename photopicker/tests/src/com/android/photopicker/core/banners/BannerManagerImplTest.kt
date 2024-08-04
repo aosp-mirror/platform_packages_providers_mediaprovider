@@ -37,6 +37,7 @@ import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.database.DatabaseManagerTestImpl
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.user.UserMonitor
@@ -117,6 +118,8 @@ class BannerManagerImplTest {
             )
     }
 
+    val sessionId = generatePickerSessionId()
+
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
@@ -180,6 +183,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -229,6 +233,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -282,6 +287,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -360,6 +366,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -428,6 +435,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -484,6 +492,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -548,6 +557,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -607,6 +617,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -680,6 +691,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
 
             val featureManager =
@@ -755,6 +767,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(

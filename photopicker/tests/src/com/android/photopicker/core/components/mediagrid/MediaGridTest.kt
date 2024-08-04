@@ -64,6 +64,7 @@ import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Group
@@ -78,7 +79,6 @@ import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.bumptech.glide.Glide
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -100,7 +100,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -130,6 +129,7 @@ class MediaGridTest {
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeTestRule = createComposeRule()
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /**
      * MediaGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
@@ -158,6 +158,7 @@ class MediaGridTest {
     lateinit var flow: Flow<PagingData<MediaGridItem>>
 
     private val MEDIA_GRID_TEST_TAG = "media_grid"
+    private val BANNER_CONTENT_TEST_TAG = "banner_content"
     private val CUSTOM_ITEM_TEST_TAG = "custom_item"
     private val CUSTOM_ITEM_SEPARATOR_TAG = "custom_separator"
     private val CUSTOM_ITEM_FACTORY_TEXT = "custom item factory"
@@ -236,13 +237,6 @@ class MediaGridTest {
         flow = pager.flow.toMediaGridItemFromMedia().insertMonthSeparators()
     }
 
-    @After()
-    fun teardown() {
-        // It is important to tearDown glide after every test to ensure it picks up the updated
-        // mocks from Hilt and mocks aren't leaked between tests.
-        Glide.tearDown()
-    }
-
     /**
      * Test wrapper around the mediaGrid which sets up the required collections, and applies a test
      * tag before rendering the mediaGrid.
@@ -252,6 +246,7 @@ class MediaGridTest {
         selection: SelectionImpl<Media>,
         onItemClick: (MediaGridItem) -> Unit,
         onItemLongPress: (MediaGridItem) -> Unit = {},
+        bannerContent: (@Composable () -> Unit)? = null,
     ) {
         val items = flow.collectAsLazyPagingItems()
         val selected by selection.flow.collectAsStateWithLifecycle()
@@ -261,6 +256,7 @@ class MediaGridTest {
             selection = selected,
             onItemClick = onItemClick,
             onItemLongPress = onItemLongPress,
+            bannerContent = bannerContent,
             modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG)
         )
     }
@@ -316,6 +312,33 @@ class MediaGridTest {
         }
 
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+        mediaGrid.assertIsDisplayed()
+    }
+
+    /** Ensures the MediaGrid shows any banner content that is provided. */
+    @Test
+    fun testMediaGridDisplaysBannerContent() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+            )
+
+        composeTestRule.setContent {
+            grid(
+                selection = selection,
+                onItemClick = {},
+                onItemLongPress = {},
+                bannerContent = {
+                    Text(
+                        text = "bannerContent",
+                        modifier = Modifier.testTag(BANNER_CONTENT_TEST_TAG)
+                    )
+                }
+            )
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(BANNER_CONTENT_TEST_TAG))
         mediaGrid.assertIsDisplayed()
     }
 

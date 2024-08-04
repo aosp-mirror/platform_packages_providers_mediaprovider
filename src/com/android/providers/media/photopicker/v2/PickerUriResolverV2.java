@@ -42,6 +42,9 @@ public class PickerUriResolverV2 {
     public static final String MEDIA_PATH_SEGMENT = "media";
     public static final String ALBUM_PATH_SEGMENT = "album";
     public static final String UPDATE_PATH_SEGMENT = "update";
+    public static final String MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count";
+    public static final String PREVIEW_PATH_SEGMENT = "preview";
+
 
     static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static final int PICKER_INTERNAL_MEDIA = 1;
@@ -49,6 +52,8 @@ public class PickerUriResolverV2 {
     static final int PICKER_INTERNAL_ALBUM_CONTENT = 3;
     static final int PICKER_INTERNAL_AVAILABLE_PROVIDERS = 4;
     static final int PICKER_INTERNAL_COLLECTION_INFO = 5;
+    static final int PICKER_INTERNAL_MEDIA_GRANTS_COUNT = 6;
+    static final int PICKER_INTERNAL_MEDIA_PREVIEW = 7;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({
@@ -58,6 +63,8 @@ public class PickerUriResolverV2 {
             PICKER_INTERNAL_ALBUM_CONTENT,
             PICKER_INTERNAL_AVAILABLE_PROVIDERS,
             PICKER_INTERNAL_COLLECTION_INFO,
+            PICKER_INTERNAL_MEDIA_GRANTS_COUNT,
+            PICKER_INTERNAL_MEDIA_PREVIEW
     })
     private @interface PickerQuery {}
 
@@ -81,6 +88,11 @@ public class PickerUriResolverV2 {
                 BASE_PICKER_PATH + COLLECTION_INFO_PATH_SEGMENT,
                 PICKER_INTERNAL_COLLECTION_INFO
         );
+        sUriMatcher.addURI(MediaStore.AUTHORITY, BASE_PICKER_PATH + MEDIA_GRANTS_COUNT_PATH_SEGMENT,
+                PICKER_INTERNAL_MEDIA_GRANTS_COUNT);
+        sUriMatcher.addURI(MediaStore.AUTHORITY,
+                BASE_PICKER_PATH + MEDIA_PATH_SEGMENT + "/" + PREVIEW_PATH_SEGMENT,
+                PICKER_INTERNAL_MEDIA_PREVIEW);
     }
 
     /**
@@ -110,6 +122,11 @@ public class PickerUriResolverV2 {
                 return PickerDataLayerV2.queryAvailableProviders(appContext);
             case PICKER_INTERNAL_COLLECTION_INFO:
                 return PickerDataLayerV2.queryCollectionInfo();
+            case PICKER_INTERNAL_MEDIA_GRANTS_COUNT:
+                return PickerDataLayerV2.fetchMediaGrantsCount(appContext,
+                        requireNonNull(queryArgs));
+            case PICKER_INTERNAL_MEDIA_PREVIEW:
+                return PickerDataLayerV2.queryPreviewMedia(appContext, queryArgs);
             default:
                 throw new UnsupportedOperationException("Could not recognize content URI " + uri);
         }

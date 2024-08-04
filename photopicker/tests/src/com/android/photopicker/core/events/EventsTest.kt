@@ -57,6 +57,7 @@ class EventsTest {
             val token = "MockedFeatureToken"
         }
     private val testRegistrations = setOf(mockRegistration)
+    private val sessionId = generatePickerSessionId()
 
     private data class TestEvent(override val dispatcherToken: String) : Event
 
@@ -213,7 +214,11 @@ class EventsTest {
                 scope = backgroundScope,
                 provideTestConfigurationFlow(
                     scope = backgroundScope,
-                    PhotopickerConfiguration(action = "TEST", deviceIsDebuggable = true)
+                    PhotopickerConfiguration(
+                        action = "TEST",
+                        deviceIsDebuggable = true,
+                        sessionId = sessionId
+                    )
                 ),
                 buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
             )
@@ -241,7 +246,11 @@ class EventsTest {
                 scope = backgroundScope,
                 provideTestConfigurationFlow(
                     scope = backgroundScope,
-                    PhotopickerConfiguration(action = "TEST", deviceIsDebuggable = false)
+                    PhotopickerConfiguration(
+                        action = "TEST",
+                        deviceIsDebuggable = false,
+                        sessionId = sessionId
+                    )
                 ),
                 buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
             )

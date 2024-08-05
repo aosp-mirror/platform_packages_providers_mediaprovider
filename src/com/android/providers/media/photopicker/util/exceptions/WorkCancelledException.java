@@ -14,31 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.leveldb;
-
+package com.android.providers.media.photopicker.util.exceptions;
 
 /**
- * Represents a leveldb entry which has a key and a value as string data type.
+ * {@code WorkCancelledException} is thrown when the work in progress is cancelled.
  */
-public final class LevelDBEntry {
-    private final String mKey;
-    private final String mValue;
-
-    public LevelDBEntry(String key, String value) {
-        this.mKey = key;
-        this.mValue = value;
-    }
-
-    public String getKey() {
-        return mKey;
-    }
-
-    public String getValue() {
-        return mValue;
-    }
-
-    @Override
-    public String toString() {
-        return "LevelDBEntry{" + "mKey='" + mKey + '\'' + ", mValue='" + mValue + '\'' + '}';
+public class WorkCancelledException extends Exception {
+    public WorkCancelledException(String message) {
+        super(message);
     }
 }

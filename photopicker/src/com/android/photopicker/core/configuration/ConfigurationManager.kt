@@ -28,7 +28,6 @@ import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
-import com.android.photopicker.extensions.getPickImagesPreSelectedUris
 import com.android.photopicker.extensions.getStartDestination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -220,9 +219,6 @@ class ConfigurationManager(
                 }
             }
 
-        // get preSelection URIs from intent.
-        val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
-
         // Use updateAndGet to ensure the value is set before this method returns so the new
         // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -234,7 +230,6 @@ class ConfigurationManager(
                 mimeTypes = mimeTypes,
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,
-                preSelectedUris = pickerPreSelectionUris,
             )
         }
     }

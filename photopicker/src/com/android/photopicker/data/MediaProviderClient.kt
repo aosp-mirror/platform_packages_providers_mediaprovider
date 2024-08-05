@@ -48,7 +48,6 @@ open class MediaProviderClient {
         private const val EXTRA_ALBUM_ID = "album_id"
         private const val EXTRA_ALBUM_AUTHORITY = "album_authority"
         private const val COLUMN_GRANTS_COUNT = "grants_count"
-        private const val PRE_SELECTION_URIS = "pre_selection_uris"
     }
 
     /** Contains all optional and mandatory keys required to make a Media query */
@@ -418,45 +417,6 @@ open class MediaProviderClient {
             }
         } catch (e: Exception) {
             throw RuntimeException("Could not fetch media grants count. ", e)
-        }
-    }
-
-    /** Fetches a list of [Media] from MediaProvider filtered by the input URI list. */
-    fun fetchFilteredMedia(
-        pageKey: MediaPageKey,
-        pageSize: Int,
-        contentResolver: ContentResolver,
-        availableProviders: List<Provider>,
-        config: PhotopickerConfiguration,
-        uris: List<Uri>
-    ): List<Media> {
-        val input: Bundle =
-            bundleOf(
-                MediaQuery.PICKER_ID.key to pageKey.pickerId,
-                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
-                MediaQuery.PAGE_SIZE.key to pageSize,
-                MediaQuery.PROVIDERS.key to
-                    ArrayList<String>().apply {
-                        availableProviders.forEach { provider -> add(provider.authority) }
-                    },
-                EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action,
-                Intent.EXTRA_UID to config.callingPackageUid,
-                PRE_SELECTION_URIS to
-                    ArrayList<String>().apply { uris.forEach { uri -> add(uri.toString()) } },
-            )
-
-        try {
-            return contentResolver
-                .query(
-                    MEDIA_PRE_SELECTION_URI,
-                    /* projection */ null,
-                    input,
-                    /* cancellationSignal */ null // TODO
-                )
-                ?.getListOfMedia() ?: ArrayList()
-        } catch (e: RuntimeException) {
-            throw RuntimeException("Could not fetch media", e)
         }
     }
 

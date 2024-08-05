@@ -44,7 +44,6 @@ public class PickerUriResolverV2 {
     public static final String UPDATE_PATH_SEGMENT = "update";
     public static final String MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count";
     public static final String PREVIEW_PATH_SEGMENT = "preview";
-    public static final String PRE_SELECTION_PATH_SEGMENT = "pre_selection";
 
 
     static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
@@ -55,7 +54,6 @@ public class PickerUriResolverV2 {
     static final int PICKER_INTERNAL_COLLECTION_INFO = 5;
     static final int PICKER_INTERNAL_MEDIA_GRANTS_COUNT = 6;
     static final int PICKER_INTERNAL_MEDIA_PREVIEW = 7;
-    static final int PICKER_INTERNAL_PRE_SELECTION = 8;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({
@@ -66,8 +64,7 @@ public class PickerUriResolverV2 {
             PICKER_INTERNAL_AVAILABLE_PROVIDERS,
             PICKER_INTERNAL_COLLECTION_INFO,
             PICKER_INTERNAL_MEDIA_GRANTS_COUNT,
-            PICKER_INTERNAL_MEDIA_PREVIEW,
-            PICKER_INTERNAL_PRE_SELECTION,
+            PICKER_INTERNAL_MEDIA_PREVIEW
     })
     private @interface PickerQuery {}
 
@@ -96,9 +93,6 @@ public class PickerUriResolverV2 {
         sUriMatcher.addURI(MediaStore.AUTHORITY,
                 BASE_PICKER_PATH + MEDIA_PATH_SEGMENT + "/" + PREVIEW_PATH_SEGMENT,
                 PICKER_INTERNAL_MEDIA_PREVIEW);
-        sUriMatcher.addURI(MediaStore.AUTHORITY,
-                BASE_PICKER_PATH + MEDIA_PATH_SEGMENT + "/" + PRE_SELECTION_PATH_SEGMENT,
-                PICKER_INTERNAL_PRE_SELECTION);
     }
 
     /**
@@ -133,8 +127,6 @@ public class PickerUriResolverV2 {
                         requireNonNull(queryArgs));
             case PICKER_INTERNAL_MEDIA_PREVIEW:
                 return PickerDataLayerV2.queryPreviewMedia(appContext, queryArgs);
-            case PICKER_INTERNAL_PRE_SELECTION:
-                return PickerDataLayerV2.queryMediaForPreSelection(appContext, queryArgs);
             default:
                 throw new UnsupportedOperationException("Could not recognize content URI " + uri);
         }

@@ -20,6 +20,7 @@ import android.content.pm.PackageManager.ApplicationInfoFlags
 import android.content.pm.PackageManager.NameNotFoundException
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.provider.EmbeddedPhotopickerFeatureInfo
@@ -33,8 +34,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceComponent
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.PhotopickerApp
@@ -58,6 +62,9 @@ import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /** Alias that describes a factory function that creates a Session. */
@@ -112,6 +119,8 @@ open class Session(
     private val height: Int,
     private val featureInfo: EmbeddedPhotopickerFeatureInfo,
     private val clientCallback: IEmbeddedPhotopickerClient,
+    private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
+    private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
 ) : IEmbeddedPhotopickerSession.Stub() {
 
@@ -145,6 +154,8 @@ open class Session(
 
         @Main fun scope(): CoroutineScope
 
+        @Background fun backgroundScope(): CoroutineScope
+
         fun selection(): Lazy<Selection<Media>>
 
         fun userMonitor(): Lazy<UserMonitor>
@@ -155,8 +166,8 @@ open class Session(
         EntryPoints.get(component, EmbeddedEntryPoint::class.java)
 
     private val _embeddedViewLifecycle: EmbeddedLifecycle = _dependencies.lifecycle()
-    private val _scope: CoroutineScope = _dependencies.scope()
     private val _main: CoroutineDispatcher = _dependencies.mainDispatcher()
+    private val _backgroundScope: CoroutineScope = _dependencies.backgroundScope()
 
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
@@ -219,6 +230,10 @@ open class Session(
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
         runBlocking(_main) { _host.setView(_view, width, height) }
+
+        // Start listening to selection/deselection events for this Session so
+        // we can grant/revoke permission to selected/deselected uris immediately.
+        listenForSelectionEvents()
     }
 
     override fun close() {
@@ -310,6 +325,65 @@ open class Session(
             _embeddedViewLifecycle.onStart()
             _embeddedViewLifecycle.onResume()
             composeView
+        }
+    }
+
+    /**
+     * A collector that starts for a Session in embedded mode. This collector will grant/revoke uri
+     * permission when item is selected/deselected respectively.
+     *
+     * It emits both the previous and new selection of media items.
+     */
+    fun listenForSelectionEvents() {
+        _backgroundScope.launch {
+            _dependencies
+                .selection()
+                .get()
+                .flow
+                .flowWithLifecycle(_embeddedViewLifecycle.lifecycle, Lifecycle.State.STARTED)
+                .runningFold(initial = emptySet<Media>()) { _prevSelection, _newSelection ->
+                    // Get list of items removed/deselected by user so that we can revoke access to
+                    // those uris.
+                    var unselectedMedia: Set<Media> = _prevSelection.subtract(_newSelection)
+                    Log.d(TAG, "Revoking uri permission to $unselectedMedia")
+
+                    // Get list of items added/selected by user so that we can grant access to
+                    // those uris.
+                    var newlySelectedMedia: Set<Media> = _newSelection.subtract(_prevSelection)
+                    Log.d(TAG, "Granting uri permission to $newlySelectedMedia")
+
+                    // Grant uri to newly selected media and notify client
+                    newlySelectedMedia.iterator().forEach { item ->
+                        val result = grantUriPermission(clientPackageName, item.mediaUri)
+                        if (result == EmbeddedService.GrantResult.SUCCESS) {
+                            clientCallback.onItemSelected(item.mediaUri)
+                        } else {
+                            Log.w(
+                                TAG,
+                                "Error granting permission to uri ${item.mediaUri} " +
+                                    "for package $clientPackageName"
+                            )
+                        }
+                    }
+
+                    // Revoke uri to newly selected media and notify client
+                    unselectedMedia.iterator().forEach { item ->
+                        val result = revokeUriPermission(clientPackageName, item.mediaUri)
+                        if (result == EmbeddedService.GrantResult.SUCCESS) {
+                            clientCallback.onItemDeselected(item.mediaUri)
+                        } else {
+                            Log.w(
+                                TAG,
+                                "Error revoking permission to uri ${item.mediaUri} " +
+                                    "for package $clientPackageName"
+                            )
+                        }
+                    }
+
+                    // Update previous selection to current flow
+                    _newSelection
+                }
+                .collect()
         }
     }
 

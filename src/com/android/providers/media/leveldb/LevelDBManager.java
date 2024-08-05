@@ -18,6 +18,7 @@ package com.android.providers.media.leveldb;
 
 import com.google.common.base.Ascii;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +47,32 @@ public final class LevelDBManager {
             LevelDBInstance instance = LevelDBInstance.createLevelDBInstance(path);
             INSTANCES.put(path, instance);
             return instance;
+        }
+    }
+
+    /**
+     * Deletes existing leveldb instance on given path and creates a new one.
+     *
+     * @param path on which instance needs to be re-created
+     */
+    public static LevelDBInstance recreate(String path) {
+        synchronized (sLockObject) {
+            path = Ascii.toLowerCase(path.trim());
+            if (INSTANCES.containsKey(path)) {
+                new File(path).delete();
+                INSTANCES.remove(path);
+            }
+
+            LevelDBInstance instance = LevelDBInstance.createLevelDBInstance(path);
+            INSTANCES.put(path, instance);
+            return instance;
+        }
+    }
+
+    static void removeInstance(String path) {
+        synchronized (sLockObject) {
+            path = Ascii.toLowerCase(path.trim());
+            INSTANCES.remove(path);
         }
     }
 }

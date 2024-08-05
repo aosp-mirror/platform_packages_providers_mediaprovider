@@ -105,6 +105,10 @@ class TestDataServiceImpl() : DataService {
 
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
 
+    suspend fun sendDisruptiveDataUpdateNotification() {
+        disruptiveDataUpdateChannel.send(Unit)
+    }
+
     override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
         collectionInfo.getOrElse(provider, { CollectionInfo(provider.authority) })
 

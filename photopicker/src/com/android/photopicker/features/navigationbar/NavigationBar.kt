@@ -147,16 +147,17 @@ fun NavigationBar(modifier: Modifier = Modifier) {
                 )
 
                 NavigationBarButtons(Modifier.weight(1f))
-
-                LocalFeatureManager.current.composeLocation(
-                    Location.OVERFLOW_MENU,
-                    // Weight should match the profile switcher slot so they are the same size.
-                    modifier =
-                        Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                            .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-                )
             }
         }
+
+        // Always show the overflow menu, it will hide itself if it has no content.
+        LocalFeatureManager.current.composeLocation(
+            Location.OVERFLOW_MENU,
+            // Weight should match the profile switcher slot so they are the same size.
+            modifier =
+                Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+        )
     }
 }
 

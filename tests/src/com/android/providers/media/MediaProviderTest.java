@@ -441,46 +441,6 @@ public class MediaProviderTest {
         }
     }
 
-    @Test
-    public void testRevokeAllReadGrantsForPackage() throws Exception {
-        final File dir = Environment
-                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
-                new File(dir, "test" + System.nanoTime() + ".jpg"));
-        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
-        Long fileId = ContentUris.parseId(uri);
-
-        final Uri.Builder builder = Uri.EMPTY.buildUpon();
-        builder.scheme("content");
-        builder.encodedAuthority(MediaStore.AUTHORITY);
-
-        final Uri testUri = builder.appendPath("picker")
-                .appendPath(Integer.toString(UserHandle.myUserId()))
-                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
-                .appendPath(MediaStore.AUTHORITY)
-                .appendPath(Long.toString(fileId))
-                .build();
-
-        try {
-            String[] mimeTypes = {"image/*"};
-            MediaStore.grantMediaReadForPackage(sIsolatedContext,
-                    android.os.Process.myUid(),
-                    List.of(testUri));
-            List<Uri> grantedUris = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
-                    android.os.Process.myUid(), mimeTypes);
-            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
-
-            // Revoked all grants verify that now the current package has no grants.
-            MediaStore.revokeAllMediaReadForPackages(sIsolatedContext, android.os.Process.myUid());
-            List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
-                    android.os.Process.myUid(), mimeTypes);
-            assertEquals(0, grantedUris2.size());
-        } finally {
-            dir.delete();
-            testFile.delete();
-        }
-    }
-
     /**
      * We already have solid coverage of this logic in
      * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't

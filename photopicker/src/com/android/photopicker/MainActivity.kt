@@ -58,7 +58,6 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.PhotopickerDestinations
-import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.AccentColorHelper
@@ -723,33 +722,17 @@ class MainActivity : Hilt_MainActivity() {
      * @param uid The uid of the calling application to issue media grants for.
      */
     private suspend fun updateGrantsForApp(
-        currentSelection: Set<Media>,
-        currentDeSelection: Set<Media>,
+        selection: Set<Media>,
+        deselection: Set<Media>,
         uid: Int
     ) {
-
-        val selection = selection.get()
-        val deselectAllEnabled =
-            if (selection is GrantsAwareSelectionImpl) {
-                selection.isDeSelectAllEnabled
-            } else {
-                false
-            }
-        if (deselectAllEnabled) {
-            // removing all grants for preGranted items for this package.
-            MediaStore.revokeAllMediaReadForPackages(getApplicationContext(), uid)
-        } else {
-            // Removing grants for preGranted items that have now been de-selected by the user.
-            val urisForItemsToBeRevoked = currentDeSelection.map { it.mediaUri }
-            MediaStore.revokeMediaReadForPackages(
-                getApplicationContext(),
-                uid,
-                urisForItemsToBeRevoked
-            )
-        }
         // Adding grants for items selected by the user.
-        val uris: List<Uri> = currentSelection.map { it.mediaUri }
+        val uris: List<Uri> = selection.map { it.mediaUri }
         MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
+
+        // Removing grants for preGranted items that have now been de-selected by the user.
+        val urisForItemsToBeRevoked = deselection.map { it.mediaUri }
+        MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid, urisForItemsToBeRevoked)
 
         // No need to send any data back to the PermissionController, just send an OK signal
         // back to indicate the MediaGrants are available.

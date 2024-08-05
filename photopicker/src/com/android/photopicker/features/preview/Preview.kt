@@ -37,6 +37,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.ButtonDefaults
@@ -82,8 +83,6 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
-import com.android.photopicker.core.selection.SelectionStrategy
-import com.android.photopicker.core.selection.SelectionStrategy.Companion.determineSelectionStrategy
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.theme.LocalFixedAccentColors
 import com.android.photopicker.data.model.Media
@@ -241,9 +240,7 @@ fun PreviewSelection(
                             .padding(bottom = 48.dp, start = 4.dp, end = 16.dp, top = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val config = LocalPhotopickerConfiguration.current
-                    val strategy = remember(config) { determineSelectionStrategy(config) }
-                    if (previewSingleItem || strategy == SelectionStrategy.GRANTS_AWARE_SELECTION) {
+                    if (previewSingleItem) {
                         Spacer(Modifier.size(8.dp))
                     } else {
                         SelectionButton(currentSelection = currentSelection)
@@ -411,24 +408,23 @@ fun PreviewSelectionButton(modifier: Modifier) {
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
     val previewItemCount = currentSelection.size
     val configuration = LocalPhotopickerConfiguration.current
-    if (currentSelection.isNotEmpty()) {
-        TextButton(
-            onClick = {
-                scope.launch {
-                    logPreviewSelectionButtonClicked(configuration, previewItemCount, events)
-                }
-                navController.navigateToPreviewSelection()
-            },
-            modifier = modifier,
-        ) {
-            Text(
-                stringResource(R.string.photopicker_preview_button_label),
-                color =
-                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
-                        /* fallback */ MaterialTheme.colorScheme.primary
-                    )
-            )
-        }
+
+    TextButton(
+        onClick = {
+            scope.launch {
+                logPreviewSelectionButtonClicked(configuration, previewItemCount, events)
+            }
+            navController.navigateToPreviewSelection()
+        },
+        modifier = modifier,
+    ) {
+        Text(
+            stringResource(R.string.photopicker_preview_button_label),
+            color =
+                CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                    /* fallback */ MaterialTheme.colorScheme.primary
+                )
+        )
     }
 }
 

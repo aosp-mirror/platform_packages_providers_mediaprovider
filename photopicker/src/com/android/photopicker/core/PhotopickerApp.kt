@@ -222,7 +222,25 @@ fun PhotopickerApp() {
     val navController = rememberNavController()
 
     // Provide the NavController to the rest of the Compose stack.
-    CompositionLocalProvider(LocalNavController provides navController) { PhotopickerMain() }
+    CompositionLocalProvider(LocalNavController provides navController) {
+        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
+            PhotopickerMain()
+            Column {
+                LocalFeatureManager.current.composeLocation(
+                    Location.SNACK_BAR,
+                    maxSlots = 1,
+                )
+                hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                    LocalFeatureManager.current.composeLocation(
+                        Location.SELECTION_BAR,
+                        maxSlots = 1,
+                        modifier = Modifier.padding(SELECTION_BAR_PADDING),
+                        params = LocationParams.None
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -247,11 +265,13 @@ fun PhotopickerMain() {
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
             // The navigation bar and banners are drawn above the navigation graph
-            LocalFeatureManager.current.composeLocation(
-                Location.NAVIGATION_BAR,
-                maxSlots = 1,
-                modifier = Modifier.fillMaxWidth()
-            )
+            hideWhenState(selector = StateSelector.EmbeddedAndCollapsed) {
+                LocalFeatureManager.current.composeLocation(
+                    Location.NAVIGATION_BAR,
+                    maxSlots = 1,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Initialize the navigation graph.
             PhotopickerNavGraph()

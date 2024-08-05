@@ -16,6 +16,7 @@
 
 package com.android.photopicker.data
 
+import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
 import com.android.photopicker.data.model.CollectionInfo
@@ -66,6 +67,8 @@ class TestDataServiceImpl() : DataService {
     }
 
     override val preGrantedMediaCount: StateFlow<Int> = _preGrantsCount
+    override val preSelectionMediaData: StateFlow<List<Media>?> =
+        MutableStateFlow(ArrayList<Media>())
 
     fun setInitPreGrantsCount(count: Int) {
         _preGrantsCount.update { count }
@@ -118,5 +121,9 @@ class TestDataServiceImpl() : DataService {
 
     override fun refreshPreGrantedItemsCount() {
         // no_op
+    }
+
+    override fun fetchMediaDataForUris(uris: List<Uri>) {
+        // no-op
     }
 }

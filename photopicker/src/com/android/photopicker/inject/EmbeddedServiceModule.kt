@@ -241,6 +241,7 @@ class EmbeddedServiceModule {
         featureManager: FeatureManager,
         @ApplicationContext appContext: Context,
         events: Events,
+        processOwnerHandle: UserHandle
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -259,6 +260,7 @@ class EmbeddedServiceModule {
                     featureManager,
                     appContext,
                     events,
+                    processOwnerHandle
                 )
         }
         return dataService
@@ -385,6 +387,7 @@ class EmbeddedServiceModule {
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preSelectedMedia = dataService.preSelectionMediaData
                         )
                 }
             return selection

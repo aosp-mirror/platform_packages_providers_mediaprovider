@@ -91,6 +91,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -469,7 +470,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                         isDarkTheme = false,
                         config = testEmbeddedPhotopickerConfiguration
                     ) {
-                        PhotopickerApp()
+                        PhotopickerApp(disruptiveDataNotification = flow { emit(0) })
                     }
                 }
             }

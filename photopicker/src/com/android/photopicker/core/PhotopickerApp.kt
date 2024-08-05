@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,6 +38,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
@@ -77,6 +80,13 @@ private val SELECTION_BAR_PADDING =
  * an Activity's [setContent] block.
  *
  * @param onDismissRequest handler for when the BottomSheet is dismissed.
+ * @param onMediaSelectionConfirmed A callback to pass to the [Location.SELECTION_BAR] to indicate
+ *   the user has indicated the media selection is final.
+ * @param preloadMedia A flow of Media that the [MEDIA_PRELOADER] should begin preloading.
+ * @param obtainPreloaderDeferred A callback to obtain a deferred for the currently requested media
+ *   preload.
+ * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
+ *   the UI has been created with is invalid
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +95,7 @@ fun PhotopickerAppWithBottomSheet(
     onMediaSelectionConfirmed: () -> Unit,
     preloadMedia: Flow<Set<Media>>,
     obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
+    disruptiveDataNotification: Flow<Int>,
 ) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
@@ -161,7 +172,7 @@ fun PhotopickerAppWithBottomSheet(
                         modifier = Modifier.fillMaxHeight(),
                         contentAlignment = Alignment.BottomCenter
                     ) {
-                        PhotopickerMain()
+                        PhotopickerMain(disruptiveDataNotification)
                         Column(
                             modifier =
                                 // Some elements needs to be drawn over the UI inside of the
@@ -211,12 +222,15 @@ fun PhotopickerAppWithBottomSheet(
 }
 
 /**
- * This is an entrypoint of the Photopicker Compose UI. This is called from a hosting View and is
+ * This is an entry point of the Photopicker Compose UI. This is called from a hosting View and is
  * the top-most [@Composable] in the view based application. This should not be called by any
  * Activity code, and should only be called inside of the ComposeView [setContent] block.
+ *
+ * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
+ *   the UI has been created with is invalid
  */
 @Composable
-fun PhotopickerApp() {
+fun PhotopickerApp(disruptiveDataNotification: Flow<Int>) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -224,7 +238,7 @@ fun PhotopickerApp() {
     // Provide the NavController to the rest of the Compose stack.
     CompositionLocalProvider(LocalNavController provides navController) {
         Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
-            PhotopickerMain()
+            PhotopickerMain(disruptiveDataNotification)
             Column {
                 LocalFeatureManager.current.composeLocation(
                     Location.SNACK_BAR,
@@ -244,8 +258,8 @@ fun PhotopickerApp() {
 }
 
 /**
- * This is the shared entrypoint for the Photopicker compose-UI. Composables above this function
- * must provide the required dependencies to the compose UI before calling this entrypoint.
+ * This is the shared entry point for the Photopicker compose-UI. Composables above this function
+ * must provide the required dependencies to the compose UI before calling this entry point.
  *
  * It is presumed after this composable the compose UI can either be running inside of a wrapped
  * View or an Activity lifecycle.
@@ -257,10 +271,21 @@ fun PhotopickerApp() {
  * - LocalPhotopickerConfiguration
  * - LocalSelection
  * - PhotopickerTheme
- * - LocalPickerSheetStateValue
+ *
+ * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
+ *   the UI has been created with is invalid
  */
 @Composable
-fun PhotopickerMain() {
+fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
+
+    // Collect the data disrupt flow so that Photopicker will navigate on disruptive data changes.
+    // The data service can detect when the providers that are supplying grid data have changed
+    // in such a way that the grid should immediately be cleared as the new list of providers
+    // does not include the providers that have populated the currently displayed view. When
+    // this DisruptionSignal is sent, we collect the value here to force recomposition to rebuild
+    // the view immediately.
+    val disruptCounter by disruptiveDataNotification.collectAsStateWithLifecycle(initialValue = 0)
+    watchForDataDisruptions(disruptCounter)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
@@ -275,6 +300,58 @@ fun PhotopickerMain() {
 
             // Initialize the navigation graph.
             PhotopickerNavGraph()
+        }
+    }
+}
+
+/**
+ * Attaches a [LaunchedEffect] to the compose hierarchy that runs whenever the disruptionCounter is
+ * changed. This will attempt to navigate the session back to the navigation graph's starting route
+ * since a Data Disruption means that the current view is unstable and likely stale / obsolete.
+ *
+ * To prevent showing data that is irrelevant to the user in a route that may no longer exist (i.e
+ * inside of an Album in a provider that is no longer attached), the session is force-navigated to
+ * the main route.
+ *
+ * @param disruptionCounter the current disruptionCounter value from the data service.
+ */
+@Composable
+private fun watchForDataDisruptions(disruptionCounter: Int) {
+
+    val navController = LocalNavController.current
+    LaunchedEffect(disruptionCounter) {
+        if (disruptionCounter > 0) {
+            Log.d("Photopicker", "DisruptiveData notification received.")
+
+            try {
+                val startDestination =
+                    checkNotNull(navController.graph.startDestinationRoute) {
+                        "startDestination was Null"
+                    }
+                if (navController.currentBackStackEntry?.destination?.route != startDestination) {
+
+                    // Try to return to the start destination for the data reload, by attempting to
+                    // move backwards via the backstack.
+                    val navigated =
+                        navController.popBackStack(
+                            startDestination,
+                            /* inclusive= */ false,
+                            /* saveState = */ false,
+                        )
+
+                    // The start route is not on the backstack, so as a last resort, navigate
+                    // directly.
+                    if (!navigated) {
+                        navController.navigate(startDestination, /* navOptions= */ null)
+                    }
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(
+                    "Photopicker",
+                    "disruptiveDataNotification was received, but unable to resolve the graph.",
+                    e
+                )
+            }
         }
     }
 }

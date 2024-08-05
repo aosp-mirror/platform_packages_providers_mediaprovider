@@ -62,7 +62,9 @@ import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -168,6 +170,18 @@ open class Session(
     private val _embeddedViewLifecycle: EmbeddedLifecycle = _dependencies.lifecycle()
     private val _main: CoroutineDispatcher = _dependencies.mainDispatcher()
     private val _backgroundScope: CoroutineScope = _dependencies.backgroundScope()
+
+    // Wrap this in a lazy to prevent the [DataService] from getting initialized before the
+    // ComposeView is started.
+    // This flow is used to signal the UI when the DataService detects a provider update (or other
+    // data change which should disrupt the UI)
+    private val disruptiveDataNotification: Flow<Int> by lazy {
+        _dependencies.dataService().get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(
+            initial = 0
+        ) { prev, _ ->
+            prev + 1
+        }
+    }
 
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
@@ -331,7 +345,9 @@ open class Session(
                                 isDarkTheme = currentEmbeddedState.isDarkTheme,
                                 config = photopickerConfiguration
                             ) {
-                                PhotopickerApp()
+                                PhotopickerApp(
+                                    disruptiveDataNotification,
+                                )
                             }
                         }
                     }

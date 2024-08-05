@@ -30,6 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,6 +39,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry.BannerType
+import com.android.photopicker.core.events.Telemetry.UserBannerInteraction
+import com.android.photopicker.core.features.FeatureToken.CORE
+import kotlinx.coroutines.launch
 
 /**
  * Object interface to generate a banner element for the UI. This abstracts the appearance of the
@@ -123,6 +132,9 @@ fun Banner(
     onDismiss: () -> Unit = {},
 ) {
 
+    val config = LocalPhotopickerConfiguration.current
+    val events = LocalEvents.current
+
     Card(
         // Consume the incoming modifier for positioning the banner.
         modifier = modifier,
@@ -170,6 +182,8 @@ fun Banner(
             // The action Row, which sometimes may be empty if the banner is not dismissable and
             // does not provide its own Action
             if (banner.declaration.dismissable || banner.actionLabel() != null) {
+                val scope = rememberCoroutineScope()
+
                 Row(
                     horizontalArrangement =
                         Arrangement.spacedBy(MEASUREMENT_BANNER_BUTTON_ROW_SPACING),
@@ -183,7 +197,23 @@ fun Banner(
                     banner.actionLabel()?.let {
                         val context = LocalContext.current
                         TextButton(
-                            onClick = { banner.onAction(context) },
+                            onClick = {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerBannerInteraction(
+                                            dispatcherToken = CORE.token,
+                                            sessionId = config.sessionId,
+                                            bannerType =
+                                                BannerType.fromBannerDeclaration(
+                                                    banner.declaration
+                                                ),
+                                            userInteraction =
+                                                UserBannerInteraction.CLICK_BANNER_ACTION_BUTTON
+                                        )
+                                    )
+                                }
+                                banner.onAction(context)
+                            },
                         ) {
                             Text(it)
                         }
@@ -194,12 +224,43 @@ fun Banner(
                     // clicked is up to the caller. A core string is used here to ensure consistency
                     // between banners.
                     if (banner.declaration.dismissable) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerBannerInteraction(
+                                            dispatcherToken = CORE.token,
+                                            sessionId = config.sessionId,
+                                            bannerType =
+                                                BannerType.fromBannerDeclaration(
+                                                    banner.declaration
+                                                ),
+                                            userInteraction =
+                                                UserBannerInteraction.CLICK_BANNER_DISMISS_BUTTON
+                                        )
+                                    )
+                                }
+                                onDismiss()
+                            }
+                        ) {
                             Text(stringResource(R.string.photopicker_dismiss_banner_button_label))
                         }
                     }
                 }
             }
         }
+    }
+
+    // Add a log that the banner was shown.
+    LaunchedEffect(banner) {
+        events.dispatch(
+            Event.LogPhotopickerBannerInteraction(
+                dispatcherToken = CORE.token,
+                sessionId = config.sessionId,
+                bannerType = BannerType.fromBannerDeclaration(banner.declaration),
+                // TODO(b/357010907): Add banner shown interaction when the atom exists.
+                userInteraction = UserBannerInteraction.UNSET_BANNER_INTERACTION
+            )
+        )
     }
 }

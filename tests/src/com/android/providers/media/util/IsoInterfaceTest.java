@@ -53,12 +53,14 @@ public class IsoInterfaceTest {
         final File file = stageMp4File(R.raw.test_video);
         final IsoInterface mp4 = IsoInterface.fromFile(file);
 
-        final long[] ranges = mp4.getBoxRanges(0x746b6864); // tkhd
-        assertThat(ranges.length).isEqualTo(4);
-        assertThat(ranges[0]).isEqualTo(105534 + 8);
-        assertThat(ranges[1]).isEqualTo(105534 + 92);
-        assertThat(ranges[2]).isEqualTo(118275 + 8);
-        assertThat(ranges[3]).isEqualTo(118275 + 92);
+        final long[] ranges = mp4.getBoxRanges(0x68646c72); // hdlr
+        assertThat(ranges.length).isEqualTo(6);
+        assertThat(ranges[0]).isEqualTo(105702 + 8);
+        assertThat(ranges[1]).isEqualTo(105702 + 45);
+        assertThat(ranges[2]).isEqualTo(118407 + 8);
+        assertThat(ranges[3]).isEqualTo(118407 + 45);
+        assertThat(ranges[4]).isEqualTo(135507 + 8);
+        assertThat(ranges[5]).isEqualTo(135507 + 33);
     }
 
     @Test

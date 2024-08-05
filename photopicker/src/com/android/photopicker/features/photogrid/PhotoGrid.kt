@@ -49,6 +49,8 @@ import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -104,33 +106,47 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
     val scope = rememberCoroutineScope()
     val configuration = LocalPhotopickerConfiguration.current
 
-    Column(
-        modifier =
-            Modifier.fillMaxSize().pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, dragAmount ->
-                        // This may need some additional fine tuning by looking at a certain
-                        // distance in dragAmount, but initial testing suggested this worked
-                        // pretty well as is.
-                        if (dragAmount < 0) {
-                            // Negative is a left swipe
-                            if (featureManager.isFeatureEnabled(AlbumGridFeature::class.java)) {
-                                // Dispatch UI event to indicate switching to albums tab
-                                scope.launch {
-                                    events.dispatch(
-                                        Event.LogPhotopickerUIEvent(
-                                            FeatureToken.ALBUM_GRID.token,
-                                            configuration.sessionId,
-                                            configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.SWITCH_PICKER_TAB
-                                        )
+    // Modifier applied when photo grid to album grid navigation is disabled
+    val baseModifier = Modifier.fillMaxSize()
+    // Modifier applied when photo grid to album grid navigation is enabled
+    val modifierWithNavigation =
+        Modifier.fillMaxSize().pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onHorizontalDrag = { _, dragAmount ->
+                    // This may need some additional fine tuning by looking at a certain
+                    // distance in dragAmount, but initial testing suggested this worked
+                    // pretty well as is.
+                    if (dragAmount < 0) {
+                        // Negative is a left swipe
+                        if (featureManager.isFeatureEnabled(AlbumGridFeature::class.java)) {
+                            // Dispatch UI event to indicate switching to albums tab
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.ALBUM_GRID.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.SWITCH_PICKER_TAB
                                     )
-                                }
-                                navController.navigateToAlbumGrid()
+                                )
                             }
+                            navController.navigateToAlbumGrid()
                         }
                     }
-                )
+                }
+            )
+        }
+
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
+    val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
+
+    Column(
+        modifier =
+            when (isEmbeddedAndCollapsed) {
+                true -> baseModifier
+                false -> modifierWithNavigation
             }
     ) {
         val isEmptyAndNoMorePages =

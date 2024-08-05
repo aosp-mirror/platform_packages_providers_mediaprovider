@@ -40,7 +40,8 @@ class PhotopickerDeviceConfigReceiver : BroadcastReceiver() {
     companion object {
         const val TAG = "PhotopickerDeviceConfigReceiver"
         /** A list of activities that need to be enabled or disabled based on flag state. */
-        val activities = listOf("MainActivity", "PhotopickerGetContentActivity")
+        val activities = listOf("MainActivity", "PhotopickerGetContentActivity",
+        "PhotopickerUserSelectActivity")
     }
 
     override fun onReceive(context: Context, intent: Intent) {

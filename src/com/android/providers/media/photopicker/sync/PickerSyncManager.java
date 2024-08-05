@@ -256,10 +256,8 @@ public class PickerSyncManager {
         final OneTimeWorkRequest syncRequest = getOneTimeProactiveSyncRequest(inputData);
 
         // Don't wait for the sync operation to enqueue so that Picker sync enqueue
-        // requests in
-        // order to avoid adding latency to critical MP code paths.
-
-        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.REPLACE, syncRequest);
+        // requests in order to avoid adding latency to critical MP code paths.
+        mWorkManager.enqueueUniqueWork(workName, ExistingWorkPolicy.KEEP, syncRequest);
     }
 
     /**

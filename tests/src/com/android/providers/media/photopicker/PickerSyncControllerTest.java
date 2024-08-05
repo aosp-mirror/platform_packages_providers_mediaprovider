@@ -40,6 +40,7 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Process;
 import android.os.storage.StorageManager;
@@ -599,6 +600,81 @@ public class PickerSyncControllerTest {
         setCloudProviderAndSyncAllMedia(/* authority */ null);
         mController.syncAlbumMedia(ALBUM_ID_1, false);
         assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, false);
+    }
+
+    @Test
+    public void testCancelledLocalSyncWork() {
+        // Init picker DB with one local media item and verify it.
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_1);
+        mController.syncAllMediaFromLocalProvider(/* cancellationSignal=*/ null);
+        try (Cursor cr = queryMedia()) {
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after syncing local media.")
+                    .that(cr.getCount()).isEqualTo(1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+
+        // Create a cancellation signal and mark it as cancelled
+        final CancellationSignal cancellationSignal = new CancellationSignal();
+        cancellationSignal.cancel();
+
+        // Add another local media item in local media generator
+        addMedia(mLocalMediaGenerator, LOCAL_ONLY_2);
+
+        // Check that running the sync with the cancellation does not add the new local item to the
+        // Picker DB and also does not clear the existing items in the Picker DB.
+        mController.syncAllMediaFromLocalProvider(cancellationSignal);
+
+        try (Cursor cr = queryMedia()) {
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after syncing local media.")
+                    .that(cr.getCount()).isEqualTo(1);
+            assertCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testCancelledCloudSyncWork() {
+        // Init picker DB with one cloud media item and verify it.
+        addMedia(mCloudPrimaryMediaGenerator, CLOUD_ONLY_1);
+        setCloudProviderAndSyncAllMedia(CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        try (Cursor cr = queryMedia()) {
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after syncing all media.")
+                    .that(cr.getCount()).isEqualTo(1);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+
+        // Create a cancellation signal and mark it as cancelled
+        final CancellationSignal cancellationSignal = new CancellationSignal();
+        cancellationSignal.cancel();
+
+        // Add another cloud media item in cloud media generator
+        addMedia(mLocalMediaGenerator, CLOUD_ONLY_2);
+
+        // Check that running the sync with the cancellation does not add the new cloud item to the
+        // Picker DB and also does not clear the existing items in the Picker DB.
+        mController.syncAllMediaFromCloudProvider(cancellationSignal);
+
+        try (Cursor cr = queryMedia()) {
+            assertWithMessage(
+                    "Unexpected number of media on queryMedia() after syncing cloud media.")
+                    .that(cr.getCount()).isEqualTo(1);
+            assertCursor(cr, CLOUD_ID_1, CLOUD_PRIMARY_PROVIDER_AUTHORITY);
+        }
+    }
+
+    @Test
+    public void testCancelledAlbumSyncWork() {
+        // Create a cancellation signal and mark it as cancelled
+        final CancellationSignal cancellationSignal = new CancellationSignal();
+        cancellationSignal.cancel();
+
+        // Check that running the sync with the cancellation does not add the new local item to the
+        // Picker DB.
+        addAlbumMedia(mLocalMediaGenerator, LOCAL_ONLY_1.first, LOCAL_ONLY_1.second, ALBUM_ID_1);
+        mController.syncAlbumMediaFromLocalProvider(ALBUM_ID_1, cancellationSignal);
+        assertEmptyCursorFromAlbumMediaQuery(ALBUM_ID_1, true);
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.core.embedded
-
-import androidx.appcompat.app.AppCompatDelegate
+package com.android.providers.media.photopicker.util.exceptions;
 
 /**
- * Data object that represents the state of Photopicker in embedded runtime.
- *
- * @property isExpanded true if photopicker is expanded/full-view, false if collapsed/half-view.
+ * {@code WorkCancelledException} is thrown when the work in progress is cancelled.
  */
-data class EmbeddedState(
-    val isExpanded: Boolean = false,
-    val isDarkTheme: Boolean =
-        AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES,
-    val recomposeToggle: Boolean = false,
-)
+public class WorkCancelledException extends Exception {
+    public WorkCancelledException(String message) {
+        super(message);
+    }
+}

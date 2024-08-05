@@ -17,6 +17,7 @@ package com.android.photopicker.core.embedded
 
 import android.app.Service
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.provider.EmbeddedPhotopickerFeatureInfo
@@ -136,8 +137,48 @@ class EmbeddedService : Hilt_EmbeddedService() {
                 hostToken = hostToken,
                 featureInfo = featureInfo,
                 clientCallback = clientCallback,
+                grantUriPermission = ::grantUriToClient,
+                revokeUriPermission = ::revokeUriToClient,
             )
         allSessions.add(newSession)
         return newSession
+    }
+
+    /**
+     * Grants [Intent.FLAG_GRANT_READ_URI_PERMISSION] to uri for given client.
+     *
+     * This happens during selection of new items recorded in [Session.listenForSelectionEvents]
+     */
+    fun grantUriToClient(clientPackageName: String, uri: Uri): GrantResult {
+        try {
+            this.grantUriPermission(clientPackageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            return GrantResult.FAILURE
+        }
+
+        return GrantResult.SUCCESS
+    }
+
+    /**
+     * Revokes [Intent.FLAG_GRANT_READ_URI_PERMISSION] to uri for given client.
+     *
+     * This happens during deselection of items recorded in [Session.listenForSelectionEvents]
+     */
+    fun revokeUriToClient(clientPackageName: String, uri: Uri): GrantResult {
+        try {
+            this.revokeUriPermission(clientPackageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            return GrantResult.FAILURE
+        }
+        return GrantResult.SUCCESS
+    }
+
+    /**
+     * Enum that denotes if MediaProvider was able to successfully grant uri permission to a given
+     * package or not.
+     */
+    enum class GrantResult {
+        SUCCESS,
+        FAILURE
     }
 }

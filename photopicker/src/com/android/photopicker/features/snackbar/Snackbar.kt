@@ -20,14 +20,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
@@ -47,7 +44,8 @@ fun Snackbar(modifier: Modifier) {
         snackbarEvents.collect {
             when (it) {
                 is Event.ShowSnackbarMessage -> {
-                    // Only enqueue a new snackbar if its message does not match the current snackbar
+                    // Only enqueue a new snackbar if its message does not match the current
+                    // snackbar
                     // to ensure that duplicate events are suppressed.
                     if (snackbarHostState.currentSnackbarData?.visuals?.message != it.message) {
                         scope.launch { snackbarHostState.showSnackbar(it.message) }

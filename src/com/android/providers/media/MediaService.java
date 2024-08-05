@@ -160,14 +160,12 @@ public class MediaService extends JobIntentService {
     }
 
     private void onPublicVolumeRecovery() {
-        new Thread(() -> {
-            try (ContentProviderClient cpc = getContentResolver()
-                    .acquireContentProviderClient(MediaStore.AUTHORITY)) {
-                ((MediaProvider) cpc.getLocalContentProvider()).recoverPublicVolumes();
-            } catch (Exception e) {
-                Log.e(TAG, "Exception while starting public volume recovery thread", e);
-            }
-        }).start();
+        try (ContentProviderClient cpc = getContentResolver()
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            ((MediaProvider) cpc.getLocalContentProvider()).recoverPublicVolumes();
+        } catch (Exception e) {
+            Log.e(TAG, "Exception while starting public volume recovery thread", e);
+        }
     }
 
     public static void onScanVolume(Context context, MediaVolume volume, int reason)

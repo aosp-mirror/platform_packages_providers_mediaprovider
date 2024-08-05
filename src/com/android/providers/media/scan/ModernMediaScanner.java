@@ -49,6 +49,7 @@ import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.util.FileUtils.canonicalize;
+import static com.android.providers.media.util.IsoInterface.MAX_XMP_SIZE_BYTES;
 import static com.android.providers.media.util.Metrics.translateReason;
 
 import static java.util.Objects.requireNonNull;
@@ -175,7 +176,6 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static final int BATCH_SIZE = 32;
-    private static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
     // |excludeDirs * 2| < 1000 which is the max SQL expression size
     // Because we add |excludeDir| and |excludeDir/| in the SQL expression to match dir and subdirs
     // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c

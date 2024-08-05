@@ -16,6 +16,7 @@
 
 package com.android.photopicker.features.albumgrid
 
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -225,6 +227,12 @@ private fun getEmptyStateContentForAlbum(album: Group.Album): Triple<String, Str
                 stringResource(R.string.photopicker_videos_empty_state_title),
                 stringResource(R.string.photopicker_videos_empty_state_body),
                 Icons.Outlined.Videocam,
+            )
+        ALBUM_ID_CAMERA ->
+            Triple(
+                stringResource(R.string.photopicker_photos_empty_state_title),
+                stringResource(R.string.photopicker_camera_empty_state_body),
+                Icons.Outlined.PhotoCamera,
             )
         // Use the empty state messages of the main photo grid in all other cases.
         else ->

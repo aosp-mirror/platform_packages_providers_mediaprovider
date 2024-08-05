@@ -43,7 +43,6 @@ import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
-import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -177,8 +176,7 @@ class ProfileSelectorViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
                 )
             val configurationManager =
                 ConfigurationManager(
@@ -248,8 +246,7 @@ class ProfileSelectorViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
                 )
             val configurationManager =
                 ConfigurationManager(

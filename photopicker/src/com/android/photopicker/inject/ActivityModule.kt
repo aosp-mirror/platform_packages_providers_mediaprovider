@@ -196,7 +196,6 @@ class ActivityModule {
         @ActivityRetainedScoped featureManager: FeatureManager,
         @ApplicationContext appContext: Context,
         events: Events,
-        processOwnerHandle: UserHandle,
     ): DataService {
         if (!::dataService.isInitialized) {
             Log.d(
@@ -214,7 +213,6 @@ class ActivityModule {
                     featureManager,
                     appContext,
                     events,
-                    processOwnerHandle
                 )
         }
         return dataService
@@ -325,7 +323,6 @@ class ActivityModule {
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
-                            preSelectedMedia = dataService.preSelectionMediaData
                         )
                 }
             return selection

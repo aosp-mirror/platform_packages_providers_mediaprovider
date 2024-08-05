@@ -16,7 +16,6 @@
 
 package com.android.photopicker.core.selection
 
-import android.util.Log
 import androidx.annotation.GuardedBy
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -53,17 +51,14 @@ import kotlinx.coroutines.sync.withLock
  * @param T The type of object this selection holds.
  * @property scope A [CoroutineScope] that the flow is shared and updated in.
  * @property initialSelection A collection to include initial selection value.
- * @property configuration a collectable [StateFlow] of configuration changes.
- * @property preSelectedMedia: a collectable [StateFlow] of pre-selected media.
+ * @property configuration a collectable [StateFlow] of configuration changes
  */
 class SelectionImpl<T>(
     val scope: CoroutineScope,
     val initialSelection: Collection<T>? = null,
     private val configuration: StateFlow<PhotopickerConfiguration>,
-    private val preSelectedMedia: StateFlow<List<T>?>
 ) : Selection<T> {
 
-    private val TAG = "SelectionImpl"
     // An internal mutex is used to enforce thread-safe access of the selection set.
     private val mutex = Mutex()
     private val _selection: LinkedHashSet<T> = LinkedHashSet<T>()
@@ -74,19 +69,6 @@ class SelectionImpl<T>(
         if (initialSelection != null) {
             _selection.addAll(initialSelection)
         }
-        scope.launch {
-            // Observe the refresh of the stateFlow that holds the pre-selection media.
-            // Note that this will always be null in case the intent action is anything other than
-            // [MediaStore.ACTION_PICK_IMAGES].
-            preSelectedMedia.collect {
-                if (it != null) {
-                    Log.i(TAG, "Received notification for preGranted media count.")
-                    _selection.addAll(it)
-                    updateFlow()
-                }
-            }
-        }
-
         _flow = MutableStateFlow(_selection.toSet())
         flow =
             _flow.stateIn(
@@ -179,7 +161,6 @@ class SelectionImpl<T>(
     /**
      * Removes the requested item from the selection. If the item is not in the selection, this has
      * no effect. Afterwards, will emit the new selection into the exposed flow.
-     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")
@@ -196,7 +177,6 @@ class SelectionImpl<T>(
      *
      * If one or more items are not present in the selection, this has no effect. Afterwards, will
      * emit the new selection into the exposed flow.
-     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")

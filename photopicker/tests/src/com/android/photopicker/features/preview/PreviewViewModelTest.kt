@@ -293,7 +293,6 @@ class PreviewViewModelTest {
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val viewModel =
@@ -369,7 +368,6 @@ class PreviewViewModelTest {
                             scope = this.backgroundScope,
                             defaultConfiguration = MULTI_SELECT_CONFIG,
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val viewModel =
@@ -423,7 +421,6 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
             val configurationManager =
                 ConfigurationManager(
@@ -559,7 +556,6 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
             val configurationManager =
                 ConfigurationManager(
@@ -637,7 +633,6 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
             val configurationManager =
                 ConfigurationManager(
@@ -759,7 +754,6 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
             val configurationManager =
                 ConfigurationManager(
@@ -814,7 +808,6 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
             val configurationManager =
                 ConfigurationManager(

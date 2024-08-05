@@ -172,8 +172,7 @@ class PhotoGridViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
                 )
 
             val featureManager =
@@ -274,8 +273,7 @@ class PhotoGridViewModelTest {
                                     selectionLimit = 0,
                                     sessionId = generatePickerSessionId()
                                 )
-                        ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                        )
                 )
 
             val featureManager =
@@ -361,8 +359,7 @@ class PhotoGridViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
                 )
 
             val featureManager =

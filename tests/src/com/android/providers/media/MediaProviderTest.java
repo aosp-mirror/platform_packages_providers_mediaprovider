@@ -1836,18 +1836,20 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testNoExceptionOnGetGeneration() throws RemoteException {
+    public void testIllegalStateExceptionOnGetGenerationForNullValue() throws RemoteException {
         ContentInterface contentInterface = Mockito.mock(MediaProvider.class);
         Mockito.doReturn(null).when(contentInterface).call(Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(String.class), Mockito.any(Bundle.class));
+        String volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
         ContentResolver contentResolver = ContentResolver.wrap(contentInterface);
 
         try {
-            long generation = getGeneration(contentResolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
-            assertEquals(0, generation);
-        } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
+            getGeneration(contentResolver, volumeName);
+            fail("Expected a IllegalStateException Exception");
+        } catch (IllegalStateException e) {
+            assertEquals("Failed to get generation for volume '" + volumeName
+                    + "'. The ContentResolver call returned null.", e.getMessage());
         }
 
     }

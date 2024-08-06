@@ -16,11 +16,14 @@
 
 package com.android.photopicker.core.embedded
 
+import android.view.SurfaceControlViewHost
 import androidx.appcompat.app.AppCompatDelegate
 
 /**
- * Data object that represents the state of Photopicker in embedded runtime.
+ * Data object that represents the state of Photopicker and hold the instance of
+ * [SurfaceControlViewHost] in embedded runtime.
  *
+ * @param host the Instance of [SurfaceControlViewHost]
  * @property isExpanded true if photopicker is expanded/full-view, false if collapsed/half-view.
  */
 data class EmbeddedState(
@@ -28,4 +31,5 @@ data class EmbeddedState(
     val isDarkTheme: Boolean =
         AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES,
     val recomposeToggle: Boolean = false,
+    val host: SurfaceControlViewHost? = null,
 )

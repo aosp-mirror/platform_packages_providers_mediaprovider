@@ -17,6 +17,7 @@
 package com.android.photopicker.core.embedded
 
 import android.util.Log
+import android.view.SurfaceControlViewHost
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -28,11 +29,15 @@ import kotlinx.coroutines.flow.update
  * See [EmbeddedState] for details about all the various pieces that make up the session state.
  *
  * Provides a long-living [StateFlow] that emits the currently known state.
+ *
+ * @param host the Instance of [SurfaceControlViewHost] for the current session
  */
-class EmbeddedStateManager {
+class EmbeddedStateManager(host: SurfaceControlViewHost? = null) {
     companion object {
         const val TAG: String = "PhotopickerEmbeddedStateManager"
     }
+
+    private val _host = host
 
     /*
      * Internal [EmbeddedState] flow. When the embedded state changes, this is what should
@@ -50,7 +55,7 @@ class EmbeddedStateManager {
 
     /** Assembles an initial state upon embedded photopicker session launch. */
     private fun generateInitialEmbeddedState(): EmbeddedState {
-        val initialEmbeddedState = EmbeddedState()
+        val initialEmbeddedState = EmbeddedState(host = _host)
         Log.d(TAG, "Initial embedded state: $initialEmbeddedState")
         return initialEmbeddedState
     }

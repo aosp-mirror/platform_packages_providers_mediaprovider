@@ -4656,7 +4656,8 @@ public final class MediaStore {
         in.putString(Intent.EXTRA_TEXT, volumeName);
         final Bundle out = resolver.call(AUTHORITY, GET_GENERATION_CALL, null, in);
         if (out == null) {
-            return 0;
+            throw new IllegalStateException("Failed to get generation for volume '"
+                    + volumeName + "'. The ContentResolver call returned null.");
         }
 
         return out.getLong(Intent.EXTRA_INDEX);

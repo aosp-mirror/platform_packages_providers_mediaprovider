@@ -42,7 +42,6 @@ import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
-import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
 import com.android.photopicker.core.selection.SelectionStrategy
@@ -167,29 +166,19 @@ constructor(
                 when (SelectionStrategy.determineSelectionStrategy(photopickerConfiguration)) {
                     SelectionStrategy.DEFAULT -> flowOf(PagingData.from(selectionSet.toList()))
                     SelectionStrategy.GRANTS_AWARE_SELECTION -> {
-                        val deselectAllEnabled =
-                            if (selection is GrantsAwareSelectionImpl) {
-                                selection.isDeSelectAllEnabled
-                            } else {
-                                false
+                        val pager =
+                            Pager(
+                                PagingConfig(
+                                    pageSize = PREVIEW_PAGER_PAGE_SIZE,
+                                    maxSize = PREVIEW_PAGER_MAX_ITEMS_IN_MEMORY
+                                )
+                            ) {
+                                dataService.previewMediaPagingSource(
+                                    selectionSnapshot.value,
+                                    deselectionSnapshot.value
+                                )
                             }
-                        if (deselectAllEnabled) {
-                            flowOf(PagingData.from(selectionSet.toList()))
-                        } else {
-                            val pager =
-                                Pager(
-                                    PagingConfig(
-                                        pageSize = PREVIEW_PAGER_PAGE_SIZE,
-                                        maxSize = PREVIEW_PAGER_MAX_ITEMS_IN_MEMORY
-                                    )
-                                ) {
-                                    dataService.previewMediaPagingSource(
-                                        selectionSnapshot.value,
-                                        deselectionSnapshot.value
-                                    )
-                                }
-                            pager.flow
-                        }
+                        pager.flow
                     }
                 }
             }

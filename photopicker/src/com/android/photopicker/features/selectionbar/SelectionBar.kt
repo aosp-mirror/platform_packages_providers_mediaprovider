@@ -16,7 +16,6 @@
 
 package com.android.photopicker.features.selectionbar
 
-import android.provider.MediaStore
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -83,13 +82,7 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
     // Collect selection to ensure this is recomposed when the selection is updated.
     val selection = LocalSelection.current
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
-    // For ACTION_USER_SELECT_IMAGES_FOR_APP selection bar should always be visible to allow users
-    // the option to exit with zero selection i.e. revoking all grants.
-    val visible =
-        currentSelection.isNotEmpty() ||
-            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(
-                LocalPhotopickerConfiguration.current.action
-            )
+    val visible = currentSelection.isNotEmpty()
     val configuration = LocalPhotopickerConfiguration.current
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()

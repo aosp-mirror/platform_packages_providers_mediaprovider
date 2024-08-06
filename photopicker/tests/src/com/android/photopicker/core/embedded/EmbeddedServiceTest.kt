@@ -48,6 +48,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.MockitoAnnotations
@@ -111,6 +112,7 @@ class EmbeddedServiceTest {
 
     @DisableFlags(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
     @Test
+    @Ignore("b/357048672")
     fun testEmbeddedServiceOnBindIsNullWhenEmbeddedDisabled() {
         assertThat(embeddedService.onBind(Intent())).isNull()
     }

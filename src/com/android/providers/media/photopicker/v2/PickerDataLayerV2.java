@@ -788,22 +788,21 @@ public class PickerDataLayerV2 {
                 return new AlbumsCursorWrapper(result, authority, localAuthority);
             }
 
-            // Show merged albums even if no data is currently available in the DB when cloud media
-            // feature is enabled.
-            if (cloudAuthority != null) {
-                // Conform to the album response projection. Temporary code, this will change once
-                // we start caching album metadata.
-                final MatrixCursor result = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
-                final String[] projectionValue = new String[]{
-                        /* albumId */ albumId,
-                        /* dateTakenMillis */ Long.toString(Long.MAX_VALUE),
-                        /* displayName */ albumId,
-                        /* mediaId */ EMPTY_MEDIA_ID,
-                        /* count */ "0", // This value is not used anymore
-                        localAuthority,
-                };
-                result.addRow(projectionValue);
-                return new AlbumsCursorWrapper(result, localAuthority, localAuthority);
+            // Always show Videos album if cloud feature is turned on and the MIME types filter
+            // would allow for video format(s).
+            if (albumId.equals(AlbumColumns.ALBUM_ID_VIDEOS) && cloudAuthority != null) {
+                return new AlbumsCursorWrapper(
+                        getDefaultEmptyAlbum(albumId),
+                        /* albumAuthority */ localAuthority,
+                        /* localAuthority */ localAuthority);
+            }
+
+            // Always show Favorites album.
+            if (albumId.equals(AlbumColumns.ALBUM_ID_FAVORITES)) {
+                return new AlbumsCursorWrapper(
+                        getDefaultEmptyAlbum(albumId),
+                        /* albumAuthority */ localAuthority,
+                        /* localAuthority */ localAuthority);
             }
 
             return null;
@@ -811,7 +810,22 @@ public class PickerDataLayerV2 {
             database.setTransactionSuccessful();
             database.endTransaction();
         }
+    }
 
+    private static Cursor getDefaultEmptyAlbum(@NonNull String albumId) {
+        // Conform to the album response projection. Temporary code, this will change once we start
+        // caching album metadata.
+        final MatrixCursor result = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
+        final String[] projectionValue = new String[]{
+                /* albumId */ albumId,
+                /* dateTakenMillis */ Long.toString(Long.MAX_VALUE),
+                /* displayName */ albumId,
+                /* mediaId */ EMPTY_MEDIA_ID,
+                /* count */ "0", // This value is not used anymore
+                /* authority */ null, // Authority is populated in AlbumsCursorWrapper
+        };
+        result.addRow(projectionValue);
+        return result;
     }
 
     /**
@@ -885,6 +899,17 @@ public class PickerDataLayerV2 {
         // Close localAlbumsCursor because it's data was copied into new Cursor(s) and it won't
         // be used again.
         if (localAlbumsCursor != null) localAlbumsCursor.close();
+
+        // Always show Camera album.
+        if (!localAlbumsMap.containsKey(AlbumColumns.ALBUM_ID_CAMERA)) {
+            localAlbumsMap.put(
+                    AlbumColumns.ALBUM_ID_CAMERA,
+                    new AlbumsCursorWrapper(
+                            getDefaultEmptyAlbum(AlbumColumns.ALBUM_ID_CAMERA),
+                            /* albumAuthority */ localAuthority,
+                            /* localAuthority */ localAuthority)
+            );
+        }
 
         return localAlbumsMap;
     }

@@ -94,8 +94,11 @@ class TestDataServiceImpl() : DataService {
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> {
+        // re-using the media source, modify as per future test usage.
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
+    }
 
     override suspend fun refreshMedia() =
         throw NotImplementedError("This method is not implemented yet.")
@@ -104,6 +107,10 @@ class TestDataServiceImpl() : DataService {
         throw NotImplementedError("This method is not implemented yet.")
 
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
+
+    suspend fun sendDisruptiveDataUpdateNotification() {
+        disruptiveDataUpdateChannel.send(Unit)
+    }
 
     override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
         collectionInfo.getOrElse(provider, { CollectionInfo(provider.authority) })

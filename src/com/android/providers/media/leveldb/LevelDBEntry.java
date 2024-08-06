@@ -36,9 +36,4 @@ public final class LevelDBEntry {
     public String getValue() {
         return mValue;
     }
-
-    @Override
-    public String toString() {
-        return "LevelDBEntry{" + "mKey='" + mKey + '\'' + ", mValue='" + mValue + '\'' + '}';
-    }
 }

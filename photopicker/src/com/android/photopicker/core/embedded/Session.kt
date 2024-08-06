@@ -62,7 +62,9 @@ import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -169,8 +171,23 @@ open class Session(
     private val _main: CoroutineDispatcher = _dependencies.mainDispatcher()
     private val _backgroundScope: CoroutineScope = _dependencies.backgroundScope()
 
+    // Wrap this in a lazy to prevent the [DataService] from getting initialized before the
+    // ComposeView is started.
+    // This flow is used to signal the UI when the DataService detects a provider update (or other
+    // data change which should disrupt the UI)
+    private val disruptiveDataNotification: Flow<Int> by lazy {
+        _dependencies.dataService().get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(
+            initial = 0
+        ) { prev, _ ->
+            prev + 1
+        }
+    }
+
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
+    private val _stateManager: EmbeddedStateManager
+
+    fun getView() = _view
 
     open val surfacePackage: SurfaceControlViewHost.SurfacePackage
         get() {
@@ -229,6 +246,8 @@ open class Session(
         Log.d(TAG, "EmbeddedConfiguration is stable, UI will now start.")
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
+        // This initialization should happen only after receiving the [_host]
+        _stateManager = EmbeddedStateManager(_host)
         runBlocking(_main) { _host.setView(_view, width, height) }
 
         // Start listening to selection/deselection events for this Session so
@@ -303,6 +322,8 @@ open class Session(
                                 .configuration
                                 .collectAsStateWithLifecycle()
 
+                        val embeddedState by _stateManager.state.collectAsStateWithLifecycle()
+
                         // Provide values to the entire compose stack.
                         CompositionLocalProvider(
                             LocalFeatureManager provides _dependencies.featureManager().get(),
@@ -314,8 +335,20 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
+                            LocalEmbeddedState provides embeddedState
                         ) {
-                            PhotopickerTheme(config = photopickerConfiguration) { PhotopickerApp() }
+                            val currentEmbeddedState =
+                                checkNotNull(LocalEmbeddedState.current) {
+                                    "Embedded state cannot be null when runtime env is embedded."
+                                }
+                            PhotopickerTheme(
+                                isDarkTheme = currentEmbeddedState.isDarkTheme,
+                                config = photopickerConfiguration
+                            ) {
+                                PhotopickerApp(
+                                    disruptiveDataNotification,
+                                )
+                            }
                         }
                     }
                 }
@@ -396,14 +429,26 @@ open class Session(
     }
 
     override fun notifyResized(width: Int, height: Int) {
-        TODO("Not yet implemented")
+        _host.relayout(width, height)
+        _stateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
-        TODO("Not yet implemented")
+        if (configuration == null) return
+
+        // Check for dark theme
+        val isNewThemeDark =
+            (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+
+        // Update embedded state manager
+        _stateManager.setIsDarkTheme(isNewThemeDark)
+
+        // Pass the configuration change along to the view
+        _view.dispatchConfigurationChanged(configuration)
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        TODO("Not yet implemented")
+        _stateManager.setIsExpanded(isExpanded)
     }
 }

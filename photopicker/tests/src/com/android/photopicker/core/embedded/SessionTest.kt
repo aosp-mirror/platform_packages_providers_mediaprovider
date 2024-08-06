@@ -734,4 +734,30 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
         val newUris = uriIndices.map { index -> Uri.parse("content://stubprovider/${index + 1}") }
         return newUris
     }
+
+    @Test
+    fun testSessionNotifyResizedChangesViewSize() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+
+            val session = getSessionUnderTest(component)
+            advanceTimeBy(100)
+
+            val initialWidth = session.getView().width
+            val initialHeight = session.getView().height
+
+            val newWidth = 2 * initialWidth
+            val newHeight = 2 * initialHeight
+
+            async { session.notifyResized(newWidth, newHeight) }.await()
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected view's width to be resized")
+                .that(session.getView().width)
+                .isEqualTo(newWidth)
+
+            assertWithMessage("Expected view's height to be resized")
+                .that(session.getView().height)
+                .isEqualTo(newHeight)
+        }
 }

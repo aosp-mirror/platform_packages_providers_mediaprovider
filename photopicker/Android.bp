@@ -28,6 +28,7 @@ android_library {
     ],
     static_libs: [
         "androidx.activity_activity-compose",
+        "androidx.appcompat_appcompat",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
         "androidx.compose.material3_material3-window-size-class",

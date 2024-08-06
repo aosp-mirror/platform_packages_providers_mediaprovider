@@ -63,6 +63,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,9 +83,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.theme.CustomAccentColorScheme
@@ -94,6 +98,7 @@ import com.android.photopicker.extensions.circleBackground
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
@@ -201,7 +206,7 @@ fun mediaGrid(
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
-            onLongPress: ((item: MediaGridItem) -> Unit)?,
+            onLongPress: ((item: MediaGridItem) -> Unit)?
         ) -> Unit =
         { item, isSelected, onClick, onLongPress,
             ->
@@ -223,9 +228,23 @@ fun mediaGrid(
     },
     bannerContent: (@Composable () -> Unit)? = null,
 ) {
+    // To know whether the request in coming from Embedded or PhotoPicker
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
+    /**
+     * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to
+     * get the regular updates of bottom sheet current state inside [LazyVerticalGrid]
+     */
+    val isExpanded = rememberUpdatedState(LocalEmbeddedState.current?.isExpanded ?: false)
     LazyVerticalGrid(
         columns = columns,
-        modifier = modifier,
+        modifier =
+            if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                modifier.transferGridTouchesToHostInEmbedded(state, isExpanded, host)
+            } else {
+                modifier
+            },
         state = state,
         contentPadding = contentPadding,
         userScrollEnabled = userScrollEnabled,

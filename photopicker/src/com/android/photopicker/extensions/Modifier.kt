@@ -16,16 +16,20 @@
 
 package com.android.photopicker.extensions
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import android.os.Build
+import android.view.SurfaceControlViewHost
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.isUnspecified
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -83,4 +87,133 @@ fun Modifier.circleBackground(
     }
 
     return this then backgroundModifier then layoutModifier
+}
+
+/**
+ * Transfer necessary touch events occurred on Photos/Albums grid to host at runtime in Embedded
+ * Photopicker
+ *
+ * @param state the state of Photos/albums grid. If state is null means Photos/Albums grid has not
+ *   requested the custom modifier
+ * @param isExpanded the updates on current status of embedded photopicker
+ * @param host the instance of [SurfaceControlViewHost]
+ * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
+ */
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+fun Modifier.transferGridTouchesToHostInEmbedded(
+    state: LazyGridState,
+    isExpanded: State<Boolean>,
+    host: SurfaceControlViewHost
+): Modifier {
+    return this then
+        transferTouchesToSurfaceControlViewHost(
+            state = state,
+            isExpanded = isExpanded,
+            host = host,
+        )
+}
+
+/**
+ * Transfer necessary touch events occurred outside of Photos/Albums grid to host on runtime in
+ * Embedded Photopicker
+ *
+ * @param host the instance of [SurfaceControlViewHost]
+ * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
+ */
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+fun Modifier.transferTouchesToHostInEmbedded(host: SurfaceControlViewHost): Modifier {
+    return this then
+        transferTouchesToSurfaceControlViewHost(state = null, isExpanded = null, host = host)
+}
+
+/**
+ * Transfer necessary touch events to host on runtime in Embedded Photopicker
+ *
+ * @param state the state of Photos/albums grid. If state is null means Photos/Albums grid has not
+ *   requested the custom modifier
+ * @param isExpanded the updates on current status of embedded photopicker
+ * @param host the instance of [SurfaceControlViewHost]
+ * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
+ */
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+private fun Modifier.transferTouchesToSurfaceControlViewHost(
+    state: LazyGridState?,
+    isExpanded: State<Boolean>?,
+    host: SurfaceControlViewHost
+): Modifier {
+
+    /**
+     * Initial y position when user touches the screen or when [PointerEventType.Press] is received
+     */
+    var initialY = 0F
+
+    /**
+     * Difference in Y position with respect to initialY as user starts scrolling on the screen, to
+     * know the direction of the movement
+     */
+    var dy = 0F
+
+    val pointerInputModifier =
+        pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    // Suspend until next pointer event
+                    val event: PointerEvent = awaitPointerEvent()
+                    event.changes.forEach { change ->
+                        if (state != null) {
+                            when (event.type) {
+                                PointerEventType.Press -> {
+                                    // Set initial Y position when user touches the screen
+                                    initialY = change.position.y
+                                }
+                                PointerEventType.Move -> {
+                                    // Position difference with respect to initial position
+                                    dy = change.position.y - initialY
+                                }
+                                PointerEventType.Release -> {
+                                    // Resetting the position change for next touch event
+                                    dy = 0F
+                                }
+                            }
+                        }
+                    }
+
+                    // Todo(b/356790658) : Avoid recalculate these every time, just do it when
+                    // argument changes
+                    val isGridCollapsed = state != null && isExpanded != null && !isExpanded.value
+                    val isGridExpanded = state != null && isExpanded != null && isExpanded.value
+
+                    // Event is done being processed, make a decision about if this event should
+                    // be transferred
+                    val shouldTransferToHost =
+                        when {
+
+                            // Never transfer if the event type isn't move
+                            event.type != PointerEventType.Move -> false
+
+                            // Case for Not Grid attached modifiers
+                            state == null -> true
+
+                            // Case for grid attached when embedded is collapsed
+                            isGridCollapsed && dy != 0F -> true
+
+                            // Case for grid attached when embedded is expanded, and
+                            // the lazy grid is at the top of its scroll container
+                            isGridExpanded &&
+                                (state.firstVisibleItemIndex == 0 &&
+                                    state.firstVisibleItemScrollOffset == 0 &&
+                                    dy > 0) -> true
+
+                            // Otherwise don't transfer
+                            else -> false
+                        }
+
+                    if (shouldTransferToHost) {
+                        // TODO(b/356671436): Use V API when available
+                        @Suppress("DEPRECATION") host.transferTouchGestureToHost()
+                    }
+                }
+            }
+        }
+    return this then pointerInputModifier
 }

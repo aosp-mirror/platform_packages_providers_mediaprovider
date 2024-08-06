@@ -39,7 +39,6 @@ class GrantsAwareSet<T : Grantable>(
     val selection: Set<T>,
     val deSelection: Set<T>,
     private val preGrantedElementsCount: Int = 0,
-    private val isDeSelectAllEnabled: Boolean = false
 ) : Set<T> {
 
     /** Size of the set based on current selection and preGranted elements. */
@@ -66,7 +65,7 @@ class GrantsAwareSet<T : Grantable>(
         }
         // If the element is preGranted and is not present in the deSelection set i.e. the element
         // has not been de-selected by the user then return true.
-        if (!isDeSelectAllEnabled && element.isPreGranted && !deSelection.contains(element)) {
+        if (element.isPreGranted && !deSelection.contains(element)) {
             return true
         }
         return false

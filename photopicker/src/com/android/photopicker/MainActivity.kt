@@ -76,8 +76,11 @@ import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -129,7 +132,7 @@ class MainActivity : Hilt_MainActivity() {
      * The main activity should create a new [_preloadDeferred] before emitting, and then monitor
      * that deferred to obtain the result of the preload operation that this flow will trigger.
      */
-    val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
+    private val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
 
     /**
      * A deferred which tracks the current state of any preload operation requested by the main
@@ -141,10 +144,23 @@ class MainActivity : Hilt_MainActivity() {
      * Public access to the deferred, behind a getter. (To ensure any access to this property always
      * obtains the latest value)
      */
-    public val preloadDeferred: CompletableDeferred<Boolean>
+    val preloadDeferred: CompletableDeferred<Boolean>
         get() {
             return _preloadDeferred
         }
+
+    /**
+     * A top level flow that listens for disruptive data events from the [DataService]. This flow
+     * will emit when the DataService detects that its data is inaccurate or stale and will be used
+     * to force refresh the UI and navigate the user back to the start destination.
+     */
+    private val disruptiveDataNotification: Flow<Int> by lazy {
+        dataService.get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(initial = 0) {
+            prev,
+            _ ->
+            prev + 1
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -216,7 +232,8 @@ class MainActivity : Hilt_MainActivity() {
                             }
                         },
                         preloadMedia = preloadMedia,
-                        obtainPreloaderDeferred = { preloadDeferred }
+                        obtainPreloaderDeferred = { preloadDeferred },
+                        disruptiveDataNotification,
                     )
                 }
             }

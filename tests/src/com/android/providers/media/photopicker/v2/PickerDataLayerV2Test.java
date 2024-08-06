@@ -936,7 +936,7 @@ public class PickerDataLayerV2Test {
 
 
     @Test
-    public void testMergedAlbumsWithCloudQueriesDisabled() {
+    public void testDefaultAlbumsWithCloudQueriesDisabled() {
         Cursor cursor1 = getMediaCursor(CLOUD_ID_1, DATE_TAKEN_MS, GENERATION_MODIFIED,
                 /* mediaStoreUri */ null, /* sizeBytes */ 1, JPEG_IMAGE_MIME_TYPE,
                 STANDARD_MIME_TYPE_EXTENSION, /* isFavorite */ false);
@@ -961,11 +961,23 @@ public class PickerDataLayerV2Test {
         try (Cursor cr = PickerDataLayerV2.queryAlbums(
                 mMockContext, getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, /* pageSize */ 10,
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
-            // Verify that merged albums are not displayed by default when cloud albums are
-            // disabled.
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr).isNull();
+                    .that(cr.getCount()).isEqualTo(2);
+
+            // Favorites album will be displayed by default
+            cr.moveToFirst();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
         }
     }
 
@@ -1253,9 +1265,23 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(1);
+                    .that(cr.getCount()).isEqualTo(3);
 
+            // Favorites album will be displayed by default
             cr.moveToFirst();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            cr.moveToNext();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
@@ -1290,7 +1316,7 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(2);
+                    .that(cr.getCount()).isEqualTo(3);
 
             cr.moveToFirst();
             // Favorites albums will be displayed by default
@@ -1298,6 +1324,13 @@ public class PickerDataLayerV2Test {
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
                     /* coverMediaId */ EMPTY_MEDIA_ID, MediaSource.LOCAL);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             assertAlbumCursor(cr,
@@ -1329,12 +1362,19 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(2);
+                    .that(cr.getCount()).isEqualTo(3);
 
             cr.moveToFirst();
             // Favorites albums will be displayed by default
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
                     /* coverMediaId */ EMPTY_MEDIA_ID);
 
@@ -1373,13 +1413,20 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(1);
+                    .that(cr.getCount()).isEqualTo(2);
 
             cr.moveToFirst();
             // Favorites albums will be displayed by default
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
         }
     }
 
@@ -1411,13 +1458,20 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(2);
+                    .that(cr.getCount()).isEqualTo(3);
 
             cr.moveToFirst();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ CLOUD_ID_1,
                     MediaSource.REMOTE);
+
+            // Camera album will be displayed by default
+            cr.moveToNext();
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             // Videos album will be displayed by default
@@ -1452,12 +1506,19 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(2);
+                    .that(cr.getCount()).isEqualTo(3);
 
             cr.moveToFirst();
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_1);
+
+            cr.moveToNext();
+            // Camera album will be displayed by default
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
 
             cr.moveToNext();
             // Videos album will be displayed by default
@@ -1488,9 +1549,17 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(2);
+                    .that(cr.getCount()).isEqualTo(3);
 
             cr.moveToFirst();
+            // Favorites album will be displayed by default
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            cr.moveToNext();
+            // Camera album will be displayed by default
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE, /* coverMediaId */ LOCAL_ID_2);
@@ -1521,12 +1590,19 @@ public class PickerDataLayerV2Test {
                         new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER))))) {
             assertWithMessage(
                     "Unexpected number of rows in media query result")
-                    .that(cr.getCount()).isEqualTo(3);
+                    .that(cr.getCount()).isEqualTo(4);
 
             cr.moveToFirst();
             // Favorites albums will be displayed by default
             assertAlbumCursor(cr,
                     /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
+                    LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
+                    /* coverMediaId */ EMPTY_MEDIA_ID);
+
+            cr.moveToNext();
+            // Camera album will be displayed by default
+            assertAlbumCursor(cr,
+                    /* albumId */ CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
                     LOCAL_PROVIDER, /* dateTaken */ Long.MAX_VALUE,
                     /* coverMediaId */ EMPTY_MEDIA_ID);
 

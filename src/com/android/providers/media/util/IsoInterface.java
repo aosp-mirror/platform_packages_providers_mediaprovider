@@ -42,11 +42,14 @@ import java.util.UUID;
 
 /**
  * Simple parser for ISO base media file format. Designed to mirror ergonomics
- * of {@link ExifInterface}.
+ * of {@link ExifInterface}. Stores boxes related to xmp and gps in order to
+ * prevent from {@link OutOfMemoryError}.
  */
 public class IsoInterface {
     private static final String TAG = "IsoInterface";
     private static final boolean LOGV = Log.isLoggable(TAG, Log.VERBOSE);
+
+    public static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
 
     public static final int BOX_ILST = 0x696c7374;
     public static final int BOX_FTYP = 0x66747970;
@@ -59,6 +62,9 @@ public class IsoInterface {
     public static final int BOX_XYZ = 0xa978797a;
     public static final int BOX_GPS = 0x67707320;
     public static final int BOX_GPS0 = 0x67707330;
+
+    public static final UUID XMP_UUID =
+            UUID.fromString("be7acfcb-97a9-42e8-9c71-999491e3afac");
 
     /**
      * Test if given box type is a well-known parent box type.
@@ -90,17 +96,14 @@ public class IsoInterface {
         }
     }
 
-    /** Top-level boxes */
-    private List<Box> mRoots = new ArrayList<>();
-    /** Flattened view of all boxes */
-    private List<Box> mFlattened = new ArrayList<>();
+    /** Flattened view of some boxes */
+    private final List<Box> mFlattened = new ArrayList<>();
 
     private static class Box {
         public final int type;
         public long[] range;
         public UUID uuid;
         public byte[] data;
-        public List<Box> children;
         public int headerSize;
 
         public Box(int type, long[] range) {
@@ -133,13 +136,26 @@ public class IsoInterface {
         return new UUID(high, low);
     }
 
-    private static @Nullable Box parseNextBox(@NonNull FileDescriptor fd, long end, int parentType,
-            @NonNull String prefix) throws ErrnoException, IOException {
+    private static @Nullable byte[] allocateBuffer(int type, int size) {
+        try {
+            if (size > MAX_XMP_SIZE_BYTES) {
+                Log.w(TAG, "Iso box(" + type + ") data size is too large: " + size);
+                return null;
+            }
+            return new byte[size];
+        } catch (OutOfMemoryError e) {
+            Log.w(TAG, "Couldn't read large box(" + type + "), size: " + size, e);
+            return null;
+        }
+    }
+
+    private static boolean parseNextBox(@NonNull List<Box> flatten, @NonNull FileDescriptor fd,
+            long end, int parentType, @NonNull String prefix) throws ErrnoException, IOException {
         final long pos = Os.lseek(fd, 0, OsConstants.SEEK_CUR);
 
         int headerSize = 8;
         if (end - pos < headerSize) {
-            return null;
+            return false;
         }
 
         long len = Integer.toUnsignedLong(readInt(fd));
@@ -159,7 +175,7 @@ public class IsoInterface {
         if (len < headerSize || pos + len > end) {
             Log.w(TAG, "Invalid box at " + pos + " of length " + len
                     + ". End of parent " + end);
-            return null;
+            return false;
         }
 
         final Box box = new Box(type, new long[] { pos, len });
@@ -173,30 +189,16 @@ public class IsoInterface {
                 Log.v(TAG, prefix + "  UUID " + box.uuid);
             }
 
-            if (len > Integer.MAX_VALUE) {
-                Log.w(TAG, "Skipping abnormally large uuid box");
-                return null;
-            }
+            if (Objects.equals(box.uuid, XMP_UUID)) {
+                box.data = allocateBuffer(type, (int) (len - box.headerSize));
+                if (box.data == null) return false;
 
-            try {
-                box.data = new byte[(int) (len - box.headerSize)];
-            } catch (OutOfMemoryError e) {
-                Log.w(TAG, "Couldn't read large uuid box", e);
-                return null;
+                Os.read(fd, box.data, 0, box.data.length);
             }
-            Os.read(fd, box.data, 0, box.data.length);
         } else if (type == BOX_XMP) {
-            if (len > Integer.MAX_VALUE) {
-                Log.w(TAG, "Skipping abnormally large xmp box");
-                return null;
-            }
+            box.data = allocateBuffer(type, (int) (len - box.headerSize));
+            if (box.data == null) return false;
 
-            try {
-                box.data = new byte[(int) (len - box.headerSize)];
-            } catch (OutOfMemoryError e) {
-                Log.w(TAG, "Couldn't read large xmp box", e);
-                return null;
-            }
             Os.read(fd, box.data, 0, box.data.length);
         } else if (type == BOX_META && len != headerSize) {
             // The format of this differs in ISO and QT encoding:
@@ -221,19 +223,29 @@ public class IsoInterface {
                     + " at " + pos + " hdr " + box.headerSize + " length " + len);
         }
 
+        switch (type) {
+            case BOX_UUID:
+                if (!Objects.equals(box.uuid, XMP_UUID)) break;
+            // fall through
+            case BOX_META:
+            case BOX_HDLR:
+            case BOX_XYZ:
+            case BOX_LOCI:
+            case BOX_GPS:
+            case BOX_GPS0:
+                flatten.add(box);
+                break;
+        }
+
         // Recursively parse any children boxes
         if (isBoxParent(type)) {
-            box.children = new ArrayList<>();
-
-            Box child;
-            while ((child = parseNextBox(fd, pos + len, type, prefix + "  ")) != null) {
-                box.children.add(child);
-            }
+            //noinspection StatementWithEmptyBody
+            while (parseNextBox(flatten, fd, pos + len, type, prefix + "  ")) {}
         }
 
         // Skip completely over ourselves
         Os.lseek(fd, pos + len, OsConstants.SEEK_SET);
-        return box;
+        return true;
     }
 
     private IsoInterface(@NonNull FileDescriptor fd) throws IOException {
@@ -255,25 +267,14 @@ public class IsoInterface {
 
             final long end = Os.lseek(fd, 0, OsConstants.SEEK_END);
             Os.lseek(fd, 0, OsConstants.SEEK_SET);
-            Box box;
-            while ((box = parseNextBox(fd, end, -1, "")) != null) {
-                mRoots.add(box);
-            }
+
+            //noinspection StatementWithEmptyBody
+            while (parseNextBox(mFlattened, fd, end, -1, "")) {}
         } catch (ErrnoException e) {
             throw e.rethrowAsIOException();
         } catch (OutOfMemoryError e) {
             Log.e(TAG, "Too many boxes in file. This might imply a corrupted file.", e);
             throw new IOException(e.getMessage());
-        }
-
-        // Also create a flattened structure to speed up searching
-        final Queue<Box> queue = new ArrayDeque<>(mRoots);
-        while (!queue.isEmpty()) {
-            final Box box = queue.poll();
-            mFlattened.add(box);
-            if (box.children != null) {
-                queue.addAll(box.children);
-            }
         }
     }
 
@@ -308,10 +309,10 @@ public class IsoInterface {
         return res.toArray();
     }
 
-    public @NonNull long[] getBoxRanges(@NonNull UUID uuid) {
+    public @NonNull long[] getBoxRangesForXmpUuid() {
         LongArray res = new LongArray();
         for (Box box : mFlattened) {
-            if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+            if (box.type == BOX_UUID && Objects.equals(box.uuid, XMP_UUID)) {
                 for (int i = 0; i < box.range.length; i += 2) {
                     res.add(box.range[i] + box.headerSize);
                     res.add(box.range[i] + box.range[i + 1]);
@@ -334,11 +335,11 @@ public class IsoInterface {
     }
 
     /**
-     * Return contents of the first UUID box of requested type.
+     * Return contents of the first XMP UUID box of requested type.
      */
-    public @Nullable byte[] getBoxBytes(@NonNull UUID uuid) {
+    public @Nullable byte[] getBoxBytesForXmpUuid() {
         for (Box box : mFlattened) {
-            if (box.type == BOX_UUID && Objects.equals(box.uuid, uuid)) {
+            if (box.type == BOX_UUID && Objects.equals(box.uuid, XMP_UUID)) {
                 return box.data;
             }
         }

@@ -1508,6 +1508,14 @@ public class MediaProvider extends ContentProvider {
         }
         setComponentEnabledSetting(
                 "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
+
+        // Always make sure PhotoPickerActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerActivity", true);
+
+        // Always make sure PhotoPickerUserSelectActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerUserSelectActivity", true);
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {

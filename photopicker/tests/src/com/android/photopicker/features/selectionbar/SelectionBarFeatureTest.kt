@@ -50,6 +50,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -290,6 +291,37 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
+            composeTestRule
+                .onNode(hasTestTag(TEST_TAG_SELECTION_BAR))
+                .assertExists()
+                .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testSelectionBarIsAlwaysShownForGrantsAwareSelection() {
+        testScope.runTest {
+            val photopickerConfiguration: PhotopickerConfiguration =
+                testUserSelectImagesForAppConfiguration
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalFeatureManager provides featureManager.get(),
+                    LocalSelection provides selection.get(),
+                    LocalEvents provides events.get(),
+                    LocalNavController provides createNavController(),
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
+                        SelectionBar(
+                            modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
+                            params = LocationParams.None
+                        )
+                    }
+                }
+            }
+            composeTestRule.waitForIdle()
+
+            // verify that the selection bar is displayed
             composeTestRule
                 .onNode(hasTestTag(TEST_TAG_SELECTION_BAR))
                 .assertExists()

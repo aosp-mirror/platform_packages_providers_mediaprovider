@@ -10697,11 +10697,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isCallingIdentityDownloadProvider() {
-        return getCallingUidOrSelf() == mDownloadsAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mDownloadsAuthorityAppId;
     }
 
     private boolean isCallingIdentityExternalStorageProvider() {
-        return getCallingUidOrSelf() == mExternalStorageAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mExternalStorageAuthorityAppId;
     }
 
     private boolean isCallingIdentityMtp() {

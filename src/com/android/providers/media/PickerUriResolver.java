@@ -482,8 +482,10 @@ public class PickerUriResolver {
         }
     }
 
-    @VisibleForTesting
-    static Uri unwrapProviderUri(Uri uri) {
+    /**
+     * Unwraps picker uri for processing host and id.
+     */
+    public static Uri unwrapProviderUri(Uri uri) {
         return unwrapProviderUri(uri, true);
     }
 
@@ -521,12 +523,19 @@ public class PickerUriResolver {
     }
 
     private void checkUriPermission(Uri uri, int pid, int uid) {
+        checkUriPermission(mContext, uri, pid, uid);
+    }
+
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public static void checkUriPermission(Context context, Uri uri, int pid, int uid) {
         // Clear query parameters to check for URI permissions, apps can add requireOriginal
         // query parameter to URI, URI grants will not be present in that case.
         Uri uriWithoutQueryParams = uri.buildUpon().clearQuery().build();
         if (!isSelf(uid)
-                && !PermissionUtils.checkManageCloudMediaProvidersPermission(mContext, pid, uid)
-                && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
+                && !PermissionUtils.checkManageCloudMediaProvidersPermission(context, pid, uid)
+                && context.checkUriPermission(uriWithoutQueryParams, pid, uid,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
             throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
                     "access picker uri: " + uriWithoutQueryParams);
@@ -556,7 +565,7 @@ public class PickerUriResolver {
         }
     }
 
-    private boolean isSelf(int uid) {
+    private static boolean isSelf(int uid) {
         return UserHandle.getAppId(Process.myUid()) == UserHandle.getAppId(uid);
     }
 

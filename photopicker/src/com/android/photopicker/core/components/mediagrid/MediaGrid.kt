@@ -104,10 +104,10 @@ import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
-private val CELLS_PER_ROW = 3
+private val CELLS_PER_ROW: Int = 3
 
 /** The number of grid cells per row for Tablet / expanded layouts */
-private val CELLS_PER_ROW_EXPANDED = 4
+private val CELLS_PER_ROW_EXPANDED: Int = 4
 
 /** The default (if not overridden) amount of content padding below the grid */
 private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 150.dp
@@ -191,9 +191,7 @@ fun mediaGrid(
     onItemClick: (item: MediaGridItem) -> Unit,
     onItemLongPress: (item: MediaGridItem) -> Unit = {},
     isExpandedScreen: Boolean = false,
-    columns: GridCells =
-        if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
-        else GridCells.Fixed(CELLS_PER_ROW),
+    columns: GridCells = GridCells.Fixed(getCellsPerRow(isExpandedScreen)),
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
@@ -308,6 +306,14 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
         is MediaGridItem.AlbumItem -> GridItemSpan(1)
         else -> GridItemSpan(1)
     }
+}
+
+/**
+ * Return the number of cells in a row based on whether the current configuration has expanded
+ * screen or not.
+ */
+public fun getCellsPerRow(isExpandedScreen: Boolean): Int {
+    return if (isExpandedScreen) CELLS_PER_ROW_EXPANDED else CELLS_PER_ROW
 }
 
 /**

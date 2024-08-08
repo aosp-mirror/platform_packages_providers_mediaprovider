@@ -45,6 +45,9 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
+import com.android.photopicker.core.configuration.testGetContentConfiguration
+import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
@@ -55,6 +58,7 @@ import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
+import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -142,6 +146,26 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
         MockitoAnnotations.initMocks(this)
         hiltRule.inject()
         setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
+    }
+
+    @Test
+    fun testProfileSelectorEnabledInConfigurations() {
+
+        assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_PICK_IMAGES)")
+            .that(ProfileSelectorFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .isEqualTo(true)
+
+        assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_GET_CONTENT)")
+            .that(ProfileSelectorFeature.Registration.isEnabled(testGetContentConfiguration))
+            .isEqualTo(true)
+
+        assertWithMessage("ProfileSelectorFeature should not be enabled (USER_SELECT_FOR_APP)")
+            .that(
+                ProfileSelectorFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration
+                )
+            )
+            .isEqualTo(false)
     }
 
     @Test

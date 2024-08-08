@@ -26,8 +26,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.EmbeddedServiceComponentBuilder
-import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
-import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
+import com.android.providers.media.flags.Flags.enableEmbeddedPhotopicker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -58,25 +57,13 @@ class EmbeddedService : Hilt_EmbeddedService() {
     // EmbeddedService.
     private val allSessions: MutableList<Session> = mutableListOf()
 
-    private val FEATURE_MODERN_PICKER_ENABLED = Pair("enable_modern_picker", true)
-
-    /** To check if modern photopicker is enabled on the device */
-    private val isModernPickerEnabled =
-        DeviceConfigProxyImpl()
-            .getFlag(
-                NAMESPACE_MEDIAPROVIDER,
-                /* key= */ FEATURE_MODERN_PICKER_ENABLED.first,
-                /* defaultValue= */ FEATURE_MODERN_PICKER_ENABLED.second
-            )
-
     companion object {
         val TAG: String = "PhotopickerEmbeddedService"
     }
 
     // The binder object that is sent to all clients that bind this service.
     private val _binder: IBinder? =
-        if (SdkLevel.isAtLeastU() && isModernPickerEnabled) {
-            // TODO(b/357048672): Check embedded picker aconfig flag before the API release
+        if (SdkLevel.isAtLeastU() && enableEmbeddedPhotopicker()) {
             EmbeddedPhotopickerImpl(sessionFactory = ::buildSession)
         } else {
             // Embedded Photopicker is only available on U+ devices when the build flag is enabled.
@@ -86,6 +73,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
         }
 
     override fun onBind(intent: Intent?): IBinder? {
+
         // If _binder is null, the device Sdk is too low, or a required flag was not enabled, and so
         // this session will be ignored.
         if (_binder == null) {

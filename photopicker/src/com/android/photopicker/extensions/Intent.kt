@@ -17,7 +17,9 @@
 package com.android.photopicker.extensions
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.MediaStore
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 
@@ -232,6 +234,59 @@ fun Intent.canHandleGetContentIntentMimeTypes(): Boolean {
         ?: return false
 
     return true
+}
+
+/**
+ * Fetch the [EXTRA_PICKER_PRE_SELECTION_URIS] extra from the intent.
+ *
+ * [EXTRA_PICKER_PRE_SELECTION_URIS] only works in ACTION_PICK_IMAGES, so this method will throw
+ * [IllegalIntentExtraException] for any other actions.
+ *
+ * @return the value of the extra, null if it is not set or an [IllegalIntentExtraException] is
+ *   thrown if the action is not supported.
+ */
+@Suppress("DEPRECATION")
+fun Intent.getPickImagesPreSelectedUris(): ArrayList<Uri>? {
+    val preSelectedUris: ArrayList<Uri>? =
+        if (extras?.containsKey(MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS) == true) {
+            when (action) {
+                MediaStore.ACTION_PICK_IMAGES -> {
+                    extras?.let {
+                        (if (SdkLevel.isAtLeastT()) {
+                                it.getParcelableArrayList(
+                                    MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS,
+                                    Uri::class.java
+                                ) as ArrayList<Uri>
+                            } else {
+                                it.getParcelableArrayList<Uri>(
+                                    MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS
+                                ) as ArrayList<Uri>
+                            })
+                            .also { uris ->
+                                val numberOfItemsAllowed =
+                                    getPhotopickerSelectionLimitOrDefault(
+                                        MediaStore.getPickImagesMaxLimit()
+                                    )
+                                if (uris.size > numberOfItemsAllowed) {
+                                    throw IllegalIntentExtraException(
+                                        "The number of URIs exceed the maximum allowed limit: " +
+                                            "$numberOfItemsAllowed"
+                                    )
+                                }
+                            }
+                    }
+                }
+                else -> {
+                    // All other actions are unsupported.
+                    throw IllegalIntentExtraException(
+                        "EXTRA_PICKER_PRE_SELECTION_URIS is not supported for ${getAction()}"
+                    )
+                }
+            }
+        } else {
+            null
+        }
+    return preSelectedUris
 }
 
 /**

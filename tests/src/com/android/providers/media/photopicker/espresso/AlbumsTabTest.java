@@ -34,8 +34,11 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 
 import static org.hamcrest.Matchers.allOf;
 
+import android.os.Build;
+
 import androidx.test.InstrumentationRegistry;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
@@ -48,6 +51,7 @@ import org.junit.runner.RunWith;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class AlbumsTabTest extends PhotoPickerBaseTest {
 
     // TODO(b/192304192): We need to use multi selection mode to go into full screen to check all

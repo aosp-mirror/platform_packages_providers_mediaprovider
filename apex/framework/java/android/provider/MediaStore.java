@@ -292,6 +292,10 @@ public final class MediaStore {
     public static final String REVOKE_READ_GRANT_FOR_PACKAGE_CALL =
             "revoke_media_read_for_package";
 
+    /** @hide */
+    public static final String REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL =
+            "revoke_all_media_grants_for_package";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
@@ -5150,6 +5154,29 @@ public final class MediaStore {
             extras.putInt(Intent.EXTRA_UID, packageUid);
             extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
             client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Revoke all {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris.
+     *
+     * @hide
+     */
+    public static void revokeAllMediaReadForPackages(
+            @NonNull Context context, int packageUid) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            // Add extra to indicate that all grants for the current package and useId needs to be
+            // revoked.
+            extras.putBoolean(REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL, true);
+            client.call(REVOKE_READ_GRANT_FOR_PACKAGE_CALL,
                     /* arg= */ null,
                     /* extras= */ extras);
         } catch (RemoteException e) {

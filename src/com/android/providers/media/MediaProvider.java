@@ -54,6 +54,7 @@ import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
+import static android.provider.MediaStore.REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -1507,6 +1508,14 @@ public class MediaProvider extends ContentProvider {
         }
         setComponentEnabledSetting(
                 "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
+
+        // Always make sure PhotoPickerActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerActivity", true);
+
+        // Always make sure PhotoPickerUserSelectActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerUserSelectActivity", true);
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -6874,8 +6883,10 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     private Bundle getResultForRevokeReadGrantForPackage(Bundle extras) {
         final int caller = Binder.getCallingUid();
+        final Boolean isCallForRevokeAll = extras.getBoolean(
+                REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL);
         int userId;
-        final List<Uri> uris;
+        List<Uri> uris = null;
         String[] packageNames;
         if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
@@ -6886,7 +6897,10 @@ public class MediaProvider extends ContentProvider {
                                 + " EXTRA_PACKAGE_NAME");
             }
             packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
-            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Uris are not a requirement for revoke all call
+            if (!isCallForRevokeAll) {
+                uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            }
             // Caller is always shell which may not have the desired userId. Hence, use
             // UserId from the MediaProvider process itself.
             userId = UserHandle.myUserId();
@@ -6898,14 +6912,22 @@ public class MediaProvider extends ContentProvider {
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+            // Uris are not a requirement for revoke all call
+            if (!isCallForRevokeAll) {
+                uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+            }
         } else {
             // All other callers are unauthorized.
             throw new SecurityException(
                     getSecurityExceptionMessage("revoke media grants"));
         }
 
-        mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        if (isCallForRevokeAll) {
+            mMediaGrants.removeAllMediaGrantsForPackages(packageNames, "user de-selections",
+                    userId);
+        } else if (uris != null) {
+            mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        }
         return null;
     }
 
@@ -10683,11 +10705,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isCallingIdentityDownloadProvider() {
-        return getCallingUidOrSelf() == mDownloadsAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mDownloadsAuthorityAppId;
     }
 
     private boolean isCallingIdentityExternalStorageProvider() {
-        return getCallingUidOrSelf() == mExternalStorageAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mExternalStorageAuthorityAppId;
     }
 
     private boolean isCallingIdentityMtp() {

@@ -23,7 +23,10 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
+import android.os.Build;
+
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
@@ -37,6 +40,7 @@ import org.junit.runner.RunWith;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class BlockedByAdminProfileButtonTest extends PhotoPickerBaseTest {
     @BeforeClass
     public static void setupClass() throws Exception {

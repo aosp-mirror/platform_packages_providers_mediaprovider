@@ -155,7 +155,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -188,7 +189,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -275,7 +277,8 @@ class DataServiceImplTest {
                 config = MutableStateFlow(testPhotopickerConfiguration),
                 appContext = mockContext,
                 featureManager = featureManager,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -311,7 +314,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -400,7 +404,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -518,7 +523,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -587,7 +593,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         // Check initial available provider emissions
@@ -657,7 +664,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -735,7 +743,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         // Check initial available provider emissions
@@ -830,7 +839,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -880,7 +890,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -963,7 +974,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -1049,7 +1061,8 @@ class DataServiceImplTest {
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -1138,7 +1151,8 @@ class DataServiceImplTest {
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1201,7 +1215,8 @@ class DataServiceImplTest {
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1266,7 +1281,8 @@ class DataServiceImplTest {
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1328,7 +1344,8 @@ class DataServiceImplTest {
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
-                events = events
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()

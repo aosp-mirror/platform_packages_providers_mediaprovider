@@ -81,6 +81,7 @@
         android:id="@+id/thumb_full"
         android:layout_width="match_parent"
         android:layout_height="200dp"
+        android:layout_gravity="center"
         android:scaleType="centerCrop"
         android:src="@color/thumb_gray_color"
         android:visibility="gone" />

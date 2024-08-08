@@ -18,6 +18,7 @@ package com.android.photopicker.features.data.paging
 
 import android.content.ContentResolver
 import android.content.Intent
+import android.net.Uri
 import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -82,6 +83,35 @@ class MediaProviderClientTest {
         for (index in media.indices) {
             assertThat(media[index]).isEqualTo(testContentProvider.media[index])
         }
+    }
+
+    @Test
+    fun testFetchFilteredMediaPage() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+
+        val mediaLoadResult: List<Media> =
+            mediaProviderClient.fetchFilteredMedia(
+                pageKey = MediaPageKey(),
+                pageSize = 5,
+                contentResolver = testContentResolver,
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId
+                    ),
+                // add a uri to preSelection
+                arrayListOf(
+                    Uri.parse(
+                        "content://media/picker/0/com.android.providers.media.photopicker/media/" +
+                            testContentProvider.media[1].mediaId
+                    )
+                )
+            )
+
+        assertThat(mediaLoadResult).isNotNull()
+        assertThat(mediaLoadResult.count()).isEqualTo(1)
+        assertThat(mediaLoadResult.get(0).mediaId).isEqualTo(testContentProvider.media[1].mediaId)
     }
 
     @Test

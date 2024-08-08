@@ -17,6 +17,7 @@
 package com.android.photopicker.core.components
 
 import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
@@ -580,6 +582,9 @@ private fun defaultBuildAlbumItem(
                         }
                         id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
                             DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
+                        }
+                        id.equals(ALBUM_ID_CAMERA) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.PhotoCamera, modifier)
                         }
                         // Load the media item through the Glide entrypoint.
                         else -> {

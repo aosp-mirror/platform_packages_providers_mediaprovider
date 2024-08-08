@@ -242,6 +242,7 @@ abstract class PhotopickerTestModule {
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
         }
     }

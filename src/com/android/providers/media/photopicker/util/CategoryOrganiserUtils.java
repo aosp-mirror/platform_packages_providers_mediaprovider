@@ -48,15 +48,12 @@ public class CategoryOrganiserUtils {
 
         // DO NOT ALTER THIS ORDER.
         // These priorities decide the order in which the categories will be displayed on UI.
-        sCategoryPriorityMapping = new HashMap<String, Integer>() {
-            {
-                put(ALBUM_ID_FAVORITES, 0);
-                put(ALBUM_ID_CAMERA, 1);
-                put(ALBUM_ID_VIDEOS, 2);
-                put(ALBUM_ID_SCREENSHOTS, 3);
-                put(ALBUM_ID_DOWNLOADS, 4);
-            }
-        };
+        sCategoryPriorityMapping = new HashMap<String, Integer>();
+        sCategoryPriorityMapping.put(ALBUM_ID_FAVORITES, 0);
+        sCategoryPriorityMapping.put(ALBUM_ID_CAMERA, 1);
+        sCategoryPriorityMapping.put(ALBUM_ID_VIDEOS, 2);
+        sCategoryPriorityMapping.put(ALBUM_ID_SCREENSHOTS, 3);
+        sCategoryPriorityMapping.put(ALBUM_ID_DOWNLOADS, 4);
     }
 
     private static int getPriority(Category category) {

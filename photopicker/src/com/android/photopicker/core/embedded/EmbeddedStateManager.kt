@@ -17,6 +17,7 @@
 package com.android.photopicker.core.embedded
 
 import android.util.Log
+import android.view.SurfaceControlViewHost
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -28,11 +29,15 @@ import kotlinx.coroutines.flow.update
  * See [EmbeddedState] for details about all the various pieces that make up the session state.
  *
  * Provides a long-living [StateFlow] that emits the currently known state.
+ *
+ * @param host the Instance of [SurfaceControlViewHost] for the current session
  */
-class EmbeddedStateManager {
+class EmbeddedStateManager(host: SurfaceControlViewHost? = null) {
     companion object {
         const val TAG: String = "PhotopickerEmbeddedStateManager"
     }
+
+    private val _host = host
 
     /*
      * Internal [EmbeddedState] flow. When the embedded state changes, this is what should
@@ -46,16 +51,43 @@ class EmbeddedStateManager {
      */
     val state: StateFlow<EmbeddedState> = _state
 
+    private var _recomposeToggle = state.value.recomposeToggle
+
     /** Assembles an initial state upon embedded photopicker session launch. */
     private fun generateInitialEmbeddedState(): EmbeddedState {
-        val initialEmbeddedState = EmbeddedState()
+        val initialEmbeddedState = EmbeddedState(host = _host)
         Log.d(TAG, "Initial embedded state: $initialEmbeddedState")
         return initialEmbeddedState
     }
 
-    /** Sets the current expanded or collapsed state of the embedded photopicker. */
+    /**
+     * Updates the expanded state of the embedded photopicker.
+     *
+     * @param isExpanded true if the photopicker is expanded (full-screen view), false if it is
+     *   collapsed (half-screen view).
+     */
     fun setIsExpanded(isExpanded: Boolean) {
         Log.d(TAG, "Expanded state updated to $isExpanded")
         _state.update { it.copy(isExpanded = isExpanded) }
+    }
+
+    /**
+     * Sets the dark theme preference of the embedded photopicker
+     *
+     * @param isDarkTheme true to apply a dark theme, false for a light theme.
+     */
+    fun setIsDarkTheme(isDarkTheme: Boolean) {
+        Log.d(TAG, "Dark theme state updated to $isDarkTheme")
+        _state.update { it.copy(isDarkTheme = isDarkTheme) }
+    }
+
+    /**
+     * Updates the [_recomposeToggle] causing the photopicker to recompose its UI, to respond to
+     * change in config.
+     */
+    fun triggerRecompose() {
+        _recomposeToggle = !_recomposeToggle
+        Log.d(TAG, "Recompose toggle updated to $_recomposeToggle")
+        _state.update { it.copy(recomposeToggle = _recomposeToggle) }
     }
 }

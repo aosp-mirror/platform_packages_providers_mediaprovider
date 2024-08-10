@@ -243,6 +243,7 @@ abstract class EmbeddedTestModule {
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = dataService.preSelectionMediaData
                 )
         }
     }

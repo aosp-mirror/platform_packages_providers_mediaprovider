@@ -58,6 +58,7 @@ import com.android.providers.media.photopicker.v2.model.AlbumMediaQuery;
 import com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper;
 import com.android.providers.media.photopicker.v2.model.FavoritesMediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
+import com.android.providers.media.photopicker.v2.model.MediaQueryForPreSelection;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 import com.android.providers.media.photopicker.v2.model.PreviewMediaQuery;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
@@ -788,22 +789,21 @@ public class PickerDataLayerV2 {
                 return new AlbumsCursorWrapper(result, authority, localAuthority);
             }
 
-            // Show merged albums even if no data is currently available in the DB when cloud media
-            // feature is enabled.
-            if (cloudAuthority != null) {
-                // Conform to the album response projection. Temporary code, this will change once
-                // we start caching album metadata.
-                final MatrixCursor result = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
-                final String[] projectionValue = new String[]{
-                        /* albumId */ albumId,
-                        /* dateTakenMillis */ Long.toString(Long.MAX_VALUE),
-                        /* displayName */ albumId,
-                        /* mediaId */ EMPTY_MEDIA_ID,
-                        /* count */ "0", // This value is not used anymore
-                        localAuthority,
-                };
-                result.addRow(projectionValue);
-                return new AlbumsCursorWrapper(result, localAuthority, localAuthority);
+            // Always show Videos album if cloud feature is turned on and the MIME types filter
+            // would allow for video format(s).
+            if (albumId.equals(AlbumColumns.ALBUM_ID_VIDEOS) && cloudAuthority != null) {
+                return new AlbumsCursorWrapper(
+                        getDefaultEmptyAlbum(albumId),
+                        /* albumAuthority */ localAuthority,
+                        /* localAuthority */ localAuthority);
+            }
+
+            // Always show Favorites album.
+            if (albumId.equals(AlbumColumns.ALBUM_ID_FAVORITES)) {
+                return new AlbumsCursorWrapper(
+                        getDefaultEmptyAlbum(albumId),
+                        /* albumAuthority */ localAuthority,
+                        /* localAuthority */ localAuthority);
             }
 
             return null;
@@ -811,7 +811,22 @@ public class PickerDataLayerV2 {
             database.setTransactionSuccessful();
             database.endTransaction();
         }
+    }
 
+    private static Cursor getDefaultEmptyAlbum(@NonNull String albumId) {
+        // Conform to the album response projection. Temporary code, this will change once we start
+        // caching album metadata.
+        final MatrixCursor result = new MatrixCursor(AlbumColumns.ALL_PROJECTION);
+        final String[] projectionValue = new String[]{
+                /* albumId */ albumId,
+                /* dateTakenMillis */ Long.toString(Long.MAX_VALUE),
+                /* displayName */ albumId,
+                /* mediaId */ EMPTY_MEDIA_ID,
+                /* count */ "0", // This value is not used anymore
+                /* authority */ null, // Authority is populated in AlbumsCursorWrapper
+        };
+        result.addRow(projectionValue);
+        return result;
     }
 
     /**
@@ -885,6 +900,17 @@ public class PickerDataLayerV2 {
         // Close localAlbumsCursor because it's data was copied into new Cursor(s) and it won't
         // be used again.
         if (localAlbumsCursor != null) localAlbumsCursor.close();
+
+        // Always show Camera album.
+        if (!localAlbumsMap.containsKey(AlbumColumns.ALBUM_ID_CAMERA)) {
+            localAlbumsMap.put(
+                    AlbumColumns.ALBUM_ID_CAMERA,
+                    new AlbumsCursorWrapper(
+                            getDefaultEmptyAlbum(AlbumColumns.ALBUM_ID_CAMERA),
+                            /* albumAuthority */ localAuthority,
+                            /* localAuthority */ localAuthority)
+            );
+        }
 
         return localAlbumsMap;
     }
@@ -1239,5 +1265,83 @@ public class PickerDataLayerV2 {
      */
     public static Bundle getCloudProviderDetails(Bundle queryArgs) {
         throw new UnsupportedOperationException("This method is not implemented yet.");
+    }
+
+    /**
+     * Returns a cursor for media filtered by ids based on input URIs.
+     */
+    public static Cursor queryMediaForPreSelection(@NonNull Context appContext, Bundle queryArgs) {
+        final MediaQueryForPreSelection query = new MediaQueryForPreSelection(queryArgs);
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final String effectiveLocalAuthority =
+                query.getProviders().contains(syncController.getLocalProvider())
+                        ? syncController.getLocalProvider()
+                        : null;
+        final String cloudAuthority = syncController
+                .getCloudProviderOrDefault(/* defaultValue */ null);
+        final String effectiveCloudAuthority =
+                syncController.shouldQueryCloudMedia(query.getProviders(), cloudAuthority)
+                        ? cloudAuthority
+                        : null;
+        waitForOngoingSync(appContext, effectiveLocalAuthority, effectiveCloudAuthority,
+                query.getIntentAction());
+
+        query.processUrisForSelection(query.getPreSelectionUris(), effectiveLocalAuthority,
+                effectiveCloudAuthority, effectiveCloudAuthority == null, appContext,
+                query.getCallingPackageUid());
+        return queryPreSelectedMediaInternal(
+                appContext,
+                syncController,
+                query,
+                effectiveLocalAuthority,
+                effectiveCloudAuthority
+        );
+    }
+
+    /**
+     * Query media from the database filtered by pre-selection uris and prepare a cursor in
+     * response.
+     *
+     * @param appContext The application context.
+     * @param syncController Instance of the PickerSyncController singleton.
+     * @param query The MediaQuery object instance that tells us about the media query args.
+     * @param localAuthority The effective local authority that we need to consider for this
+     *                       transaction. If the local items should not be queries but the local
+     *                       authority has some value, the effective local authority would be null.
+     * @param cloudAuthority The effective cloud authority that we need to consider for this
+     *                       transaction. If the local items should not be queries but the local
+     *                       authority has some value, the effective local authority would
+     *                       be null.
+     * @return The cursor with the album media query results.
+     */
+    @NonNull
+    private static Cursor queryPreSelectedMediaInternal(
+            @NonNull Context appContext,
+            @NonNull PickerSyncController syncController,
+            @NonNull MediaQuery query,
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority
+    ) {
+
+        final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+        waitForOngoingSync(appContext, localAuthority, cloudAuthority, query.getIntentAction());
+
+        try {
+            Cursor pageData = database.rawQuery(
+                    getMediaPageQuery(
+                            appContext,
+                            query,
+                            database,
+                            PickerSQLConstants.Table.MEDIA,
+                            localAuthority,
+                            cloudAuthority
+                    ),
+                    /* selectionArgs */ null
+            );
+            Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
+            return pageData;
+        } catch (Exception e) {
+            throw new RuntimeException("Could not fetch media", e);
+        }
     }
 }

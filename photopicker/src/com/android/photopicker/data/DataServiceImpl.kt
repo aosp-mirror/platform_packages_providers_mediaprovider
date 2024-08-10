@@ -26,6 +26,7 @@ import android.os.UserHandle
 import android.provider.CloudMediaProviderContract
 import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.GuardedBy
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Events
@@ -400,6 +401,7 @@ class DataServiceImpl(
             awaitClose { notificationService.unregisterContentObserverCallback(resolver, observer) }
         }
 
+    @GuardedBy("albumMediaPagingSourceMutex")
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> =
         runBlocking {
             refreshAlbumMedia(album)
@@ -435,6 +437,7 @@ class DataServiceImpl(
             }
         }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -464,6 +467,7 @@ class DataServiceImpl(
     ): StateFlow<CloudMediaProviderDetails?> =
         throw NotImplementedError("This method is not implemented yet.")
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -485,6 +489,7 @@ class DataServiceImpl(
         }
     }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
@@ -523,6 +528,7 @@ class DataServiceImpl(
         refreshMedia(availableProviders)
     }
 
+    @GuardedBy("albumMediaPagingSourceMutex")
     override suspend fun refreshAlbumMedia(album: Album) {
         albumMediaPagingSourceMutex.withLock {
             // Send album media refresh request only when the album media paging source is not

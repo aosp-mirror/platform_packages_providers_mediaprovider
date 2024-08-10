@@ -106,7 +106,8 @@ class AlbumGridViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val featureManager =
@@ -175,7 +176,8 @@ class AlbumGridViewModelTest {
                                     selectionLimit = 0,
                                     sessionId = generatePickerSessionId()
                                 )
-                        )
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val featureManager =

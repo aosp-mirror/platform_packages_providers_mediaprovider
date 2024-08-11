@@ -108,6 +108,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag controls whether the embedded photopicker is enabled"
     bug: "353634929"
+    is_fixed_read_only: true
 }
 
 flag {

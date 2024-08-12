@@ -55,6 +55,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable accepting of URIs for pre-selection as an intent extra."
     bug: "333038370"
+    is_fixed_read_only: true
 }
 
 flag {

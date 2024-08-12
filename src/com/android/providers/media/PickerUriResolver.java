@@ -522,7 +522,10 @@ public class PickerUriResolver {
         return Integer.parseInt(uri.getPathSegments().get(1));
     }
 
-    private void checkUriPermission(Uri uri, int pid, int uid) {
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public void checkUriPermission(Uri uri, int pid, int uid) {
         checkUriPermission(mContext, uri, pid, uid);
     }
 
@@ -542,7 +545,10 @@ public class PickerUriResolver {
         }
     }
 
-    private void checkPermissionForRequireOriginalQueryParam(Uri uri,
+    /**
+     * Checks if the caller has the required permission to require original for the picker URI.
+     */
+    public void checkPermissionForRequireOriginalQueryParam(Uri uri,
             LocalCallingIdentity localCallingIdentity) {
         String value = uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL);
         if (value == null || value.isEmpty()) {

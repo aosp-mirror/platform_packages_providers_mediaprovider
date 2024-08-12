@@ -32,6 +32,8 @@ import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PR
 import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.MediaStore.EXTRA_IS_STABLE_URIS_ENABLED;
+import static android.provider.MediaStore.EXTRA_OPEN_ASSET_FILE_REQUEST;
+import static android.provider.MediaStore.EXTRA_OPEN_FILE_REQUEST;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
@@ -255,6 +257,8 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.provider.OpenAssetFileRequest;
+import android.provider.OpenFileRequest;
 import android.provider.Settings;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -590,6 +594,7 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
     private UserManager mUserManager;
     private PickerUriResolver mPickerUriResolver;
+    private AsyncPickerFileOpener mAsyncPickerFileOpener;
 
     private UserCache mUserCache;
     private VolumeCache mVolumeCache;
@@ -1379,6 +1384,7 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
                 mUriMatcher);
+        mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -1571,6 +1577,25 @@ public class MediaProvider extends ContentProvider {
 
     public void restoreLocalCallingIdentity(LocalCallingIdentity token) {
         mCallingIdentity.set(token);
+    }
+
+    /**
+     * Adds the mapping from thread id to uid in PendingOpen map.
+     */
+    public void addToPendingOpenMap(int tid, int uid) {
+        synchronized (mPendingOpenInfo) {
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, /* mediaCapabilitiesUid */ 0,
+                    /* shouldRedact */ false, /* transcodeReason */ 0));
+        }
+    }
+
+    /**
+     * Removes the pending open info for the passed thread i from PendingOpen map.
+     */
+    public void removeFromPendingOpenMap(int tid) {
+        synchronized (mPendingOpenInfo) {
+            mPendingOpenInfo.remove(tid);
+        }
     }
 
     private boolean isPackageKnown(@NonNull String packageName, int userId) {
@@ -6807,6 +6832,15 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.CREATE_DELETE_REQUEST_CALL: {
                 return getResultForCreateOperationsRequest(method, extras);
             }
+            case MediaStore.CREATE_CANCELLATION_SIGNAL_CALL: {
+                return getResultForCreateCancellationSignal();
+            }
+            case MediaStore.OPEN_FILE_CALL: {
+                return getResultForOpenFile(extras);
+            }
+            case MediaStore.OPEN_ASSET_FILE_CALL: {
+                return getResultForOpenAssetFile(extras);
+            }
             case MediaStore.IS_SYSTEM_GALLERY_CALL:
                 return getResultForIsSystemGallery(arg, extras);
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
@@ -7241,6 +7275,36 @@ public class MediaProvider extends ContentProvider {
         final Bundle res = new Bundle();
         res.putParcelable(MediaStore.EXTRA_RESULT, pi);
         return res;
+    }
+
+    @NotNull
+    private Bundle getResultForCreateCancellationSignal() {
+        final Bundle res = new Bundle();
+        res.putBinder(MediaStore.CREATE_CANCELLATION_SIGNAL_RESULT,
+                (new MPCancellationSignal()).asBinder());
+        return res;
+    }
+
+    @NotNull
+    private Bundle getResultForOpenFile(Bundle extras) {
+        OpenFileRequest request = extras.getParcelable(EXTRA_OPEN_FILE_REQUEST);
+        if (!isPickerUri(request.getUri())) {
+            throw new IllegalArgumentException("Given Uri " + request.getUri()
+                    + " should be a picker URI");
+        }
+        mAsyncPickerFileOpener.scheduleOpenFileAsync(request, mCallingIdentity.get());
+        return new Bundle();
+    }
+
+    @NotNull
+    private Bundle getResultForOpenAssetFile(Bundle extras) {
+        OpenAssetFileRequest request = extras.getParcelable(EXTRA_OPEN_ASSET_FILE_REQUEST);
+        if (!isPickerUri(request.getUri())) {
+            throw new IllegalArgumentException("Given Uri " + request.getUri()
+                    + " should be a picker URI");
+        }
+        mAsyncPickerFileOpener.scheduleOpenAssetFileAsync(request, mCallingIdentity.get());
+        return new Bundle();
     }
 
     @NotNull

@@ -141,7 +141,11 @@ public final class LevelDBInstance {
             }
 
             mNativePtr = 0;
-            new File(getLevelDBPath()).delete();
+            File levelDbDir = new File(getLevelDBPath());
+            for (File file: levelDbDir.listFiles()) {
+                file.delete();
+            }
+            levelDbDir.delete();
         }
     }
 

@@ -17,7 +17,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_privacy_explainer" msgid="9113071273402902195">"<xliff:g id="APP_NAME">%1$s</xliff:g> может получить доступ только к выбранным фотографиям."</string>
+    <!-- no translation found for photopicker_privacy_explainer (4607406928962678061) -->
+    <skip />
     <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"Выберите фотографии и видео, к которым <xliff:g id="APP_NAME">%1$s</xliff:g> может получить доступ."</string>
     <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"Это приложение"</string>
 </resources>

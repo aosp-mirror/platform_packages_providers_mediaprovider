@@ -55,6 +55,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable accepting of URIs for pre-selection as an intent extra."
     bug: "333038370"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -118,4 +119,13 @@ flag {
     namespace: "mediaprovider"
     description: "This flag will enable support for OEM metadata column"
     bug: "352528480"
+}
+
+flag {
+    name: "media_store_open_file"
+    is_exported: true
+    is_fixed_read_only: true
+    namespace: "mediaprovider"
+    description: "This flag will enable new APIs for opening media files through MediaStore"
+    bug: "356147697"
 }

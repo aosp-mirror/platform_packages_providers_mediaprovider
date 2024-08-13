@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"বাতিল কৰক"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"অপেক্ষা কৰক"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"সুৰক্ষিত নিৰাপত্তা"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"স্থানীয় ট্ৰেন্সক’ড সতৰ্কবাৰ্তা"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"স্থানীয় ট্ৰেন্সক’ড অগ্ৰগতি"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ট্ৰেন্সক’ডিং সম্পৰ্কীয় জাননী"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ট্ৰেন্সক’ডিঙৰ অগ্ৰগতি"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"পাছত পুনৰ চেষ্টা কৰক। সমস্যাটো সমাধান হোৱাৰ পাছত আপোনাৰ ফট’সমূহ উপলব্ধ হ’ব।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"কিছুমান ফট’ ল’ড কৰিব নোৱাৰি"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"বুজি পালোঁ"</string>

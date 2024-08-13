@@ -8205,6 +8205,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (initialValues.containsKey(FileColumns.GENERATION_MODIFIED)
+                    && !isCallingPackageSelf()) {
+                // We only allow MediaScanner to send updates for generation modified
+                initialValues.remove(FileColumns.GENERATION_MODIFIED);
+            }
+
             if (!isCallingPackageSelf()) {
                 Trace.beginSection("MP.filter");
 

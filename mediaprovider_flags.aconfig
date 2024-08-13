@@ -139,3 +139,12 @@ flag {
     is_fixed_read_only: true
 }
 
+flag {
+    name: "audio_sample_columns"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Controls exposure of bits_per_sample and samplerate audio columns"
+    bug: "352523369"
+    is_fixed_read_only: true
+}
+

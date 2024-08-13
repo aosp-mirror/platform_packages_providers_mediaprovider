@@ -63,7 +63,7 @@
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Альбомы"</string>
-    <string name="picker_preview" msgid="6257414886055861039">"Предварительный просмотр"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"Предпросмотр"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Перейти в рабочий профиль"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Перейти в личный профиль"</string>
     <string name="picker_personal_profile_label" msgid="6189198163209597344">"Личный"</string>

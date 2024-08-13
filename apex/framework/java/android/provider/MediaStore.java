@@ -1076,7 +1076,7 @@ public final class MediaStore {
      * <p>This is not a mechanism to revoke permissions for items, i.e. de-selection of a
      * pre-selected item by the user will not result in revocation of the grant.</p>
      */
-    @FlaggedApi("com.android.providers.media.flags.picker_pre_selection")
+    @FlaggedApi(Flags.FLAG_PICKER_PRE_SELECTION_EXTRA)
     public static final String EXTRA_PICKER_PRE_SELECTION_URIS =
             "android.provider.extra.PICKER_PRE_SELECTION_URIS";
 

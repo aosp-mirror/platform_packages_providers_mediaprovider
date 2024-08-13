@@ -50,7 +50,7 @@ flag {
 }
 
 flag {
-    name: "picker_pre_selection"
+    name: "picker_pre_selection_extra"
     is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable accepting of URIs for pre-selection as an intent extra."

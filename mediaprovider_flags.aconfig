@@ -129,3 +129,13 @@ flag {
     description: "This flag will enable new APIs for opening media files through MediaStore"
     bug: "356147697"
 }
+
+flag {
+    name: "inferred_media_date"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Controls exposure of inferred_media_date column"
+    bug: "352524889"
+    is_fixed_read_only: true
+}
+

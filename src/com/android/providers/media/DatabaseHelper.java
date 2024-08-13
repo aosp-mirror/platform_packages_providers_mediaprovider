@@ -1148,7 +1148,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
                 + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL,"
-                + "oem_metadata BLOB DEFAULT NULL)");
+                + "oem_metadata BLOB DEFAULT NULL,"
+                + "inferred_media_date INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1969,6 +1970,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
     }
 
+    private static void updateAddInferredMediaDate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN inferred_media_date INTEGER;");
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -2036,7 +2041,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    static final int VERSION_V = 1500;
+    static final int VERSION_V = 1501;
     public static final int VERSION_LATEST = VERSION_V;
 
     /**
@@ -2268,6 +2273,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1500) {
                 updateAddOemMetadata(db);
+            }
+
+            if (fromVersion < 1501) {
+                updateAddInferredMediaDate(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

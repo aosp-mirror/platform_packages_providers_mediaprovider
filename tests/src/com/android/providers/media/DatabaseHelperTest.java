@@ -355,6 +355,37 @@ public class DatabaseHelperTest {
     }
 
     @Test
+    public void testAddInferredMediaDate() {
+        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{"inferred_media_date"}, null, null,
+                    null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), inferred_media_date is 0.
+                    assertThat(cr.getInt(0)).isEqualTo(0);
+                }
+            }
+        }
+    }
+
+    @Test
     public void testAddOemMetadataColumn() {
         try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();

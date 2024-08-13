@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Utzi"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Itxaron"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Segurtasun-babesa"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Transkodetze-alerta natiboak"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Transkodetze natiboaren garapena"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Jakinarazpenak transkodetzen"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Transkodetze-prozesuaren garapena"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Saiatu berriro geroago. Arazoa konpondu ondoren egongo dira erabilgarri argazkiak."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Ezin dira kargatu argazki batzuk"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ados"</string>

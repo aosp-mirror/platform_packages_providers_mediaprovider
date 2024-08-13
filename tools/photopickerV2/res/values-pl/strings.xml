@@ -8,25 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Wybierz obrazy"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Działanie Pobierz treści"</string>
-    <!-- no translation found for open_document (8593796561386540777) -->
-    <skip />
-    <!-- no translation found for open_document_tree (8979404185180480396) -->
-    <skip />
-    <string name="display_images_in_order" msgid="7880116254468536174">"Wyświetlaj obrazy w kolejności"</string>
-    <!-- no translation found for show_images_only (6365019348435132030) -->
-    <skip />
-    <!-- no translation found for show_videos_only (7302756380142587762) -->
-    <skip />
-    <!-- no translation found for enter_mime_type (6599304148898478294) -->
-    <skip />
-    <!-- no translation found for select_launch_tab (1219436289162294907) -->
-    <skip />
+    <string name="open_document" msgid="8593796561386540777">"Otwórz dokument"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Otwórz drzewo dokumentu"</string>
+    <string name="create_document" msgid="6073553682715924527">"Utwórz dokument"</string>
+    <string name="create_file" msgid="2532895579648102462">"Utwórz plik"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Kolejność wyświetlania zaznaczonych elementów"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Pokaż tylko zdjęcia"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Pokaż tylko filmy"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Wpisz typ MIME"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Wybierz kartę startową"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Zezwalaj na wielokrotny wybór"</string>
-    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
-    <skip />
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Zezwalaj na niestandardowy typ MIME"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Maksymalna liczba elementów multimedialnych"</string>
-    <!-- no translation found for enter_valid_number (650407643348891234) -->
-    <skip />
+    <string name="enter_valid_number" msgid="650407643348891234">"Podaj prawidłową liczbę większą niż 1"</string>
     <string name="pick_media" msgid="5269447618857205416">"Wybierz multimedia"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Pracujemy nad tym"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Pokaż metadane wybranych multimediów"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Włącz wstępny wybór"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Poproś o uprawnienia"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Poproś o uprawnienia dla:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Funkcja wyboru selektora jest dostępna tylko na urządzeniach z Androidem U lub nowszym. \n\nAby korzystać z tej funkcji, uaktualnij urządzenie."</string>
+    <string name="images" msgid="4986074635830919568">"Obrazy"</string>
+    <string name="videos" msgid="4638519191891522146">"Filmy"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Obrazy i filmy"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Pokaż tylko ostatni wybór"</string>
 </resources>

@@ -21,20 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> ከ<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ዝግጁ"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"አንዳንድ ፎቶዎችን መጫን አይቻለም"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"ቆይተው እንደገና ይሞክሩ። የእርስዎ ፎቶዎች አንዴ ችግሩ ከተፈታ በኋላ ይገኛሉ።"</string>
-    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
-    <skip />
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"ምትኬ የተቀመጠላቸው ፎቶዎች አሁን ተካትተዋል"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ፎቶዎችን መምረጥ ይችላሉ"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"የ<xliff:g id="APP_NAME">%1$s</xliff:g> መለያ ይምረጡ"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"ከ<xliff:g id="APP_NAME">%1$s</xliff:g> የመጡ ፎቶዎችን እዚህ ለማካተት በመተግበሪያው ውስጥ አንድ መለያ ይምረጡ"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"መለያ ምረጥ"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"ምትኬ የተቀመጠላቸው ፎቶዎችን እዚህ ለማካተት ቅንብሮች ውስጥ የደመና ሚዲያ መተግበሪያን ይምረጡ"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"መተግበሪያ ምረጥ"</string>
 </resources>

@@ -21,20 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> nga <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> gati"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Disa fotografi nuk mund të ngarkohen"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Provo përsëri më vonë. Fotografitë e tua do të ofrohen pasi të zgjidhet problemi."</string>
-    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
-    <skip />
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Fotografitë e rezervuara tani janë të përfshira"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Mund të zgjedhësh fotografi nga llogaria e <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> në \"<xliff:g id="APP_NAME">%1$s</xliff:g>\""</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Zgjidh llogarinë e \"<xliff:g id="APP_NAME">%1$s</xliff:g>\""</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Për të përfshirë fotografi nga \"<xliff:g id="APP_NAME">%1$s</xliff:g>\" këtu, zgjidh një llogari në aplikacion"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Zgjidh llogarinë"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Zgjidh aplikacionin e medias në renë kompjuterike"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Për të përfshirë fotografitë e rezervuara këtu, zgjidh një aplikacion të medias në renë kompjuterike te \"Cilësimet\""</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Zgjidh aplikacionin"</string>
 </resources>

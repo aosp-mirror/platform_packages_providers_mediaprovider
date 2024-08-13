@@ -8,25 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"फोटोहरू चयन गर्नुहोस्"</string>
     <string name="action_get_content" msgid="4319210475508093083">"\"सामग्री प्राप्त गर्नुहोस्\" नामक कारबाही"</string>
-    <!-- no translation found for open_document (8593796561386540777) -->
-    <skip />
-    <!-- no translation found for open_document_tree (8979404185180480396) -->
-    <skip />
-    <string name="display_images_in_order" msgid="7880116254468536174">"फोटोहरू क्रमबद्ध रूपमा देखाउनुहोस्"</string>
-    <!-- no translation found for show_images_only (6365019348435132030) -->
-    <skip />
-    <!-- no translation found for show_videos_only (7302756380142587762) -->
-    <skip />
-    <!-- no translation found for enter_mime_type (6599304148898478294) -->
-    <skip />
-    <!-- no translation found for select_launch_tab (1219436289162294907) -->
-    <skip />
+    <string name="open_document" msgid="8593796561386540777">"डकुमेन्ट खोल्नुहोस्"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"डकुमेन्ट ट्री खोल्नुहोस्"</string>
+    <string name="create_document" msgid="6073553682715924527">"डकुमेन्ट बनाउनुहोस्"</string>
+    <string name="create_file" msgid="2532895579648102462">"फाइल बनाउनुहोस्"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"चयन गरिएको क्रम देखाउनुहोस्"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"फोटोहरू मात्र देखाउनुहोस्"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"भिडियोहरू मात्र देखाउनुहोस्"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME को प्रकार हाल्नुहोस्"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"लन्च ट्याब चयन गर्नुहोस्"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"एकभन्दा बढी मिडिया चयन गर्ने अनुमति दिनुहोस्"</string>
-    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
-    <skip />
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"कस्टम प्रकारको MIME लाई अनुमति दिनुहोस्"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"मिडिया सामग्रीहरूको अधिकतम सङ्ख्या"</string>
-    <!-- no translation found for enter_valid_number (650407643348891234) -->
-    <skip />
+    <string name="enter_valid_number" msgid="650407643348891234">"एकभन्दा ठुलो वैध अङ्क हाल्नुहोस्"</string>
     <string name="pick_media" msgid="5269447618857205416">"मिडिया चयन गर्नुहोस्"</string>
     <string name="working_on_it" msgid="1373762827081252341">"हामी यो कार्य गरिरहेका छौँ"</string>
+    <string name="show_metadata" msgid="132548935678717609">"चयन गरिएको मिडियाको मेटाडेटा देखाउनुहोस्"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"अग्रिम रूपमा चयन गर्ने सुविधा अन गर्नुहोस्"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"अनुमतिहरू माग्नुहोस्"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"निम्न कुराको अनुमति माग्नुहोस्:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Android U र सोभन्दा नयाँ संस्करणका डिभाइसमा मात्र पिकर च्वाइस सुविधा प्रयोग गर्न मिल्छ। \n\nयो सुविधा प्रयोग गर्न कृपया आफ्नो डिभाइस अपग्रेड गर्नुहोस्।"</string>
+    <string name="images" msgid="4986074635830919568">"फोटोहरू"</string>
+    <string name="videos" msgid="4638519191891522146">"भिडियोहरू"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"फोटो तथा भिडियो दुवै"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"हालसालै चयन गरिएका सामग्री मात्र देखाउनुहोस्"</string>
 </resources>

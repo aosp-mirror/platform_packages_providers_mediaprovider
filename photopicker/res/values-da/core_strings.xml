@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Album"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Der er ingen billeder endnu"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Kom i gang med at tage billeder og optage videoer"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Billeder og videoer, de er taget med din kameraapp, vises her"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Der er ingen favoritter endnu"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Dette er et automatisk album, der samler de ting, der er stjernemarkeret eller markeret som favorit"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Der er ingen videoer endnu"</string>

@@ -249,6 +249,7 @@ package android.provider {
     field @Deprecated public static final String ALBUM_KEY = "album_key";
     field public static final String ARTIST_ID = "artist_id";
     field @Deprecated public static final String ARTIST_KEY = "artist_key";
+    field @FlaggedApi("com.android.providers.media.flags.audio_sample_columns") public static final String BITS_PER_SAMPLE = "bits_per_sample";
     field public static final String BOOKMARK = "bookmark";
     field public static final String GENRE = "genre";
     field public static final String GENRE_ID = "genre_id";
@@ -260,6 +261,7 @@ package android.provider {
     field public static final String IS_PODCAST = "is_podcast";
     field public static final String IS_RECORDING = "is_recording";
     field public static final String IS_RINGTONE = "is_ringtone";
+    field @FlaggedApi("com.android.providers.media.flags.audio_sample_columns") public static final String SAMPLERATE = "samplerate";
     field @Deprecated public static final String TITLE_KEY = "title_key";
     field public static final String TITLE_RESOURCE_URI = "title_resource_uri";
     field public static final String TRACK = "track";

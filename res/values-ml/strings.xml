@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"റദ്ദാക്കുക"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"കാത്തിരിക്കുക"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"സുരക്ഷാ പരിരക്ഷ"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"നേറ്റീവ് ട്രാൻസ്കോഡ് മുന്നറിയിപ്പുകൾ"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"നേറ്റീവ് ട്രാൻസ്കോഡ് പുരോഗതി"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ട്രാൻസ്കോഡ് ചെയ്യലുമായി ബന്ധപ്പെട്ട അറിയിപ്പുകൾ"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ട്രാൻസ്കോഡ് ചെയ്യലിന്റെ പുരോഗതി"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"പിന്നീട് വീണ്ടും ശ്രമിക്കുക. പ്രശ്‌നം പരിഹരിച്ച് കഴിഞ്ഞ് നിങ്ങളുടെ ഫോട്ടോകൾ ലഭ്യമാകും."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ചില ഫോട്ടോകൾ ലോഡ് ചെയ്യാനാകുന്നില്ല"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"മനസ്സിലായി"</string>

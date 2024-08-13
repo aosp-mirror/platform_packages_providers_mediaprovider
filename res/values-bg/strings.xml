@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Отказ"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Изчакване"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита на безопасността"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Стандартни сигнали за прекодиране"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Стандартен прогрес при прекодиране"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Известия за прекодиране"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Напредък на прекодирането"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Опитайте отново по-късно. Снимките ви ще бъдат налице, след като проблемът бъде разрешен."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Някои снимки не могат да се заредят"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Разбрах"</string>

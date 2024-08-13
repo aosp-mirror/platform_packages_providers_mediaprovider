@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Kanselleer"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Wag"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Veiligheidbeskerming"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Toestelspesifieke kodewisselingopletberigte"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Toestelspesifieke kodewisselingvordering"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Transkoderingkennisgewings"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Transkoderingvordering"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Probeer later weer. Jou foto’s sal beskikbaar wees sodra die kwessie opgelos is."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Sommige foto’s kan nie laai nie"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Het dit"</string>

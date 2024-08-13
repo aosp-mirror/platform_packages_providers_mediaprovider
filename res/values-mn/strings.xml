@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Цуцлах"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Хүлээх"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Аюулгүй байдлын хамгаалалт"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Уугуул хөрвүүлгийн сэрэмжлүүлэг"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Уугуул хөрвүүлгийн явц"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Хөрвүүлгийн мэдэгдэл"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Хөрвүүлгийн явц"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Дараа дахин оролдоно уу. Асуудлыг шийдвэрлэсний дараа таны зургууд боломжтой болно."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Зарим зургийг ачаалах боломжгүй"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ойлголоо"</string>

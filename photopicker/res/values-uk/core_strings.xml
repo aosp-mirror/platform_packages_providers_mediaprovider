@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Альбоми"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Фотографій немає"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Почніть знімати фото й відео"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Тут з’являться фотографії і відео, зняті додатком камери"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Вибраного немає"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Це автоматично створений альбом із фотографіями, позначеними зірочкою або доданими до вибраного"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Відео немає"</string>

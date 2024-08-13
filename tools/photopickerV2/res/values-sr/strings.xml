@@ -8,25 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker верзије 2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Изаберите слике"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Радња преузимања садржаја"</string>
-    <!-- no translation found for open_document (8593796561386540777) -->
-    <skip />
-    <!-- no translation found for open_document_tree (8979404185180480396) -->
-    <skip />
-    <string name="display_images_in_order" msgid="7880116254468536174">"Приказујте слике у наведеном редоследу"</string>
-    <!-- no translation found for show_images_only (6365019348435132030) -->
-    <skip />
-    <!-- no translation found for show_videos_only (7302756380142587762) -->
-    <skip />
-    <!-- no translation found for enter_mime_type (6599304148898478294) -->
-    <skip />
-    <!-- no translation found for select_launch_tab (1219436289162294907) -->
-    <skip />
+    <string name="open_document" msgid="8593796561386540777">"Отвори документ"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Отвори приказ структуре докумената"</string>
+    <string name="create_document" msgid="6073553682715924527">"Направи документ"</string>
+    <string name="create_file" msgid="2532895579648102462">"Направи фајл"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Прикажи редослед избора"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Прикажи само слике"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Прикажи само видео снимке"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Унесите MIME тип"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Изаберите картицу Покрени"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Дозволите избор више ставки"</string>
-    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
-    <skip />
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Дозволи прилагођен MIME тип"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Максималан број медијских елемената"</string>
-    <!-- no translation found for enter_valid_number (650407643348891234) -->
-    <skip />
+    <string name="enter_valid_number" msgid="650407643348891234">"Унесите важећи број већи од један"</string>
     <string name="pick_media" msgid="5269447618857205416">"Изаберите медије"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Радимо на томе"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Прикажи метаподатке за изабране медије"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Омогући избор унапред"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Тражи дозволе"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Тражи дозволе за:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Функција Избор бирача је доступна само за уређаје који имају Android U и новије верзије. \n\nНадоградите уређај да бисте користили ову функцију."</string>
+    <string name="images" msgid="4986074635830919568">"Слике"</string>
+    <string name="videos" msgid="4638519191891522146">"Видеи"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Слике и видеи"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Прикажи само најновији избор"</string>
 </resources>

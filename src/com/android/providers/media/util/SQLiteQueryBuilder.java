@@ -989,7 +989,13 @@ public class SQLiteQueryBuilder {
         sql.append(" SET ");
 
         final boolean hasGeneration = Objects.equals(mTables, "files");
+        boolean updateGeneration = true;
         if (hasGeneration) {
+            if (values.get(MediaColumns.GENERATION_MODIFIED) != null
+                    && values.get(MediaColumns.GENERATION_MODIFIED).equals(
+                    MediaColumns.GENERATION_MODIFIED_UNCHANGED)) {
+                updateGeneration = false;
+            }
             values.remove(MediaColumns.GENERATION_ADDED);
             values.remove(MediaColumns.GENERATION_MODIFIED);
         }
@@ -1003,7 +1009,7 @@ public class SQLiteQueryBuilder {
             sql.append(rawValues.keyAt(i));
             sql.append("=?");
         }
-        if (hasGeneration) {
+        if (hasGeneration && updateGeneration) {
             sql.append(',');
             sql.append(MediaColumns.GENERATION_MODIFIED);
             sql.append('=');

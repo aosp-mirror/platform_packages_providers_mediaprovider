@@ -78,6 +78,8 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.flags.Flags;
 
+import com.android.providers.media.flags.Flags;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1958,6 +1960,13 @@ public final class MediaStore {
         public static final String GENERATION_MODIFIED = "generation_modified";
 
         /**
+         * Constant used to broadcast internally that the update should not update
+         * {@link GENERATION_MODIFIED}. This value should never be stored in the database.
+         * @hide
+         */
+        public static final int GENERATION_MODIFIED_UNCHANGED = -1;
+
+        /**
          * Indexed XMP metadata extracted from this media item.
          * <p>
          * The structure of this metadata is defined by the <a href=
@@ -2434,6 +2443,14 @@ public final class MediaStore {
              * @hide
              */
             public static final int _MODIFIER_CR_PENDING_METADATA = 4;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating that the last modifier of the
+             * database is a schema update and the new metadata will be recomputed during idle
+             * maintenance.
+             * @hide
+             */
+            public static final int _MODIFIER_SCHEMA_UPDATE = 5;
 
             /**
              * Status of the transcode file
@@ -3448,6 +3465,20 @@ public final class MediaStore {
              */
             @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
             public static final String TITLE_RESOURCE_URI = "title_resource_uri";
+
+            /**
+             * The number of bits used to represent each audio sample, if available.
+             */
+            @FlaggedApi(Flags.FLAG_AUDIO_SAMPLE_COLUMNS)
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String BITS_PER_SAMPLE = "bits_per_sample";
+
+            /**
+             * The sample rate in Hz, if available.
+             */
+            @FlaggedApi(Flags.FLAG_AUDIO_SAMPLE_COLUMNS)
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String SAMPLERATE = "samplerate";
         }
 
         private static final Pattern PATTERN_TRIM_BEFORE = Pattern.compile(

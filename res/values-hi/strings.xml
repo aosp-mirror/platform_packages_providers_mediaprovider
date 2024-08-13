@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"अभी नहीं"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"इंतज़ार करें"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"सुरक्षा के लिए बचाव"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"नेटिव ट्रांसकोड सूचना"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"नेटिव ट्रांसकोड स्थिति"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ट्रांसकोडिंग की सूचनाएं"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ट्रांसकोडिंग की प्रोग्रेस"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"कुछ देर बाद कोशिश करें. समस्या हल होते ही आपकी फ़ोटो उपलब्ध हो जाएंगी."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"कुछ फ़ोटो लोड नहीं की जा सकीं"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ठीक है"</string>

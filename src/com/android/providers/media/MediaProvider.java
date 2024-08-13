@@ -36,6 +36,7 @@ import static android.provider.MediaStore.EXTRA_OPEN_ASSET_FILE_REQUEST;
 import static android.provider.MediaStore.EXTRA_OPEN_FILE_REQUEST;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
+import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
@@ -8204,6 +8205,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (initialValues.containsKey(FileColumns.GENERATION_MODIFIED)
+                    && !isCallingPackageSelf()) {
+                // We only allow MediaScanner to send updates for generation modified
+                initialValues.remove(FileColumns.GENERATION_MODIFIED);
+            }
+
             if (!isCallingPackageSelf()) {
                 Trace.beginSection("MP.filter");
 
@@ -9176,8 +9183,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // TODO: enforce that caller has access to this uri
-
         // Offer thumbnail of media, when requested
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
@@ -9195,6 +9200,7 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         Trace.beginSection("MP.ensureThumbnail");
+        checkAccessForThumbnail(uri, match, signal);
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             switch (match) {
@@ -9243,6 +9249,39 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
             Trace.endSection();
+        }
+    }
+
+    private void checkAccessForThumbnail(Uri uri, int match, CancellationSignal signal)
+            throws FileNotFoundException {
+        int mediaType = -1;
+        if (match == DOWNLOADS_ID || match == FILES_ID) {
+            mediaType = MimeUtils.resolveMediaType(queryForTypeAsSelf(uri));
+        }
+
+        // check access only for image and video thumbnails
+        // audio thumbnails have many legacy paths that we could break by checking for access
+        // and it doesn't reveal much of data that could be a risk
+        if (match == IMAGES_MEDIA_ID || match == VIDEO_MEDIA_ID
+                || mediaType == MEDIA_TYPE_IMAGE || mediaType == MEDIA_TYPE_VIDEO) {
+
+            // First check existence of the file
+            final String[] projection = new String[] { MediaColumns.DATA };
+            final File file;
+            try (Cursor c = queryForSingleItemAsMediaProvider(
+                    uri, projection, null, null, signal)) {
+                final String data = c.getString(0);
+                if (TextUtils.isEmpty(data)) {
+                    throw new FileNotFoundException("Missing path for " + uri);
+                } else {
+                    file = new File(data).getCanonicalFile();
+                }
+            } catch (IOException e) {
+                throw new FileNotFoundException(e.toString());
+            }
+
+            // Then check if the caller has access to the file
+            checkAccess(uri, Bundle.EMPTY, file, false);
         }
     }
 
@@ -10912,7 +10951,8 @@ public class MediaProvider extends ContentProvider {
      *
      * @throws SecurityException if access isn't allowed.
      */
-    private void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+    @VisibleForTesting
+    protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
         Trace.beginSection("MP.enforceCallingPermission");
         try {

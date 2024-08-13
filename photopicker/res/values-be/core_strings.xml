@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Альбомы"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Фота пакуль няма"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Пачніце здымаць фота і відэа"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Тут будуць паказвацца фота і відэа, знятыя ў праграме \"Камера\""</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"У абраным пакуль няма элементаў"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"У гэты альбом аўтаматычна збіраюцца пазначаныя і дададзеныя ў абранае элементы"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Відэа пакуль няма"</string>

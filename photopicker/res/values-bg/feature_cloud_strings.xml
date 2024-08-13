@@ -21,20 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Готови: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> от <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Някои снимки не могат да се заредят"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Опитайте отново по-късно. Снимките ви ще бъдат налице, след като проблемът бъде разрешен."</string>
-    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
-    <skip />
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Снимките, за които е създадено резервно копие, вече са добавени"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Можете да избирате снимки от профила <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Избиране на профил в(ъв) <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"За да включите тук снимките от <xliff:g id="APP_NAME">%1$s</xliff:g>, изберете профил в приложението"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Избиране на профил"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Избиране на приложение за мултимедия в облака"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"За да добавите тук снимките, за които е създадено резервно копие, изберете приложение за мултимедия в облака от настройките"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Избиране на приложение"</string>
 </resources>

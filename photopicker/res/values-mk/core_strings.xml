@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Албуми"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Сѐ уште немате фотографии"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Започнете со снимање фотографии и видеа"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Фотографиите и видеата снимени со вашата апликација за камера ќе се појават овде"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Сѐ уште немате омилени"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Ова е автоматски албум што собира ставки означени со ѕвезда или означени како омилени"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Сѐ уште немате видеа"</string>

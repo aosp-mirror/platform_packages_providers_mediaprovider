@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albumi"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Ni še fotografij"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Začnite zajemati fotografije in videoposnetke"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Tukaj bodo prikazane fotografije in videoposnetki, ki jih boste posneli s fotografsko aplikacijo"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Ni še priljubljenih"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"To je samodejni album, v katerem so zbrani elementi, označeni z zvezdico ali kot priljubljeni"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Ni še videoposnetkov"</string>

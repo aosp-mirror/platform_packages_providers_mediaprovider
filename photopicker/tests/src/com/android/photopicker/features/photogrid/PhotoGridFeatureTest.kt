@@ -137,7 +137,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
@@ -353,11 +353,13 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
             whenever(bannerStateDao.getBannerState(anyString(), anyInt())) { null }
 
-            configurationManager.setCaller(
-                callingPackage = "com.android.test.package",
-                callingPackageUid = 12345,
-                callingPackageLabel = "Test Package",
-            )
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
             advanceTimeBy(100)
 
             bannerManager.get().refreshBanners()

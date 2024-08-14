@@ -73,6 +73,7 @@ import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
@@ -154,7 +155,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var dataService: DataService
     @Inject lateinit var embeddedLifecycle: EmbeddedLifecycle
 

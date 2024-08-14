@@ -1232,6 +1232,19 @@ public final class MediaStore {
             "android:query-arg-latest-selection-only";
 
     /**
+     * Flag that requests {@link ContentResolver#query} to sort the result in descending order
+     * based on {@link MediaColumns#INFERRED_DATE}.
+     * <p>
+     * When this flag is used as an extra in a {@link Bundle} passed to
+     * {@link ContentResolver#query}, all other sorting options such as
+     * {@link android.content.ContentResolver#QUERY_ARG_SORT_COLUMNS} or
+     * {@link android.content.ContentResolver#QUERY_ARG_SQL_SORT_ORDER} are disregarded.
+     */
+    @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+    public static final String QUERY_ARG_MEDIA_STANDARD_SORT_ORDER =
+            "android:query-arg-media-standard-sort-order";
+
+    /**
      * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
      * of every accessible media file.
      */
@@ -1656,6 +1669,19 @@ public final class MediaStore {
         @CurrentTimeMillisLong
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String DATE_TAKEN = "datetaken";
+
+        /**
+         * File's approximate creation date.
+         * <p>
+         * Following is the derivation logic:
+         * 1. If {@link MediaColumns#DATE_TAKEN} is present, use it.
+         * 2. If {@link MediaColumns#DATE_TAKEN} is absent, use {@link MediaColumns#DATE_MODIFIED}.
+         * Note: When {@link QUERY_ARG_MEDIA_STANDARD_SORT_ORDER} query argument
+         * is used, the sorting is based on this column in descending order.
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+        public static final String INFERRED_DATE = "inferred_date";
 
         /**
          * The MIME type of the media item.

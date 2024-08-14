@@ -175,6 +175,7 @@ package android.provider {
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission") public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION = "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+    field @FlaggedApi("com.android.providers.media.flags.enable_oem_metadata") public static final String ACCESS_OEM_METADATA_PERMISSION = "com.android.providers.media.permission.ACCESS_OEM_METADATA";
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
     field public static final String ACTION_IMAGE_CAPTURE_SECURE = "android.media.action.IMAGE_CAPTURE_SECURE";
     field public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -507,6 +508,7 @@ package android.provider {
     field public static final String IS_TRASHED = "is_trashed";
     field public static final String MIME_TYPE = "mime_type";
     field public static final String NUM_TRACKS = "num_tracks";
+    field @FlaggedApi("com.android.providers.media.flags.enable_oem_metadata") public static final String OEM_METADATA = "oem_metadata";
     field public static final String ORIENTATION = "orientation";
     field public static final String ORIGINAL_DOCUMENT_ID = "original_document_id";
     field public static final String OWNER_PACKAGE_NAME = "owner_package_name";

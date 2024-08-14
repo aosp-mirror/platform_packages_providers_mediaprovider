@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 /**
@@ -146,6 +147,12 @@ public class TestConfigStore implements ConfigStore {
     @Override
     public List<String> getTranscodeCompatStale() {
         return Collections.emptyList();
+    }
+
+    @NonNull
+    @Override
+    public Optional<String> getDefaultOemMetadataServicePackage() {
+        return Optional.of("com.android.providers.media.tests");
     }
 
     @Override

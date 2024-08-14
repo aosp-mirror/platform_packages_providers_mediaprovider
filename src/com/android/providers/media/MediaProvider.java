@@ -47,6 +47,7 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OEM_METADATA;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
@@ -290,6 +291,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.dao.FileRow;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
@@ -1365,7 +1367,7 @@ public class MediaProvider extends ContentProvider {
         mConfigStore = createConfigStore();
         mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
 
-        mMediaScanner = new ModernMediaScanner(context);
+        mMediaScanner = new ModernMediaScanner(context, mConfigStore);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
@@ -3890,6 +3892,12 @@ public class MediaProvider extends ContentProvider {
 
         Cursor c;
 
+        if (Flags.enableOemMetadata() && hasOemMetadataInProjection(qb, projection)
+                && !mCallingIdentity.get().checkCallingPermissionOemMetadata()) {
+            // Filter oem_data column to return as NULL
+            projection = updateProjectionToFilterOemMetadata(qb, projection);
+        }
+
         if (shouldFilterOwnerPackageNameFlag()
                 && shouldFilterOwnerPackageNameInProjection(qb, projection)) {
             Log.i(TAG, String.format("Filtering owner package name for %s, projection: %s",
@@ -3937,6 +3945,29 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
+    private String[] updateProjectionToFilterOemMetadata(SQLiteQueryBuilder qb,
+            String[] projection) {
+        projection = maybeReplaceNullProjection(projection, qb);
+        if (qb.getProjectionAllowlist() == null) {
+            qb.setProjectionAllowlist(new ArrayList<>());
+        }
+        final String[] updatedProjection = new String[projection.length];
+        for (int i = 0; i < projection.length; i++) {
+            if (!OEM_METADATA.equalsIgnoreCase(projection[i])) {
+                updatedProjection[i] = projection[i];
+            } else {
+                updatedProjection[i] = constructOemMetadataProjection();
+            }
+        }
+        return updatedProjection;
+    }
+
+    private boolean hasOemMetadataInProjection(SQLiteQueryBuilder qb, String[] projection) {
+        return (projection != null && Arrays.asList(projection).contains(OEM_METADATA))
+                || (projection == null && qb.getProjectionMap() != null
+                        && qb.getProjectionMap().containsKey(OEM_METADATA));
+    }
+
     /**
      * Constructs the following projection string:
      *     CASE WHEN owner_package_name IN ("queryablePackageA","queryablePackageB")
@@ -3959,6 +3990,14 @@ public class MediaProvider extends ContentProvider {
                 .append(OWNER_PACKAGE_NAME);
 
         Log.d(TAG, "Constructed owner_package_name substitution: " + newProjection);
+        return newProjection.toString();
+    }
+
+    private String constructOemMetadataProjection() {
+        final StringBuilder newProjection = new StringBuilder()
+                .append("NULL AS ")
+                .append(OEM_METADATA);
+
         return newProjection.toString();
     }
 
@@ -4001,7 +4040,7 @@ public class MediaProvider extends ContentProvider {
 
     private String[] maybeReplaceNullProjection(String[] projection, SQLiteQueryBuilder qb) {
         // List all columns instead of placing "*" in the SQL query
-        // to be able to substitute owner_package_name column
+        // to be able to substitute some columns
         if (projection == null) {
             projection = qb.getAllColumnsFromProjectionMap();
             // Allow all columns from the projection map

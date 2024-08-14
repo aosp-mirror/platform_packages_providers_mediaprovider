@@ -16,6 +16,9 @@
 
 package android.provider;
 
+import static java.util.Objects.requireNonNull;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresApi;
 import android.net.Uri;
@@ -29,11 +32,13 @@ import androidx.annotation.IntRange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
- * An immutable parcel to carry information regarding desired features of app for a given session.
+ * An immutable parcel to carry information regarding desired features of caller for
+ * a given session.
  *
- * <p> Below features are currently supported in embedded photopicker
+ * <p> Below features are currently supported in embedded photopicker.
  *
  * <ul>
  * <li> Mime type to filter media
@@ -43,39 +48,24 @@ import java.util.List;
  * <li> Pre-selected uris
  * </ul>
  *
- * <p> Apps should use {@link Builder} to set the desired features.
+ * <p> Callers should use {@link Builder} to set the desired features.
  *
- * @hide
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
+@FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker")
+public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
     private final List<String> mMimeTypes;
     private final long mAccentColor;
     private final boolean mOrderedSelection;
     private final int mMaxSelectionLimit;
     private final List<Uri> mPreSelectedUris;
 
-    @NonNull
-    private static final List<String> DEFAULT_MIME_TYPES = Arrays.asList("image/*", "video/*");
-    @ColorLong
-    private static final long DEFAULT_ACCENT_COLOR = -1;
-    private static final boolean DEFAULT_ORDERED_SELECTION = false;
-    /**
-     * By-default session will open in multiselect mode and below is the maximum
-     * selection limit if user doesn't specify anything.
-     */
-    private static final int DEFAULT_MAX_SELECTION_LIMIT = MediaStore.getPickImagesMaxLimit();
-    @NonNull
-    private static final List<Uri> DEFAULT_PRE_SELECTED_URIS = Arrays.asList();
-
-    private EmbeddedPhotopickerFeatureInfo(
+    private EmbeddedPhotoPickerFeatureInfo(
             List<String> mimeTypes,
             long accentColor,
             boolean orderedSelection,
             int maxSelectionLimit,
             List<Uri> preSelectedUris) {
-        // Todo(b/350965066): Validate attributes of this class to have the APIs fail fast for
-        //  developers who make mistakes
         this.mMimeTypes = mimeTypes;
         this.mAccentColor = accentColor;
         this.mOrderedSelection = orderedSelection;
@@ -100,7 +90,22 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
     public List<String> getMimeTypes() {
         return this.mMimeTypes;
     }
+
     public static final class Builder {
+        //All mime-types are returned by default.
+        @NonNull private static final List<String> DEFAULT_MIME_TYPES =
+                Arrays.asList("image/*", "video/*");
+        @ColorLong
+        private static final long DEFAULT_ACCENT_COLOR = -1;
+        private static final boolean DEFAULT_ORDERED_SELECTION = false;
+        /**
+         * By-default session will open in multiselect mode and below is the maximum
+         * selection limit if user doesn't specify anything.
+         */
+        private static final int DEFAULT_MAX_SELECTION_LIMIT = MediaStore.getPickImagesMaxLimit();
+        @NonNull
+        private static final List<Uri> DEFAULT_PRE_SELECTED_URIS = Arrays.asList();
+
         private List<String> mMimeTypes = DEFAULT_MIME_TYPES;
         private long mAccentColor = DEFAULT_ACCENT_COLOR;
         private boolean mOrderedSelection = DEFAULT_ORDERED_SELECTION;
@@ -120,8 +125,28 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
          */
         @NonNull
         public Builder setMimeTypes(@NonNull List<String> mimeTypes) {
+            validateMimeType(mimeTypes);
             mMimeTypes = mimeTypes;
             return this;
+        }
+
+        private void validateMimeType(List<String> mimeTypes) {
+            requireNonNull(mimeTypes, "Mime type list must not be null.");
+            for (String mimeType : mimeTypes) {
+                requireNonNull(mimeType, "Mime type must not be null.");
+                if (!isMimeTypeMedia(mimeType)) {
+                    throw new IllegalArgumentException("Invalid mime type found. "
+                            + "Only image/video mime types are supported");
+                }
+            }
+        }
+
+        /**
+         * Checks if the given string is an image or video mime type
+         */
+        private static boolean isMimeTypeMedia(@NonNull String mimeType) {
+            return mimeType.toLowerCase(Locale.getDefault()).startsWith("image/")
+                    || mimeType.toLowerCase(Locale.getDefault()).startsWith("video/");
         }
 
         /**
@@ -135,7 +160,7 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
          * MediaStore#EXTRA_PICK_IMAGES_ACCENT_COLOR} for more details on accepted colors.
          *
          * @param accentColor Hex code of desired accent color. By default, the color of elements
-         *                    will reflect based on device theme
+         * will reflect based on device theme
          */
         @NonNull
         public Builder setAccentColor(@ColorLong long accentColor) {
@@ -162,11 +187,15 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
          * or equal to 1 and less than or equal to {@link MediaStore#getPickImagesMaxLimit}
          *
          * @param maxSelectionLimit Max selection count restriction. Pass limit as 1 to open
-         *                          PhotoPicker in single-select mode. Default is multi select
-         *                          mode with limit as {@link MediaStore#getPickImagesMaxLimit()}
+         * PhotoPicker in single-select mode. Default is multi select mode with limit as
+         * {@link MediaStore#getPickImagesMaxLimit()}
          */
         @NonNull
         public Builder setMaxSelectionLimit(@IntRange(from = 1) int maxSelectionLimit) {
+            if (maxSelectionLimit > MediaStore.getPickImagesMaxLimit()) {
+                throw new IllegalArgumentException("Max selection limit should be less than "
+                        + MediaStore.getPickImagesMaxLimit());
+            }
             mMaxSelectionLimit = maxSelectionLimit;
             return this;
         }
@@ -182,6 +211,7 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
          */
         @NonNull
         public Builder setPreSelectedUris(@NonNull List<Uri> preSelectedUris) {
+            requireNonNull(preSelectedUris, "Preselected uri list can not be null.");
             mPreSelectedUris = preSelectedUris;
             return this;
         }
@@ -190,8 +220,8 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
          * Build the class for desired feature info arguments
          */
         @NonNull
-        public EmbeddedPhotopickerFeatureInfo build() {
-            return new EmbeddedPhotopickerFeatureInfo(
+        public EmbeddedPhotoPickerFeatureInfo build() {
+            return new EmbeddedPhotoPickerFeatureInfo(
                     mMimeTypes,
                     mAccentColor,
                     mOrderedSelection,
@@ -199,7 +229,7 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
                     mPreSelectedUris);
         }
     }
-    private EmbeddedPhotopickerFeatureInfo(Parcel in) {
+    private EmbeddedPhotoPickerFeatureInfo(Parcel in) {
         List<String> mimeTypes = new java.util.ArrayList<>();
         in.readStringList(mimeTypes);
         this.mMimeTypes = mimeTypes;
@@ -226,16 +256,27 @@ public final class EmbeddedPhotopickerFeatureInfo implements Parcelable {
     }
 
     @NonNull
-    public static final Creator<EmbeddedPhotopickerFeatureInfo> CREATOR =
-            new Creator<EmbeddedPhotopickerFeatureInfo>() {
+    public static final Creator<EmbeddedPhotoPickerFeatureInfo> CREATOR =
+            new Creator<EmbeddedPhotoPickerFeatureInfo>() {
                 @Override
-                public EmbeddedPhotopickerFeatureInfo createFromParcel(Parcel in) {
-                    return new EmbeddedPhotopickerFeatureInfo(in);
+                public EmbeddedPhotoPickerFeatureInfo createFromParcel(Parcel in) {
+                    return new EmbeddedPhotoPickerFeatureInfo(in);
                 }
 
                 @Override
-                public EmbeddedPhotopickerFeatureInfo[] newArray(int size) {
-                    return new EmbeddedPhotopickerFeatureInfo[size];
+                public EmbeddedPhotoPickerFeatureInfo[] newArray(int size) {
+                    return new EmbeddedPhotoPickerFeatureInfo[size];
                 }
             };
+
+    @Override
+    public String toString() {
+        return "EmbeddedPhotoPickerFeatureInfo{"
+                + "mMimeTypes=" + mMimeTypes
+                + ", mAccentColor=" + mAccentColor
+                + ", mOrderedSelection=" + mOrderedSelection
+                + ", mMaxSelectionLimit=" + mMaxSelectionLimit
+                + ", mPreSelectedUris=" + mPreSelectedUris
+                + '}';
+    }
 }

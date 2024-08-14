@@ -19,7 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.os.Build
 import android.provider.DeviceConfig
-import android.provider.EmbeddedPhotopickerFeatureInfo
+import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.isUnspecified
@@ -140,7 +140,7 @@ class ConfigurationManager(
      * feature manager from being re-initialized.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotopickerFeatureInfo) {
+    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotoPickerFeatureInfo) {
         Log.d(TAG, "New featureInfo received: $featureInfo : Configuration will now update.")
 
         val selectionLimit = featureInfo.maxSelectionLimit

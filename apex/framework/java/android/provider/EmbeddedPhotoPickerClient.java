@@ -16,52 +16,61 @@
 
 package android.provider;
 
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresApi;
 import android.net.Uri;
 import android.os.Build;
 
+import java.util.List;
+
 /**
  * Callback to define mechanisms by which can apps can receive notifications about
- * different events from PhotoPicker
+ * different events from embedded photopicker for the corresponding Session
+ * ({@link EmbeddedPhotoPickerSession}).
  *
  * <p> PhotoPicker will invoke the methods of this interface on the Executor provided by
- * the app in {@link EmbeddedPhotopickerProvider#openSession}
+ * the caller in {@link EmbeddedPhotoPickerProvider#openSession}
  *
- * @see EmbeddedPhotopickerProvider
+ * <p> Any methods on a single instance of this object will always be invoked in a non-concurrent
+ * or thread safe way. In other words, all methods are invoked in a serial execution manner
+ * on the executor passed by the caller. Hence callers wouldn't need any buffer or locking
+ * mechanism on their end.
  *
- * @hide
+ * @see EmbeddedPhotoPickerProvider
+ *
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-public interface EmbeddedPhotopickerClient {
+@FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker")
+public interface EmbeddedPhotoPickerClient {
 
     /**
      * Reports that session of app with photopicker was established successfully.
-     * Also shares {@link EmbeddedPhotopickerSession} handle containing the view
-     * with the app that should be used to notify the session of UI events.
+     * Also shares {@link EmbeddedPhotoPickerSession} handle containing the view
+     * with the caller that should be used to notify the session of UI events.
      */
-    void onSessionOpened(@NonNull EmbeddedPhotopickerSession session);
+    void onSessionOpened(@NonNull EmbeddedPhotoPickerSession session);
 
     /**
      * Reports that terminal error has occurred in the session. Any further events
      * notified on this session will be ignored. The embedded photopicker view will be
      * torn down along with session upon error.
      */
-    void onSessionError(@NonNull String errorMsg);
+    void onSessionError(@NonNull Throwable cause);
 
     /**
      * Reports that URI permission has been granted to the item selected by the user.
      *
-     * <p> It is possible that the permission to the URI was revoked if item unselected
-     * by user, but before the URI is actually accessed by the app. Hence, app must
+     * <p> It is possible that the permission to the URI was revoked if the item was unselected
+     * by user before the URI is actually accessed by the caller. Hence callers must
      * handle {@code SecurityException} when attempting to read or use the URI in
      * response to this callback.
      */
-    void onItemSelected(@NonNull Uri uri);
+    void onItemsSelected(@NonNull List<Uri> uris);
 
     /**
      * Reports that URI permission has been revoked of the item deselected by the
      * user.
      */
-    void onItemDeselected(@NonNull Uri uri);
+    void onItemsDeselected(@NonNull List<Uri> uris);
 }

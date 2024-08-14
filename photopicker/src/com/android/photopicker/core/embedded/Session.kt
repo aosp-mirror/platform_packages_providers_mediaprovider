@@ -23,9 +23,9 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.IEmbeddedPhotopickerClient
-import android.provider.IEmbeddedPhotopickerSession
+import android.provider.EmbeddedPhotoPickerFeatureInfo
+import android.provider.IEmbeddedPhotoPickerClient
+import android.provider.IEmbeddedPhotoPickerSession
 import android.util.Log
 import android.view.SurfaceControlViewHost
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -78,8 +78,8 @@ internal typealias SessionFactory =
         displayId: Int,
         width: Int,
         height: Int,
-        featureInfo: EmbeddedPhotopickerFeatureInfo,
-        clientCallback: IEmbeddedPhotopickerClient,
+        featureInfo: EmbeddedPhotoPickerFeatureInfo,
+        clientCallback: IEmbeddedPhotoPickerClient,
     ) -> Session
 
 /**
@@ -119,12 +119,12 @@ open class Session(
     private val displayId: Int,
     private val width: Int,
     private val height: Int,
-    private val featureInfo: EmbeddedPhotopickerFeatureInfo,
-    private val clientCallback: IEmbeddedPhotopickerClient,
+    private val featureInfo: EmbeddedPhotoPickerFeatureInfo,
+    private val clientCallback: IEmbeddedPhotoPickerClient,
     private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
-) : IEmbeddedPhotopickerSession.Stub() {
+) : IEmbeddedPhotoPickerSession.Stub() {
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
@@ -366,6 +366,8 @@ open class Session(
      * permission when item is selected/deselected respectively.
      *
      * It emits both the previous and new selection of media items.
+     *
+     * todo(b/358537861): Debounce on uri selection/deselction
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
@@ -389,7 +391,7 @@ open class Session(
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemSelected(item.mediaUri)
+                            clientCallback.onItemsSelected(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -403,7 +405,7 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemDeselected(item.mediaUri)
+                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,

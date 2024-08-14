@@ -25,33 +25,32 @@ import android.view.SurfaceControlViewHost;
 import androidx.annotation.NonNull;
 
 /**
- * Response for {@link EmbeddedPhotopickerProvider#openSession} api for internal use
+ * Response for {@link EmbeddedPhotoPickerProvider#openSession} api for internal use
  *
- * <p> The service encapsulates the response containing {@link EmbeddedPhotopickerSession}
+ * <p> The service encapsulates the response containing {@link EmbeddedPhotoPickerSession}
  * and {@link SurfaceControlViewHost.SurfacePackage} and notifies it to the
- * {@link EmbeddedPhotopickerClientWrapper#onSessionOpened}. The
- * {@link EmbeddedPhotopickerClientWrapper} in turn notifies the
- * {@link EmbeddedPhotopickerClient} delegate.
+ * {@link EmbeddedPhotoPickerClientWrapper#onSessionOpened}. The
+ * {@link EmbeddedPhotoPickerClientWrapper} in turn notifies the
+ * {@link EmbeddedPhotoPickerClient} delegate.
  *
- * @see EmbeddedPhotopickerClientWrapper#onSessionOpened
+ * @see EmbeddedPhotoPickerClientWrapper#onSessionOpened
  *
  * @hide
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-public class EmbeddedPhotopickerSessionResponse implements Parcelable {
+public class EmbeddedPhotoPickerSessionResponse implements Parcelable {
 
-    private IEmbeddedPhotopickerSession mSession;
+    private IEmbeddedPhotoPickerSession mSession;
     private SurfaceControlViewHost.SurfacePackage mSurfacePackage;
 
-    public EmbeddedPhotopickerSessionResponse(@NonNull IEmbeddedPhotopickerSession session,
+    public EmbeddedPhotoPickerSessionResponse(@NonNull IEmbeddedPhotoPickerSession session,
             @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
         mSession = session;
         mSurfacePackage = surfacePackage;
     }
 
-
     @NonNull
-    public IEmbeddedPhotopickerSession getSession() {
+    public IEmbeddedPhotoPickerSession getSession() {
         return mSession;
     }
 
@@ -60,8 +59,8 @@ public class EmbeddedPhotopickerSessionResponse implements Parcelable {
         return mSurfacePackage;
     }
 
-    private EmbeddedPhotopickerSessionResponse(Parcel in) {
-        mSession = IEmbeddedPhotopickerSession.Stub.asInterface(in.readStrongBinder());
+    private EmbeddedPhotoPickerSessionResponse(Parcel in) {
+        mSession = IEmbeddedPhotoPickerSession.Stub.asInterface(in.readStrongBinder());
         mSurfacePackage = in.readParcelable(
                 SurfaceControlViewHost.SurfacePackage.class.getClassLoader(),
                 SurfaceControlViewHost.SurfacePackage.class);
@@ -79,16 +78,16 @@ public class EmbeddedPhotopickerSessionResponse implements Parcelable {
         return 0;
     }
 
-    public static final Creator<EmbeddedPhotopickerSessionResponse> CREATOR =
-            new Creator<EmbeddedPhotopickerSessionResponse>() {
+    public static final Creator<EmbeddedPhotoPickerSessionResponse> CREATOR =
+            new Creator<EmbeddedPhotoPickerSessionResponse>() {
                 @Override
-                public EmbeddedPhotopickerSessionResponse createFromParcel(Parcel in) {
-                    return new EmbeddedPhotopickerSessionResponse(in);
+                public EmbeddedPhotoPickerSessionResponse createFromParcel(Parcel in) {
+                    return new EmbeddedPhotoPickerSessionResponse(in);
                 }
 
                 @Override
-                public EmbeddedPhotopickerSessionResponse[] newArray(int size) {
-                    return new EmbeddedPhotopickerSessionResponse[size];
+                public EmbeddedPhotoPickerSessionResponse[] newArray(int size) {
+                    return new EmbeddedPhotoPickerSessionResponse[size];
                 }
             };
 }

@@ -21,37 +21,21 @@ import android.content.res.Configuration;
 /**
 * Internal interface used to notify service about different events by apps.
 *
-* <p> Apps use {@link EmbeddedPhotopickerSession} class rather than going
+* <p> Apps use {@link EmbeddedPhotoPickerSession} class rather than going
 * through this class directly.
-* See {@link EmbeddedPhotopickerSession} for more complete documentation.
+* See {@link EmbeddedPhotoPickerSession} for more complete documentation.
 *
 * @hide
 */
-oneway interface IEmbeddedPhotopickerSession {
+oneway interface IEmbeddedPhotoPickerSession {
 
-    /**
-     * Indicate photopicker to close this session
-     */
     void close();
 
-    /**
-     * Notifies photopicker that embedded picker's view or its parent view's
-     * visibility changes
-     */
     void notifyVisibilityChanged(boolean isVisible);
 
-    /**
-     * Notifies photopicker that host presentation area has changed
-     */
     void notifyResized(int width, int height);
 
-    /**
-     * Notifies photopicker that host side configuration has changed
-     */
     void notifyConfigurationChanged(in Configuration configuration);
 
-    /**
-     * Notifies photopicker when user switches picker between expanded/collapsed
-     */
     void notifyPhotopickerExpanded(boolean isExpanded);
 }

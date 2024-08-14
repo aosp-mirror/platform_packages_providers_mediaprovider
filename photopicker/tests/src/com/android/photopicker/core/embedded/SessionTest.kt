@@ -26,8 +26,8 @@ import android.os.Binder
 import android.os.Build
 import android.os.Process
 import android.os.UserManager
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.IEmbeddedPhotopickerClient
+import android.provider.EmbeddedPhotoPickerFeatureInfo
+import android.provider.IEmbeddedPhotoPickerClient
 import android.test.mock.MockContentResolver
 import android.view.SurfaceView
 import android.view.WindowManager
@@ -164,11 +164,11 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
     @Captor lateinit var uriCaptor3: ArgumentCaptor<Uri>
 
-    @Mock lateinit var mockClient: IEmbeddedPhotopickerClient.Stub
-
     private lateinit var mockTextContextWrapper: FakeTestContextWrapper
 
-    private val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().build()
+    @Mock lateinit var mockClient: IEmbeddedPhotoPickerClient
+
+    val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
 
     // Session has a surfacePackage which outlives the test if not closed, so it always needs to be
     // closed at the end of each test to prevent any existing UI activity from leaking into the next
@@ -496,7 +496,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -526,7 +526,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // revoked permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemDeselected(uri)
+                verify(mockClient, times(1)).onItemsDeselected(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -555,7 +555,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
         }
 
@@ -623,9 +623,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             for (uri in expectedUris) {
                 if (uri == grantFailureUri) continue
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
-            verify(mockClient, never()).onItemSelected(grantFailureUri)
+            verify(mockClient, never()).onItemsSelected(listOf(grantFailureUri))
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -657,7 +657,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUris)
 
-            verify(mockClient, never()).onItemDeselected(revokeFailureUri)
+            verify(mockClient, never()).onItemsDeselected(listOf(revokeFailureUri))
         }
 
     /** Gets the correct nodes of media item for given indices and performs click. */

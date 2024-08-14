@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -347,10 +348,14 @@ private fun defaultBuildMediaItem(
             val selectedModifier =
                 baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
+            val mediaDescription = stringResource(R.string.photopicker_media_item)
+
             // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = mediaDescription
+
                         onClick(
                             action = {
                                 onClick?.invoke(item)

@@ -154,7 +154,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var embeddedLifecycle: EmbeddedLifecycle
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context

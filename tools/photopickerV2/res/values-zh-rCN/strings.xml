@@ -8,25 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"选择图片"</string>
     <string name="action_get_content" msgid="4319210475508093083">"操作获取内容"</string>
-    <!-- no translation found for open_document (8593796561386540777) -->
-    <skip />
-    <!-- no translation found for open_document_tree (8979404185180480396) -->
-    <skip />
-    <string name="display_images_in_order" msgid="7880116254468536174">"按顺序显示图片"</string>
-    <!-- no translation found for show_images_only (6365019348435132030) -->
-    <skip />
-    <!-- no translation found for show_videos_only (7302756380142587762) -->
-    <skip />
-    <!-- no translation found for enter_mime_type (6599304148898478294) -->
-    <skip />
-    <!-- no translation found for select_launch_tab (1219436289162294907) -->
-    <skip />
+    <string name="open_document" msgid="8593796561386540777">"打开文档"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"打开文档树"</string>
+    <string name="create_document" msgid="6073553682715924527">"创建文档"</string>
+    <string name="create_file" msgid="2532895579648102462">"创建文件"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"显示选择顺序"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"只显示图片"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"只显示视频"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"输入 MIME 类型"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"选择启动标签页"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"允许多选"</string>
-    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
-    <skip />
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"允许自定义 MIME 类型"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"媒体文件数上限"</string>
-    <!-- no translation found for enter_valid_number (650407643348891234) -->
-    <skip />
+    <string name="enter_valid_number" msgid="650407643348891234">"请输入大于 1 的有效数字"</string>
     <string name="pick_media" msgid="5269447618857205416">"选择媒体"</string>
     <string name="working_on_it" msgid="1373762827081252341">"正在处理中"</string>
+    <string name="show_metadata" msgid="132548935678717609">"显示所选媒体的元数据"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"启用预先选择"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"请求权限"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"请求以下权限："</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"“选择器选择”功能仅适用于搭载 Android U 或更高版本的设备。\n\n请升级设备以便使用此功能。"</string>
+    <string name="images" msgid="4986074635830919568">"图片"</string>
+    <string name="videos" msgid="4638519191891522146">"视频"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"图片和视频"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"仅显示最新选择"</string>
 </resources>

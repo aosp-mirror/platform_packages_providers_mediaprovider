@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"રદ કરો"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"રાહ જુઓ"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"સલામતી સંરક્ષણ"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"નોટિફિકેશનનું ફૉર્મેટ બદલવાની પ્રક્રિયા ચાલુ છે"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"પ્રગતિનું ફૉર્મેટ બદલવાની પ્રક્રિયા ચાલુ છે"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"થોડા સમય પછી ફરી પ્રયાસ કરો. એકવાર સમસ્યાનું નિરાકરણ થઈ જાય, તે પછી તમારા ફોટા ઉપલબ્ધ થશે."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"અમુક ફોટા લોડ કરી શકાતા નથી"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"સમજાઈ ગયું"</string>

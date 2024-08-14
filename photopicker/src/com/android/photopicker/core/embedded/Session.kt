@@ -26,6 +26,7 @@ import android.os.IBinder
 import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.provider.IEmbeddedPhotoPickerClient
 import android.provider.IEmbeddedPhotoPickerSession
+import android.provider.ParcelableException
 import android.util.Log
 import android.view.SurfaceControlViewHost
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -256,11 +257,16 @@ open class Session(
     }
 
     override fun close() {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session close was requested.")
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
             _host.release()
+            _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
 
@@ -423,6 +429,10 @@ open class Session(
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
             true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
@@ -431,11 +441,19 @@ open class Session(
     }
 
     override fun notifyResized(width: Int, height: Int) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         _host.relayout(width, height)
         _stateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         if (configuration == null) return
 
         // Check for dark theme
@@ -451,6 +469,14 @@ open class Session(
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         _stateManager.setIsExpanded(isExpanded)
+    }
+
+    private fun callClosedSessionError() {
+        clientCallback.onSessionError(ParcelableException(IllegalStateException()))
     }
 }

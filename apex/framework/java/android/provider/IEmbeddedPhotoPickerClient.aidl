@@ -18,25 +18,27 @@ package android.provider;
 
 import android.os.Parcelable;
 import android.net.Uri;
-import android.provider.EmbeddedPhotopickerSessionResponse;
+import java.util.List;
+import android.provider.EmbeddedPhotoPickerSessionResponse;
+import android.provider.ParcelableException;
 
 /**
  * Internal interface used to send callbacks to the host apps.
  *
- * <p> Use {@link EmbeddedPhotopickerClient} class rather than going through this class
- * directly. See {@link EmbeddedPhotopickerClient} for more complete documentation.
+ * <p> Use {@link EmbeddedPhotoPickerClient} class rather than going through this class
+ * directly. See {@link EmbeddedPhotoPickerClient} for more complete documentation.
  *
  * @hide
  */
-oneway interface IEmbeddedPhotopickerClient {
+oneway interface IEmbeddedPhotoPickerClient {
 
-    void onSessionOpened(in EmbeddedPhotopickerSessionResponse response);
+    void onSessionOpened(in EmbeddedPhotoPickerSessionResponse response);
 
-    void onSessionError(String errorMsg);
+    void onSessionError(in ParcelableException exception);
 
-    void onItemSelected(in Uri uri);
+    void onItemsSelected(in List<Uri> uri);
 
-    void onItemDeselected(in Uri uri);
+    void onItemsDeselected(in List<Uri> uri);
 }
 
 

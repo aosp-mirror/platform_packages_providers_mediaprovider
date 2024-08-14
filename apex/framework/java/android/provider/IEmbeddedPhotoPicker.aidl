@@ -18,28 +18,27 @@ package android.provider;
 
 
 import android.os.Parcelable;
-import android.provider.EmbeddedPhotopickerFeatureInfo;
-import android.provider.IEmbeddedPhotopickerClient;
+import android.provider.EmbeddedPhotoPickerFeatureInfo;
+import android.provider.IEmbeddedPhotoPickerClient;
 
 /**
 * Internal interface used to open a new session for embedded photopicker
 *
-* <p> Use {@link com.android.EmbeddedPhotopickerProvider} class rather than going through
-* this binder class directly. See {@link com.android.EmbeddedPhotopickerProvider} for
+* <p> Use {@link com.android.EmbeddedPhotoPickerProvider} class rather than going through
+* this binder class directly. See {@link com.android.EmbeddedPhotoPickerProvider} for
 * more complete documentation
 *
 * @hide
 */
-oneway interface IEmbeddedPhotopicker {
+oneway interface IEmbeddedPhotoPicker {
 
     void openSession(String packageName,
-                     int uid,
                      in IBinder hostToken,
                      int displayId,
                      int width,
                      int height,
-                     in EmbeddedPhotopickerFeatureInfo featureInfo, // parcelable class
-                     in IEmbeddedPhotopickerClient clientCallback
+                     in EmbeddedPhotoPickerFeatureInfo featureInfo, // parcelable class
+                     in IEmbeddedPhotoPickerClient clientCallback
                      );
 }
 

@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"キャンセル"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"待機"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"安全保護"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"ネイティブ コード変換アラート"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"ネイティブ コード変換進行状況"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"コード変換の通知"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"コード変換の進行状況"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"しばらくしてからもう一度お試しください。問題が解決されると、写真をご利用いただけるようになります。"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"読み込めなかった写真があります"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>

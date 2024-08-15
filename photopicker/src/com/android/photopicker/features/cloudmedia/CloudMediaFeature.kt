@@ -41,6 +41,7 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.MediaSource
@@ -84,6 +85,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
         bannerState: BannerState?,
         config: PhotopickerConfiguration,
         dataService: DataService,
+        userMonitor: UserMonitor,
     ): Int {
 
         // If any of the banners owned by [CloudMediaFeature] have been previously dismissed, then
@@ -137,7 +139,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
         }
     }
 
-    override suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
+    override suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
 
         val cloudProvider: Provider? =
             dataService.availableProviders.value.firstOrNull {

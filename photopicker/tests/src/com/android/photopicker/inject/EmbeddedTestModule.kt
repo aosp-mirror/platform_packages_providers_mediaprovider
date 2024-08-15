@@ -32,6 +32,7 @@ import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -96,6 +97,7 @@ abstract class EmbeddedTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -105,6 +107,7 @@ abstract class EmbeddedTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,
@@ -150,6 +153,7 @@ abstract class EmbeddedTestModule {
             scope,
             dispatcher,
             deviceConfigProxy,
+            generatePickerSessionId()
         )
     }
 
@@ -225,18 +229,21 @@ abstract class EmbeddedTestModule {
     @Provides
     fun createSelection(
         @Background scope: CoroutineScope,
-        configurationManager: ConfigurationManager
+        configurationManager: ConfigurationManager,
+        dataService: DataService
     ): Selection<Media> {
         return when (determineSelectionStrategy(configurationManager.configuration.value)) {
             SelectionStrategy.GRANTS_AWARE_SELECTION ->
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = dataService.preGrantedMediaCount,
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = dataService.preSelectionMediaData
                 )
         }
     }

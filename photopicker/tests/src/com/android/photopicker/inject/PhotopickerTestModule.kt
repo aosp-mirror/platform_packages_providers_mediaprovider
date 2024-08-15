@@ -32,6 +32,7 @@ import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -96,6 +97,7 @@ abstract class PhotopickerTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -105,6 +107,7 @@ abstract class PhotopickerTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,
@@ -150,6 +153,7 @@ abstract class PhotopickerTestModule {
             scope,
             dispatcher,
             deviceConfigProxy,
+            generatePickerSessionId()
         )
     }
 
@@ -232,11 +236,13 @@ abstract class PhotopickerTestModule {
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
         }
     }

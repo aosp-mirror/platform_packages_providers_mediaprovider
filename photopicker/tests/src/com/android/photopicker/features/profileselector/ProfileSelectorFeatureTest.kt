@@ -44,10 +44,13 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
+import com.android.photopicker.core.configuration.testGetContentConfiguration
+import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
@@ -55,6 +58,7 @@ import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
+import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -94,6 +98,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -116,8 +121,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var userHandle: UserHandle
-    @Inject lateinit var bannerManager: Lazy<BannerManager>
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
@@ -146,6 +150,26 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
+    fun testProfileSelectorEnabledInConfigurations() {
+
+        assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_PICK_IMAGES)")
+            .that(ProfileSelectorFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .isEqualTo(true)
+
+        assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_GET_CONTENT)")
+            .that(ProfileSelectorFeature.Registration.isEnabled(testGetContentConfiguration))
+            .isEqualTo(true)
+
+        assertWithMessage("ProfileSelectorFeature should not be enabled (USER_SELECT_FOR_APP)")
+            .that(
+                ProfileSelectorFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration
+                )
+            )
+            .isEqualTo(false)
+    }
+
+    @Test
     fun testProfileSelectorIsShownWithMultipleProfiles() =
         testScope.runTest {
 
@@ -160,7 +184,6 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule
@@ -182,7 +205,6 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule
@@ -270,7 +292,6 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule
@@ -349,7 +370,6 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule
@@ -392,7 +412,6 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule

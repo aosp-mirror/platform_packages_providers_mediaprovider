@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>માંથી <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> તૈયાર"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"અમુક ફોટા લોડ કરી શકાતા નથી"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"થોડા સમય પછી ફરી પ્રયાસ કરો. એકવાર સમસ્યાનું નિરાકરણ થઈ જાય, તે પછી તમારા ફોટા ઉપલબ્ધ થશે."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"બૅકઅપ લીધેલા ફોટા હવે શામેલ કરવામાં આવ્યા છે"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"તમે <xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટના <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> પરથી ફોટા પસંદ કરી શકો છો"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"<xliff:g id="APP_NAME">%1$s</xliff:g> એકાઉન્ટ પસંદ કરો"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"<xliff:g id="APP_NAME">%1$s</xliff:g>ના ફોટા અહીં શામેલ કરવા માટે, ઍપમાં કોઈ એકાઉન્ટ પસંદ કરો"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"એકાઉન્ટ પસંદ કરો"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"ક્લાઉડ મીડિયા ઍપ પસંદ કરો"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"બૅકઅપ લીધેલા ફોટા અહીં શામેલ કરવા માટે, સેટિંગમાં જઈને કોઈ ક્લાઉડ મીડિયા ઍપ પસંદ કરો"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"ઍપ પસંદ કરો"</string>
 </resources>

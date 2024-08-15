@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Atlasīt attēlus"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Satura iegūšanas darbība"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Rādīt attēlus norādītajā secībā"</string>
+    <string name="open_document" msgid="8593796561386540777">"Atvērt dokumentu"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Atvērt dokumentu koku"</string>
+    <string name="create_document" msgid="6073553682715924527">"Izveidot dokumentu"</string>
+    <string name="create_file" msgid="2532895579648102462">"Izveidot failu"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Rādīt atlases secību"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Rādīt tikai attēlus"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Rādīt tikai videoklipus"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Ievadiet MIME veidu"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Atlasīt palaišanas cilni"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Atļaut vairāku vienumu atlasi"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Atļaut pielāgotu MIME veidu"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Maksimālais mediju skaits"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Ievadiet derīgu skaitu, kas ir lielāks par 1"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Ievadiet derīgu skaitli, kas ir lielāks par 1"</string>
     <string name="pick_media" msgid="5269447618857205416">"Atlasīt multivides saturu"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Notiek darbība…"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Rādīt metadatus par atlasīto multivides saturu"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Iespējot iepriekšēju atlasi"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Pieprasīt atļaujas"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Pieprasīt atļaujas:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Atlasītāja izvēles funkcija ir pieejama tikai ierīcēs ar operētājsistēmu Android U vai jaunāku versiju. \n\nLai varētu izmantot šo funkciju, lūdzu, atjauniniet ierīci."</string>
+    <string name="images" msgid="4986074635830919568">"Attēli"</string>
+    <string name="videos" msgid="4638519191891522146">"Videoklipi"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Attēli un videoklipi"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Rādīt tikai pēdējo atlasi"</string>
 </resources>

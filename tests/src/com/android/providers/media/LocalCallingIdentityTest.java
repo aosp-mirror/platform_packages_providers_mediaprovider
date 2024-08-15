@@ -83,6 +83,7 @@ public class LocalCallingIdentityTest {
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
+        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_ACCESS_OEM_METADATA));
     }
 
     @Test
@@ -114,5 +115,6 @@ public class LocalCallingIdentityTest {
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_ACCESS_OEM_METADATA));
     }
 }

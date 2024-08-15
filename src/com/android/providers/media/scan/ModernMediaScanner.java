@@ -50,19 +50,25 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import static com.android.providers.media.flags.Flags.enableOemMetadata;
 import static com.android.providers.media.util.FileUtils.canonicalize;
 import static com.android.providers.media.util.IsoInterface.MAX_XMP_SIZE_BYTES;
 import static com.android.providers.media.util.Metrics.translateReason;
 
 import static java.util.Objects.requireNonNull;
 
+import android.content.ComponentName;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.OperationApplicationException;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteBlobTooBigException;
 import android.database.sqlite.SQLiteDatabase;
@@ -77,11 +83,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.IBinder;
 import android.os.OperationCanceledException;
+import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
+import android.provider.IOemMetadataService;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio.PlaylistsColumns;
@@ -89,6 +98,8 @@ import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.provider.OemMetadataService;
+import android.provider.OemMetadataServiceWrapper;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
@@ -101,8 +112,9 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
-import com.android.providers.media.flags.Flags;
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaVolume;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
@@ -128,6 +140,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -202,6 +215,7 @@ public class ModernMediaScanner implements MediaScanner {
     @NonNull
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
+    private OemMetadataServiceWrapper mOemMetadataServiceWrapper;
     @GuardedBy("mPendingCleanDirectories")
     private final Set<String> mPendingCleanDirectories = new ArraySet<>();
 
@@ -235,7 +249,12 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private final Set<String> mDrmMimeTypes = new ArraySet<>();
 
-    public ModernMediaScanner(@NonNull Context context) {
+    /**
+     * Set of MIME types that should be considered for fetching OEM metadata.
+     */
+    private Set<String> mOemSupportedMimeTypes;
+
+    public ModernMediaScanner(@NonNull Context context, @NonNull ConfigStore configStore) {
         mContext = requireNonNull(context);
         mDrmClient = new DrmManagerClient(context);
 
@@ -247,7 +266,63 @@ public class ModernMediaScanner implements MediaScanner {
                 mDrmMimeTypes.add(mimeTypes.next());
             }
         }
+        connectOemMetadataServiceWrapper(configStore);
     }
+
+    private Set<String> getOemSupportedMimeTypes() {
+        if (mOemMetadataServiceWrapper == null) {
+            return new HashSet<String>();
+        }
+
+        try {
+            return mOemMetadataServiceWrapper.getSupportedMimeTypes();
+        } catch (Exception e) {
+            Log.w(TAG, "Error in fetching OEM supported mimetypes", e);
+            return new HashSet<>();
+        }
+    }
+
+    private void connectOemMetadataServiceWrapper(ConfigStore configStore) {
+        if (!enableOemMetadata()) {
+            return;
+        }
+
+        Optional<String> pkgOptional = configStore.getDefaultOemMetadataServicePackage();
+        if (!pkgOptional.isPresent()) {
+            Log.v(TAG, "No default package listed for OEM Metadata service");
+            return;
+        }
+
+        Intent intent = new Intent(OemMetadataService.SERVICE_INTERFACE);
+        ResolveInfo resolveInfo = mContext.getPackageManager().resolveService(intent,
+                PackageManager.MATCH_ALL);
+        if (resolveInfo == null || resolveInfo.serviceInfo == null
+                || resolveInfo.serviceInfo.packageName == null
+                || !pkgOptional.get().equalsIgnoreCase(resolveInfo.serviceInfo.packageName)
+                || resolveInfo.serviceInfo.permission == null
+                || !resolveInfo.serviceInfo.permission.equalsIgnoreCase(
+                OemMetadataService.BIND_OEM_METADATA_SERVICE_PERMISSION)) {
+            Log.v(TAG, "No valid package found for OEM Metadata service");
+            return;
+        }
+
+        intent.setPackage(pkgOptional.get());
+        mContext.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            IOemMetadataService service = IOemMetadataService.Stub.asInterface(iBinder);
+            mOemMetadataServiceWrapper = new OemMetadataServiceWrapper(service);
+            Log.i(TAG, "Connected to OemMetadataService");
+        }
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mOemMetadataServiceWrapper = null;
+            Log.i(TAG, "Disconnected from OemMetadataService");
+        }
+    };
 
     @Override
     @NonNull
@@ -881,10 +956,36 @@ public class ModernMediaScanner implements MediaScanner {
                 if (isDrm) {
                     op.withValue(MediaColumns.IS_DRM, 1);
                 }
+
+                if (enableOemMetadata()) {
+                    if (mOemSupportedMimeTypes == null) {
+                        mOemSupportedMimeTypes = getOemSupportedMimeTypes();
+                    }
+                    if (mOemSupportedMimeTypes.contains(actualMimeType)) {
+                        // If mime type is supported by OEM
+                        fetchOemMetadata(op, realFile);
+                    }
+                }
+
                 addPending(op.build());
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
+        }
+
+        private void fetchOemMetadata(ContentProviderOperation.Builder op, File file) {
+            if (!enableOemMetadata() || mOemMetadataServiceWrapper == null) {
+                return;
+            }
+
+            try (ParcelFileDescriptor pfd = FileUtils.openSafely(file,
+                    ParcelFileDescriptor.MODE_READ_ONLY)) {
+                Map<String, String> oemMetadata = mOemMetadataServiceWrapper.getOemCustomData(pfd);
+                op.withValue(FileColumns.OEM_METADATA, oemMetadata.toString().getBytes());
+                Log.v(TAG, "Fetched OEM metadata successfully");
+            } catch (Exception e) {
+                Log.w(TAG, "Failure in fetching OEM metadata", e);
+            }
         }
 
         private int mediaTypeFromMimeType(

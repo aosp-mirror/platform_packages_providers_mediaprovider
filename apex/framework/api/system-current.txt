@@ -74,5 +74,14 @@ package android.provider {
     field public static final String QUERY_ARG_DEFER_SCAN = "android:query-arg-defer-scan";
   }
 
+  @FlaggedApi("com.android.providers.media.flags.enable_oem_metadata") public abstract class OemMetadataService extends android.app.Service {
+    ctor public OemMetadataService();
+    method @NonNull public final android.os.IBinder onBind(@Nullable android.content.Intent);
+    method @NonNull public abstract java.util.Map<java.lang.String,java.lang.String> onGetOemCustomData(@NonNull android.os.ParcelFileDescriptor);
+    method @NonNull public abstract java.util.Set<java.lang.String> onGetSupportedMimeTypes();
+    field public static final String BIND_OEM_METADATA_SERVICE_PERMISSION = "com.android.providers.media.permission.BIND_OEM_METADATA_SERVICE";
+    field public static final String SERVICE_INTERFACE = "android.provider.OemMetadataService";
+  }
+
 }
 

@@ -39,6 +39,7 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.util.FileUtils;
 
 import org.junit.Before;
@@ -68,7 +69,8 @@ public class MediaScannerTest {
         mLegacy = new LegacyMediaScanner(
                 new IsolatedContext(context, "legacy", /*asFuseThread*/ false));
         mModern = new ModernMediaScanner(
-                new IsolatedContext(context, "modern", /*asFuseThread*/ false));
+                new IsolatedContext(context, "modern", /*asFuseThread*/ false),
+                new TestConfigStore());
     }
 
     /**

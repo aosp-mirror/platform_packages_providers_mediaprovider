@@ -112,7 +112,7 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
     @Inject lateinit var events: Lazy<Events>
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
@@ -126,7 +126,7 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
         setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
 
         val testIntent = Intent(Intent.ACTION_GET_CONTENT)
-        configurationManager.setIntent(testIntent)
+        configurationManager.get().setIntent(testIntent)
     }
 
     @Test

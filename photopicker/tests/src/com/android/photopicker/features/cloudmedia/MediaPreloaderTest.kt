@@ -46,11 +46,14 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.DeviceConfigProxy
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_FEATURE_ENABLED
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
+import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
+import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
@@ -143,7 +146,8 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
+    @Inject lateinit var deviceConfig: DeviceConfigProxy
     @Inject lateinit var events: Lazy<Events>
 
     val mediaToPreload = MutableSharedFlow<Set<Media>>()
@@ -193,11 +197,32 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
         hiltRule.inject()
 
+        val testDeviceConfigProxy =
+            checkNotNull(deviceConfig as? TestDeviceConfigProxyImpl) {
+                "Expected a TestDeviceConfigProxy"
+            }
+
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.first,
+            true
+        )
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.first,
+            true
+        )
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+            "com.android.test.cloudpicker"
+        )
+
         val testIntent =
             Intent(MediaStore.ACTION_PICK_IMAGES).apply {
                 putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 50)
             }
-        configurationManager.setIntent(testIntent)
+        configurationManager.get().setIntent(testIntent)
 
         // Stub for MockContentResolver constructor
         whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
@@ -216,22 +241,6 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
         }
         setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
-    }
-
-    @Test
-    fun testMediaPreloaderIsEnabled() {
-
-        assertWithMessage("MediaPreloader is not always enabled for action pick image")
-            .that(CloudMediaFeature.Registration.isEnabled(testActionPickImagesConfiguration))
-            .isEqualTo(true)
-
-        assertWithMessage("MediaPreloader is not always enabled for get content")
-            .that(CloudMediaFeature.Registration.isEnabled(testGetContentConfiguration))
-            .isEqualTo(true)
-
-        assertWithMessage("MediaPreloader should not be enabled for user select images")
-            .that(CloudMediaFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
-            .isEqualTo(false)
     }
 
     @Test

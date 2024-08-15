@@ -356,7 +356,7 @@ public class DatabaseHelperTest {
     }
 
     @Test
-    public void testAddInferredMediaDate() {
+    public void testAddInferredDate() {
         try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
             {
@@ -374,12 +374,12 @@ public class DatabaseHelperTest {
             values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
             assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
 
-            try (Cursor cr = db.query("files", new String[]{"inferred_media_date"}, null, null,
+            try (Cursor cr = db.query("files", new String[]{"inferred_date"}, null, null,
                     null, null, null)) {
                 assertEquals(2, cr.getCount());
                 while (cr.moveToNext()) {
                     // Verify that after db upgrade, for all database rows (new inserts and
-                    // upgrades), inferred_media_date is 0.
+                    // upgrades), inferred_date is 0.
                     assertThat(cr.getInt(0)).isEqualTo(0);
                 }
             }

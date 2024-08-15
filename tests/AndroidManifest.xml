@@ -22,7 +22,10 @@
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
 
-    <uses-permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE" />
+    <uses-permission
+        android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE"/>
+    <uses-permission
+        android:name="com.android.providers.media.permission.BIND_OEM_METADATA_SERVICE"/>
 
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
@@ -143,6 +146,25 @@
             android:permission="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE">
             <intent-filter>
                 <action android:name="android.provider.MediaCognitionService" />
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.android.providers.media.oemmetadataservices.TestOemMetadataService"
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.BIND_OEM_METADATA_SERVICE">
+            <intent-filter>
+                <action android:name="android.provider.OemMetadataService"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.android.providers.media.oemmetadataservices.TestOemMetadataServiceWithoutPermission"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.OemMetadataService"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>

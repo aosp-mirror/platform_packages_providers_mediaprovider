@@ -38,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
@@ -286,6 +288,7 @@ fun PhotoGridNavButton(modifier: Modifier) {
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
+    val contentDescriptionString = stringResource(R.string.photopicker_photos_nav_button_label)
 
     NavigationBarButton(
         onClick = {
@@ -302,7 +305,7 @@ fun PhotoGridNavButton(modifier: Modifier) {
             }
             navController.navigateToPhotoGrid()
         },
-        modifier = modifier,
+        modifier = modifier.semantics { contentDescription = contentDescriptionString },
         isCurrentRoute = { route -> route == PHOTO_GRID.route },
     ) {
         Text(stringResource(R.string.photopicker_photos_nav_button_label))

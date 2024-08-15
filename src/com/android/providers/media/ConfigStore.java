@@ -39,6 +39,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 /**
@@ -238,6 +239,9 @@ public interface ConfigStore {
     @NonNull
     List<String> getTranscodeCompatStale();
 
+    @NonNull
+    Optional<String> getDefaultOemMetadataServicePackage();
+
     /**
      * Add a listener for changes.
      */
@@ -282,6 +286,12 @@ public interface ConfigStore {
             @Override
             public List<String> getTranscodeCompatStale() {
                 return Collections.emptyList();
+            }
+
+            @NonNull
+            @Override
+            public Optional<String> getDefaultOemMetadataServicePackage() {
+                return Optional.empty();
             }
 
             @Override
@@ -519,6 +529,16 @@ public interface ConfigStore {
         @NonNull
         public List<String> getTranscodeCompatStale() {
             return getStringArrayDeviceConfig(KEY_TRANSCODE_COMPAT_STALE);
+        }
+
+        @Override
+        public Optional<String> getDefaultOemMetadataServicePackage() {
+            String pkg = mResources.getString(R.string.config_default_oem_metadata_service_package);
+            if (pkg == null || pkg.isEmpty()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(pkg);
         }
 
         @Override

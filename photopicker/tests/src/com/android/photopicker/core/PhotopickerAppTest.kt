@@ -89,7 +89,7 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
 
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var mockContext: Context
     @Inject lateinit var featureManager: Lazy<FeatureManager>
     @Inject lateinit var selection: Lazy<Selection<Media>>

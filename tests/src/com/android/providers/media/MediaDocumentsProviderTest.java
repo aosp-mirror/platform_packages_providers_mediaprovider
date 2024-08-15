@@ -284,7 +284,7 @@ public class MediaDocumentsProviderTest {
         stage(R.raw.test_txt, new File(dir, "document.txt"));
         stage(R.raw.test_bin, new File(dir, "random.bin"));
 
-        final MediaScanner scanner = new ModernMediaScanner(context);
+        final MediaScanner scanner = new ModernMediaScanner(context, new TestConfigStore());
         scanner.scanDirectory(dir, REASON_UNKNOWN);
     }
 

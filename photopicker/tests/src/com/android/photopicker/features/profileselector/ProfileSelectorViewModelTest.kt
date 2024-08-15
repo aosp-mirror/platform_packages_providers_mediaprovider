@@ -29,12 +29,21 @@ import android.test.mock.MockContentResolver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.test.utils.MockContentProviderWrapper
@@ -48,13 +57,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.times
 import org.mockito.MockitoAnnotations
 
 @SmallTest
@@ -67,6 +73,7 @@ class ProfileSelectorViewModelTest {
     @Mock lateinit var mockPackageManager: PackageManager
 
     private val mockContentResolver: MockContentResolver = MockContentResolver()
+    private val deviceConfigProxy = TestDeviceConfigProxyImpl()
 
     private val USER_HANDLE_PRIMARY: UserHandle
     private val USER_ID_PRIMARY: Int = 0
@@ -120,15 +127,9 @@ class ProfileSelectorViewModelTest {
 
     @Before
     fun setup() {
+        deviceConfigProxy.reset()
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder()
-                .setCrossProfileContentSharingStrategy(
-                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
-                )
-                .build()
-        }
 
         // Stubs for UserMonitor
         whenever(mockContext.packageManager) { mockPackageManager }
@@ -137,13 +138,23 @@ class ProfileSelectorViewModelTest {
         whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
             mockContext
         }
-        whenever(mockUserManager.getUserBadge()) {
-            InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDrawable(R.drawable.android, /* theme= */ null)
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder()
+                    .setCrossProfileContentSharingStrategy(
+                        UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                    )
+                    .build()
+            }
+            whenever(mockUserManager.getUserBadge()) {
+                InstrumentationRegistry.getInstrumentation()
+                    .getContext()
+                    .getResources()
+                    .getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
         }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
         val mockResolveInfo = mock(ResolveInfo::class.java)
         whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
         whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
@@ -164,9 +175,30 @@ class ProfileSelectorViewModelTest {
             whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
 
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
 
             val viewModel =
@@ -183,6 +215,8 @@ class ProfileSelectorViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    events,
+                    configurationManager
                 )
 
             assertWithMessage("Expected available number of profiles to be 2.")
@@ -212,9 +246,29 @@ class ProfileSelectorViewModelTest {
             whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
 
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
 
             val viewModel =
@@ -231,6 +285,8 @@ class ProfileSelectorViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
+                    events,
+                    configurationManager
                 )
 
             selection.add(TEST_MEDIA_IMAGE)

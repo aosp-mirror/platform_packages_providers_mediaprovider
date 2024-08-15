@@ -22,9 +22,13 @@ import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_SIZE;
 import static android.provider.CloudMediaProviderContract.EXTRA_PAGE_TOKEN;
 import static android.provider.CloudMediaProviderContract.EXTRA_SYNC_GENERATION;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
+import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.LAST_MEDIA_SYNC_GENERATION;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.MEDIA_COLLECTION_ID;
+import static android.provider.MediaStore.AUTHORITY;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.PER_USER_RANGE;
 
 import static com.android.providers.media.PickerUriResolver.INIT_PATH;
 import static com.android.providers.media.PickerUriResolver.PICKER_INTERNAL_URI;
@@ -38,14 +42,19 @@ import static com.android.providers.media.photopicker.NotificationContentObserve
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 
 import android.annotation.IntDef;
+import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.os.Trace;
 import android.os.storage.StorageManager;
 import android.provider.CloudMediaProvider;
@@ -72,7 +81,9 @@ import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.util.exceptions.WorkCancelledException;
 import com.android.providers.media.photopicker.v2.PickerNotificationSender;
+import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -82,6 +93,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -148,8 +160,24 @@ public class PickerSyncController {
     private final String mLocalProvider;
 
     private CloudProviderInfo mCloudProviderInfo;
+    @NonNull
+    private ProviderCollectionInfo mLatestLocalProviderCollectionInfo;
+    @NonNull
+    private ProviderCollectionInfo mLatestCloudProviderCollectionInfo;
     @Nullable
     private static PickerSyncController sInstance;
+
+    /**
+     * This URI path when used in a MediaProvider.query() method redirects the call to media_grants
+     * table present in the external database.
+     */
+    private static final String MEDIA_GRANTS_URI_PATH = "content://media/media_grants";
+
+    /**
+     * Extra that can be passed in the grants sync query to ensure only the data corresponding to
+     * the required mimeTypes is synced.
+     */
+    public static final String EXTRA_MEDIA_GRANTS_MIME_TYPES = "media_grant_mime_type_selection";
 
     /**
      * Initialize {@link PickerSyncController} object.{@link PickerSyncController} should only be
@@ -229,6 +257,40 @@ public class PickerSyncController {
         initCloudProvider();
     }
 
+    /**
+     * This method is called after the broadcast intent action {@link Intent.ACTION_BOOT_COMPLETE}
+     * is received.
+     */
+    public void onBootComplete() {
+        tryEnablingCloudMediaQueries(/* delay */ TimeUnit.MINUTES.toMillis(3));
+    }
+
+    private Integer mEnableCloudQueryRemainingRetry = 2;
+
+    /**
+     * Attempt to enable cloud media queries in Picker DB with a retry mechanism.
+     */
+    @VisibleForTesting
+    public void tryEnablingCloudMediaQueries(@NonNull long delay) {
+        Log.d(TAG, "Schedule enable cloud media query task.");
+
+        BackgroundThread.getHandler().postDelayed(() -> {
+            Log.d(TAG, "Attempting to enable cloud media queries.");
+            try {
+                maybeEnableCloudMediaQueries();
+            } catch (UnableToAcquireLockException | RequestObsoleteException | RuntimeException e) {
+                // Cloud media provider can return unexpected values if it's still bootstrapping.
+                // Retry in case a possibly transient error is encountered.
+                Log.d(TAG, "Error occurred, remaining retry count: "
+                        + mEnableCloudQueryRemainingRetry, e);
+                mEnableCloudQueryRemainingRetry--;
+                if (mEnableCloudQueryRemainingRetry >= 0) {
+                    tryEnablingCloudMediaQueries(/* delay */ TimeUnit.MINUTES.toMillis(3));
+                }
+            }
+        }, delay);
+    }
+
     @NonNull
     public PickerSyncLockManager getPickerSyncLockManager() {
         return mPickerSyncLockManager;
@@ -270,6 +332,40 @@ public class PickerSyncController {
         }
 
         Log.d(TAG, "Initialized cloud provider to: " + defaultInfo.authority);
+    }
+
+    /**
+     * Enables Cloud media queries if the Picker DB is in sync with the latest collection id.
+     * @throws RequestObsoleteException if the cloud authority changes during the operation.
+     * @throws UnableToAcquireLockException If the required locks cannot be acquired to complete the
+     * operation.
+     */
+    public void maybeEnableCloudMediaQueries()
+            throws RequestObsoleteException, UnableToAcquireLockException {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_SYNC_LOCK)) {
+            final String cloudProvider = getCloudProviderWithTimeout();
+            final SyncRequestParams params =
+                    getSyncRequestParams(cloudProvider, /* isLocal */ false);
+            switch (params.syncType) {
+                case SYNC_TYPE_NONE:
+                case SYNC_TYPE_MEDIA_INCREMENTAL:
+                case SYNC_TYPE_MEDIA_FULL:
+                    enablePickerCloudMediaQueries(cloudProvider, /* isLocal */ false);
+                    break;
+
+                case SYNC_TYPE_MEDIA_RESET:
+                case SYNC_TYPE_MEDIA_FULL_WITH_RESET:
+                    disablePickerCloudMediaQueries(/* isLocal */ false);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException(
+                            "Could not recognize sync type " + params.syncType);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Could not enable picker cloud media queries", e);
+        }
     }
 
     /**
@@ -581,6 +677,88 @@ public class PickerSyncController {
     }
 
     /**
+     * Returns the local provider's collection info.
+     */
+    @Nullable
+    public ProviderCollectionInfo getLocalProviderLatestCollectionInfo() {
+        return getLatestCollectionInfoLocked(/* isLocal */ true, mLocalProvider);
+    }
+
+    /**
+     * Returns the current cloud provider's collection info. First, attempt to get it from cache.
+     * If the cache is not up to date, get it from the cloud provider directly.
+     */
+    @Nullable
+    public ProviderCollectionInfo getCloudProviderLatestCollectionInfo() {
+        try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                .tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            final String currentCloudProvider = getCloudProviderWithTimeout();
+            return getLatestCollectionInfoLocked(/* isLocal */ false, currentCloudProvider);
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not get latest collection info", e);
+            return null;
+        }
+    }
+
+    @Nullable
+    private ProviderCollectionInfo getLatestCollectionInfoLocked(
+            boolean isLocal,
+            @Nullable String authority) {
+        final ProviderCollectionInfo latestCachedProviderCollectionInfo =
+                getLatestCollectionInfoLocked(isLocal);
+
+        if (latestCachedProviderCollectionInfo != null
+                && TextUtils.equals(authority, latestCachedProviderCollectionInfo.getAuthority())) {
+            Log.d(TAG, "Latest collection info up to date " + latestCachedProviderCollectionInfo);
+            return latestCachedProviderCollectionInfo;
+        } else {
+            final ProviderCollectionInfo latestCollectionInfo;
+            if (authority == null) {
+                return null;
+            } else {
+                Log.d(TAG, "Latest collection info up is NOT up to date. "
+                        + "Fetching the latest collection info from CMP.");
+                final Bundle latestMediaCollectionInfoBundle =
+                        getLatestMediaCollectionInfo(authority);
+                final String latestCollectionId =
+                        latestMediaCollectionInfoBundle.getString(MEDIA_COLLECTION_ID);
+                final String latestAccountName =
+                        latestMediaCollectionInfoBundle.getString(ACCOUNT_NAME);
+                final Intent latestAccountConfigurationIntent =
+                        getAccountConfigurationIntent(latestMediaCollectionInfoBundle);
+                latestCollectionInfo = new ProviderCollectionInfo(authority, latestCollectionId,
+                        latestAccountName, latestAccountConfigurationIntent);
+            }
+
+            updateLatestKnownCollectionInfoLocked(isLocal, latestCollectionInfo);
+            return (ProviderCollectionInfo) latestCollectionInfo.clone();
+        }
+    }
+
+    @Nullable
+    private Intent getAccountConfigurationIntent(@NonNull Bundle bundle) {
+        if (SdkLevel.isAtLeastT()) {
+            return bundle.getParcelable(ACCOUNT_CONFIGURATION_INTENT, Intent.class);
+        } else {
+            return (Intent) bundle.getParcelable(ACCOUNT_CONFIGURATION_INTENT);
+        }
+    }
+
+    @Nullable
+    private ProviderCollectionInfo getLatestCollectionInfoLocked(boolean isLocal) {
+        ProviderCollectionInfo latestCollectionInfo;
+        if (isLocal) {
+            latestCollectionInfo = mLatestLocalProviderCollectionInfo;
+        } else {
+            latestCollectionInfo = mLatestCloudProviderCollectionInfo;
+        }
+        return latestCollectionInfo != null
+                ? (ProviderCollectionInfo) latestCollectionInfo.clone()
+                : null;
+    }
+
+
+    /**
      * @return current cloud provider app localized label. This operation acquires a lock
      *         internally with a timeout.
      * @throws UnableToAcquireLockException if the lock was not acquired within the given timeout.
@@ -700,7 +878,7 @@ public class PickerSyncController {
                 executeSyncAddAlbum(
                         authority, isLocal, albumId, queryArgs, instanceId, cancellationSignal);
             }
-        } catch (RuntimeException | UnableToAcquireLockException e) {
+        } catch (RuntimeException | UnableToAcquireLockException | WorkCancelledException e) {
             // Unlike syncAllMediaFromProvider, we don't retry here because any errors would have
             // occurred in fetching all the album_media since incremental sync is not supported.
             // A full sync is therefore unlikely to resolve any issue
@@ -806,6 +984,10 @@ public class PickerSyncController {
                 default:
                     throw new IllegalArgumentException("Unexpected sync type: " + params.syncType);
             }
+        } catch (WorkCancelledException e) {
+            // Do not reset picker DB here so that the sync operation resumes the next time sync is
+            // triggered.
+            Log.e(TAG, "Failed to sync all media because the sync was cancelled.", e);
         } catch (RequestObsoleteException e) {
             Log.e(TAG, "Failed to sync all media because authority has changed.", e);
             try {
@@ -924,7 +1106,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getMediaUri(authority);
         final List<String> expectedHonoredArgs = new ArrayList<>();
         if (isIncrementalSync) {
@@ -974,7 +1156,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getMediaUri(authority);
 
         Log.i(TAG, "Executing SyncAddAlbum. "
@@ -1025,7 +1207,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getDeletedMediaUri(authority);
 
         Log.i(TAG, "Executing SyncRemove. isLocal: " + isLocal + ". authority: " + authority);
@@ -1097,7 +1279,9 @@ public class PickerSyncController {
 
             sendPickerUiRefreshNotification(/* isInitPending */ true);
 
+            // We need this to trigger a sync from the UI
             PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+            updateLatestKnownCollectionInfoLocked(false, null);
         }
     }
 
@@ -1259,7 +1443,7 @@ public class PickerSyncController {
         try {
             Bundle result = mContext.getContentResolver().call(getMediaCollectionInfoUri(authority),
                     CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO, /* arg */ null,
-                    /* extras */ null);
+                    /* extras */ new Bundle());
             return (result == null) ? (new Bundle()) : result;
         } finally {
             NonUiEventLogger.logPickerGetMediaCollectionInfoEnd(instanceId, MY_UID, authority);
@@ -1278,13 +1462,13 @@ public class PickerSyncController {
     private SyncRequestParams getSyncRequestParams(@Nullable String authority,
             boolean isLocal) throws RequestObsoleteException, UnableToAcquireLockException {
         if (isLocal) {
-            return getSyncRequestParamsInternal(authority, isLocal);
+            return getSyncRequestParamsLocked(authority, isLocal);
         } else {
             // Ensure that we are fetching sync request params for the current cloud provider.
             try (CloseableReentrantLock ignored = mPickerSyncLockManager
                     .tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
                 if (Objects.equals(mCloudProviderInfo.authority, authority)) {
-                    return getSyncRequestParamsInternal(authority, isLocal);
+                    return getSyncRequestParamsLocked(authority, isLocal);
                 } else {
                     throw new RequestObsoleteException("Attempt to fetch sync request params for an"
                             + " unknown cloud provider. Current provider: "
@@ -1295,7 +1479,7 @@ public class PickerSyncController {
     }
 
     @NonNull
-    private SyncRequestParams getSyncRequestParamsInternal(@Nullable String authority,
+    private SyncRequestParams getSyncRequestParamsLocked(@Nullable String authority,
             boolean isLocal) {
         Log.d(TAG, "getSyncRequestParams() " + (isLocal ? "LOCAL" : "CLOUD")
                 + ", auth=" + authority);
@@ -1330,6 +1514,16 @@ public class PickerSyncController {
 
             if (!Objects.equals(latestCollectionId, cachedCollectionId)) {
                 result = SyncRequestParams.forFullMediaWithReset(latestMediaCollectionInfo);
+
+                // Update collection info cache.
+                final String latestAccountName =
+                        latestMediaCollectionInfo.getString(ACCOUNT_NAME);
+                final Intent latestAccountConfigurationIntent =
+                        getAccountConfigurationIntent(latestMediaCollectionInfo);
+                final ProviderCollectionInfo latestCollectionInfo =
+                        new ProviderCollectionInfo(authority, latestCollectionId, latestAccountName,
+                                latestAccountConfigurationIntent);
+                updateLatestKnownCollectionInfoLocked(isLocal, latestCollectionInfo);
             } else if (cachedGeneration == DEFAULT_GENERATION) {
                 result = SyncRequestParams.forFullMedia(latestMediaCollectionInfo);
             } else if (cachedGeneration == latestGeneration) {
@@ -1341,6 +1535,16 @@ public class PickerSyncController {
         }
         Log.d(TAG, "   RESULT=" + result);
         return result;
+    }
+
+    private void updateLatestKnownCollectionInfoLocked(
+            boolean isLocal,
+            @Nullable ProviderCollectionInfo latestCollectionInfo) {
+        if (isLocal) {
+            mLatestLocalProviderCollectionInfo = latestCollectionInfo;
+        } else {
+            mLatestCloudProviderCollectionInfo = latestCollectionInfo;
+        }
     }
 
     private String getPrefsKey(boolean isLocal, String key) {
@@ -1408,7 +1612,7 @@ public class PickerSyncController {
             String authority,
             Boolean isLocal,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         return executePagedSync(
                 uri,
                 expectedMediaCollectionId,
@@ -1453,7 +1657,7 @@ public class PickerSyncController {
             Boolean isLocal,
             @Nullable String albumId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         Trace.beginSection(traceSectionName("executePagedSync"));
 
         try {
@@ -1474,7 +1678,7 @@ public class PickerSyncController {
                 // At the top of each loop check to see if we've received a CancellationSignal
                 // to stop the paged sync.
                 if (cancellationSignal != null && cancellationSignal.isCanceled()) {
-                    throw new RequestObsoleteException(
+                    throw new WorkCancelledException(
                             "Aborting sync: cancellationSignal was received");
                 }
 
@@ -1866,5 +2070,119 @@ public class PickerSyncController {
             Log.e(TAG, "Could not check if cloud media should be queried", e);
             return false;
         }
+    }
+
+    /**
+     * Disable cloud queries if the new collection id received from the cloud provider in the media
+     * event notification is different than the cached value.
+     */
+    public void handleMediaEventNotification(Boolean localOnly, @NonNull String authority,
+            @Nullable String newCollectionId) {
+        if (!localOnly && newCollectionId != null) {
+            try (CloseableReentrantLock ignored = mPickerSyncLockManager
+                    .tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+                final String currentCloudProvider = getCloudProviderWithTimeout();
+                if (authority.equals(currentCloudProvider) && !newCollectionId
+                        .equals(mLatestCloudProviderCollectionInfo.getCollectionId())) {
+                    disablePickerCloudMediaQueries(/* isLocal */ false);
+                }
+            } catch (UnableToAcquireLockException e) {
+                Log.e(TAG, "Could not handle media event notification", e);
+            }
+        }
+    }
+
+    /**
+     * Executes a sync for grants from the external database to the picker database.
+     *
+     * This should only be called when the picker is in MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP
+     * action. It requires a valid packageUid and mimeTypes with which the picker was invoked to
+     * ensure that the sync only happens for the items that:
+     * <li>match the mimeTypes</li>
+     * <li>are granted to the package and userId corresponding to the provided packageUid</li>
+     *
+     * It fetches the rows from media_grants table in the external.db that matches the criteria and
+     * inserts them in the media_grants table in picker.db
+     */
+    public void executeGrantsSync(
+            boolean shouldSyncGrants, int packageUid,
+            String[] mimeTypes) {
+        // empty the grants table.
+        executeClearAllGrants(packageUid);
+
+        // sync all grants into the table
+        if (shouldSyncGrants) {
+            final ContentResolver resolver = mContext.getContentResolver();
+            try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+                assert client != null;
+                final Bundle extras = new Bundle();
+                extras.putInt(Intent.EXTRA_UID, packageUid);
+                extras.putStringArray(EXTRA_MEDIA_GRANTS_MIME_TYPES, mimeTypes);
+                try (Cursor c = client.query(Uri.parse(MEDIA_GRANTS_URI_PATH),
+                        /* projection= */ null,
+                        /* queryArgs= */ extras,
+                        null)) {
+                    Trace.beginSection(traceSectionName(
+                            "executeGrantsSync", /* isLocal */ true));
+                    try (PickerDbFacade.DbWriteOperation operation =
+                                 mDbFacade.beginInsertGrantsOperation()) {
+                        int grantsInsertedCount = operation.execute(c);
+                        operation.setSuccess();
+                        Log.i(TAG, "Successfully executed grants sync operation operation."
+                                + " Result count: " + grantsInsertedCount);
+                    } finally {
+                        Trace.endSection();
+                    }
+                }
+            } catch (RemoteException e) {
+                Log.e(TAG, "Remote exception received while fetching grants. " +  e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Before a sync for grants is initiated, this method is used to clear any stale grants that
+     * exists in the database.
+     *
+     * This should only be called when the picker is in MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP
+     * action. It requires a valid packageUid with which the picker was invoked to
+     * ensure that all the rows that represents the items granted to the package and userId
+     * corresponding to the provided packageUid are cleared from the media_grants table in picker.db
+     */
+    private void executeClearAllGrants(int packageUid) {
+        Trace.beginSection(traceSectionName("executeClearAllGrants", /* isLocal */ true));
+        int userId = uidToUserId(packageUid);
+        String[] packageNames = getPackageNameFromUid(mContext, packageUid);
+
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mDbFacade.beginClearGrantsOperation(packageNames, userId)) {
+            final int clearedGrantsCount = operation.execute(/* cursor */ null);
+            operation.setSuccess();
+
+            Log.i(TAG, "Successfully executed clear grants operation."
+                    + " Result count: " + clearedGrantsCount);
+        } catch (SQLException e) {
+            Log.e(TAG, "Unable to clear grants for this session: " + e.getMessage());
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    /**
+     * Returns an Array of packageNames corresponding to the input package uid.
+     */
+    public static String[] getPackageNameFromUid(Context context, int callingPackageUid) {
+        final PackageManager pm = context.getPackageManager();
+        return pm.getPackagesForUid(callingPackageUid);
+    }
+
+    /**
+     * Generates and returns userId from the input package uid.
+     */
+    public static int uidToUserId(int uid) {
+        // Get the userId from packageUid as the initiator could be a cloned app, which
+        // accesses Media via MP of its parent user and Binder's callingUid reflects
+        // the latter.
+        return uid / PER_USER_RANGE;
     }
 }

@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.AUTHORITY
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_CONFIGURATION_INTENT;
 import static android.provider.CloudMediaProviderContract.MediaCollectionInfo.ACCOUNT_NAME;
+import static android.provider.CloudMediaProviderContract.EXTRA_MEDIA_COLLECTION_ID;
 import static android.provider.MediaStore.MY_UID;
 
 import static com.android.providers.media.PickerUriResolver.getAlbumUri;
@@ -176,7 +177,7 @@ public class PickerDataLayer {
                             getWorkManager(mContext),
                             SyncTrackerRegistry.getLocalSyncTracker(),
                             IMMEDIATE_LOCAL_SYNC_WORK_NAME);
-                    Log.i(TAG, "Local sync is complete");
+                    Log.i(TAG, "Grants sync and Local sync is complete");
 
                     // Wait for on cloud sync with timeout
                     if (!isLocalOnly) {
@@ -358,7 +359,7 @@ public class PickerDataLayer {
     private AccountInfo fetchCloudAccountInfoInternal(@NonNull String cloudProvider) {
         final Bundle accountBundle = mContext.getContentResolver()
                 .call(getMediaCollectionInfoUri(cloudProvider), METHOD_GET_MEDIA_COLLECTION_INFO,
-                        /* arg */ null, /* extras */ null);
+                        /* arg */ null, /* extras */ new Bundle());
         if (accountBundle == null) {
             Log.e(TAG,
                     "Media collection info received is null. Failed to fetch Cloud account "
@@ -435,7 +436,7 @@ public class PickerDataLayer {
                     + " Should sync with local provider only: "
                     + syncRequestExtras.shouldSyncLocalOnlyData());
 
-            mSyncManager.syncMediaImmediately(syncRequestExtras.shouldSyncLocalOnlyData());
+            mSyncManager.syncMediaImmediately(syncRequestExtras);
         } else {
             // Sync album media data
             Log.i(TAG, String.format("Init data request for album content of: %s"
@@ -476,11 +477,23 @@ public class PickerDataLayer {
     /**
      * Handles notification about media events like inserts/updates/deletes received from cloud or
      * local providers.
-     * @param localOnly - whether the media event is coming from the local provider
+     * @param localOnly True if the media event is coming from the local provider, otherwise false.
+     * @param authority Authority of the media event notification sender.
+     * @param extras Bundle containing additional arguments.
      */
-    public void handleMediaEventNotification(Boolean localOnly) {
+    public void handleMediaEventNotification(
+            boolean localOnly,
+            @NonNull String authority,
+            @Nullable Bundle extras) {
         try {
+            requireNonNull(authority);
             mSyncManager.syncMediaProactively(localOnly);
+
+            final String mediaCollectionId =
+                    (extras == null)
+                            ? null
+                            : extras.getString(EXTRA_MEDIA_COLLECTION_ID);
+            mSyncController.handleMediaEventNotification(localOnly, authority, mediaCollectionId);
         } catch (RuntimeException e) {
             // Catch any unchecked exceptions so that critical paths in MP that call this method are
             // not affected by Picker related issues.

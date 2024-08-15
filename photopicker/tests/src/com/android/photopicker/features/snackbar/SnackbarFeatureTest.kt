@@ -28,8 +28,11 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
@@ -42,6 +45,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.CORE
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
@@ -51,6 +55,7 @@ import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -74,7 +79,9 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    ApplicationModule::class,
     ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
@@ -84,6 +91,7 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -91,8 +99,9 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -100,12 +109,13 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-    lateinit var mockContentResolver: ContentResolver
+
+    @BindValue @ApplicationOwned lateinit var mockContentResolver: ContentResolver
 
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var events: Events
 
     @Before
@@ -143,7 +153,7 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSnackbarDisplaysOnEvent() =
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,

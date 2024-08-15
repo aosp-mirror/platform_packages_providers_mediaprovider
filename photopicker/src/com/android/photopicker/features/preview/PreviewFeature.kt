@@ -23,12 +23,14 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -45,8 +47,12 @@ class PreviewFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPreviewFeature"
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+
+        override fun isEnabled(config: PhotopickerConfiguration) =
+            config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
+
         override fun build(featureManager: FeatureManager) = PreviewFeature()
+
         val PREVIEW_MEDIA_KEY = "preview_media"
     }
 
@@ -57,7 +63,10 @@ class PreviewFeature : PhotopickerUiFeature {
 
     /** Events produced by the Preview page */
     override val eventsProduced =
-        setOf<RegisteredEventClass>(Event.MediaSelectionConfirmed::class.java)
+        setOf<RegisteredEventClass>(
+            Event.LogPhotopickerUIEvent::class.java,
+            Event.LogPhotopickerPreviewInfo::class.java
+        )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
@@ -66,7 +75,6 @@ class PreviewFeature : PhotopickerUiFeature {
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
-
         return setOf(
             object : Route {
                 override val route = PhotopickerDestinations.PREVIEW_SELECTION.route
@@ -90,6 +98,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(
                     navBackStackEntry: NavBackStackEntry?,
@@ -122,6 +131,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(
                     navBackStackEntry: NavBackStackEntry?,
@@ -137,14 +147,18 @@ class PreviewFeature : PhotopickerUiFeature {
                     // Until b/281081905 is fixed, use a workaround to enable edge-to-edge in the
                     // dialog
                     SetDialogDestinationToEdgeToEdge()
-                    PreviewMedia(flow)
+                    PreviewSelection(previewItemFlow = flow)
                 }
             },
         )
     }
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier) {
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.SELECTION_BAR_SECONDARY_ACTION -> PreviewSelectionButton(modifier)
             else -> {}

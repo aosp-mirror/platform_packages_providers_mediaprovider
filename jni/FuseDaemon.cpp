@@ -1972,8 +1972,11 @@ static void do_readdir_common(fuse_req_t req,
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.
+                // 3. EIO / EINVAL may be returned on filesystem errors; try to
+                //    keep going to show other files in the directory.
+
                 if (error_code == ENOENT || error_code == EPERM || error_code == EACCES
-                    || error_code == EIO) continue;
+                    || error_code == EIO || error_code == EINVAL) continue;
                 fuse_reply_err(req, error_code);
                 return;
             }
@@ -2644,13 +2647,11 @@ void FuseDaemon::SetupLevelDbInstances() {
 }
 
 void FuseDaemon::SetupPublicVolumeLevelDbInstance(const std::string& volume_name) {
-    if (android::base::StartsWith(fuse->root->GetIoPath(), PRIMARY_VOLUME_PREFIX)) {
-        // Setup leveldb instance for both external primary and internal volume.
-        fuse->level_db_mutex.lock();
-        // Create level db instance for public volume
-        SetupLevelDbConnection(volume_name);
-        fuse->level_db_mutex.unlock();
-    }
+    // Setup leveldb instance for both external primary and internal volume.
+    fuse->level_db_mutex.lock();
+    // Create level db instance for public volume
+    SetupLevelDbConnection(volume_name);
+    fuse->level_db_mutex.unlock();
 }
 
 std::string deriveVolumeName(const std::string& path) {

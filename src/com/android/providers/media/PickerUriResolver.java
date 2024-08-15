@@ -53,6 +53,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -151,7 +152,8 @@ public class PickerUriResolver {
     }
 
     public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts,
-            CancellationSignal signal, LocalCallingIdentity localCallingIdentity)
+            CancellationSignal signal, LocalCallingIdentity localCallingIdentity,
+            boolean wantsThumb)
             throws FileNotFoundException {
         checkPermissionForRequireOriginalQueryParam(uri, localCallingIdentity);
         checkUriPermission(uri, localCallingIdentity.pid, localCallingIdentity.uid);
@@ -164,6 +166,14 @@ public class PickerUriResolver {
             Log.e(TAG, "No item at " + uri, e);
             throw new FileNotFoundException("No item at " + uri);
         }
+
+        if (wantsThumb) {
+            Log.d(TAG, "Thumbnail is requested for " + uri);
+            // If thumbnail is requested, forward the thumbnail request to the provider
+            // rather than requesting the full media file
+            return openThumbnailFromProvider(resolver, uri, mimeTypeFilter, opts, signal);
+        }
+
         if (canHandleUriInUser(uri)) {
             return new AssetFileDescriptor(openPickerFile(uri), 0,
                     AssetFileDescriptor.UNKNOWN_LENGTH);
@@ -318,6 +328,18 @@ public class PickerUriResolver {
     }
 
     /**
+     * @param intentAction The intent action associated with the Picker session. Note that the
+     *                     intent action could be null in case of embedded picker.
+     * @return The Picker URI path segment.
+     */
+    public static String getPickerSegmentFromIntentAction(@Nullable String intentAction) {
+        if (intentAction != null && intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+            return PICKER_GET_CONTENT_SEGMENT;
+        }
+        return PICKER_SEGMENT;
+    }
+
+    /**
      * Creates a picker uri incorporating authority, user id and cloud provider.
      */
     public static Uri wrapProviderUri(Uri uri, String action, int userId) {
@@ -327,11 +349,7 @@ public class PickerUriResolver {
         }
 
         Uri.Builder builder = initializeUriBuilder(MediaStore.AUTHORITY);
-        if (action.equalsIgnoreCase(Intent.ACTION_GET_CONTENT)) {
-            builder.appendPath(PICKER_GET_CONTENT_SEGMENT);
-        } else {
-            builder.appendPath(PICKER_SEGMENT);
-        }
+        builder.appendPath(getPickerSegmentFromIntentAction(action));
         builder.appendPath(String.valueOf(userId));
         builder.appendPath(uri.getHost());
 
@@ -464,8 +482,14 @@ public class PickerUriResolver {
         }
     }
 
-    @VisibleForTesting
-    static Uri unwrapProviderUri(Uri uri) {
+    /**
+     * Unwraps picker uri for processing host and id.
+     */
+    public static Uri unwrapProviderUri(Uri uri) {
+        return unwrapProviderUri(uri, true);
+    }
+
+    private static Uri unwrapProviderUri(Uri uri, boolean addUserId) {
         List<String> segments = uri.getPathSegments();
         if (segments.size() != 5) {
             throw new IllegalArgumentException("Unexpected picker provider URI: " + uri);
@@ -476,7 +500,7 @@ public class PickerUriResolver {
         final String host = segments.get(2);
         segments = segments.subList(3, segments.size());
 
-        Uri.Builder builder = initializeUriBuilder(userId + "@" + host);
+        Uri.Builder builder = initializeUriBuilder(addUserId ? (userId + "@" + host) : host);
 
         for (int i = 0; i < segments.size(); i++) {
             builder.appendPath(segments.get(i));
@@ -498,20 +522,33 @@ public class PickerUriResolver {
         return Integer.parseInt(uri.getPathSegments().get(1));
     }
 
-    private void checkUriPermission(Uri uri, int pid, int uid) {
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public void checkUriPermission(Uri uri, int pid, int uid) {
+        checkUriPermission(mContext, uri, pid, uid);
+    }
+
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public static void checkUriPermission(Context context, Uri uri, int pid, int uid) {
         // Clear query parameters to check for URI permissions, apps can add requireOriginal
         // query parameter to URI, URI grants will not be present in that case.
         Uri uriWithoutQueryParams = uri.buildUpon().clearQuery().build();
         if (!isSelf(uid)
-                && !PermissionUtils.checkManageCloudMediaProvidersPermission(mContext, pid, uid)
-                && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
+                && !PermissionUtils.checkManageCloudMediaProvidersPermission(context, pid, uid)
+                && context.checkUriPermission(uriWithoutQueryParams, pid, uid,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
             throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
                     "access picker uri: " + uriWithoutQueryParams);
         }
     }
 
-    private void checkPermissionForRequireOriginalQueryParam(Uri uri,
+    /**
+     * Checks if the caller has the required permission to require original for the picker URI.
+     */
+    public void checkPermissionForRequireOriginalQueryParam(Uri uri,
             LocalCallingIdentity localCallingIdentity) {
         String value = uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL);
         if (value == null || value.isEmpty()) {
@@ -534,7 +571,7 @@ public class PickerUriResolver {
         }
     }
 
-    private boolean isSelf(int uid) {
+    private static boolean isSelf(int uid) {
         return UserHandle.getAppId(Process.myUid()) == UserHandle.getAppId(uid);
     }
 
@@ -556,6 +593,22 @@ public class PickerUriResolver {
                 NonUiEventLogger.logPickerQueriedWithUnknownColumn(
                         callingUid, callingPackageAndColumn);
             }
+        }
+    }
+
+    private AssetFileDescriptor openThumbnailFromProvider(ContentResolver resolver, Uri uri,
+            String mimeTypeFilter, Bundle opts,
+            CancellationSignal signal) throws FileNotFoundException {
+        Bundle newOpts = opts == null ? new Bundle() : (Bundle) opts.clone();
+        newOpts.putBoolean(CloudMediaProviderContract.EXTRA_PREVIEW_THUMBNAIL, true);
+        newOpts.putBoolean(CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB, true);
+
+        final Uri unwrappedUri = unwrapProviderUri(uri, false);
+        final long  callingIdentity = Binder.clearCallingIdentity();
+        try {
+            return resolver.openTypedAssetFile(unwrappedUri, mimeTypeFilter, newOpts, signal);
+        } finally {
+            Binder.restoreCallingIdentity(callingIdentity);
         }
     }
 

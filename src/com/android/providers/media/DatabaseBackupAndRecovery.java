@@ -21,12 +21,21 @@ import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_NEXT_ROW_ID
 import static com.android.providers.media.DatabaseHelper.EXTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_NEXT_ROW_ID_XATTR_KEY_PREFIX;
 import static com.android.providers.media.DatabaseHelper.INTERNAL_DB_SESSION_ID_XATTR_KEY_PREFIX;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__BACKUP_MISSING;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__FUSE_DAEMON_TIMEOUT;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__GET_BACKUP_DATA_FAILURE;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__OTHER_ERROR;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__SUCCESS;
+import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__VOLUME_NOT_ATTACHED;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__EXTERNAL_PRIMARY;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__INTERNAL;
 import static com.android.providers.media.MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__VOLUME__PUBLIC;
 import static com.android.providers.media.util.Logging.TAG;
+import static com.android.providers.media.flags.Flags.enableStableUrisForExternalPrimaryVolume;
+import static com.android.providers.media.flags.Flags.enableStableUrisForPublicVolume;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
@@ -138,14 +147,14 @@ public class DatabaseBackupAndRecovery {
     };
 
     /**
-     * Wait time of 10 seconds in millis.
+     * Wait time of 20 seconds in millis.
      */
-    private static final long WAIT_TIME_10_SECONDS_IN_MILLIS = 10000;
+    private static final long WAIT_TIME_20_SECONDS_IN_MILLIS = 20000;
 
     /**
      * Number of records to read from leveldb in a JNI call.
      */
-    protected static final int LEVEL_DB_READ_LIMIT = 1000;
+    protected static final int LEVEL_DB_READ_LIMIT = 100;
 
     /**
      * Stores cached value of next owner id. This helps in improving performance by backing up next
@@ -180,7 +189,7 @@ public class DatabaseBackupAndRecovery {
     public static final String STABLE_URI_EXTERNAL_PROPERTY =
             "persist.sys.fuse.backup.external_volume_backup";
 
-    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = true;
+    private static boolean STABLE_URI_EXTERNAL_PROPERTY_VALUE = false;
 
     public static final String STABLE_URI_PUBLIC_PROPERTY =
             "persist.sys.fuse.backup.public_db_backup";
@@ -207,6 +216,13 @@ public class DatabaseBackupAndRecovery {
             return true;
         }
 
+        // Check if flags are enabled for test for external primary volume
+        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                && mIsStableUrisEnabledForPublic) {
+            return true;
+        }
+
         // Feature is disabled for below S due to vold mount issues.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return false;
@@ -221,13 +237,14 @@ public class DatabaseBackupAndRecovery {
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return mIsStableUriEnabledForExternal
                         || mConfigStore.isStableUrisForExternalVolumeEnabled()
+                        || enableStableUrisForExternalPrimaryVolume()
                         || SystemProperties.getBoolean(STABLE_URI_EXTERNAL_PROPERTY,
                         /* defaultValue */ STABLE_URI_EXTERNAL_PROPERTY_VALUE);
             default:
                 // public volume
                 return mIsStableUrisEnabledForPublic
-                        || isStableUrisEnabled(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                        && mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || mConfigStore.isStableUrisForPublicVolumeEnabled()
+                        || enableStableUrisForPublicVolume()
                         || SystemProperties.getBoolean(STABLE_URI_PUBLIC_PROPERTY,
                         /* defaultValue */ STABLE_URI_PUBLIC_PROPERTY_VALUE);
         }
@@ -266,7 +283,7 @@ public class DatabaseBackupAndRecovery {
                 new File(LOWER_FS_RECOVERY_DIRECTORY_PATH).mkdirs();
                 Log.v(TAG, "Created recovery directory:" + LOWER_FS_RECOVERY_DIRECTORY_PATH);
             }
-            FuseDaemon fuseDaemon = getFuseDaemonForFileWithWait(new File(
+            FuseDaemon fuseDaemonExternalPrimary = getFuseDaemonForFileWithWait(new File(
                     DatabaseBackupAndRecovery.EXTERNAL_PRIMARY_ROOT_PATH));
             Log.d(TAG, "Received db backup Fuse Daemon for: " + volumeName);
             if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName) && (
@@ -276,17 +293,19 @@ public class DatabaseBackupAndRecovery {
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
-                fuseDaemon.setupVolumeDbBackup();
+                fuseDaemonExternalPrimary.setupVolumeDbBackup();
                 mSetupCompleteVolumes.add(volumeName);
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__SUCCESS, vol);
             } else if (isStableUrisEnabled(volumeName)) {
                 // Setup public volume
+                FuseDaemon fuseDaemonPublicVolume = getFuseDaemonForPath(
+                        getFuseFilePathFromVolumeName(volumeName));
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__ATTEMPTED, vol);
-                fuseDaemon.setupPublicVolumeDbBackup(volumeName);
+                fuseDaemonPublicVolume.setupPublicVolumeDbBackup(volumeName);
                 mSetupCompleteVolumes.add(volumeName);
                 MediaProviderStatsLog.write(
                         MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
@@ -294,7 +313,7 @@ public class DatabaseBackupAndRecovery {
             } else {
                 return;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             MediaProviderStatsLog.write(
                     MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED,
                     MediaProviderStatsLog.BACKUP_SETUP_STATUS_REPORTED__STATUS__FAILURE, vol);
@@ -331,7 +350,7 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            final String data = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH)
+            final String data = getFuseDaemonForPath(getFuseFilePathFromVolumeName(volumeName))
                     .readBackedUpData(filePath);
             if (data == null || data.isEmpty()) {
                 Log.w(TAG, "No backup found for path: " + filePath);
@@ -397,15 +416,32 @@ public class DatabaseBackupAndRecovery {
             return;
         }
 
-        FuseDaemon fuseDaemon;
+        FuseDaemon fuseDaemonExternalPrimary;
         try {
-            fuseDaemon = getFuseDaemonForFileWithWait(new File(EXTERNAL_PRIMARY_ROOT_PATH));
-        } catch (FileNotFoundException e) {
+            fuseDaemonExternalPrimary = getFuseDaemonForFileWithWait(
+                    new File(EXTERNAL_PRIMARY_ROOT_PATH));
+        } catch (Exception e) {
             Log.e(TAG,
-                    "Fuse Daemon not found for primary external storage, skipping backing up of "
-                            + volumeName,
-                    e);
+                    "Error occurred while retrieving the Fuse Daemon for the external primary, "
+                            + "skipping backing up of "
+                            + volumeName, e);
             return;
+        }
+        FuseDaemon fuseDaemonPublicVolume;
+        if (!isInternalOrExternalPrimary(volumeName)) {
+            try {
+                fuseDaemonPublicVolume = getFuseDaemonForFileWithWait(new File(
+                        getFuseFilePathFromVolumeName(volumeName)));
+            } catch (Exception e) {
+                Log.e(TAG,
+                        "Error occurred while retrieving the Fuse Daemon for "
+                                + getFuseFilePathFromVolumeName(volumeName)
+                                + ", skipping backing up of " + volumeName,
+                        e);
+                return;
+            }
+        } else {
+            fuseDaemonPublicVolume = null;
         }
 
         final String backupPath =
@@ -423,14 +459,19 @@ public class DatabaseBackupAndRecovery {
             Log.d(TAG, "Started to back up " + volumeName
                     + ", maxGeneration:" + maxGeneration);
             try (Cursor c = db.query(true, "files", QUERY_COLUMNS, selectionClause, null, null,
-                    null, MediaStore.MediaColumns._ID + " ASC", null, signal)) {
+                    null, MediaStore.MediaColumns.GENERATION_MODIFIED + " ASC", null, signal)) {
                 while (c.moveToNext()) {
                     if (signal != null && signal.isCanceled()) {
                         Log.i(TAG, "Received a cancellation signal during the DB "
                                 + "backup process");
                         break;
                     }
-                    backupDataValues(fuseDaemon, c);
+                    if (isInternalOrExternalPrimary(volumeName)) {
+                        backupDataValues(fuseDaemonExternalPrimary, c);
+                    } else {
+                        // public volume
+                        backupDataValues(fuseDaemonExternalPrimary, fuseDaemonPublicVolume, c);
+                    }
                     maxGeneration = Math.max(maxGeneration, c.getLong(9));
                 }
                 setXattr(backupPath, LAST_BACKEDUP_GENERATION_XATTR_KEY,
@@ -448,6 +489,11 @@ public class DatabaseBackupAndRecovery {
     }
 
     private void backupDataValues(FuseDaemon fuseDaemon, Cursor c) throws IOException {
+        backupDataValues(fuseDaemon, null, c);
+    }
+
+    private void backupDataValues(FuseDaemon externalPrimaryFuseDaemon,
+            FuseDaemon publicVolumeFuseDaemon, Cursor c) throws IOException {
         final long id = c.getLong(0);
         final String data = c.getString(1);
         final boolean isFavorite = c.getInt(2) != 0;
@@ -458,10 +504,16 @@ public class DatabaseBackupAndRecovery {
         final String dateExpires = c.getString(7);
         final String ownerPackageName = c.getString(8);
         final String volumeName = c.getString(10);
-        BackupIdRow backupIdRow = createBackupIdRow(fuseDaemon, id, mediaType,
-                isFavorite, isPending, isTrashed, userId, dateExpires,
-                ownerPackageName);
-        fuseDaemon.backupVolumeDbData(volumeName, data, BackupIdRow.serialize(backupIdRow));
+        BackupIdRow backupIdRow = createBackupIdRow(externalPrimaryFuseDaemon, id, mediaType,
+                isFavorite, isPending, isTrashed, userId, dateExpires, ownerPackageName);
+        if (isInternalOrExternalPrimary(volumeName)) {
+            externalPrimaryFuseDaemon.backupVolumeDbData(volumeName, data,
+                    BackupIdRow.serialize(backupIdRow));
+        } else {
+            // public volume
+            publicVolumeFuseDaemon.backupVolumeDbData(volumeName, data,
+                    BackupIdRow.serialize(backupIdRow));
+        }
     }
 
     protected void deleteBackupForVolume(String volumeName) {
@@ -473,18 +525,14 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit) {
+    protected String[] readBackedUpFilePaths(String volumeName, String lastReadValue, int limit)
+            throws IOException, UnsupportedOperationException {
         if (!isStableUrisEnabled(volumeName)) {
-            return new String[0];
+            throw new UnsupportedOperationException("Stable Uris are not enabled");
         }
 
-        try {
-            return getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).readBackedUpFilePaths(
-                    volumeName, lastReadValue, limit);
-        } catch (IOException e) {
-            Log.e(TAG, "Failure in reading backed up file paths for volume: " + volumeName, e);
-            return new String[0];
-        }
+        return getFuseDaemonForPath(getFuseFilePathFromVolumeName(volumeName))
+                .readBackedUpFilePaths(volumeName, lastReadValue, limit);
     }
 
     protected void updateNextRowIdXattr(DatabaseHelper helper, long id) {
@@ -543,10 +591,18 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            FuseDaemon fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
-            final BackupIdRow value = createBackupIdRow(fuseDaemon, insertedRow);
-            fuseDaemon.backupVolumeDbData(insertedRow.getVolumeName(), insertedRow.getPath(),
-                    BackupIdRow.serialize(value));
+            FuseDaemon fuseDaemonExternalPrimary = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            final BackupIdRow value = createBackupIdRow(fuseDaemonExternalPrimary, insertedRow);
+            if (isInternalOrExternalPrimary(insertedRow.getVolumeName())) {
+                fuseDaemonExternalPrimary.backupVolumeDbData(insertedRow.getVolumeName(),
+                        insertedRow.getPath(), BackupIdRow.serialize(value));
+            } else {
+                // public volume
+                final FuseDaemon fuseDaemonPublicVolume = getFuseDaemonForPath(
+                        getFuseFilePathFromVolumeName(insertedRow.getVolumeName()));
+                fuseDaemonPublicVolume.backupVolumeDbData(insertedRow.getVolumeName(),
+                        insertedRow.getPath(), BackupIdRow.serialize(value));
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failure in backing up data to external storage", e);
         }
@@ -681,8 +737,8 @@ public class DatabaseBackupAndRecovery {
         }
 
         try {
-            getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).deleteDbBackup(
-                    deletedFilePath);
+            getFuseDaemonForPath(getFuseFilePathFromVolumeName(deletedRow.getVolumeName()))
+                    .deleteDbBackup(deletedFilePath);
         } catch (IOException e) {
             Log.w(TAG, "Failure in deleting backup data for key: " + deletedFilePath, e);
         }
@@ -694,6 +750,15 @@ public class DatabaseBackupAndRecovery {
                 && mSetupCompleteVolumes.contains(volumeName);
     }
 
+    private boolean isInternalOrExternalPrimary(String volumeName) {
+        if (Strings.isNullOrEmpty(volumeName)) {
+            // This should never happen
+            Log.e(TAG, "Volume name is " + volumeName + ", treating it as non public volume");
+            return true;
+        }
+        return MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName);
+    }
 
     private void updateNextRowIdForInternal(DatabaseHelper helper, long id) {
         if (!isStableUrisEnabled(MediaStore.VOLUME_INTERNAL)) {
@@ -718,11 +783,12 @@ public class DatabaseBackupAndRecovery {
 
         final String updatedFilePath = updatedRow.getPath();
         try {
-            getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH).backupVolumeDbData(
-                    updatedRow.getVolumeName(),
-                    updatedFilePath,
-                    BackupIdRow.serialize(BackupIdRow.newBuilder(updatedRow.getId()).setIsDirty(
-                            true).build()));
+            getFuseDaemonForPath(getFuseFilePathFromVolumeName(updatedRow.getVolumeName()))
+                    .backupVolumeDbData(
+                            updatedRow.getVolumeName(),
+                            updatedFilePath,
+                            BackupIdRow.serialize(BackupIdRow.newBuilder(updatedRow.getId())
+                                    .setIsDirty(true).build()));
         } catch (IOException e) {
             Log.e(TAG, "Failure in marking data as dirty to external storage for path:"
                     + updatedFilePath, e);
@@ -824,12 +890,11 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
-    protected void insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
+    protected boolean insertDataInDatabase(SQLiteDatabase db, BackupIdRow row, String filePath,
             String volumeName) {
         final ContentValues values = createValuesFromFileRow(row, filePath, volumeName);
-        if (db.insert("files", null, values) == -1) {
-            Log.e(TAG, "Failed to insert " + values + "; continuing");
-        }
+        return db.insertWithOnConflict("files", null, values,
+                SQLiteDatabase.CONFLICT_REPLACE) != -1;
     }
 
     private ContentValues createValuesFromFileRow(BackupIdRow row, String filePath,
@@ -894,81 +959,116 @@ public class DatabaseBackupAndRecovery {
         return null;
     }
 
-    protected void recoverData(SQLiteDatabase db, String volumeName) {
-        if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
-                && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
-            // todo: implement for public volume
-            return;
-        }
+    protected void queuePublicVolumeRecovery(Context context) {
+        MediaService.queuePublicVolumeRecovery(context);
+    }
+
+    protected void recoverData(SQLiteDatabase db, String volumeName) throws Exception {
+        long rowsRecovered = 0, dirtyRowsCount = 0, insertionFailuresCount = 0,
+                totalLevelDbRows = 0;
         final long startTime = SystemClock.elapsedRealtime();
-        final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
-        // Wait for external primary to be attached as we use same thread for internal volume.
-        // Maximum wait for 10s
         try {
+            if (!MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)
+                    && !MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)) {
+                // todo: implement for public volume
+                return;
+            }
+            final String fuseFilePath = getFuseFilePathFromVolumeName(volumeName);
+            // Wait for external primary to be attached as we use same thread for internal volume.
+            // Maximum wait for 20s
             getFuseDaemonForFileWithWait(new File(fuseFilePath));
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "Could not recover data as fuse daemon could not serve requests.", e);
-            return;
-        }
-
-        if (!isBackupPresent(volumeName)) {
-            Log.w(TAG, "Backup is not present for " + volumeName);
-            return;
-        }
-        Log.d(TAG, "Backup is present for " + volumeName);
-
-        try {
-            waitForVolumeToBeAttached(mSetupCompleteVolumes);
-        } catch (Exception e) {
-            Log.e(TAG, "Volume not attached in given time. Cannot recover data.", e);
-            return;
-        }
-
-        long rowsRecovered = 0;
-        long dirtyRowsCount = 0;
-        String[] backedUpFilePaths;
-        String lastReadValue = "";
-
-        while (true) {
-            backedUpFilePaths = readBackedUpFilePaths(volumeName, lastReadValue,
-                    LEVEL_DB_READ_LIMIT);
-            if (backedUpFilePaths.length == 0) {
-                break;
+            if (!isBackupPresent(volumeName)) {
+                throw new FileNotFoundException("Backup file not found for " + volumeName);
             }
 
-            // Reset cached owner id relation map
-            sOwnerIdRelationMap = null;
-            for (String filePath : backedUpFilePaths) {
-                Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
-                if (fileRow.isPresent()) {
-                    if (fileRow.get().getIsDirty()) {
-                        dirtyRowsCount++;
-                        continue;
-                    }
+            Log.d(TAG, "Backup is present for " + volumeName);
+            try {
+                waitForVolumeToBeAttached(mSetupCompleteVolumes);
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        "Volume not attached in given time. Cannot recover data.", e);
+            }
 
-                    insertDataInDatabase(db, fileRow.get(), filePath, volumeName);
-                    rowsRecovered++;
+            String[] backedUpFilePaths;
+            String lastReadValue = "";
+            while (true) {
+                backedUpFilePaths = readBackedUpFilePaths(volumeName, lastReadValue,
+                        LEVEL_DB_READ_LIMIT);
+                if (backedUpFilePaths == null || backedUpFilePaths.length == 0) {
+                    break;
                 }
-            }
+                totalLevelDbRows += backedUpFilePaths.length;
 
-            // Read less rows than expected
-            if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
-                break;
+                // Reset cached owner id relation map
+                sOwnerIdRelationMap = null;
+                for (String filePath : backedUpFilePaths) {
+                    Optional<BackupIdRow> fileRow = readDataFromBackup(volumeName, filePath);
+                    if (fileRow.isPresent()) {
+                        if (fileRow.get().getIsDirty()) {
+                            dirtyRowsCount++;
+                            continue;
+                        }
+
+                        if (insertDataInDatabase(db, fileRow.get(), filePath, volumeName)) {
+                            rowsRecovered++;
+                        } else {
+                            insertionFailuresCount++;
+                        }
+                    }
+                }
+
+                // Read less rows than expected
+                if (backedUpFilePaths.length < LEVEL_DB_READ_LIMIT) {
+                    break;
+                }
+                lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
             }
-            lastReadValue = backedUpFilePaths[backedUpFilePaths.length - 1];
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__SUCCESS);
+            Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume: %s."
+                            + " Total rows in levelDB: %d.", rowsRecovered, volumeName,
+                    totalLevelDbRows));
+            Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+        } catch (TimeoutException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__FUSE_DAEMON_TIMEOUT);
+            throw e;
+        } catch (FileNotFoundException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__BACKUP_MISSING);
+            throw e;
+        } catch (IOException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__GET_BACKUP_DATA_FAILURE);
+            throw e;
+        } catch (IllegalStateException e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__VOLUME_NOT_ATTACHED);
+            throw e;
+        } catch (Exception e) {
+            long recoveryTime = SystemClock.elapsedRealtime() - startTime;
+            publishRecoveryMetric(volumeName, recoveryTime, rowsRecovered, dirtyRowsCount,
+                    totalLevelDbRows, insertionFailuresCount,
+                    MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED__STATUS__OTHER_ERROR);
+            throw e;
         }
-        long recoveryTime = SystemClock.elapsedRealtime() - startTime;
-        MediaProviderStatsLog.write(MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
-                getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered, dirtyRowsCount);
-        Log.i(TAG, String.format(Locale.ROOT, "%d rows recovered for volume:%s.", rowsRecovered,
-                volumeName));
-        if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            // Resetting generation number
-            setXattr(LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX
-                            + MediaStore.VOLUME_EXTERNAL_PRIMARY,
-                    LAST_BACKEDUP_GENERATION_XATTR_KEY, String.valueOf(0));
-        }
-        Log.i(TAG, String.format(Locale.ROOT, "Recovery time: %d ms", recoveryTime));
+    }
+
+    void resetLastBackedUpGenerationNumber(String volumeName) {
+        // Resetting generation number
+        setXattr(LOWER_FS_RECOVERY_DIRECTORY_PATH + "/" + LEVEL_DB_PREFIX + volumeName,
+                LAST_BACKEDUP_GENERATION_XATTR_KEY, String.valueOf(0));
+        Log.v(TAG, "Leveldb Last backed generation number reset done to 0 for " + volumeName);
     }
 
     protected boolean isBackupPresent(String volumeName) {
@@ -1001,10 +1101,10 @@ public class DatabaseBackupAndRecovery {
     }
 
     protected FuseDaemon getFuseDaemonForFileWithWait(File fuseFilePath)
-            throws FileNotFoundException {
+            throws FileNotFoundException, TimeoutException {
         pollForExternalStorageMountedState();
         return MediaProvider.getFuseDaemonForFileWithWait(fuseFilePath, mVolumeCache,
-                WAIT_TIME_10_SECONDS_IN_MILLIS);
+                WAIT_TIME_20_SECONDS_IN_MILLIS);
     }
 
     protected void setStableUrisGlobalFlag(String volumeName, boolean isEnabled) {
@@ -1028,12 +1128,17 @@ public class DatabaseBackupAndRecovery {
     }
 
     private static String getFuseFilePathFromVolumeName(String volumeName) {
+        if (Strings.isNullOrEmpty(volumeName)) {
+            // Returning EXTERNAL_PRIMARY_ROOT_PATH to avoid any regressions
+            Log.e(TAG, "Trying to get a Fuse Daemon for volume name = " + volumeName);
+            return EXTERNAL_PRIMARY_ROOT_PATH;
+        }
         switch (volumeName) {
             case MediaStore.VOLUME_INTERNAL:
             case MediaStore.VOLUME_EXTERNAL_PRIMARY:
                 return EXTERNAL_PRIMARY_ROOT_PATH;
             default:
-                return "/storage/" + volumeName;
+                return "/storage/" + volumeName.toUpperCase(Locale.ROOT);
         }
     }
 
@@ -1055,7 +1160,8 @@ public class DatabaseBackupAndRecovery {
 
         FuseDaemon fuseDaemon;
         try {
-            fuseDaemon = getFuseDaemonForPath(EXTERNAL_PRIMARY_ROOT_PATH);
+            fuseDaemon = getFuseDaemonForPath(getFuseFilePathFromVolumeName(
+                    newRow.getVolumeName()));
         } catch (FileNotFoundException e) {
             Log.e(TAG,
                     "Fuse Daemon not found for primary external storage, skipping update of "
@@ -1124,6 +1230,14 @@ public class DatabaseBackupAndRecovery {
         }
     }
 
+    private void publishRecoveryMetric(String volumeName, long recoveryTime, long rowsRecovered,
+            long dirtyRowsCount, long totalLevelDbRows, long insertionFailureCount, int status) {
+        MediaProviderStatsLog.write(
+                MediaProviderStatsLog.MEDIA_PROVIDER_VOLUME_RECOVERY_REPORTED,
+                getVolumeNameForStatsLog(volumeName), recoveryTime, rowsRecovered,
+                dirtyRowsCount, totalLevelDbRows, insertionFailureCount, status);
+    }
+
     protected static List<String> getInvalidUsersList(List<String> recoveryData,
             List<String> validUsers) {
         Set<String> presentUserIdsAsXattr = new HashSet<>();
@@ -1147,16 +1261,16 @@ public class DatabaseBackupAndRecovery {
         return presentUserIdsAsXattr.stream().collect(Collectors.toList());
     }
 
-    private static void pollForExternalStorageMountedState() {
+    private static void pollForExternalStorageMountedState() throws TimeoutException {
         final File target = Environment.getExternalStorageDirectory();
-        for (int i = 0; i < WAIT_TIME_10_SECONDS_IN_MILLIS / 100; i++) {
+        for (int i = 0; i < WAIT_TIME_20_SECONDS_IN_MILLIS / 100; i++) {
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState(target))) {
                 return;
             }
             Log.v(TAG, "Waiting for external storage...");
             SystemClock.sleep(100);
         }
-        throw new RuntimeException("Timed out while waiting for ExternalStorageState "
+        throw new TimeoutException("Timed out while waiting for ExternalStorageState "
                 + "to be MEDIA_MOUNTED");
     }
 

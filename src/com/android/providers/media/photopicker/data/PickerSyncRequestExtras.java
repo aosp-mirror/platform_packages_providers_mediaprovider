@@ -17,7 +17,9 @@
 package com.android.providers.media.photopicker.data;
 
 import static com.android.providers.media.photopicker.data.CloudProviderQueryExtras.isMergedAlbum;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXTRA_MIME_TYPES;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -25,23 +27,35 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 /**
  * Encapsulate all picker sync request arguments related logic.
  */
 public class PickerSyncRequestExtras {
+    private static final String EXTRA_INTENT_ACTION = "intent_action";
     @Nullable
     private final String mAlbumId;
     @Nullable
     private final String mAlbumAuthority;
     private final boolean mInitLocalOnlyData;
+    private final int mCallingPackageUid;
+    private final boolean mShouldSyncGrants;
+    private final String[] mMimeTypes;
+
     public PickerSyncRequestExtras(@Nullable String albumId,
             @Nullable String albumAuthority,
-            boolean initLocalOnlyData) {
+            boolean initLocalOnlyData,
+            int callingPackageUid,
+            boolean shouldSyncGrants,
+            @Nullable String[] mimeTypes) {
         mAlbumId = albumId;
         mAlbumAuthority = albumAuthority;
         mInitLocalOnlyData = initLocalOnlyData;
+        mCallingPackageUid = callingPackageUid;
+        mShouldSyncGrants = shouldSyncGrants;
+        mMimeTypes = mimeTypes;
     }
 
     /**
@@ -54,7 +68,22 @@ public class PickerSyncRequestExtras {
         final String albumAuthority = extras.getString(MediaStore.EXTRA_ALBUM_AUTHORITY);
         final boolean initLocalOnlyData =
                 extras.getBoolean(MediaStore.EXTRA_LOCAL_ONLY);
-        return new PickerSyncRequestExtras(albumId, albumAuthority, initLocalOnlyData);
+        final int callingPackageUid = extras.getInt(Intent.EXTRA_UID, /* default value */ -1);
+        // Grants should only be synced when the intent action is
+        // MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.
+        final String intentAction = extras.getString(EXTRA_INTENT_ACTION);
+        final boolean shouldSyncGrants = intentAction != null
+                && intentAction.equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        final ArrayList<String> mimeTypesList = extras.getStringArrayList(EXTRA_MIME_TYPES);
+        final String[] mimeTypes;
+        if (mimeTypesList != null) {
+            mimeTypes = mimeTypesList.stream().toArray(String[]::new);
+        } else {
+            mimeTypes = null;
+        }
+
+        return new PickerSyncRequestExtras(albumId, albumAuthority, initLocalOnlyData,
+                callingPackageUid, shouldSyncGrants, mimeTypes);
     }
 
     /**
@@ -92,5 +121,26 @@ public class PickerSyncRequestExtras {
     @Nullable
     public String getAlbumAuthority() {
         return mAlbumAuthority;
+    }
+
+    /**
+     * Return calling package uid for current picker session.
+     */
+    public int getCallingPackageUid() {
+        return mCallingPackageUid;
+    }
+
+    /**
+     * Returns true if grants should be synced, false otherwise.
+     */
+    public boolean isShouldSyncGrants() {
+        return mShouldSyncGrants;
+    }
+
+    /**
+     * Returns mimeTypes that can be used as a filtering parameter for syncs.
+     */
+    public String[] getMimeTypes() {
+        return mMimeTypes == null ? new String[]{} : mMimeTypes;
     }
 }

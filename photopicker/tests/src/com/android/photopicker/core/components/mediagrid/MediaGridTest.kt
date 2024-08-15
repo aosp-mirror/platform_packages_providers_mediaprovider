@@ -19,6 +19,8 @@ package com.android.photopicker.core.components
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.net.Uri
+import android.os.Build
+import android.view.SurfaceControlViewHost
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertAll
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
@@ -42,22 +45,38 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
+import com.android.photopicker.core.Background
+import com.android.photopicker.core.ConcurrencyModule
+import com.android.photopicker.core.EmbeddedServiceModule
+import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
+import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.embedded.EmbeddedState
+import com.android.photopicker.core.embedded.LocalEmbeddedState
+import com.android.photopicker.core.glide.GlideTestRule
+import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -67,29 +86,38 @@ import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.utils.mockito.whenever
-import com.bumptech.glide.Glide
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
+import dagger.hilt.components.SingletonComponent
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.atLeast
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
 /**
@@ -102,13 +130,19 @@ import org.mockito.MockitoAnnotations
  * avoid creating test images on the device itself. Metadata is generated in the paging source, and
  * all images are backed by a test resource png that is provided by the content resolver mock.
  */
-@UninstallModules(ApplicationModule::class)
+@UninstallModules(
+    ActivityModule::class,
+    ApplicationModule::class,
+    ConcurrencyModule::class,
+    EmbeddedServiceModule::class,
+)
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class MediaGridTest {
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeTestRule = createComposeRule()
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /**
      * MediaGrid uses Glide for loading images, so we have to mock out the dependencies for Glide
@@ -117,12 +151,41 @@ class MediaGridTest {
     @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
     private lateinit var provider: MockContentProviderWrapper
 
+    /* Setup dependencies for the UninstallModules for the test class. */
+    @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
+
+    val testDispatcher = StandardTestDispatcher()
+
+    /* Overrides for ActivityModule */
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
+
+    /* Overrides for the ConcurrencyModule */
+    @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
+    @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
+
     @Mock lateinit var mockContentProvider: ContentProvider
+
+    @Mock lateinit var mockSurfaceControlViewHost: SurfaceControlViewHost
+
+    /**
+     * A [EmbeddedState] having a mocked [SurfaceControlViewHost] instance that can be used for
+     * testing in collapsed mode
+     */
+    private lateinit var testEmbeddedStateWithHostInCollapsedState: EmbeddedState
+
+    /**
+     * A [EmbeddedState] having a mocked [SurfaceControlViewHost] instance that can be used for
+     * testing in Expanded state
+     */
+    private lateinit var testEmbeddedStateWithHostInExpandedState: EmbeddedState
 
     lateinit var pager: Pager<MediaPageKey, Media>
     lateinit var flow: Flow<PagingData<MediaGridItem>>
 
     private val MEDIA_GRID_TEST_TAG = "media_grid"
+    private val BANNER_CONTENT_TEST_TAG = "banner_content"
     private val CUSTOM_ITEM_TEST_TAG = "custom_item"
     private val CUSTOM_ITEM_SEPARATOR_TAG = "custom_separator"
     private val CUSTOM_ITEM_FACTORY_TEXT = "custom item factory"
@@ -192,6 +255,8 @@ class MediaGridTest {
                 .openRawResourceFd(R.drawable.android)
         }
 
+        initEmbeddedStates()
+
         // Normally this would be created in the view model that owns the paged data.
         pager =
             Pager(PagingConfig(pageSize = 50, maxSize = 500)) { FakeInMemoryMediaPagingSource() }
@@ -201,11 +266,17 @@ class MediaGridTest {
         flow = pager.flow.toMediaGridItemFromMedia().insertMonthSeparators()
     }
 
-    @After()
-    fun teardown() {
-        // It is important to tearDown glide after every test to ensure it picks up the updated
-        // mocks from Hilt and mocks aren't leaked between tests.
-        Glide.tearDown()
+    /** Initialize [EmbeddedState] instances */
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun initEmbeddedStates() {
+        if (SdkLevel.isAtLeastU()) {
+            @Suppress("DEPRECATION")
+            whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+            testEmbeddedStateWithHostInCollapsedState =
+                EmbeddedState(isExpanded = false, host = mockSurfaceControlViewHost)
+            testEmbeddedStateWithHostInExpandedState =
+                EmbeddedState(isExpanded = true, host = mockSurfaceControlViewHost)
+        }
     }
 
     /**
@@ -214,9 +285,10 @@ class MediaGridTest {
      */
     @Composable
     private fun grid(
-        selection: Selection<Media>,
+        selection: SelectionImpl<Media>,
         onItemClick: (MediaGridItem) -> Unit,
         onItemLongPress: (MediaGridItem) -> Unit = {},
+        bannerContent: (@Composable () -> Unit)? = null,
     ) {
         val items = flow.collectAsLazyPagingItems()
         val selected by selection.flow.collectAsStateWithLifecycle()
@@ -226,6 +298,7 @@ class MediaGridTest {
             selection = selected,
             onItemClick = onItemClick,
             onItemLongPress = onItemLongPress,
+            bannerContent = bannerContent,
             modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG)
         )
     }
@@ -242,7 +315,10 @@ class MediaGridTest {
             modifier =
                 // .clickable also merges the semantics of its descendants
                 Modifier.testTag(CUSTOM_ITEM_TEST_TAG).clickable {
-                    if (item is MediaGridItem.MediaItem) {onClick?.invoke(item)} }
+                    if (item is MediaGridItem.MediaItem) {
+                        onClick?.invoke(item)
+                    }
+                }
         ) {
             Text(CUSTOM_ITEM_FACTORY_TEXT)
         }
@@ -265,19 +341,59 @@ class MediaGridTest {
     @Test
     fun testMediaGridDisplaysMedia() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
-
         composeTestRule.setContent {
-            grid(
-                /* selection= */ selection,
-                /* onItemClick= */ {},
-            )
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+            ) {
+                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
         }
 
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+        mediaGrid.assertIsDisplayed()
+    }
+
+    /** Ensures the MediaGrid shows any banner content that is provided. */
+    @Test
+    fun testMediaGridDisplaysBannerContent() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+            ) {
+                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                    grid(
+                        selection = selection,
+                        onItemClick = {},
+                        onItemLongPress = {},
+                        bannerContent = {
+                            Text(
+                                text = "bannerContent",
+                                modifier = Modifier.testTag(BANNER_CONTENT_TEST_TAG)
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(BANNER_CONTENT_TEST_TAG))
         mediaGrid.assertIsDisplayed()
     }
 
@@ -285,9 +401,10 @@ class MediaGridTest {
     @Test
     fun testAlbumGridDisplaysMedia() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         // Modify the pager and flow to get data from the FakeInMemoryAlbumPagingSource.
@@ -301,16 +418,21 @@ class MediaGridTest {
         flow = pagerForAlbums.flow.toMediaGridItemFromAlbum()
 
         composeTestRule.setContent {
-            grid(
-                /* selection= */ selection,
-                /* onItemClick= */ {},
-            )
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+            ) {
+                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
         }
 
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
         mediaGrid.assertIsDisplayed()
     }
-
 
     /**
      * Ensures the MediaGrid continues to load media as the grid is scrolled. This further ensures
@@ -319,16 +441,23 @@ class MediaGridTest {
     @Test
     fun testMediaGridScroll() = runTest {
         val selection =
-            Selection<Media>(
+            SelectionImpl<Media>(
                 scope = backgroundScope,
-                configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
             )
 
         composeTestRule.setContent {
-            grid(
-                /* selection= */ selection,
-                /* onItemClick= */ {},
-            )
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+            ) {
+                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
         }
 
         val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
@@ -350,34 +479,88 @@ class MediaGridTest {
 
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
-    fun testMediaGridClickItem() {
+    fun testMediaGridClickItemSingleSelect() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = SINGLE_SELECT_CONFIG
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides SINGLE_SELECT_CONFIG
+                ) {
+                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performClick()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(1)
+        }
+    }
+
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
+    fun testMediaGridClickItemMultiSelect() {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
-                val photopickerConfiguration: PhotopickerConfiguration =
-                    testPhotopickerConfiguration
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                    LocalPhotopickerConfiguration provides MULTI_SELECT_CONFIG
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false,
-                        photopickerConfiguration.intent
-                    ) {
+                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
                         grid(
                             /* selection= */ selection,
-                            /* onItemClick= */
-                            { item ->
+                            /* onItemClick= */ { item ->
                                 launch {
-                                    if (item is MediaGridItem.MediaItem) selection
-                                        .toggle(item.media)
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
                                 }
                             },
                         )
@@ -408,31 +591,90 @@ class MediaGridTest {
 
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
+    fun testMediaGridClickItemOrderedSelection() {
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+        val photopickerConfiguration: PhotopickerConfiguration =
+            testActionPickImagesConfiguration.copy(pickImagesInOrder = true, selectionLimit = 2)
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = backgroundScope,
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = backgroundScope,
+                            defaultConfiguration = photopickerConfiguration
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+
+            composeTestRule.setContent {
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                ) {
+                    PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
+                        grid(
+                            /* selection= */ selection,
+                            /* onItemClick= */ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            composeTestRule
+                .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+                .onChildren()
+                // Remove the separators
+                .filter(hasContentDescription(mediaItemString))
+                .onFirst()
+                .performClick()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(1)
+
+            // Ensure the ordered selected semantics got applied to the selected node.
+            composeTestRule.waitUntilAtLeastOneExists(hasText("1"))
+        }
+    }
+
+    /** Ensures that items have the correct semantic information before and after selection */
+    @Test
     fun testMediaGridLongPressItem() {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
-                val photopickerConfiguration: PhotopickerConfiguration =
-                    testPhotopickerConfiguration
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
                 ) {
-                    PhotopickerTheme(/* isDarkTheme */ false,
-                        photopickerConfiguration.intent
-                    ) {
+                    PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ {},
-                            /* onItemLongPress=*/ { item -> launch {
-                                if (item is MediaGridItem.MediaItem) selection.toggle(item.media) }
+                            /* onItemLongPress=*/ { item ->
+                                launch {
+                                    if (item is MediaGridItem.MediaItem)
+                                        selection.toggle(item.media)
+                                }
                             }
                         )
                     }
@@ -470,20 +712,26 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
-                val items = dataFlow.collectAsLazyPagingItems()
-                val selected by selection.flow.collectAsStateWithLifecycle()
-
-                mediaGrid(
-                    items = items,
-                    selection = selected,
-                    onItemClick = {},
-                )
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                ) {
+                    val items = dataFlow.collectAsLazyPagingItems()
+                    val selected by selection.flow.collectAsStateWithLifecycle()
+                    PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                        mediaGrid(
+                            items = items,
+                            selection = selected,
+                            onItemClick = {},
+                        )
+                    }
+                }
             }
 
             composeTestRule.onAllNodes(hasContentDescription(mediaItemString)).assertCountEquals(3)
@@ -497,23 +745,28 @@ class MediaGridTest {
     fun testMediaGridCustomContentItemFactory() {
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
-                val items = flow.collectAsLazyPagingItems()
-                val selected by selection.flow.collectAsStateWithLifecycle()
-                mediaGrid(
-                    items = items,
-                    selection = selected,
-                    onItemClick = {},
-                    onItemLongPress = {},
-                    contentItemFactory = { item, _, onClick, _ ->
-                        customContentItemFactory(item, onClick)
-                    },
-                )
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                ) {
+                    val items = flow.collectAsLazyPagingItems()
+                    val selected by selection.flow.collectAsStateWithLifecycle()
+                    mediaGrid(
+                        items = items,
+                        selection = selected,
+                        onItemClick = {},
+                        onItemLongPress = {},
+                        contentItemFactory = { item, _, onClick, _ ->
+                            customContentItemFactory(item, onClick)
+                        },
+                    )
+                }
             }
 
             composeTestRule
@@ -532,25 +785,258 @@ class MediaGridTest {
 
         runTest {
             val selection =
-                Selection<Media>(
+                SelectionImpl<Media>(
                     scope = backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             composeTestRule.setContent {
-                val items = dataFlow.collectAsLazyPagingItems()
-                val selected by selection.flow.collectAsStateWithLifecycle()
-                mediaGrid(
-                    items = items,
-                    selection = selected,
-                    onItemClick = {},
-                    contentSeparatorFactory = { _ -> customContentSeparatorFactory() }
-                )
+                CompositionLocalProvider(
+                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                ) {
+                    val items = dataFlow.collectAsLazyPagingItems()
+                    val selected by selection.flow.collectAsStateWithLifecycle()
+                    mediaGrid(
+                        items = items,
+                        selection = selected,
+                        onItemClick = {},
+                        contentSeparatorFactory = { _ -> customContentSeparatorFactory() }
+                    )
+                }
             }
 
             composeTestRule
                 .onAllNodes(hasTestTag(CUSTOM_ITEM_SEPARATOR_TAG))
                 .assertAll(hasText(CUSTOM_ITEM_SEPARATOR_TEXT))
         }
+    }
+
+    /** Ensures that touches are transferring for embedded when swipe up in collapsed mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreTransferringToHostInEmbedded_CollapsedMode_SwipeUp() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { swipeUp() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, atLeast(1)).transferTouchGestureToHost()
+    }
+
+    /** Ensures that touches are transferring for embedded when swipe down in collapsed mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreTransferringToHostInEmbedded_CollapsedMode_SwipeDown() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { swipeDown() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, atLeast(1)).transferTouchGestureToHost()
+    }
+
+    /** Ensures that clicks are not transferring for embedded in collapsed mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreNotTransferringToHostInEmbedded_CollapsedMode_Click() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { click() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is not invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, never()).transferTouchGestureToHost()
+    }
+
+    /** Ensures that touches are not transferring for embedded when swipe up in Expanded mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreNotTransferringToHostInEmbedded_ExpandedMode_SwipeUP() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { swipeUp() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is not invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, never()).transferTouchGestureToHost()
+    }
+
+    /** Ensures that touches are transferring for embedded when swipe down in Expanded mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreTransferringToHostInEmbedded_ExpandedMode_SwipeDown() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { swipeDown() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, atLeast(1)).transferTouchGestureToHost()
+    }
+
+    /** Ensures that clicks are not transferring for embedded in Expanded mode */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testTouchesAreNotTransferringToHostInEmbedded_ExpandedMode_Click() = runTest {
+        val selection =
+            SelectionImpl<Media>(
+                scope = backgroundScope,
+                configuration = provideTestConfigurationFlow(scope = backgroundScope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+            )
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+            ) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config = testEmbeddedPhotopickerConfiguration
+                ) {
+                    grid(
+                        /* selection= */ selection,
+                        /* onItemClick= */ {},
+                    )
+                }
+            }
+        }
+
+        val mediaGrid = composeTestRule.onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
+
+        mediaGrid.performTouchInput { click() }
+        composeTestRule.waitForIdle()
+        mediaGrid.assertIsDisplayed()
+        // Verify whether the method to transfer touch events is not invoked during testing
+        @Suppress("DEPRECATION")
+        verify(mockSurfaceControlViewHost, never()).transferTouchGestureToHost()
     }
 }

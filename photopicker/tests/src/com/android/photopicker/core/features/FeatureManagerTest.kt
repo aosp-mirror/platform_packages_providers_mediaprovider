@@ -36,6 +36,7 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
@@ -77,6 +78,8 @@ class FeatureManagerTest {
             AlwaysDisabledFeature.Registration,
         )
 
+    val sessionId = generatePickerSessionId()
+
     @Composable
     private fun featureManagerTestUiComposeTop(
         featureManager: FeatureManager,
@@ -107,6 +110,33 @@ class FeatureManagerTest {
             assertThat(featureManager.enabledFeatures.first() is SimpleUiFeature).isTrue()
             assertThat(featureManager.enabledFeatures.last() is HighPriorityUiFeature).isTrue()
         }
+    }
+
+    /* Ensures feature manager correctly reports the size of its location registry. */
+    @Test
+    fun testGetSizeOfLocationInRegistry() = runTest {
+        val featureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = this.backgroundScope),
+                this.backgroundScope,
+                testRegistrations,
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
+            )
+
+        // All three features in testRegistrations use this location, but [AlwaysDisabledFeature]
+        // is always disabled, so it won't ever be present in the location registry.
+        assertThat(featureManager.getSizeOfLocationInRegistry(Location.COMPOSE_TOP)).isEqualTo(2)
+
+        val featureManagerTwo =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = this.backgroundScope),
+                this.backgroundScope,
+                /*registeredFeatures=*/ emptySet(),
+                /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
+                /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
+            )
+        assertThat(featureManagerTwo.getSizeOfLocationInRegistry(Location.COMPOSE_TOP)).isEqualTo(0)
     }
 
     /* Ensures that the [FeatureManager] composes content for registered features, according
@@ -236,6 +266,7 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = true,
+                    sessionId = sessionId
                 )
             )
 
@@ -273,12 +304,11 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = false,
+                    sessionId = sessionId
                 )
             )
 
-        whenever(mockSimpleUiFeature.eventsConsumed) {
-            setOf(Event.MediaSelectionConfirmed::class.java)
-        }
+        whenever(mockSimpleUiFeature.eventsConsumed) { setOf(TestEventDoNotUse::class.java) }
         whenever(mockSimpleUiFeature.eventsProduced) { setOf<RegisteredEventClass>() }
 
         runTest {

@@ -16,7 +16,6 @@
 
 package com.android.photopicker.core.theme
 
-import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -27,9 +26,15 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.platform.LocalContext
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.theme.typography.TypeScaleTokens
+import com.android.photopicker.core.theme.typography.TypefaceNames
+import com.android.photopicker.core.theme.typography.TypefaceTokens
+import com.android.photopicker.core.theme.typography.TypographyTokens
+import com.android.photopicker.core.theme.typography.photopickerTypography
 
 /**
  * This composable generates all the theme related elements and creates the wrapping [MaterialTheme]
@@ -41,48 +46,82 @@ import com.android.modules.utils.build.SdkLevel
 @Composable
 fun PhotopickerTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
-    intent: Intent?,
+    config: PhotopickerConfiguration,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
-    val accentColorHelper = AccentColorHelper(intent)
+    val accentColorHelper = AccentColorHelper(config.accentColor ?: -1)
 
+    // If a custom accent color hasn't been set, use a dynamic theme for colors
+    val accentColorIsNotSpecified = remember { accentColorHelper.getAccentColor().isUnspecified }
+
+    // Assemble Light & Dark themes, both color sets are needed to generate the [FixedAccentColors].
+    val darkTheme = remember {
+        when (accentColorIsNotSpecified) {
+            true ->
+                if (SdkLevel.isAtLeastS()) dynamicDarkColorScheme(context) else darkColorScheme()
+            false -> darkColorScheme()
+        }
+    }
+
+    val lightTheme = remember {
+        when (accentColorIsNotSpecified) {
+            true ->
+                if (SdkLevel.isAtLeastS()) dynamicLightColorScheme(context) else lightColorScheme()
+            false -> lightColorScheme()
+        }
+    }
+
+    // Choose which colorScheme to use based on if the device is in dark mode or not.
     val colorScheme =
         remember(isDarkTheme) {
-            when {
-                // When the accent color is available then the generic theme for the picker should
-                // be the static baseline material theme. This will be used for any components that
-                // are not highlighted with accent colors.
-                (accentColorHelper.getAccentColor() != Color.Unspecified) -> {
-                    if (isDarkTheme) {
-                        darkColorScheme()
+            when (isDarkTheme) {
+                true ->
+                    if (accentColorHelper.getAccentColor().isUnspecified) {
+                        darkTheme
                     } else {
-                        lightColorScheme()
+                        // When an accent color has been specified, set primary and onPrimary
+                        // in the theme to use the accent color.
+                        darkTheme.copy(
+                            primary = accentColorHelper.getAccentColor(),
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                        )
                     }
-                }
-                else -> {
-                    if (SdkLevel.isAtLeastS()) {
-                        if (isDarkTheme) {
-                            dynamicDarkColorScheme(context)
-                        } else {
-                            dynamicLightColorScheme(context)
-                        }
+                false ->
+                    if (accentColorHelper.getAccentColor().isUnspecified) {
+                        lightTheme
                     } else {
-                        null
+                        lightTheme.copy(
+                            // When an accent color has been specified, set primary and onPrimary
+                            // in the theme to use the accent color.
+                            primary = accentColorHelper.getAccentColor(),
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                        )
                     }
-                }
             }
-        } ?: MaterialTheme.colorScheme
+        }
+    val fixedAccentColors =
+        FixedAccentColors.build(lightColors = lightTheme, darkColors = darkTheme)
+
+    // Generate the typography for the theme based on context.
+    val typefaceNames = remember(context) { TypefaceNames.get(context) }
+    val typography =
+        remember(typefaceNames) {
+            photopickerTypography(TypographyTokens(TypeScaleTokens(TypefaceTokens(typefaceNames))))
+        }
 
     // Calculate the current screen size
     val windowSizeClass: WindowSizeClass = calculateWindowSizeClass()
 
-    MaterialTheme(colorScheme) {
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = typography,
+    ) {
         CompositionLocalProvider(
             LocalWindowSizeClass provides windowSizeClass,
-            CustomAccentColorScheme provides AccentColorScheme(
-                accentColorHelper = accentColorHelper
-            ),
+            LocalFixedAccentColors provides fixedAccentColors,
+            CustomAccentColorScheme provides
+                AccentColorScheme(accentColorHelper = accentColorHelper),
         ) {
             content()
         }

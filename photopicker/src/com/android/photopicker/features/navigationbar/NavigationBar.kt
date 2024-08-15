@@ -18,29 +18,50 @@ package com.android.photopicker.features.navigationbar
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.android.photopicker.R
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.CustomAccentColorScheme
+import com.android.photopicker.data.model.Group
+import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
+import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 
+/* Navigation bar button measurements */
+private val MEASUREMENT_ICON_BUTTON_WIDTH = 48.dp
+private val MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING = 4.dp
 
 /* Distance between two navigation buttons */
-private val MEASUREMENT_SPACER_SIZE = 6.dp
+private val MEASUREMENT_SPACER_SIZE = 8.dp
 
-private val NAV_BAR_ENABLED_ROUTES = setOf(
-    PhotopickerDestinations.ALBUM_GRID.route,
-    PhotopickerDestinations.PHOTO_GRID.route,
-    )
+/* Padding values around the edges of the NavigationBar */
+private val MEASUREMENT_EDGE_PADDING = 4.dp
+private val MEASUREMENT_TOP_PADDING = 8.dp
+private val MEASUREMENT_BOT_PADDING = 24.dp
 
 /**
  * Top of the NavigationBar feature.
@@ -49,26 +70,116 @@ private val NAV_BAR_ENABLED_ROUTES = setOf(
  * [Location.NAVIGATION_BAR] which begins here.
  *
  * This composable provides a full width row for the navigation bar and calls the feature manager to
- * provide [NavigationBarButton]-s for the row.
+ * provide [NavigationBarButton]s for the row.
+ *
+ * Additionally, the composable also calls for the [PROFILE_SELECTOR] and [OVERFLOW_MENU] locations.
  */
 @Composable
-fun NavigationBar(modifier: Modifier) {
-    // The navigation bar hides itself for certain routes
+fun NavigationBar(modifier: Modifier = Modifier) {
+
     val navController = LocalNavController.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    if (currentRoute in NAV_BAR_ENABLED_ROUTES) {
-        Row(
-            // Consume the incoming modifier
-            modifier = modifier,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            // Buttons are provided by registered features, so request for the features to fill this
-            // content.
-            LocalFeatureManager.current.composeLocation(
-                Location.NAVIGATION_BAR_NAV_BUTTON,
-                maxSlots = 2,
-                modifier = Modifier.padding(MEASUREMENT_SPACER_SIZE)
+    val featureManager = LocalFeatureManager.current
+    Row(
+        modifier =
+            modifier.padding(
+                start = MEASUREMENT_EDGE_PADDING,
+                end = MEASUREMENT_EDGE_PADDING,
+                top = MEASUREMENT_TOP_PADDING,
+                bottom = MEASUREMENT_BOT_PADDING,
+            ),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        when (currentRoute) {
+
+            // When inside an album display the album title and a back button,
+            // instead of the normal navigation bar contents.
+            PhotopickerDestinations.ALBUM_MEDIA_GRID.route -> {
+
+                val flow =
+                    navBackStackEntry
+                        ?.savedStateHandle
+                        ?.getStateFlow<Group.Album?>(AlbumGridFeature.ALBUM_KEY, null)
+                val album = flow?.value
+                when (album) {
+                    null -> {}
+                    else -> {
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // back button
+                            IconButton(
+                                modifier =
+                                    Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                                        .padding(
+                                            horizontal = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING
+                                        ),
+                                onClick = { navController.navigateToAlbumGrid() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    // For accessibility
+                                    contentDescription =
+                                        stringResource(R.string.photopicker_back_option),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            // Album name
+                            Text(
+                                text = album.displayName,
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // For all other routes, show the profile selector and the navigation buttons
+            else -> {
+
+                val profileSelectorEnabled =
+                    remember(featureManager) {
+                        featureManager.isFeatureEnabled(ProfileSelectorFeature::class.java)
+                    }
+                if (profileSelectorEnabled) {
+                    featureManager.composeLocation(
+                        Location.PROFILE_SELECTOR,
+                        maxSlots = 1,
+                        modifier =
+                            Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                                .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                    )
+                } else {
+                    Spacer(
+                        Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                            .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                    )
+                }
+
+                NavigationBarButtons(Modifier.weight(1f))
+            }
+        }
+
+        val overFlowMenuEnabled =
+            remember(featureManager) {
+                featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+            }
+        if (overFlowMenuEnabled) {
+            featureManager.composeLocation(
+                Location.OVERFLOW_MENU,
+                modifier =
+                    Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                        .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+            )
+        } else {
+            Spacer(
+                Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
             )
         }
     }
@@ -100,22 +211,56 @@ fun NavigationBarButton(
     FilledTonalButton(
         onClick = onClick,
         modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
         colors =
             if (isCurrentRoute(currentRoute ?: "")) {
                 ButtonDefaults.filledTonalButtonColors(
-                    containerColor = CustomAccentColorScheme.current
-                        .getAccentColorIfDefinedOrElse(
+                    containerColor =
+                        CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
                             /* fallback */ MaterialTheme.colorScheme.primary
                         ),
-                    contentColor = CustomAccentColorScheme.current
-                        .getTextColorForAccentComponentsIfDefinedOrElse(
-                            /* fallback */ MaterialTheme.colorScheme.onPrimary
-                        ),
+                    contentColor =
+                        CustomAccentColorScheme.current
+                            .getTextColorForAccentComponentsIfDefinedOrElse(
+                                /* fallback */ MaterialTheme.colorScheme.onPrimary
+                            ),
                 )
             } else {
-                ButtonDefaults.filledTonalButtonColors()
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             },
     ) {
         buttonContent()
+    }
+}
+
+/**
+ * Creates and positions any navigation buttons that have been registered for the
+ * [NAVIGATION_BAR_NAV_BUTTON] location. Accepts a maximum of two buttons.
+ */
+@Composable
+private fun NavigationBarButtons(modifier: Modifier) {
+    Row(
+        // Consume the incoming modifier to get the correct positioning.
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Row(
+            // Layout in individual buttons in a row, and space them evenly.
+            horizontalArrangement =
+                Arrangement.spacedBy(
+                    MEASUREMENT_SPACER_SIZE,
+                    alignment = Alignment.CenterHorizontally
+                ),
+        ) {
+            // Buttons are provided by registered features, so request for the features to fill
+            // this content.
+            LocalFeatureManager.current.composeLocation(
+                Location.NAVIGATION_BAR_NAV_BUTTON,
+                maxSlots = 2,
+            )
+        }
     }
 }

@@ -54,6 +54,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
@@ -65,7 +66,8 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.extensions.requireSystemService
-import com.android.photopicker.inject.EmbeddedTestModule
+import com.android.photopicker.inject.PhotopickerTestModule
+import com.android.photopicker.inject.TestOptions
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.StubProvider
@@ -125,7 +127,10 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /** Setup dependencies for the UninstallModules for the test class. */
-    @Module @InstallIn(SingletonComponent::class) class TestModule : EmbeddedTestModule()
+    @Module
+    @InstallIn(SingletonComponent::class)
+    class TestModule :
+        PhotopickerTestModule(TestOptions.build { runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED) })
 
     val testDispatcher = StandardTestDispatcher()
 

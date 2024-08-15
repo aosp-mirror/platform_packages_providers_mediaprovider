@@ -78,8 +78,6 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.flags.Flags;
 
-import com.android.providers.media.flags.Flags;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1078,7 +1076,7 @@ public final class MediaStore {
      * <p>This is not a mechanism to revoke permissions for items, i.e. de-selection of a
      * pre-selected item by the user will not result in revocation of the grant.</p>
      */
-    @FlaggedApi("com.android.providers.media.flags.picker_pre_selection")
+    @FlaggedApi(Flags.FLAG_PICKER_PRE_SELECTION_EXTRA)
     public static final String EXTRA_PICKER_PRE_SELECTION_URIS =
             "android.provider.extra.PICKER_PRE_SELECTION_URIS";
 
@@ -1238,6 +1236,14 @@ public final class MediaStore {
     @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission")
     public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
             "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+
+    /**
+     * Permission that grants access to {@link MediaColumns#OEM_METADATA}
+     * of every accessible media file.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+    public static final String ACCESS_OEM_METADATA_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_OEM_METADATA";
 
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
@@ -2116,6 +2122,13 @@ public final class MediaStore {
          */
         @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
         public static final String CAPTURE_FRAMERATE = "capture_framerate";
+
+        /**
+         * Column which allows OEMs to store custom metadata for a media file.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+        @Column(value = Cursor.FIELD_TYPE_BLOB, readOnly = true)
+        public static final String OEM_METADATA = "oem_metadata";
 
         // HAS_IMAGE is ignored
         // IMAGE_COUNT is ignored

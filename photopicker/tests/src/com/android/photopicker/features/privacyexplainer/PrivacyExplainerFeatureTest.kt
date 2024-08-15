@@ -130,7 +130,7 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     @Before
     fun setup() {
@@ -160,11 +160,13 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
             whenever(bannerStateDao.getBannerState(anyString(), anyInt())) { null }
 
-            configurationManager.setCaller(
-                callingPackage = "com.android.test.package",
-                callingPackageUid = 12345,
-                callingPackageLabel = "Test Package",
-            )
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
             advanceTimeBy(100)
 
             val resources = getTestableContext().getResources()
@@ -204,11 +206,13 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                 )
             }
             // Mock out database state with previously dismissed state.
-            configurationManager.setCaller(
-                callingPackage = "com.android.test.package",
-                callingPackageUid = 12345,
-                callingPackageLabel = "Test Package",
-            )
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
             advanceTimeBy(1000)
             val resources = getTestableContext().getResources()
             val expectedPrivacyMessage =

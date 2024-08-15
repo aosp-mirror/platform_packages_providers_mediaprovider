@@ -78,8 +78,6 @@ import androidx.annotation.RequiresApi;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.providers.media.flags.Flags;
 
-import com.android.providers.media.flags.Flags;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1232,12 +1230,33 @@ public final class MediaStore {
             "android:query-arg-latest-selection-only";
 
     /**
+     * Flag that requests {@link ContentResolver#query} to sort the result in descending order
+     * based on {@link MediaColumns#INFERRED_DATE}.
+     * <p>
+     * When this flag is used as an extra in a {@link Bundle} passed to
+     * {@link ContentResolver#query}, all other sorting options such as
+     * {@link android.content.ContentResolver#QUERY_ARG_SORT_COLUMNS} or
+     * {@link android.content.ContentResolver#QUERY_ARG_SQL_SORT_ORDER} are disregarded.
+     */
+    @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+    public static final String QUERY_ARG_MEDIA_STANDARD_SORT_ORDER =
+            "android:query-arg-media-standard-sort-order";
+
+    /**
      * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
      * of every accessible media file.
      */
     @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission")
     public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
             "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+
+    /**
+     * Permission that grants access to {@link MediaColumns#OEM_METADATA}
+     * of every accessible media file.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+    public static final String ACCESS_OEM_METADATA_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_OEM_METADATA";
 
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
@@ -1656,6 +1675,19 @@ public final class MediaStore {
         @CurrentTimeMillisLong
         @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
         public static final String DATE_TAKEN = "datetaken";
+
+        /**
+         * File's approximate creation date.
+         * <p>
+         * Following is the derivation logic:
+         * 1. If {@link MediaColumns#DATE_TAKEN} is present, use it.
+         * 2. If {@link MediaColumns#DATE_TAKEN} is absent, use {@link MediaColumns#DATE_MODIFIED}.
+         * Note: When {@link QUERY_ARG_MEDIA_STANDARD_SORT_ORDER} query argument
+         * is used, the sorting is based on this column in descending order.
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+        public static final String INFERRED_DATE = "inferred_date";
 
         /**
          * The MIME type of the media item.
@@ -2116,6 +2148,13 @@ public final class MediaStore {
          */
         @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
         public static final String CAPTURE_FRAMERATE = "capture_framerate";
+
+        /**
+         * Column which allows OEMs to store custom metadata for a media file.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+        @Column(value = Cursor.FIELD_TYPE_BLOB, readOnly = true)
+        public static final String OEM_METADATA = "oem_metadata";
 
         // HAS_IMAGE is ignored
         // IMAGE_COUNT is ignored

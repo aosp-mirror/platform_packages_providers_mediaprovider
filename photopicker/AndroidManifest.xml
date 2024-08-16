@@ -38,6 +38,7 @@
 
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
+          android:icon="@mipmap/photopicker_app_icon"
           android:label="@string/photopicker_application_label"
           android:allowBackup="false"
           android:supportsRtl="true">
@@ -111,10 +112,23 @@
     <receiver android:name="com.android.photopicker.PhotopickerDeviceConfigReceiver"
               android:exported="true"
               android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS">
-    <intent-filter>
+      <intent-filter>
         <action android:name="android.intent.action.MAIN" />
       </intent-filter>
     </receiver>
+
+    <!--
+    The Embedded Photopicker service that allows external apps to launch an embedded photopicker
+    experience inside of their own application. This service uses Remote Rendering to provide a
+    view to the binding application, and renders the view from the photopicker process.
+    See EmbeddedService and Session classes for the entrypoints into the Embedded Photopicker.
+    -->
+    <service android:name="com.android.photopicker.core.embedded.EmbeddedService"
+             android:exported="true">
+      <intent-filter>
+        <action android:name="com.android.photopicker.core.embedded.EmbeddedService.BIND" />
+      </intent-filter>
+    </service>
 
   </application>
 

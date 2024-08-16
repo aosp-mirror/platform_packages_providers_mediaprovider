@@ -75,7 +75,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
         return Priority.MEDIUM.priority
     }
 
-    override fun buildBanner(banner: BannerDefinitions): Banner {
+    override suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
         return object : Banner {
             override val declaration = BannerDefinitions.PRIVACY_EXPLAINER
 

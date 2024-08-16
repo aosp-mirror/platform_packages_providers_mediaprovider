@@ -33,6 +33,7 @@ import android.test.mock.MockContentResolver
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ActivityScenario.launchActivityForResult
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
 import com.android.photopicker.core.ApplicationOwned
@@ -40,9 +41,7 @@ import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.features.FeatureToken.CORE
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -90,8 +89,9 @@ class MainActivityTest {
 
     val testDispatcher = StandardTestDispatcher()
     /** Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -112,13 +112,17 @@ class MainActivityTest {
         // Stubs for UserMonitor
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
         }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
-        }
+
         whenever(mockContext.contentResolver) { contentResolver }
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.packageName) { "com.android.photopicker" }
@@ -139,7 +143,7 @@ class MainActivityTest {
 
     @Test
     fun testMainActivitySetsActivityAction() {
-        mainScope.runTest {
+        testScope.runTest {
             val intent =
                 Intent()
                     .setAction(MediaStore.ACTION_PICK_IMAGES)
@@ -170,7 +174,7 @@ class MainActivityTest {
                     )
                 )
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity {
                     advanceTimeBy(100)
                     val configuration = configurationManager.configuration.value
@@ -202,7 +206,7 @@ class MainActivityTest {
                 .putExtra(Intent.EXTRA_UID, Process.myUid())
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
+            testScope.runTest {
                 onActivity {
                     advanceTimeBy(100)
                     val configuration = configurationManager.configuration.value
@@ -240,11 +244,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -284,11 +288,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -328,11 +332,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.addAll(selectedItems)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 

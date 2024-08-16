@@ -23,6 +23,7 @@ import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.graphics.Point
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
 import android.os.UserHandle
@@ -49,10 +50,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
@@ -88,6 +99,8 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
+// TODO(b/340770526) Fix tests that can't access [ICloudMediaSurfaceController] on R & S.
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -104,6 +117,7 @@ class PreviewViewModelTest {
 
     private val USER_HANDLE_PRIMARY: UserHandle
     private val USER_ID_PRIMARY: Int = 0
+    private val deviceConfigProxy = TestDeviceConfigProxyImpl()
 
     init {
         val parcel1 = Parcel.obtain()
@@ -204,10 +218,21 @@ class PreviewViewModelTest {
 
     @Before
     fun setup() {
+        deviceConfigProxy.reset()
         MockitoAnnotations.initMocks(this)
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
+            whenever(mockUserManager.getUserBadge()) {
+                InstrumentationRegistry.getInstrumentation()
+                    .getContext()
+                    .getResources()
+                    .getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
         }
 
         // Stub for MockContentResolver constructor
@@ -225,13 +250,6 @@ class PreviewViewModelTest {
         whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
             mockContext
         }
-        whenever(mockUserManager.getUserBadge()) {
-            InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDrawable(R.drawable.android, /* theme= */ null)
-        }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
 
         // Stubs for creating the RemoteSurfaceController
         whenever(
@@ -251,10 +269,31 @@ class PreviewViewModelTest {
     fun testToggleInSelectionUpdatesSelection() {
 
         runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
+                )
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val viewModel =
@@ -268,7 +307,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             assertWithMessage("Unexpected selection start size")
@@ -296,16 +337,39 @@ class PreviewViewModelTest {
         }
     }
 
-    /** Ensures the selection is not snapshotted until requested. */
     @Test
-    fun testSnapshotSelection() {
+    fun testToggleInSelectionCollectionUpdatesSelection() {
 
         runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
+                )
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    configuration =
+                        provideTestConfigurationFlow(
+                            scope = this.backgroundScope,
+                            defaultConfiguration = MULTI_SELECT_CONFIG,
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val viewModel =
@@ -319,7 +383,83 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
+                )
+
+            assertWithMessage("Unexpected selection start size")
+                .that(selection.snapshot().size)
+                .isEqualTo(0)
+
+            // Toggle the item into the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            // Wait for selection update.
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection did not contain expected item")
+                .that(selection.snapshot())
+                .containsExactly(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO)
+
+            // Toggle the item out of the selection
+            viewModel.toggleInSelection(setOf(TEST_MEDIA_IMAGE, TEST_MEDIA_VIDEO), {})
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Selection contains unexpected item")
+                .that(selection.snapshot())
+                .isEmpty()
+        }
+    }
+
+    /** Ensures the selection is not snapshotted until requested. */
+    @Test
+    fun testSnapshotSelection() {
+
+        runTest {
+            val selection =
+                SelectionImpl<Media>(
+                    scope = this.backgroundScope,
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
+                )
+
+            val viewModel =
+                PreviewViewModel(
+                    this.backgroundScope,
+                    selection,
+                    UserMonitor(
+                        mockContext,
+                        provideTestConfigurationFlow(scope = this.backgroundScope),
+                        this.backgroundScope,
+                        StandardTestDispatcher(this.testScheduler),
+                        USER_HANDLE_PRIMARY
+                    ),
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             var snapshot = viewModel.selectionSnapshot.first()
@@ -350,6 +490,27 @@ class PreviewViewModelTest {
                 GrantsAwareSelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
 
             val viewModel =
@@ -363,7 +524,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             // remove a pre-granted item and it should be added to the deselection snapshot.
@@ -396,6 +559,27 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
             val viewModel =
                 PreviewViewModel(
@@ -408,7 +592,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             val controller =
@@ -451,6 +637,27 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
             val viewModel =
                 PreviewViewModel(
@@ -463,7 +670,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             val controller =
@@ -550,6 +759,27 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    emptySet<FeatureRegistration>(),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
             val viewModel =
                 PreviewViewModel(
@@ -562,7 +792,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)
@@ -582,6 +814,27 @@ class PreviewViewModelTest {
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     initialSelection = setOf(TEST_MEDIA_IMAGE),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                )
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId()
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    registeredFeatures = setOf(PreviewFeature.Registration),
+                )
+            val events =
+                Events(
+                    scope = this.backgroundScope,
+                    provideTestConfigurationFlow(scope = this.backgroundScope),
+                    featureManager
                 )
             val viewModel =
                 PreviewViewModel(
@@ -594,7 +847,9 @@ class PreviewViewModelTest {
                         StandardTestDispatcher(this.testScheduler),
                         USER_HANDLE_PRIMARY
                     ),
-                    dataService = TestDataServiceImpl()
+                    dataService = TestDataServiceImpl(),
+                    events,
+                    configurationManager
                 )
 
             viewModel.getControllerForAuthority(MockContentProviderWrapper.AUTHORITY)
@@ -631,12 +886,7 @@ class PreviewViewModelTest {
                 .that(mediaSizeChangedInfo.authority)
                 .isEqualTo(MockContentProviderWrapper.AUTHORITY)
             assertWithMessage("MEDIA_SIZE_CHANGED emitted state was invalid")
-                .that(
-                    mediaSizeChangedInfo.playbackStateInfo?.getParcelable(
-                        EXTRA_SIZE,
-                        Point::class.java
-                    )
-                )
+                .that(getPointFromParcelableSafe(mediaSizeChangedInfo.playbackStateInfo))
                 .isEqualTo(Point(100, 200))
 
             callback.setPlaybackState(1, PLAYBACK_STATE_BUFFERING, null)
@@ -722,6 +972,19 @@ class PreviewViewModelTest {
                         authority = MockContentProviderWrapper.AUTHORITY
                     )
                 )
+        }
+    }
+
+    /**
+     * Uses the correct version of [getParcelable] based on platform sdk.
+     *
+     * @return The EXTRA_SIZE [Point], if it exists.
+     */
+    private fun getPointFromParcelableSafe(bundle: Bundle?): Point? {
+        if (SdkLevel.isAtLeastT()) {
+            return bundle?.getParcelable(EXTRA_SIZE, Point::class.java)
+        } else {
+            @Suppress("DEPRECATION") return bundle?.getParcelable(EXTRA_SIZE) as? Point
         }
     }
 

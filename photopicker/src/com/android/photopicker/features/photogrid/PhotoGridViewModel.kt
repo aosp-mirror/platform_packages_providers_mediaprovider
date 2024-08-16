@@ -21,8 +21,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.cachedIn
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -50,6 +53,7 @@ constructor(
     private val selection: Selection<Media>,
     private val dataService: DataService,
     private val events: Events,
+    private val bannerManager: BannerManager,
 ) : ViewModel() {
 
     // Check if a scope override was injected before using the default [viewModelScope]
@@ -98,14 +102,40 @@ constructor(
             // when navigating back to the PhotoGrid route.
             .cachedIn(scope)
 
+    /** Export the [Banner] flow from BannerManager to the UI */
+    val banners = bannerManager.flow
+
+    /**
+     * Dismissal handler from the UI to mark a particular banner as dismissed by the user. This call
+     * is handed off to the bannerManager to persist any relevant dismissal state.
+     *
+     * Afterwards, refreshBanners is called to check for any new Banners from [BannerManager].
+     */
+    fun markBannerAsDismissed(banner: BannerDefinitions) {
+        scope.launch {
+            bannerManager.markBannerAsDismissed(banner)
+            bannerManager.refreshBanners()
+        }
+    }
+
     /**
      * Click handler that is called when items in the grid are clicked. Selection updates are made
      * in the viewModelScope to ensure they aren't canceled if the user navigates away from the
      * PhotoGrid composable.
      */
-    fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
+    fun handleGridItemSelection(
+        item: Media,
+        selectionLimitExceededMessage: String,
+    ) {
+        // Update the selectable values in the received media object.
+        val updatedMediaItem =
+            Media.withSelectable(
+                item, /* selectionSource */
+                Telemetry.MediaLocation.MAIN_GRID, /* album */
+                null
+            )
         scope.launch {
-            val result = selection.toggle(item)
+            val result = selection.toggle(updatedMediaItem)
             if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
                 scope.launch {
                     events.dispatch(

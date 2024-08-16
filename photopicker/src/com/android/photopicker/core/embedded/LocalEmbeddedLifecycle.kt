@@ -18,5 +18,4 @@ package com.android.photopicker.core.embedded
 import androidx.compose.runtime.compositionLocalOf
 
 /** Provider for fetching the [EmbeddedLifecycle] inside of composables. */
-val LocalEmbeddedLifecycle =
-    compositionLocalOf<EmbeddedLifecycle> { error("No EmbeddedLifecycle provided") }
+val LocalEmbeddedLifecycle = compositionLocalOf<EmbeddedLifecycle?> { null }

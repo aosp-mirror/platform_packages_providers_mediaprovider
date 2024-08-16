@@ -16,40 +16,72 @@
 
 package com.android.photopicker.data
 
+import android.net.Uri
 import androidx.paging.PagingSource
-import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.data.model.CloudMediaProviderDetails
+import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 
 /**
- * Provides data to the Photo Picker UI. The data comes from a [ContentProvider] called
- * [MediaProvider].
+ * A test implementation of [DataService] that provides fake, in memory paging sources that isolate
+ * device state from the test by providing fake data that is not backed by real media.
  *
- * Underlying data changes in [MediaProvider] are observed using [ContentObservers]. When a change
- * in data is observed, the data is re-fetched from the [MediaProvider] process and the new data is
- * emitted to the [StateFlows]-s.
- *
- * This class depends on [FeatureManager] to provide the info about which feature set is currently
- * enabled. This information helps with building the [ContentProvider] queries to fetch data from
- * the [MediaProvider] process.
+ * Tests can override the size of data or the actual list of data itself by injecting the data
+ * service class into the test and changing the corresponding values.
  */
 class TestDataServiceImpl() : DataService {
-    override val availableProviders: StateFlow<List<Provider>> = MutableStateFlow(emptyList())
+
+    // Overrides for MediaPagingSource
+    var mediaSetSize: Int = FakeInMemoryMediaPagingSource.DEFAULT_SIZE
+    var mediaList: List<Media>? = null
+
+    // Overrides for AlbumPagingSource
+    var albumSetSize: Int = FakeInMemoryAlbumPagingSource.DEFAULT_SIZE
+    var albumsList: List<Album>? = null
+
+    // Overrides for AlbumMediaPagingSource
+    var albumMediaSetSize: Int = FakeInMemoryMediaPagingSource.DEFAULT_SIZE
+    var albumMediaList: List<Media>? = null
+
+    val _availableProviders = MutableStateFlow<List<Provider>>(emptyList())
+    override val availableProviders: StateFlow<List<Provider>> = _availableProviders
+
+    var allowedProviders: List<Provider> = emptyList()
+
+    val collectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
+
+    private var _preGrantsCount = MutableStateFlow(/* default value */ 0)
+
+    fun setAvailableProviders(newProviders: List<Provider>) {
+        _availableProviders.update { newProviders }
+    }
+
+    override val preGrantedMediaCount: StateFlow<Int> = _preGrantsCount
+    override val preSelectionMediaData: StateFlow<List<Media>?> =
+        MutableStateFlow(ArrayList<Media>())
+
+    fun setInitPreGrantsCount(count: Int) {
+        _preGrantsCount.update { count }
+    }
 
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
-        // reusing media paging source.
-        return FakeInMemoryMediaPagingSource()
+        return albumMediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(albumMediaSetSize)
     }
 
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> {
-        return FakeInMemoryAlbumPagingSource()
+        return albumsList?.let { FakeInMemoryAlbumPagingSource(it) }
+            ?: FakeInMemoryAlbumPagingSource(albumSetSize)
     }
 
     override fun cloudMediaProviderDetails(
@@ -58,18 +90,43 @@ class TestDataServiceImpl() : DataService {
         throw NotImplementedError("This method is not implemented yet.")
 
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> {
-        return FakeInMemoryMediaPagingSource()
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
     }
 
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> {
+        // re-using the media source, modify as per future test usage.
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
+    }
 
     override suspend fun refreshMedia() =
         throw NotImplementedError("This method is not implemented yet.")
 
     override suspend fun refreshAlbumMedia(album: Album) =
         throw NotImplementedError("This method is not implemented yet.")
+
+    override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
+
+    suspend fun sendDisruptiveDataUpdateNotification() {
+        disruptiveDataUpdateChannel.send(Unit)
+    }
+
+    override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
+        collectionInfo.getOrElse(provider, { CollectionInfo(provider.authority) })
+
+    override suspend fun ensureProviders() {}
+
+    override fun getAllAllowedProviders(): List<Provider> = allowedProviders
+
+    override fun refreshPreGrantedItemsCount() {
+        // no_op
+    }
+
+    override fun fetchMediaDataForUris(uris: List<Uri>) {
+        // no-op
+    }
 }

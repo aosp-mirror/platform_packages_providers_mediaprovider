@@ -15,7 +15,7 @@
   -->
 <configuration description="Config for Android Photopicker test cases">
 
-  <!-- Ensure test APK is enstalled and cleaned up after the run -->
+  <!-- Ensure test APK is installed and cleaned up after the run -->
   <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
     <option name="cleanup-apks" value="true"/>
     <option name="test-file-name" value="PhotopickerTests.apk"/>
@@ -28,4 +28,14 @@
     <option name="package" value="com.android.photopicker.tests"/>
     <option name="hidden-api-checks" value="false"/>
   </test>
+
+  <option name="test-tag" value="PhotopickerTests" />
+  <option
+      name="config-descriptor:metadata"
+      key="mainline-param"
+      value="com.google.android.mediaprovider.apex" />
+
+  <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
+      <option name="mainline-module-package-name" value="com.google.android.mediaprovider" />
+  </object>
 </configuration>

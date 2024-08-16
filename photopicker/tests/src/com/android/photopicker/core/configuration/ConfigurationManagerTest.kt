@@ -17,10 +17,15 @@
 package com.android.photopicker.core.configuration
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +50,7 @@ class ConfigurationManagerTest {
     // Isolate the test device by providing a test wrapper around device config so that the
     // tests can control the flag values that are returned.
     val deviceConfigProxy = TestDeviceConfigProxyImpl()
+    val sessionId = generatePickerSessionId()
 
     @Before
     fun setup() {
@@ -63,10 +69,11 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
 
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             backgroundScope.launch {
                 val reportedConfiguration = configurationManager.configuration.first()
@@ -81,7 +88,6 @@ class ConfigurationManagerTest {
      */
     @Test
     fun testConfigurationEmitsFlagChanges() {
-
         runTest {
             val configurationManager =
                 ConfigurationManager(
@@ -89,9 +95,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -133,9 +140,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration with an action matching the test action.
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -170,13 +178,59 @@ class ConfigurationManagerTest {
                     expectedConfiguration.copy(
                         flags =
                             PhotopickerFlags(
-                                CLOUD_ALLOWED_PROVIDERS = "testallowlist",
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("testallowlist"),
                                 CLOUD_MEDIA_ENABLED = !FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
                                 PRIVATE_SPACE_ENABLED = !FEATURE_PRIVATE_SPACE_ENABLED.second,
                             )
                     )
                 )
         }
+    }
+
+    /**
+     * Checks that the [ConfigurationManager] correctly identifies an authority in the device config
+     * and converts it into a package name before emitting a new [PhotopickerConfiguration].
+     */
+    @Test
+    fun testAllowlistedPackagesAreBackwardCompatible() = runTest {
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                sessionId = sessionId
+            )
+        // Expect the default configuration with an action matching the test action.
+        val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
+
+        val emissions = mutableListOf<PhotopickerConfiguration>()
+        backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+        // wait for ConfigurationManager to register a listener
+        advanceTimeBy(100)
+
+        deviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+            "test.cmp1,test.cmp2.cloudprovider,test.cmp3.cloudpicker"
+        )
+
+        // wait for debounce
+        advanceTimeBy(1100)
+
+        assertThat(emissions.size).isEqualTo(2)
+        assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        assertThat(emissions.last())
+            .isEqualTo(
+                expectedConfiguration.copy(
+                    flags =
+                        PhotopickerFlags(
+                            CLOUD_ALLOWED_PROVIDERS =
+                                arrayOf("test.cmp1", "test.cmp2", "test.cmp3"),
+                        )
+                )
+            )
     }
 
     /**
@@ -193,9 +247,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -207,12 +262,12 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo("TEST_ACTION")
-            assertThat(emissions.last().intent).isNotNull()
         }
     }
 
     @Test
     fun testSetCallerUpdatesConfiguration() {
+
         runTest {
             val configurationManager =
                 ConfigurationManager(
@@ -220,9 +275,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -267,9 +323,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -281,7 +338,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
         }
@@ -303,9 +359,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -317,7 +374,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png"))
         }
     }
@@ -340,9 +396,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -354,7 +411,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -381,9 +437,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -395,7 +452,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
         }
     }
@@ -418,6 +474,7 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             assertThrows(IllegalIntentExtraException::class.java) {
                 configurationManager.setIntent(intent)
@@ -445,9 +502,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -459,8 +517,53 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().pickImagesInOrder).isTrue()
+            assertThat(emissions.last().selectionLimit)
+                .isEqualTo(MediaStore.getPickImagesMaxLimit())
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected preSelection URIs.
+     */
+    @Test
+    fun testSetIntentSetsPickImagesPreSelectionUris() {
+        val testUriPlaceHolder =
+            "content://media/picker/0/com.android.providers.media.photopicker/media/%s"
+        val inputUris =
+            arrayListOf(
+                Uri.parse(String.format(testUriPlaceHolder, "1")),
+                Uri.parse(String.format(testUriPlaceHolder, "2"))
+            )
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
+                .putParcelableArrayListExtra(MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS, inputUris)
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().preSelectedUris).isEqualTo(inputUris)
             assertThat(emissions.last().selectionLimit)
                 .isEqualTo(MediaStore.getPickImagesMaxLimit())
         }
@@ -488,9 +591,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -502,7 +606,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.ALBUM_GRID)
         }
@@ -530,9 +633,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -544,7 +648,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination)
                 .isEqualTo(PhotopickerDestinations.PHOTO_GRID)
         }
@@ -573,9 +676,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -587,7 +691,6 @@ class ConfigurationManagerTest {
             assertThat(emissions.size).isEqualTo(2)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
             assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
-            assertThat(emissions.last().intent).isNotNull()
             assertThat(emissions.last().startDestination).isEqualTo(PhotopickerDestinations.DEFAULT)
         }
     }
@@ -611,9 +714,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -648,9 +752,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -688,9 +793,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -732,9 +838,10 @@ class ConfigurationManagerTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId = sessionId
                 )
             // Expect the default configuration
-            val expectedConfiguration = PhotopickerConfiguration(action = "")
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
 
             val emissions = mutableListOf<PhotopickerConfiguration>()
             backgroundScope.launch { configurationManager.configuration.toList(emissions) }
@@ -752,6 +859,169 @@ class ConfigurationManagerTest {
 
             assertThat(emissions.size).isEqualTo(1)
             assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager.configuration] will emit an updated
+     * [PhotopickerConfiguration] with the expected [PhotopickerConfiguration.selectionLimit].
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testSetEmbeddedPhotopickerFeatureInfoSetsSelectionLimit() {
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration =
+                PhotopickerConfiguration(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    action = "",
+                    sessionId = sessionId
+                )
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setEmbeddedPhotopickerFeatureInfo(featureInfo)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().selectionLimit)
+                .isEqualTo(MediaStore.getPickImagesMaxLimit())
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager.configuration] will emit an updated
+     * [PhotopickerConfiguration] with the expected [PhotopickerConfiguration.mimeTypes].
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testSetEmbeddedPhotopickerFeatureInfoSetsMimeTypes() {
+        val featureInfo =
+            EmbeddedPhotoPickerFeatureInfo.Builder()
+                .setMimeTypes(arrayListOf("image/png", "video/mp4"))
+                .build()
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration =
+                PhotopickerConfiguration(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    action = "",
+                    sessionId = sessionId
+                )
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setEmbeddedPhotopickerFeatureInfo(featureInfo)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().mimeTypes).isEqualTo(arrayListOf("image/png", "video/mp4"))
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager.configuration] will emit an updated
+     * [PhotopickerConfiguration] with the expected [PhotopickerConfiguration.pickImagesInOrder].
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testSetEmbeddedPhotopickerFeatureInfoSetsPickImagesInOrder() {
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().setOrderedSelection(true).build()
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration =
+                PhotopickerConfiguration(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    action = "",
+                    sessionId = sessionId
+                )
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setEmbeddedPhotopickerFeatureInfo(featureInfo)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().pickImagesInOrder).isTrue()
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager.configuration] will emit an updated
+     * [PhotopickerConfiguration] with the expected [PhotopickerConfiguration.preSelectedUris].
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun testSetEmbeddedPhotopickerFeatureInfoSetsPreSelectedUris() {
+        val featureInfo =
+            EmbeddedPhotoPickerFeatureInfo.Builder()
+                .setPreSelectedUris(arrayListOf(Uri.EMPTY))
+                .build()
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration =
+                PhotopickerConfiguration(
+                    runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
+                    action = "",
+                    sessionId = sessionId
+                )
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setEmbeddedPhotopickerFeatureInfo(featureInfo)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().preSelectedUris).isEqualTo(arrayListOf(Uri.EMPTY))
         }
     }
 }

@@ -22,7 +22,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.content.pm.UserProperties
 import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.content.res.Resources
@@ -325,37 +324,10 @@ class UserMonitor(
             }
         }
 
-        // Next, inspect the current configuration and if there is an intent set, try to see
+        // As a last resort, no applicable cross profile information found, so inspect the current
+        // configuration and if there is an intent set, try to see
         // if there is a matching CrossProfileIntentForwarder
-        configuration.value.intent?.let {
-            val intent =
-                it.clone() as? Intent // clone() returns an object so cast back to an Intent
-            intent?.let {
-                // Remove specific component / package info from the intent before querying
-                // package manager. (This is going to look for all handlers of this intent,
-                // and it shouldn't be scoped to a specific component or package)
-                it.setComponent(null)
-                it.setPackage(null)
-
-                for (info: ResolveInfo? in
-                    packageManager.queryIntentActivities(
-                        intent,
-                        PackageManager.MATCH_DEFAULT_ONLY
-                    )) {
-                    info?.let {
-                        if (it.isCrossProfileIntentForwarderActivity()) {
-                            // This profile can handle cross profile content
-                            // from the current context profile
-                            return true
-                        }
-                    }
-                }
-            }
-        }
-
-        // Last resort, no applicable cross profile information found, so disallow cross-profile
-        // content to this profile.
-        return false
+        return configuration.value.doesCrossProfileIntentForwarderExists(packageManager)
     }
 
     /**
@@ -395,7 +367,7 @@ class UserMonitor(
             }
 
         return UserProfile(
-            identifier = handle.getIdentifier(),
+            handle = handle,
             icon = icon,
             label = label,
             profileType =

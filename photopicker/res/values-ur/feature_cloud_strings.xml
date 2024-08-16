@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> میں سے <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> تیار ہیں"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"کچھ تصاویر لوڈ نہیں کی جا سکتیں"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"بعد میں دوبارہ کوشش کریں۔ مسئلہ حل ہو جانے کے بعد آپ کی تصاویر دستیاب ہوں گی۔"</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"بیک اپ لی گئی تصاویر اب شامل ہیں"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"آپ <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> کے <xliff:g id="APP_NAME">%1$s</xliff:g> اکاؤنٹ سے تصاویر منتخب کر سکتے ہیں"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"<xliff:g id="APP_NAME">%1$s</xliff:g> اکاؤنٹ منتخب کریں"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"یہاں <xliff:g id="APP_NAME">%1$s</xliff:g> کی تصاویر شامل کرنے کے لیے، ایپ میں ایک اکاؤنٹ منتخب کریں"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"اکاؤنٹ منتخب کریں"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"کلاؤڈ میڈیا ایپ کا انتخاب کریں"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"بیک اپ کی گئی تصاویر کو یہاں شامل کرنے کے لیے، ترتیبات میں کلاؤڈ میڈیا ایپ کا انتخاب کریں"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"ایپ منتخب کریں"</string>
 </resources>

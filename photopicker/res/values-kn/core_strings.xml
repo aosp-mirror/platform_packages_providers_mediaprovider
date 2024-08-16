@@ -20,12 +20,14 @@
     <string name="photopicker_application_label" msgid="7272391964836190376">"ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳು"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"ಮೀಡಿಯಾ"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g> ಸೇರಿಸಿ"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"ಮುಗಿದಿದೆ"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"ಎಲ್ಲಾ ಆಯ್ಕೆಯನ್ನು ರದ್ದುಮಾಡಿ"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ಐಟಂಗಳವರೆಗೆ ಆಯ್ಕೆಮಾಡಿ"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Photos"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ಆಲ್ಬಮ್‌ಗಳು"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ಇನ್ನೂ ಯಾವುದೇ ಫೋಟೋಗಳಿಲ್ಲ"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳನ್ನು ಕ್ಯಾಪ್ಚರ್ ಮಾಡಲು ಪ್ರಾರಂಭಿಸಿ"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"ನಿಮ್ಮ ಕ್ಯಾಮರಾ ಆ್ಯಪ್‌ನಿಂದ ಸೆರೆಹಿಡಿಯಲಾದ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳು ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತವೆ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ಇನ್ನೂ ಯಾವುದೇ ಮೆಚ್ಚಿನವುಗಳಿಲ್ಲ"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"ಇದು ಸ್ವಯಂಚಾಲಿತ ಆಲ್ಬಮ್ ಆಗಿದ್ದು ಇದು ಸ್ಟಾರ್ ಹಾಕಿರುವ ಅಥವಾ ಮೆಚ್ಚಿನವು ಎಂದು ಗುರುತಿಸಲಾದ ಐಟಂಗಳನ್ನು ಸಂಗ್ರಹಿಸುತ್ತದೆ"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ಇನ್ನೂ ಯಾವುದೇ ವೀಡಿಯೊಗಳಿಲ್ಲ"</string>

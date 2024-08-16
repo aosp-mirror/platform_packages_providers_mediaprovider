@@ -22,6 +22,9 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static android.provider.CloudMediaProviderContract.MediaColumns;
 import static android.provider.MediaStore.PickerMediaColumns;
 
+import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.OWNER_PACKAGE_NAME_COLUMN;
+import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
 import static com.android.providers.media.photopicker.PickerSyncController.PAGE_SIZE;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorLong;
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
@@ -108,6 +111,8 @@ public class PickerDbFacade {
 
     private static final String TABLE_ALBUM_MEDIA = "album_media";
 
+    private static final String TABLE_GRANTS = "media_grants";
+
     public static final String KEY_ID = "_id";
     public static final String KEY_LOCAL_ID = "local_id";
     public static final String KEY_CLOUD_ID = "cloud_id";
@@ -127,6 +132,8 @@ public class PickerDbFacade {
     public static final String KEY_WIDTH = "width";
     @VisibleForTesting
     public static final String KEY_ORIENTATION = "orientation";
+    public static final String EXTRA_OWNER_PACKAGE_NAMES = "owner_package_names";
+    public static final String EXTRA_PACKAGE_USER_ID = "package_user_id";
 
     private static final String WHERE_ID = KEY_ID + " = ?";
     private static final String WHERE_LOCAL_ID = KEY_LOCAL_ID + " = ?";
@@ -272,6 +279,20 @@ public class PickerDbFacade {
      */
     public DbWriteOperation beginAddMediaOperation(String authority) {
         return new AddMediaOperation(mDatabase, isLocal(authority));
+    }
+
+    /**
+     * Returns {@link DbWriteOperation} that can be used to insert grants into the database.
+     */
+    public DbWriteOperation beginInsertGrantsOperation() {
+        return new InsertGrantsOperation(mDatabase, /* isLocal */ true);
+    }
+
+    /**
+     * Returns {@link DbWriteOperation} that can be used to clear all grants from the database.
+     */
+    public DbWriteOperation beginClearGrantsOperation(String[] packageNames, int userId) {
+        return new ClearGrantsOperation(mDatabase, /* isLocal */ true, packageNames, userId);
     }
 
     /**
@@ -427,6 +448,85 @@ public class PickerDbFacade {
             Log.e(TAG, "Method getFirstDateTakenMillis() is not overridden. "
                     + "It will always return Long.MIN_VALUE");
             return Long.MIN_VALUE;
+        }
+    }
+
+    /**
+     * Database operation to insert the grants synced.
+     */
+    public static class InsertGrantsOperation extends DbWriteOperation {
+
+        public InsertGrantsOperation(SQLiteDatabase database, boolean isLocal) {
+            super(database, isLocal);
+        }
+
+        @Override
+        int executeInternal(@Nullable Cursor cursor) {
+            int numberOfGrantsInserted = 0;
+
+            // fetch ids from thw cursor.
+            if (cursor == null) {
+                Log.d(TAG, "No item grants to sync");
+                return numberOfGrantsInserted;
+            }
+
+            ContentValues values = new ContentValues();
+            SQLiteQueryBuilder qb = createGrantsQueryBuilder();
+            if (cursor.moveToFirst()) {
+                do {
+                    Integer id = cursor.getInt(cursor.getColumnIndexOrThrow(FILE_ID_COLUMN));
+                    String packageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                            OWNER_PACKAGE_NAME_COLUMN));
+                    Integer userId = cursor.getInt(
+                            cursor.getColumnIndexOrThrow(PACKAGE_USER_ID_COLUMN));
+
+                    // insert the grant into the grants table.
+                    values.clear();
+                    values.put(FILE_ID_COLUMN, id);
+                    values.put(OWNER_PACKAGE_NAME_COLUMN, packageName);
+                    values.put(PACKAGE_USER_ID_COLUMN, userId);
+                    try {
+                        qb.insert(getDatabase(), values);
+                        numberOfGrantsInserted++;
+                    } catch (SQLiteConstraintException ignored) {
+                        Log.e(TAG, "Duplicate row insertion encountered for table media_grants."
+                                + ignored);
+                        // If we hit a constraint exception it means this row is already in media,
+                        // so nothing to do here.
+                    }
+                } while (cursor.moveToNext());
+            }
+            Log.d(TAG, numberOfGrantsInserted + " grants synced.");
+            return numberOfGrantsInserted;
+        }
+    }
+
+    /**
+     * Represents an update to the picker database where all grants needs to be cleared.
+     *
+     * This needs to be happen before every sync.
+     */
+    public static class ClearGrantsOperation extends DbWriteOperation {
+
+        private final String[] mPackageNames;
+        private final int mUserId;
+
+        public ClearGrantsOperation(SQLiteDatabase database, boolean isLocal,
+                @NonNull String[] packageNames,
+                int userId) {
+            super(database, isLocal);
+            mPackageNames = packageNames;
+            mUserId = userId;
+        }
+
+        @Override
+        int executeInternal(@Nullable Cursor cursor) {
+            // Delete everything from the grants table for the calling package.
+            SQLiteQueryBuilder qb = createGrantsQueryBuilder();
+            Objects.requireNonNull(mPackageNames);
+            addWhereClausesForMediaGrantsTable(qb, mUserId, mPackageNames);
+            Log.d(TAG, "Clearing all picker database grants for calling package.");
+            return qb.delete(getDatabase(), /* selection */ null, /* selectionArgs */ null);
         }
     }
 
@@ -1525,6 +1625,34 @@ public class PickerDbFacade {
         qb.setTables(TABLE_MEDIA);
 
         return qb;
+    }
+
+    private static SQLiteQueryBuilder createGrantsQueryBuilder() {
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables(TABLE_GRANTS);
+        return qb;
+    }
+
+    /**
+     * Appends where clause for package and user id selection to the input query builder.
+     */
+    public static void addWhereClausesForMediaGrantsTable(SQLiteQueryBuilder qb, int userId,
+            @NonNull String[] packageNames) {
+        // Add where clause for userId selection.
+        qb.appendWhereStandalone(
+                String.format("%s.%s = %s", TABLE_GRANTS, PACKAGE_USER_ID_COLUMN,
+                        String.valueOf(userId)));
+
+        // Add where clause for package name selection.
+        Objects.requireNonNull(packageNames);
+        StringBuilder packageSelection = new StringBuilder("(");
+        for (int itr = 0; itr < packageNames.length; itr++) {
+            packageSelection.append("\"").append(packageNames[itr]).append("\",");
+        }
+        packageSelection.deleteCharAt(packageSelection.length() - 1);
+        packageSelection.append(")");
+        qb.appendWhereStandalone(OWNER_PACKAGE_NAME_COLUMN + " IN "
+                + packageSelection.toString());
     }
 
     private static SQLiteQueryBuilder createAlbumMediaQueryBuilder(boolean isLocal) {

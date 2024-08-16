@@ -36,7 +36,6 @@ import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -86,19 +85,16 @@ class FeatureManager(
             )
 
         /* The list of events that the core library consumes. */
-        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> =
-            setOf(
-                Event.MediaSelectionConfirmed::class.java,
-            )
+        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> = setOf()
 
         /* The list of events that the core library produces. */
         val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> =
             setOf(
-                Event.MediaSelectionConfirmed::class.java,
                 Event.ShowSnackbarMessage::class.java,
                 Event.ReportPhotopickerSessionInfo::class.java,
                 Event.ReportPhotopickerApiInfo::class.java,
                 Event.LogPhotopickerUIEvent::class.java,
+                Event.LogPhotopickerAlbumOpenedUIEvent::class.java,
                 Event.ReportPhotopickerMediaItemStatus::class.java,
                 Event.LogPhotopickerPreviewInfo::class.java,
                 Event.LogPhotopickerMenuInteraction::class.java,

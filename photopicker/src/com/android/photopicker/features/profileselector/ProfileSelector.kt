@@ -45,6 +45,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
+import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
@@ -82,7 +85,8 @@ fun ProfileSelector(
                     Icon(
                         it,
                         contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description)
+                            stringResource(R.string.photopicker_profile_switch_button_description),
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
                     // If the profile doesn't have an icon drawable set, then
@@ -90,7 +94,8 @@ fun ProfileSelector(
                     ?: Icon(
                         getIconForProfile(currentProfile),
                         contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description)
+                            stringResource(R.string.photopicker_profile_switch_button_description),
+                        tint = MaterialTheme.colorScheme.primary,
                     )
             }
 
@@ -99,6 +104,8 @@ fun ProfileSelector(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = !expanded },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = ElevationTokens.Level2,
             ) {
                 for (profile in allProfiles) {
 
@@ -107,8 +114,8 @@ fun ProfileSelector(
                         modifier = Modifier.widthIn(min = 200.dp),
                         color =
                             if (currentProfile == profile)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
+                                MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerHigh
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
@@ -132,7 +139,12 @@ fun ProfileSelector(
                                     }
                                 }
                             },
-                            text = { Text(profile.label ?: getLabelForProfile(profile)) },
+                            text = {
+                                Text(
+                                    text = profile.label ?: getLabelForProfile(profile),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                            },
                             leadingIcon = {
                                 profile.icon?.let {
                                     Icon(
@@ -140,7 +152,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                true -> MaterialTheme.colorScheme.primary
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
@@ -154,7 +166,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                true -> MaterialTheme.colorScheme.primary
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
@@ -168,7 +180,9 @@ fun ProfileSelector(
         }
     } else {
         // Return a spacer which consumes the modifier so the space is still occupied, but is empty.
-        Spacer(modifier)
+        // Hide the spacer when the runtime is embedded, so that the navigation tabs stay in the
+        // center as the overflow menu is disabled in embedded runtime.
+        hideWhenState(StateSelector.Embedded) { Spacer(modifier) }
     }
 }
 

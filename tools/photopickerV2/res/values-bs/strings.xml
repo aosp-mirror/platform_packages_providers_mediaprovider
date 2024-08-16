@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Odaberite slike"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Radnja dohvatanja sadržaja"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Prikazuj slike prema redoslijedu"</string>
+    <string name="open_document" msgid="8593796561386540777">"Otvori dokument"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Otvori stablo dokumenata"</string>
+    <string name="create_document" msgid="6073553682715924527">"Kreirajte dokument"</string>
+    <string name="create_file" msgid="2532895579648102462">"Kreirajte fajl"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Odabir redoslijeda prikaza"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Prikazuj samo slike"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Prikazuj samo videozapise"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Unesite Vrstu MIME-a"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Odaberite karticu za pokretanje"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Dozvoli višestruki odabir"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Dozvoli prilagođenu vrstu MIME-a"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Maksimalni broj medijskih fajlova"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Unesite važeći broj veći od jedan"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Unesite važeći broj veći od jedan"</string>
     <string name="pick_media" msgid="5269447618857205416">"Odaberite medij"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Radimo na tome"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Prikazuj metapodatke za odabrane medije"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Omogući odabir unaprijed"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Zatražite odobrenja"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Zatražite odobrenja za:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Funkcija Odabir birača je dostupna samo za uređaje s Androidom U i novijim. \n\nNadogradite uređaj da koristite ovu funkciju."</string>
+    <string name="images" msgid="4986074635830919568">"Slike"</string>
+    <string name="videos" msgid="4638519191891522146">"Videozapisi"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"I slike i videozapisi"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Prikazuj samo posljednji odabir"</string>
 </resources>

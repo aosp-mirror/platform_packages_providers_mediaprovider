@@ -21,7 +21,9 @@ import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static com.android.providers.media.DatabaseHelper.TEST_CLEAN_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_DOWNGRADE_DB;
 import static com.android.providers.media.DatabaseHelper.TEST_UPGRADE_DB;
+import static com.android.providers.media.DatabaseHelper.makePristineIndexes;
 import static com.android.providers.media.DatabaseHelper.makePristineSchema;
+import static com.android.providers.media.DatabaseHelper.makePristineTriggers;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -37,6 +39,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.UserHandle;
 import android.provider.Column;
 import android.provider.ExportedSince;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Audio;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -83,7 +86,7 @@ public class DatabaseHelperTest {
 
     @Test
     public void testFilterVolumeNames() throws Exception {
-        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_CLEAN_DB)) {
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_CLEAN_DB)) {
             SQLiteDatabase db = helper.getWritableDatabaseForTest();
             {
                 final ContentValues values = new ContentValues();
@@ -242,18 +245,18 @@ public class DatabaseHelperTest {
     }
 
     @Test
-    public void testUtoR() throws Exception {
-        assertDowngrade(DatabaseHelperU.class, DatabaseHelperR.class);
+    public void testVtoR() throws Exception {
+        assertDowngrade(DatabaseHelperV.class, DatabaseHelperR.class);
     }
 
     @Test
-    public void testUtoS() throws Exception {
-        assertDowngrade(DatabaseHelperU.class, DatabaseHelperS.class);
+    public void testVtoS() throws Exception {
+        assertDowngrade(DatabaseHelperV.class, DatabaseHelperS.class);
     }
 
     @Test
-    public void testUtoT() throws Exception {
-        assertDowngrade(DatabaseHelperU.class, DatabaseHelperT.class);
+    public void testVtoT() throws Exception {
+        assertDowngrade(DatabaseHelperV.class, DatabaseHelperT.class);
     }
 
     private void assertDowngrade(Class<? extends DatabaseHelper> before,
@@ -288,8 +291,8 @@ public class DatabaseHelperTest {
     }
 
     @Test
-    public void testUtoTDowngradeWithStableUrisEnabledRecoversData() throws Exception {
-        assertDowngradeWithStableUrisEnabledRecoversData(DatabaseHelperU.class,
+    public void testVtoTDowngradeWithStableUrisEnabledRecoversData() throws Exception {
+        assertDowngradeWithStableUrisEnabledRecoversData(DatabaseHelperV.class,
                 DatabaseHelperT.class);
     }
 
@@ -352,6 +355,99 @@ public class DatabaseHelperTest {
         }
     }
 
+    @Test
+    public void testAddInferredDate() {
+        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{"inferred_date"}, null, null,
+                    null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), inferred_date is 0.
+                    assertThat(cr.getInt(0)).isEqualTo(0);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testAddOemMetadataColumn() {
+        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test.jpg");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            // Insert a row in the new version as well
+            final ContentValues values = new ContentValues();
+            values.put(FileColumns.DATA, "/storage/emulated/0/DCIM/test2.jpg");
+            assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+
+            try (Cursor cr = db.query("files", new String[]{"oem_metadata"}, null, null,
+                    null, null, null)) {
+                assertEquals(2, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, for all database rows (new inserts and
+                    // upgrades), oem_metadata is null.
+                    assertThat(cr.getBlob(0)).isNull();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testAddAudioSampleColumn() {
+        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                // Insert a row before database upgrade.
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+                values.put(FileColumns.DATA, "/storage/emulated/0/Podcasts/test1.mp3");
+                values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
+                assertThat(db.insert(MediaStore.Files.TABLE, FileColumns.DATA, values))
+                        .isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+
+            try (Cursor cr = db.query(MediaStore.Files.TABLE,
+                    new String[]{AudioColumns.BITS_PER_SAMPLE, AudioColumns.SAMPLERATE},
+                    null, null, null, null, null)) {
+                assertEquals(1, cr.getCount());
+                while (cr.moveToNext()) {
+                    // Verify that after db upgrade, "bits_per_sample" and "samplerate" are null
+                    assertThat(cr.isNull(0)).isTrue();
+                    assertThat(cr.isNull(1)).isTrue();
+                }
+            }
+        }
+    }
+
     private long insertInInternal(SQLiteDatabase db, String path, String displayName) {
         final ContentValues values = new ContentValues();
         values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());
@@ -364,18 +460,23 @@ public class DatabaseHelperTest {
     }
 
     @Test
-    public void testRtoU() throws Exception {
-        assertUpgrade(DatabaseHelperR.class, DatabaseHelperU.class);
+    public void testRtoV() throws Exception {
+        assertUpgrade(DatabaseHelperR.class, DatabaseHelperV.class);
     }
 
     @Test
-    public void testStoU() throws Exception {
-        assertUpgrade(DatabaseHelperS.class, DatabaseHelperU.class);
+    public void testStoV() throws Exception {
+        assertUpgrade(DatabaseHelperS.class, DatabaseHelperV.class);
     }
 
     @Test
-    public void testTtoU() throws Exception {
-        assertUpgrade(DatabaseHelperT.class, DatabaseHelperU.class);
+    public void testTtoV() throws Exception {
+        assertUpgrade(DatabaseHelperT.class, DatabaseHelperV.class);
+    }
+
+    @Test
+    public void testUtoV() throws Exception {
+        assertUpgrade(DatabaseHelperU.class, DatabaseHelperV.class);
     }
 
     private void assertUpgrade(Class<? extends DatabaseHelper> before,
@@ -633,14 +734,13 @@ public class DatabaseHelperTest {
         public DatabaseHelperU(Context context, String name) {
             super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
                     null, MediaProvider.MIGRATION_LISTENER, null, false,
-                    new DatabaseBackupAndRecovery(new TestConfigStore(),
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
                             new VolumeCache(context, new UserCache(context))));
         }
 
-        public DatabaseHelperU(Context context, String name,
-                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
-            super(context, name, DatabaseHelper.VERSION_U, false, false, sProjectionHelper, null,
-                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            createUSchema(db, false);
         }
 
         @Override
@@ -649,415 +749,25 @@ public class DatabaseHelperTest {
         }
     }
 
-    /**
-     * Snapshot of {@link MediaProvider#createLatestSchema} as of
-     * {@link android.os.Build.VERSION_CODES#O}.
-     */
-    private static void createOSchema(SQLiteDatabase db, boolean internal) {
-        makePristineSchema(db);
-
-        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
-        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
-        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
-        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
-        // THE LATEST SCHEMA.
-
-        db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
-        db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
-                + "kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE artists (artist_id INTEGER PRIMARY KEY,"
-                + "artist_key TEXT NOT NULL UNIQUE,artist TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE albums (album_id INTEGER PRIMARY KEY,"
-                + "album_key TEXT NOT NULL UNIQUE,album TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
-        db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
-                + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "_data TEXT UNIQUE COLLATE NOCASE,_size INTEGER,format INTEGER,parent INTEGER,"
-                + "date_added INTEGER,date_modified INTEGER,mime_type TEXT,title TEXT,"
-                + "description TEXT,_display_name TEXT,picasa_id TEXT,orientation INTEGER,"
-                + "latitude DOUBLE,longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,"
-                + "bucket_id TEXT,bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,"
-                + "artist_id INTEGER,album_id INTEGER,composer TEXT,track INTEGER,"
-                + "year INTEGER CHECK(year!=0),is_ringtone INTEGER,is_music INTEGER,"
-                + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
-                + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
-                + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER)");
-        db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
-        if (!internal) {
-            db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
-            db.execSQL("CREATE TABLE audio_genres_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,genre_id INTEGER NOT NULL,"
-                    + "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE)");
-            db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
-                    + "play_order INTEGER NOT NULL)");
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,date_modified"
-                    + " FROM files WHERE media_type=4");
+    private static class DatabaseHelperV extends DatabaseHelper {
+        public DatabaseHelperV(Context context, String name) {
+            super(context, name, DatabaseHelper.VERSION_V, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false,
+                    new TestDatabaseBackupAndRecovery(new TestConfigStore(),
+                            new VolumeCache(context, new UserCache(context))));
         }
 
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX album_idx on albums(album)");
-        db.execSQL("CREATE INDEX albumkey_index on albums(album_key)");
-        db.execSQL("CREATE INDEX artist_idx on artists(artist)");
-        db.execSQL("CREATE INDEX artistkey_index on artists(artist_key)");
-        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
-        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
-        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
-        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
-        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
-        db.execSQL("CREATE INDEX format_index ON files(format)");
-        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
-        db.execSQL("CREATE INDEX parent_index ON files(parent)");
-        db.execSQL("CREATE INDEX path_index ON files(_data)");
-        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
-        db.execSQL("CREATE INDEX title_idx ON files(title)");
-        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
+        public DatabaseHelperV(Context context, String name,
+                DatabaseBackupAndRecovery databaseBackupAndRecovery) {
+            super(context, name, DatabaseHelper.VERSION_V, false, false, sProjectionHelper, null,
+                    null, MediaProvider.MIGRATION_LISTENER, null, false, databaseBackupAndRecovery);
+        }
 
-        db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
-                + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist FROM files WHERE media_type=2");
-        db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
-                + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta LEFT OUTER JOIN artists"
-                + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
-                + " ON audio_meta.album_id=albums.album_id");
-        db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
-                + " MIN(year) AS minyear, MAX(year) AS maxyear, artist, artist_id, artist_key,"
-                + " count(*) AS numsongs,album_art._data AS album_art FROM audio"
-                + " LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id WHERE is_music=1"
-                + " GROUP BY audio.album_id");
-        db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
-        db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key,"
-                + " COUNT(DISTINCT album_key) AS number_of_albums, COUNT(*) AS number_of_tracks"
-                + " FROM audio"
-                + " WHERE is_music=1 GROUP BY artist_key");
-        db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
-                + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
-                + "number_of_tracks AS data2,artist_key AS match,"
-                + "'content://media/external/audio/artists/'||_id AS suggest_intent_data,"
-                + "1 AS grouporder FROM artist_info WHERE (artist!='<unknown>')"
-                + " UNION ALL SELECT _id,'album' AS mime_type,artist,album,"
-                + "NULL AS title,album AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key AS match,"
-                + "'content://media/external/audio/albums/'||_id AS suggest_intent_data,"
-                + "2 AS grouporder FROM album_info"
-                + " WHERE (album!='<unknown>')"
-                + " UNION ALL SELECT searchhelpertitle._id AS _id,mime_type,artist,album,title,"
-                + "title AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key||' '||title_key AS match,"
-                + "'content://media/external/audio/media/'||searchhelpertitle._id"
-                + " AS suggest_intent_data,"
-                + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
-                + " FROM audio_genres_map");
-        db.execSQL("CREATE VIEW images AS SELECT _id,_data,_size,_display_name,mime_type,title,"
-                + "date_added,date_modified,description,picasa_id,isprivate,latitude,longitude,"
-                + "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name,width,"
-                + "height FROM files WHERE media_type=1");
-        db.execSQL("CREATE VIEW video AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,date_modified,title,duration,artist,album,resolution,description,"
-                + "isprivate,tags,category,language,mini_thumb_data,latitude,longitude,datetaken,"
-                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height"
-                + " FROM files WHERE media_type=3");
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
+        @Override
+        protected String getExternalStorageDbXattrPath() {
+            return mContext.getFilesDir().getPath();
+        }
     }
-
-    /**
-     * Snapshot of {@link MediaProvider#createLatestSchema} as of
-     * {@link android.os.Build.VERSION_CODES#P}.
-     */
-    private static void createPSchema(SQLiteDatabase db, boolean internal) {
-        makePristineSchema(db);
-
-        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
-        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
-        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
-        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
-        // THE LATEST SCHEMA.
-
-        db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
-        db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
-                + "kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE artists (artist_id INTEGER PRIMARY KEY,"
-                + "artist_key TEXT NOT NULL UNIQUE,artist TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE albums (album_id INTEGER PRIMARY KEY,"
-                + "album_key TEXT NOT NULL UNIQUE,album TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
-        db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
-                + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "_data TEXT UNIQUE COLLATE NOCASE,_size INTEGER,format INTEGER,parent INTEGER,"
-                + "date_added INTEGER,date_modified INTEGER,mime_type TEXT,title TEXT,"
-                + "description TEXT,_display_name TEXT,picasa_id TEXT,orientation INTEGER,"
-                + "latitude DOUBLE,longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,"
-                + "bucket_id TEXT,bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,"
-                + "artist_id INTEGER,album_id INTEGER,composer TEXT,track INTEGER,"
-                + "year INTEGER CHECK(year!=0),is_ringtone INTEGER,is_music INTEGER,"
-                + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
-                + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
-                + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT)");
-        db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
-        if (!internal) {
-            db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
-            db.execSQL("CREATE TABLE audio_genres_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,genre_id INTEGER NOT NULL,"
-                    + "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE)");
-            db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
-                    + "play_order INTEGER NOT NULL)");
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,date_modified"
-                    + " FROM files WHERE media_type=4");
-        }
-
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX album_idx on albums(album)");
-        db.execSQL("CREATE INDEX albumkey_index on albums(album_key)");
-        db.execSQL("CREATE INDEX artist_idx on artists(artist)");
-        db.execSQL("CREATE INDEX artistkey_index on artists(artist_key)");
-        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
-        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
-        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
-        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
-        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
-        db.execSQL("CREATE INDEX format_index ON files(format)");
-        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
-        db.execSQL("CREATE INDEX parent_index ON files(parent)");
-        db.execSQL("CREATE INDEX path_index ON files(_data)");
-        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
-        db.execSQL("CREATE INDEX title_idx ON files(title)");
-        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
-
-        db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
-                + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist FROM files WHERE media_type=2");
-        db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
-                + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT * FROM audio_meta LEFT OUTER JOIN artists"
-                + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
-                + " ON audio_meta.album_id=albums.album_id");
-        db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
-                + " MIN(year) AS minyear, MAX(year) AS maxyear, artist, artist_id, artist_key,"
-                + " count(*) AS numsongs,album_art._data AS album_art FROM audio"
-                + " LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id WHERE is_music=1"
-                + " GROUP BY audio.album_id");
-        db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
-        db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key,"
-                + " COUNT(DISTINCT album_key) AS number_of_albums, COUNT(*) AS number_of_tracks"
-                + " FROM audio"
-                + " WHERE is_music=1 GROUP BY artist_key");
-        db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
-                + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
-                + "number_of_tracks AS data2,artist_key AS match,"
-                + "'content://media/external/audio/artists/'||_id AS suggest_intent_data,"
-                + "1 AS grouporder FROM artist_info WHERE (artist!='<unknown>')"
-                + " UNION ALL SELECT _id,'album' AS mime_type,artist,album,"
-                + "NULL AS title,album AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key AS match,"
-                + "'content://media/external/audio/albums/'||_id AS suggest_intent_data,"
-                + "2 AS grouporder FROM album_info"
-                + " WHERE (album!='<unknown>')"
-                + " UNION ALL SELECT searchhelpertitle._id AS _id,mime_type,artist,album,title,"
-                + "title AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key||' '||title_key AS match,"
-                + "'content://media/external/audio/media/'||searchhelpertitle._id"
-                + " AS suggest_intent_data,"
-                + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
-                + " FROM audio_genres_map");
-        db.execSQL("CREATE VIEW images AS SELECT _id,_data,_size,_display_name,mime_type,title,"
-                + "date_added,date_modified,description,picasa_id,isprivate,latitude,longitude,"
-                + "datetaken,orientation,mini_thumb_magic,bucket_id,bucket_display_name,width,"
-                + "height FROM files WHERE media_type=1");
-        db.execSQL("CREATE VIEW video AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,date_modified,title,duration,artist,album,resolution,description,"
-                + "isprivate,tags,category,language,mini_thumb_data,latitude,longitude,datetaken,"
-                + "mini_thumb_magic,bucket_id,bucket_display_name,bookmark,width,height"
-                + " FROM files WHERE media_type=3");
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
-    }
-
-    /**
-     * Snapshot of {@link MediaProvider#createLatestSchema} as of
-     * {@link android.os.Build.VERSION_CODES#Q}.
-     */
-    private static void createQSchema(SQLiteDatabase db, boolean internal) {
-        makePristineSchema(db);
-
-        // CAUTION: THIS IS A SNAPSHOTTED GOLDEN SCHEMA THAT SHOULD NEVER BE
-        // DIRECTLY MODIFIED, SINCE IT REPRESENTS A DEVICE IN THE WILD THAT WE
-        // MUST SUPPORT. IF TESTS ARE FAILING, THE CORRECT FIX IS TO ADJUST THE
-        // DATABASE UPGRADE LOGIC TO MIGRATE THIS SNAPSHOTTED GOLDEN SCHEMA TO
-        // THE LATEST SCHEMA.
-
-        db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
-        db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
-                + "kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE artists (artist_id INTEGER PRIMARY KEY,"
-                + "artist_key TEXT NOT NULL UNIQUE,artist TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE albums (album_id INTEGER PRIMARY KEY,"
-                + "album_key TEXT NOT NULL UNIQUE,album TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
-        db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
-                + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
-        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "_data TEXT UNIQUE COLLATE NOCASE,_size INTEGER,format INTEGER,parent INTEGER,"
-                + "date_added INTEGER,date_modified INTEGER,mime_type TEXT,title TEXT,"
-                + "description TEXT,_display_name TEXT,picasa_id TEXT,orientation INTEGER,"
-                + "latitude DOUBLE,longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,"
-                + "bucket_id TEXT,bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,"
-                + "artist_id INTEGER,album_id INTEGER,composer TEXT,track INTEGER,"
-                + "year INTEGER CHECK(year!=0),is_ringtone INTEGER,is_music INTEGER,"
-                + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
-                + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
-                + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
-                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
-                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
-                + "owner_package_name TEXT DEFAULT NULL,"
-                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER,"
-                + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
-                + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
-                + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
-                + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
-                + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
-                + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
-                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
-                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL)");
-
-        db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
-        if (!internal) {
-            db.execSQL("CREATE TABLE audio_genres (_id INTEGER PRIMARY KEY,name TEXT NOT NULL)");
-            db.execSQL("CREATE TABLE audio_genres_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,genre_id INTEGER NOT NULL,"
-                    + "UNIQUE (audio_id,genre_id) ON CONFLICT IGNORE)");
-            db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
-                    + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
-                    + "play_order INTEGER NOT NULL)");
-            db.execSQL("CREATE TRIGGER audio_genres_cleanup DELETE ON audio_genres BEGIN DELETE"
-                    + " FROM audio_genres_map WHERE genre_id = old._id;END");
-            db.execSQL("CREATE TRIGGER audio_playlists_cleanup DELETE ON files"
-                    + " WHEN old.media_type=4"
-                    + " BEGIN DELETE FROM audio_playlists_map WHERE playlist_id = old._id;"
-                    + "SELECT _DELETE_FILE(old._data);END");
-            db.execSQL("CREATE TRIGGER files_cleanup DELETE ON files"
-                    + " BEGIN SELECT _OBJECT_REMOVED(old._id);END");
-        }
-
-        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
-        db.execSQL("CREATE INDEX album_idx on albums(album)");
-        db.execSQL("CREATE INDEX albumkey_index on albums(album_key)");
-        db.execSQL("CREATE INDEX artist_idx on artists(artist)");
-        db.execSQL("CREATE INDEX artistkey_index on artists(artist_key)");
-        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
-        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
-        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
-        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
-        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
-        db.execSQL("CREATE INDEX format_index ON files(format)");
-        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
-        db.execSQL("CREATE INDEX parent_index ON files(parent)");
-        db.execSQL("CREATE INDEX path_index ON files(_data)");
-        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
-        db.execSQL("CREATE INDEX title_idx ON files(title)");
-        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
-
-        db.execSQL("CREATE TRIGGER albumart_cleanup1 DELETE ON albums BEGIN DELETE FROM album_art"
-                + " WHERE album_id = old.album_id;END");
-        db.execSQL("CREATE TRIGGER albumart_cleanup2 DELETE ON album_art"
-                + " BEGIN SELECT _DELETE_FILE(old._data);END");
-
-        if (!internal) {
-            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
-                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
-                    + "volume_name FROM files WHERE media_type=4");
-        }
-
-        db.execSQL("CREATE VIEW audio_meta AS SELECT _id,_data,_display_name,_size,mime_type,"
-                + "date_added,is_drm,date_modified,title,title_key,duration,artist_id,composer,"
-                + "album_id,track,year,is_ringtone,is_music,is_alarm,is_notification,is_podcast,"
-                + "bookmark,album_artist,owner_package_name,_hash,is_pending,is_audiobook,"
-                + "date_expires,is_trashed,group_id,primary_directory,secondary_directory,"
-                + "document_id,instance_id,original_document_id,title_resource_uri,relative_path,"
-                + "volume_name,datetaken,bucket_id,bucket_display_name,group_id,orientation"
-                + " FROM files WHERE media_type=2");
-
-        db.execSQL("CREATE VIEW artists_albums_map AS SELECT DISTINCT artist_id, album_id"
-                + " FROM audio_meta");
-        db.execSQL("CREATE VIEW audio as SELECT *, NULL AS width, NULL as height"
-                + " FROM audio_meta LEFT OUTER JOIN artists"
-                + " ON audio_meta.artist_id=artists.artist_id LEFT OUTER JOIN albums"
-                + " ON audio_meta.album_id=albums.album_id");
-        db.execSQL("CREATE VIEW album_info AS SELECT audio.album_id AS _id, album, album_key,"
-                + " MIN(year) AS minyear, MAX(year) AS maxyear, artist, artist_id, artist_key,"
-                + " count(*) AS numsongs,album_art._data AS album_art FROM audio"
-                + " LEFT OUTER JOIN album_art ON audio.album_id=album_art.album_id WHERE is_music=1"
-                + " GROUP BY audio.album_id");
-        db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
-        db.execSQL("CREATE VIEW artist_info AS SELECT artist_id AS _id, artist, artist_key,"
-                + " COUNT(DISTINCT album_key) AS number_of_albums, COUNT(*) AS number_of_tracks"
-                + " FROM audio"
-                + " WHERE is_music=1 GROUP BY artist_key");
-        db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
-                + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
-                + "number_of_tracks AS data2,artist_key AS match,"
-                + "'content://media/external/audio/artists/'||_id AS suggest_intent_data,"
-                + "1 AS grouporder FROM artist_info WHERE (artist!='<unknown>')"
-                + " UNION ALL SELECT _id,'album' AS mime_type,artist,album,"
-                + "NULL AS title,album AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key AS match,"
-                + "'content://media/external/audio/albums/'||_id AS suggest_intent_data,"
-                + "2 AS grouporder FROM album_info"
-                + " WHERE (album!='<unknown>')"
-                + " UNION ALL SELECT searchhelpertitle._id AS _id,mime_type,artist,album,title,"
-                + "title AS text1,artist AS text2,NULL AS data1,"
-                + "NULL AS data2,artist_key||' '||album_key||' '||title_key AS match,"
-                + "'content://media/external/audio/media/'||searchhelpertitle._id"
-                + " AS suggest_intent_data,"
-                + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
-        db.execSQL("CREATE VIEW audio_genres_map_noid AS SELECT audio_id,genre_id"
-                + " FROM audio_genres_map");
-
-        db.execSQL("CREATE VIEW video AS SELECT "
-                + "instance_id,duration,description,language,resolution,latitude,orientation,artist,color_transfer,color_standard,height,is_drm,bucket_display_name,owner_package_name,volume_name,date_modified,date_expires,_display_name,datetaken,mime_type,_id,tags,category,_data,_hash,_size,album,title,width,longitude,is_trashed,group_id,document_id,is_pending,date_added,mini_thumb_magic,color_range,primary_directory,secondary_directory,isprivate,original_document_id,bucket_id,bookmark,relative_path"
-                + " FROM files WHERE media_type=3");
-        db.execSQL("CREATE VIEW images AS SELECT "
-                + "instance_id,duration,description,picasa_id,latitude,orientation,height,is_drm,bucket_display_name,owner_package_name,volume_name,date_modified,date_expires,_display_name,datetaken,mime_type,_id,_data,_hash,_size,title,width,longitude,is_trashed,group_id,document_id,is_pending,date_added,mini_thumb_magic,primary_directory,secondary_directory,isprivate,original_document_id,bucket_id,relative_path"
-                + " FROM files WHERE media_type=1");
-        db.execSQL("CREATE VIEW downloads AS SELECT "
-                + "instance_id,duration,description,orientation,height,is_drm,bucket_display_name,owner_package_name,volume_name,date_modified,date_expires,_display_name,datetaken,mime_type,referer_uri,_id,_data,_hash,_size,title,width,is_trashed,group_id,document_id,is_pending,date_added,download_uri,primary_directory,secondary_directory,original_document_id,bucket_id,relative_path"
-                + " FROM files WHERE is_download=1");
-    }
-
 
     /**
      * Snapshot of {@link DatabaseHelper#createLatestSchema} as of
@@ -1646,5 +1356,265 @@ public class DatabaseHelperTest {
         db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
         db.execSQL("CREATE INDEX title_idx ON files(title)");
         db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
+    }
+
+    /**
+     * Snapshot of {@link DatabaseHelper#createLatestSchema} as of
+     * {@link android.os.Build.VERSION_CODES#UPSIDE_DOWN_CAKE}.
+     */
+    private static void createUSchema(SQLiteDatabase db, boolean internal) {
+        makePristineSchema(db);
+
+        db.execSQL("CREATE TABLE local_metadata (generation INTEGER DEFAULT 0)");
+        db.execSQL("INSERT INTO local_metadata VALUES (0)");
+
+        db.execSQL("CREATE TABLE android_metadata (locale TEXT)");
+        db.execSQL("CREATE TABLE thumbnails (_id INTEGER PRIMARY KEY,_data TEXT,image_id INTEGER,"
+                + "kind INTEGER,width INTEGER,height INTEGER)");
+        db.execSQL("CREATE TABLE album_art (album_id INTEGER PRIMARY KEY,_data TEXT)");
+        db.execSQL("CREATE TABLE videothumbnails (_id INTEGER PRIMARY KEY,_data TEXT,"
+                + "video_id INTEGER,kind INTEGER,width INTEGER,height INTEGER)");
+        db.execSQL("CREATE TABLE files (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "_data TEXT UNIQUE COLLATE NOCASE,_size INTEGER,format INTEGER,parent INTEGER,"
+                + "date_added INTEGER,date_modified INTEGER,mime_type TEXT,title TEXT,"
+                + "description TEXT,_display_name TEXT,picasa_id TEXT,orientation INTEGER,"
+                + "latitude DOUBLE,longitude DOUBLE,datetaken INTEGER,mini_thumb_magic INTEGER,"
+                + "bucket_id TEXT,bucket_display_name TEXT,isprivate INTEGER,title_key TEXT,"
+                + "artist_id INTEGER,album_id INTEGER,composer TEXT,track INTEGER,"
+                + "year INTEGER CHECK(year!=0),is_ringtone INTEGER,is_music INTEGER,"
+                + "is_alarm INTEGER,is_notification INTEGER,is_podcast INTEGER,album_artist TEXT,"
+                + "duration INTEGER,bookmark INTEGER,artist TEXT,album TEXT,resolution TEXT,"
+                + "tags TEXT,category TEXT,language TEXT,mini_thumb_data TEXT,name TEXT,"
+                + "media_type INTEGER,old_id INTEGER,is_drm INTEGER,"
+                + "width INTEGER, height INTEGER, title_resource_uri TEXT,"
+                + "owner_package_name TEXT DEFAULT NULL,"
+                + "color_standard INTEGER, color_transfer INTEGER, color_range INTEGER,"
+                + "_hash BLOB DEFAULT NULL, is_pending INTEGER DEFAULT 0,"
+                + "is_download INTEGER DEFAULT 0, download_uri TEXT DEFAULT NULL,"
+                + "referer_uri TEXT DEFAULT NULL, is_audiobook INTEGER DEFAULT 0,"
+                + "date_expires INTEGER DEFAULT NULL,is_trashed INTEGER DEFAULT 0,"
+                + "group_id INTEGER DEFAULT NULL,primary_directory TEXT DEFAULT NULL,"
+                + "secondary_directory TEXT DEFAULT NULL,document_id TEXT DEFAULT NULL,"
+                + "instance_id TEXT DEFAULT NULL,original_document_id TEXT DEFAULT NULL,"
+                + "relative_path TEXT DEFAULT NULL,volume_name TEXT DEFAULT NULL,"
+                + "artist_key TEXT DEFAULT NULL,album_key TEXT DEFAULT NULL,"
+                + "genre TEXT DEFAULT NULL,genre_key TEXT DEFAULT NULL,genre_id INTEGER,"
+                + "author TEXT DEFAULT NULL, bitrate INTEGER DEFAULT NULL,"
+                + "capture_framerate REAL DEFAULT NULL, cd_track_number TEXT DEFAULT NULL,"
+                + "compilation INTEGER DEFAULT NULL, disc_number TEXT DEFAULT NULL,"
+                + "is_favorite INTEGER DEFAULT 0, num_tracks INTEGER DEFAULT NULL,"
+                + "writer TEXT DEFAULT NULL, exposure_time TEXT DEFAULT NULL,"
+                + "f_number TEXT DEFAULT NULL, iso INTEGER DEFAULT NULL,"
+                + "scene_capture_type INTEGER DEFAULT NULL, generation_added INTEGER DEFAULT 0,"
+                + "generation_modified INTEGER DEFAULT 0, xmp BLOB DEFAULT NULL,"
+                + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
+                + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
+                + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
+                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL)");
+        db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
+        db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
+
+        if (!internal) {
+            db.execSQL("CREATE TABLE audio_playlists_map (_id INTEGER PRIMARY KEY,"
+                    + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
+                    + "play_order INTEGER NOT NULL)");
+
+            db.execSQL("DROP INDEX IF EXISTS media_grants.generation_granted");
+            db.execSQL("DROP TABLE IF EXISTS media_grants");
+            db.execSQL(
+                    "CREATE TABLE media_grants ("
+                            + "owner_package_name TEXT,"
+                            + "file_id INTEGER,"
+                            + "package_user_id INTEGER,"
+                            + "generation_granted INTEGER DEFAULT 0,"
+                            + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                            + "  ON CONFLICT IGNORE "
+                            + "FOREIGN KEY (file_id)"
+                            + "  REFERENCES files(_id)"
+                            + "  ON DELETE CASCADE"
+                            + ")");
+            db.execSQL(
+                    "CREATE INDEX generation_granted_index ON media_grants"
+                            + "(generation_granted)");
+        }
+
+        if (!internal) {
+            db.execSQL("CREATE VIEW audio_playlists AS SELECT _id,_data,name,date_added,"
+                    + "date_modified,owner_package_name,_hash,is_pending,date_expires,is_trashed,"
+                    + "volume_name FROM files WHERE media_type=4");
+        }
+        db.execSQL("CREATE VIEW searchhelpertitle AS SELECT * FROM audio ORDER BY title_key");
+        db.execSQL("CREATE VIEW search AS SELECT _id,'artist' AS mime_type,artist,NULL AS album,"
+                + "NULL AS title,artist AS text1,NULL AS text2,number_of_albums AS data1,"
+                + "number_of_tracks AS data2,artist_key AS match,"
+                + "'content://media/external/audio/artists/'||_id AS suggest_intent_data,"
+                + "1 AS grouporder FROM artist_info WHERE (artist!='<unknown>')"
+                + " UNION ALL SELECT _id,'album' AS mime_type,artist,album,"
+                + "NULL AS title,album AS text1,artist AS text2,NULL AS data1,"
+                + "NULL AS data2,artist_key||' '||album_key AS match,"
+                + "'content://media/external/audio/albums/'||_id AS suggest_intent_data,"
+                + "2 AS grouporder FROM album_info"
+                + " WHERE (album!='<unknown>')"
+                + " UNION ALL SELECT searchhelpertitle._id AS _id,mime_type,artist,album,title,"
+                + "title AS text1,artist AS text2,NULL AS data1,"
+                + "NULL AS data2,artist_key||' '||album_key||' '||title_key AS match,"
+                + "'content://media/external/audio/media/'||searchhelpertitle._id"
+                + " AS suggest_intent_data,"
+                + "3 AS grouporder FROM searchhelpertitle WHERE (title != '')");
+
+        db.execSQL("CREATE VIEW audio AS SELECT "
+                + "title_key,instance_id,compilation,disc_number,duration,is_ringtone,"
+                + "album_artist,resolution,orientation,artist,author,height,is_drm,"
+                + "bucket_display_name,is_audiobook,owner_package_name,volume_name,"
+                + "title_resource_uri,date_modified,writer,date_expires,composer,_display_name,"
+                + "datetaken,mime_type,is_notification,bitrate,cd_track_number,_id,xmp,year,"
+                + "_data,_size,album,genre,is_alarm,title,track,width,is_music,album_key,"
+                + "is_favorite,is_trashed,group_id,document_id,artist_id,generation_added,"
+                + "artist_key,genre_key,is_download,generation_modified,is_pending,date_added,"
+                + "is_podcast,capture_framerate,album_id,num_tracks,original_document_id,"
+                + "genre_id,bucket_id,bookmark,relative_path"
+                + " FROM files WHERE media_type=2");
+        db.execSQL("CREATE VIEW video AS SELECT"
+                + " instance_id,compilation,disc_number,duration,album_artist,description,"
+                + "language,resolution,latitude,orientation,artist,color_transfer,author,"
+                + "color_standard,height,is_drm,bucket_display_name,owner_package_name,"
+                + "volume_name,date_modified,writer,date_expires,composer,_display_name,"
+                + "datetaken,mime_type,bitrate,cd_track_number,_id,xmp,tags,year,category,_data,"
+                + "_size,album,genre,title,width,longitude,is_favorite,is_trashed,group_id,"
+                + "document_id,generation_added,is_download,generation_modified,is_pending,"
+                + "date_added,mini_thumb_magic,capture_framerate,color_range,num_tracks,"
+                + "isprivate,original_document_id,bucket_id,bookmark,relative_path"
+                + " FROM files WHERE media_type=3");
+        db.execSQL("CREATE VIEW images AS SELECT"
+                + " instance_id,compilation,disc_number,duration,album_artist,description,"
+                + "picasa_id,resolution,latitude,orientation,artist,author,height,is_drm,"
+                + "bucket_display_name,owner_package_name,f_number,volume_name,date_modified,"
+                + "writer,date_expires,composer,_display_name,scene_capture_type,datetaken,"
+                + "mime_type,bitrate,cd_track_number,_id,iso,xmp,year,_data,_size,album,genre,"
+                + "title,width,longitude,is_favorite,is_trashed,exposure_time,group_id,"
+                + "document_id,generation_added,is_download,generation_modified,is_pending,"
+                + "date_added,mini_thumb_magic,capture_framerate,num_tracks,isprivate,"
+                + "original_document_id,bucket_id,relative_path"
+                + " FROM files WHERE media_type=1");
+        db.execSQL("CREATE VIEW downloads AS SELECT"
+                + " instance_id,compilation,disc_number,duration,album_artist,description,"
+                + "resolution,orientation,artist,author,height,is_drm,bucket_display_name,"
+                + "owner_package_name,volume_name,date_modified,writer,date_expires,composer,"
+                + "_display_name,datetaken,mime_type,bitrate,cd_track_number,referer_uri,_id,xmp,"
+                + "year,_data,_size,album,genre,title,width,is_favorite,is_trashed,group_id,"
+                + "document_id,generation_added,is_download,generation_modified,is_pending,"
+                + "date_added,download_uri,capture_framerate,num_tracks,original_document_id,"
+                + "bucket_id,relative_path"
+                + " FROM files WHERE is_download=1");
+
+        db.execSQL("CREATE VIEW audio_artists AS SELECT "
+                + "  artist_id AS " + Audio.Artists._ID
+                + ", MIN(artist) AS " + Audio.Artists.ARTIST
+                + ", artist_key AS " + Audio.Artists.ARTIST_KEY
+                + ", COUNT(DISTINCT album_id) AS " + Audio.Artists.NUMBER_OF_ALBUMS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Artists.NUMBER_OF_TRACKS
+                + " FROM audio"
+                + " WHERE is_music=1 AND is_pending=0 AND is_trashed=0"
+                + " AND volume_name IN ()"
+                + " GROUP BY artist_id");
+
+        db.execSQL("CREATE VIEW audio_artists_albums AS SELECT "
+                + "  album_id AS " + Audio.Albums._ID
+                + ", album_id AS " + Audio.Albums.ALBUM_ID
+                + ", MIN(album) AS " + Audio.Albums.ALBUM
+                + ", album_key AS " + Audio.Albums.ALBUM_KEY
+                + ", artist_id AS " + Audio.Albums.ARTIST_ID
+                + ", artist AS " + Audio.Albums.ARTIST
+                + ", artist_key AS " + Audio.Albums.ARTIST_KEY
+                + ", (SELECT COUNT(*) FROM audio WHERE " + Audio.Albums.ALBUM_ID
+                + " = TEMP.album_id) AS " + Audio.Albums.NUMBER_OF_SONGS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST
+                + ", MIN(year) AS " + Audio.Albums.FIRST_YEAR
+                + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
+                + ", NULL AS " + Audio.Albums.ALBUM_ART
+                + " FROM audio TEMP"
+                + " WHERE is_music=1 AND is_pending=0 AND is_trashed=0"
+                + " AND volume_name IN " + "()"
+                + " GROUP BY album_id, artist_id");
+
+        db.execSQL("CREATE VIEW audio_albums AS SELECT "
+                + "  album_id AS " + Audio.Albums._ID
+                + ", album_id AS " + Audio.Albums.ALBUM_ID
+                + ", MIN(album) AS " + Audio.Albums.ALBUM
+                + ", album_key AS " + Audio.Albums.ALBUM_KEY
+                + ", artist_id AS " + Audio.Albums.ARTIST_ID
+                + ", artist AS " + Audio.Albums.ARTIST
+                + ", artist_key AS " + Audio.Albums.ARTIST_KEY
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS
+                + ", COUNT(DISTINCT _id) AS " + Audio.Albums.NUMBER_OF_SONGS_FOR_ARTIST
+                + ", MIN(year) AS " + Audio.Albums.FIRST_YEAR
+                + ", MAX(year) AS " + Audio.Albums.LAST_YEAR
+                + ", NULL AS " + Audio.Albums.ALBUM_ART
+                + " FROM audio"
+                + " WHERE is_music=1 AND is_pending=0 AND is_trashed=0"
+                + " AND volume_name IN " + "()" + "GROUP BY album_id");
+
+        db.execSQL("CREATE VIEW audio_genres AS SELECT "
+                + "  genre_id AS " + Audio.Genres._ID
+                + ", MIN(genre) AS " + Audio.Genres.NAME
+                + " FROM audio"
+                + " WHERE is_pending=0 AND is_trashed=0 AND volume_name IN " + "()"
+                + " GROUP BY genre_id");
+
+        makePristineTriggers(db);
+        final String insertArg =
+                "new.volume_name||':'||new._id||':'||new.media_type||':'||new"
+                        + ".is_download||':'||new.is_pending||':'||new.is_trashed||':'||new"
+                        + ".is_favorite||':'||new._user_id||':'||ifnull(new.date_expires,'null')"
+                        + "||':'||ifnull(new.owner_package_name,'null')||':'||new._data";
+        final String updateArg =
+                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
+                        + "||':'||new._id||':'||new.media_type||':'||new.is_download"
+                        + "||':'||old.is_trashed||':'||new.is_trashed"
+                        + "||':'||old.is_pending||':'||new.is_pending"
+                        + "||':'||ifnull(old.is_favorite,0)"
+                        + "||':'||ifnull(new.is_favorite,0)"
+                        + "||':'||ifnull(old._special_format,0)"
+                        + "||':'||ifnull(new._special_format,0)"
+                        + "||':'||ifnull(old.owner_package_name,'null')"
+                        + "||':'||ifnull(new.owner_package_name,'null')"
+                        + "||':'||ifnull(old._user_id,0)"
+                        + "||':'||ifnull(new._user_id,0)"
+                        + "||':'||ifnull(old.date_expires,'null')"
+                        + "||':'||ifnull(new.date_expires,'null')"
+                        + "||':'||old._data";
+        final String deleteArg =
+                "old.volume_name||':'||old._id||':'||old.media_type||':'||old.is_download"
+                        + "||':'||ifnull(old.owner_package_name,'null')||':'||old._data";
+
+        db.execSQL("CREATE TRIGGER files_insert AFTER INSERT ON files"
+                + " BEGIN SELECT _INSERT(" + insertArg + "); END");
+        db.execSQL("CREATE TRIGGER files_update AFTER UPDATE ON files"
+                + " BEGIN SELECT _UPDATE(" + updateArg + "); END");
+        db.execSQL("CREATE TRIGGER files_delete AFTER DELETE ON files"
+                + " BEGIN SELECT _DELETE(" + deleteArg + "); END");
+        makePristineIndexes(db);
+        db.execSQL("CREATE INDEX image_id_index on thumbnails(image_id)");
+        db.execSQL("CREATE INDEX video_id_index on videothumbnails(video_id)");
+        db.execSQL("CREATE INDEX album_id_idx ON files(album_id)");
+        db.execSQL("CREATE INDEX artist_id_idx ON files(artist_id)");
+        db.execSQL("CREATE INDEX genre_id_idx ON files(genre_id)");
+        db.execSQL("CREATE INDEX bucket_index on files(bucket_id,media_type,datetaken, _id)");
+        db.execSQL("CREATE INDEX bucket_name on files(bucket_id,media_type,bucket_display_name)");
+        db.execSQL("CREATE INDEX format_index ON files(format)");
+        db.execSQL("CREATE INDEX media_type_index ON files(media_type)");
+        db.execSQL("CREATE INDEX parent_index ON files(parent)");
+        db.execSQL("CREATE INDEX path_index ON files(_data)");
+        db.execSQL("CREATE INDEX sort_index ON files(datetaken ASC, _id ASC)");
+        db.execSQL("CREATE INDEX title_idx ON files(title)");
+        db.execSQL("CREATE INDEX titlekey_index ON files(title_key)");
+        db.execSQL("CREATE INDEX date_modified_index ON files(date_modified)");
+        db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
+        if (!internal) {
+            db.execSQL(
+                    "CREATE INDEX generation_granted_index ON media_grants"
+                            + "(generation_granted)");
+        }
     }
 }

@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"ছবি বেছে নিন"</string>
     <string name="action_get_content" msgid="4319210475508093083">"কন্টেন্ট পাওয়ার অ্যাকশন"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"ক্রম অনুযায়ী ছবি দেখান"</string>
+    <string name="open_document" msgid="8593796561386540777">"ডকুমেন্ট খুলুন"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"ডকুমেন্ট ট্রি খুলুন"</string>
+    <string name="create_document" msgid="6073553682715924527">"ডকুমেন্ট তৈরি করুন"</string>
+    <string name="create_file" msgid="2532895579648102462">"ফাইল তৈরি করুন"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"বেছে নেওয়ার ক্রম ডিসপ্লে করুন"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"শুধু ছবি দেখুন"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"শুধু ভিডিও দেখুন"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME-এর প্রকার লিখুন"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"লঞ্চ ট্যাব বেছে নিন"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"একাধিক বেছে নেওয়ার অনুমতি দিন"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"কাস্টম MIME-এর প্রকারের অনুমতি দিন"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"মিডিয়া আইটেমের সর্বোচ্চ সংখ্যা"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"একের থেকে বড় একটি সঠিক সংখ্যা লিখুন"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"একের থেকে বড় একটি সঠিক সংখ্যা লিখুন"</string>
     <string name="pick_media" msgid="5269447618857205416">"মিডিয়া বেছে নিন"</string>
     <string name="working_on_it" msgid="1373762827081252341">"এটির জন্য কাজ চলছে"</string>
+    <string name="show_metadata" msgid="132548935678717609">"যে মিডিয়া বেছে নেওয়া হয়েছে তার মেটা ডেটা দেখুন"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"আগে বেছে নেওয়ার সুবিধা চালু করুন"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"অনুমতির জন্য অনুরোধ করুন"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"এর জন্য অনুমতির অনুরোধ করুন:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Android U ও তার পরবর্তী ভার্সন থাকা ডিভাইসেই শুধু পিকার চয়েস ফিচার উপলভ্য। \n\nএই ফিচার ব্যবহার করতে হলে আপনার ডিভাইস আপগ্রেড করুন।"</string>
+    <string name="images" msgid="4986074635830919568">"ছবি"</string>
+    <string name="videos" msgid="4638519191891522146">"ভিডিও"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"ছবি ও ভিডিও দুটোই"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"বেছে নেওয়া লেটেস্ট জিনিসগুলি দেখুন"</string>
 </resources>

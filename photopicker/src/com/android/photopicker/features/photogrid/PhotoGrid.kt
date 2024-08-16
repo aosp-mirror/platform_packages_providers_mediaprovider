@@ -16,8 +16,11 @@
 
 package com.android.photopicker.features.photogrid
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,22 +30,35 @@ import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -55,6 +71,10 @@ import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
+import kotlinx.coroutines.launch
+
+private val MEASUREMENT_BANNER_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
 
 /**
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
@@ -84,22 +104,51 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
     val selectionLimitExceededMessage =
         stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+    val events = LocalEvents.current
+    val scope = rememberCoroutineScope()
+    val configuration = LocalPhotopickerConfiguration.current
+
+    // Modifier applied when photo grid to album grid navigation is disabled
+    val baseModifier = Modifier.fillMaxSize()
+    // Modifier applied when photo grid to album grid navigation is enabled
+    val modifierWithNavigation =
+        Modifier.fillMaxSize().pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onHorizontalDrag = { _, dragAmount ->
+                    // This may need some additional fine tuning by looking at a certain
+                    // distance in dragAmount, but initial testing suggested this worked
+                    // pretty well as is.
+                    if (dragAmount < 0) {
+                        // Negative is a left swipe
+                        if (featureManager.isFeatureEnabled(AlbumGridFeature::class.java)) {
+                            // Dispatch UI event to indicate switching to albums tab
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.ALBUM_GRID.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                                    )
+                                )
+                            }
+                            navController.navigateToAlbumGrid()
+                        }
+                    }
+                }
+            )
+        }
+
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
+    val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
 
     Column(
         modifier =
-            Modifier.fillMaxSize().pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, dragAmount ->
-                        // This may need some additional fine tuning by looking at a certain
-                        // distance in dragAmount, but initial testing suggested this worked
-                        // pretty well as is.
-                        if (dragAmount < 0) {
-                            // Negative is a left swipe
-                            if (featureManager.isFeatureEnabled(AlbumGridFeature::class.java))
-                                navController.navigateToAlbumGrid()
-                        }
-                    }
-                )
+            when (isEmbeddedAndCollapsed) {
+                true -> baseModifier
+                false -> modifierWithNavigation
             }
     ) {
         val isEmptyAndNoMorePages =
@@ -121,28 +170,110 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 )
             }
             else -> {
+
+                // When the PhotoGrid is ready to show, also collect the latest banner
+                // data from [BannerManager] so it can be placed inside of the mediaGrid's
+                // scroll container.
+                val currentBanner by viewModel.banners.collectAsStateWithLifecycle()
+
                 mediaGrid(
                     items = items,
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
+                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(
                                 item = item.media,
                                 selectionLimitExceededMessage = selectionLimitExceededMessage
                             )
+                            // Log user's interaction with picker's main grid(photo grid)
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PHOTO_GRID.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION
+                                    )
+                                )
+                            }
                         }
                     },
                     onItemLongPress = { item ->
+                        // Log long pressing a media item in the photo grid
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.PREVIEW.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
+                                )
+                            )
+                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
-                            if (item is MediaGridItem.MediaItem)
+                            if (item is MediaGridItem.MediaItem) {
+                                // Log entry into the photopicker preview mode
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerUIEvent(
+                                            FeatureToken.PREVIEW.token,
+                                            configuration.sessionId,
+                                            configuration.callingPackageUid ?: -1,
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                        )
+                                    )
+                                }
                                 navController.navigateToPreviewMedia(item.media)
+                            }
                         }
                     },
                     state = state,
                 )
+                LaunchedEffect(Unit) {
+                    // Log loading of photos in the photo grid
+                    events.dispatch(
+                        Event.LogPhotopickerUIEvent(
+                            FeatureToken.PHOTO_GRID.token,
+                            configuration.sessionId,
+                            configuration.callingPackageUid ?: -1,
+                            Telemetry.UiEvent.UI_LOADED_PHOTOS
+                        )
+                    )
+                }
             }
+        }
+    }
+}
+
+/**
+ * A container that animates its size to show the banner if one is defined. It also handles the
+ * banner's onDismiss action by sending the dismissal to the [PhotoGridViewModel].
+ *
+ * @param currentBanner The current banner that [BannerManager] is exposing.
+ */
+@Composable
+private fun AnimatedBannerWrapper(
+    currentBanner: Banner?,
+    viewModel: PhotoGridViewModel = obtainViewModel(),
+) {
+    Box(modifier = Modifier.animateContentSize()) {
+        currentBanner?.let {
+            Banner(
+                it,
+                modifier = Modifier.padding(MEASUREMENT_BANNER_PADDING),
+                onDismiss = {
+                    val declaration = it.declaration
+
+                    // Coerce the type back to [BannerDefinitions]
+                    // so that it can be dismissed.
+                    if (declaration is BannerDefinitions) {
+                        viewModel.markBannerAsDismissed(declaration)
+                    }
+                }
+            )
         }
     }
 }
@@ -154,10 +285,27 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
 @Composable
 fun PhotoGridNavButton(modifier: Modifier) {
     val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
+    val contentDescriptionString = stringResource(R.string.photopicker_photos_nav_button_label)
 
     NavigationBarButton(
-        onClick = navController::navigateToPhotoGrid,
-        modifier = modifier,
+        onClick = {
+            // Log switching tab to the photos tab
+            scope.launch {
+                events.dispatch(
+                    Event.LogPhotopickerUIEvent(
+                        FeatureToken.PHOTO_GRID.token,
+                        configuration.sessionId,
+                        configuration.callingPackageUid ?: -1,
+                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                    )
+                )
+            }
+            navController.navigateToPhotoGrid()
+        },
+        modifier = modifier.semantics { contentDescription = contentDescriptionString },
         isCurrentRoute = { route -> route == PHOTO_GRID.route },
     ) {
         Text(stringResource(R.string.photopicker_photos_nav_button_label))

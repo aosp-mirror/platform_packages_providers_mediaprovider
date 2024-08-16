@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SHOULD_SYNC_GRANTS;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
@@ -26,6 +27,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -60,6 +62,14 @@ public class SyncWorkerTestUtils {
         Objects.requireNonNull(albumId);
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
                 SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+
+    @NonNull
+    public static Data getGrantsSyncInputData() {
+        return new Data(Map.of(
+                Intent.EXTRA_UID, /* test uid */ 1,
+                SHOULD_SYNC_GRANTS, true
+        ));
     }
 
     @NonNull
@@ -102,6 +112,13 @@ public class SyncWorkerTestUtils {
             @NonNull Class<W> workerClass) {
         return TestWorkerBuilder.from(context, workerClass)
                 .setInputData(getLocalAndCloudSyncInputData())
+                .build();
+    }
+
+    static <W extends Worker> W buildGrantsTestWorker(@NonNull Context context,
+            @NonNull Class<W> workerClass) {
+        return TestWorkerBuilder.from(context, workerClass)
+                .setInputData(getGrantsSyncInputData())
                 .build();
     }
 }

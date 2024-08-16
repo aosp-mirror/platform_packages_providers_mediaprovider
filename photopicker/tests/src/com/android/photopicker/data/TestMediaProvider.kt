@@ -28,6 +28,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import java.util.UUID
+import java.util.stream.Collectors
 
 /**
  * A test utility that provides implementation for some MediaProvider queries.
@@ -38,7 +39,14 @@ import java.util.UUID
  * All not overridden / unimplemented operations will throw [UnsupportedOperationException].
  */
 val DEFAULT_PROVIDERS: List<Provider> =
-    listOf(Provider(authority = "test_authority", mediaSource = MediaSource.LOCAL, uid = 0))
+    listOf(
+        Provider(
+            authority = "test_authority",
+            mediaSource = MediaSource.LOCAL,
+            uid = 0,
+            displayName = "Test app"
+        )
+    )
 
 val DEFAULT_COLLECTION_INFO: List<CollectionInfo> =
     listOf(
@@ -104,6 +112,7 @@ class TestMediaProvider(
     var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
+    var TEST_GRANTS_COUNT = 2
 
     override fun query(
         uri: Uri,
@@ -116,6 +125,8 @@ class TestMediaProvider(
             "collection_info" -> getCollectionInfo()
             "media" -> getMedia()
             "album" -> getAlbums()
+            "media_grants_count" -> fetchMediaGrantsCount()
+            "pre_selection" -> fetchFilteredMedia(queryArgs)
             else -> {
                 val pathSegments: MutableList<String> = uri.getPathSegments()
                 if (pathSegments.size == 4 && pathSegments[2].equals("album")) {
@@ -145,12 +156,18 @@ class TestMediaProvider(
                 arrayOf(
                     MediaProviderClient.AvailableProviderResponse.AUTHORITY.key,
                     MediaProviderClient.AvailableProviderResponse.MEDIA_SOURCE.key,
-                    MediaProviderClient.AvailableProviderResponse.UID.key
+                    MediaProviderClient.AvailableProviderResponse.UID.key,
+                    MediaProviderClient.AvailableProviderResponse.DISPLAY_NAME.key
                 )
             )
         providers.forEach { provider ->
             cursor.addRow(
-                arrayOf(provider.authority, provider.mediaSource.name, provider.uid.toString())
+                arrayOf(
+                    provider.authority,
+                    provider.mediaSource.name,
+                    provider.uid.toString(),
+                    provider.displayName
+                )
             )
         }
         return cursor
@@ -196,6 +213,7 @@ class TestMediaProvider(
                     MediaProviderClient.MediaResponse.MIME_TYPE.key,
                     MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
                     MediaProviderClient.MediaResponse.DURATION.key,
+                    MediaProviderClient.MediaResponse.IS_PRE_GRANTED.key,
                 )
             )
         mediaItems.forEach { mediaItem ->
@@ -211,9 +229,59 @@ class TestMediaProvider(
                     mediaItem.sizeInBytes.toString(),
                     mediaItem.mimeType,
                     mediaItem.standardMimeTypeExtension.toString(),
-                    if (mediaItem is Media.Video) mediaItem.duration else "0"
+                    if (mediaItem is Media.Video) mediaItem.duration else "0",
+                    if (mediaItem.isPreGranted) 1 else 0,
                 )
             )
+        }
+        return cursor
+    }
+
+    private fun fetchFilteredMedia(queryArgs: Bundle?, mediaItems: List<Media> = media): Cursor {
+        val ids =
+            queryArgs
+                ?.getStringArrayList("pre_selection_uris")
+                ?.stream()
+                ?.map { it -> Uri.parse(it).lastPathSegment }
+                ?.collect(Collectors.toList())
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.MediaResponse.MEDIA_ID.key,
+                    MediaProviderClient.MediaResponse.PICKER_ID.key,
+                    MediaProviderClient.MediaResponse.AUTHORITY.key,
+                    MediaProviderClient.MediaResponse.MEDIA_SOURCE.key,
+                    MediaProviderClient.MediaResponse.MEDIA_URI.key,
+                    MediaProviderClient.MediaResponse.LOADABLE_URI.key,
+                    MediaProviderClient.MediaResponse.DATE_TAKEN.key,
+                    MediaProviderClient.MediaResponse.SIZE.key,
+                    MediaProviderClient.MediaResponse.MIME_TYPE.key,
+                    MediaProviderClient.MediaResponse.STANDARD_MIME_TYPE_EXT.key,
+                    MediaProviderClient.MediaResponse.DURATION.key,
+                    MediaProviderClient.MediaResponse.IS_PRE_GRANTED.key,
+                )
+            )
+        mediaItems.forEach { mediaItem ->
+            if (ids != null) {
+                if (mediaItem.mediaId in ids) {
+                    cursor.addRow(
+                        arrayOf(
+                            mediaItem.mediaId,
+                            mediaItem.pickerId.toString(),
+                            mediaItem.authority,
+                            mediaItem.mediaSource.toString(),
+                            mediaItem.mediaUri.toString(),
+                            mediaItem.glideLoadableUri.toString(),
+                            mediaItem.dateTakenMillisLong.toString(),
+                            mediaItem.sizeInBytes.toString(),
+                            mediaItem.mimeType,
+                            mediaItem.standardMimeTypeExtension.toString(),
+                            if (mediaItem is Media.Video) mediaItem.duration else "0",
+                            if (mediaItem.isPreGranted) 1 else 0,
+                        )
+                    )
+                }
+            }
         }
         return cursor
     }
@@ -244,6 +312,12 @@ class TestMediaProvider(
                 )
             )
         }
+        return cursor
+    }
+
+    private fun fetchMediaGrantsCount(): Cursor {
+        val cursor = MatrixCursor(arrayOf("grants_count"))
+        cursor.addRow(arrayOf(TEST_GRANTS_COUNT))
         return cursor
     }
 

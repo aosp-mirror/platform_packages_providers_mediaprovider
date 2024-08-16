@@ -21,6 +21,7 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.core.os.bundleOf
 import androidx.paging.PagingSource.LoadResult
 import com.android.modules.utils.build.SdkLevel
@@ -46,6 +47,8 @@ open class MediaProviderClient {
         private const val EXTRA_LOCAL_ONLY = "is_local_only"
         private const val EXTRA_ALBUM_ID = "album_id"
         private const val EXTRA_ALBUM_AUTHORITY = "album_authority"
+        private const val COLUMN_GRANTS_COUNT = "grants_count"
+        private const val PRE_SELECTION_URIS = "pre_selection_uris"
     }
 
     /** Contains all optional and mandatory keys required to make a Media query */
@@ -71,6 +74,7 @@ open class MediaProviderClient {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
         UID("uid"),
+        DISPLAY_NAME("display_name")
     }
 
     enum class CollectionInfoResponse(val key: String) {
@@ -92,6 +96,7 @@ open class MediaProviderClient {
         MIME_TYPE("mime_type"),
         STANDARD_MIME_TYPE_EXT("standard_mime_type_extension"),
         DURATION("duration_millis"),
+        IS_PRE_GRANTED("is_pre_granted"),
     }
 
     /** Contains all optional and mandatory keys for data in the Media query response extras. */
@@ -113,6 +118,13 @@ open class MediaProviderClient {
         COVER_MEDIA_SOURCE("media_source")
     }
 
+    /** Contains all optional and mandatory keys for the Preview Media Query. */
+    enum class PreviewMediaQuery(val key: String) {
+        CURRENT_SELECTION("current_selection"),
+        CURRENT_DE_SELECTION("current_de_selection"),
+        IS_FIRST_PAGE("is_first_page")
+    }
+
     /** Fetch available [Provider]-s from the Media Provider process. */
     fun fetchAvailableProviders(
         contentResolver: ContentResolver,
@@ -129,7 +141,24 @@ open class MediaProviderClient {
                     return getListOfProviders(cursor!!)
                 }
         } catch (e: RuntimeException) {
+            // If we can't fetch the available providers, basic functionality of photopicker does
+            // not work. In order to catch this earlier in testing, throw an error instead of
+            // silencing it.
             throw RuntimeException("Could not fetch available providers", e)
+        }
+    }
+
+    /** Ensure that available providers are up to date. */
+    fun ensureProviders(contentResolver: ContentResolver) {
+        try {
+            contentResolver.call(
+                MEDIA_PROVIDER_AUTHORITY,
+                "ensure_providers_call",
+                /* arg */ null,
+                null,
+            )
+        } catch (e: RuntimeException) {
+            Log.e(TAG, "Ensure providers failed", e)
         }
     }
 
@@ -139,7 +168,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle =
             bundleOf(
@@ -151,7 +180,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
 
         try {
@@ -179,6 +209,59 @@ open class MediaProviderClient {
         }
     }
 
+    /** Fetch a list of [Media] from MediaProvider for the given page key. */
+    fun fetchPreviewMedia(
+        pageKey: MediaPageKey,
+        pageSize: Int,
+        contentResolver: ContentResolver,
+        availableProviders: List<Provider>,
+        config: PhotopickerConfiguration,
+        currentSelection: List<String> = emptyList(),
+        currentDeSelection: List<String> = emptyList(),
+        isFirstPage: Boolean = false,
+    ): LoadResult<MediaPageKey, Media> {
+        val input: Bundle =
+            bundleOf(
+                MediaQuery.PICKER_ID.key to pageKey.pickerId,
+                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
+                MediaQuery.PAGE_SIZE.key to pageSize,
+                MediaQuery.PROVIDERS.key to
+                    ArrayList<String>().apply {
+                        availableProviders.forEach { provider -> add(provider.authority) }
+                    },
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
+                PreviewMediaQuery.CURRENT_SELECTION.key to currentSelection,
+                PreviewMediaQuery.CURRENT_DE_SELECTION.key to currentDeSelection,
+                PreviewMediaQuery.IS_FIRST_PAGE.key to isFirstPage,
+            )
+
+        try {
+            return contentResolver
+                .query(
+                    MEDIA_PREVIEW_URI,
+                    /* projection */ null,
+                    input,
+                    /* cancellationSignal */ null // TODO
+                )
+                .use { cursor ->
+                    cursor?.let {
+                        LoadResult.Page(
+                            data = cursor.getListOfMedia(),
+                            prevKey = cursor.getPrevPageKey(),
+                            nextKey = cursor.getNextPageKey()
+                        )
+                    }
+                        ?: throw IllegalStateException(
+                            "Received a null response from Content Provider"
+                        )
+                }
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch preview media", e)
+        }
+    }
+
     /** Fetch a list of [Group.Album] from MediaProvider for the given page key. */
     fun fetchAlbums(
         pageKey: MediaPageKey,
@@ -197,9 +280,9 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
-
         try {
             return contentResolver
                 .query(
@@ -246,7 +329,8 @@ open class MediaProviderClient {
                         availableProviders.forEach { provider -> add(provider.authority) }
                     },
                 EXTRA_MIME_TYPES to config.mimeTypes,
-                EXTRA_INTENT_ACTION to config.action
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
             )
 
         try {
@@ -274,6 +358,13 @@ open class MediaProviderClient {
         }
     }
 
+    /**
+     * Tries to fetch the latest collection info for the available providers.
+     *
+     * @param resolver The [ContentResolver] of the current active user
+     * @return list of [CollectionInfo]
+     * @throws RuntimeException if data source is unable to fetch the collection info.
+     */
     fun fetchCollectionInfo(resolver: ContentResolver): List<CollectionInfo> {
         try {
             resolver
@@ -288,6 +379,84 @@ open class MediaProviderClient {
                 }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch collection info", e)
+        }
+    }
+
+    /**
+     * Fetches the count of pre-granted media for a given package from the MediaProvider.
+     *
+     * This function is designed to be used within the MediaProvider client-side context. It queries
+     * the `MEDIA_GRANTS_URI` using a Bundle containing the calling package's UID to retrieve the
+     * count of media grants.
+     *
+     * @param contentResolver The ContentResolver used to interact with the MediaProvider.
+     * @param callingPackageUid The UID of the calling package (app) for which to fetch the count.
+     * @return The count of media grants for the calling package.
+     * @throws RuntimeException if an error occurs during the query or fetching of the grants count.
+     */
+    fun fetchMediaGrantsCount(contentResolver: ContentResolver, callingPackageUid: Int): Int {
+        if (callingPackageUid < 0) {
+            // return with 0 value since the input callingUid is invalid.
+            Log.e(TAG, "invalid calling package UID.")
+            throw IllegalArgumentException("Invalid input for uid.")
+        }
+        // Create a Bundle containing the calling package's UID. This is used as a selection
+        // argument for the query.
+        val input: Bundle = bundleOf(Intent.EXTRA_UID to callingPackageUid)
+
+        try {
+            contentResolver.query(MEDIA_GRANTS_COUNT_URI, /* projection */ null, input, null).use {
+                cursor ->
+                if (cursor != null && cursor.moveToFirst()) {
+                    // Move the cursor to the first row and extract the count.
+
+                    return cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_GRANTS_COUNT))
+                } else {
+                    // return 0 if cursor is empty.
+                    return 0
+                }
+            }
+        } catch (e: Exception) {
+            throw RuntimeException("Could not fetch media grants count. ", e)
+        }
+    }
+
+    /** Fetches a list of [Media] from MediaProvider filtered by the input URI list. */
+    fun fetchFilteredMedia(
+        pageKey: MediaPageKey,
+        pageSize: Int,
+        contentResolver: ContentResolver,
+        availableProviders: List<Provider>,
+        config: PhotopickerConfiguration,
+        uris: List<Uri>
+    ): List<Media> {
+        val input: Bundle =
+            bundleOf(
+                MediaQuery.PICKER_ID.key to pageKey.pickerId,
+                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
+                MediaQuery.PAGE_SIZE.key to pageSize,
+                MediaQuery.PROVIDERS.key to
+                    ArrayList<String>().apply {
+                        availableProviders.forEach { provider -> add(provider.authority) }
+                    },
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
+                PRE_SELECTION_URIS to
+                    ArrayList<String>().apply { uris.forEach { uri -> add(uri.toString()) } },
+            )
+
+        try {
+            return contentResolver
+                .query(
+                    MEDIA_PRE_SELECTION_URI,
+                    /* projection */ null,
+                    input,
+                    /* cancellationSignal */ null // TODO
+                )
+                ?.getListOfMedia() ?: ArrayList()
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch media", e)
         }
     }
 
@@ -311,6 +480,7 @@ open class MediaProviderClient {
         extras.putBoolean(EXTRA_LOCAL_ONLY, initLocalOnlyMedia)
         extras.putStringArrayList(EXTRA_MIME_TYPES, config.mimeTypes)
         extras.putString(EXTRA_INTENT_ACTION, config.action)
+        extras.putInt(Intent.EXTRA_UID, config.callingPackageUid ?: -1)
         refreshMedia(extras, resolver)
     }
 
@@ -361,6 +531,12 @@ open class MediaProviderClient {
                             cursor.getInt(
                                 cursor.getColumnIndexOrThrow(AvailableProviderResponse.UID.key)
                             ),
+                        displayName =
+                            cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                    AvailableProviderResponse.DISPLAY_NAME.key
+                                )
+                            )
                     )
                 )
             } while (cursor.moveToNext())
@@ -437,7 +613,8 @@ open class MediaProviderClient {
                 val mimeType: String = getString(getColumnIndexOrThrow(MediaResponse.MIME_TYPE.key))
                 val standardMimeTypeExtension: Int =
                     getInt(getColumnIndexOrThrow(MediaResponse.STANDARD_MIME_TYPE_EXT.key))
-
+                val isPregranted: Int =
+                    getInt(getColumnIndexOrThrow(MediaResponse.IS_PRE_GRANTED.key))
                 if (mimeType.startsWith("image/")) {
                     result.add(
                         Media.Image(
@@ -451,6 +628,7 @@ open class MediaProviderClient {
                             sizeInBytes = sizeInBytes,
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
+                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
                         )
                     )
                 } else if (mimeType.startsWith("video/")) {
@@ -467,6 +645,7 @@ open class MediaProviderClient {
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
                             duration = getInt(getColumnIndexOrThrow(MediaResponse.DURATION.key)),
+                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
                         )
                     )
                 } else {
@@ -558,7 +737,7 @@ open class MediaProviderClient {
                 extras
             )
         } catch (e: RuntimeException) {
-            throw RuntimeException("Could not send refresh media call to Media Provider $extras", e)
+            Log.e(TAG, "Could not send refresh media call to Media Provider $extras", e)
         }
     }
 }

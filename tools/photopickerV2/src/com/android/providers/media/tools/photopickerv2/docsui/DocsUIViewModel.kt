@@ -15,12 +15,75 @@
 */
 package com.android.providers.media.tools.photopickerv2.docsui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.widget.Toast
+import androidx.lifecycle.AndroidViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * DocsUIViewModel is responsible for managing the state and logic
- * of the PhotoPicker feature.
+ * of the DocsUI feature.
  */
-class DocsUIViewModel() : ViewModel() {
-    // Working on it
+class DocsUIViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
+
+    private val _selectedMedia = MutableStateFlow<List<Uri>>(emptyList())
+    val selectedMedia: StateFlow<List<Uri>> = _selectedMedia
+
+    fun updateSelectedMediaList(uris: List<Uri>) {
+        _selectedMedia.value = uris
+    }
+
+    fun validateAndLaunchPicker(
+        isActionGetContentSelected: Boolean,
+        isOpenDocumentSelected: Boolean,
+        isCreateDocumentSelected: Boolean,
+        allowMultiple: Boolean,
+        selectedMimeType: String,
+        allowCustomMimeType: Boolean,
+        customMimeTypeInput: String,
+        pickerInitialUri: Uri,
+        launcher: (Intent) -> Unit
+    ): String? {
+
+        val intent = if (isActionGetContentSelected) {
+            Intent(Intent.ACTION_GET_CONTENT).apply {
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+        } else if (isOpenDocumentSelected) {
+            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+        } else if (isCreateDocumentSelected){
+            Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/pdf" // TODO: (@adityasngh) please review and make it generic.
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
+            }
+        } else {
+            Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        }
+        try {
+            launcher(intent)
+        } catch (e: ActivityNotFoundException) {
+            val errorMessage =
+                "No Activity found to handle Intent with type \"" + intent.type + "\""
+            Toast.makeText(getApplication(), errorMessage, Toast.LENGTH_SHORT).show()
+        }
+        return null
+    }
 }

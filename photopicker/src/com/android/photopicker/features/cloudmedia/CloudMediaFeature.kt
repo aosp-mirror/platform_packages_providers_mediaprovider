@@ -63,7 +63,8 @@ class CloudMediaFeature : PhotopickerUiFeature {
             // Cloud media is not available in permission mode.
             if (config.action == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) return false
 
-            return true
+            return config.flags.CLOUD_MEDIA_ENABLED &&
+                config.flags.CLOUD_ALLOWED_PROVIDERS.isNotEmpty()
         }
 
         override fun build(featureManager: FeatureManager) = CloudMediaFeature()

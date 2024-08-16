@@ -35,6 +35,8 @@ enum class Location {
     MEDIA_PRELOADER, // Where the MEDIA_PRELOADER is attached to the compose tree.
     NAVIGATION_BAR, // Where the navigation bar should be drawn (when it is active).
     NAVIGATION_BAR_NAV_BUTTON, // Where the navigation bar draws navigation buttons.
+    OVERFLOW_MENU, // The overflow menu anchor
+    OVERFLOW_MENU_ITEMS, // Options inside the overflow menu
     PROFILE_SELECTOR, // Where the profile switcher button is drawn
     SELECTION_BAR, // Where the selection bar should be drawn (when it is active).
     SELECTION_BAR_SECONDARY_ACTION, // Where the extra button is drawn on the selection bar.

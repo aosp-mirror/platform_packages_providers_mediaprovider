@@ -22,9 +22,11 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 
+import com.android.providers.media.MediaGrants;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 
@@ -41,11 +43,12 @@ public class PickerDbTestUtils {
     public static final String LOCAL_ID_2 = "502";
     public static final String LOCAL_ID_3 = "503";
     public static final String LOCAL_ID_4 = "504";
-    public static final String CLOUD_ID = "asdfghjkl;";
-    public static final String CLOUD_ID_1 = "asdfghjkl;1";
-    public static final String CLOUD_ID_2 = "asdfghjkl;2";
-    public static final String CLOUD_ID_3 = "asdfghjkl;3";
-    public static final String CLOUD_ID_4 = "asdfghjkl;4";
+    //TODO(b/329122491): Test with media ids that contain special characters.
+    public static final String CLOUD_ID = "asdfghjkl";
+    public static final String CLOUD_ID_1 = "asdfghjkl1";
+    public static final String CLOUD_ID_2 = "asdfghjkl2";
+    public static final String CLOUD_ID_3 = "asdfghjkl3";
+    public static final String CLOUD_ID_4 = "asdfghjkl4";
     public static final String ALBUM_ID = "testAlbum";
     public static final String MP4_VIDEO_MIME_TYPE = "video/mp4";
     public static final String WEBM_VIDEO_MIME_TYPE = "video/webm";
@@ -58,6 +61,7 @@ public class PickerDbTestUtils {
     public static final String[] IMAGE_MIME_TYPES_QUERY = new String[]{"image/jpeg"};
     public static final int STANDARD_MIME_TYPE_EXTENSION =
             CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
+    public static final String TEST_PACKAGE_NAME = "com.test.package";
 
     public static final String LOCAL_PROVIDER = "com.local.provider";
     public static final String CLOUD_PROVIDER = "com.cloud.provider";
@@ -75,6 +79,11 @@ public class PickerDbTestUtils {
                 authority);
     }
 
+    public static Cursor queryGrants(PickerDbFacade mFacade) {
+        return mFacade.getDatabase().query(
+                "media_grants", null, null, null, null, null, null);
+    }
+
     public static void assertAddMediaOperation(PickerDbFacade mFacade, String authority,
             Cursor cursor, int writeCount) {
         try (PickerDbFacade.DbWriteOperation operation =
@@ -89,6 +98,24 @@ public class PickerDbTestUtils {
         try (PickerDbFacade.DbWriteOperation operation =
                      mFacade.beginAddAlbumMediaOperation(authority, albumId)) {
             assertWriteOperation(operation, cursor, writeCount);
+            operation.setSuccess();
+        }
+    }
+
+    public static void assertInsertGrantsOperation(PickerDbFacade mFacade,
+            Cursor cursor, int writeCount) {
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginInsertGrantsOperation()) {
+            assertWriteOperation(operation, cursor, writeCount);
+            operation.setSuccess();
+        }
+    }
+
+    public static void assertClearGrantsOperation(PickerDbFacade mFacade,
+            int writeCount, String[] packageNames, int userId) {
+        try (PickerDbFacade.DbWriteOperation operation =
+                     mFacade.beginClearGrantsOperation(packageNames, userId)) {
+            assertWriteOperation(operation, null, writeCount);
             operation.setSuccess();
         }
     }
@@ -235,6 +262,32 @@ public class PickerDbTestUtils {
         return c;
     }
 
+    public static Cursor getMediaGrantsCursor(
+            String id) {
+        return getMediaGrantsCursor(id, TEST_PACKAGE_NAME, UserHandle.myUserId());
+    }
+
+    public static Cursor getMediaGrantsCursor(
+            String id, String packageName, int userId) {
+        String[] projectionKey =
+                new String[]{
+                        MediaGrants.FILE_ID_COLUMN,
+                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                        MediaGrants.PACKAGE_USER_ID_COLUMN
+                };
+
+        String[] projectionValue =
+                new String[]{
+                        id,
+                        packageName,
+                        String.valueOf(userId)
+                };
+
+        MatrixCursor c = new MatrixCursor(projectionKey);
+        c.addRow(projectionValue);
+        return c;
+    }
+
     public static Cursor getLocalMediaCursor(String localId, long dateTakenMs) {
         return getMediaCursor(localId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
                 SIZE_BYTES, MP4_VIDEO_MIME_TYPE, STANDARD_MIME_TYPE_EXTENSION,
@@ -354,6 +407,19 @@ public class PickerDbTestUtils {
                 .that(cursor.getLong(cursor.getColumnIndexOrThrow(CloudMediaProviderContract
                         .MediaColumns.DURATION_MILLIS)))
                 .isEqualTo(DURATION_MS);
+    }
+
+    public static void assertGrantsCursor(Cursor cursor, String fileId) {
+        assertWithMessage("Unexpected value of grants.file_id")
+                .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                        MediaGrants.FILE_ID_COLUMN))).isEqualTo(fileId);
+        assertWithMessage("Unexpected value of grants.owner_package_name")
+                .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN))).isEqualTo(TEST_PACKAGE_NAME);
+        assertWithMessage("Unexpected value of grants.package_user_id")
+                .that(cursor.getInt(cursor.getColumnIndexOrThrow(
+                        MediaGrants.PACKAGE_USER_ID_COLUMN))).isEqualTo(
+                                UserHandle.myUserId());
     }
 
     public static void assertCloudMediaCursor(

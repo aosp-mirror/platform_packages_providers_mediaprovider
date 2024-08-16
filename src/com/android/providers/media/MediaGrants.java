@@ -55,6 +55,9 @@ public class MediaGrants {
     public static final String GENERATION_GRANTED = "generation_granted";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
+    // At a time for a package and userId only a limited number of grants should be held in
+    // database.
+    public static final int PER_PACKAGE_GRANTS_LIMIT = 5000;
 
     private static final String CREATE_TEMPORARY_TABLE_QUERY = "CREATE TEMPORARY TABLE ";
     private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
@@ -154,7 +157,9 @@ public class MediaGrants {
     }
 
     /**
-     * Returns the cursor for file data of items for which the passed package has READ_GRANTS.
+     * Returns the cursor for file data of items for which the passed package has READ_GRANTS with a
+     * row limit of {@link MediaGrants#PER_PACKAGE_GRANTS_LIMIT}. Any grants older than the latest
+     * {@link MediaGrants#PER_PACKAGE_GRANTS_LIMIT} number of grants are not considered.
      *
      * @param packageNames  the package name that has access.
      * @param packageUserId the user_id of the package.
@@ -184,8 +189,14 @@ public class MediaGrants {
             return queryBuilder.query(db,
                     new String[]{FILE_ID_COLUMN,
                             String.format("%s.%s", MEDIA_GRANTS_TABLE, OWNER_PACKAGE_NAME_COLUMN),
-                            PACKAGE_USER_ID_COLUMN}, null,
-                    selectionArgs, null, null, null, null, null);
+                            PACKAGE_USER_ID_COLUMN},
+                    /* selection */ null,
+                    /* selection args */ selectionArgs,
+                    /* group by */ null,
+                    /* having */ null,
+                    /* sort order */ null,
+                    /* limit */ String.valueOf(PER_PACKAGE_GRANTS_LIMIT),
+                    /* cancellation signal */ null);
         });
     }
 

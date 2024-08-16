@@ -232,6 +232,7 @@ package android.provider {
     field public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
     field public static final String QUERY_ARG_MATCH_PENDING = "android:query-arg-match-pending";
     field public static final String QUERY_ARG_MATCH_TRASHED = "android:query-arg-match-trashed";
+    field @FlaggedApi("com.android.providers.media.flags.inferred_media_date") public static final String QUERY_ARG_MEDIA_STANDARD_SORT_ORDER = "android:query-arg-media-standard-sort-order";
     field public static final String QUERY_ARG_RELATED_URI = "android:query-arg-related-uri";
     field public static final String UNKNOWN_STRING = "<unknown>";
     field public static final String VOLUME_EXTERNAL = "external";
@@ -500,6 +501,7 @@ package android.provider {
     field public static final String GENERATION_MODIFIED = "generation_modified";
     field public static final String GENRE = "genre";
     field public static final String HEIGHT = "height";
+    field @FlaggedApi("com.android.providers.media.flags.inferred_media_date") public static final String INFERRED_DATE = "inferred_date";
     field public static final String INSTANCE_ID = "instance_id";
     field public static final String IS_DOWNLOAD = "is_download";
     field public static final String IS_DRM = "is_drm";

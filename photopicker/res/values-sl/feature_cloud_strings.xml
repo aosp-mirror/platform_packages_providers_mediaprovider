@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Pripravljenih: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> od <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Nekaterih fotografij ni mogoče naložiti"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Poskusite znova pozneje. Fotografije bodo na voljo, ko bo težava odpravljena."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Varnostno kopirane fotografije so zdaj vključene"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Izberete lahko fotografije iz računa <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> za aplikacijo <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Izbira računa za aplikacijo <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Če želite tukaj vključiti fotografije iz aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>, izberite račun v aplikaciji"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Izbira računa"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Izbira aplikacije za predstavnost v oblaku"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Če želite tukaj vključiti varnostno kopirane fotografije, v nastavitvah izberite aplikacijo za predstavnost v oblaku"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Izbira aplikacije"</string>
 </resources>

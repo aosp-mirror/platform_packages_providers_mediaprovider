@@ -28,6 +28,7 @@ android_library {
     ],
     static_libs: [
         "androidx.activity_activity-compose",
+        "androidx.appcompat_appcompat",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
         "androidx.compose.material3_material3-window-size-class",
@@ -61,6 +62,7 @@ android_library {
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_coroutines",
+        "mediaprovider_flags_java_lib",
         "modules-utils-build",
     ],
     apex_available: [
@@ -80,6 +82,8 @@ android_app {
         "PhotopickerLib",
     ],
     optimize: {
+        // Optimize bytecode
+        optimize: true,
         // Needed for removing unused icons from material-icons-extended
         shrink_resources: true,
     },

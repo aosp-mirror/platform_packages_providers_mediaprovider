@@ -16,6 +16,7 @@
 
 package com.android.photopicker.data
 
+import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
 import com.android.photopicker.data.model.CollectionInfo
@@ -59,8 +60,18 @@ class TestDataServiceImpl() : DataService {
 
     val collectionInfo: HashMap<Provider, CollectionInfo> = HashMap()
 
+    private var _preGrantsCount = MutableStateFlow(/* default value */ 0)
+
     fun setAvailableProviders(newProviders: List<Provider>) {
         _availableProviders.update { newProviders }
+    }
+
+    override val preGrantedMediaCount: StateFlow<Int> = _preGrantsCount
+    override val preSelectionMediaData: StateFlow<List<Media>?> =
+        MutableStateFlow(ArrayList<Media>())
+
+    fun setInitPreGrantsCount(count: Int) {
+        _preGrantsCount.update { count }
     }
 
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> {
@@ -86,8 +97,11 @@ class TestDataServiceImpl() : DataService {
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> {
+        // re-using the media source, modify as per future test usage.
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
+    }
 
     override suspend fun refreshMedia() =
         throw NotImplementedError("This method is not implemented yet.")
@@ -97,10 +111,22 @@ class TestDataServiceImpl() : DataService {
 
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
 
+    suspend fun sendDisruptiveDataUpdateNotification() {
+        disruptiveDataUpdateChannel.send(Unit)
+    }
+
     override suspend fun getCollectionInfo(provider: Provider): CollectionInfo =
         collectionInfo.getOrElse(provider, { CollectionInfo(provider.authority) })
 
     override suspend fun ensureProviders() {}
 
     override fun getAllAllowedProviders(): List<Provider> = allowedProviders
+
+    override fun refreshPreGrantedItemsCount() {
+        // no_op
+    }
+
+    override fun fetchMediaDataForUris(uris: List<Uri>) {
+        // no-op
+    }
 }

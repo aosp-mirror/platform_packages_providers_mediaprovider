@@ -18,6 +18,7 @@ package com.android.photopicker.features.navigationbar
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,6 +48,8 @@ import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
+import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 
 /* Navigation bar button measurements */
 private val MEASUREMENT_ICON_BUTTON_WIDTH = 48.dp
@@ -76,6 +80,7 @@ fun NavigationBar(modifier: Modifier = Modifier) {
     val navController = LocalNavController.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val featureManager = LocalFeatureManager.current
     Row(
         modifier =
             modifier.padding(
@@ -137,25 +142,45 @@ fun NavigationBar(modifier: Modifier = Modifier) {
             // For all other routes, show the profile selector and the navigation buttons
             else -> {
 
-                LocalFeatureManager.current.composeLocation(
-                    Location.PROFILE_SELECTOR,
-                    maxSlots = 1,
-                    // Weight should match the overflow menu slot so they are the same size.
-                    modifier =
+                val profileSelectorEnabled =
+                    remember(featureManager) {
+                        featureManager.isFeatureEnabled(ProfileSelectorFeature::class.java)
+                    }
+                if (profileSelectorEnabled) {
+                    featureManager.composeLocation(
+                        Location.PROFILE_SELECTOR,
+                        maxSlots = 1,
+                        modifier =
+                            Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                                .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                    )
+                } else {
+                    Spacer(
                         Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
                             .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-                )
+                    )
+                }
 
                 NavigationBarButtons(Modifier.weight(1f))
-
-                LocalFeatureManager.current.composeLocation(
-                    Location.OVERFLOW_MENU,
-                    // Weight should match the profile switcher slot so they are the same size.
-                    modifier =
-                        Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                            .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-                )
             }
+        }
+
+        val overFlowMenuEnabled =
+            remember(featureManager) {
+                featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+            }
+        if (overFlowMenuEnabled) {
+            featureManager.composeLocation(
+                Location.OVERFLOW_MENU,
+                modifier =
+                    Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                        .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+            )
+        } else {
+            Spacer(
+                Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+            )
         }
     }
 }

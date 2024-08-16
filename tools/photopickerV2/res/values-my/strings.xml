@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"ကြိုက်ရာ ပုံများ"</string>
     <string name="action_get_content" msgid="4319210475508093083">"လုပ်ဆောင်ချက်ရယူခြင်း အကြောင်းအရာ"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"ပုံများကို အစဉ်လိုက် ပြရန်"</string>
+    <string name="open_document" msgid="8593796561386540777">"မှတ်တမ်း ဖွင့်ရန်"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"မှတ်တမ်း ဆက်နွယ်စနစ် ဖွင့်ရန်"</string>
+    <string name="create_document" msgid="6073553682715924527">"မှတ်တမ်း ပြုလုပ်ရန်"</string>
+    <string name="create_file" msgid="2532895579648102462">"ဖိုင် ပြုလုပ်ရန်"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"ရွေးချယ်မှု အစီအစဉ်ကို ပြရန်"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"ပုံများသာ ပြပါ"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"ဗီဒီယိုများသာ ပြပါ"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME အမျိုးအစား ထည့်သွင်းရန်"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"စတင်ရန်တဘ် ရွေးရန်"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"ရွေးချယ်မှုများစွာ ခွင့်ပြုရန်"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"စိတ်ကြိုက် MIME အမျိုးအစားကို ခွင့်ပြုရန်"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"အများဆုံး မီဒီယာဖိုင်အရေအတွက်"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"တစ်ခုထက်ပိုများသော မှန်ကန်သည့်အရေအတွက် ထည့်ရန်"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"တစ်ထက်ကြီးသော မှန်ကန်သည့်နံပါတ် ထည့်ရန်"</string>
     <string name="pick_media" msgid="5269447618857205416">"ကြိုက်ရာ မီဒီယာ"</string>
     <string name="working_on_it" msgid="1373762827081252341">"လုပ်ဆောင်နေသည်"</string>
+    <string name="show_metadata" msgid="132548935678717609">"ရွေးထားသော မီဒီယာအတွက် ‘မက်တာဒေတာ’ ကို ပြပါ"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"ကြိုတင်ရွေးချယ်မှုကို ဖွင့်ရန်"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"ခွင့်ပြုချက်များ တောင်းဆိုရန်"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"အောက်ပါအတွက် ခွင့်ပြုချက်များ တောင်းဆိုရန်-"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"‘ရွေးချယ်စနစ်အကြိုက်’ ဝန်ဆောင်မှုကို Android U နှင့်အထက်ရှိသော စက်များအတွက်သာ ရနိုင်သည်။ \n\nဤအင်္ဂါရပ်ကိုသုံးရန် သင့်စက်ကို အဆင့်မြှင့်ပါ။"</string>
+    <string name="images" msgid="4986074635830919568">"ပုံများ"</string>
+    <string name="videos" msgid="4638519191891522146">"ဗီဒီယိုများ"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"ပုံနှင့် ဗီဒီယိုနှစ်ခုစလုံး"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"နောက်ဆုံးရွေးချယ်မှုကိုသာ ပြပါ"</string>
 </resources>

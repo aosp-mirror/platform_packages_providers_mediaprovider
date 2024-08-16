@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Επιλογή εικόνων"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Ενέργεια για τη λήψη περιεχομένου"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Προβολή εικόνων σε σειρά"</string>
+    <string name="open_document" msgid="8593796561386540777">"Άνοιγμα εγγράφου"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Άνοιγμα δέντρου εγγράφων"</string>
+    <string name="create_document" msgid="6073553682715924527">"Δημιουργία εγγράφου"</string>
+    <string name="create_file" msgid="2532895579648102462">"Δημιουργία αρχείου"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Εμφάνιση σειράς επιλογής"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Να εμφανίζονται μόνο εικόνες"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Να εμφανίζονται μόνο βίντεο"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Εισαγωγή τύπου MIME"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Επιλογή καρτέλας εκκίνησης"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Να επιτρέπεται η πολλαπλή επιλογή"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Να επιτρέπεται προσαρμοσμένος τύπος MIME"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Μέγιστος αριθμός στοιχείων μέσων"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Εισαγωγή έγκυρου πλήθους μεγαλύτερου από ένα"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Εισαγάγετε έναν έγκυρο αριθμό που είναι μεγαλύτερος από ένα"</string>
     <string name="pick_media" msgid="5269447618857205416">"Επιλογή μέσων"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Γίνεται επεξεργασία"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Εμφάνιση μεταδεδομένων για το επιλεγμένο στοιχείο μέσων"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Ενεργοποίηση προεπιλογής"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Αίτημα αδειών"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Αίτημα αδειών για:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Η λειτουργία Επιλογή από εργαλείο επιλογής είναι διαθέσιμη μόνο για συσκευές με Android U και νεότερες εκδόσεις. \n\nΑναβαθμίστε τη συσκευή σας, για να χρησιμοποιήσετε αυτή τη λειτουργία."</string>
+    <string name="images" msgid="4986074635830919568">"Εικόνες"</string>
+    <string name="videos" msgid="4638519191891522146">"Βίντεο"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Εικόνες και βίντεο"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Εμφάνιση μόνο της πιο πρόσφατης επιλογής"</string>
 </resources>

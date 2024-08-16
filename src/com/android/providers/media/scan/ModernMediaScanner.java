@@ -21,6 +21,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_AUTHOR;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_COLOR_RANGE;
@@ -36,6 +37,7 @@ import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_HEIGHT;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_IMAGE_WIDTH;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_MIMETYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS;
+import static android.media.MediaMetadataRetriever.METADATA_KEY_SAMPLERATE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_TITLE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC_MIME_TYPE;
 import static android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT;
@@ -48,18 +50,25 @@ import static android.provider.MediaStore.UNKNOWN_STRING;
 import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
+import static com.android.providers.media.flags.Flags.enableOemMetadata;
 import static com.android.providers.media.util.FileUtils.canonicalize;
+import static com.android.providers.media.util.IsoInterface.MAX_XMP_SIZE_BYTES;
 import static com.android.providers.media.util.Metrics.translateReason;
 
 import static java.util.Objects.requireNonNull;
 
+import android.content.ComponentName;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.OperationApplicationException;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteBlobTooBigException;
 import android.database.sqlite.SQLiteDatabase;
@@ -74,11 +83,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.IBinder;
 import android.os.OperationCanceledException;
+import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
+import android.provider.IOemMetadataService;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Audio.PlaylistsColumns;
@@ -86,6 +98,8 @@ import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video.VideoColumns;
+import android.provider.OemMetadataService;
+import android.provider.OemMetadataServiceWrapper;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.ArraySet;
@@ -97,7 +111,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.build.SdkLevel;
+import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaVolume;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
 import com.android.providers.media.util.FileUtils;
@@ -123,6 +140,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -175,7 +193,6 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     private static final int BATCH_SIZE = 32;
-    private static final int MAX_XMP_SIZE_BYTES = 1024 * 1024;
     // |excludeDirs * 2| < 1000 which is the max SQL expression size
     // Because we add |excludeDir| and |excludeDir/| in the SQL expression to match dir and subdirs
     // See SQLITE_MAX_EXPR_DEPTH in sqlite3.c
@@ -198,6 +215,7 @@ public class ModernMediaScanner implements MediaScanner {
     @NonNull
     private final Context mContext;
     private final DrmManagerClient mDrmClient;
+    private OemMetadataServiceWrapper mOemMetadataServiceWrapper;
     @GuardedBy("mPendingCleanDirectories")
     private final Set<String> mPendingCleanDirectories = new ArraySet<>();
 
@@ -231,7 +249,12 @@ public class ModernMediaScanner implements MediaScanner {
      */
     private final Set<String> mDrmMimeTypes = new ArraySet<>();
 
-    public ModernMediaScanner(@NonNull Context context) {
+    /**
+     * Set of MIME types that should be considered for fetching OEM metadata.
+     */
+    private Set<String> mOemSupportedMimeTypes;
+
+    public ModernMediaScanner(@NonNull Context context, @NonNull ConfigStore configStore) {
         mContext = requireNonNull(context);
         mDrmClient = new DrmManagerClient(context);
 
@@ -243,7 +266,63 @@ public class ModernMediaScanner implements MediaScanner {
                 mDrmMimeTypes.add(mimeTypes.next());
             }
         }
+        connectOemMetadataServiceWrapper(configStore);
     }
+
+    private Set<String> getOemSupportedMimeTypes() {
+        if (mOemMetadataServiceWrapper == null) {
+            return new HashSet<String>();
+        }
+
+        try {
+            return mOemMetadataServiceWrapper.getSupportedMimeTypes();
+        } catch (Exception e) {
+            Log.w(TAG, "Error in fetching OEM supported mimetypes", e);
+            return new HashSet<>();
+        }
+    }
+
+    private void connectOemMetadataServiceWrapper(ConfigStore configStore) {
+        if (!enableOemMetadata()) {
+            return;
+        }
+
+        Optional<String> pkgOptional = configStore.getDefaultOemMetadataServicePackage();
+        if (!pkgOptional.isPresent()) {
+            Log.v(TAG, "No default package listed for OEM Metadata service");
+            return;
+        }
+
+        Intent intent = new Intent(OemMetadataService.SERVICE_INTERFACE);
+        ResolveInfo resolveInfo = mContext.getPackageManager().resolveService(intent,
+                PackageManager.MATCH_ALL);
+        if (resolveInfo == null || resolveInfo.serviceInfo == null
+                || resolveInfo.serviceInfo.packageName == null
+                || !pkgOptional.get().equalsIgnoreCase(resolveInfo.serviceInfo.packageName)
+                || resolveInfo.serviceInfo.permission == null
+                || !resolveInfo.serviceInfo.permission.equalsIgnoreCase(
+                OemMetadataService.BIND_OEM_METADATA_SERVICE_PERMISSION)) {
+            Log.v(TAG, "No valid package found for OEM Metadata service");
+            return;
+        }
+
+        intent.setPackage(pkgOptional.get());
+        mContext.bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            IOemMetadataService service = IOemMetadataService.Stub.asInterface(iBinder);
+            mOemMetadataServiceWrapper = new OemMetadataServiceWrapper(service);
+            Log.i(TAG, "Connected to OemMetadataService");
+        }
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mOemMetadataServiceWrapper = null;
+            Log.i(TAG, "Disconnected from OemMetadataService");
+        }
+    };
 
     @Override
     @NonNull
@@ -796,6 +875,7 @@ public class ModernMediaScanner implements MediaScanner {
             // If IS_PENDING is set by FUSE, we should scan the file and update IS_PENDING to zero.
             // Pending files from FUSE will not be rewritten to contain expiry timestamp.
             boolean isPendingFromFuse = !matcher.matches();
+            boolean shouldKeepGenerationUnchanged = false;
 
             try (Cursor c = mResolver.query(mFilesUri, projection, queryArgs, mSignal)) {
                 if (c.moveToFirst()) {
@@ -835,7 +915,13 @@ public class ModernMediaScanner implements MediaScanner {
                         if (LOGV) Log.v(TAG, "Skipping unchanged video/audio " + file);
                         return FileVisitResult.CONTINUE;
                     }
+
+                    if (Flags.audioSampleColumns() && mReason == REASON_IDLE
+                            && c.getInt(6) == FileColumns._MODIFIER_SCHEMA_UPDATE) {
+                        shouldKeepGenerationUnchanged = true;
+                    }
                 }
+
 
                 // Since we allow top-level mime type to be customised, we need to do this early
                 // on, so the file is later scanned as the appropriate type (otherwise, this
@@ -859,15 +945,47 @@ public class ModernMediaScanner implements MediaScanner {
             if (op != null) {
                 op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
 
+                // Flag we do not want generation modified if it's an idle scan update
+                if (Flags.audioSampleColumns() && shouldKeepGenerationUnchanged) {
+                    op.withValue(FileColumns.GENERATION_MODIFIED,
+                            FileColumns.GENERATION_MODIFIED_UNCHANGED);
+                }
+
                 // Force DRM files to be marked as DRM, since the lower level
                 // stack may not set this correctly
                 if (isDrm) {
                     op.withValue(MediaColumns.IS_DRM, 1);
                 }
+
+                if (enableOemMetadata()) {
+                    if (mOemSupportedMimeTypes == null) {
+                        mOemSupportedMimeTypes = getOemSupportedMimeTypes();
+                    }
+                    if (mOemSupportedMimeTypes.contains(actualMimeType)) {
+                        // If mime type is supported by OEM
+                        fetchOemMetadata(op, realFile);
+                    }
+                }
+
                 addPending(op.build());
                 maybeApplyPending();
             }
             return FileVisitResult.CONTINUE;
+        }
+
+        private void fetchOemMetadata(ContentProviderOperation.Builder op, File file) {
+            if (!enableOemMetadata() || mOemMetadataServiceWrapper == null) {
+                return;
+            }
+
+            try (ParcelFileDescriptor pfd = FileUtils.openSafely(file,
+                    ParcelFileDescriptor.MODE_READ_ONLY)) {
+                Map<String, String> oemMetadata = mOemMetadataServiceWrapper.getOemCustomData(pfd);
+                op.withValue(FileColumns.OEM_METADATA, oemMetadata.toString().getBytes());
+                Log.v(TAG, "Fetched OEM metadata successfully");
+            } catch (Exception e) {
+                Log.w(TAG, "Failure in fetching OEM metadata", e);
+            }
         }
 
         private int mediaTypeFromMimeType(
@@ -887,8 +1005,12 @@ public class ModernMediaScanner implements MediaScanner {
             final long size = c.getLong(2);
             final boolean sameSize = (attrs.size() == size);
 
+            final int modifier = c.getInt(6);
             final boolean isScanned =
-                    c.getInt(6) == FileColumns._MODIFIER_MEDIA_SCAN;
+                    modifier == FileColumns._MODIFIER_MEDIA_SCAN
+                            // We scan a file after the schema update only on idle maintenance
+                            || (modifier == FileColumns._MODIFIER_SCHEMA_UPDATE
+                            && mReason != REASON_IDLE);
 
             return sameTime && sameSize && !isPendingFromFuse && isScanned;
         }
@@ -1034,7 +1156,7 @@ public class ModernMediaScanner implements MediaScanner {
      * containing all indexed metadata, suitable for passing to a
      * {@link SQLiteDatabase#replace} operation.
      */
-    private static @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
+    private @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
             BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName) {
         if (Objects.equals(file.getName(), ".nomedia")) {
             if (LOGD) Log.d(TAG, "Ignoring .nomedia file: " + file);
@@ -1072,7 +1194,7 @@ public class ModernMediaScanner implements MediaScanner {
      * clear any values that had been set by a previous scan and which are no
      * longer present in the media item.
      */
-    private static void withGenericValues(ContentProviderOperation.Builder op,
+    private void withGenericValues(ContentProviderOperation.Builder op,
             File file, BasicFileAttributes attrs, String mimeType, Integer mediaType) {
         withOptionalMimeTypeAndMediaType(op, Optional.ofNullable(mimeType),
                 Optional.ofNullable(mediaType));
@@ -1113,7 +1235,7 @@ public class ModernMediaScanner implements MediaScanner {
      * {@link MediaColumns} values using the given
      * {@link MediaMetadataRetriever}.
      */
-    private static void withRetrieverValues(ContentProviderOperation.Builder op,
+    private void withRetrieverValues(ContentProviderOperation.Builder op,
             MediaMetadataRetriever mmr, String mimeType) {
         withOptionalMimeTypeAndMediaType(op,
                 parseOptionalMimeType(mimeType, mmr.extractMetadata(METADATA_KEY_MIMETYPE)),
@@ -1160,7 +1282,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Populate the given {@link ContentProviderOperation} with the generic
      * {@link MediaColumns} values using the given XMP metadata.
      */
-    private static void withXmpValues(ContentProviderOperation.Builder op,
+    private void withXmpValues(ContentProviderOperation.Builder op,
             XmpInterface xmp, String mimeType) {
         withOptionalMimeTypeAndMediaType(op,
                 parseOptionalMimeType(mimeType, xmp.getFormat()),
@@ -1172,7 +1294,7 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.XMP, maybeTruncateXmp(xmp));
     }
 
-    private static byte[] maybeTruncateXmp(XmpInterface xmp) {
+    private byte[] maybeTruncateXmp(XmpInterface xmp) {
         byte[] redacted = xmp.getRedactedXmp();
         if (redacted.length > MAX_XMP_SIZE_BYTES) {
             return new byte[0];
@@ -1185,7 +1307,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Overwrite a value in the given {@link ContentProviderOperation}, but only
      * when the given {@link Optional} value is present.
      */
-    private static void withOptionalValue(@NonNull ContentProviderOperation.Builder op,
+    private void withOptionalValue(@NonNull ContentProviderOperation.Builder op,
             @NonNull String key, @NonNull Optional<?> value) {
         if (value.isPresent()) {
             op.withValue(key, value.get());
@@ -1203,7 +1325,7 @@ public class ModernMediaScanner implements MediaScanner {
      * @param optionalMimeType An optional MIME type to apply to this operation.
      * @param optionalMediaType An optional Media type to apply to this operation.
      */
-    private static void withOptionalMimeTypeAndMediaType(
+    private void withOptionalMimeTypeAndMediaType(
             @NonNull ContentProviderOperation.Builder op,
             @NonNull Optional<String> optionalMimeType,
             @NonNull Optional<Integer> optionalMediaType) {
@@ -1218,7 +1340,7 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static void withResolutionValues(
+    private void withResolutionValues(
             @NonNull ContentProviderOperation.Builder op,
             @NonNull ExifInterface exif, @NonNull File file) {
         final Optional<?> width = parseOptionalOrZero(
@@ -1235,7 +1357,7 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static void withBitmapResolutionValues(
+    private void withBitmapResolutionValues(
             @NonNull ContentProviderOperation.Builder op,
             @NonNull File file) {
         final BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
@@ -1252,7 +1374,7 @@ public class ModernMediaScanner implements MediaScanner {
         withOptionalValue(op, MediaColumns.RESOLUTION, parseOptionalResolution(width, height));
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemDirectory(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemDirectory(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
         // Directory doesn't have any MIME type or Media Type.
@@ -1266,7 +1388,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemAudio(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1275,6 +1397,10 @@ public class ModernMediaScanner implements MediaScanner {
         op.withValue(MediaColumns.ARTIST, UNKNOWN_STRING);
         op.withValue(MediaColumns.ALBUM, file.getParentFile().getName());
         op.withValue(AudioColumns.TRACK, null);
+        if (Flags.audioSampleColumns()) {
+            op.withValue(AudioColumns.BITS_PER_SAMPLE, null);
+            op.withValue(AudioColumns.SAMPLERATE, null);
+        }
 
         FileUtils.computeAudioTypeValuesFromData(file.getAbsolutePath(), op::withValue);
 
@@ -1286,6 +1412,13 @@ public class ModernMediaScanner implements MediaScanner {
 
                 withOptionalValue(op, AudioColumns.TRACK,
                         parseOptionalTrack(mmr));
+
+                if (Flags.audioSampleColumns() && SdkLevel.isAtLeastT()) {
+                    withOptionalValue(op, AudioColumns.BITS_PER_SAMPLE,
+                            parseOptional(mmr.extractMetadata(METADATA_KEY_BITS_PER_SAMPLE)));
+                    withOptionalValue(op, AudioColumns.SAMPLERATE,
+                            parseOptional(mmr.extractMetadata(METADATA_KEY_SAMPLERATE)));
+                }
             }
 
             // Also hunt around for XMP metadata
@@ -1299,7 +1432,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemPlaylist(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemPlaylist(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1313,7 +1446,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemSubtitle(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemSubtitle(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1322,7 +1455,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemDocument(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemDocument(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1331,7 +1464,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemVideo(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemVideo(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1380,7 +1513,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemImage(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemImage(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1421,7 +1554,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder scanItemFile(long existingId,
+    private @NonNull ContentProviderOperation.Builder scanItemFile(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
             String volumeName) {
         final ContentProviderOperation.Builder op = newUpsert(volumeName, existingId);
@@ -1430,7 +1563,7 @@ public class ModernMediaScanner implements MediaScanner {
         return op;
     }
 
-    private static @NonNull ContentProviderOperation.Builder newUpsert(
+    private @NonNull ContentProviderOperation.Builder newUpsert(
             @NonNull String volumeName, long existingId) {
         final Uri uri = MediaStore.Files.getContentUri(volumeName);
         if (existingId == -1) {
@@ -1447,7 +1580,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Pick the first present {@link Optional} value from the given list.
      */
     @SafeVarargs
-    private static @NonNull <T> Optional<T> firstPresent(@NonNull Optional<T>... options) {
+    private @NonNull <T> Optional<T> firstPresent(@NonNull Optional<T>... options) {
         for (Optional<T> option : options) {
             if (option.isPresent()) {
                 return option;
@@ -1457,7 +1590,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull <T> Optional<T> parseOptional(@Nullable T value) {
+    @NonNull <T> Optional<T> parseOptional(@Nullable T value) {
         if (value == null) {
             return Optional.empty();
         } else if (value instanceof String && ((String) value).length() == 0) {
@@ -1474,7 +1607,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
+    @NonNull <T> Optional<T> parseOptionalOrZero(@Nullable T value) {
         if (value instanceof String && isZero((String) value)) {
             return Optional.empty();
         } else if (value instanceof Number && ((Number) value).intValue() == 0) {
@@ -1485,7 +1618,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull Optional<Integer> parseOptionalNumerator(@Nullable String value) {
+    @NonNull Optional<Integer> parseOptionalNumerator(@Nullable String value) {
         final Optional<String> parsedValue = parseOptional(value);
         if (parsedValue.isPresent()) {
             value = parsedValue.get();
@@ -1509,7 +1642,7 @@ public class ModernMediaScanner implements MediaScanner {
      * information isn't directly available.
      */
     @VisibleForTesting
-    static @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
+    @NonNull Optional<Long> parseOptionalDateTaken(@NonNull ExifInterface exif,
             long lastModifiedTime) {
         final long originalTime = ExifUtils.getDateTimeOriginal(exif);
         if (exif.hasAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL)) {
@@ -1538,7 +1671,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
+    @NonNull Optional<Integer> parseOptionalOrientation(int orientation) {
         switch (orientation) {
             case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
             case ExifInterface.ORIENTATION_NORMAL: return Optional.of(0);
@@ -1553,23 +1686,21 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull Optional<String> parseOptionalVideoResolution(
-            @NonNull MediaMetadataRetriever mmr) {
+    @NonNull Optional<String> parseOptionalVideoResolution(@NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_HEIGHT));
         return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
-    static @NonNull Optional<String> parseOptionalImageResolution(
-            @NonNull MediaMetadataRetriever mmr) {
+    @NonNull Optional<String> parseOptionalImageResolution(@NonNull MediaMetadataRetriever mmr) {
         final Optional<?> width = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_WIDTH));
         final Optional<?> height = parseOptional(mmr.extractMetadata(METADATA_KEY_IMAGE_HEIGHT));
         return parseOptionalResolution(width, height);
     }
 
     @VisibleForTesting
-    static @NonNull Optional<String> parseOptionalResolution(
+    @NonNull Optional<String> parseOptionalResolution(
             @NonNull ExifInterface exif) {
         final Optional<?> width = parseOptionalOrZero(
                 exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH));
@@ -1578,7 +1709,7 @@ public class ModernMediaScanner implements MediaScanner {
         return parseOptionalResolution(width, height);
     }
 
-    private static @NonNull Optional<String> parseOptionalResolution(
+    private @NonNull Optional<String> parseOptionalResolution(
             @NonNull Optional<?> width, @NonNull Optional<?> height) {
         if (width.isPresent() && height.isPresent()) {
             return Optional.of(width.get() + "\u00d7" + height.get());
@@ -1587,7 +1718,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
+    @NonNull Optional<Long> parseOptionalDate(@Nullable String date) {
         if (TextUtils.isEmpty(date)) return Optional.empty();
         try {
             synchronized (S_DATE_FORMAT_WITH_MILLIS) {
@@ -1609,14 +1740,14 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
-    private static Optional<Long> parseDateWithFormat(
+    private Optional<Long> parseDateWithFormat(
             @Nullable String date, SimpleDateFormat dateFormat) throws ParseException {
         final long value = dateFormat.parse(date).getTime();
         return (value > 0) ? Optional.of(value) : Optional.empty();
     }
 
     @VisibleForTesting
-    static @NonNull Optional<Integer> parseOptionalYear(@Nullable String value) {
+    @NonNull Optional<Integer> parseOptionalYear(@Nullable String value) {
         final Optional<String> parsedValue = parseOptional(value);
         if (parsedValue.isPresent()) {
             final Matcher m = PATTERN_YEAR.matcher(parsedValue.get());
@@ -1631,7 +1762,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static @NonNull Optional<Integer> parseOptionalTrack(
+    @NonNull Optional<Integer> parseOptionalTrack(
             @NonNull MediaMetadataRetriever mmr) {
         final Optional<Integer> disc = parseOptionalNumerator(
                 mmr.extractMetadata(METADATA_KEY_DISC_NUMBER));
@@ -1649,7 +1780,7 @@ public class ModernMediaScanner implements MediaScanner {
      * refined metadata, but only when the top-level MIME type agrees.
      */
     @VisibleForTesting
-    static @NonNull Optional<String> parseOptionalMimeType(@NonNull String fileMimeType,
+    @NonNull Optional<String> parseOptionalMimeType(@NonNull String fileMimeType,
             @Nullable String refinedMimeType) {
         // Ignore when missing
         if (TextUtils.isEmpty(refinedMimeType)) return Optional.empty();
@@ -1670,7 +1801,7 @@ public class ModernMediaScanner implements MediaScanner {
      * from the given {@link BasicFileAttributes}, except in the case of
      * read-only partitions, where {@link Build#TIME} is used instead.
      */
-    public static long lastModifiedTime(@NonNull File file,
+    public long lastModifiedTime(@NonNull File file,
             @NonNull BasicFileAttributes attrs) {
         if (FileUtils.contains(Environment.getStorageDirectory(), file)) {
             return attrs.lastModifiedTime().toMillis() / 1000;
@@ -1683,7 +1814,7 @@ public class ModernMediaScanner implements MediaScanner {
      * Test if any parents of given path should be scanned and test if any parents of given
      * path should be considered hidden.
      */
-    static Pair<Boolean, Boolean> shouldScanPathAndIsPathHidden(@NonNull File dir) {
+    Pair<Boolean, Boolean> shouldScanPathAndIsPathHidden(@NonNull File dir) {
         Trace.beginSection("Scanner.shouldScanPathAndIsPathHidden");
         try {
             boolean isPathHidden = false;
@@ -1702,7 +1833,7 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static boolean shouldScanDirectory(@NonNull File dir) {
+    boolean shouldScanDirectory(@NonNull File dir) {
         if (isInARCMyFilesDownloadsDirectory(dir)) {
             // In ARC, skip files under MyFiles/Downloads since it's scanned under
             // /storage/emulated.
@@ -1733,7 +1864,7 @@ public class ModernMediaScanner implements MediaScanner {
         return true;
     }
 
-    private static boolean isInARCMyFilesDownloadsDirectory(@NonNull File file) {
+    private boolean isInARCMyFilesDownloadsDirectory(@NonNull File file) {
         return IS_ARC && file.toPath().startsWith(ARC_MYFILES_DOWNLOADS_PATH);
     }
 
@@ -1741,7 +1872,7 @@ public class ModernMediaScanner implements MediaScanner {
      * @return {@link FileColumns#MEDIA_TYPE}, resolved based on the file path and given
      * {@code mimeType}.
      */
-    private static int resolveMediaTypeFromFilePath(@NonNull File file, @NonNull String mimeType,
+    private int resolveMediaTypeFromFilePath(@NonNull File file, @NonNull String mimeType,
             boolean isHidden) {
         int mediaType = MimeUtils.resolveMediaType(mimeType);
 
@@ -1755,11 +1886,11 @@ public class ModernMediaScanner implements MediaScanner {
     }
 
     @VisibleForTesting
-    static boolean isFileAlbumArt(@NonNull File file) {
+    boolean isFileAlbumArt(@NonNull File file) {
         return PATTERN_ALBUM_ART.matcher(file.getName()).matches();
     }
 
-    static boolean isZero(@NonNull String value) {
+    boolean isZero(@NonNull String value) {
         if (value.length() == 0) {
             return false;
         }
@@ -1771,7 +1902,7 @@ public class ModernMediaScanner implements MediaScanner {
         return true;
     }
 
-    static void logTroubleScanning(@NonNull File file, @NonNull Exception e) {
+    void logTroubleScanning(@NonNull File file, @NonNull Exception e) {
         if (LOGW) Log.w(TAG, "Trouble scanning " + file, e);
     }
 }

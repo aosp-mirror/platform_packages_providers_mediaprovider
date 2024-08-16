@@ -23,6 +23,7 @@ import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStor
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaOwnerPackageName;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessOemMetadata;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
@@ -351,6 +352,7 @@ public class LocalCallingIdentity {
 
     public static final int PERMISSION_QUERY_ALL_PACKAGES = 1 << 28;
     public static final int PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME = 1 << 29;
+    public static final int PERMISSION_ACCESS_OEM_METADATA = 1 << 30;
 
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
@@ -436,6 +438,9 @@ public class LocalCallingIdentity {
             case PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME:
                 return checkPermissionAccessMediaOwnerPackageName(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_ACCESS_OEM_METADATA:
+                return checkPermissionAccessOemMetadata(context, pid, uid, getPackageName(),
+                        attributionTag);
             default:
                 return false;
         }
@@ -720,6 +725,14 @@ public class LocalCallingIdentity {
     public boolean checkCallingPermissionsOwnerPackageName() {
         return hasPermission(PERMISSION_QUERY_ALL_PACKAGES)
                 || hasPermission(PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME);
+    }
+
+    /**
+     * Returns {@code true} if this package has permission to access oem_metadata of any accessible
+     * file.
+     */
+    public boolean checkCallingPermissionOemMetadata() {
+        return hasPermission(PERMISSION_ACCESS_OEM_METADATA);
     }
 
     /**

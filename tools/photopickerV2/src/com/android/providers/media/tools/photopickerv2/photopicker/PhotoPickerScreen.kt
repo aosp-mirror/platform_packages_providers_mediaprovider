@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,9 +35,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,6 +59,7 @@ import com.android.providers.media.tools.photopickerv2.utils.ButtonComponent
 import com.android.providers.media.tools.photopickerv2.utils.DropdownList
 import com.android.providers.media.tools.photopickerv2.utils.ErrorMessage
 import com.android.providers.media.tools.photopickerv2.utils.LaunchLocation
+import com.android.providers.media.tools.photopickerv2.utils.MetaDataDetails
 import com.android.providers.media.tools.photopickerv2.utils.PhotoPickerTitle
 import com.android.providers.media.tools.photopickerv2.utils.SwitchComponent
 import com.android.providers.media.tools.photopickerv2.utils.TextFieldComponent
@@ -76,6 +78,9 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
     var isOrderSelectionEnabled by remember { mutableStateOf(false) }
     var allowMultiple by remember { mutableStateOf(false) }
     var isActionGetContentSelected by remember { mutableStateOf(false) }
+    var selectedLaunchTab by remember { mutableStateOf(LaunchLocation.PHOTOS_TAB.name) }
+    var accentColor by remember { mutableStateOf("#FF6200EE") } // default
+
 
     var allowCustomMimeType by remember { mutableStateOf(false) }
     var selectedMimeType by remember { mutableStateOf("") }
@@ -83,11 +88,10 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
 
     var showImagesOnly by remember { mutableStateOf(false) }
     var showVideosOnly by remember { mutableStateOf(false) }
-    var selectedLaunchTab by remember { mutableStateOf(LaunchLocation.PHOTOS_TAB.name) }
 
     // We can only take string as an input, not an int using OutlinedTextField
     var maxSelectionInput by remember { mutableStateOf("10") }
-    var maxMediaItemsDisplayed by remember { mutableStateOf(10) } // default items
+    var maxMediaItemsDisplayed by remember { mutableIntStateOf(10) } // default items
 
     var selectionErrorMessage by remember { mutableStateOf("") }
     var maxSelectionLimitError by remember { mutableStateOf("") }
@@ -95,15 +99,19 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
     // The Pick Images intent is selected by default
     var selectedButton by remember { mutableStateOf<Int?>(R.string.pick_images) }
 
+    // Meta Data Details
+    var showMetaData by remember { mutableStateOf(false) }
+
+    var isPreSelectionEnabled by remember { mutableStateOf(false) }
+
     // Color of PickImages and ACTION_GET_CONTENT button
-    val getContentColor = if (isActionGetContentSelected){
+    val getContentColor = if (isActionGetContentSelected) {
         ButtonDefaults.buttonColors()
     } else ButtonDefaults.buttonColors(Color.Gray)
 
     val pickImagesColor = if (!isActionGetContentSelected) {
         ButtonDefaults.buttonColors()
     } else ButtonDefaults.buttonColors(Color.Gray)
-
 
     // For handling the result of the photo picking activity
     val launcher = rememberLauncherForActivityResult(
@@ -142,7 +150,9 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
         allowMultiple = false
         showImagesOnly = false
         showVideosOnly = false
+        showMetaData = false
         selectedMimeType = ""
+        accentColor = "#FF6200EE"
         resetMedia(photoPickerViewModel)
         isOrderSelectionEnabled = false
         maxSelectionInput = "10" // resetting the max Selection limit to default
@@ -150,6 +160,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
         allowCustomMimeType = false
         customMimeTypeInput = ""
         selectedLaunchTab = LaunchLocation.PHOTOS_TAB.toString()
+        isPreSelectionEnabled = false
     }
 
     Column(
@@ -182,7 +193,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
             )
 
             // ACTION_GET_CONTENT will only support "images/*" and "videos/*"
-            // in the Photo picker tab
+            // in the PhotoPicker tab
             ButtonComponent(
                 label = stringResource(id = R.string.action_get_content),
                 onClick = {
@@ -197,16 +208,15 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
         }
 
         if (!isActionGetContentSelected) {
-            // Display Images in Order
+            // Display Order of Selection
             SwitchComponent(
-                label = stringResource(id = R.string.display_images_in_order),
+                label = stringResource(id = R.string.display_order_of_selection),
                 checked = isOrderSelectionEnabled,
                 onCheckedChange = { isOrderSelectionEnabled = it }
             )
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
-        if (!allowCustomMimeType || isActionGetContentSelected){
+        if (!allowCustomMimeType || isActionGetContentSelected) {
             // SHOW ONLY IMAGES OR VIDEOS
             Row(
                 modifier = Modifier
@@ -214,7 +224,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                     .padding(vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column (modifier = Modifier.weight(1f)){
+                Column(modifier = Modifier.weight(1f)) {
                     SwitchComponent(
                         label = stringResource(R.string.show_images_only),
                         checked = showImagesOnly,
@@ -224,7 +234,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                                 showVideosOnly = false
                                 selectedMimeType = "image/*"
                             } else if (!showImagesOnly && !showVideosOnly) {
-                                selectedMimeType = "*/*"
+                                selectedMimeType = ""
                             }
                         }
                     )
@@ -232,7 +242,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                Column (modifier = Modifier.weight(1f)){
+                Column(modifier = Modifier.weight(1f)) {
                     SwitchComponent(
                         label = stringResource(R.string.show_videos_only),
                         checked = showVideosOnly,
@@ -242,7 +252,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                                 showImagesOnly = false
                                 selectedMimeType = "video/*"
                             } else if (!showImagesOnly && !showVideosOnly) {
-                                selectedMimeType = "*/*"
+                                selectedMimeType = ""
                             }
                         }
                     )
@@ -250,7 +260,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
             }
         }
 
-        if (!isActionGetContentSelected){
+        if (!isActionGetContentSelected) {
             // Allow Custom Mime Type
             SwitchComponent(
                 label = stringResource(id = R.string.allow_custom_mime_type),
@@ -260,22 +270,15 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                 }
             )
 
-            if (allowCustomMimeType){
+            if (allowCustomMimeType) {
                 TextFieldComponent(
                     // Custom Mime Type Input
                     value = customMimeTypeInput,
                     onValueChange = { customMimeType ->
                         customMimeTypeInput = customMimeType
                     },
-                    label = stringResource(id = R.string.select_mime_type)
+                    label = stringResource(id = R.string.enter_mime_type)
                 )
-            }
-
-            // To toggle show images only and show videos only switches
-            if (showImagesOnly) {
-                showVideosOnly = false
-            } else if (showVideosOnly) {
-                showImagesOnly = false
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -283,10 +286,30 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
             // Launch Tab
             DropdownList(
                 label = stringResource(id = R.string.select_launch_tab),
-                options = LaunchLocation.values().map { it.name },
+                options = LaunchLocation.entries.map { it.name },
                 selectedOption = selectedLaunchTab,
                 onOptionSelected = { selectedLaunchTab = it },
                 enabled = true
+            )
+        }
+
+        if (!isActionGetContentSelected){
+            // Accent Color
+            TextFieldComponent(
+                value = accentColor,
+                onValueChange = { color ->
+                    accentColor = color
+                },
+                label = "Accent Color"
+            )
+        }
+
+        if (!isActionGetContentSelected) {
+            // Switch for enabling pre-selection
+            SwitchComponent(
+                label = stringResource(R.string.enable_preselection),
+                checked = isPreSelectionEnabled,
+                onCheckedChange = { isPreSelectionEnabled = it }
             )
         }
 
@@ -328,7 +351,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
         ButtonComponent(
             label = stringResource(R.string.pick_media),
             onClick = {
-                // Resetting the maxSelection input box when allowMultiple is deselected
+                // Resetting the maxSelection input box when allowMultiple is unselected
                 if (!allowMultiple) {
                     maxSelectionLimitError = ""
                     selectionErrorMessage = ""
@@ -336,7 +359,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                     maxMediaItemsDisplayed = 10
                 }
 
-                // Resetting the custom Mime Type Box when allowCustomMimeType is deselected
+                // Resetting the custom Mime Type Box when allowCustomMimeType is unselected
                 if (!allowCustomMimeType) {
                     customMimeTypeInput = ""
                 }
@@ -350,6 +373,8 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                     customMimeTypeInput = customMimeTypeInput,
                     isOrderSelectionEnabled = isOrderSelectionEnabled,
                     selectedLaunchTab = LaunchLocation.valueOf(selectedLaunchTab),
+                    accentColor = accentColor,
+                    isPreSelectionEnabled = isPreSelectionEnabled,
                     launcher = launcher::launch
                 )
                 if (errorMessage != null) {
@@ -368,8 +393,23 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column{
+        Column {
+            // Switch for showing meta data
+            SwitchComponent(
+                label = stringResource(R.string.show_metadata),
+                checked = showMetaData,
+                onCheckedChange = { showMetaData = it }
+            )
+
             resultMedia.forEach { uri ->
+                if (showMetaData) {
+                    MetaDataDetails(
+                        uri = uri,
+                        contentResolver = context.contentResolver,
+                        showMetaData = showMetaData,
+                        inDocsUITab = false
+                    )
+                }
                 if (isImage(context, uri)) {
                     // To display image
                     GlideImage(
@@ -377,7 +417,7 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxSize()
+                            .height(600.dp)
                             .padding(top = 8.dp)
                     )
                 } else {
@@ -391,12 +431,14 @@ fun PhotoPickerScreen(photoPickerViewModel: PhotoPickerViewModel = viewModel()) 
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(600.dp)
                             .padding(top = 8.dp)
                     )
                 }
+                Spacer(modifier = Modifier.height(20.dp))
+                HorizontalDivider(thickness = 6.dp)
+                Spacer(modifier = Modifier.height(17.dp))
             }
         }
     }
 }
-

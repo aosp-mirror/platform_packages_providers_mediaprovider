@@ -16,6 +16,7 @@
 
 package com.android.photopicker.data
 
+import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
 import com.android.photopicker.data.model.CollectionInfo
@@ -40,6 +41,12 @@ interface DataService {
 
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
+
+    /** Count of all preGranted media for the current package and userID. */
+    val preGrantedMediaCount: StateFlow<Int?>
+
+    /** Data for preSelection media */
+    val preSelectionMediaData: StateFlow<List<Media>?>
 
     /**
      * A [Channel] that emits a [Unit] when a disruptive data change is observed in the backend. The
@@ -105,4 +112,10 @@ interface DataService {
      * @return The [CollectionInfo] of the given [Provider].
      */
     suspend fun getCollectionInfo(provider: Provider): CollectionInfo
+
+    /** Refreshes the [preGrantedMediaCount] with the latest value in the data source. */
+    fun refreshPreGrantedItemsCount()
+
+    /** Refreshes the [preSelectionMediaData] with the latest value as per the input URIs. */
+    fun fetchMediaDataForUris(uris: List<Uri>)
 }

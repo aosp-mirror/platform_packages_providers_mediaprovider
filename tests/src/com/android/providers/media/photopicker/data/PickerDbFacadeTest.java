@@ -43,13 +43,17 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.MPE
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.PNG_IMAGE_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.SIZE_BYTES;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.STANDARD_MIME_TYPE_EXTENSION;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.TEST_PACKAGE_NAME;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.VIDEO_MIME_TYPES_QUERY;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.WEBM_VIDEO_MIME_TYPE;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddAlbumMediaOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAddMediaOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertAllMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertClearGrantsOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertCloudAlbumCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertCloudMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertGrantsCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertInsertGrantsOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertMediaStoreCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertRemoveMediaOperation;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.assertResetAlbumMediaOperation;
@@ -60,7 +64,9 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.get
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getDeletedMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaGrantsCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.queryAlbumMedia;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.queryGrants;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.queryMediaAll;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -72,6 +78,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteQueryBuilder;
+import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.Column;
 import android.provider.ExportedSince;
@@ -80,6 +88,7 @@ import android.provider.MediaStore.PickerMediaColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.android.providers.media.MediaGrants;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.ProjectionHelper;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
@@ -339,6 +348,55 @@ public class PickerDbFacadeTest {
             cr.moveToFirst();
             assertCloudMediaCursor(cr, CLOUD_ID, DATE_TAKEN_MS + 2);
         }
+    }
+
+    @Test
+    public void testAddAndClearGrants() {
+        Cursor cursor1 = getMediaGrantsCursor(LOCAL_ID);
+
+        // insert a grants.
+        assertInsertGrantsOperation(mFacade, cursor1, 1);
+        // verify the grants is present in the database.
+        try (Cursor cr = queryGrants(mFacade)) {
+            assertWithMessage(
+                    "Unexpected number of grants ")
+                    .that(cr.getCount()).isEqualTo(1);
+            cr.moveToFirst();
+            assertGrantsCursor(cr, LOCAL_ID);
+        }
+
+        // clear all grants.
+        assertClearGrantsOperation(mFacade, 1, new String[]{TEST_PACKAGE_NAME},
+                UserHandle.myUserId());
+        // verify that the grants have been cleared.
+        try (Cursor cr = queryGrants(mFacade)) {
+            assertWithMessage(
+                    "Unexpected number of grants ")
+                    .that(cr.getCount()).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testAddWhereClausesForMediaGrantsTable() {
+        // set up
+        SQLiteQueryBuilder sqb = new SQLiteQueryBuilder();
+        int testUserId = 1;
+        String[] testPackageNames = {"com.test.example"};
+
+        // adding where clause
+        PickerDbFacade.addWhereClausesForMediaGrantsTable(sqb, testUserId, testPackageNames);
+
+        // verify where clauses have been added to the query.
+        String resultQuery = sqb.buildQuery(null, null, null, null, null, null);
+
+        assertWithMessage("Query should contain clause for userId.").that(
+                resultQuery.contains(String.format("%s = %d", MediaGrants.PACKAGE_USER_ID_COLUMN,
+                        testUserId))).isEqualTo(true);
+        assertWithMessage("Query should contain clause for packageNames.")
+                .that(resultQuery.contains(String.format("%s IN (\"%s\")",
+                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                        testPackageNames[0]))).isEqualTo(
+                        true);
     }
 
     @Test

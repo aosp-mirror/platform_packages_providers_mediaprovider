@@ -55,6 +55,7 @@ import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_MEDIA_STANDARD_SORT_ORDER;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -3766,6 +3767,14 @@ public class MediaProvider extends ContentProvider {
 
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
+
+        // In case of QUERY_ARG_MEDIA_STANDARD_SORT_ORDER
+        // disregard existing sort order and sort by INFERRED_DATE
+        if (Flags.inferredMediaDate() &&
+                queryArgs.containsKey(QUERY_ARG_MEDIA_STANDARD_SORT_ORDER)) {
+            queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER,
+                    MediaColumns.INFERRED_DATE + " DESC");
+        }
 
         Uri redactedUri = null;
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.

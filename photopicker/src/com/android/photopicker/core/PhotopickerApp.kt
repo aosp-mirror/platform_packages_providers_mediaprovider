@@ -17,6 +17,7 @@
 package com.android.photopicker.core
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -107,6 +108,19 @@ fun PhotopickerAppWithBottomSheet(
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
+
+    // Attach a BackHandler above the BottomSheet & PhotopickerNavGraph composables.
+    // The NavHost composable attaches its own BackHandler (below this one) which will become
+    // disabled when the backstack size is zero. At that point, Back navigation will reach this
+    // handler.
+    BackHandler(true) {
+        // First try to pop the Backstack, but if that does not result in navigation, the user
+        // is at the startDestination with no further location to go back to, so then we should
+        // dismiss the Photopicker session.
+        if (!navController.popBackStack()) {
+            onDismissRequest()
+        }
+    }
 
     val state =
         rememberBottomSheetScaffoldState(

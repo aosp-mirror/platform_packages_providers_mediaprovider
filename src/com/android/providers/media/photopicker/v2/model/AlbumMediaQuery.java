@@ -49,6 +49,9 @@ public class AlbumMediaQuery extends MediaQuery {
         // IS_VISIBLE column is not present in album_media table, so we should not add a where
         // clause that filters on this value.
         mShouldDedupe = false;
+
+        // This is not required for album media query.
+        mShouldPopulateItemsBeforeCount = false;
     }
 
     @NonNull

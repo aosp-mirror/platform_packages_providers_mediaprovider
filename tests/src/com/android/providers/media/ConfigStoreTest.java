@@ -32,6 +32,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 /**
@@ -50,6 +51,12 @@ public class ConfigStoreTest {
         @Override
         public List<String> getTranscodeCompatStale() {
             return null;
+        }
+
+        @NonNull
+        @Override
+        public Optional<String> getDefaultOemMetadataServicePackage() {
+            return Optional.empty();
         }
 
         @Override
@@ -78,6 +85,7 @@ public class ConfigStoreTest {
         assertFalse(mConfigStore.shouldTranscodeDefault());
         assertTrue(mConfigStore.isPrivateSpaceInPhotoPickerEnabled());
         assertFalse(mConfigStore.isModernPickerEnabled());
+        assertTrue(mConfigStore.getDefaultOemMetadataServicePackage().isEmpty());
     }
 
     @Test

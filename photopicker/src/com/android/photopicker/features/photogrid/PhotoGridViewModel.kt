@@ -16,13 +16,16 @@
 
 package com.android.photopicker.features.photogrid
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.Telemetry
@@ -36,6 +39,7 @@ import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /**
@@ -55,6 +59,10 @@ constructor(
     private val events: Events,
     private val bannerManager: BannerManager,
 ) : ViewModel() {
+
+    companion object {
+        val TAG: String = "PhotoGridViewModel"
+    }
 
     // Check if a scope override was injected before using the default [viewModelScope]
     private val scope: CoroutineScope =
@@ -92,15 +100,55 @@ constructor(
             dataService.mediaPagingSource()
         }
 
-    /** Export the data from the pager and prepare it for use in the [MediaGrid] */
-    val data =
-        pager.flow
-            .toMediaGridItemFromMedia()
-            .insertMonthSeparators()
-            // After the load and transformations, cache the data in the viewModelScope.
-            // This ensures that the list position and state will be remembered by the MediaGrid
-            // when navigating back to the PhotoGrid route.
-            .cachedIn(scope)
+    /**
+     * If initialized, it contains a cold flow of [PagingData] that can be displayed on the
+     * [PhotoGrid]. Otherwise, this points to null. See [getData] for initializing this flow.
+     */
+    private var _data: Flow<PagingData<MediaGridItem>>? = null
+
+    /**
+     * If initialized, it contains the last known recent section's cell count. The count can change
+     * when the [MainActivity] or the [PhotoGrid] is recreated. See [getData] for initializing this
+     * flow.
+     */
+    private var _recentsCellCount: Int? = null
+
+    /**
+     * Export paging data from the pager and prepare it for use in the [MediaGrid]. Also cache the
+     * [_data] and [_recentsCellCount] for reuse if the activity gets recreated.
+     */
+    fun getData(recentsCellCount: Int): Flow<PagingData<MediaGridItem>> {
+        return if (
+            _recentsCellCount != null && _recentsCellCount!! == recentsCellCount && _data != null
+        ) {
+            Log.d(
+                TAG,
+                "Media grid data flow is already initialized with the correct recents " +
+                    "cell count: " +
+                    recentsCellCount
+            )
+            _data!!
+        } else {
+            Log.d(
+                TAG,
+                "Media grid data flow is not initialized with the correct recents " +
+                    "cell count" +
+                    recentsCellCount
+            )
+            _recentsCellCount = recentsCellCount
+            val data: Flow<PagingData<MediaGridItem>> =
+                pager.flow
+                    .toMediaGridItemFromMedia()
+                    .insertMonthSeparators(recentsCellCount)
+                    // After the load and transformations, cache the data in the viewModelScope.
+                    // This ensures that the list position and state will be remembered by the
+                    // MediaGrid
+                    // when navigating back to the PhotoGrid route.
+                    .cachedIn(scope)
+            _data = data
+            data
+        }
+    }
 
     /** Export the [Banner] flow from BannerManager to the UI */
     val banners = bannerManager.flow

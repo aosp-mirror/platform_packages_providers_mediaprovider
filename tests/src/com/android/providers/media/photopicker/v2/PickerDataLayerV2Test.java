@@ -1885,6 +1885,11 @@ public class PickerDataLayerV2Test {
                     .that(cr.getExtras().getLong(PickerSQLConstants.MediaResponseExtras
                             .NEXT_PAGE_ID.getKey(), Long.MIN_VALUE))
                     .isEqualTo(2);
+
+            assertWithMessage("Unexpected value of items before count in the media cursor.")
+                    .that(cr.getExtras().getInt(PickerSQLConstants.MediaResponseExtras
+                            .ITEMS_BEFORE_COUNT.getKey(), Integer.MIN_VALUE))
+                    .isEqualTo(0);
         }
     }
 
@@ -1940,6 +1945,11 @@ public class PickerDataLayerV2Test {
                     .that(cr.getExtras().getLong(PickerSQLConstants.MediaResponseExtras
                             .NEXT_PAGE_ID.getKey(), Long.MIN_VALUE))
                     .isEqualTo(Long.MIN_VALUE);
+
+            assertWithMessage("Unexpected value of items before count in the media cursor.")
+                    .that(cr.getExtras().getInt(PickerSQLConstants.MediaResponseExtras
+                            .ITEMS_BEFORE_COUNT.getKey(), Integer.MIN_VALUE))
+                    .isEqualTo(3);
         }
     }
 
@@ -1999,6 +2009,11 @@ public class PickerDataLayerV2Test {
                     .that(cr.getExtras().getLong(PickerSQLConstants.MediaResponseExtras
                             .NEXT_PAGE_ID.getKey(), Long.MIN_VALUE))
                     .isEqualTo(Long.MIN_VALUE);
+
+            assertWithMessage("Unexpected value of items before count in the media cursor.")
+                    .that(cr.getExtras().getInt(PickerSQLConstants.MediaResponseExtras
+                            .ITEMS_BEFORE_COUNT.getKey(), Integer.MIN_VALUE))
+                    .isEqualTo(2);
         }
     }
 
@@ -2054,6 +2069,11 @@ public class PickerDataLayerV2Test {
             assertWithMessage("Unexpected value of next picker id in the media cursor.")
                     .that(cr.getExtras().getLong("next_page_picker_id", Long.MIN_VALUE))
                     .isEqualTo(1);
+
+            assertWithMessage("Unexpected value of items before count in the media cursor.")
+                    .that(cr.getExtras().getInt(PickerSQLConstants.MediaResponseExtras
+                            .ITEMS_BEFORE_COUNT.getKey(), Integer.MIN_VALUE))
+                    .isEqualTo(2);
         }
     }
 

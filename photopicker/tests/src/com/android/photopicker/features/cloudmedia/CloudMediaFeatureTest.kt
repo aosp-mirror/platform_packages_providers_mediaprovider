@@ -46,6 +46,13 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.banners.BannerStateDao
 import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.DeviceConfigProxy
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_FEATURE_ENABLED
+import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST
+import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
+import com.android.photopicker.core.configuration.PhotopickerFlags
+import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
 import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
@@ -128,10 +135,11 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Lazy<Events>
     @Inject lateinit var dataService: Lazy<DataService>
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
+    @Inject lateinit var deviceConfig: DeviceConfigProxy
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
@@ -155,11 +163,34 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
         MockitoAnnotations.initMocks(this)
         hiltRule.inject()
 
-        configurationManager.setCaller(
-            callingPackage = "com.android.test.package",
-            callingPackageUid = 12345,
-            callingPackageLabel = "Test Package",
+        val testDeviceConfigProxy =
+            checkNotNull(deviceConfig as? TestDeviceConfigProxyImpl) {
+                "Expected a TestDeviceConfigProxy"
+            }
+
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.first,
+            true
         )
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.first,
+            true
+        )
+        testDeviceConfigProxy.setFlag(
+            NAMESPACE_MEDIAPROVIDER,
+            FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+            "com.android.test.cloudpicker"
+        )
+
+        configurationManager
+            .get()
+            .setCaller(
+                callingPackage = "com.android.test.package",
+                callingPackageUid = 12345,
+                callingPackageLabel = "Test Package",
+            )
         // Stub for MockContentResolver constructor
         whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
 
@@ -169,107 +200,153 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testCloudMediaEnabledInConfigurations() {
         assertWithMessage("CloudMediaFeature is not always enabled (ACTION_PICK_IMAGES)")
-            .that(CloudMediaFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    testActionPickImagesConfiguration.copy(
+                        flags =
+                            PhotopickerFlags(
+                                CLOUD_MEDIA_ENABLED = true,
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                            )
+                    )
+                )
+            )
             .isEqualTo(true)
+
+        assertWithMessage("CloudMediaFeature is enabled with invalid flags (ACTION_PICK_IMAGES)")
+            .that(CloudMediaFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .isEqualTo(false)
 
         assertWithMessage("CloudMediaFeature is not always enabled (ACTION_GET_CONTENT)")
-            .that(CloudMediaFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    testGetContentConfiguration.copy(
+                        flags =
+                            PhotopickerFlags(
+                                CLOUD_MEDIA_ENABLED = true,
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                            )
+                    )
+                )
+            )
             .isEqualTo(true)
 
-        assertWithMessage("CloudMediaFeature is not always enabled (USER_SELECT_FOR_APP)")
+        assertWithMessage("CloudMediaFeature is enabled with invalid flags (ACTION_GET_CONTENT)")
+            .that(CloudMediaFeature.Registration.isEnabled(testGetContentConfiguration))
+            .isEqualTo(false)
+
+        assertWithMessage("CloudMediaFeature is not always disabled (USER_SELECT_FOR_APP)")
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration.copy(
+                        flags =
+                            PhotopickerFlags(
+                                CLOUD_MEDIA_ENABLED = true,
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                            )
+                    )
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage(
+                "CloudMediaFeature is not always disabled (default flags) (USER_SELECT_FOR_APP)"
+            )
             .that(CloudMediaFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
             .isEqualTo(false)
     }
 
     @Test
-    fun testCloudMediaOverflowMenuItemIsDisplayed() = runTest {
-        composeTestRule.setContent {
-            callPhotopickerMain(
-                featureManager = featureManager.get(),
-                selection = selection.get(),
-                events = events.get(),
-            )
+    fun testCloudMediaOverflowMenuItemIsDisplayed() =
+        testScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager.get(),
+                    selection = selection.get(),
+                    events = events.get(),
+                )
+            }
+
+            assertWithMessage("OverflowMenuFeature is not enabled")
+                .that(featureManager.get().isFeatureEnabled(OverflowMenuFeature::class.java))
+                .isTrue()
+
+            composeTestRule
+                .onNode(
+                    hasContentDescription(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_overflow_menu_description)
+                    )
+                )
+                .performClick()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_overflow_cloud_media_app)
+                    )
+                )
+                .assertIsDisplayed()
         }
-
-        assertWithMessage("OverflowMenuFeature is not enabled")
-            .that(featureManager.get().isFeatureEnabled(OverflowMenuFeature::class.java))
-            .isTrue()
-
-        composeTestRule
-            .onNode(
-                hasContentDescription(
-                    getTestableContext()
-                        .getResources()
-                        .getString(R.string.photopicker_overflow_menu_description)
-                )
-            )
-            .performClick()
-
-        composeTestRule
-            .onNode(
-                hasText(
-                    getTestableContext()
-                        .getResources()
-                        .getString(R.string.photopicker_overflow_cloud_media_app)
-                )
-            )
-            .assertIsDisplayed()
-    }
 
     @Test
-    fun testCloudMediaOverflowMenuItemLaunchesCloudSettings() = runTest {
+    fun testCloudMediaOverflowMenuItemLaunchesCloudSettings() =
+        testScope.runTest {
 
-        // Setup an intentFilter that matches the settings action
-        val intentFilter =
-            IntentFilter().apply { addAction(MediaStore.ACTION_PICK_IMAGES_SETTINGS) }
+            // Setup an intentFilter that matches the settings action
+            val intentFilter =
+                IntentFilter().apply { addAction(MediaStore.ACTION_PICK_IMAGES_SETTINGS) }
 
-        // Setup an activityMonitor to catch any launched intents to settings
-        val activityMonitor =
-            ActivityMonitor(
-                intentFilter,
-                /* result= */ null,
-                /* block= */ true,
-            )
-        InstrumentationRegistry.getInstrumentation().addMonitor(activityMonitor)
+            // Setup an activityMonitor to catch any launched intents to settings
+            val activityMonitor =
+                ActivityMonitor(
+                    intentFilter,
+                    /* result= */ null,
+                    /* block= */ true,
+                )
+            InstrumentationRegistry.getInstrumentation().addMonitor(activityMonitor)
 
-        composeTestRule.setContent {
-            callPhotopickerMain(
-                featureManager = featureManager.get(),
-                selection = selection.get(),
-                events = events.get(),
-            )
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager.get(),
+                    selection = selection.get(),
+                    events = events.get(),
+                )
+            }
+
+            assertWithMessage("OverflowMenuFeature is not enabled")
+                .that(featureManager.get().isFeatureEnabled(OverflowMenuFeature::class.java))
+                .isTrue()
+
+            composeTestRule
+                .onNode(
+                    hasContentDescription(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_overflow_menu_description)
+                    )
+                )
+                .performClick()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        getTestableContext()
+                            .getResources()
+                            .getString(R.string.photopicker_overflow_cloud_media_app)
+                    )
+                )
+                .assertIsDisplayed()
+                .performClick()
+
+            activityMonitor.waitForActivityWithTimeout(5000L)
+            assertWithMessage("Settings activity wasn't launched")
+                .that(activityMonitor.getHits())
+                .isEqualTo(1)
         }
-
-        assertWithMessage("OverflowMenuFeature is not enabled")
-            .that(featureManager.get().isFeatureEnabled(OverflowMenuFeature::class.java))
-            .isTrue()
-
-        composeTestRule
-            .onNode(
-                hasContentDescription(
-                    getTestableContext()
-                        .getResources()
-                        .getString(R.string.photopicker_overflow_menu_description)
-                )
-            )
-            .performClick()
-
-        composeTestRule
-            .onNode(
-                hasText(
-                    getTestableContext()
-                        .getResources()
-                        .getString(R.string.photopicker_overflow_cloud_media_app)
-                )
-            )
-            .assertIsDisplayed()
-            .performClick()
-
-        activityMonitor.waitForActivityWithTimeout(5000L)
-        assertWithMessage("Settings activity wasn't launched")
-            .that(activityMonitor.getHits())
-            .isEqualTo(1)
-    }
 
     @Test
     fun testCloudMediaAvailableBanner() =

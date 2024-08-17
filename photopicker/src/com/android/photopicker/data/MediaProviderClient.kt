@@ -32,6 +32,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import java.lang.IllegalArgumentException
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -105,6 +106,7 @@ open class MediaProviderClient {
         PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
         NEXT_PAGE_ID("next_page_picker_id"),
         NEXT_PAGE_DATE_TAKEN("next_page_date_taken"),
+        ITEMS_BEFORE_COUNT("items_before_count"),
     }
 
     /** Contains all optional and mandatory keys for data in the Media query response. */
@@ -197,7 +199,9 @@ open class MediaProviderClient {
                         LoadResult.Page(
                             data = cursor.getListOfMedia(),
                             prevKey = cursor.getPrevPageKey(),
-                            nextKey = cursor.getNextPageKey()
+                            nextKey = cursor.getNextPageKey(),
+                            itemsBefore =
+                                cursor.getItemsBeforeCount() ?: LoadResult.Page.COUNT_UNDEFINED,
                         )
                     }
                         ?: throw IllegalStateException(
@@ -593,10 +597,13 @@ open class MediaProviderClient {
      */
     private fun Cursor.getListOfMedia(): List<Media> {
         val result: MutableList<Media> = mutableListOf<Media>()
+        val itemsBeforeCount: Int? = getItemsBeforeCount()
+        var indexCounter: Int? = itemsBeforeCount
         if (this.moveToFirst()) {
             do {
                 val mediaId: String = getString(getColumnIndexOrThrow(MediaResponse.MEDIA_ID.key))
                 val pickerId: Long = getLong(getColumnIndexOrThrow(MediaResponse.PICKER_ID.key))
+                val index: Int? = indexCounter?.let { ++indexCounter }
                 val authority: String =
                     getString(getColumnIndexOrThrow(MediaResponse.AUTHORITY.key))
                 val mediaSource: MediaSource =
@@ -620,6 +627,7 @@ open class MediaProviderClient {
                         Media.Image(
                             mediaId = mediaId,
                             pickerId = pickerId,
+                            index = index,
                             authority = authority,
                             mediaSource = mediaSource,
                             mediaUri = mediaUri,
@@ -636,6 +644,7 @@ open class MediaProviderClient {
                         Media.Video(
                             mediaId = mediaId,
                             pickerId = pickerId,
+                            index = index,
                             authority = authority,
                             mediaSource = mediaSource,
                             mediaUri = mediaUri,
@@ -685,6 +694,17 @@ open class MediaProviderClient {
         } else {
             MediaPageKey(pickerId = id, dateTakenMillis = date)
         }
+    }
+
+    /**
+     * Extracts the before items count from the given [Cursor]. In case the cursor does not contain
+     * this value, return null.
+     */
+    private fun Cursor.getItemsBeforeCount(): Int? {
+        val defaultValue = -1
+        val itemsBeforeCount: Int =
+            extras.getInt(MediaResponseExtras.ITEMS_BEFORE_COUNT.key, defaultValue)
+        return if (defaultValue == itemsBeforeCount) null else itemsBeforeCount
     }
 
     /** Creates a list of [Group.Album]-s from the given [Cursor]. */

@@ -19,32 +19,51 @@ package android.provider;
 import android.annotation.RequiresApi;
 import android.content.res.Configuration;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
+import androidx.annotation.NonNull;
+
 /**
- * Wrapper class to {@link EmbeddedPhotopickerSession} for internal use that helps with IPC between
- * caller of {@link EmbeddedPhotopickerProvider#openSession} api and service inside PhotoPicker apk.
+ * Wrapper class to {@link EmbeddedPhotoPickerSession} for internal use that helps with IPC between
+ * caller of {@link EmbeddedPhotoPickerProvider#openSession} api and service inside PhotoPicker apk.
  *
- * <p> This class implements the {@link EmbeddedPhotopickerSession} interface to convert incoming
- * calls on to it from app and send it to the service. It uses {@link IEmbeddedPhotopickerSession}
+ * <p> This class implements the {@link EmbeddedPhotoPickerSession} interface to convert incoming
+ * calls on to it from app and send it to the service. It uses {@link IEmbeddedPhotoPickerSession}
  * as the delegate
  *
- * @see EmbeddedPhotopickerSession
+ * @see EmbeddedPhotoPickerSession
  *
  * @hide
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-class EmbeddedSessionWrapper implements EmbeddedPhotopickerSession {
-    private final EmbeddedPhotopickerProviderFactory mProvider;
-    private final EmbeddedPhotopickerSessionResponse mSessionResponse;
-    private final IEmbeddedPhotopickerSession mSession;
-    private static final String TAG = "EmbeddedSessionWrapper";
-    EmbeddedSessionWrapper(EmbeddedPhotopickerProviderFactory provider,
-            EmbeddedPhotopickerSessionResponse mSessionResponse) {
+class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
+        IBinder.DeathRecipient {
+    private final EmbeddedPhotoPickerProviderFactory mProvider;
+    private final EmbeddedPhotoPickerSessionResponse mSessionResponse;
+    private final IEmbeddedPhotoPickerSession mSession;
+    private final EmbeddedPhotoPickerClient mClient;
+    private final EmbeddedPhotoPickerClientWrapper mClientWrapper;
+
+    EmbeddedPhotoPickerSessionWrapper(EmbeddedPhotoPickerProviderFactory provider,
+            EmbeddedPhotoPickerSessionResponse mSessionResponse, EmbeddedPhotoPickerClient mClient,
+            EmbeddedPhotoPickerClientWrapper clientWrapper) {
         this.mProvider = provider;
         this.mSessionResponse = mSessionResponse;
         this.mSession = mSessionResponse.getSession();
+        this.mClient = mClient;
+        this.mClientWrapper = clientWrapper;
+
+        linkDeathRecipient();
+    }
+
+    private void linkDeathRecipient() {
+        try {
+            mSession.asBinder().linkToDeath(this, 0 /* flags*/);
+        } catch (RemoteException e) {
+            this.binderDied(mSession.asBinder());
+        }
     }
 
     @Override
@@ -54,7 +73,7 @@ class EmbeddedSessionWrapper implements EmbeddedPhotopickerSession {
 
     @Override
     public void close() {
-        mProvider.onSessionClosed();
+        mProvider.onSessionClosed(mClient);
         try {
             mSession.close();
         } catch (RemoteException e) {
@@ -89,11 +108,25 @@ class EmbeddedSessionWrapper implements EmbeddedPhotopickerSession {
     }
 
     @Override
-    public void notifyPhotopickerExpanded(boolean isExpanded) {
+    public void notifyPhotoPickerExpanded(boolean isExpanded) {
         try {
             mSession.notifyPhotopickerExpanded(isExpanded);
         } catch (RemoteException e) {
             e.rethrowAsRuntimeException();
+        }
+    }
+
+    @Override
+    public void binderDied() {
+        // Overridden by binderDied(IBinder who)
+    }
+
+    @Override
+    public void binderDied(@NonNull IBinder who) {
+        if (mSession.asBinder().equals(who)) {
+            mClientWrapper.onSessionError(new ParcelableException(
+                    new RuntimeException("Binder object hosting this session has died. "
+                            + "Clean up resources.")));
         }
     }
 }

@@ -54,6 +54,7 @@ import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -124,7 +125,7 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     @Before
     fun setup() {

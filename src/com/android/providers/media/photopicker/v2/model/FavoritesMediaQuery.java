@@ -43,6 +43,9 @@ public class FavoritesMediaQuery extends MediaQuery {
 
     public FavoritesMediaQuery(@NonNull Bundle queryArgs) {
         super(queryArgs);
+
+        // This is not required for favorites album media query.
+        mShouldPopulateItemsBeforeCount = false;
     }
 
     @Override

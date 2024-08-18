@@ -20,18 +20,23 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.Process
 import android.os.UserManager
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.IEmbeddedPhotopickerClient
+import android.provider.EmbeddedPhotoPickerFeatureInfo
+import android.provider.IEmbeddedPhotoPickerClient
 import android.test.mock.MockContentResolver
 import android.view.SurfaceView
 import android.view.WindowManager
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -39,7 +44,9 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.test.filters.SdkSuppress
@@ -73,6 +80,7 @@ import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
@@ -119,6 +127,7 @@ import org.mockito.MockitoAnnotations
 class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
+
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
@@ -154,7 +163,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var dataService: DataService
     @Inject lateinit var embeddedLifecycle: EmbeddedLifecycle
 
@@ -164,11 +173,11 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
     @Captor lateinit var uriCaptor3: ArgumentCaptor<Uri>
 
-    @Mock lateinit var mockClient: IEmbeddedPhotopickerClient.Stub
-
     private lateinit var mockTextContextWrapper: FakeTestContextWrapper
 
-    private val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().build()
+    @Mock lateinit var mockClient: IEmbeddedPhotoPickerClient
+
+    val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
 
     // Session has a surfacePackage which outlives the test if not closed, so it always needs to be
     // closed at the end of each test to prevent any existing UI activity from leaking into the next
@@ -496,7 +505,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -526,7 +535,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // revoked permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemDeselected(uri)
+                verify(mockClient, times(1)).onItemsDeselected(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -555,7 +564,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
         }
 
@@ -623,9 +632,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             for (uri in expectedUris) {
                 if (uri == grantFailureUri) continue
-                verify(mockClient, times(1)).onItemSelected(uri)
+                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
             }
-            verify(mockClient, never()).onItemSelected(grantFailureUri)
+            verify(mockClient, never()).onItemsSelected(listOf(grantFailureUri))
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -657,7 +666,113 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUris)
 
-            verify(mockClient, never()).onItemDeselected(revokeFailureUri)
+            verify(mockClient, never()).onItemsDeselected(listOf(revokeFailureUri))
+        }
+
+    @Test
+    fun testSessionNotifyResizedChangesViewSize() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+
+            val session = getSessionUnderTest(component)
+            advanceTimeBy(100)
+
+            val initialWidth = session.getView().width
+            val initialHeight = session.getView().height
+
+            val newWidth = 2 * initialWidth
+            val newHeight = 2 * initialHeight
+
+            async { session.notifyResized(newWidth, newHeight) }.await()
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected view's width to be resized")
+                .that(session.getView().width)
+                .isEqualTo(newWidth)
+
+            assertWithMessage("Expected view's height to be resized")
+                .that(session.getView().height)
+                .isEqualTo(newHeight)
+        }
+
+    @Test
+    fun testSessionNotifyConfigurationChangedOnThemeChange() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+            val session = getSessionUnderTest(component)
+            advanceTimeBy(100)
+
+            // Now the view is in the test's compose tree, so do a simple check to make sure
+            // the view actually initialized and the test can locate the photo grid / modify the
+            // selection.
+            composeTestRule.setContent {
+                // Wrap the surfacePackage inside of an [AndroidView] to make the view accessible to
+                // the test.
+                AndroidView(
+                    factory = {
+                        SurfaceView(getTestableContext()).apply {
+                            setChildSurfacePackage(session.surfacePackage)
+                        }
+                    }
+                )
+            }
+
+            async { session.notifyPhotopickerExpanded(true) }.await()
+            advanceTimeBy(100)
+
+            val resources = getTestableContext().getResources()
+            // This is the label for the "Photos" tab in the picker.
+            val photosTabLabel = resources.getString(R.string.photopicker_photos_nav_button_label)
+
+            val node = composeTestRule.onNodeWithText(photosTabLabel)
+            node.assertIsDisplayed()
+            val initialColor = node.extractTextColor()
+
+            // Create new configuration which will update theme to dark
+            val newConfig = Configuration()
+            newConfig.uiMode = Configuration.UI_MODE_NIGHT_YES
+            async { session.notifyConfigurationChanged(newConfig) }.await()
+            advanceTimeBy(100)
+
+            val finalColor = node.extractTextColor()
+
+            assertWithMessage("Expected text colors to change on theme change")
+                .that(initialColor)
+                .isNotEqualTo(finalColor)
+        }
+
+    @Test
+    fun testNotifyPhotopickerExpandedTrueHiddenFeaturesVisible() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+            val session = getSessionUnderTest(component)
+            advanceTimeBy(100)
+
+            // Now the view is in the test's compose tree, so do a simple check to make sure
+            // the view actually initialized and the test can locate the photo grid / modify the
+            // selection.
+            composeTestRule.setContent {
+                // Wrap the surfacePackage inside of an [AndroidView] to make the view accessible to
+                // the test.
+                AndroidView(
+                    factory = {
+                        SurfaceView(getTestableContext()).apply {
+                            setChildSurfacePackage(session.surfacePackage)
+                        }
+                    }
+                )
+            }
+
+            val resources = getTestableContext().getResources()
+            // This is the label for the "Photos" tab in the picker.
+            val photosTabLabel = resources.getString(R.string.photopicker_photos_nav_button_label)
+
+            composeTestRule.onNodeWithText(photosTabLabel).assertDoesNotExist()
+
+            async { session.notifyPhotopickerExpanded(true) }.await()
+            advanceTimeBy(100)
+
+            composeTestRule.onNodeWithText(photosTabLabel).assertExists().assertIsDisplayed()
         }
 
     /** Gets the correct nodes of media item for given indices and performs click. */
@@ -735,29 +850,17 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
         return newUris
     }
 
-    @Test
-    fun testSessionNotifyResizedChangesViewSize() =
-        testScope.runTest {
-            val component = embeddedServiceComponentBuilder.build()
-
-            val session = getSessionUnderTest(component)
-            advanceTimeBy(100)
-
-            val initialWidth = session.getView().width
-            val initialHeight = session.getView().height
-
-            val newWidth = 2 * initialWidth
-            val newHeight = 2 * initialHeight
-
-            async { session.notifyResized(newWidth, newHeight) }.await()
-            advanceTimeBy(100)
-
-            assertWithMessage("Expected view's width to be resized")
-                .that(session.getView().width)
-                .isEqualTo(newWidth)
-
-            assertWithMessage("Expected view's height to be resized")
-                .that(session.getView().height)
-                .isEqualTo(newHeight)
+    private fun SemanticsNodeInteraction.extractTextColor(): Color? {
+        val textLayoutResults = mutableListOf<TextLayoutResult>()
+        this.fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsActions.GetTextLayoutResult)
+            ?.action
+            ?.invoke(textLayoutResults)
+        return if (textLayoutResults.isEmpty()) {
+            null // No text found, return null
+        } else {
+            textLayoutResults.first().layoutInput.style.color
         }
+    }
 }

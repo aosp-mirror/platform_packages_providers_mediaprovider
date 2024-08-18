@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Àlbums"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Encara no hi ha cap foto"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Comença a capturar fotos i vídeos"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Les fotos i vídeos que hagis capturat amb la càmera es mostraran aquí"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Encara no hi ha cap preferit"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Aquest àlbum automàtic col·lecciona elements destacats o marcats com a preferits"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Encara no hi ha cap vídeo"</string>

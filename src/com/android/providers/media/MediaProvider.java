@@ -36,6 +36,7 @@ import static android.provider.MediaStore.EXTRA_OPEN_ASSET_FILE_REQUEST;
 import static android.provider.MediaStore.EXTRA_OPEN_FILE_REQUEST;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
+import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
@@ -46,6 +47,7 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OEM_METADATA;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
@@ -53,6 +55,7 @@ import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
+import static android.provider.MediaStore.QUERY_ARG_MEDIA_STANDARD_SORT_ORDER;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
@@ -289,6 +292,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
 import com.android.providers.media.dao.FileRow;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
@@ -1364,7 +1368,7 @@ public class MediaProvider extends ContentProvider {
         mConfigStore = createConfigStore();
         mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
 
-        mMediaScanner = new ModernMediaScanner(context);
+        mMediaScanner = new ModernMediaScanner(context, mConfigStore);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
@@ -3764,6 +3768,14 @@ public class MediaProvider extends ContentProvider {
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
 
+        // In case of QUERY_ARG_MEDIA_STANDARD_SORT_ORDER
+        // disregard existing sort order and sort by INFERRED_DATE
+        if (Flags.inferredMediaDate() &&
+                queryArgs.containsKey(QUERY_ARG_MEDIA_STANDARD_SORT_ORDER)) {
+            queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER,
+                    MediaColumns.INFERRED_DATE + " DESC");
+        }
+
         Uri redactedUri = null;
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.
         queryArgs.remove(QUERY_ARG_REDACTED_URI);
@@ -3889,6 +3901,12 @@ public class MediaProvider extends ContentProvider {
 
         Cursor c;
 
+        if (Flags.enableOemMetadata() && hasOemMetadataInProjection(qb, projection)
+                && !mCallingIdentity.get().checkCallingPermissionOemMetadata()) {
+            // Filter oem_data column to return as NULL
+            projection = updateProjectionToFilterOemMetadata(qb, projection);
+        }
+
         if (shouldFilterOwnerPackageNameFlag()
                 && shouldFilterOwnerPackageNameInProjection(qb, projection)) {
             Log.i(TAG, String.format("Filtering owner package name for %s, projection: %s",
@@ -3936,6 +3954,29 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
+    private String[] updateProjectionToFilterOemMetadata(SQLiteQueryBuilder qb,
+            String[] projection) {
+        projection = maybeReplaceNullProjection(projection, qb);
+        if (qb.getProjectionAllowlist() == null) {
+            qb.setProjectionAllowlist(new ArrayList<>());
+        }
+        final String[] updatedProjection = new String[projection.length];
+        for (int i = 0; i < projection.length; i++) {
+            if (!OEM_METADATA.equalsIgnoreCase(projection[i])) {
+                updatedProjection[i] = projection[i];
+            } else {
+                updatedProjection[i] = constructOemMetadataProjection();
+            }
+        }
+        return updatedProjection;
+    }
+
+    private boolean hasOemMetadataInProjection(SQLiteQueryBuilder qb, String[] projection) {
+        return (projection != null && Arrays.asList(projection).contains(OEM_METADATA))
+                || (projection == null && qb.getProjectionMap() != null
+                        && qb.getProjectionMap().containsKey(OEM_METADATA));
+    }
+
     /**
      * Constructs the following projection string:
      *     CASE WHEN owner_package_name IN ("queryablePackageA","queryablePackageB")
@@ -3958,6 +3999,14 @@ public class MediaProvider extends ContentProvider {
                 .append(OWNER_PACKAGE_NAME);
 
         Log.d(TAG, "Constructed owner_package_name substitution: " + newProjection);
+        return newProjection.toString();
+    }
+
+    private String constructOemMetadataProjection() {
+        final StringBuilder newProjection = new StringBuilder()
+                .append("NULL AS ")
+                .append(OEM_METADATA);
+
         return newProjection.toString();
     }
 
@@ -4000,7 +4049,7 @@ public class MediaProvider extends ContentProvider {
 
     private String[] maybeReplaceNullProjection(String[] projection, SQLiteQueryBuilder qb) {
         // List all columns instead of placing "*" in the SQL query
-        // to be able to substitute owner_package_name column
+        // to be able to substitute some columns
         if (projection == null) {
             projection = qb.getAllColumnsFromProjectionMap();
             // Allow all columns from the projection map
@@ -8204,6 +8253,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (initialValues.containsKey(FileColumns.GENERATION_MODIFIED)
+                    && !isCallingPackageSelf()) {
+                // We only allow MediaScanner to send updates for generation modified
+                initialValues.remove(FileColumns.GENERATION_MODIFIED);
+            }
+
             if (!isCallingPackageSelf()) {
                 Trace.beginSection("MP.filter");
 
@@ -9176,8 +9231,6 @@ public class MediaProvider extends ContentProvider {
             }
         }
 
-        // TODO: enforce that caller has access to this uri
-
         // Offer thumbnail of media, when requested
         if (wantsThumb) {
             final ParcelFileDescriptor pfd = ensureThumbnail(uri, signal);
@@ -9195,6 +9248,7 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         Trace.beginSection("MP.ensureThumbnail");
+        checkAccessForThumbnail(uri, match, signal);
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             switch (match) {
@@ -9243,6 +9297,39 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
             Trace.endSection();
+        }
+    }
+
+    private void checkAccessForThumbnail(Uri uri, int match, CancellationSignal signal)
+            throws FileNotFoundException {
+        int mediaType = -1;
+        if (match == DOWNLOADS_ID || match == FILES_ID) {
+            mediaType = MimeUtils.resolveMediaType(queryForTypeAsSelf(uri));
+        }
+
+        // check access only for image and video thumbnails
+        // audio thumbnails have many legacy paths that we could break by checking for access
+        // and it doesn't reveal much of data that could be a risk
+        if (match == IMAGES_MEDIA_ID || match == VIDEO_MEDIA_ID
+                || mediaType == MEDIA_TYPE_IMAGE || mediaType == MEDIA_TYPE_VIDEO) {
+
+            // First check existence of the file
+            final String[] projection = new String[] { MediaColumns.DATA };
+            final File file;
+            try (Cursor c = queryForSingleItemAsMediaProvider(
+                    uri, projection, null, null, signal)) {
+                final String data = c.getString(0);
+                if (TextUtils.isEmpty(data)) {
+                    throw new FileNotFoundException("Missing path for " + uri);
+                } else {
+                    file = new File(data).getCanonicalFile();
+                }
+            } catch (IOException e) {
+                throw new FileNotFoundException(e.toString());
+            }
+
+            // Then check if the caller has access to the file
+            checkAccess(uri, Bundle.EMPTY, file, false);
         }
     }
 
@@ -10912,7 +10999,8 @@ public class MediaProvider extends ContentProvider {
      *
      * @throws SecurityException if access isn't allowed.
      */
-    private void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+    @VisibleForTesting
+    protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
         Trace.beginSection("MP.enforceCallingPermission");
         try {

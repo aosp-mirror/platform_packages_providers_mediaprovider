@@ -23,9 +23,10 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.IEmbeddedPhotopickerClient
-import android.provider.IEmbeddedPhotopickerSession
+import android.provider.EmbeddedPhotoPickerFeatureInfo
+import android.provider.IEmbeddedPhotoPickerClient
+import android.provider.IEmbeddedPhotoPickerSession
+import android.provider.ParcelableException
 import android.util.Log
 import android.view.SurfaceControlViewHost
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
@@ -78,8 +79,8 @@ internal typealias SessionFactory =
         displayId: Int,
         width: Int,
         height: Int,
-        featureInfo: EmbeddedPhotopickerFeatureInfo,
-        clientCallback: IEmbeddedPhotopickerClient,
+        featureInfo: EmbeddedPhotoPickerFeatureInfo,
+        clientCallback: IEmbeddedPhotoPickerClient,
     ) -> Session
 
 /**
@@ -119,12 +120,12 @@ open class Session(
     private val displayId: Int,
     private val width: Int,
     private val height: Int,
-    private val featureInfo: EmbeddedPhotopickerFeatureInfo,
-    private val clientCallback: IEmbeddedPhotopickerClient,
+    private val featureInfo: EmbeddedPhotoPickerFeatureInfo,
+    private val clientCallback: IEmbeddedPhotoPickerClient,
     private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
-) : IEmbeddedPhotopickerSession.Stub() {
+) : IEmbeddedPhotoPickerSession.Stub() {
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
@@ -256,11 +257,16 @@ open class Session(
     }
 
     override fun close() {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session close was requested.")
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
             _host.release()
+            _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
 
@@ -366,6 +372,8 @@ open class Session(
      * permission when item is selected/deselected respectively.
      *
      * It emits both the previous and new selection of media items.
+     *
+     * todo(b/358537861): Debounce on uri selection/deselction
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
@@ -389,7 +397,7 @@ open class Session(
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemSelected(item.mediaUri)
+                            clientCallback.onItemsSelected(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -403,7 +411,7 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemDeselected(item.mediaUri)
+                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -421,6 +429,10 @@ open class Session(
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
             true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
@@ -429,11 +441,19 @@ open class Session(
     }
 
     override fun notifyResized(width: Int, height: Int) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         _host.relayout(width, height)
         _stateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         if (configuration == null) return
 
         // Check for dark theme
@@ -449,6 +469,14 @@ open class Session(
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         _stateManager.setIsExpanded(isExpanded)
+    }
+
+    private fun callClosedSessionError() {
+        clientCallback.onSessionError(ParcelableException(IllegalStateException()))
     }
 }

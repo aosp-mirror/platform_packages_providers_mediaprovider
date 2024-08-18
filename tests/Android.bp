@@ -225,6 +225,7 @@ android_test {
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
         "mediaprovider_flags_java_lib",
+        "flag-junit",
     ],
 
     certificate: "media",

@@ -82,6 +82,8 @@ android_app {
         "PhotopickerLib",
     ],
     optimize: {
+        // Optimize bytecode
+        optimize: true,
         // Needed for removing unused icons from material-icons-extended
         shrink_resources: true,
     },

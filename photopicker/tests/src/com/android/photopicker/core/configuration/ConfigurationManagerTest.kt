@@ -19,7 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.EmbeddedPhotopickerFeatureInfo
+import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -869,7 +869,7 @@ class ConfigurationManagerTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsSelectionLimit() {
-        val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().build()
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
 
         runTest {
             val configurationManager =
@@ -910,7 +910,7 @@ class ConfigurationManagerTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsMimeTypes() {
         val featureInfo =
-            EmbeddedPhotopickerFeatureInfo.Builder()
+            EmbeddedPhotoPickerFeatureInfo.Builder()
                 .setMimeTypes(arrayListOf("image/png", "video/mp4"))
                 .build()
 
@@ -951,7 +951,7 @@ class ConfigurationManagerTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsPickImagesInOrder() {
-        val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().setOrderedSelection(true).build()
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().setOrderedSelection(true).build()
 
         runTest {
             val configurationManager =
@@ -991,7 +991,7 @@ class ConfigurationManagerTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsPreSelectedUris() {
         val featureInfo =
-            EmbeddedPhotopickerFeatureInfo.Builder()
+            EmbeddedPhotoPickerFeatureInfo.Builder()
                 .setPreSelectedUris(arrayListOf(Uri.EMPTY))
                 .build()
 

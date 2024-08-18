@@ -33,6 +33,7 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerFlags
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.testSessionId
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -179,6 +180,27 @@ class DataServiceImplTest {
                 testFeatureManager
             )
 
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
+
         val dataService: DataService =
             DataServiceImpl(
                 userStatus = userStatusFlow,
@@ -186,7 +208,20 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "TEST_ACTION",
+                                sessionId = testSessionId,
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_MEDIA_ENABLED = true,
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                    )
+                            )
+                    ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
@@ -304,6 +339,27 @@ class DataServiceImplTest {
                 testFeatureManager
             )
 
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
+
         val dataService: DataService =
             DataServiceImpl(
                 userStatus = userStatusFlow,
@@ -311,7 +367,19 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                    ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
@@ -964,6 +1032,27 @@ class DataServiceImplTest {
                 ),
             )
 
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
+
         val dataService: DataService =
             DataServiceImpl(
                 userStatus = userStatusFlow,
@@ -971,7 +1060,20 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "TEST_ACTION",
+                                sessionId = testSessionId,
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_MEDIA_ENABLED = true,
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                    )
+                            )
+                    ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,

@@ -150,18 +150,17 @@ fun NavigationBar(modifier: Modifier = Modifier) {
                     featureManager.composeLocation(
                         Location.PROFILE_SELECTOR,
                         maxSlots = 1,
-                        modifier =
-                            Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                                .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                        modifier = Modifier.padding(start = 8.dp).weight(1f)
                     )
                 } else {
                     Spacer(
                         Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
                             .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                            .weight(1f)
                     )
                 }
 
-                NavigationBarButtons(Modifier.weight(1f))
+                NavigationBarButtons(Modifier)
             }
         }
 
@@ -169,18 +168,18 @@ fun NavigationBar(modifier: Modifier = Modifier) {
             remember(featureManager) {
                 featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
             }
-        if (overFlowMenuEnabled) {
-            featureManager.composeLocation(
-                Location.OVERFLOW_MENU,
-                modifier =
-                    Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                        .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-            )
-        } else {
-            Spacer(
-                Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                    .padding(end = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-            )
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            if (overFlowMenuEnabled) {
+                featureManager.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                )
+            } else {
+                Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
+            }
         }
     }
 }

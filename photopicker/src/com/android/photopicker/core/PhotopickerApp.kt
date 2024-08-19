@@ -65,6 +65,7 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
+import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import kotlinx.coroutines.CompletableDeferred
@@ -347,9 +348,16 @@ fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
 private fun watchForDataDisruptions(disruptionCounter: Int) {
 
     val navController = LocalNavController.current
+    val selection = LocalSelection.current
     LaunchedEffect(disruptionCounter) {
         if (disruptionCounter > 0) {
             Log.d("Photopicker", "DisruptiveData notification received.")
+
+            // The selection may contain items from the provider that was removed, since this is
+            // a very unlikely event, the entire selection will be cleared to prevent the user
+            // from selecting any media from a provider that may no longer exist, or may be in a
+            // bad state.
+            selection.clear()
 
             try {
                 val startDestination =

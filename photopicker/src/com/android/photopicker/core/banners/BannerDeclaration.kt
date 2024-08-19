@@ -47,5 +47,14 @@ interface BannerDeclaration {
          * this is ONCE per [UserProfile].
          */
         ONCE,
+
+        /**
+         * The banner dismissal is tracked only for the current Photopicker session. Future sessions
+         * will return a non-dismissed state for any banners dismissed with this strategy.
+         */
+        SESSION,
+
+        /** The Banner cannot be dismissed. */
+        NONE,
     }
 }

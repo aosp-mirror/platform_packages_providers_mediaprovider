@@ -32,7 +32,9 @@ import com.android.photopicker.core.EmbeddedServiceComponentBuilder
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.inject.EmbeddedTestModule
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.inject.PhotopickerTestModule
+import com.android.photopicker.inject.TestOptions
 import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertThat
 import dagger.Module
@@ -70,7 +72,10 @@ class EmbeddedServiceTest {
     @Inject lateinit var embeddedServiceComponentBuilder: EmbeddedServiceComponentBuilder
 
     /** Setup dependencies for the UninstallModules for the test class. */
-    @Module @InstallIn(SingletonComponent::class) class TestModule : EmbeddedTestModule()
+    @Module
+    @InstallIn(SingletonComponent::class)
+    class TestModule :
+        PhotopickerTestModule(TestOptions.build { runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED) })
 
     val testDispatcher = StandardTestDispatcher()
 

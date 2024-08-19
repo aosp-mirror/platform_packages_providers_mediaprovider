@@ -32,15 +32,24 @@ package com.android.photopicker.core.banners
  */
 enum class BannerDefinitions(
     override val id: String,
-    override val dismissable: Boolean,
     override val dismissableStrategy: DismissStrategy
 ) : BannerDeclaration {
 
     // keep-sorted start
-    CLOUD_CHOOSE_ACCOUNT("cloud_choose_account", true, DismissStrategy.ONCE),
-    CLOUD_CHOOSE_PROVIDER("cloud_choose_provider", true, DismissStrategy.ONCE),
-    CLOUD_MEDIA_AVAILABLE("cloud_media_available", true, DismissStrategy.ONCE),
-    CLOUD_UPDATED_ACCOUNT("cloud_updated_account", true, DismissStrategy.ONCE),
-    PRIVACY_EXPLAINER("privacy_explainer", true, DismissStrategy.PER_UID)
+    CLOUD_CHOOSE_ACCOUNT("cloud_choose_account", DismissStrategy.ONCE),
+    CLOUD_CHOOSE_PROVIDER("cloud_choose_provider", DismissStrategy.ONCE),
+    CLOUD_MEDIA_AVAILABLE("cloud_media_available", DismissStrategy.ONCE),
+    CLOUD_UPDATED_ACCOUNT("cloud_updated_account", DismissStrategy.ONCE),
+    PRIVACY_EXPLAINER("privacy_explainer", DismissStrategy.PER_UID),
+    SWITCH_PROFILE("switch_profile", DismissStrategy.SESSION);
+
     // keep-sorted end
+
+    override val dismissable: Boolean =
+        when (dismissableStrategy) {
+            DismissStrategy.ONCE,
+            DismissStrategy.PER_UID,
+            DismissStrategy.SESSION -> true
+            DismissStrategy.NONE -> false
+        }
 }

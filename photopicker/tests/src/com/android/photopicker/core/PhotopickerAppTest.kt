@@ -19,8 +19,10 @@ package com.android.photopicker.core
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.android.photopicker.R
@@ -38,6 +40,7 @@ import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
+import com.android.photopicker.tests.utils.StubProvider
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
@@ -121,6 +124,13 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
             getTestableContext().getResources().openRawResourceFd(R.drawable.android)
         }
         setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
+        configurationManager
+            .get()
+            .setIntent(
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                    putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 50)
+                }
+            )
     }
 
     @Test
@@ -139,6 +149,14 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
                         }
                 )
             }
+
+            selection.get().addAll(StubProvider.getTestMediaFromStubProvider(count = 5))
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected selection to contain items")
+                .that(selection.get().snapshot().size)
+                .isEqualTo(5)
 
             val startDestination = navController.currentBackStackEntry?.destination?.route
             assertWithMessage("Expected the starting destination to not be album grid")
@@ -162,6 +180,10 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
+
+            assertWithMessage("Expected selection to be empty")
+                .that(selection.get().snapshot().size)
+                .isEqualTo(0)
 
             val endRoute = navController.currentBackStackEntry?.destination?.route
             assertWithMessage("Expected to return to start destination")

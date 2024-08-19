@@ -411,7 +411,7 @@ private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
     loadMedia(
         media = image,
         resolution = Resolution.FULL,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         // by default loadMedia center crops, so use a custom request builder
         requestBuilderTransformation = { media, resolution, builder ->
             builder.set(RESOLUTION_REQUESTED, resolution).signature(media.getSignature(resolution))

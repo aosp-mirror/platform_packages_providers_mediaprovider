@@ -115,6 +115,7 @@ private val MEASUREMENT_BANNER_CARD_INTERNAL_PADDING =
 private val MEASUREMENT_BANNER_ICON_GAP_SIZE = 16.dp
 private val MEASUREMENT_BANNER_ICON_SIZE = 24.dp
 private val MEASUREMENT_BANNER_BUTTON_ROW_SPACING = 8.dp
+private val MEASUREMENT_BANNER_TITLE_BOTTOM_SPACING = 6.dp
 
 /**
  * A default compose implementation that relies on the [Banner] interface for all backing data.
@@ -168,7 +169,10 @@ fun Banner(
                         Text(
                             text = banner.buildTitle(),
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.align(Alignment.Start)
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier =
+                                Modifier.align(Alignment.Start)
+                                    .padding(bottom = MEASUREMENT_BANNER_TITLE_BOTTOM_SPACING)
                         )
                     }
                     Text(

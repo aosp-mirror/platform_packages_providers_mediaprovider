@@ -116,6 +116,7 @@ private val MEASUREMENT_BANNER_ICON_GAP_SIZE = 16.dp
 private val MEASUREMENT_BANNER_ICON_SIZE = 24.dp
 private val MEASUREMENT_BANNER_BUTTON_ROW_SPACING = 8.dp
 private val MEASUREMENT_BANNER_TITLE_BOTTOM_SPACING = 6.dp
+private val MEASUREMENT_BANNER_TEXT_END_PADDING = 8.dp
 
 /**
  * A default compose implementation that relies on the [Banner] interface for all backing data.
@@ -164,7 +165,11 @@ fun Banner(
                 // Stack the title and message vertically in the same horizontal container
                 // weight(1f) is used to ensure that the other siblings in this row are displayed,
                 // and this column will fill any remaining space.
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier =
+                        Modifier.padding(PaddingValues(end = MEASUREMENT_BANNER_TEXT_END_PADDING))
+                            .weight(1f)
+                ) {
                     if (banner.buildTitle().isNotEmpty()) {
                         Text(
                             text = banner.buildTitle(),

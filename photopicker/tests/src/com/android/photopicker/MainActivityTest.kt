@@ -25,6 +25,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.net.Uri
+import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
 import android.provider.MediaStore
@@ -32,13 +33,15 @@ import android.test.mock.MockContentResolver
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ActivityScenario.launchActivityForResult
 import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.features.FeatureToken.CORE
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -46,8 +49,8 @@ import com.android.photopicker.tests.utils.StubProvider
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
-import dagger.Module
 import dagger.Lazy
+import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -74,7 +77,9 @@ import org.mockito.MockitoAnnotations
 
 /** This test class will run Photopicker's actual MainActivity. */
 @UninstallModules(
+    ApplicationModule::class,
     ActivityModule::class,
+    EmbeddedServiceModule::class,
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -84,8 +89,9 @@ class MainActivityTest {
 
     val testDispatcher = StandardTestDispatcher()
     /** Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -97,7 +103,7 @@ class MainActivityTest {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-    val contentResolver: ContentResolver = MockContentResolver()
+    @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
     @Before
     fun setup() {
@@ -106,13 +112,17 @@ class MainActivityTest {
         // Stubs for UserMonitor
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        whenever(mockUserManager.getUserBadge()) {
-            resources.getDrawable(R.drawable.android, /* theme= */ null)
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { "label" }
+            whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
+                UserProperties.Builder().build()
+            }
         }
-        whenever(mockUserManager.getProfileLabel()) { "label" }
-        whenever(mockUserManager.getUserProperties(any(UserHandle::class.java))) {
-            UserProperties.Builder().build()
-        }
+
         whenever(mockContext.contentResolver) { contentResolver }
         whenever(mockContext.packageManager) { mockPackageManager }
         whenever(mockContext.packageName) { "com.android.photopicker" }
@@ -133,7 +143,7 @@ class MainActivityTest {
 
     @Test
     fun testMainActivitySetsActivityAction() {
-        mainScope.runTest {
+        testScope.runTest {
             val intent =
                 Intent()
                     .setAction(MediaStore.ACTION_PICK_IMAGES)
@@ -148,6 +158,68 @@ class MainActivityTest {
                 assertWithMessage("Expected configuration to contain an action")
                     .that(configurationManager.configuration.first().action)
                     .isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            }
+        }
+    }
+
+    @Test
+    fun testMainActivitySetsCaller() {
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .setComponent(
+                    ComponentName(
+                        InstrumentationRegistry.getInstrumentation().targetContext,
+                        MainActivity::class.java
+                    )
+                )
+        with(launchActivityForResult<MainActivity>(intent)) {
+            testScope.runTest {
+                onActivity {
+                    advanceTimeBy(100)
+                    val configuration = configurationManager.configuration.value
+                    assertWithMessage("Expected configuration to contain caller's package name")
+                        .that(configuration.callingPackage)
+                        .isEqualTo("com.android.photopicker.tests")
+                    assertWithMessage("Expected configuration to contain caller's uid")
+                        .that(configuration.callingPackageUid)
+                        .isNotNull()
+                    assertWithMessage("Expected configuration to contain caller's display label")
+                        .that(configuration.callingPackageLabel)
+                        .isNotNull()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testMainActivitySetsCallerUserSelectImagesForApp() {
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                .setComponent(
+                    ComponentName(
+                        InstrumentationRegistry.getInstrumentation().targetContext,
+                        MainActivity::class.java
+                    )
+                )
+                .putExtra(Intent.EXTRA_UID, Process.myUid())
+
+        with(launchActivityForResult<MainActivity>(intent)) {
+            testScope.runTest {
+                onActivity {
+                    advanceTimeBy(100)
+                    val configuration = configurationManager.configuration.value
+                    assertWithMessage("Expected configuration to contain caller's package name")
+                        .that(configuration.callingPackage)
+                        .isEqualTo("com.android.photopicker.tests")
+                    assertWithMessage("Expected configuration to contain caller's uid")
+                        .that(configuration.callingPackageUid)
+                        .isEqualTo(Process.myUid())
+                    assertWithMessage("Expected configuration to contain caller's display label")
+                        .that(configuration.callingPackageLabel)
+                        .isNotNull()
+                }
             }
         }
     }
@@ -172,11 +244,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -194,6 +266,7 @@ class MainActivityTest {
                 .isEqualTo(testImage.mediaUri)
         }
     }
+
     /**
      * Using [StubProvider] as a backing provider, ensure that [MainActivity] returns data to the
      * calling app when the selection is confirmed by the user.
@@ -215,11 +288,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.add(testImage)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 
@@ -259,11 +332,11 @@ class MainActivityTest {
                 )
 
         with(launchActivityForResult<MainActivity>(intent)) {
-            mainScope.runTest {
-                onActivity {
+            testScope.runTest {
+                onActivity { activity ->
                     mainScope.launch {
                         selection.addAll(selectedItems)
-                        events.get().dispatch(Event.MediaSelectionConfirmed(CORE.token))
+                        activity.onMediaSelectionConfirmed()
                     }
                 }
 

@@ -76,7 +76,7 @@
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> অ্যাপ পজ হয়ে গেছে"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"অফিস প্রোফাইলের ফটো দেখতে, অফিসের অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> ফটো খুলতে আপনার <xliff:g id="PROFILE2">%2$s</xliff:g> অ্যাপ চালু করে আবার চেষ্টা করুন"</string>
-    <string name="picker_privacy_message" msgid="9132700451027116817">"এই অ্যাপ শুধুমাত্র আপনার বেছে নেওয়া ছবি অ্যাক্সেস করতে পারবে"</string>
+    <string name="picker_privacy_message" msgid="9132700451027116817">"এই অ্যাপ শুধুমাত্র আপনার বেছে নেওয়া ফটো অ্যাক্সেস করতে পারবে"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"এই অ্যাপকে যেসব ফটো এবং ভিডিও অ্যাক্সেস করার জন্য অনুমতি দিতে চান তা বেছে নিন"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g>টি আইটেম}one{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}other{<xliff:g id="COUNT_1">^1</xliff:g>টি আইটেম}}"</string>
     <string name="picker_add_button_multi_select" msgid="4005164092275518399">"(<xliff:g id="COUNT">^1</xliff:g>)টি যোগ করুন"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"বাতিল করুন"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"অপেক্ষা করুন"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"নিরাপত্তার সুরক্ষা"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"নেটিভ ট্রান্সকোড অ্যালার্ট"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"নেটিভ ট্রান্সকোড প্রোগ্রেস"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ট্রান্সকোডিং সম্পর্কিত বিজ্ঞপ্তি"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ট্রান্সকোডিংয়ের প্রোগ্রেস"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"পরে আবার চেষ্টা করুন। সমস্যার সমাধান হয়ে গেলে আপনার ফটো উপলভ্য হবে।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"কিছু ফটো লোড করা যাচ্ছে না"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"বুঝেছি"</string>

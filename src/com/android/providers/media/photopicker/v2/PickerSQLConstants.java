@@ -16,6 +16,7 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static com.android.providers.media.PickerUriResolver.getPickerSegmentFromIntentAction;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DURATION_MS;
@@ -33,7 +34,7 @@ import android.provider.MediaStore;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.PickerUriResolver;
+import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import java.util.Arrays;
@@ -42,6 +43,8 @@ import java.util.Arrays;
  * Helper class that keeps track of Picker related Constants.
  */
 public class PickerSQLConstants {
+    static final String COUNT_COLUMN = "Count";
+
     /**
      * An enum that holds the table names in Picker DB
      */
@@ -56,11 +59,28 @@ public class PickerSQLConstants {
     enum AvailableProviderResponse {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
-        UID("uid");
+        UID("uid"),
+        DISPLAY_NAME("display_name");
 
         private final String mColumnName;
 
         AvailableProviderResponse(String columnName) {
+            this.mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    enum CollectionInfoResponse {
+        AUTHORITY("authority"),
+        COLLECTION_ID("collection_id"),
+        ACCOUNT_NAME("account_name");
+
+        private final String mColumnName;
+
+        CollectionInfoResponse(String columnName) {
             this.mColumnName = columnName;
         }
 
@@ -125,7 +145,8 @@ public class PickerSQLConstants {
         MIME_TYPE(KEY_MIME_TYPE, CloudMediaProviderContract.MediaColumns.MIME_TYPE),
         STANDARD_MIME_TYPE(KEY_STANDARD_MIME_TYPE_EXTENSION,
                 CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION),
-        DURATION_MS(KEY_DURATION_MS, CloudMediaProviderContract.MediaColumns.DURATION_MILLIS);
+        DURATION_MS(KEY_DURATION_MS, CloudMediaProviderContract.MediaColumns.DURATION_MILLIS),
+        IS_PRE_GRANTED("is_pre_granted");
 
         private static final String DEFAULT_PROJECTION = "%s AS %s";
         @Nullable
@@ -156,6 +177,24 @@ public class PickerSQLConstants {
         @NonNull
         public String getProjection(
                 @Nullable String localAuthority,
+                @Nullable String cloudAuthority,
+                @Nullable String intentAction
+        ) {
+            switch (this) {
+                case WRAPPED_URI:
+                    return String.format(
+                            DEFAULT_PROJECTION,
+                            getWrappedUri(localAuthority, cloudAuthority, intentAction),
+                            mProjectedName
+                    );
+                default:
+                    return getProjection(localAuthority, cloudAuthority);
+            }
+        }
+
+        @NonNull
+        public String getProjection(
+                @Nullable String localAuthority,
                 @Nullable String cloudAuthority
         ) {
             switch (this) {
@@ -163,12 +202,6 @@ public class PickerSQLConstants {
                     return String.format(
                             DEFAULT_PROJECTION,
                             getAuthority(localAuthority, cloudAuthority),
-                            mProjectedName
-                    );
-                case WRAPPED_URI:
-                    return String.format(
-                            DEFAULT_PROJECTION,
-                            getWrappedUri(localAuthority, cloudAuthority),
                             mProjectedName
                     );
                 case UNWRAPPED_URI:
@@ -197,6 +230,22 @@ public class PickerSQLConstants {
                             getMediaSource(),
                             mProjectedName
                     );
+                default:
+                    if (mColumnName == null) {
+                        throw new IllegalArgumentException(
+                                "Could not get projection for " + this.name()
+                        );
+                    }
+                    return String.format(DEFAULT_PROJECTION, mColumnName, mProjectedName);
+            }
+        }
+
+        @NonNull
+        public String getProjection(String intentAction) {
+            switch (this) {
+                case IS_PRE_GRANTED:
+                    return String.format(DEFAULT_PROJECTION, getIsPregranted(intentAction),
+                            mProjectedName);
                 default:
                     if (mColumnName == null) {
                         throw new IllegalArgumentException(
@@ -238,14 +287,15 @@ public class PickerSQLConstants {
 
         private String getWrappedUri(
                 @Nullable String localAuthority,
-                @Nullable String cloudAuthority
+                @Nullable String cloudAuthority,
+                @Nullable String intentAction
         ) {
             // The format is:
             // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>
             return String.format(
                     "'content://%s/%s/%s/' || %s || '/media/' || %s",
                     MediaStore.AUTHORITY,
-                    PickerUriResolver.PICKER_SEGMENT,
+                    getPickerSegmentFromIntentAction(intentAction),
                     MediaStore.MY_USER_ID,
                     getAuthority(localAuthority, cloudAuthority),
                     getMediaId()
@@ -265,13 +315,23 @@ public class PickerSQLConstants {
                     getMediaId()
             );
         }
+
+        private String getIsPregranted(String intentAction) {
+            if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
+                return String.format("CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
+                        PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN);
+            } else {
+                return "0"; // default case for other intent actions
+            }
+        }
     }
 
     enum MediaResponseExtras {
         PREV_PAGE_ID("prev_page_picker_id"),
         PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
         NEXT_PAGE_ID("next_page_picker_id"),
-        NEXT_PAGE_DATE_TAKEN("next_page_date_taken");
+        NEXT_PAGE_DATE_TAKEN("next_page_date_taken"),
+        ITEMS_BEFORE_COUNT("items_before_count");
 
         private final String mKey;
 

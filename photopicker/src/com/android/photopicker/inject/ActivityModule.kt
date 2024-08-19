@@ -20,9 +20,15 @@ import android.content.Context
 import android.os.Process
 import android.os.UserHandle
 import android.util.Log
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.DeviceConfigProxy
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.database.DatabaseManager
+import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -69,7 +75,9 @@ class ActivityModule {
 
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
+    private lateinit var bannerManager: BannerManager
     private lateinit var configurationManager: ConfigurationManager
+    private lateinit var databaseManager: DatabaseManager
     private lateinit var dataService: DataService
     private lateinit var events: Events
     private lateinit var featureManager: FeatureManager
@@ -99,12 +107,45 @@ class ActivityModule {
         }
     }
 
+    /** Provider for an implementation of [BannerManager]. */
+    @Provides
+    @ActivityRetainedScoped
+    fun provideBannerManager(
+        @Background backgroundScope: CoroutineScope,
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        configurationManager: ConfigurationManager,
+        databaseManager: DatabaseManager,
+        featureManager: FeatureManager,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
+    ): BannerManager {
+        if (::bannerManager.isInitialized) {
+            return bannerManager
+        } else {
+            Log.d(TAG, "BannerManager requested and initializing.")
+            bannerManager =
+                BannerManagerImpl(
+                    backgroundScope,
+                    backgroundDispatcher,
+                    configurationManager,
+                    databaseManager,
+                    featureManager,
+                    dataService,
+                    userMonitor,
+                    processOwnerHandle,
+                )
+            return bannerManager
+        }
+    }
+
     /** Provider for the [ConfigurationManager]. */
     @Provides
     @ActivityRetainedScoped
     fun provideConfigurationManager(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
+        deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
         if (::configurationManager.isInitialized) {
             return configurationManager
@@ -114,8 +155,27 @@ class ActivityModule {
                 "ConfigurationManager requested but not yet initialized." +
                     " Initializing ConfigurationManager."
             )
-            configurationManager = ConfigurationManager(scope, dispatcher, DeviceConfigProxyImpl())
+            configurationManager =
+                ConfigurationManager(
+                    /* runtimeEnv= */ PhotopickerRuntimeEnv.ACTIVITY,
+                    /* scope= */ scope,
+                    /* dispatcher= */ dispatcher,
+                    /* deviceConfigProxy= */ deviceConfigProxy,
+                    /* sessionId */ generatePickerSessionId(),
+                )
             return configurationManager
+        }
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideDatabaseManager(@ApplicationContext context: Context): DatabaseManager {
+        if (::databaseManager.isInitialized) {
+            return databaseManager
+        } else {
+            Log.d(TAG, "Initializing DatabaseManager")
+            databaseManager = DatabaseManagerImpl(context)
+            return databaseManager
         }
     }
 
@@ -133,7 +193,10 @@ class ActivityModule {
         @ActivityRetainedScoped userMonitor: UserMonitor,
         @ActivityRetainedScoped notificationService: NotificationService,
         @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped featureManager: FeatureManager
+        @ActivityRetainedScoped featureManager: FeatureManager,
+        @ApplicationContext appContext: Context,
+        events: Events,
+        processOwnerHandle: UserHandle,
     ): DataService {
         if (!::dataService.isInitialized) {
             Log.d(
@@ -148,7 +211,10 @@ class ActivityModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext,
+                    events,
+                    processOwnerHandle
                 )
         }
         return dataService
@@ -240,6 +306,7 @@ class ActivityModule {
     fun provideSelection(
         @ActivityRetainedScoped @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -252,12 +319,13 @@ class ActivityModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount
                         )
-
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preSelectedMedia = dataService.preSelectionMediaData
                         )
                 }
             return selection

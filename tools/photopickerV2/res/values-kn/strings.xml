@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"ಫೋಟೋ ಪಿಕರ್"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Docs UI"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"ಪಿಕರ್ ಆಯ್ಕೆ"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"ಚಿತ್ರಗಳನ್ನು ಆರಿಸಿ"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"ಆ್ಯಕ್ಷನ್ ಗೆಟ್ ಕಂಟೆಂಟ್"</string>
+    <string name="open_document" msgid="8593796561386540777">"ಡಾಕ್ಯುಮೆಂಟ್ ತೆರೆಯಿರಿ"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"ಡಾಕ್ಯುಮೆಂಟ್ ಟ್ರೀ ಅನ್ನು ತೆರೆಯಿರಿ"</string>
+    <string name="create_document" msgid="6073553682715924527">"ಡಾಕ್ಯುಮೆಂಟ್ ಅನ್ನು ರಚಿಸಿ"</string>
+    <string name="create_file" msgid="2532895579648102462">"ಫೈಲ್ ಅನ್ನು ರಚಿಸಿ"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"ಆಯ್ಕೆಯ ಆರ್ಡರ್ ಅನ್ನು ಪ್ರದರ್ಶಿಸಿ"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"ಚಿತ್ರಗಳನ್ನು ಮಾತ್ರ ತೋರಿಸಿ"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"ವೀಡಿಯೊಗಳನ್ನು ಮಾತ್ರ ತೋರಿಸಿ"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME ಪ್ರಕಾರವನ್ನು ನಮೂದಿಸಿ"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"ಲಾಂಚ್ ಟ್ಯಾಬ್ ಅನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"ಬಹು ಆಯ್ಕೆಗಳನ್ನು ಆರಿಸಲು ಅನುಮತಿ ನೀಡಿ"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"ಕಸ್ಟಮ್ MIME ಪ್ರಕಾರವನ್ನು ಅನುಮತಿಸಿ"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"ಗರಿಷ್ಠ ಸಂಖ್ಯೆಯ ಮಾಧ್ಯಮ ಐಟಂಗಳು"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು ಮಾನ್ಯವಾದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ"</string>
+    <string name="pick_media" msgid="5269447618857205416">"ಮಾಧ್ಯಮವನ್ನು ಆರಿಸಿ"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"ಪ್ರಯತ್ನಿಸಲಾಗುತ್ತಿದೆ"</string>
+    <string name="show_metadata" msgid="132548935678717609">"ಆಯ್ಕೆಮಾಡಿದ ಮಾಧ್ಯಮಕ್ಕಾಗಿ ಮೆಟಾ ಡೇಟಾವನ್ನು ತೋರಿಸಿ"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"ಪೂರ್ವ-ಆಯ್ಕೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"ಅನುಮತಿಗಳನ್ನು ವಿನಂತಿಸಿ"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"ಇದಕ್ಕಾಗಿ ಅನುಮತಿಗಳನ್ನು ವಿನಂತಿಸಿ:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"ಪಿಕರ್ ಆಯ್ಕೆ ಫೀಚರ್ Android U ಮತ್ತು ನಂತರದ ಆವೃತ್ತಿಯ ಸಾಧನಗಳಲ್ಲಿ ಮಾತ್ರ ಲಭ್ಯವಿದೆ. \n\nಈ ಫೀಚರ್ ಅನ್ನು ಬಳಸಲು ನಿಮ್ಮ ಸಾಧನವನ್ನು ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ."</string>
+    <string name="images" msgid="4986074635830919568">"ಚಿತ್ರಗಳು"</string>
+    <string name="videos" msgid="4638519191891522146">"ವೀಡಿಯೊಗಳು"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"ಚಿತ್ರಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳು ಎರಡೂ"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"ಇತ್ತೀಚಿನ ಆಯ್ಕೆಯನ್ನು ಮಾತ್ರ ತೋರಿಸಿ"</string>
+</resources>

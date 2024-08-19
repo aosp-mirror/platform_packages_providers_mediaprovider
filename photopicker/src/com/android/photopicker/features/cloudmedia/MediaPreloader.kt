@@ -36,15 +36,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.obtainViewModel
+import kotlinx.coroutines.launch
 
 /* Size of the spacer between dialog elements. */
 private val MEASUREMENT_DIALOG_SPACER_SIZE = 24.dp
@@ -71,7 +78,7 @@ fun MediaPreloader(
     // [Location.MEDIA_PRELOADER], only floating dialogs that sit above the app.
     @Suppress("UNUSED_PARAMETER") modifier: Modifier,
     params: LocationParams,
-    viewModel: MediaPreloaderViewModel = hiltViewModel(),
+    viewModel: MediaPreloaderViewModel = obtainViewModel(),
 ) {
 
     // Data flow from the view model for which Dialog to display.
@@ -80,10 +87,27 @@ fun MediaPreloader(
     // These must be set by the parent composable for the preloader to have any effect.
     val preloaderParameters = params as? LocationParams.WithMediaPreloader
 
+    val configuration = LocalPhotopickerConfiguration.current
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+
     preloaderParameters?.let {
         LaunchedEffect(params) {
             // Listen for emissions of media to preload, and begin the preload when requested.
-            it.preloadMedia.collect { media -> viewModel.startPreload(media, it.obtainDeferred()) }
+            it.preloadMedia.collect { media ->
+                // Dispatch UI event to log the beginning of media items preloading
+                scope.launch {
+                    events.dispatch(
+                        Event.LogPhotopickerUIEvent(
+                            FeatureToken.CORE.token,
+                            configuration.sessionId,
+                            configuration.callingPackageUid ?: -1,
+                            Telemetry.UiEvent.PICKER_PRELOADING_START
+                        )
+                    )
+                }
+                viewModel.startPreload(media, it.obtainDeferred())
+            }
         }
     }
         // If no preloaderParameters were passed to this location, there is no way to trigger
@@ -101,14 +125,14 @@ fun MediaPreloader(
             MediaPreloaderLoadingDialog(
                 dialogData = data,
                 onDismissRequest = {
-                    viewModel.cancelPreload()
+                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
                 },
             )
         is PreloaderDialogData.PreloaderLoadingErrorDialog ->
             MediaPreloaderErrorDialog(
                 onDismissRequest = {
-                    viewModel.cancelPreload()
+                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
                 },
             )

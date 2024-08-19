@@ -21,7 +21,11 @@ import androidx.annotation.GuardedBy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
@@ -97,6 +101,7 @@ constructor(
     @Background private val backgroundDispatcher: CoroutineDispatcher,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
+    private val configurationManager: ConfigurationManager,
     private val events: Events,
 ) : ViewModel() {
 
@@ -150,6 +155,8 @@ constructor(
             SharingStarted.WhileSubscribed(),
             initialValue = _dialogData.value
         )
+
+    val configuration = configurationManager.configuration.value
 
     init {
 
@@ -302,6 +309,17 @@ constructor(
                     CloudMediaFeature.TAG,
                     "Failure detected, cancelling the rest of the preload operation."
                 )
+                // Log failure of media items preloading
+                scope.launch {
+                    events.dispatch(
+                        Event.LogPhotopickerUIEvent(
+                            FeatureToken.CORE.token,
+                            configuration.sessionId,
+                            configuration.callingPackageUid ?: -1,
+                            Telemetry.UiEvent.PICKER_PRELOADING_FAILED
+                        )
+                    )
+                }
                 // Mark the item as failed in the result status.
                 mutex.withLock { remoteItems.set(item, LoadResult.FAILED) }
                 // Emit a new heartbeat so the monitor will react to this failure.
@@ -372,6 +390,17 @@ constructor(
                     // application to send the selected Media to the caller.
                     Log.d(CloudMediaFeature.TAG, "Preload operation was successful.")
                     deferred.complete(true)
+                    // Dispatch UI event to mark the end of preloading of media items
+                    scope.launch {
+                        events.dispatch(
+                            Event.LogPhotopickerUIEvent(
+                                FeatureToken.CORE.token,
+                                configuration.sessionId,
+                                configuration.callingPackageUid ?: -1,
+                                Telemetry.UiEvent.PICKER_PRELOADING_FINISHED
+                            )
+                        )
+                    }
                 }
             }
 
@@ -392,12 +421,33 @@ constructor(
      *
      * NOTE: This does not cancel any file open calls that have already started, but will prevent
      * any additional file open calls from being started.
+     *
+     * @param deferred The [CompletableDeferred] for the job to cancel, if one exists.
      */
-    fun cancelPreload() {
+    fun cancelPreload(deferred: CompletableDeferred<Boolean>? = null) {
         job?.let {
             it.cancel()
             Log.i(CloudMediaFeature.TAG, "Preload operation was cancelled.")
+            // Dispatch an event to log cancellation of media items preloading
+            scope.launch {
+                events.dispatch(
+                    Event.LogPhotopickerUIEvent(
+                        FeatureToken.CORE.token,
+                        configuration.sessionId,
+                        configuration.callingPackageUid ?: -1,
+                        Telemetry.UiEvent.PICKER_PRELOADING_CANCELLED
+                    )
+                )
+            }
         }
+
+        // In the event of single selection mode, the selection needs to be cleared.
+        if (configurationManager.configuration.value.selectionLimit == 1) {
+            scope.launch { selection.clear() }
+        }
+
+        // If a deferred was passed, mark it as failed.
+        deferred?.complete(false)
 
         // Drop any pending heartbeats as the monitor job is being shutdown.
         @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class) heartbeat.resetReplayCache()

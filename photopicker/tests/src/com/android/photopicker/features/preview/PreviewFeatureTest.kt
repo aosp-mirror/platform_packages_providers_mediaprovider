@@ -19,6 +19,7 @@ package com.android.photopicker.features.preview
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -36,6 +37,7 @@ import android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK
 import android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER
 import android.provider.ICloudMediaSurfaceController
 import android.provider.ICloudMediaSurfaceStateChangedCallback
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import android.view.Surface
 import androidx.compose.foundation.layout.Column
@@ -630,8 +632,69 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
+    fun testPreviewSelectInSingleSelect() =
+        testScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {
+                    callPhotopickerMain(
+                        featureManager = featureManager,
+                        selection = selection,
+                        events = events,
+                    )
+                }
+            }
+
+            val initialRoute = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("initial route was null").that(initialRoute).isNotNull()
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({
+                navController.navigateToPreviewMedia(TEST_MEDIA_VIDEO)
+            })
+
+            // This looks a little awkward, but is necessary. There are two flows that need
+            // to be awaited, and a recomposition is required between them, so await idle twice
+            // and advance the test clock twice.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            val resources = getTestableContext().getResources()
+            val buttonLabel = resources.getString(R.string.photopicker_select_current_button_label)
+
+            composeTestRule
+                .onNode(hasText(buttonLabel))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+                .performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow selection to update
+            advanceTimeBy(100)
+            assertWithMessage("Expected route to be the initial route")
+                .that(selection.snapshot())
+                .contains(TEST_MEDIA_VIDEO)
+        }
+
+    @Test
     fun testPreviewDoneNavigatesBack() =
         testScope.runTest {
+
+            // Ensure multi select
+            configurationManager
+                .get()
+                .setIntent(
+                    Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                        putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 50)
+                    }
+                )
+
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
                 Column(modifier = Modifier.defaultMinSize(minHeight = 100.dp, minWidth = 100.dp)) {

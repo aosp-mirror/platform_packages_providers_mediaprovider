@@ -25,4 +25,8 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Bị quản trị viên chặn"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Để mở ảnh trong <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>, hãy bật ứng dụng <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> rồi thử lại"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Quản trị viên của bạn không cho phép truy cập vào dữ liệu trong hồ sơ này."</string>
+    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
+    <skip />
+    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
+    <skip />
 </resources>

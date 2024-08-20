@@ -103,7 +103,7 @@ class MainActivity : Hilt_MainActivity() {
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
     @Inject @Background lateinit var background: CoroutineDispatcher
-    @Inject lateinit var userMonitor: UserMonitor
+    @Inject lateinit var userMonitor: Lazy<UserMonitor>
 
     // Events requires the feature manager, so initialize this lazily until the action is set.
     @Inject lateinit var events: Lazy<Events>
@@ -413,7 +413,7 @@ class MainActivity : Hilt_MainActivity() {
                 .filter { provider -> provider.mediaSource == MediaSource.REMOTE }
                 .firstOrNull()
                 ?.uid ?: -1
-        val userProfileType = userMonitor.userStatus.value.activeUserProfile.profileType
+        val userProfileType = userMonitor.get().userStatus.value.activeUserProfile.profileType
         val currentActiveProfile =
             when (userProfileType) {
                 UserProfile.ProfileType.PRIMARY -> Telemetry.UserProfile.PERSONAL
@@ -453,7 +453,7 @@ class MainActivity : Hilt_MainActivity() {
 
         lifecycleScope.launch {
             val profileSwitchButtonVisible =
-                userMonitor.userStatus.getUserProfilesVisibleToPhotopicker().first().size > 1
+                userMonitor.get().userStatus.getUserProfilesVisibleToPhotopicker().first().size > 1
             events
                 .get()
                 .dispatch(

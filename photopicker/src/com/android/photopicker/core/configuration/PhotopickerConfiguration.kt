@@ -21,6 +21,8 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.SystemProperties
+import android.provider.MediaStore
+import android.util.Log
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 
 /** Check system properties to determine if the device is considered debuggable */
@@ -93,9 +95,18 @@ data class PhotopickerConfiguration(
      */
     fun doesCrossProfileIntentForwarderExists(packageManager: PackageManager): Boolean {
 
-        val clonedIntent =
-            intent?.clone() as? Intent // clone() returns an object so cast back to an Intent
-        clonedIntent?.let {
+        val intentToCheck: Intent? =
+            when (runtimeEnv) {
+                PhotopickerRuntimeEnv.ACTIVITY ->
+                    // clone() returns an object so cast back to an Intent
+                    intent?.clone() as? Intent
+
+                // For the EMBEDDED runtime, no intent exists, so generate cross profile forwarding
+                // based upon Photopicker's standard api ACTION_PICK_IMAGES
+                PhotopickerRuntimeEnv.EMBEDDED -> Intent(MediaStore.ACTION_PICK_IMAGES)
+            }
+
+        intentToCheck?.let {
             // Remove specific component / package info from the intent before querying
             // package manager. (This is going to look for all handlers of this intent,
             // and it shouldn't be scoped to a specific component or package)
@@ -113,6 +124,11 @@ data class PhotopickerConfiguration(
                 }
             }
         }
+            // Log a warning that the intent was null, but probably shouldn't have been.
+            ?: Log.w(
+                ConfigurationManager.TAG,
+                "No intent available for checking cross-profile access."
+            )
 
         return false
     }

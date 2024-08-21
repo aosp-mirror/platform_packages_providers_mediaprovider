@@ -60,6 +60,7 @@ import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
 import static android.provider.MediaStore.REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL;
+import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -173,6 +174,7 @@ import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRel
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
+import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 
 import android.Manifest;
 import android.annotation.IntDef;
@@ -291,6 +293,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
+import com.android.providers.media.backupandrestore.BackupExecutor;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -1133,6 +1136,11 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
+                if (deletedRow.getVolumeName() != null
+                        && deletedRow.getVolumeName().equalsIgnoreCase(VOLUME_EXTERNAL_PRIMARY)
+                        && enableBackupAndRestore()) {
+                    mExternalPrimaryBackupExecutor.deleteBackupForPath(deletedRow.getPath());
+                }
             });
         }
     };
@@ -1389,6 +1397,8 @@ public class MediaProvider extends ContentProvider {
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
                 mUriMatcher);
         mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
+
+        mExternalPrimaryBackupExecutor = new BackupExecutor(getContext(), mExternalDatabase);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -1696,6 +1706,12 @@ public class MediaProvider extends ContentProvider {
         // Calculate standard_mime_type_extension column for files which have SPECIAL_FORMAT column
         // value as NULL, and update the same in the picker db
         detectSpecialFormat(signal);
+
+        if (enableBackupAndRestore()) {
+            Log.i(TAG, "Backup is enabled");
+            // Backup needed for B&R
+            mExternalPrimaryBackupExecutor.doBackup(signal);
+        }
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -11469,6 +11485,8 @@ public class MediaProvider extends ContentProvider {
     private TranscodeHelper mTranscodeHelper;
     private MediaGrants mMediaGrants;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
+
+    private BackupExecutor mExternalPrimaryBackupExecutor;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

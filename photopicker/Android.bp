@@ -17,6 +17,7 @@ android_library {
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
         "framework-statsd",
     ],
     javacflags: [

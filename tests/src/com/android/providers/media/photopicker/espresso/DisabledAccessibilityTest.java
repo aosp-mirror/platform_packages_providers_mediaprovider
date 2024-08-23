@@ -48,10 +48,12 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
 import android.app.Activity;
+import android.os.Build;
 
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.action.ViewActions;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
@@ -70,6 +72,7 @@ import org.junit.runner.RunWith;
  * launch in partial screen.
  */
 @RunOnlyOnPostsubmit
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @RunWith(AndroidJUnit4ClassRunner.class)
 public class DisabledAccessibilityTest extends PhotoPickerBaseTest {
 

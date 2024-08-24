@@ -149,8 +149,10 @@ public class IsolatedContext extends ContextWrapper {
     public void attachInfoAndAddProvider(Context base, ContentProvider provider,
             String authority) {
         final ProviderInfo info = base.getPackageManager().resolveContentProvider(authority, 0);
-        provider.attachInfo(this, info);
-        mResolver.addProvider(authority, provider);
+        if (info != null) {
+            provider.attachInfo(this, info);
+            mResolver.addProvider(authority, provider);
+        }
     }
 
     /**

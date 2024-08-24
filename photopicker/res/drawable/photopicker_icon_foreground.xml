@@ -18,17 +18,15 @@
 
 <!-- photo_library icon -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-  android:width="108dp"
-  android:height="108dp"
-  android:viewportWidth="108"
-  android:viewportHeight="108">
-    <group
-      android:scaleX="2.295"
-      android:scaleY="2.295"
-      android:translateX="26.46"
-      android:translateY="26.46">
+        android:width="24dp"
+        android:height="24dp"
+        android:viewportWidth="35"
+        android:viewportHeight="35">
+    <group>
+        <clip-path
+            android:pathData="M10.5,10.5h14v14h-14z"/>
         <path
-          android:fillColor="@color/icon_foreground"
-          android:pathData="M9,14h10l-3.45,-4.5 -2.3,3 -1.55,-2ZM8,18q-0.825,0 -1.412,-0.587Q6,16.825 6,16L6,4q0,-0.825 0.588,-1.413Q7.175,2 8,2h12q0.825,0 1.413,0.587Q22,3.175 22,4v12q0,0.825 -0.587,1.413Q20.825,18 20,18ZM8,16h12L20,4L8,4v12ZM4,22q-0.825,0 -1.412,-0.587Q2,20.825 2,20L2,6h2v14h14v2ZM8,4v12L8,4Z"/>
+            android:fillColor="@color/icon_foreground"
+            android:pathData="M15.75,18.9H21.35L19.513,16.45L18.2,18.2L17.237,16.917L15.75,18.9ZM15.05,21C14.758,21 14.51,20.898 14.306,20.694C14.102,20.49 14,20.242 14,19.95V12.95C14,12.658 14.102,12.41 14.306,12.206C14.51,12.002 14.758,11.9 15.05,11.9H22.05C22.342,11.9 22.59,12.002 22.794,12.206C22.998,12.41 23.1,12.658 23.1,12.95V19.95C23.1,20.242 22.998,20.49 22.794,20.694C22.59,20.898 22.342,21 22.05,21H15.05ZM15.05,19.95H22.05V12.95H15.05V19.95ZM12.95,23.1C12.658,23.1 12.41,22.998 12.206,22.794C12.002,22.59 11.9,22.342 11.9,22.05V14H12.95V22.05H21V23.1H12.95ZM15.05,12.95V19.95V12.95Z"/>
     </group>
 </vector>

@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"మీ అడ్మిన్ ద్వారా బ్లాక్ చేయబడింది"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ఫోటోలను తెరవడానికి మీ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> యాప్‌లను ఆన్ చేసి ఆపై మళ్లీ ట్రై చేయండి"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"ఈ ప్రొఫైల్ నుండి డేటాను యాక్సెస్ చేయడం మీ అడ్మినిస్ట్రేటర్ ద్వారా అనుమతించబడదు."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"మారండి"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"మీరు <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> ప్రొఫైల్‌లో ఉన్నారు. మీ <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> ప్రొఫైల్‌కు మారాలా?"</string>
 </resources>

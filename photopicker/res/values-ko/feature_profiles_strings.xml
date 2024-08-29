@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"관리자가 차단함"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> 사진을 열려면 <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> 앱을 사용 설정한 후 다시 시도하세요."</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"관리자가 이 프로필의 데이터에 액세스하는 것을 허용하지 않습니다."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"전환"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"현재 <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> 프로필을 사용 중입니다. <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> 프로필로 전환하시겠습니까?"</string>
 </resources>

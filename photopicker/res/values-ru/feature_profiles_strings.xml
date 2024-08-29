@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Заблокировано администратором"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Чтобы открыть фотографии из профиля \"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>\", включите приложения профиля \"<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>\" и повторите попытку."</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Администратор ограничил доступ к данным из этого профиля."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"Перейти"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Сейчас вы в профиле \"<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>\". Перейти в профиль \"<xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>\"?"</string>
 </resources>

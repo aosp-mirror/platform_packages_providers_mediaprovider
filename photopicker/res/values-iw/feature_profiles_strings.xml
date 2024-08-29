@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"הפעולה נחסמה על ידי האדמין"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"כדי לפתוח את התמונות של <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>, צריך להפעיל את האפליקציות של <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> ולנסות שוב"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"הגישה לנתונים מהפרופיל הזה הוגבלה על ידי האדמין."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"מעבר"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"נכנסת לפרופיל שלך ב-<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>. לעבור לפרופיל <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>?"</string>
 </resources>

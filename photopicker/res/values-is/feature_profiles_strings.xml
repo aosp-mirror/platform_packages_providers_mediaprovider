@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Útilokað af stjórnanda"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Til að opna <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>-myndir skaltu kveikja á <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>-forritum og reyna aftur"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Kerfisstjórinn þinn heimilar ekki aðgang að gögnum frá þessum prófíl."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"Skipta"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Þú ert að nota <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>-prófílinn þinn. Skipta yfir á <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>-prófílinn þinn?"</string>
 </resources>

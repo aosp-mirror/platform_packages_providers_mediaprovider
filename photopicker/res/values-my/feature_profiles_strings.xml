@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"သင့်စီမံခန့်ခွဲသူက ပိတ်ထားသည်"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ဓာတ်ပုံများ ဖွင့်ရန် သင့် <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> အက်ပ်များကို ဖွင့်ပြီး ထပ်စမ်းကြည့်ပါ"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"ဤပရိုဖိုင်မှ ဒေတာသုံးခြင်းကို သင့်စီမံခန့်ခွဲသူက ခွင့်ပြုမထားပါ။"</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"ပြောင်းရန်"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"သင်သည် <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> ပရိုဖိုင်တွင် ရှိနေသည်။ သင်၏ <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> ပရိုဖိုင်သို့ ပြောင်းမလား။"</string>
 </resources>

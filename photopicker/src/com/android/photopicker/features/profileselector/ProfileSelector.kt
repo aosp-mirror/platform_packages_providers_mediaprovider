@@ -48,9 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
-import com.android.photopicker.core.StateSelector
 import com.android.photopicker.core.components.ElevationTokens
-import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
@@ -196,9 +194,7 @@ fun ProfileSelector(
         }
     } else {
         // Return a spacer which consumes the modifier so the space is still occupied, but is empty.
-        // Hide the spacer when the runtime is embedded, so that the navigation tabs stay in the
-        // center as the overflow menu is disabled in embedded runtime.
-        hideWhenState(StateSelector.Embedded) { Spacer(modifier) }
+        Spacer(modifier)
     }
 }
 

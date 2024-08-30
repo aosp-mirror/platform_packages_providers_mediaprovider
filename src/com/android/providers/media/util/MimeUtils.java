@@ -110,7 +110,13 @@ public class MimeUtils {
 
     public static boolean isVideoMimeType(@Nullable String mimeType) {
         if (mimeType == null) return false;
-        return StringUtils.startsWithIgnoreCase(mimeType, "video/");
+
+        // Handle ASF files as videos
+        if (mimeType.equalsIgnoreCase("application/vnd.ms-asf")) {
+            return true;
+        } else {
+            return StringUtils.startsWithIgnoreCase(mimeType, "video/");
+        }
     }
 
     /**

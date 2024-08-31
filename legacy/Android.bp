@@ -15,7 +15,7 @@ android_app {
 
     libs: [
         "app-compat-annotations",
-        "framework-mediaprovider",
+        "framework-mediaprovider.stubs.module_lib",
     ],
 
     srcs: [

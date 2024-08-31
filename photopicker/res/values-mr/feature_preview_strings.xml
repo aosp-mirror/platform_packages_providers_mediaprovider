@@ -18,8 +18,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_select_button_label" msgid="658102027531907034">"सर्व निवडा <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
-    <!-- no translation found for photopicker_select_current_button_label (5328497370795781055) -->
-    <skip />
+    <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"निवडा"</string>
     <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"सर्व निवडी रद्द करा <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"पूर्वावलोकन करा"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"व्हिडिओ प्ले करण्यात समस्या आली"</string>

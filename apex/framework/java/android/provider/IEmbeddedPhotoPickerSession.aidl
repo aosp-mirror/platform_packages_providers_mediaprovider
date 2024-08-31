@@ -38,4 +38,6 @@ oneway interface IEmbeddedPhotoPickerSession {
     void notifyConfigurationChanged(in Configuration configuration);
 
     void notifyPhotopickerExpanded(boolean isExpanded);
+
+    void notifyItemsDeselected(in List<Uri> uris);
 }

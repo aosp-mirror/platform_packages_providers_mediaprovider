@@ -20,11 +20,14 @@ import android.annotation.FlaggedApi;
 import android.annotation.RequiresApi;
 import android.annotation.SuppressLint;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceView;
 
 import androidx.annotation.NonNull;
+
+import java.util.List;
 
 /**
  * Class that holds the embedded photopicker view wrapped in
@@ -102,4 +105,11 @@ public interface EmbeddedPhotoPickerSession {
      * @param isExpanded true if expanded, false if collapsed.
      */
     void notifyPhotoPickerExpanded(boolean isExpanded);
+
+    /**
+     * Notify that the user deselected some items.
+     *
+     * @param uris The {@link Uri} list of the deselected items.
+     */
+    void notifyItemsDeselected(@NonNull List<Uri> uris);
 }

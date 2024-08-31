@@ -102,6 +102,7 @@ package android.provider {
   @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerClient {
     method public void onItemsDeselected(@NonNull java.util.List<android.net.Uri>);
     method public void onItemsSelected(@NonNull java.util.List<android.net.Uri>);
+    method public void onSelectionComplete();
     method public void onSessionError(@NonNull Throwable);
     method public void onSessionOpened(@NonNull android.provider.EmbeddedPhotoPickerSession);
   }
@@ -112,6 +113,7 @@ package android.provider {
     method public int getMaxSelectionLimit();
     method @NonNull public java.util.List<java.lang.String> getMimeTypes();
     method @NonNull public java.util.List<android.net.Uri> getPreSelectedUris();
+    method public int getThemeNightMode();
     method public boolean isOrderedSelection();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.provider.EmbeddedPhotoPickerFeatureInfo> CREATOR;
@@ -125,6 +127,7 @@ package android.provider {
     method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setMimeTypes(@NonNull java.util.List<java.lang.String>);
     method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setOrderedSelection(boolean);
     method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setPreSelectedUris(@NonNull java.util.List<android.net.Uri>);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setThemeNightMode(int);
   }
 
   @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerProvider {
@@ -139,6 +142,7 @@ package android.provider {
     method public void close();
     method @NonNull public android.view.SurfaceControlViewHost.SurfacePackage getSurfacePackage();
     method public void notifyConfigurationChanged(@NonNull android.content.res.Configuration);
+    method public void notifyItemsDeselected(@NonNull java.util.List<android.net.Uri>);
     method public void notifyPhotoPickerExpanded(boolean);
     method public void notifyResized(int, int);
     method public void notifyVisibilityChanged(boolean);

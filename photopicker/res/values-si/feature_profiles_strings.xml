@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"ඔබේ පරිපාලක විසින් අවහිර කරන ලදි"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ඡායාරූප විවෘත කිරීමට, ඔබේ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> යෙදුම් සක්‍රීය කර නැවත උත්සාහ කරන්න"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"මෙම පැතිකඩෙන් දත්ත වෙත ප්‍රවේශ වීම ඔබේ පරිපාලකයා විසින් අනුමත නොකරනු ලැබේ."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"මාරු කරන්න"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"ඔබ ඔබේ <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> පැතිකඩෙහි සිටී. ඔබේ <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> පැතිකඩ වෙත මාරු වන්න ද?"</string>
 </resources>

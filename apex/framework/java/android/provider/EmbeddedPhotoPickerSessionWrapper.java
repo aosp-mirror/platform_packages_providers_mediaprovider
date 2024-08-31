@@ -18,12 +18,15 @@ package android.provider;
 
 import android.annotation.RequiresApi;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
 import androidx.annotation.NonNull;
+
+import java.util.List;
 
 /**
  * Wrapper class to {@link EmbeddedPhotoPickerSession} for internal use that helps with IPC between
@@ -111,6 +114,15 @@ class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
     public void notifyPhotoPickerExpanded(boolean isExpanded) {
         try {
             mSession.notifyPhotopickerExpanded(isExpanded);
+        } catch (RemoteException e) {
+            e.rethrowAsRuntimeException();
+        }
+    }
+
+    @Override
+    public void notifyItemsDeselected(@NonNull List<Uri> uris) {
+        try {
+            mSession.notifyItemsDeselected(uris);
         } catch (RemoteException e) {
             e.rethrowAsRuntimeException();
         }

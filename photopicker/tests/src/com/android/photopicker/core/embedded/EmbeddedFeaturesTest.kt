@@ -475,7 +475,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                         isDarkTheme = false,
                         config = testEmbeddedPhotopickerConfiguration
                     ) {
-                        PhotopickerApp(disruptiveDataNotification = flow { emit(0) })
+                        PhotopickerApp(
+                            disruptiveDataNotification = flow { emit(0) },
+                            onMediaSelectionConfirmed = {}
+                        )
                     }
                 }
             }

@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.embedded
 
+import android.content.res.Configuration
 import android.util.Log
 import android.view.SurfaceControlViewHost
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,10 @@ import kotlinx.coroutines.flow.update
  *
  * @param host the Instance of [SurfaceControlViewHost] for the current session
  */
-class EmbeddedStateManager(host: SurfaceControlViewHost? = null) {
+class EmbeddedStateManager(
+    host: SurfaceControlViewHost? = null,
+    private val themeNightMode: Int = Configuration.UI_MODE_NIGHT_UNDEFINED,
+) {
     companion object {
         const val TAG: String = "PhotopickerEmbeddedStateManager"
     }
@@ -55,7 +59,12 @@ class EmbeddedStateManager(host: SurfaceControlViewHost? = null) {
 
     /** Assembles an initial state upon embedded photopicker session launch. */
     private fun generateInitialEmbeddedState(): EmbeddedState {
-        val initialEmbeddedState = EmbeddedState(host = _host)
+        val initialEmbeddedState =
+            when (themeNightMode) {
+                Configuration.UI_MODE_NIGHT_YES -> EmbeddedState(isDarkTheme = true, host = _host)
+                Configuration.UI_MODE_NIGHT_NO -> EmbeddedState(isDarkTheme = false, host = _host)
+                else -> EmbeddedState(host = _host)
+            }
         Log.d(TAG, "Initial embedded state: $initialEmbeddedState")
         return initialEmbeddedState
     }

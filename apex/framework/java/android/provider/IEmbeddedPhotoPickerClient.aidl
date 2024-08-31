@@ -39,6 +39,8 @@ oneway interface IEmbeddedPhotoPickerClient {
     void onItemsSelected(in List<Uri> uri);
 
     void onItemsDeselected(in List<Uri> uri);
+
+    void onSelectionComplete();
 }
 
 

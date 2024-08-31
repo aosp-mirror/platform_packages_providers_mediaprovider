@@ -79,4 +79,9 @@ class EmbeddedPhotoPickerClientWrapper extends IEmbeddedPhotoPickerClient.Stub {
     public void onItemsDeselected(List<Uri> uris) {
         mClientExecutor.execute(() -> mClientCallback.onItemsDeselected(uris));
     }
+
+    @Override
+    public void onSelectionComplete() {
+        mClientExecutor.execute(() -> mClientCallback.onSelectionComplete());
+    }
 }

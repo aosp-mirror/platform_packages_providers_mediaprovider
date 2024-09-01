@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -48,9 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
-import com.android.photopicker.core.StateSelector
 import com.android.photopicker.core.components.ElevationTokens
-import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
@@ -87,13 +86,17 @@ fun ProfileSelector(
                 modifier = Modifier.align(Alignment.CenterStart),
                 onClick = { expanded = !expanded },
                 contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
+                colors =
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    )
             ) {
                 currentProfile.icon?.let {
                     Icon(
                         it,
                         contentDescription =
                             stringResource(R.string.photopicker_profile_switch_button_description),
-                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
                     )
                 }
@@ -103,14 +106,12 @@ fun ProfileSelector(
                         getIconForProfile(currentProfile),
                         contentDescription =
                             stringResource(R.string.photopicker_profile_switch_button_description),
-                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
                     )
 
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -130,7 +131,7 @@ fun ProfileSelector(
                         modifier = Modifier.widthIn(min = 200.dp),
                         color =
                             if (currentProfile == profile)
-                                MaterialTheme.colorScheme.secondaryContainer
+                                MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surfaceContainerHigh
                     ) {
                         DropdownMenuItem(
@@ -196,9 +197,7 @@ fun ProfileSelector(
         }
     } else {
         // Return a spacer which consumes the modifier so the space is still occupied, but is empty.
-        // Hide the spacer when the runtime is embedded, so that the navigation tabs stay in the
-        // center as the overflow menu is disabled in embedded runtime.
-        hideWhenState(StateSelector.Embedded) { Spacer(modifier) }
+        Spacer(modifier)
     }
 }
 

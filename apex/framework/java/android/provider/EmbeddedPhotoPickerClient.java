@@ -73,4 +73,12 @@ public interface EmbeddedPhotoPickerClient {
      * user.
      */
     void onItemsDeselected(@NonNull List<Uri> uris);
+
+    /**
+     * Reports that the user is done with their selection and should collapse the picker.
+     *
+     * <p> This doesn't necessarily mean that the session should be closed, but rather the user
+     * has indicated that they are done selecting images and should go back to the app. </p>
+     */
+    void onSelectionComplete();
 }

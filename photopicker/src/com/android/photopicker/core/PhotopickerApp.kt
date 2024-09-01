@@ -247,9 +247,14 @@ fun PhotopickerAppWithBottomSheet(
  *
  * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
  *   the UI has been created with is invalid
+ * @param onMediaSelectionConfirmed A callback to pass to the [Location.SELECTION_BAR] to indicate
+ *   the user has indicated the media selection is final.
  */
 @Composable
-fun PhotopickerApp(disruptiveDataNotification: Flow<Int>) {
+fun PhotopickerApp(
+    disruptiveDataNotification: Flow<Int>,
+    onMediaSelectionConfirmed: () -> Unit,
+) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -268,7 +273,7 @@ fun PhotopickerApp(disruptiveDataNotification: Flow<Int>) {
                         Location.SELECTION_BAR,
                         maxSlots = 1,
                         modifier = Modifier.padding(SELECTION_BAR_PADDING),
-                        params = LocationParams.None
+                        params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                     )
                 }
             }

@@ -190,7 +190,7 @@ fun PreviewSelection(
                         // Only show the selection button if not in single select.
                         if (LocalPhotopickerConfiguration.current.selectionLimit > 1) {
                             IconButton(
-                                modifier = Modifier.align(Alignment.TopStart),
+                                modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp),
                                 onClick = {
                                     val media = selection.get(state.currentPage)
                                     media?.let { viewModel.toggleInSelection(it, {}) }

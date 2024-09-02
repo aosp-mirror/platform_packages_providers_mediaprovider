@@ -877,6 +877,11 @@ public final class MediaStore {
      * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
      * otherwise {@link Activity#RESULT_CANCELED} is returned.
      *
+     * <p>Number of grants for items that an app can hold per user id is limited to
+     * {@link com.android.providers.media.MediaGrants#PER_PACKAGE_GRANTS_LIMIT_CONST}.
+     * Anytime on user selection if new grants are added, a clean up (if required) is performed to
+     * remove least recent grants ensuring the count of grants stays within limit.
+     *
      * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
      * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
      *

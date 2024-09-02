@@ -35,9 +35,12 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -57,7 +60,11 @@ public class MediaGrants {
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
     // At a time for a package and userId only a limited number of grants should be held in
     // database.
-    public static final int PER_PACKAGE_GRANTS_LIMIT = 5000;
+    public static final int PER_PACKAGE_GRANTS_LIMIT_CONST = 5000;
+
+    // This should be equal to the pre-defined limit, but is modifiable for the purpose of testing.
+    @VisibleForTesting
+    public static int PER_PACKAGE_GRANTS_LIMIT = PER_PACKAGE_GRANTS_LIMIT_CONST;
 
     private static final String CREATE_TEMPORARY_TABLE_QUERY = "CREATE TEMPORARY TABLE ";
     private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
@@ -103,6 +110,11 @@ public class MediaGrants {
         mQueryBuilder.setTables(MEDIA_GRANTS_TABLE);
     }
 
+    @VisibleForTesting
+    protected void setGrantsLimit(int newLimit) {
+        PER_PACKAGE_GRANTS_LIMIT = newLimit;
+    }
+
     /**
      * Adds media_grants for the provided URIs for the provided package name.
      *
@@ -146,11 +158,35 @@ public class MediaGrants {
                         }
                     }
 
+                    // A clean up for older grants needs to be performed, anytime the number of
+                    // grants reach more than the limit the excess grants should be removed.
+                    // This is done based on order of insertion in the table.
+                    SQLiteQueryBuilder sqbForGrantsCleanUp = new SQLiteQueryBuilder();
+                    sqbForGrantsCleanUp.setTables(MEDIA_GRANTS_TABLE);
+
+                    String recentGrantsSubQuery = String.format(
+                            Locale.ROOT, " SELECT rowid FROM %s "
+                                    + " WHERE  %s = '%s' AND %s = %d ORDER BY rowid DESC LIMIT %d",
+                            MEDIA_GRANTS_TABLE,
+                            OWNER_PACKAGE_NAME_COLUMN,
+                            packageName,
+                            PACKAGE_USER_ID_COLUMN,
+                            packageUserId,
+                            PER_PACKAGE_GRANTS_LIMIT);
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            "rowid NOT IN (" + recentGrantsSubQuery + ")");
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN + " ('" + packageName + "')");
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            PACKAGE_USER_ID_COLUMN + " = " + packageUserId);
+                    int countOfGrantsDeleted = sqbForGrantsCleanUp.delete(db, null, null);
+
                     Log.d(
                             TAG,
                             String.format(
                                     "Successfully added %s media_grants for %s.",
                                     uris.size(), packageName));
+                    Log.d(TAG, "Grants clean up : " + countOfGrantsDeleted + " deleted");
 
                     return null;
                 });

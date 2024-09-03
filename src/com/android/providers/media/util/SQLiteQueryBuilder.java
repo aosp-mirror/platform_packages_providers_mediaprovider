@@ -931,9 +931,8 @@ public class SQLiteQueryBuilder {
         if (hasGeneration) {
             values.remove(MediaColumns.GENERATION_ADDED);
             values.remove(MediaColumns.GENERATION_MODIFIED);
+            fillInferredDate(values);
         }
-
-        fillInferredDate(values);
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
                 .getValues(values);
@@ -1001,9 +1000,8 @@ public class SQLiteQueryBuilder {
             }
             values.remove(MediaColumns.GENERATION_ADDED);
             values.remove(MediaColumns.GENERATION_MODIFIED);
+            fillInferredDate(values);
         }
-
-        fillInferredDate(values);
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
                 .getValues(values);

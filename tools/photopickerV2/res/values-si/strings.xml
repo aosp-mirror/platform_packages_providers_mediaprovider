@@ -8,25 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"රූප තෝරන්න"</string>
     <string name="action_get_content" msgid="4319210475508093083">"අන්තර්ගතය ලබා ගන්න ක්‍රියාව"</string>
-    <!-- no translation found for open_document (8593796561386540777) -->
-    <skip />
-    <!-- no translation found for open_document_tree (8979404185180480396) -->
-    <skip />
-    <string name="display_images_in_order" msgid="7880116254468536174">"රූප පිළිවෙලට පෙන්වන්න"</string>
-    <!-- no translation found for show_images_only (6365019348435132030) -->
-    <skip />
-    <!-- no translation found for show_videos_only (7302756380142587762) -->
-    <skip />
-    <!-- no translation found for enter_mime_type (6599304148898478294) -->
-    <skip />
-    <!-- no translation found for select_launch_tab (1219436289162294907) -->
-    <skip />
+    <string name="open_document" msgid="8593796561386540777">"ලේඛනය විවෘත කරන්න"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"ලේඛන ගස විවෘත කරන්න"</string>
+    <string name="create_document" msgid="6073553682715924527">"ලේඛනය තනන්න"</string>
+    <string name="create_file" msgid="2532895579648102462">"ගොනුව තනන්න"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"තේරීමේ අනුපිළිවෙල පෙන්වන්න"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"රූප පමණක් පෙන්වන්න"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"වීඩියෝ පමණක් පෙන්වන්න"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Mime වර්ගය ඇතුළු කරන්න"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"දියත් කිරිමේ පටිත්ත තෝරන්න"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"බහු තේරීමට ඉඩ දෙන්න"</string>
-    <!-- no translation found for allow_custom_mime_type (770032039896650761) -->
-    <skip />
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"අභිරුචි Mime වර්ගයට ඉඩ දෙන්න"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"මාධ්‍ය අයිතම උපරිම සංඛ්‍යාව"</string>
-    <!-- no translation found for enter_valid_number (650407643348891234) -->
-    <skip />
+    <string name="enter_valid_number" msgid="650407643348891234">"එකකට වඩා වලංගු අංකයක් ඇතුළු කරන්න"</string>
     <string name="pick_media" msgid="5269447618857205416">"මාධ්‍ය තෝරන්න"</string>
     <string name="working_on_it" msgid="1373762827081252341">"ඒ පිළිබඳ කටයුතු සිදු කෙරෙයි"</string>
+    <string name="show_metadata" msgid="132548935678717609">"තෝරාගත් මාධ්‍ය සඳහා පාර දත්ත පෙන්වන්න"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"පූර්ව තේරීම සබල කරන්න"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"අවසර ඉල්ලන්න"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"සඳහා අවසර ඉල්ලන්න:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Picker Choice විශේෂාංගය ලබා ගත හැක්කේ Android U සහ ඉහළ උපාංග සඳහා පමණි. \n\nමෙම විශේෂාංගය භාවිත කිරීමට ඔබේ උපාංගය උත්ශ්‍රේණි කරන්න."</string>
+    <string name="images" msgid="4986074635830919568">"රූප"</string>
+    <string name="videos" msgid="4638519191891522146">"වීඩියෝ"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"රූප සහ වීඩියෝ යන දෙකම"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"නවතම තේරීම පමණක් පෙන්වන්න"</string>
 </resources>

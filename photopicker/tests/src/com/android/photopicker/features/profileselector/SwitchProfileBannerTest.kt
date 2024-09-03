@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.navigationbar
+package com.android.photopicker.features.profileselector
 
-import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.UserHandle
 import android.os.UserManager
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.performClick
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -37,20 +40,17 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
+import com.android.photopicker.inject.TestOptions
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
@@ -68,12 +68,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
-import org.mockito.Mockito.any
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -85,7 +85,15 @@ import org.mockito.MockitoAnnotations
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
-class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
+class SwitchProfileBannerTest : PhotopickerFeatureBaseTest() {
+
+    companion object {
+        val USER_ID_PRIMARY: Int = 0
+        val USER_HANDLE_PRIMARY: UserHandle = UserHandle.of(USER_ID_PRIMARY)
+        val USER_ID_MANAGED: Int = 10
+        val USER_HANDLE_MANAGED: UserHandle = UserHandle.of(USER_ID_MANAGED)
+    }
+
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
@@ -93,7 +101,10 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
-    @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
+    @Module
+    @InstallIn(SingletonComponent::class)
+    class TestModule :
+        PhotopickerTestModule(TestOptions.build { processOwnerHandle(USER_HANDLE_MANAGED) })
 
     val testDispatcher = StandardTestDispatcher()
 
@@ -109,110 +120,89 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    /**
-     * Preview uses Glide for loading images, so we have to mock out the dependencies for Glide
-     * Replace the injected ContentResolver binding in [ApplicationModule] with this test value.
-     */
-    @BindValue @ApplicationOwned lateinit var contentResolver: ContentResolver
-    private lateinit var provider: MockContentProviderWrapper
-    @Mock lateinit var mockContentProvider: ContentProvider
+    @Inject lateinit var events: Events
+    @Inject lateinit var selection: Selection<Media>
+    @Inject lateinit var featureManager: Lazy<FeatureManager>
+    @Inject lateinit var userHandle: UserHandle
+    @Inject lateinit var bannerManager: Lazy<BannerManager>
+    @Inject lateinit var userMonitor: Lazy<UserMonitor>
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
+
+    @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
     // Needed for UserMonitor
+    @Inject lateinit var mockContext: Context
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
-
-    @Inject lateinit var mockContext: Context
-    @Inject lateinit var selection: Selection<Media>
-    @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var events: Events
-    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
-
         hiltRule.inject()
-
-        // Stub for MockContentResolver constructor
-        whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }
-
-        // Stub out the content resolver for Glide
-        val mockContentResolver = MockContentResolver(mockContext)
-        provider = MockContentProviderWrapper(mockContentProvider)
-        mockContentResolver.addProvider(MockContentProviderWrapper.AUTHORITY, provider)
-        contentResolver = mockContentResolver
-
-        // Return a resource png so that glide actually has something to load
-        whenever(mockContentProvider.openTypedAssetFile(any(), any(), any(), any())) {
-            getTestableContext().getResources().openRawResourceFd(R.drawable.android)
-        }
         setupTestForUserMonitor(mockContext, mockUserManager, contentResolver, mockPackageManager)
+
+        whenever(mockUserManager.userProfiles) { listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED) }
+        whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
+        whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
+        whenever(mockUserManager.getProfileParent(USER_HANDLE_PRIMARY)) { null }
+
+        val resources = getTestableContext().getResources()
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getProfileLabel())
+                .thenReturn(
+                    // Launching Profile
+                    resources.getString(R.string.photopicker_profile_managed_label),
+                    // userProfiles[0]
+                    resources.getString(R.string.photopicker_profile_primary_label),
+                    // userProfiles[1]
+                    resources.getString(R.string.photopicker_profile_managed_label),
+                )
+        }
     }
 
-    /* Ensures the NavigationBar is drawn with the production registered features. */
     @Test
-    fun testNavigationBarProductionConfig() {
-        assertWithMessage("NavigationBar is not always enabled for TEST_ACTION")
-            .that(NavigationBarFeature.Registration.isEnabled(testPhotopickerConfiguration))
-            .isEqualTo(true)
-
-        assertWithMessage("NavigationBar is not always enabled")
-            .that(NavigationBarFeature.Registration.isEnabled(testActionPickImagesConfiguration))
-            .isEqualTo(true)
-
-        assertWithMessage("NavigationBar is not always enabled")
-            .that(NavigationBarFeature.Registration.isEnabled(testGetContentConfiguration))
-            .isEqualTo(true)
-
-        assertWithMessage("NavigationBar is not always enabled")
-            .that(
-                NavigationBarFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration)
-            )
-            .isEqualTo(true)
-    }
-
-    /* Verify Navigation Bar contains tabs for both photos and albums grid.*/
-    @Test
-    fun testNavigationBarIsVisibleWithFeatureTabs() {
-        // Explicitly create a new feature manager that uses the same production feature
-        // registrations to ensure this test will fail if the default production behavior changes.
-        featureManager =
-            FeatureManager(
-                registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
-                scope = testBackgroundScope,
-                configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
-            )
-
-        val photosGridNavButtonLabel =
-            getTestableContext()
-                .getResources()
-                .getString(R.string.photopicker_photos_nav_button_label)
-        val albumsGridNavButtonLabel =
-            getTestableContext()
-                .getResources()
-                .getString(R.string.photopicker_albums_nav_button_label)
-
+    fun testSwitchProfileBannerIsDisplayedWhenLaunchingProfileIsNotPrimary() =
         testScope.runTest {
+            val resources = getTestableContext().getResources()
+
+            bannerManager.get().refreshBanners()
+            advanceTimeBy(100)
             composeTestRule.setContent {
                 callPhotopickerMain(
-                    featureManager = featureManager,
+                    featureManager = featureManager.get(),
                     selection = selection,
                     events = events,
                 )
             }
-
             composeTestRule.waitForIdle()
 
-            // Photos Grid Nav Button and Albums Grid Nav Button
-            composeTestRule
-                .onNode(hasText(photosGridNavButtonLabel))
-                .assertIsDisplayed()
-                .assert(hasClickAction())
+            val expectedMessage =
+                resources.getString(
+                    R.string.photopicker_profile_switch_banner_message,
+                    "Work",
+                    "Personal",
+                )
 
+            composeTestRule.onNode(hasText(expectedMessage)).assertIsDisplayed()
+
+            // Click Switch and ensure the profile has changed and the banner is no longer shown.
+            val switchButtonLabel =
+                resources.getString(R.string.photopicker_profile_banner_switch_button_label)
             composeTestRule
-                .onNode(hasText(albumsGridNavButtonLabel))
+                .onNode(hasText(switchButtonLabel))
                 .assertIsDisplayed()
                 .assert(hasClickAction())
+                .performClick()
+
+            composeTestRule.waitForIdle()
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected profile to be the primary profile")
+                .that(userMonitor.get().userStatus.value.activeUserProfile.handle)
+                .isEqualTo(USER_HANDLE_PRIMARY)
+
+            composeTestRule.onNode(hasText(expectedMessage)).assertIsNotDisplayed()
+            composeTestRule.onNode(hasText(switchButtonLabel)).assertIsNotDisplayed()
         }
-    }
 }

@@ -46,6 +46,7 @@ import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
+import dagger.Lazy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.mockito.Mockito.any
@@ -62,7 +63,7 @@ abstract class PhotopickerFeatureBaseTest {
 
     // Hilt can't inject fields in the super class, so mark the field as abstract to force the
     // implementer to provide.
-    abstract var configurationManager: ConfigurationManager
+    abstract var configurationManager: Lazy<ConfigurationManager>
 
     /** A default implementation for retrieving a real context object for use during tests. */
     protected fun getTestableContext(): Context {
@@ -142,7 +143,7 @@ abstract class PhotopickerFeatureBaseTest {
         disruptiveDataFlow: Flow<Int> = flow { emit(0) }
     ) {
         val photopickerConfiguration by
-            configurationManager.configuration.collectAsStateWithLifecycle()
+            configurationManager.get().configuration.collectAsStateWithLifecycle()
 
         CompositionLocalProvider(
             LocalFeatureManager provides featureManager,

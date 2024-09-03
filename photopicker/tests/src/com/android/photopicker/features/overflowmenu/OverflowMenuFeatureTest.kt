@@ -59,6 +59,7 @@ import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -114,7 +115,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 

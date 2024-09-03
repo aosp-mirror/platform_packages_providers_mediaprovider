@@ -33,11 +33,13 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 
 import static org.hamcrest.Matchers.not;
 
+import android.os.Build;
 import android.view.View;
 
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.espresso.IdlingResource;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
@@ -49,6 +51,7 @@ import org.junit.runner.RunWith;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class MaxSelectionTest extends PhotoPickerBaseTest {
     private static final int MAX_SELECTION_COUNT = 2;
 

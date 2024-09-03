@@ -45,6 +45,7 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 
@@ -78,6 +79,7 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
         bannerState: BannerState?,
         config: PhotopickerConfiguration,
         dataService: DataService,
+        userMonitor: UserMonitor,
     ): Int {
         // If the banner reports as being dismissed, don't show it.
         if (bannerState?.dismissed == true) {
@@ -88,7 +90,11 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
         return Priority.HIGH.priority
     }
 
-    override suspend fun buildBanner(banner: BannerDefinitions, dataService: DataService): Banner {
+    override suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
         return object : Banner {
             override val declaration = BannerDefinitions.CLOUD_CHOOSE_ACCOUNT
 

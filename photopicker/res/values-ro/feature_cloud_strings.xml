@@ -21,20 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Finalizate: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> din <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Unele fotografii nu pot fi încărcate"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Încearcă din nou mai târziu. Fotografiile tale vor fi disponibile după ce se rezolvă problema."</string>
-    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
-    <skip />
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Fotografiile cu backup sunt acum incluse"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Poți selecta fotografii din contul <xliff:g id="APP_NAME">%1$s</xliff:g> <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Alege contul <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Pentru a include aici fotografii din <xliff:g id="APP_NAME">%1$s</xliff:g>, alege un cont din aplicație"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Alege un cont"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Alege o aplicație media în cloud"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Pentru a include fotografiile cu backup aici, alege o aplicație media în cloud din Setări"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Alege aplicația"</string>
 </resources>

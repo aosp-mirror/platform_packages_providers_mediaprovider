@@ -1104,14 +1104,14 @@ public class SQLiteQueryBuilder {
         if (Flags.inferredMediaDate()) {
             if (values.containsKey(MediaColumns.DATE_TAKEN)
                     && values.get(MediaColumns.DATE_TAKEN) != null
-                    && values.getAsInteger(MediaColumns.DATE_TAKEN) > 0) {
+                    && values.getAsLong(MediaColumns.DATE_TAKEN) > 0) {
                 values.put(MediaColumns.INFERRED_DATE,
-                        values.getAsInteger(MediaColumns.DATE_TAKEN));
+                        values.getAsLong(MediaColumns.DATE_TAKEN));
             } else if (values.containsKey(MediaColumns.DATE_MODIFIED)
                     && values.get(MediaColumns.DATE_MODIFIED) != null
-                    && values.getAsInteger(MediaColumns.DATE_MODIFIED) > 0) {
+                    && values.getAsLong(MediaColumns.DATE_MODIFIED) > 0) {
                 values.put(MediaColumns.INFERRED_DATE,
-                        values.getAsInteger(MediaColumns.DATE_MODIFIED) * 1000);
+                        values.getAsLong(MediaColumns.DATE_MODIFIED) * 1000);
             } else {
                 values.put(MediaColumns.INFERRED_DATE, 0);
             }

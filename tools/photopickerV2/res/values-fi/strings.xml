@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"Kuvanvalitsin versio 2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Valitse kuvia"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Sisällön hakutoiminto"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Näytä kuvat järjestyksessä"</string>
+    <string name="open_document" msgid="8593796561386540777">"Avaa dokumentti"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Avaa dokumenttipuu"</string>
+    <string name="create_document" msgid="6073553682715924527">"Luo asiakirja"</string>
+    <string name="create_file" msgid="2532895579648102462">"Luo tiedosto"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Näytä valintajärjestys"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Näytä vain kuvat"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Näytä vain videot"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Lisää MIME-tyyppi"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Valitse käynnistettävä välilehti"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Salli usean valinta"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Salli oma MIME-tyyppi"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Mediakohteiden enimmäismäärä"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Lisää sallittu määrä, joka on enemmän kuin yksi"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Lisää sallittu luku, joka on enemmän kuin yksi"</string>
     <string name="pick_media" msgid="5269447618857205416">"Valitse mediaa"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Työn alla"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Näytä valitun median metadata"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Ota esivalinta käyttöön"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Pyydä lupia"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Pyydä näitä lupia:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Valintaominaisuus on käytettävissä vain laitteilla, joiden käyttöjärjestelmä on Android U tai uudempi. \n\nPäivitä laite, jos haluat käyttää tätä ominaisuutta."</string>
+    <string name="images" msgid="4986074635830919568">"Kuvat"</string>
+    <string name="videos" msgid="4638519191891522146">"Videot"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Kuvat ja videot"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Näytä vain viimeisin valinta"</string>
 </resources>

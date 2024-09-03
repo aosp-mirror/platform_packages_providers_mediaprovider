@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Ընտրեք պատկերներ"</string>
     <string name="action_get_content" msgid="4319210475508093083">"«Ստանալ բովանդակություն» գործողություն"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Ցուցադրել պատկերները հերթականությամբ"</string>
+    <string name="open_document" msgid="8593796561386540777">"Բացել փաստաթուղթը"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Բացել փաստաթղթերի ծառը"</string>
+    <string name="create_document" msgid="6073553682715924527">"Ստեղծել փաստաթուղթ"</string>
+    <string name="create_file" msgid="2532895579648102462">"Ստեղծել ֆայլ"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Ցուցադրել ընտրության հերթականությունը"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Ցույց տալ միայն պատկերները"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Ցույց տալ միայն տեսանյութերը"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Մուտքագրեք MIME տեսակը"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Ընտրել գործարկման ներդիրը"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Թույլատրել բազմակի ընտրությունը"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Թույլատրել հատուկ Mime տեսակը"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Մուլտիմեդիա ֆայլերի առավելագույն քանակը"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Մուտքագրեք մեկից մեծ վավեր թիվ"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Մուտքագրեք մեկից մեծ վավեր թիվ"</string>
     <string name="pick_media" msgid="5269447618857205416">"Ընտրեք մուլտիմեդիա ֆայլեր"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Մշակվում է"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Ցույց տալ ընտրված մեդիաֆայլերի մետատվյալները"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Միացնել նախնական ընտրությունը"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Թույլտվություններ խնդրել"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Թույլտվություններ խնդրել հետևյալի համար՝"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"«Ընտրության տարբերակ» գործառույթը հասանելի է միայն Android U կամ ավելի նոր տարբերակով աշխատող սարքերում։ \n\nՆորացրեք ձեր սարքը՝ այս գործառույթից օգտվելու համար։"</string>
+    <string name="images" msgid="4986074635830919568">"Պատկերներ"</string>
+    <string name="videos" msgid="4638519191891522146">"Տեսանյութեր"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Ինչպես պատկերներ, այնպես էլ տեսանյութեր"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Ցույց տալ միայն վերջին ընտրությունը"</string>
 </resources>

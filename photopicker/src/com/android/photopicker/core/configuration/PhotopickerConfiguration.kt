@@ -19,7 +19,10 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.net.Uri
 import android.os.SystemProperties
+import android.provider.MediaStore
+import android.util.Log
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 
 /** Check system properties to determine if the device is considered debuggable */
@@ -53,10 +56,13 @@ enum class PhotopickerRuntimeEnv {
  *   set or set to too large a limit.
  * @property startDestination the start destination that should be consider the "home" view the user
  *   is shown for the session.
+ * @property preSelectedUris an [ArrayList] of the [Uri]s of the items selected by the user in the
+ *   previous photopicker sessions launched via the same calling app.
  * @property flags a snapshot of the relevant flags in [DeviceConfig]. These are not live values.
  * @property deviceIsDebuggable if the device is running a build which has [ro.debuggable == 1]
  * @property intent the [Intent] that Photopicker was launched with. This property is private to
  *   restrict access outside of this class.
+ * @property sessionId identifies the current photopicker session
  */
 data class PhotopickerConfiguration(
     val runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
@@ -69,8 +75,10 @@ data class PhotopickerConfiguration(
     val pickImagesInOrder: Boolean = false,
     val selectionLimit: Int = DEFAULT_SELECTION_LIMIT,
     val startDestination: PhotopickerDestinations = PhotopickerDestinations.DEFAULT,
+    val preSelectedUris: ArrayList<Uri>? = null,
     val deviceIsDebuggable: Boolean = buildIsDebuggable,
     val flags: PhotopickerFlags = PhotopickerFlags(),
+    val sessionId: Int,
     private val intent: Intent? = null,
 ) {
 
@@ -87,9 +95,18 @@ data class PhotopickerConfiguration(
      */
     fun doesCrossProfileIntentForwarderExists(packageManager: PackageManager): Boolean {
 
-        val clonedIntent =
-            intent?.clone() as? Intent // clone() returns an object so cast back to an Intent
-        clonedIntent?.let {
+        val intentToCheck: Intent? =
+            when (runtimeEnv) {
+                PhotopickerRuntimeEnv.ACTIVITY ->
+                    // clone() returns an object so cast back to an Intent
+                    intent?.clone() as? Intent
+
+                // For the EMBEDDED runtime, no intent exists, so generate cross profile forwarding
+                // based upon Photopicker's standard api ACTION_PICK_IMAGES
+                PhotopickerRuntimeEnv.EMBEDDED -> Intent(MediaStore.ACTION_PICK_IMAGES)
+            }
+
+        intentToCheck?.let {
             // Remove specific component / package info from the intent before querying
             // package manager. (This is going to look for all handlers of this intent,
             // and it shouldn't be scoped to a specific component or package)
@@ -107,6 +124,11 @@ data class PhotopickerConfiguration(
                 }
             }
         }
+            // Log a warning that the intent was null, but probably shouldn't have been.
+            ?: Log.w(
+                ConfigurationManager.TAG,
+                "No intent available for checking cross-profile access."
+            )
 
         return false
     }

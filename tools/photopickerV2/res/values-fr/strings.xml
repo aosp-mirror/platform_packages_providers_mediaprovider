@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Sélectionnez des images"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Action \"Obtenir du contenu\""</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Afficher les images dans l\'ordre"</string>
+    <string name="open_document" msgid="8593796561386540777">"Ouvrir le document"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Ouvrir l\'arborescence de documents"</string>
+    <string name="create_document" msgid="6073553682715924527">"Créer un document"</string>
+    <string name="create_file" msgid="2532895579648102462">"Créer un fichier"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Afficher l\'ordre de sélection"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Afficher uniquement les images"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Afficher uniquement les vidéos"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Saisissez le type MIME"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Sélectionner un onglet de démarrage"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Autoriser la sélection multiple"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Autoriser le type MIME personnalisé"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Nombre maximal d\'éléments multimédias"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Saisissez un nombre valide supérieur à un"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Saisir un nombre valide supérieur à un"</string>
     <string name="pick_media" msgid="5269447618857205416">"Sélectionnez des éléments multimédias"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Opération en cours"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Afficher les métadonnées pour le contenu multimédia sélectionné"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Activer la présélection"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Demander des autorisations"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Demander des autorisations pour :"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"La fonctionnalité Choix du sélecteur n\'est disponible que pour les appareils dotés d\'Android U ou version ultérieure. \n\nVeuillez mettre à jour votre appareil pour utiliser cette fonctionnalité."</string>
+    <string name="images" msgid="4986074635830919568">"Images"</string>
+    <string name="videos" msgid="4638519191891522146">"Vidéos"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Images et vidéos"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Afficher la dernière sélection uniquement"</string>
 </resources>

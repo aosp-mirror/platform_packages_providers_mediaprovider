@@ -36,7 +36,6 @@ import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -95,6 +94,7 @@ class FeatureManager(
                 Event.ReportPhotopickerSessionInfo::class.java,
                 Event.ReportPhotopickerApiInfo::class.java,
                 Event.LogPhotopickerUIEvent::class.java,
+                Event.LogPhotopickerAlbumOpenedUIEvent::class.java,
                 Event.ReportPhotopickerMediaItemStatus::class.java,
                 Event.LogPhotopickerPreviewInfo::class.java,
                 Event.LogPhotopickerMenuInteraction::class.java,

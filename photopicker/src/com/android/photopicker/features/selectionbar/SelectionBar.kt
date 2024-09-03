@@ -16,6 +16,7 @@
 
 package com.android.photopicker.features.selectionbar
 
+import android.provider.MediaStore
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -49,6 +50,11 @@ import com.android.photopicker.R
 import com.android.photopicker.core.animations.emphasizedAccelerate
 import com.android.photopicker.core.animations.emphasizedDecelerate
 import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
@@ -77,7 +83,15 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
     // Collect selection to ensure this is recomposed when the selection is updated.
     val selection = LocalSelection.current
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
-    val visible = currentSelection.isNotEmpty()
+    // For ACTION_USER_SELECT_IMAGES_FOR_APP selection bar should always be visible to allow users
+    // the option to exit with zero selection i.e. revoking all grants.
+    val visible =
+        currentSelection.isNotEmpty() ||
+            MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(
+                LocalPhotopickerConfiguration.current.action
+            )
+    val configuration = LocalPhotopickerConfiguration.current
+    val events = LocalEvents.current
     val scope = rememberCoroutineScope()
 
     // The entire selection bar is hidden if the selection is empty, and
@@ -139,6 +153,17 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
                     Spacer(Modifier.size(MEASUREMENT_BUTTONS_SPACER_SIZE))
                     FilledTonalButton(
                         onClick = {
+                            // Log clicking the picker Add media button
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.SELECTION_BAR.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_CLICK_ADD_BUTTON
+                                    )
+                                )
+                            }
                             // The selection bar should receive a click handler from its parent
                             // to handle the primary button click.
                             val clickAction = params as? LocationParams.WithClickAction

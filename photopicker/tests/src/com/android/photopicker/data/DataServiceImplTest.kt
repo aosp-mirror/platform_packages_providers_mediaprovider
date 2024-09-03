@@ -33,7 +33,10 @@ import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerFlags
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.testSessionId
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
@@ -96,6 +99,8 @@ class DataServiceImplTest {
             )
     }
 
+    private val sessionId = generatePickerSessionId()
+
     private lateinit var testFeatureManager: FeatureManager
     private lateinit var testContentProvider: TestMediaProvider
     private lateinit var testContentResolver: ContentResolver
@@ -104,6 +109,7 @@ class DataServiceImplTest {
     private lateinit var userStatus: UserStatus
     private lateinit var mockContext: Context
     private lateinit var mockPackageManager: PackageManager
+    private lateinit var events: Events
 
     @Before
     fun setup() {
@@ -133,6 +139,12 @@ class DataServiceImplTest {
     @Test
     fun testInitialAllowedProvider() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -143,7 +155,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -159,6 +173,33 @@ class DataServiceImplTest {
     @Test
     fun testUpdateAvailableProviders() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
+
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -167,9 +208,24 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "TEST_ACTION",
+                                sessionId = testSessionId,
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_MEDIA_ENABLED = true,
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                    )
+                            )
+                    ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -232,6 +288,20 @@ class DataServiceImplTest {
             )
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
         val scope = TestScope()
+        val featureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(scope = scope.backgroundScope),
+                scope,
+                setOf(), // Don't register CloudMediaFeature
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                featureManager
+            )
         val dataService: DataService =
             DataServiceImpl(
                 userStatus = userStatusFlow,
@@ -240,15 +310,10 @@ class DataServiceImplTest {
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = MutableStateFlow(testPhotopickerConfiguration),
-                featureManager =
-                    FeatureManager(
-                        provideTestConfigurationFlow(scope = scope.backgroundScope),
-                        scope,
-                        setOf(), // Don't register CloudMediaFeature
-                        setOf<RegisteredEventClass>(),
-                        setOf<RegisteredEventClass>(),
-                    ),
-                appContext = mockContext
+                appContext = mockContext,
+                featureManager = featureManager,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -267,6 +332,33 @@ class DataServiceImplTest {
     @Test
     fun testAvailableProvidersWhenUserChanges() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
+
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -275,9 +367,23 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                    ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -349,6 +455,12 @@ class DataServiceImplTest {
     fun testContentObserverRegistrationWhenUserChanges() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
         val mockNotificationService = mock(NotificationService::class.java)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -359,7 +471,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -460,6 +574,12 @@ class DataServiceImplTest {
     @Test
     fun testMediaPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -470,7 +590,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -522,6 +644,12 @@ class DataServiceImplTest {
     @Test
     fun testAlbumPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -532,7 +660,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         // Check initial available provider emissions
@@ -584,6 +714,12 @@ class DataServiceImplTest {
     @Test
     fun testAlbumMediaPagingSourceCacheUpdates() = runTest {
         testContentProvider.lastRefreshMediaRequest = null
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
         val dataService: DataService =
@@ -595,7 +731,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -656,6 +794,12 @@ class DataServiceImplTest {
     @Test
     fun testAlbumMediaPagingSourceInvalidation() = runTest {
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -666,7 +810,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         // Check initial available provider emissions
@@ -744,6 +890,12 @@ class DataServiceImplTest {
     @Test
     fun testOnUpdateMediaNotification() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -754,7 +906,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -787,6 +941,12 @@ class DataServiceImplTest {
     @Test
     fun testOnUpdateAlbumMediaNotification() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -797,7 +957,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
         advanceTimeBy(100)
 
@@ -853,6 +1015,12 @@ class DataServiceImplTest {
     @Test
     fun testDisruptiveDataUpdate() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         testContentProvider.providers =
             mutableListOf(
@@ -864,6 +1032,27 @@ class DataServiceImplTest {
                 ),
             )
 
+        testFeatureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(
+                    scope = this.backgroundScope,
+                    defaultConfiguration =
+                        PhotopickerConfiguration(
+                            action = "TEST_ACTION",
+                            sessionId = testSessionId,
+                            flags =
+                                PhotopickerFlags(
+                                    CLOUD_MEDIA_ENABLED = true,
+                                    CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                )
+                        )
+                ),
+                this.backgroundScope,
+                setOf(CloudMediaFeature.Registration),
+                setOf<RegisteredEventClass>(),
+                setOf<RegisteredEventClass>(),
+            )
+
         val dataService: DataService =
             DataServiceImpl(
                 userStatus = userStatusFlow,
@@ -871,9 +1060,24 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = provideTestConfigurationFlow(this.backgroundScope),
+                config =
+                    provideTestConfigurationFlow(
+                        this.backgroundScope,
+                        defaultConfiguration =
+                            PhotopickerConfiguration(
+                                action = "TEST_ACTION",
+                                sessionId = testSessionId,
+                                flags =
+                                    PhotopickerFlags(
+                                        CLOUD_MEDIA_ENABLED = true,
+                                        CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
+                                    )
+                            )
+                    ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -942,6 +1146,12 @@ class DataServiceImplTest {
     @Test
     fun testCollectionInfoUpdate() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
 
         val dataService: DataService =
             DataServiceImpl(
@@ -952,7 +1162,9 @@ class DataServiceImplTest {
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 config = provideTestConfigurationFlow(this.backgroundScope),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -986,6 +1198,12 @@ class DataServiceImplTest {
     @Test
     fun testGetAllAllowedProviders() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
@@ -1029,11 +1247,14 @@ class DataServiceImplTest {
                                                 cloudProvider2.authority
                                             ),
                                         CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
-                                    )
+                                    ),
+                                sessionId = sessionId
                             )
                     ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1045,6 +1266,12 @@ class DataServiceImplTest {
     @Test
     fun testGetAllAllowedProvidersWhenAllowlistIsEnforced() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
@@ -1084,11 +1311,14 @@ class DataServiceImplTest {
                                     PhotopickerFlags(
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf(cloudProvider1.authority),
                                         CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
-                                    )
+                                    ),
+                                sessionId = sessionId
                             )
                     ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1099,6 +1329,12 @@ class DataServiceImplTest {
     @Test
     fun testGetAllAllowedProvidersWhenDeviceHasLimitedProviders() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
@@ -1141,11 +1377,14 @@ class DataServiceImplTest {
                                                 cloudProvider2.authority
                                             ),
                                         CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
-                                    )
+                                    ),
+                                sessionId = sessionId
                             )
                     ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1156,6 +1395,12 @@ class DataServiceImplTest {
     @Test
     fun testGetAllAllowedProvidersWhenAllowlistIsNotEnforced() = runTest {
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
+        events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope),
+                testFeatureManager
+            )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
@@ -1195,11 +1440,14 @@ class DataServiceImplTest {
                                     PhotopickerFlags(
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf(),
                                         CLOUD_ENFORCE_PROVIDER_ALLOWLIST = false
-                                    )
+                                    ),
+                                sessionId = sessionId
                             )
                     ),
                 featureManager = testFeatureManager,
-                appContext = mockContext
+                appContext = mockContext,
+                events = events,
+                processOwnerHandle = userProfilePrimary.handle
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()

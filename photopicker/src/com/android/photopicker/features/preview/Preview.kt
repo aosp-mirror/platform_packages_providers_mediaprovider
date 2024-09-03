@@ -37,8 +37,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +68,12 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.glide.RESOLUTION_REQUESTED
 import com.android.photopicker.core.glide.Resolution
@@ -77,11 +82,14 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.selection.SelectionStrategy
+import com.android.photopicker.core.selection.SelectionStrategy.Companion.determineSelectionStrategy
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.theme.LocalFixedAccentColors
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Entry point for the [PhotopickerDestinations.PREVIEW_SELECTION] and
@@ -126,7 +134,8 @@ fun PreviewSelection(
                 viewModel
                     .getPreviewMediaIncludingPreGrantedItems(
                         selectionSnapshot,
-                        LocalPhotopickerConfiguration.current
+                        LocalPhotopickerConfiguration.current,
+                        /* isSingleItemPreview */ false
                     )
                     .collectAsLazyPagingItems()
             }
@@ -148,7 +157,7 @@ fun PreviewSelection(
             ) {
                 Row(
                     modifier =
-                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 4.dp),
+                        Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp, start = 8.dp),
                 ) {
                     // back button
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -174,42 +183,49 @@ fun PreviewSelection(
                             Modifier.align(Alignment.Center),
                             selection,
                             state,
-                            snackbarHostState
+                            snackbarHostState,
+                            /* singleItemPreview */ previewSingleItem
                         )
 
-                        IconButton(
-                            modifier = Modifier.align(Alignment.TopStart),
-                            onClick = {
-                                val media = selection.get(state.currentPage)
-                                media?.let { viewModel.toggleInSelection(it, {}) }
-                            }
-                        ) {
-                            if (currentSelection.contains(selection.get(state.currentPage))) {
-                                Icon(
-                                    Icons.Filled.CheckCircle,
-                                    modifier =
-                                        Modifier
-                                            // Background is necessary because the icon has negative
-                                            // space.
-                                            .background(
-                                                MaterialTheme.colorScheme.onPrimary,
-                                                CircleShape
-                                            ),
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_media_item),
-                                    tint =
-                                        CustomAccentColorScheme.current
-                                            .getAccentColorIfDefinedOrElse(
-                                                /* fallback */ MaterialTheme.colorScheme.primary
-                                            ),
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Outlined.Circle,
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_item_selected),
-                                    tint = Color.White
-                                )
+                        // Only show the selection button if not in single select.
+                        if (LocalPhotopickerConfiguration.current.selectionLimit > 1) {
+                            IconButton(
+                                modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp),
+                                onClick = {
+                                    val media = selection.get(state.currentPage)
+                                    media?.let { viewModel.toggleInSelection(it, {}) }
+                                }
+                            ) {
+                                if (currentSelection.contains(selection.get(state.currentPage))) {
+                                    Icon(
+                                        ImageVector.vectorResource(
+                                            R.drawable.photopicker_selected_media
+                                        ),
+                                        modifier =
+                                            Modifier
+                                                // Background is necessary because the icon has
+                                                // negative
+                                                // space.
+                                                .background(
+                                                    MaterialTheme.colorScheme.onPrimary,
+                                                    CircleShape
+                                                ),
+                                        contentDescription =
+                                            stringResource(R.string.photopicker_media_item),
+                                        tint =
+                                            CustomAccentColorScheme.current
+                                                .getAccentColorIfDefinedOrElse(
+                                                    /* fallback */ MaterialTheme.colorScheme.primary
+                                                ),
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Outlined.Circle,
+                                        contentDescription =
+                                            stringResource(R.string.photopicker_item_selected),
+                                        tint = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -227,17 +243,26 @@ fun PreviewSelection(
                 Row(
                     modifier =
                         Modifier.fillMaxWidth()
-                            .padding(bottom = 68.dp, start = 4.dp, end = 16.dp, top = 12.dp),
+                            .padding(bottom = 48.dp, start = 4.dp, end = 16.dp, top = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (previewSingleItem) {
+                    val config = LocalPhotopickerConfiguration.current
+                    val strategy = remember(config) { determineSelectionStrategy(config) }
+                    if (previewSingleItem || strategy == SelectionStrategy.GRANTS_AWARE_SELECTION) {
                         Spacer(Modifier.size(8.dp))
                     } else {
                         SelectionButton(currentSelection = currentSelection)
                     }
 
                     FilledTonalButton(
-                        onClick = { navController.popBackStack() },
+                        onClick = {
+                            if (config.selectionLimit == 1) {
+                                val media = selection.get(state.currentPage)
+                                media?.let { viewModel.toggleInSelection(it, {}) }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
                         colors =
                             ButtonDefaults.filledTonalButtonColors(
                                 containerColor =
@@ -251,7 +276,16 @@ fun PreviewSelection(
                                         ),
                             )
                     ) {
-                        Text(stringResource(R.string.photopicker_done_button_label))
+                        Text(
+                            text =
+                                when (config.selectionLimit) {
+                                    1 ->
+                                        stringResource(
+                                            R.string.photopicker_select_current_button_label
+                                        )
+                                    else -> stringResource(R.string.photopicker_done_button_label)
+                                }
+                        )
                     }
                 }
             }
@@ -277,7 +311,12 @@ private fun SelectionButton(
         },
         colors =
             ButtonDefaults.textButtonColors(
-                contentColor = LocalFixedAccentColors.current.primaryFixedDim
+                contentColor =
+                    // The background color for Preview is always fixed to Black, so when the
+                    // custom accent color is defined, switch to a White color for this button
+                    // so it doesn't clash with the custom color.
+                    if (CustomAccentColorScheme.current.isAccentColorDefined()) Color.White
+                    else LocalFixedAccentColors.current.primaryFixedDim
             )
     ) {
         if (currentSelection.size > 0) {
@@ -310,7 +349,8 @@ private fun PreviewPager(
     modifier: Modifier,
     selection: LazyPagingItems<Media>,
     state: PagerState,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    singleItemPreview: Boolean,
 ) {
     // Preview session state to keep track if the video player's audio is muted.
     var audioIsMuted by remember { mutableStateOf(true) }
@@ -322,9 +362,15 @@ private fun PreviewPager(
         val media = selection.get(page)
         if (media != null) {
             when (media) {
-                is Media.Image -> ImageUi(media)
+                is Media.Image -> ImageUi(media, singleItemPreview)
                 is Media.Video ->
-                    VideoUi(media, audioIsMuted, { audioIsMuted = it }, snackbarHostState)
+                    VideoUi(
+                        media,
+                        audioIsMuted,
+                        { audioIsMuted = it },
+                        snackbarHostState,
+                        singleItemPreview
+                    )
             }
         }
     }
@@ -336,11 +382,36 @@ private fun PreviewPager(
  * @param image
  */
 @Composable
-private fun ImageUi(image: Media.Image) {
+private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
+    if (singleItemPreview) {
+        val events = LocalEvents.current
+        val scope = rememberCoroutineScope()
+        val configuration = LocalPhotopickerConfiguration.current
+
+        scope.launch {
+            val mediaType =
+                if (image.mimeType.contains("gif")) {
+                    Telemetry.MediaType.GIF
+                } else {
+                    Telemetry.MediaType.PHOTO
+                }
+            // Mark entry into preview mode by long pressing on the media item
+            events.dispatch(
+                Event.LogPhotopickerPreviewInfo(
+                    FeatureToken.PREVIEW.token,
+                    configuration.sessionId,
+                    Telemetry.PreviewModeEntry.LONG_PRESS,
+                    previewItemCount = 1,
+                    mediaType,
+                    Telemetry.VideoPlayBackInteractions.UNSET_VIDEO_PLAYBACK_INTERACTION
+                )
+            )
+        }
+    }
     loadMedia(
         media = image,
         resolution = Resolution.FULL,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         // by default loadMedia center crops, so use a custom request builder
         requestBuilderTransformation = { media, resolution, builder ->
             builder.set(RESOLUTION_REQUESTED, resolution).signature(media.getSignature(resolution))
@@ -355,17 +426,70 @@ private fun ImageUi(image: Media.Image) {
 @Composable
 fun PreviewSelectionButton(modifier: Modifier) {
     val navController = LocalNavController.current
-
-    TextButton(
-        onClick = navController::navigateToPreviewSelection,
-        modifier = modifier,
-    ) {
-        Text(
-            stringResource(R.string.photopicker_preview_button_label),
-            color =
-                CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
-                    /* fallback */ MaterialTheme.colorScheme.primary
-                )
-        )
+    val events = LocalEvents.current
+    val scope = rememberCoroutineScope()
+    // TODO(b/353659535): Use Selection.size api when available
+    val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
+    val previewItemCount = currentSelection.size
+    val configuration = LocalPhotopickerConfiguration.current
+    if (currentSelection.isNotEmpty()) {
+        TextButton(
+            onClick = {
+                scope.launch {
+                    logPreviewSelectionButtonClicked(configuration, previewItemCount, events)
+                }
+                navController.navigateToPreviewSelection()
+            },
+            modifier = modifier,
+        ) {
+            Text(
+                stringResource(R.string.photopicker_preview_button_label),
+                color =
+                    CustomAccentColorScheme.current.getAccentColorIfDefinedOrElse(
+                        /* fallback */ MaterialTheme.colorScheme.primary
+                    )
+            )
+        }
     }
+}
+
+/**
+ * Dispatches all the relevant logging events for the picker's preview mode when the Preview button
+ * is clicked
+ */
+private suspend fun logPreviewSelectionButtonClicked(
+    configuration: PhotopickerConfiguration,
+    previewItemCount: Int,
+    events: Events,
+) {
+    // Log preview item details
+    events.dispatch(
+        Event.LogPhotopickerPreviewInfo(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            Telemetry.PreviewModeEntry.VIEW_SELECTED,
+            previewItemCount,
+            Telemetry.MediaType.UNSET_MEDIA_TYPE,
+            Telemetry.VideoPlayBackInteractions.UNSET_VIDEO_PLAYBACK_INTERACTION
+        )
+    )
+
+    // Log preview related UI events including clicking the 'preview' button
+    events.dispatch(
+        Event.LogPhotopickerUIEvent(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            configuration.callingPackageUid ?: -1,
+            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+        )
+    )
+
+    events.dispatch(
+        Event.LogPhotopickerUIEvent(
+            FeatureToken.PREVIEW.token,
+            configuration.sessionId,
+            configuration.callingPackageUid ?: -1,
+            Telemetry.UiEvent.PICKER_CLICK_VIEW_SELECTED
+        )
+    )
 }

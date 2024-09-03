@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"Bilder auswählen"</string>
     <string name="action_get_content" msgid="4319210475508093083">"Aktion „Inhalte erhalten“"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"Bilder in Reihenfolge anzeigen"</string>
+    <string name="open_document" msgid="8593796561386540777">"Dokument öffnen"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Baumansicht für Dokumente öffnen"</string>
+    <string name="create_document" msgid="6073553682715924527">"Dokument erstellen"</string>
+    <string name="create_file" msgid="2532895579648102462">"Datei erstellen"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Anzeigereihenfolge der Auswahl"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Nur Bilder anzeigen"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Nur Videos anzeigen"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME-Typ eingeben"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Launch-Tab öffnen"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"Mehrfachauswahl zulassen"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Benutzerdefinierten MIME-Typ erlauben"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"Maximale Anzahl an Mediendateien"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"Gib eine gültige Zahl größer als eins ein"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Gültige Zahl größer als eins eingeben"</string>
     <string name="pick_media" msgid="5269447618857205416">"Medien auswählen"</string>
     <string name="working_on_it" msgid="1373762827081252341">"Wird bearbeitet"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Metadaten für ausgewählte Medien anzeigen"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Vorauswahl aktivieren"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Berechtigungen anfordern"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Berechtigungen anfordern für:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Die Funktion „Auswahloption“ ist nur für Geräte mit Android U und höher verfügbar. \n\nFühre ein Upgrade deines Geräts durch, um diese Funktion zu verwenden."</string>
+    <string name="images" msgid="4986074635830919568">"Bilder"</string>
+    <string name="videos" msgid="4638519191891522146">"Videos"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Sowohl Bilder als auch Videos"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Nur letzte Auswahl anzeigen"</string>
 </resources>

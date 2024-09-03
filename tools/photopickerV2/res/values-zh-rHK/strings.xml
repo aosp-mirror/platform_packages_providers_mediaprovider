@@ -8,10 +8,28 @@
     <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
     <string name="pick_images" msgid="5326258471545526911">"點選圖片"</string>
     <string name="action_get_content" msgid="4319210475508093083">"取得內容的動作"</string>
-    <string name="display_images_in_order" msgid="7880116254468536174">"依序顯示圖片"</string>
+    <string name="open_document" msgid="8593796561386540777">"開啟文件"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"開啟文件樹狀圖"</string>
+    <string name="create_document" msgid="6073553682715924527">"建立文件"</string>
+    <string name="create_file" msgid="2532895579648102462">"建立檔案"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"顯示選取次序"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"僅顯示圖片"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"僅顯示影片"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"輸入 MIME 類型"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"選取發佈分頁"</string>
     <string name="allow_multiple_selection" msgid="3485101220559262266">"允許選取多項"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"允許自訂 MIME 類型"</string>
     <string name="max_number_of_media_items" msgid="2736386927806685966">"最大媒體項目數量"</string>
-    <string name="enter_valid_number" msgid="5077320506805084248">"輸入大於一的有效計數"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"輸入大於一的有效數字"</string>
     <string name="pick_media" msgid="5269447618857205416">"點選媒體"</string>
     <string name="working_on_it" msgid="1373762827081252341">"正在處理"</string>
+    <string name="show_metadata" msgid="132548935678717609">"顯示所選媒體的元數據"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"啟用預先選取功能"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"要求權限"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"要求以下權限："</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"「點選器的選擇」功能只適用於 Android U 或以上版本的裝置。\n\n如要使用此功能，請升級裝置。"</string>
+    <string name="images" msgid="4986074635830919568">"圖片"</string>
+    <string name="videos" msgid="4638519191891522146">"影片"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"圖片和影片"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"只顯示最新選取的選項"</string>
 </resources>

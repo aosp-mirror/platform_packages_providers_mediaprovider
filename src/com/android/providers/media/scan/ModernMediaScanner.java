@@ -916,7 +916,8 @@ public class ModernMediaScanner implements MediaScanner {
                         return FileVisitResult.CONTINUE;
                     }
 
-                    if (Flags.audioSampleColumns() && mReason == REASON_IDLE
+                    if ((Flags.audioSampleColumns() || Flags.inferredMediaDate())
+                            && mReason == REASON_IDLE
                             && c.getInt(6) == FileColumns._MODIFIER_SCHEMA_UPDATE) {
                         shouldKeepGenerationUnchanged = true;
                     }
@@ -946,7 +947,8 @@ public class ModernMediaScanner implements MediaScanner {
                 op.withValue(FileColumns._MODIFIER, FileColumns._MODIFIER_MEDIA_SCAN);
 
                 // Flag we do not want generation modified if it's an idle scan update
-                if (Flags.audioSampleColumns() && shouldKeepGenerationUnchanged) {
+                if ((Flags.audioSampleColumns() || Flags.inferredMediaDate())
+                        && shouldKeepGenerationUnchanged) {
                     op.withValue(FileColumns.GENERATION_MODIFIED,
                             FileColumns.GENERATION_MODIFIED_UNCHANGED);
                 }

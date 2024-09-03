@@ -29,7 +29,10 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import static org.hamcrest.Matchers.allOf;
 
+import android.os.Build;
+
 import androidx.test.core.app.ActivityScenario;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
@@ -42,6 +45,7 @@ import org.junit.runner.RunWith;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class MimeTypeFilterTest extends PhotoPickerBaseTest {
 
     private static final String IMAGE_MIME_TYPE = "image/*";

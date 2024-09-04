@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import static java.util.Objects.requireNonNull;
 
@@ -110,7 +110,7 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
          * By-default session will open in multiselect mode and below is the maximum
          * selection limit if user doesn't specify anything.
          */
-        private static final int DEFAULT_MAX_SELECTION_LIMIT = MediaStore.getPickImagesMaxLimit();
+        private static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
         @NonNull
         private static final List<Uri> DEFAULT_PRE_SELECTED_URIS = Arrays.asList();
         private static final int DEFAULT_NIGHT_MODE = Configuration.UI_MODE_NIGHT_UNDEFINED;
@@ -202,9 +202,9 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
          */
         @NonNull
         public Builder setMaxSelectionLimit(@IntRange(from = 1) int maxSelectionLimit) {
-            if (maxSelectionLimit > MediaStore.getPickImagesMaxLimit()) {
+            if (maxSelectionLimit > DEFAULT_MAX_SELECTION_LIMIT) {
                 throw new IllegalArgumentException("Max selection limit should be less than "
-                        + MediaStore.getPickImagesMaxLimit());
+                        + DEFAULT_MAX_SELECTION_LIMIT);
             }
             mMaxSelectionLimit = maxSelectionLimit;
             return this;

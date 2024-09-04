@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.provider;
+package android.widget.photopicker;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 

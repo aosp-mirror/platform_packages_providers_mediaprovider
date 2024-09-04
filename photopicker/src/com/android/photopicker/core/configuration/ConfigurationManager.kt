@@ -19,8 +19,8 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.os.Build
 import android.provider.DeviceConfig
-import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.util.Log
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.isUnspecified
 import com.android.photopicker.core.navigation.PhotopickerDestinations

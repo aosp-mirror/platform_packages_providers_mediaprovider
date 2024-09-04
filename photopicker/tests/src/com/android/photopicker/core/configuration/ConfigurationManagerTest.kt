@@ -19,8 +19,8 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.provider.MediaStore
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
 import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress

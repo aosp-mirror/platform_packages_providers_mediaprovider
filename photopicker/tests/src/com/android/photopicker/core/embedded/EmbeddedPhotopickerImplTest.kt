@@ -18,10 +18,10 @@ package com.android.photopicker.core.embedded
 import android.hardware.display.DisplayManager
 import android.os.Binder
 import android.os.Build
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.EmbeddedPhotoPickerSessionResponse
-import android.provider.IEmbeddedPhotoPickerClient
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress

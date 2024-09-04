@@ -22,15 +22,32 @@ java_sdk_library {
     defaults: ["framework-module-defaults"],
     srcs: [
         ":framework-photopicker-updatable-sources",
+        "java/**/*.aidl",
     ],
+    aidl: {
+        local_include_dirs: [
+            "java",
+        ],
+    },
+
     permitted_packages: [
         "android.widget.photopicker",
+        "com.android.providers.media.flags",
+    ],
+    libs: [
+        "androidx.annotation_annotation",
+        "framework-media.stubs.module_lib",
+        "unsupportedappusage",
+    ],
+    static_libs: [
+        "mediaprovider_flags_java_lib",
     ],
     apex_available: [
         "com.android.mediaprovider",
     ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
+        "//cts/tests/PhotoPicker",
     ],
     min_sdk_version: "31", // new jars are only supported S+
 }

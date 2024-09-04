@@ -27,11 +27,11 @@ import android.os.Binder
 import android.os.Build
 import android.os.Process
 import android.os.UserManager
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
 import android.test.mock.MockContentResolver
 import android.view.SurfaceView
 import android.view.WindowManager
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
@@ -510,7 +510,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
+                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -540,7 +540,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // revoked permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemsDeselected(listOf(uri))
+                verify(mockClient, times(1)).onUriPermissionRevoked(listOf(uri))
             }
 
             clearInvocations(mockTextContextWrapper, mockClient)
@@ -569,7 +569,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
             for (uri in expectedUris) {
-                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
+                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
             }
         }
 
@@ -637,9 +637,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             for (uri in expectedUris) {
                 if (uri == grantFailureUri) continue
-                verify(mockClient, times(1)).onItemsSelected(listOf(uri))
+                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
             }
-            verify(mockClient, never()).onItemsSelected(listOf(grantFailureUri))
+            verify(mockClient, never()).onUriPermissionGranted(listOf(grantFailureUri))
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -671,7 +671,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUris)
 
-            verify(mockClient, never()).onItemsDeselected(listOf(revokeFailureUri))
+            verify(mockClient, never()).onUriPermissionRevoked(listOf(revokeFailureUri))
         }
 
     @Test

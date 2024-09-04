@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.RequiresApi;
 import android.content.res.Configuration;
@@ -120,9 +120,9 @@ class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
     }
 
     @Override
-    public void notifyItemsDeselected(@NonNull List<Uri> uris) {
+    public void requestRevokeUriPermission(@NonNull List<Uri> uris) {
         try {
-            mSession.notifyItemsDeselected(uris);
+            mSession.requestRevokeUriPermission(uris);
         } catch (RemoteException e) {
             e.rethrowAsRuntimeException();
         }

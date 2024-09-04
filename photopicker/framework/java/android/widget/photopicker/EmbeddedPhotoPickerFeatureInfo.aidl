@@ -1,3 +1,3 @@
-package android.provider;
+package android.widget.photopicker;
 
 parcelable EmbeddedPhotoPickerFeatureInfo;

@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 
 import android.os.Parcelable;
-import android.provider.EmbeddedPhotoPickerFeatureInfo;
-import android.provider.IEmbeddedPhotoPickerClient;
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo;
+import android.widget.photopicker.IEmbeddedPhotoPickerClient;
 
 /**
 * Internal interface used to open a new session for embedded photopicker

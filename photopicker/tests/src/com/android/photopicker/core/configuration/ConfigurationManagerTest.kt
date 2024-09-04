@@ -19,7 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.EmbeddedPhotopickerFeatureInfo
+import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.provider.MediaStore
 import androidx.core.os.bundleOf
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -525,6 +525,52 @@ class ConfigurationManagerTest {
 
     /**
      * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
+     * expected preSelection URIs.
+     */
+    @Test
+    fun testSetIntentSetsPickImagesPreSelectionUris() {
+        val testUriPlaceHolder =
+            "content://media/picker/0/com.android.providers.media.photopicker/media/%s"
+        val inputUris =
+            arrayListOf(
+                Uri.parse(String.format(testUriPlaceHolder, "1")),
+                Uri.parse(String.format(testUriPlaceHolder, "2"))
+            )
+        val intent =
+            Intent()
+                .setAction(MediaStore.ACTION_PICK_IMAGES)
+                .putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit())
+                .putParcelableArrayListExtra(MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS, inputUris)
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId = sessionId
+                )
+            // Expect the default configuration
+            val expectedConfiguration = PhotopickerConfiguration(action = "", sessionId = sessionId)
+
+            val emissions = mutableListOf<PhotopickerConfiguration>()
+            backgroundScope.launch { configurationManager.configuration.toList(emissions) }
+
+            advanceTimeBy(100)
+            configurationManager.setIntent(intent)
+            advanceTimeBy(100)
+
+            assertThat(emissions.size).isEqualTo(2)
+            assertThat(emissions.first()).isEqualTo(expectedConfiguration)
+            assertThat(emissions.last().action).isEqualTo(MediaStore.ACTION_PICK_IMAGES)
+            assertThat(emissions.last().preSelectedUris).isEqualTo(inputUris)
+            assertThat(emissions.last().selectionLimit)
+                .isEqualTo(MediaStore.getPickImagesMaxLimit())
+        }
+    }
+
+    /**
+     * Ensures that [ConfigurationManager#setAction] will emit an updated configuration with the
      * expected default launch tab.
      */
     @Test
@@ -823,7 +869,7 @@ class ConfigurationManagerTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsSelectionLimit() {
-        val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().build()
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
 
         runTest {
             val configurationManager =
@@ -864,7 +910,7 @@ class ConfigurationManagerTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsMimeTypes() {
         val featureInfo =
-            EmbeddedPhotopickerFeatureInfo.Builder()
+            EmbeddedPhotoPickerFeatureInfo.Builder()
                 .setMimeTypes(arrayListOf("image/png", "video/mp4"))
                 .build()
 
@@ -905,7 +951,7 @@ class ConfigurationManagerTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsPickImagesInOrder() {
-        val featureInfo = EmbeddedPhotopickerFeatureInfo.Builder().setOrderedSelection(true).build()
+        val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().setOrderedSelection(true).build()
 
         runTest {
             val configurationManager =
@@ -945,7 +991,7 @@ class ConfigurationManagerTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun testSetEmbeddedPhotopickerFeatureInfoSetsPreSelectedUris() {
         val featureInfo =
-            EmbeddedPhotopickerFeatureInfo.Builder()
+            EmbeddedPhotoPickerFeatureInfo.Builder()
                 .setPreSelectedUris(arrayListOf(Uri.EMPTY))
                 .build()
 

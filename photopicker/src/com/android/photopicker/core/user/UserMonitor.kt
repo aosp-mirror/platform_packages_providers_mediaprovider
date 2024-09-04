@@ -175,6 +175,9 @@ class UserMonitor(
         }
     }
 
+    /** The profile that the current Photopicker session is running under */
+    val launchingProfile: UserProfile = getUserProfileFromHandle(processOwnerUserHandle, context)
+
     /**
      * Attempt to switch the Active [UserProfile] to a known profile that matches the passed
      * [UserProfile].

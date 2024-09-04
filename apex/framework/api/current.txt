@@ -99,6 +99,55 @@ package android.provider {
     field public static final String WIDTH = "width";
   }
 
+  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerClient {
+    method public void onItemsDeselected(@NonNull java.util.List<android.net.Uri>);
+    method public void onItemsSelected(@NonNull java.util.List<android.net.Uri>);
+    method public void onSelectionComplete();
+    method public void onSessionError(@NonNull Throwable);
+    method public void onSessionOpened(@NonNull android.provider.EmbeddedPhotoPickerSession);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public final class EmbeddedPhotoPickerFeatureInfo implements android.os.Parcelable {
+    method public int describeContents();
+    method @ColorLong public long getAccentColor();
+    method public int getMaxSelectionLimit();
+    method @NonNull public java.util.List<java.lang.String> getMimeTypes();
+    method @NonNull public java.util.List<android.net.Uri> getPreSelectedUris();
+    method public int getThemeNightMode();
+    method public boolean isOrderedSelection();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.provider.EmbeddedPhotoPickerFeatureInfo> CREATOR;
+  }
+
+  public static final class EmbeddedPhotoPickerFeatureInfo.Builder {
+    ctor public EmbeddedPhotoPickerFeatureInfo.Builder();
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo build();
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setAccentColor(@ColorLong long);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setMaxSelectionLimit(@IntRange(from=1) int);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setMimeTypes(@NonNull java.util.List<java.lang.String>);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setOrderedSelection(boolean);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setPreSelectedUris(@NonNull java.util.List<android.net.Uri>);
+    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setThemeNightMode(int);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerProvider {
+    method public void openSession(@NonNull android.os.IBinder, int, int, int, @NonNull android.provider.EmbeddedPhotoPickerFeatureInfo, @NonNull java.util.concurrent.Executor, @NonNull android.provider.EmbeddedPhotoPickerClient);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public class EmbeddedPhotoPickerProviderFactory {
+    method @NonNull public static android.provider.EmbeddedPhotoPickerProvider create(@NonNull android.content.Context);
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerSession {
+    method public void close();
+    method @NonNull public android.view.SurfaceControlViewHost.SurfacePackage getSurfacePackage();
+    method public void notifyConfigurationChanged(@NonNull android.content.res.Configuration);
+    method public void notifyItemsDeselected(@NonNull java.util.List<android.net.Uri>);
+    method public void notifyPhotoPickerExpanded(boolean);
+    method public void notifyResized(int, int);
+    method public void notifyVisibilityChanged(boolean);
+  }
+
   public final class MediaStore {
     ctor public MediaStore();
     method public static boolean canManageMedia(@NonNull android.content.Context);
@@ -124,9 +173,13 @@ package android.provider {
     method public static boolean isCurrentSystemGallery(@NonNull android.content.ContentResolver, int, @NonNull String);
     method public static boolean isSupportedCloudMediaProviderAuthority(@NonNull android.content.ContentResolver, @NonNull String);
     method public static void notifyCloudMediaChangedEvent(@NonNull android.content.ContentResolver, @NonNull String, @NonNull String) throws java.lang.SecurityException;
+    method @FlaggedApi("com.android.providers.media.flags.media_store_open_file") @Nullable public static android.content.res.AssetFileDescriptor openAssetFileDescriptor(@NonNull android.content.ContentResolver, @NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
+    method @FlaggedApi("com.android.providers.media.flags.media_store_open_file") @Nullable public static android.os.ParcelFileDescriptor openFileDescriptor(@NonNull android.content.ContentResolver, @NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
+    method @FlaggedApi("com.android.providers.media.flags.media_store_open_file") @Nullable public static android.content.res.AssetFileDescriptor openTypedAssetFileDescriptor(@NonNull android.content.ContentResolver, @NonNull android.net.Uri, @NonNull String, @Nullable android.os.Bundle, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @Deprecated @NonNull public static android.net.Uri setIncludePending(@NonNull android.net.Uri);
     method @NonNull public static android.net.Uri setRequireOriginal(@NonNull android.net.Uri);
     field @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission") public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION = "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+    field @FlaggedApi("com.android.providers.media.flags.enable_oem_metadata") public static final String ACCESS_OEM_METADATA_PERMISSION = "com.android.providers.media.permission.ACCESS_OEM_METADATA";
     field public static final String ACTION_IMAGE_CAPTURE = "android.media.action.IMAGE_CAPTURE";
     field public static final String ACTION_IMAGE_CAPTURE_SECURE = "android.media.action.IMAGE_CAPTURE_SECURE";
     field public static final String ACTION_PICK_IMAGES = "android.provider.action.PICK_IMAGES";
@@ -151,7 +204,7 @@ package android.provider {
     field public static final String EXTRA_MEDIA_RADIO_CHANNEL = "android.intent.extra.radio_channel";
     field public static final String EXTRA_MEDIA_TITLE = "android.intent.extra.title";
     field public static final String EXTRA_OUTPUT = "output";
-    field @FlaggedApi("com.android.providers.media.flags.picker_pre_selection") public static final String EXTRA_PICKER_PRE_SELECTION_URIS = "android.provider.extra.PICKER_PRE_SELECTION_URIS";
+    field @FlaggedApi("com.android.providers.media.flags.picker_pre_selection_extra") public static final String EXTRA_PICKER_PRE_SELECTION_URIS = "android.provider.extra.PICKER_PRE_SELECTION_URIS";
     field @FlaggedApi("com.android.providers.media.flags.picker_accent_color") public static final String EXTRA_PICK_IMAGES_ACCENT_COLOR = "android.provider.extra.PICK_IMAGES_ACCENT_COLOR";
     field @FlaggedApi("com.android.providers.media.flags.pick_ordered_images") public static final String EXTRA_PICK_IMAGES_IN_ORDER = "android.provider.extra.PICK_IMAGES_IN_ORDER";
     field @FlaggedApi("com.android.providers.media.flags.picker_default_tab") public static final String EXTRA_PICK_IMAGES_LAUNCH_TAB = "android.provider.extra.PICK_IMAGES_LAUNCH_TAB";
@@ -183,6 +236,7 @@ package android.provider {
     field public static final String QUERY_ARG_MATCH_FAVORITE = "android:query-arg-match-favorite";
     field public static final String QUERY_ARG_MATCH_PENDING = "android:query-arg-match-pending";
     field public static final String QUERY_ARG_MATCH_TRASHED = "android:query-arg-match-trashed";
+    field @FlaggedApi("com.android.providers.media.flags.inferred_media_date") public static final String QUERY_ARG_MEDIA_STANDARD_SORT_ORDER = "android:query-arg-media-standard-sort-order";
     field public static final String QUERY_ARG_RELATED_URI = "android:query-arg-related-uri";
     field public static final String UNKNOWN_STRING = "<unknown>";
     field public static final String VOLUME_EXTERNAL = "external";
@@ -246,6 +300,7 @@ package android.provider {
     field @Deprecated public static final String ALBUM_KEY = "album_key";
     field public static final String ARTIST_ID = "artist_id";
     field @Deprecated public static final String ARTIST_KEY = "artist_key";
+    field @FlaggedApi("com.android.providers.media.flags.audio_sample_columns") public static final String BITS_PER_SAMPLE = "bits_per_sample";
     field public static final String BOOKMARK = "bookmark";
     field public static final String GENRE = "genre";
     field public static final String GENRE_ID = "genre_id";
@@ -257,6 +312,7 @@ package android.provider {
     field public static final String IS_PODCAST = "is_podcast";
     field public static final String IS_RECORDING = "is_recording";
     field public static final String IS_RINGTONE = "is_ringtone";
+    field @FlaggedApi("com.android.providers.media.flags.audio_sample_columns") public static final String SAMPLERATE = "samplerate";
     field @Deprecated public static final String TITLE_KEY = "title_key";
     field public static final String TITLE_RESOURCE_URI = "title_resource_uri";
     field public static final String TRACK = "track";
@@ -449,6 +505,7 @@ package android.provider {
     field public static final String GENERATION_MODIFIED = "generation_modified";
     field public static final String GENRE = "genre";
     field public static final String HEIGHT = "height";
+    field @FlaggedApi("com.android.providers.media.flags.inferred_media_date") public static final String INFERRED_DATE = "inferred_date";
     field public static final String INSTANCE_ID = "instance_id";
     field public static final String IS_DOWNLOAD = "is_download";
     field public static final String IS_DRM = "is_drm";
@@ -457,6 +514,7 @@ package android.provider {
     field public static final String IS_TRASHED = "is_trashed";
     field public static final String MIME_TYPE = "mime_type";
     field public static final String NUM_TRACKS = "num_tracks";
+    field @FlaggedApi("com.android.providers.media.flags.enable_oem_metadata") public static final String OEM_METADATA = "oem_metadata";
     field public static final String ORIENTATION = "orientation";
     field public static final String ORIGINAL_DOCUMENT_ID = "original_document_id";
     field public static final String OWNER_PACKAGE_NAME = "owner_package_name";

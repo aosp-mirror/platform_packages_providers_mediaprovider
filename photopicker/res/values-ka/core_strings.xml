@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ალბომები"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ფოტოები ჯერ არ არის"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"დაიწყეთ ფოტოების და ვიდეოების გადაღება"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"თქვენი კამერით გადაღებული ფოტოები და ვიდეოები აქ გამოჩნდება"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"რჩეულები ჯერ არ არის"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"ეს არის ავტომატური ალბომი, რომელიც აგროვებს ვარსკვლავით მონიშნულ ან რჩეულად მონიშნულ ერთეულებს"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ვიდეოები ჯერ არ არის"</string>

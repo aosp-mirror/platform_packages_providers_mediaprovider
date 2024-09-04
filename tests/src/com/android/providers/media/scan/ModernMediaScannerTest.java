@@ -16,24 +16,12 @@
 
 package com.android.providers.media.scan;
 
+import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
+
+import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.scan.ModernMediaScanner.MAX_EXCLUDE_DIRS;
-import static com.android.providers.media.scan.ModernMediaScanner.isFileAlbumArt;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptional;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDate;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalDateTaken;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalImageResolution;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalMimeType;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalNumerator;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalOrZero;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalOrientation;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalResolution;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalTrack;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalVideoResolution;
-import static com.android.providers.media.scan.ModernMediaScanner.parseOptionalYear;
-import static com.android.providers.media.scan.ModernMediaScanner.shouldScanDirectory;
-import static com.android.providers.media.scan.ModernMediaScanner.shouldScanPathAndIsPathHidden;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -57,11 +45,15 @@ import android.graphics.Bitmap;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.platform.test.annotations.EnableFlags;
+import android.platform.test.flag.junit.SetFlagsRule;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
+import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -73,6 +65,8 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.IsolatedContext;
 import com.android.providers.media.R;
+import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.tests.utils.Timer;
 import com.android.providers.media.util.FileUtils;
 
@@ -80,6 +74,7 @@ import com.google.common.io.ByteStreams;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -101,6 +96,9 @@ public class ModernMediaScannerTest {
      * Number of times we should repeat an operation to get an average/max.
      */
     private static final int COUNT_REPEAT = 5;
+
+    @Rule
+    public final SetFlagsRule mSetFlagsRule = new SetFlagsRule();
 
     private File mDir;
 
@@ -124,7 +122,7 @@ public class ModernMediaScannerTest {
         mIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         mIsolatedResolver = mIsolatedContext.getContentResolver();
 
-        mModern = new ModernMediaScanner(mIsolatedContext);
+        mModern = new ModernMediaScanner(mIsolatedContext, new TestConfigStore());
     }
 
     @After
@@ -141,69 +139,71 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testOverrideMimeType() throws Exception {
-        assertFalse(parseOptionalMimeType("image/png", null).isPresent());
-        assertFalse(parseOptionalMimeType("image/png", "image").isPresent());
-        assertFalse(parseOptionalMimeType("image/png", "im/im").isPresent());
-        assertFalse(parseOptionalMimeType("image/png", "audio/x-shiny").isPresent());
+        assertFalse(mModern.parseOptionalMimeType("image/png", null).isPresent());
+        assertFalse(mModern.parseOptionalMimeType("image/png", "image").isPresent());
+        assertFalse(mModern.parseOptionalMimeType("image/png", "im/im").isPresent());
+        assertFalse(mModern.parseOptionalMimeType("image/png", "audio/x-shiny").isPresent());
 
-        assertTrue(parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
+        assertTrue(mModern.parseOptionalMimeType("image/png", "image/x-shiny").isPresent());
         assertEquals("image/x-shiny",
-                parseOptionalMimeType("image/png", "image/x-shiny").get());
+                mModern.parseOptionalMimeType("image/png", "image/x-shiny").get());
 
         // Radical file type shifting isn't allowed
         assertEquals(Optional.empty(),
-                parseOptionalMimeType("video/mp4", "audio/mpeg"));
+                mModern.parseOptionalMimeType("video/mp4", "audio/mpeg"));
     }
 
     @Test
     public void testParseOptional() throws Exception {
-        assertFalse(parseOptional(null).isPresent());
-        assertFalse(parseOptional("").isPresent());
-        assertFalse(parseOptional(" ").isPresent());
-        assertFalse(parseOptional("-1").isPresent());
+        assertFalse(mModern.parseOptional(null).isPresent());
+        assertFalse(mModern.parseOptional("").isPresent());
+        assertFalse(mModern.parseOptional(" ").isPresent());
+        assertFalse(mModern.parseOptional("-1").isPresent());
 
-        assertFalse(parseOptional(-1).isPresent());
-        assertTrue(parseOptional(0).isPresent());
-        assertTrue(parseOptional(1).isPresent());
+        assertFalse(mModern.parseOptional(-1).isPresent());
+        assertTrue(mModern.parseOptional(0).isPresent());
+        assertTrue(mModern.parseOptional(1).isPresent());
 
-        assertEquals("meow", parseOptional("meow").get());
-        assertEquals(42, (int) parseOptional(42).get());
+        assertEquals("meow", mModern.parseOptional("meow").get());
+        assertEquals(42, (int) mModern.parseOptional(42).get());
     }
 
     @Test
     public void testParseOptionalOrZero() throws Exception {
-        assertFalse(parseOptionalOrZero(-1).isPresent());
-        assertFalse(parseOptionalOrZero(0).isPresent());
-        assertTrue(parseOptionalOrZero(1).isPresent());
+        assertFalse(mModern.parseOptionalOrZero(-1).isPresent());
+        assertFalse(mModern.parseOptionalOrZero(0).isPresent());
+        assertTrue(mModern.parseOptionalOrZero(1).isPresent());
     }
 
     @Test
     public void testParseOptionalNumerator() throws Exception {
-        assertEquals(12, (int) parseOptionalNumerator("12").get());
-        assertEquals(12, (int) parseOptionalNumerator("12/24").get());
+        assertEquals(12, (int) mModern.parseOptionalNumerator("12").get());
+        assertEquals(12, (int) mModern.parseOptionalNumerator("12/24").get());
 
-        assertFalse(parseOptionalNumerator("/24").isPresent());
+        assertFalse(mModern.parseOptionalNumerator("/24").isPresent());
     }
 
     @Test
     public void testParseOptionalOrientation() throws Exception {
         assertEquals(0,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_NORMAL).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_NORMAL).get());
         assertEquals(90,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_90).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_90).get());
         assertEquals(180,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_180).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_180).get());
         assertEquals(270,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_270).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_ROTATE_270).get());
 
         assertEquals(0,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_HORIZONTAL).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_HORIZONTAL)
+                        .get());
         assertEquals(90,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSPOSE).get());
         assertEquals(180,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_VERTICAL).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_FLIP_VERTICAL)
+                        .get());
         assertEquals(270,
-                (int) parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSVERSE).get());
+                (int) mModern.parseOptionalOrientation(ExifInterface.ORIENTATION_TRANSVERSE).get());
     }
 
     @Test
@@ -213,7 +213,7 @@ public class ModernMediaScannerTest {
                 .thenReturn("640");
         when(mmr.extractMetadata(eq(MediaMetadataRetriever.METADATA_KEY_IMAGE_HEIGHT)))
                 .thenReturn("480");
-        assertEquals("640\u00d7480", parseOptionalImageResolution(mmr).get());
+        assertEquals("640\u00d7480", mModern.parseOptionalImageResolution(mmr).get());
     }
 
     @Test
@@ -223,7 +223,7 @@ public class ModernMediaScannerTest {
                 .thenReturn("640");
         when(mmr.extractMetadata(eq(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)))
                 .thenReturn("480");
-        assertEquals("640\u00d7480", parseOptionalVideoResolution(mmr).get());
+        assertEquals("640\u00d7480", mModern.parseOptionalVideoResolution(mmr).get());
     }
 
     @Test
@@ -231,16 +231,18 @@ public class ModernMediaScannerTest {
         final ExifInterface exif = mock(ExifInterface.class);
         when(exif.getAttribute(ExifInterface.TAG_IMAGE_WIDTH)).thenReturn("640");
         when(exif.getAttribute(ExifInterface.TAG_IMAGE_LENGTH)).thenReturn("480");
-        assertEquals("640\u00d7480", parseOptionalResolution(exif).get());
+        assertEquals("640\u00d7480", mModern.parseOptionalResolution(exif).get());
     }
 
     @Test
     public void testParseOptionalDate() throws Exception {
-        assertThat(parseOptionalDate("20200101T000000")).isEqualTo(Optional.of(1577836800000L));
-        assertThat(parseOptionalDate("20200101T211205")).isEqualTo(Optional.of(1577913125000L));
-        assertThat(parseOptionalDate("20200101T211205.000Z"))
+        assertThat(mModern.parseOptionalDate("20200101T000000"))
+                .isEqualTo(Optional.of(1577836800000L));
+        assertThat(mModern.parseOptionalDate("20200101T211205"))
                 .isEqualTo(Optional.of(1577913125000L));
-        assertThat(parseOptionalDate("20200101T211205.123Z"))
+        assertThat(mModern.parseOptionalDate("20200101T211205.000Z"))
+                .isEqualTo(Optional.of(1577913125000L));
+        assertThat(mModern.parseOptionalDate("20200101T211205.123Z"))
                 .isEqualTo(Optional.of(1577913125123L));
     }
 
@@ -251,7 +253,7 @@ public class ModernMediaScannerTest {
                 .thenReturn("1/2");
         when(mmr.extractMetadata(eq(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)))
                 .thenReturn("4/12");
-        assertEquals(1004, (int) parseOptionalTrack(mmr).get());
+        assertEquals(1004, (int) mModern.parseOptionalTrack(mmr).get());
     }
 
     @Test
@@ -262,15 +264,17 @@ public class ModernMediaScannerTest {
 
         // Offset is recorded, test both zeros
         exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "-00:00");
-        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L, (long) mModern.parseOptionalDateTaken(exif, 0L).get());
         exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "+00:00");
-        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L, (long) mModern.parseOptionalDateTaken(exif, 0L).get());
 
         // Offset is recorded, test both directions
         exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "-07:00");
-        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L + 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
         exif.setAttribute(ExifInterface.TAG_OFFSET_TIME_ORIGINAL, "+07:00");
-        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L - 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
     }
 
     @Test
@@ -282,34 +286,38 @@ public class ModernMediaScannerTest {
         // GPS tells us we're in UTC
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:14:00");
-        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L, (long) mModern.parseOptionalDateTaken(exif, 0L).get());
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:20:00");
-        assertEquals(1453972654000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L, (long) mModern.parseOptionalDateTaken(exif, 0L).get());
 
         // GPS tells us we're in -7
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "16:14:00");
-        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L + 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "16:20:00");
-        assertEquals(1453972654000L + 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L + 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
 
         // GPS tells us we're in +7
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "02:14:00");
-        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L - 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:28");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "02:20:00");
-        assertEquals(1453972654000L - 25200000L, (long) parseOptionalDateTaken(exif, 0L).get());
+        assertEquals(1453972654000L - 25200000L,
+                (long) mModern.parseOptionalDateTaken(exif, 0L).get());
 
         // GPS beyond 24 hours isn't helpful
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:27");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:17:34");
-        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+        assertFalse(mModern.parseOptionalDateTaken(exif, 0L).isPresent());
         exif.setAttribute(ExifInterface.TAG_GPS_DATESTAMP, "2016:01:29");
         exif.setAttribute(ExifInterface.TAG_GPS_TIMESTAMP, "09:17:34");
-        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+        assertFalse(mModern.parseOptionalDateTaken(exif, 0L).isPresent());
     }
 
     @Test
@@ -320,25 +328,29 @@ public class ModernMediaScannerTest {
 
         // Modified tells us we're in UTC
         assertEquals(1453972654000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L - 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L - 60000L).get());
         assertEquals(1453972654000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L + 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L + 60000L).get());
 
         // Modified tells us we're in -7
         assertEquals(1453972654000L + 25200000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L + 25200000L - 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L + 25200000L - 60000L)
+                        .get());
         assertEquals(1453972654000L + 25200000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L + 25200000L + 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L + 25200000L + 60000L)
+                        .get());
 
         // Modified tells us we're in +7
         assertEquals(1453972654000L - 25200000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L - 25200000L - 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L - 25200000L - 60000L)
+                        .get());
         assertEquals(1453972654000L - 25200000L,
-                (long) parseOptionalDateTaken(exif, 1453972654000L - 25200000L + 60000L).get());
+                (long) mModern.parseOptionalDateTaken(exif, 1453972654000L - 25200000L + 60000L)
+                        .get());
 
         // Modified beyond 24 hours isn't helpful
-        assertFalse(parseOptionalDateTaken(exif, 1453972654000L - 86400000L).isPresent());
-        assertFalse(parseOptionalDateTaken(exif, 1453972654000L + 86400000L).isPresent());
+        assertFalse(mModern.parseOptionalDateTaken(exif, 1453972654000L - 86400000L).isPresent());
+        assertFalse(mModern.parseOptionalDateTaken(exif, 1453972654000L + 86400000L).isPresent());
     }
 
     @Test
@@ -348,48 +360,50 @@ public class ModernMediaScannerTest {
         exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, "2016:01:28 09:17:34");
 
         // Offset is completely missing, and no useful GPS or modified time
-        assertFalse(parseOptionalDateTaken(exif, 0L).isPresent());
+        assertFalse(mModern.parseOptionalDateTaken(exif, 0L).isPresent());
     }
 
     @Test
     public void testParseYear_Invalid() throws Exception {
-        assertEquals(Optional.empty(), parseOptionalYear(null));
-        assertEquals(Optional.empty(), parseOptionalYear(""));
-        assertEquals(Optional.empty(), parseOptionalYear(" "));
-        assertEquals(Optional.empty(), parseOptionalYear("meow"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear(null));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear(""));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear(" "));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("meow"));
 
-        assertEquals(Optional.empty(), parseOptionalYear("0"));
-        assertEquals(Optional.empty(), parseOptionalYear("00"));
-        assertEquals(Optional.empty(), parseOptionalYear("000"));
-        assertEquals(Optional.empty(), parseOptionalYear("0000"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("0"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("00"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("000"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("0000"));
 
-        assertEquals(Optional.empty(), parseOptionalYear("1"));
-        assertEquals(Optional.empty(), parseOptionalYear("01"));
-        assertEquals(Optional.empty(), parseOptionalYear("001"));
-        assertEquals(Optional.empty(), parseOptionalYear("0001"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("1"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("01"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("001"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("0001"));
 
         // No sane way to determine year from two-digit date formats
-        assertEquals(Optional.empty(), parseOptionalYear("01-01-01"));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("01-01-01"));
 
         // Specific example from partner
-        assertEquals(Optional.empty(), parseOptionalYear("000 "));
+        assertEquals(Optional.empty(), mModern.parseOptionalYear("000 "));
     }
 
     @Test
     public void testParseYear_Valid() throws Exception {
-        assertEquals(Optional.of(1900), parseOptionalYear("1900"));
-        assertEquals(Optional.of(2020), parseOptionalYear("2020"));
-        assertEquals(Optional.of(2020), parseOptionalYear(" 2020 "));
-        assertEquals(Optional.of(2020), parseOptionalYear("01-01-2020"));
+        assertEquals(Optional.of(1900), mModern.parseOptionalYear("1900"));
+        assertEquals(Optional.of(2020), mModern.parseOptionalYear("2020"));
+        assertEquals(Optional.of(2020), mModern.parseOptionalYear(" 2020 "));
+        assertEquals(Optional.of(2020), mModern.parseOptionalYear("01-01-2020"));
 
         // Specific examples from partner
-        assertEquals(Optional.of(1984), parseOptionalYear("1984-06-26T07:00:00Z"));
-        assertEquals(Optional.of(2016), parseOptionalYear("Thu, 01 Sep 2016 10:11:12.123456 -0500"));
+        assertEquals(Optional.of(1984),
+                mModern.parseOptionalYear("1984-06-26T07:00:00Z"));
+        assertEquals(Optional.of(2016),
+                mModern.parseOptionalYear("Thu, 01 Sep 2016 10:11:12.123456 -0500"));
     }
 
-    private static void assertShouldScanPathAndIsPathHidden(boolean isScannable, boolean isHidden,
+    private void assertShouldScanPathAndIsPathHidden(boolean isScannable, boolean isHidden,
         File dir) {
-        Pair<Boolean, Boolean> actual = shouldScanPathAndIsPathHidden(dir);
+        Pair<Boolean, Boolean> actual = mModern.shouldScanPathAndIsPathHidden(dir);
         assertWithMessage("assert should scan for dir: " + dir.getAbsolutePath())
             .that(actual.first)
             .isEqualTo(isScannable);
@@ -498,12 +512,12 @@ public class ModernMediaScannerTest {
         }
     }
 
-    private static void assertShouldScanDirectory(File file) {
-        assertTrue(file.getAbsolutePath(), shouldScanDirectory(file));
+    private void assertShouldScanDirectory(File file) {
+        assertTrue(file.getAbsolutePath(), mModern.shouldScanDirectory(file));
     }
 
-    private static void assertShouldntScanDirectory(File file) {
-        assertFalse(file.getAbsolutePath(), shouldScanDirectory(file));
+    private void assertShouldntScanDirectory(File file) {
+        assertFalse(file.getAbsolutePath(), mModern.shouldScanDirectory(file));
     }
 
     @Test
@@ -533,23 +547,20 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testIsZero() throws Exception {
-        assertFalse(ModernMediaScanner.isZero(""));
-        assertFalse(ModernMediaScanner.isZero("meow"));
-        assertFalse(ModernMediaScanner.isZero("1"));
-        assertFalse(ModernMediaScanner.isZero("01"));
-        assertFalse(ModernMediaScanner.isZero("010"));
+        assertFalse(mModern.isZero(""));
+        assertFalse(mModern.isZero("meow"));
+        assertFalse(mModern.isZero("1"));
+        assertFalse(mModern.isZero("01"));
+        assertFalse(mModern.isZero("010"));
 
-        assertTrue(ModernMediaScanner.isZero("0"));
-        assertTrue(ModernMediaScanner.isZero("00"));
-        assertTrue(ModernMediaScanner.isZero("000"));
+        assertTrue(mModern.isZero("0"));
+        assertTrue(mModern.isZero("00"));
+        assertTrue(mModern.isZero("000"));
     }
 
     @Test
     public void testFilter() throws Exception {
-        final File music = new File(mDir, "Music");
-        music.mkdirs();
-        stage(R.raw.test_audio, new File(music, "example.mp3"));
-        mModern.scanDirectory(mDir, REASON_UNKNOWN);
+        stageMusicFile(R.raw.test_audio, "example.mp3");
 
         // Exact matches
         assertQueryCount(1, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -765,13 +776,7 @@ public class ModernMediaScannerTest {
 
     @Test
     public void testScan_audio_empty_title() throws Exception {
-        final File music = new File(mDir, "Music");
-        final File audio = new File(music, "audio.mp3");
-
-        music.mkdirs();
-        stage(R.raw.test_audio_empty_title, audio);
-
-        mModern.scanFile(audio, REASON_UNKNOWN);
+        stageMusicFile(R.raw.test_audio_empty_title, "audio.mp3");
 
         try (Cursor cursor = mIsolatedResolver
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
@@ -893,7 +898,7 @@ public class ModernMediaScannerTest {
                 "/storage/emulated/0/albumart1.jpg",
         }) {
             final File file = new File(path);
-            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), isFileAlbumArt(file));
+            assertEquals(LegacyMediaScannerTest.isNonMediaFile(path), mModern.isFileAlbumArt(file));
         }
 
         for (String path : new String[] {
@@ -901,7 +906,7 @@ public class ModernMediaScannerTest {
                 "/storage/emulated/0/albumartlarge.jpg",
         }) {
             final File file = new File(path);
-            assertTrue(isFileAlbumArt(file));
+            assertTrue(mModern.isFileAlbumArt(file));
         }
     }
 
@@ -1211,14 +1216,8 @@ public class ModernMediaScannerTest {
     }
 
     @Test
-    public void testScan_TrackNumber() throws Exception {
-        final File music = new File(mDir, "Music");
-        final File audio = new File(music, "audio.mp3");
-
-        music.mkdirs();
-        stage(R.raw.test_audio, audio);
-
-        mModern.scanFile(audio, REASON_UNKNOWN);
+    public void testScan_TrackNumber_isStored() throws Exception {
+        stageMusicFile(R.raw.test_audio, "audio.mp3");
 
         try (Cursor cursor = mIsolatedResolver
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
@@ -1226,10 +1225,11 @@ public class ModernMediaScannerTest {
             cursor.moveToFirst();
             assertEquals(2, cursor.getInt(cursor.getColumnIndex(AudioColumns.TRACK)));
         }
+    }
 
-        stage(R.raw.test_audio_empty_track_number, audio);
-
-        mModern.scanFile(audio, REASON_UNKNOWN);
+    @Test
+    public void testScan_EmptyTrackNumber_isNull() throws Exception {
+        stageMusicFile(R.raw.test_audio_empty_track_number, "audio.mp3");
 
         try (Cursor cursor = mIsolatedResolver
                 .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
@@ -1237,5 +1237,72 @@ public class ModernMediaScannerTest {
             cursor.moveToFirst();
             assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.TRACK))).isNull();
         }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU, codeName = "Tiramisu")
+    @Test
+    @EnableFlags({Flags.FLAG_AUDIO_SAMPLE_COLUMNS})
+    public void testScan_SampleMetadata_isStored() throws Exception {
+        final File musicFolder = new File(mDir, "Music");
+        final File audioFile = new File(musicFolder, "audio.wav");
+
+        final ContentValues values = new ContentValues();
+        values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_AUDIO);
+        values.put(FileColumns.DATA, audioFile.getAbsolutePath());
+        // Rows that have to be rescanned after the schema update
+        // should not change "generation_modified"
+        values.put(FileColumns._MODIFIER, FileColumns._MODIFIER_SCHEMA_UPDATE);
+        Uri audioUri = mIsolatedResolver.insert(
+                MediaStore.Audio.Media.getContentUri(VOLUME_EXTERNAL_PRIMARY), values);
+
+        int generationModifiedBeforeScan = getGenerationModified(audioUri);
+
+        musicFolder.mkdirs();
+        stage(R.raw.testwav_16bit_44100hz, audioFile);
+        mModern.scanFile(audioFile, REASON_IDLE);
+
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertThat(cursor.getInt(cursor.getColumnIndex(AudioColumns.SAMPLERATE))).isEqualTo(
+                    44100);
+            assertThat(
+                    cursor.getInt(cursor.getColumnIndex(AudioColumns.BITS_PER_SAMPLE))).isEqualTo(
+                    16);
+            assertThat(cursor.getInt(cursor.getColumnIndex(FileColumns.GENERATION_MODIFIED)))
+                    .isEqualTo(generationModifiedBeforeScan);
+        }
+    }
+
+    @SdkSuppress(maxSdkVersion = Build.VERSION_CODES.S_V2)
+    @Test
+    public void testScan_SampleMetadata_isIgnored() throws Exception {
+        stageMusicFile(R.raw.testwav_16bit_44100hz, "audio.wav");
+        try (Cursor cursor = mIsolatedResolver
+                .query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, null)) {
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            assertThat(cursor.getString(cursor.getColumnIndex(AudioColumns.SAMPLERATE))).isNull();
+            assertThat(
+                    cursor.getString(cursor.getColumnIndex(AudioColumns.BITS_PER_SAMPLE))).isNull();
+        }
+    }
+
+    private void stageMusicFile(int resource, String filename) throws IOException {
+        final File musicFolder = new File(mDir, "Music");
+        final File audioFile = new File(musicFolder, filename);
+
+        musicFolder.mkdirs();
+        stage(resource, audioFile);
+        mModern.scanFile(audioFile, REASON_UNKNOWN);
+    }
+
+    private int getGenerationModified(Uri uri) {
+        Cursor c = mIsolatedResolver.query(uri, new String[]{MediaColumns.GENERATION_MODIFIED},
+                null, null);
+        assertEquals(1, c.getCount());
+        c.moveToFirst();
+        return c.getInt(0);
     }
 }

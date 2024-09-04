@@ -34,4 +34,8 @@
   <string name="photopicker_profile_unavailable_dialog_message" translation_description="Dialog message stating a user profile cannot be switched to due to it being unavailable.">To open <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> photos turn on your <xliff:g id="profile_name" example="Personal">%1$s</xliff:g> apps, then try again</string>
   <string name="photopicker_profile_blocked_by_admin_dialog_message" translation_description="Dialog title stating a user profile cannot be switched to due to it being unavailable.">Accessing data from this profile is not permitted by your administrator.</string>
 
+  <string name="photopicker_profile_banner_switch_button_label" translation_description="">Switch</string>
+
+  <string name="photopicker_profile_switch_banner_message" translation_description="">You\'re in your <xliff:g id="current_profile_name" example = "Work">%1$s</xliff:g> profile. Switch to your <xliff:g id="target_profile_name" example = "Personal">%2$s</xliff:g> profile? </string>
+
 </resources>

@@ -17,7 +17,6 @@
 package com.android.photopicker.inject
 
 import android.content.Context
-import android.os.Parcel
 import android.os.UserHandle
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.Main
@@ -25,13 +24,13 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
-import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -68,7 +67,7 @@ import org.mockito.Mockito.mock
  */
 @Module
 @DisableInstallInCheck
-abstract class PhotopickerTestModule {
+abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Builder().build()) {
 
     @Singleton
     @Provides
@@ -96,6 +95,7 @@ abstract class PhotopickerTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -105,6 +105,7 @@ abstract class PhotopickerTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,
@@ -145,11 +146,13 @@ abstract class PhotopickerTestModule {
         @Background dispatcher: CoroutineDispatcher,
         deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
+
         return ConfigurationManager(
-            PhotopickerRuntimeEnv.ACTIVITY,
+            options.runtimeEnv,
             scope,
             dispatcher,
             deviceConfigProxy,
+            generatePickerSessionId()
         )
     }
 
@@ -169,10 +172,7 @@ abstract class PhotopickerTestModule {
     @Singleton
     @Provides
     fun createUserHandle(): UserHandle {
-        val parcel1 = Parcel.obtain()
-        parcel1.writeInt(0)
-        parcel1.setDataPosition(0)
-        return UserHandle(parcel1)
+        return options.processOwnerHandle
     }
 
     @Singleton
@@ -216,8 +216,9 @@ abstract class PhotopickerTestModule {
         configurationManager: ConfigurationManager,
     ): FeatureManager {
         return FeatureManager(
-            configurationManager.configuration,
-            scope,
+            configuration = configurationManager.configuration,
+            scope = scope,
+            registeredFeatures = options.registeredFeatures,
         )
     }
 
@@ -232,11 +233,13 @@ abstract class PhotopickerTestModule {
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
         }
     }

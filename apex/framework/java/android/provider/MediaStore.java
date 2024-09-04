@@ -41,8 +41,10 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.UriMatcher;
 import android.content.UriPermission;
 import android.content.pm.PackageManager;
+import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -74,6 +76,7 @@ import android.util.Size;
 import androidx.annotation.RequiresApi;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.providers.media.flags.Flags;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -90,6 +93,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -292,6 +297,34 @@ public final class MediaStore {
     public static final String REVOKE_READ_GRANT_FOR_PACKAGE_CALL =
             "revoke_media_read_for_package";
 
+    /** @hide */
+    public static final String REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL =
+            "revoke_all_media_grants_for_package";
+
+    /** @hide */
+    public static final String OPEN_FILE_CALL =
+            "open_file_call";
+
+    /** @hide */
+    public static final String EXTRA_OPEN_FILE_REQUEST =
+            "open_file_request";
+
+    /** @hide */
+    public static final String OPEN_ASSET_FILE_CALL =
+            "open_asset_file_call";
+
+    /** @hide */
+    public static final String EXTRA_OPEN_ASSET_FILE_REQUEST =
+            "open_asset_file_request";
+
+    /** @hide */
+    public static final String CREATE_CANCELLATION_SIGNAL_CALL =
+            "create_cancellation_signal_call";
+
+    /** @hide */
+    public static final String CREATE_CANCELLATION_SIGNAL_RESULT =
+            "create_cancellation_signal_result";
+
     /** {@hide} */
     public static final String USES_FUSE_PASSTHROUGH = "uses_fuse_passthrough";
     /** {@hide} */
@@ -403,6 +436,9 @@ public final class MediaStore {
     public static final int PER_USER_RANGE = 100000;
 
     private static final int PICK_IMAGES_MAX_LIMIT = 100;
+
+    private static final String LOCAL_PICKER_PROVIDER_AUTHORITY =
+            "com.android.providers.media.photopicker";
 
     /**
      * Activity Action: Launch a music player.
@@ -803,6 +839,13 @@ public final class MediaStore {
      *
      * <p>Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content selection to local data.
      *
+     * <p>For system stability, it is preferred to open the URIs obtained from using this action
+     * by calling
+     * {@link MediaStore#openFileDescriptor(ContentResolver, Uri, String, CancellationSignal)},
+     * {@link MediaStore#openAssetFileDescriptor(ContentResolver, Uri, String, CancellationSignal)} or
+     * {@link MediaStore#openTypedAssetFileDescriptor(ContentResolver, Uri, String, Bundle, CancellationSignal)}
+     * instead of {@link ContentResolver} open APIs.
+     *
      * <p>Output: MediaStore content URI(s) of the item(s) that was picked. Unlike other MediaStore
      * URIs, these are referred to as 'picker' URIs and expose a limited set of read-only
      * operations. Specifically, picker URIs can only be opened for read and queried for columns in
@@ -833,6 +876,11 @@ public final class MediaStore {
      *
      * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
      * otherwise {@link Activity#RESULT_CANCELED} is returned.
+     *
+     * <p>Number of grants for items that an app can hold per user id is limited to
+     * {@link com.android.providers.media.MediaGrants#PER_PACKAGE_GRANTS_LIMIT_CONST}.
+     * Anytime on user selection if new grants are added, a clean up (if required) is performed to
+     * remove least recent grants ensuring the count of grants stays within limit.
      *
      * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
      * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
@@ -1033,7 +1081,7 @@ public final class MediaStore {
      * <p>This is not a mechanism to revoke permissions for items, i.e. de-selection of a
      * pre-selected item by the user will not result in revocation of the grant.</p>
      */
-    @FlaggedApi("com.android.providers.media.flags.picker_pre_selection")
+    @FlaggedApi(Flags.FLAG_PICKER_PRE_SELECTION_EXTRA)
     public static final String EXTRA_PICKER_PRE_SELECTION_URIS =
             "android.provider.extra.PICKER_PRE_SELECTION_URIS";
 
@@ -1187,12 +1235,33 @@ public final class MediaStore {
             "android:query-arg-latest-selection-only";
 
     /**
+     * Flag that requests {@link ContentResolver#query} to sort the result in descending order
+     * based on {@link MediaColumns#INFERRED_DATE}.
+     * <p>
+     * When this flag is used as an extra in a {@link Bundle} passed to
+     * {@link ContentResolver#query}, all other sorting options such as
+     * {@link android.content.ContentResolver#QUERY_ARG_SORT_COLUMNS} or
+     * {@link android.content.ContentResolver#QUERY_ARG_SQL_SORT_ORDER} are disregarded.
+     */
+    @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+    public static final String QUERY_ARG_MEDIA_STANDARD_SORT_ORDER =
+            "android:query-arg-media-standard-sort-order";
+
+    /**
      * Permission that grants access to {@link MediaColumns#OWNER_PACKAGE_NAME}
      * of every accessible media file.
      */
     @FlaggedApi("com.android.providers.media.flags.access_media_owner_package_name_permission")
     public static final String ACCESS_MEDIA_OWNER_PACKAGE_NAME_PERMISSION =
             "com.android.providers.media.permission.ACCESS_MEDIA_OWNER_PACKAGE_NAME";
+
+    /**
+     * Permission that grants access to {@link MediaColumns#OEM_METADATA}
+     * of every accessible media file.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+    public static final String ACCESS_OEM_METADATA_PERMISSION =
+            "com.android.providers.media.permission.ACCESS_OEM_METADATA";
 
     /** @hide */
     @IntDef(flag = true, prefix = { "MATCH_" }, value = {
@@ -1613,6 +1682,19 @@ public final class MediaStore {
         public static final String DATE_TAKEN = "datetaken";
 
         /**
+         * File's approximate creation date.
+         * <p>
+         * Following is the derivation logic:
+         * 1. If {@link MediaColumns#DATE_TAKEN} is present, use it.
+         * 2. If {@link MediaColumns#DATE_TAKEN} is absent, use {@link MediaColumns#DATE_MODIFIED}.
+         * Note: When {@link QUERY_ARG_MEDIA_STANDARD_SORT_ORDER} query argument
+         * is used, the sorting is based on this column in descending order.
+         */
+        @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+        @FlaggedApi(Flags.FLAG_INFERRED_MEDIA_DATE)
+        public static final String INFERRED_DATE = "inferred_date";
+
+        /**
          * The MIME type of the media item.
          * <p>
          * This is typically defined based on the file extension of the media
@@ -1915,6 +1997,13 @@ public final class MediaStore {
         public static final String GENERATION_MODIFIED = "generation_modified";
 
         /**
+         * Constant used to broadcast internally that the update should not update
+         * {@link GENERATION_MODIFIED}. This value should never be stored in the database.
+         * @hide
+         */
+        public static final int GENERATION_MODIFIED_UNCHANGED = -1;
+
+        /**
          * Indexed XMP metadata extracted from this media item.
          * <p>
          * The structure of this metadata is defined by the <a href=
@@ -2064,6 +2153,13 @@ public final class MediaStore {
          */
         @Column(value = Cursor.FIELD_TYPE_FLOAT, readOnly = true)
         public static final String CAPTURE_FRAMERATE = "capture_framerate";
+
+        /**
+         * Column which allows OEMs to store custom metadata for a media file.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_OEM_METADATA)
+        @Column(value = Cursor.FIELD_TYPE_BLOB, readOnly = true)
+        public static final String OEM_METADATA = "oem_metadata";
 
         // HAS_IMAGE is ignored
         // IMAGE_COUNT is ignored
@@ -2391,6 +2487,14 @@ public final class MediaStore {
              * @hide
              */
             public static final int _MODIFIER_CR_PENDING_METADATA = 4;
+
+            /**
+             * Constant for the {@link #_MODIFIER} column indicating that the last modifier of the
+             * database is a schema update and the new metadata will be recomputed during idle
+             * maintenance.
+             * @hide
+             */
+            public static final int _MODIFIER_SCHEMA_UPDATE = 5;
 
             /**
              * Status of the transcode file
@@ -3405,6 +3509,20 @@ public final class MediaStore {
              */
             @Column(value = Cursor.FIELD_TYPE_STRING, readOnly = true)
             public static final String TITLE_RESOURCE_URI = "title_resource_uri";
+
+            /**
+             * The number of bits used to represent each audio sample, if available.
+             */
+            @FlaggedApi(Flags.FLAG_AUDIO_SAMPLE_COLUMNS)
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String BITS_PER_SAMPLE = "bits_per_sample";
+
+            /**
+             * The sample rate in Hz, if available.
+             */
+            @FlaggedApi(Flags.FLAG_AUDIO_SAMPLE_COLUMNS)
+            @Column(value = Cursor.FIELD_TYPE_INTEGER, readOnly = true)
+            public static final String SAMPLERATE = "samplerate";
         }
 
         private static final Pattern PATTERN_TRIM_BEFORE = Pattern.compile(
@@ -4488,6 +4606,280 @@ public final class MediaStore {
     }
 
     /**
+     * Works exactly the same as
+     * {@link ContentResolver#openFileDescriptor(Uri, String, CancellationSignal)}, but only works
+     * for {@link Uri} whose scheme is {@link ContentResolver#SCHEME_CONTENT} and its authority is
+     * {@link MediaStore#AUTHORITY}.
+     * <p>
+     * This API is preferred over
+     * {@link ContentResolver#openFileDescriptor(Uri, String, CancellationSignal)} when opening
+     * media Uri for ensuring system stability especially when opening URIs returned as a result of
+     * using {@link MediaStore#ACTION_PICK_IMAGES}
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     *                 {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     *                 {@link Context#getContentResolver()}
+     * @param uri The desired URI to open.
+     * @param mode The string representation of the file mode. Can be "r", "w", "wt", "wa", "rw"
+     *             or "rwt". Please note the exact implementation of these may differ for each
+     *             Provider implementation - for example, "w" may or may not truncate.
+     * @param cancellationSignal A signal to cancel the operation in progress,
+     *         or null if none. If the operation is canceled, then
+     *         {@link OperationCanceledException} will be thrown.
+     * @return a new ParcelFileDescriptor pointing to the file or {@code null} if the
+     * provider recently crashed. You own this descriptor and are responsible for closing it
+     * when done.
+     * @throws FileNotFoundException if no file exists under the URI.
+     * @throws IllegalArgumentException if The URI is not for {@link MediaStore#AUTHORITY}
+     */
+    @FlaggedApi(Flags.FLAG_MEDIA_STORE_OPEN_FILE)
+    public static @Nullable ParcelFileDescriptor openFileDescriptor(
+            @NonNull ContentResolver resolver, @NonNull Uri uri, @NonNull String mode,
+            @Nullable CancellationSignal cancellationSignal)
+            throws FileNotFoundException {
+        Objects.requireNonNull(resolver, "resolver");
+        Objects.requireNonNull(uri, "uri");
+        Objects.requireNonNull(mode, "mode");
+
+        if (!ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())
+                || !AUTHORITY.equals(uri.getAuthority())) {
+            throw new IllegalArgumentException("Given Uri " + uri + " should be a media URI");
+        }
+
+        if (isNonCloudPickerUri(uri)) {
+            // In case of non cloud picker uris, use content resolver API normally
+            return resolver.openFileDescriptor(uri, mode, cancellationSignal);
+        }
+
+        if (ParcelFileDescriptor.parseMode(mode) != ParcelFileDescriptor.MODE_READ_ONLY) {
+            throw new SecurityException("PhotoPicker Uris can only be accessed to read."
+                    + " Uri: " + uri);
+        }
+
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final IMPCancellationSignal remoteCancellationSignal =
+                    createRemoteCancellationSignalIfNeeded(client, cancellationSignal);
+            final CompletableFuture<ParcelFileDescriptor> future = new CompletableFuture<>();
+
+            final IOpenFileCallback callback = new IOpenFileCallback.Stub() {
+                @Override
+                public void onSuccess(ParcelFileDescriptor pfd) {
+                    future.complete(pfd);
+                }
+
+                @Override
+                public void onFailure(ParcelableException exception) {
+                    future.completeExceptionally(exception);
+                }
+            };
+
+            final Bundle in = new Bundle();
+            in.putParcelable(EXTRA_OPEN_FILE_REQUEST,
+                    new OpenFileRequest(uri, callback, remoteCancellationSignal));
+            client.call(OPEN_FILE_CALL, null, in);
+
+            return future.get();
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        } catch (ExecutionException e) {
+            ParcelableException pe = (ParcelableException) e.getCause();
+            rethrowParcelableExceptionForOpenFile(pe);
+            throw new RuntimeException(pe.getCause());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (cancellationSignal != null) {
+                cancellationSignal.setOnCancelListener(null);
+            }
+        }
+    }
+
+    /**
+     * Works exactly the same as
+     * {@link ContentResolver#openAssetFileDescriptor(Uri, String, CancellationSignal)},
+     * but only works for {@link Uri} whose scheme is {@link ContentResolver#SCHEME_CONTENT}
+     * and its authority is {@link MediaStore#AUTHORITY}.
+     * <p>
+     * This API is preferred over
+     * {@link ContentResolver#openAssetFileDescriptor(Uri, String, CancellationSignal)} when opening
+     * media Uri for ensuring system stability especially when opening URIs returned as a result of
+     * using {@link MediaStore#ACTION_PICK_IMAGES}
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     *                 {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     *                 {@link Context#getContentResolver()}
+     * @param uri The desired URI to open.
+     * @param mode The string representation of the file mode. Can be "r", "w", "wt", "wa", "rw"
+     *             or "rwt". Please note the exact implementation of these may differ for each
+     *             Provider implementation - for example, "w" may or may not truncate.
+     * @return a new ParcelFileDescriptor pointing to the file or {@code null} if the
+     * provider recently crashed. You own this descriptor and are responsible for closing it
+     * when done.
+     * @throws FileNotFoundException if no file exists under the URI.
+     * @throws IllegalArgumentException if The URI is not for {@link MediaStore#AUTHORITY}
+     */
+    @FlaggedApi(Flags.FLAG_MEDIA_STORE_OPEN_FILE)
+    public static @Nullable AssetFileDescriptor openAssetFileDescriptor(
+            @NonNull ContentResolver resolver, @NonNull Uri uri, @NonNull String mode,
+            @Nullable CancellationSignal cancellationSignal)
+            throws FileNotFoundException {
+        Objects.requireNonNull(resolver, "resolver");
+        Objects.requireNonNull(uri, "uri");
+        Objects.requireNonNull(mode, "mode");
+
+        if (!ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())
+                || !AUTHORITY.equals(uri.getAuthority())) {
+            throw new IllegalArgumentException("Given Uri " + uri + " should be a media URI");
+        }
+
+        if (isNonCloudPickerUri(uri)) {
+            // In case of non cloud picker uris, use content resolver API normally
+            return resolver.openAssetFileDescriptor(uri, mode, cancellationSignal);
+        }
+
+        if (ParcelFileDescriptor.parseMode(mode) != ParcelFileDescriptor.MODE_READ_ONLY) {
+            throw new SecurityException("PhotoPicker Uris can only be accessed to read."
+                    + " Uri: " + uri);
+        }
+
+        return openTypedAssetFileDescriptorInternal(
+                resolver, uri, "*/*", null, cancellationSignal);
+    }
+
+    /**
+     * Works exactly the same as
+     * {@link ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle, CancellationSignal)},
+     * but only works for {@link Uri} whose scheme is {@link ContentResolver#SCHEME_CONTENT}
+     * and its authority is {@link MediaStore#AUTHORITY}.
+     * <p>
+     * This API is preferred over
+     * {@link ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle, CancellationSignal)}
+     * when opening media Uri for ensuring system stability especially when opening URIs returned
+     * as a result of using {@link MediaStore#ACTION_PICK_IMAGES}
+     *
+     * @param resolver The {@link ContentResolver} used to connect with
+     *                 {@link MediaStore#AUTHORITY}. Typically this value is gotten from
+     *                 {@link Context#getContentResolver()}
+     * @param uri The desired URI to open.
+     * @param mimeType The desired MIME type of the returned data.  This can
+     * be a pattern such as *&#47;*, which will allow the content provider to
+     * select a type, though there is no way for you to determine what type
+     * it is returning.
+     * @param opts Additional provider-dependent options.
+     * @return a new ParcelFileDescriptor from which you can read the
+     * data stream from the provider or {@code null} if the provider recently crashed.
+     * Note that this may be a pipe, meaning you can't seek in it.  The only seek you
+     * should do is if the AssetFileDescriptor contains an offset, to move to that offset before
+     * reading.  You own this descriptor and are responsible for closing it when done.
+     * @throws FileNotFoundException if no data of the desired type exists under the URI.
+     * @throws IllegalArgumentException if The URI is not for {@link MediaStore#AUTHORITY}
+     */
+    @FlaggedApi(Flags.FLAG_MEDIA_STORE_OPEN_FILE)
+    public static @Nullable AssetFileDescriptor openTypedAssetFileDescriptor(
+            @NonNull ContentResolver resolver, @NonNull Uri uri,
+            @NonNull String mimeType, @Nullable Bundle opts,
+            @Nullable CancellationSignal cancellationSignal) throws FileNotFoundException {
+        Objects.requireNonNull(resolver, "resolver");
+        Objects.requireNonNull(uri, "uri");
+        Objects.requireNonNull(mimeType, "mimeType");
+
+        if (!ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())
+                || !AUTHORITY.equals(uri.getAuthority())) {
+            throw new IllegalArgumentException("Given Uri " + uri + " should be a media URI");
+        }
+
+        if (isNonCloudPickerUri(uri)) {
+            // In case of non cloud picker uris, use content resolver API normally
+            return resolver.openTypedAssetFileDescriptor(uri, mimeType, opts, cancellationSignal);
+        }
+
+        return openTypedAssetFileDescriptorInternal(
+                resolver, uri, mimeType, opts, cancellationSignal);
+    }
+
+    private static @Nullable AssetFileDescriptor openTypedAssetFileDescriptorInternal(
+            @NonNull ContentResolver resolver, @NonNull Uri uri,
+            @NonNull String mimeType, @Nullable Bundle opts,
+            @Nullable CancellationSignal cancellationSignal) throws FileNotFoundException {
+
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final IMPCancellationSignal remoteCancellationSignal =
+                    createRemoteCancellationSignalIfNeeded(client, cancellationSignal);
+            final CompletableFuture<AssetFileDescriptor> future = new CompletableFuture<>();
+
+            final IOpenAssetFileCallback callback = new IOpenAssetFileCallback.Stub() {
+                @Override
+                public void onSuccess(AssetFileDescriptor afd) {
+                    future.complete(afd);
+                }
+
+                @Override
+                public void onFailure(ParcelableException exception) {
+                    future.completeExceptionally(exception);
+                }
+            };
+
+            final Bundle in = new Bundle();
+            in.putParcelable(EXTRA_OPEN_ASSET_FILE_REQUEST,
+                    new OpenAssetFileRequest(uri, mimeType, opts, callback,
+                            remoteCancellationSignal));
+            client.call(OPEN_ASSET_FILE_CALL, null, in);
+
+            return future.get();
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        } catch (ExecutionException e) {
+            ParcelableException pe = (ParcelableException) e.getCause();
+            rethrowParcelableExceptionForOpenFile(pe);
+            throw new RuntimeException(pe.getCause());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (cancellationSignal != null) {
+                cancellationSignal.setOnCancelListener(null);
+            }
+        }
+    }
+
+    private static boolean isNonCloudPickerUri(@NonNull Uri uri) {
+        final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
+        matcher.addURI(AUTHORITY, "picker/#/*/media/*", 1);
+        matcher.addURI(AUTHORITY, "picker_get_content/#/*/media/*", 2);
+        return matcher.match(uri) == UriMatcher.NO_MATCH
+                || LOCAL_PICKER_PROVIDER_AUTHORITY.equals(uri.getPathSegments().get(2));
+    }
+
+    private static void rethrowParcelableExceptionForOpenFile(ParcelableException exception)
+            throws FileNotFoundException {
+        exception.maybeRethrow(FileNotFoundException.class);
+        exception.maybeRethrow(IllegalArgumentException.class);
+        exception.maybeRethrow(SecurityException.class);
+        exception.maybeRethrow(OperationCanceledException.class);
+    }
+
+    private static IMPCancellationSignal createRemoteCancellationSignalIfNeeded(
+            @NonNull ContentProviderClient client,
+            @Nullable CancellationSignal cancellationSignal) throws RemoteException {
+        if (cancellationSignal != null) {
+            cancellationSignal.throwIfCanceled();
+            final Bundle in = new Bundle();
+            final Bundle out = client.call(CREATE_CANCELLATION_SIGNAL_CALL, null, in);
+            final IMPCancellationSignal remoteCancellationSignal =
+                    IMPCancellationSignal.Stub.asInterface(
+                            out.getBinder(CREATE_CANCELLATION_SIGNAL_RESULT));
+            cancellationSignal.setOnCancelListener(() ->  {
+                try {
+                    remoteCancellationSignal.cancel();
+                } catch (RemoteException e) {
+                    // ignore
+                }
+            });
+            return remoteCancellationSignal;
+        }
+        return null;
+    }
+
+    /**
      * Return list of all recent volume names that have been part of
      * {@link #VOLUME_EXTERNAL}.
      * <p>
@@ -4655,6 +5047,11 @@ public final class MediaStore {
         final Bundle in = new Bundle();
         in.putString(Intent.EXTRA_TEXT, volumeName);
         final Bundle out = resolver.call(AUTHORITY, GET_GENERATION_CALL, null, in);
+        if (out == null) {
+            throw new IllegalStateException("Failed to get generation for volume '"
+                    + volumeName + "'. The ContentResolver call returned null.");
+        }
+
         return out.getLong(Intent.EXTRA_INDEX);
     }
 
@@ -5145,6 +5542,29 @@ public final class MediaStore {
             extras.putInt(Intent.EXTRA_UID, packageUid);
             extras.putParcelableArrayList(EXTRA_URI_LIST, new ArrayList<Uri>(uris));
             client.call(GRANT_MEDIA_READ_FOR_PACKAGE_CALL,
+                    /* arg= */ null,
+                    /* extras= */ extras);
+        } catch (RemoteException e) {
+            throw e.rethrowAsRuntimeException();
+        }
+    }
+
+    /**
+     * Revoke all {@link com.android.providers.media.MediaGrants} for the given package, for the
+     * list of local (to the device) content uris.
+     *
+     * @hide
+     */
+    public static void revokeAllMediaReadForPackages(
+            @NonNull Context context, int packageUid) {
+        final ContentResolver resolver = context.getContentResolver();
+        try (ContentProviderClient client = resolver.acquireContentProviderClient(AUTHORITY)) {
+            final Bundle extras = new Bundle();
+            extras.putInt(Intent.EXTRA_UID, packageUid);
+            // Add extra to indicate that all grants for the current package and useId needs to be
+            // revoked.
+            extras.putBoolean(REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL, true);
+            client.call(REVOKE_READ_GRANT_FOR_PACKAGE_CALL,
                     /* arg= */ null,
                     /* extras= */ extras);
         } catch (RemoteException e) {

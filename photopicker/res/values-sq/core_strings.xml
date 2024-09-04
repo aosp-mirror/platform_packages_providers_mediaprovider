@@ -27,6 +27,7 @@
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albumet"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Nuk ka ende asnjë fotografi"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Fillo të regjistrosh fotografi dhe video"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Fotografitë dhe videot e regjistruara nga aplikacioni i kamerës do të shfaqen këtu"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Nuk ka ende asnjë të preferuar"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Ky është një album automatik që mbledh artikujt e shënuar me yll ose si të preferuar"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Nuk ka ende asnjë video"</string>

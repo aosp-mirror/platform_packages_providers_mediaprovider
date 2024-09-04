@@ -31,6 +31,7 @@ import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.embedded.EmbeddedLifecycle
 import com.android.photopicker.core.embedded.EmbeddedViewModelFactory
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -108,6 +109,7 @@ class EmbeddedServiceModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -121,6 +123,7 @@ class EmbeddedServiceModule {
                 EmbeddedViewModelFactory(
                     backgroundDispatcher,
                     configurationManager,
+                    bannerManager,
                     dataService,
                     events,
                     featureManager,
@@ -218,6 +221,7 @@ class EmbeddedServiceModule {
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
                     /* deviceConfigProxy= */ deviceConfigProxy,
+                    /* sessionId */ generatePickerSessionId(),
                 )
             return configurationManager
         }
@@ -235,7 +239,9 @@ class EmbeddedServiceModule {
         notificationService: NotificationService,
         configurationManager: ConfigurationManager,
         featureManager: FeatureManager,
-        @ApplicationContext appContext: Context
+        @ApplicationContext appContext: Context,
+        events: Events,
+        processOwnerHandle: UserHandle
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -252,7 +258,9 @@ class EmbeddedServiceModule {
                     MediaProviderClient(),
                     configurationManager.configuration,
                     featureManager,
-                    appContext
+                    appContext,
+                    events,
+                    processOwnerHandle
                 )
         }
         return dataService
@@ -361,6 +369,7 @@ class EmbeddedServiceModule {
     fun provideSelection(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -373,11 +382,13 @@ class EmbeddedServiceModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount,
                         )
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preSelectedMedia = dataService.preSelectionMediaData
                         )
                 }
             return selection

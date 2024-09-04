@@ -131,7 +131,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject lateinit var featureManager: Lazy<FeatureManager>
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var events: Lazy<Events>
 
     val TEST_TAG_SELECTION_BAR = "selection_bar"
@@ -174,7 +174,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             Intent(MediaStore.ACTION_PICK_IMAGES).apply {
                 putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 5)
             }
-        configurationManager.setIntent(testIntent)
+        configurationManager.get().setIntent(testIntent)
 
         // Stub for MockContentResolver constructor
         whenever(mockContext.getApplicationInfo()) { getTestableContext().getApplicationInfo() }

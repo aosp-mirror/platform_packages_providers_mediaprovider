@@ -55,6 +55,7 @@ import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Event
@@ -73,7 +74,8 @@ import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
-import com.android.photopicker.inject.EmbeddedTestModule
+import com.android.photopicker.inject.PhotopickerTestModule
+import com.android.photopicker.inject.TestOptions
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
@@ -123,7 +125,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /** Setup dependencies for the UninstallModules for the test class. */
-    @Module @InstallIn(SingletonComponent::class) class TestModule : EmbeddedTestModule()
+    @Module
+    @InstallIn(SingletonComponent::class)
+    class TestModule :
+        PhotopickerTestModule(TestOptions.build { runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED) })
 
     val testDispatcher = StandardTestDispatcher()
 
@@ -154,7 +159,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var embeddedLifecycle: EmbeddedLifecycle
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context

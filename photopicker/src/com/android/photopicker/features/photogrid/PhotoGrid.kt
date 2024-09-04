@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
@@ -47,6 +48,7 @@ import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.components.getCellsPerRow
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -74,6 +76,10 @@ import kotlinx.coroutines.launch
 private val MEASUREMENT_BANNER_PADDING =
     PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
 
+// This is the number of rows we should include in the recents section at the top of the Photo Grid.
+// The recents section does not contain any separators.
+private val RECENTS_ROW_COUNT = 3
+
 /**
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
  *
@@ -83,7 +89,6 @@ private val MEASUREMENT_BANNER_PADDING =
 @Composable
 fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
     val navController = LocalNavController.current
-    val items = viewModel.data.collectAsLazyPagingItems()
     val featureManager = LocalFeatureManager.current
     val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
 
@@ -98,6 +103,13 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
             WindowWidthSizeClass.Expanded -> true
             else -> false
         }
+
+    val cellsPerRow = remember(isExpandedScreen) { getCellsPerRow(isExpandedScreen) }
+
+    val items =
+        viewModel
+            .getData(/* recentsCellCount */ (cellsPerRow * RECENTS_ROW_COUNT))
+            .collectAsLazyPagingItems()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
     val selectionLimitExceededMessage =
@@ -228,6 +240,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                             }
                         }
                     },
+                    columns = GridCells.Fixed(cellsPerRow),
                     state = state,
                 )
                 LaunchedEffect(Unit) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
@@ -66,13 +66,13 @@ public interface EmbeddedPhotoPickerClient {
      * handle {@code SecurityException} when attempting to read or use the URI in
      * response to this callback.
      */
-    void onItemsSelected(@NonNull List<Uri> uris);
+    void onUriPermissionGranted(@NonNull List<Uri> uris);
 
     /**
      * Reports that URI permission has been revoked of the item deselected by the
      * user.
      */
-    void onItemsDeselected(@NonNull List<Uri> uris);
+    void onUriPermissionRevoked(@NonNull List<Uri> uris);
 
     /**
      * Reports that the user is done with their selection and should collapse the picker.

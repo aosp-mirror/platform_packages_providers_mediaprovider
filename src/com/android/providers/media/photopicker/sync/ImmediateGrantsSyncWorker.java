@@ -76,7 +76,7 @@ public class ImmediateGrantsSyncWorker extends Worker {
                         shouldSyncGrants,
                         callingPackageUid,
                         mimeTypes);
-                Log.i(TAG, "Completed immediate picker grants sync from external database.");
+                Log.i(TAG, "Completed immediate picker grants sync from external database. ");
             } else {
                 // Having package uid is a must to execute sync for grants.
                 return Result.failure();

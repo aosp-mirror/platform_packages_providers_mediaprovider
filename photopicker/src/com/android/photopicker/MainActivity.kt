@@ -58,6 +58,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.AccentColorHelper
@@ -76,8 +77,11 @@ import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -99,7 +103,7 @@ class MainActivity : Hilt_MainActivity() {
     // on the ConfigurationManager.
     @Inject @ActivityRetainedScoped lateinit var featureManager: Lazy<FeatureManager>
     @Inject @Background lateinit var background: CoroutineDispatcher
-    @Inject lateinit var userMonitor: UserMonitor
+    @Inject lateinit var userMonitor: Lazy<UserMonitor>
 
     // Events requires the feature manager, so initialize this lazily until the action is set.
     @Inject lateinit var events: Lazy<Events>
@@ -129,7 +133,7 @@ class MainActivity : Hilt_MainActivity() {
      * The main activity should create a new [_preloadDeferred] before emitting, and then monitor
      * that deferred to obtain the result of the preload operation that this flow will trigger.
      */
-    val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
+    private val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
 
     /**
      * A deferred which tracks the current state of any preload operation requested by the main
@@ -141,10 +145,23 @@ class MainActivity : Hilt_MainActivity() {
      * Public access to the deferred, behind a getter. (To ensure any access to this property always
      * obtains the latest value)
      */
-    public val preloadDeferred: CompletableDeferred<Boolean>
+    val preloadDeferred: CompletableDeferred<Boolean>
         get() {
             return _preloadDeferred
         }
+
+    /**
+     * A top level flow that listens for disruptive data events from the [DataService]. This flow
+     * will emit when the DataService detects that its data is inaccurate or stale and will be used
+     * to force refresh the UI and navigate the user back to the start destination.
+     */
+    private val disruptiveDataNotification: Flow<Int> by lazy {
+        dataService.get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(initial = 0) {
+            prev,
+            _ ->
+            prev + 1
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -209,7 +226,6 @@ class MainActivity : Hilt_MainActivity() {
                 PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(
                         onDismissRequest = ::finish,
-                        bannerManager = bannerManager.get(),
                         onMediaSelectionConfirmed = {
                             lifecycleScope.launch {
                                 // Move the work off the UI dispatcher.
@@ -217,7 +233,8 @@ class MainActivity : Hilt_MainActivity() {
                             }
                         },
                         preloadMedia = preloadMedia,
-                        obtainPreloaderDeferred = { preloadDeferred }
+                        obtainPreloaderDeferred = { preloadDeferred },
+                        disruptiveDataNotification,
                     )
                 }
             }
@@ -396,7 +413,7 @@ class MainActivity : Hilt_MainActivity() {
                 .filter { provider -> provider.mediaSource == MediaSource.REMOTE }
                 .firstOrNull()
                 ?.uid ?: -1
-        val userProfileType = userMonitor.userStatus.value.activeUserProfile.profileType
+        val userProfileType = userMonitor.get().userStatus.value.activeUserProfile.profileType
         val currentActiveProfile =
             when (userProfileType) {
                 UserProfile.ProfileType.PRIMARY -> Telemetry.UserProfile.PERSONAL
@@ -436,7 +453,7 @@ class MainActivity : Hilt_MainActivity() {
 
         lifecycleScope.launch {
             val profileSwitchButtonVisible =
-                userMonitor.userStatus.getUserProfilesVisibleToPhotopicker().first().size > 1
+                userMonitor.get().userStatus.getUserProfilesVisibleToPhotopicker().first().size > 1
             events
                 .get()
                 .dispatch(
@@ -723,17 +740,33 @@ class MainActivity : Hilt_MainActivity() {
      * @param uid The uid of the calling application to issue media grants for.
      */
     private suspend fun updateGrantsForApp(
-        selection: Set<Media>,
-        deselection: Set<Media>,
+        currentSelection: Set<Media>,
+        currentDeSelection: Set<Media>,
         uid: Int
     ) {
-        // Adding grants for items selected by the user.
-        val uris: List<Uri> = selection.map { it.mediaUri }
-        MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
 
-        // Removing grants for preGranted items that have now been de-selected by the user.
-        val urisForItemsToBeRevoked = deselection.map { it.mediaUri }
-        MediaStore.revokeMediaReadForPackages(getApplicationContext(), uid, urisForItemsToBeRevoked)
+        val selection = selection.get()
+        val deselectAllEnabled =
+            if (selection is GrantsAwareSelectionImpl) {
+                selection.isDeSelectAllEnabled
+            } else {
+                false
+            }
+        if (deselectAllEnabled) {
+            // removing all grants for preGranted items for this package.
+            MediaStore.revokeAllMediaReadForPackages(getApplicationContext(), uid)
+        } else {
+            // Removing grants for preGranted items that have now been de-selected by the user.
+            val urisForItemsToBeRevoked = currentDeSelection.map { it.mediaUri }
+            MediaStore.revokeMediaReadForPackages(
+                getApplicationContext(),
+                uid,
+                urisForItemsToBeRevoked
+            )
+        }
+        // Adding grants for items selected by the user.
+        val uris: List<Uri> = currentSelection.map { it.mediaUri }
+        MediaStore.grantMediaReadForPackage(getApplicationContext(), uid, uris)
 
         // No need to send any data back to the PermissionController, just send an OK signal
         // back to indicate the MediaGrants are available.

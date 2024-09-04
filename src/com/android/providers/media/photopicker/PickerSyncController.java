@@ -81,6 +81,7 @@ import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.CloudProviderUtils;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.util.exceptions.WorkCancelledException;
 import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 
@@ -877,7 +878,7 @@ public class PickerSyncController {
                 executeSyncAddAlbum(
                         authority, isLocal, albumId, queryArgs, instanceId, cancellationSignal);
             }
-        } catch (RuntimeException | UnableToAcquireLockException e) {
+        } catch (RuntimeException | UnableToAcquireLockException | WorkCancelledException e) {
             // Unlike syncAllMediaFromProvider, we don't retry here because any errors would have
             // occurred in fetching all the album_media since incremental sync is not supported.
             // A full sync is therefore unlikely to resolve any issue
@@ -983,6 +984,10 @@ public class PickerSyncController {
                 default:
                     throw new IllegalArgumentException("Unexpected sync type: " + params.syncType);
             }
+        } catch (WorkCancelledException e) {
+            // Do not reset picker DB here so that the sync operation resumes the next time sync is
+            // triggered.
+            Log.e(TAG, "Failed to sync all media because the sync was cancelled.", e);
         } catch (RequestObsoleteException e) {
             Log.e(TAG, "Failed to sync all media because authority has changed.", e);
             try {
@@ -1101,7 +1106,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getMediaUri(authority);
         final List<String> expectedHonoredArgs = new ArrayList<>();
         if (isIncrementalSync) {
@@ -1151,7 +1156,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getMediaUri(authority);
 
         Log.i(TAG, "Executing SyncAddAlbum. "
@@ -1202,7 +1207,7 @@ public class PickerSyncController {
             Bundle queryArgs,
             InstanceId instanceId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         final Uri uri = getDeletedMediaUri(authority);
 
         Log.i(TAG, "Executing SyncRemove. isLocal: " + isLocal + ". authority: " + authority);
@@ -1607,7 +1612,7 @@ public class PickerSyncController {
             String authority,
             Boolean isLocal,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         return executePagedSync(
                 uri,
                 expectedMediaCollectionId,
@@ -1652,7 +1657,7 @@ public class PickerSyncController {
             Boolean isLocal,
             @Nullable String albumId,
             @Nullable CancellationSignal cancellationSignal)
-            throws RequestObsoleteException, UnableToAcquireLockException {
+            throws RequestObsoleteException, UnableToAcquireLockException, WorkCancelledException {
         Trace.beginSection(traceSectionName("executePagedSync"));
 
         try {
@@ -1673,7 +1678,7 @@ public class PickerSyncController {
                 // At the top of each loop check to see if we've received a CancellationSignal
                 // to stop the paged sync.
                 if (cancellationSignal != null && cancellationSignal.isCanceled()) {
-                    throw new RequestObsoleteException(
+                    throw new WorkCancelledException(
                             "Aborting sync: cancellationSignal was received");
                 }
 

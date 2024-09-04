@@ -69,7 +69,9 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.Size;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
@@ -327,6 +329,55 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testRequestThumbnail_noAccess_throwsSecurityException() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        final String errorMessagetoThrow = "App not allowed to access";
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+                    boolean forWrite) {
+                throw new SecurityException(errorMessagetoThrow);
+            }
+
+            @Override
+            protected void storageNativeBootPropertyChangeListener() {
+                // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
+            }
+        };
+
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
+        Bundle extras = new Bundle();
+        extras.putSize(ContentResolver.EXTRA_SIZE , new Size(50, 50));
+
+        try (AssetFileDescriptor ignored = provider.openTypedAssetFile(uri, "image/*", extras)) {
+            fail("Expected Security Exception to throw");
+        } catch (Exception e) {
+            assertThat(e.getClass()).isEqualTo(SecurityException.class);
+            assertThat(e.getMessage()).isEqualTo(errorMessagetoThrow);
+        } finally {
+            testFile.delete();
+        }
+    }
+
+    @Test
     public void testGrantMediaReadForPackage() throws Exception {
         final File dir = Environment
                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -432,6 +483,46 @@ public class MediaProviderTest {
             // package has no grants.
             MediaStore.revokeMediaReadForPackages(sIsolatedContext, android.os.Process.myUid(),
                     grantedUris);
+            List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
+            assertEquals(0, grantedUris2.size());
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+    }
+
+    @Test
+    public void testRevokeAllReadGrantsForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                .appendPath(Integer.toString(UserHandle.myUserId()))
+                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .appendPath(MediaStore.AUTHORITY)
+                .appendPath(Long.toString(fileId))
+                .build();
+
+        try {
+            String[] mimeTypes = {"image/*"};
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                    android.os.Process.myUid(),
+                    List.of(testUri));
+            List<Uri> grantedUris = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+
+            // Revoked all grants verify that now the current package has no grants.
+            MediaStore.revokeAllMediaReadForPackages(sIsolatedContext, android.os.Process.myUid());
             List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
                     android.os.Process.myUid(), mimeTypes);
             assertEquals(0, grantedUris2.size());
@@ -1836,18 +1927,20 @@ public class MediaProviderTest {
     }
 
     @Test
-    public void testNoExceptionOnGetGeneration() throws RemoteException {
+    public void testIllegalStateExceptionOnGetGenerationForNullValue() throws RemoteException {
         ContentInterface contentInterface = Mockito.mock(MediaProvider.class);
         Mockito.doReturn(null).when(contentInterface).call(Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(String.class), Mockito.any(Bundle.class));
+        String volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
         ContentResolver contentResolver = ContentResolver.wrap(contentInterface);
 
         try {
-            long generation = getGeneration(contentResolver, MediaStore.VOLUME_EXTERNAL_PRIMARY);
-            assertEquals(0, generation);
-        } catch (Exception e) {
-            fail("Unexpected exception: " + e.getMessage());
+            getGeneration(contentResolver, volumeName);
+            fail("Expected a IllegalStateException Exception");
+        } catch (IllegalStateException e) {
+            assertEquals("Failed to get generation for volume '" + volumeName
+                    + "'. The ContentResolver call returned null.", e.getMessage());
         }
 
     }

@@ -44,6 +44,7 @@ import android.util.Log;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.DatabaseHelper;
+import com.android.providers.media.flags.Flags;
 
 import com.google.common.base.Strings;
 
@@ -930,6 +931,7 @@ public class SQLiteQueryBuilder {
         if (hasGeneration) {
             values.remove(MediaColumns.GENERATION_ADDED);
             values.remove(MediaColumns.GENERATION_MODIFIED);
+            fillInferredDate(values);
         }
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
@@ -989,9 +991,16 @@ public class SQLiteQueryBuilder {
         sql.append(" SET ");
 
         final boolean hasGeneration = Objects.equals(mTables, "files");
+        boolean updateGeneration = true;
         if (hasGeneration) {
+            if (values.get(MediaColumns.GENERATION_MODIFIED) != null
+                    && values.get(MediaColumns.GENERATION_MODIFIED).equals(
+                    MediaColumns.GENERATION_MODIFIED_UNCHANGED)) {
+                updateGeneration = false;
+            }
             values.remove(MediaColumns.GENERATION_ADDED);
             values.remove(MediaColumns.GENERATION_MODIFIED);
+            fillInferredDate(values);
         }
 
         final ArrayMap<String, Object> rawValues = com.android.providers.media.util.DatabaseUtils
@@ -1003,7 +1012,7 @@ public class SQLiteQueryBuilder {
             sql.append(rawValues.keyAt(i));
             sql.append("=?");
         }
-        if (hasGeneration) {
+        if (hasGeneration && updateGeneration) {
             sql.append(',');
             sql.append(MediaColumns.GENERATION_MODIFIED);
             sql.append('=');
@@ -1088,6 +1097,24 @@ public class SQLiteQueryBuilder {
                 throw new IllegalArgumentException("Invalid column " + userColumn);
             }
             return userColumn;
+        }
+    }
+
+    private void fillInferredDate(ContentValues values) {
+        if (Flags.inferredMediaDate()) {
+            if (values.containsKey(MediaColumns.DATE_TAKEN)
+                    && values.get(MediaColumns.DATE_TAKEN) != null
+                    && values.getAsLong(MediaColumns.DATE_TAKEN) > 0) {
+                values.put(MediaColumns.INFERRED_DATE,
+                        values.getAsLong(MediaColumns.DATE_TAKEN));
+            } else if (values.containsKey(MediaColumns.DATE_MODIFIED)
+                    && values.get(MediaColumns.DATE_MODIFIED) != null
+                    && values.getAsLong(MediaColumns.DATE_MODIFIED) > 0) {
+                values.put(MediaColumns.INFERRED_DATE,
+                        values.getAsLong(MediaColumns.DATE_MODIFIED) * 1000);
+            } else {
+                values.put(MediaColumns.INFERRED_DATE, 0);
+            }
         }
     }
 

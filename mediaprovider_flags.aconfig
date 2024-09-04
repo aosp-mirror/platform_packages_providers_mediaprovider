@@ -50,11 +50,12 @@ flag {
 }
 
 flag {
-    name: "picker_pre_selection"
+    name: "picker_pre_selection_extra"
     is_exported: true
     namespace: "mediaprovider"
     description: "This flag will enable accepting of URIs for pre-selection as an intent extra."
     bug: "333038370"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -108,6 +109,7 @@ flag {
     namespace: "mediaprovider"
     description: "This flag controls whether the embedded photopicker is enabled"
     bug: "353634929"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -118,3 +120,31 @@ flag {
     description: "This flag will enable support for OEM metadata column"
     bug: "352528480"
 }
+
+flag {
+    name: "media_store_open_file"
+    is_exported: true
+    is_fixed_read_only: true
+    namespace: "mediaprovider"
+    description: "This flag will enable new APIs for opening media files through MediaStore"
+    bug: "356147697"
+}
+
+flag {
+    name: "inferred_media_date"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Controls exposure of inferred_media_date column"
+    bug: "352524889"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "audio_sample_columns"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Controls exposure of bits_per_sample and samplerate audio columns"
+    bug: "352523369"
+    is_fixed_read_only: true
+}
+

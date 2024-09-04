@@ -23,12 +23,12 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
-import android.provider.IEmbeddedPhotoPickerSession
-import android.provider.ParcelableException
 import android.util.Log
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
+import android.widget.photopicker.IEmbeddedPhotoPickerSession
+import android.widget.photopicker.ParcelableException
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -65,6 +65,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
@@ -248,7 +249,8 @@ open class Session(
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
         // This initialization should happen only after receiving the [_host]
-        _stateManager = EmbeddedStateManager(_host)
+        _stateManager =
+            EmbeddedStateManager(host = _host, themeNightMode = featureInfo.themeNightMode)
         runBlocking(_main) { _host.setView(_view, width, height) }
 
         // Start listening to selection/deselection events for this Session so
@@ -352,7 +354,10 @@ open class Session(
                                 config = photopickerConfiguration
                             ) {
                                 PhotopickerApp(
-                                    disruptiveDataNotification,
+                                    disruptiveDataNotification = disruptiveDataNotification,
+                                    onMediaSelectionConfirmed = {
+                                        _backgroundScope.launch { onMediaSelectionConfirmed() }
+                                    },
                                 )
                             }
                         }
@@ -397,7 +402,7 @@ open class Session(
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsSelected(listOf(item.mediaUri))
+                            clientCallback.onUriPermissionGranted(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -411,7 +416,7 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
+                            clientCallback.onUriPermissionRevoked(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -456,13 +461,17 @@ open class Session(
         }
         if (configuration == null) return
 
-        // Check for dark theme
-        val isNewThemeDark =
-            (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
+        // Check for the theme override in featureInfo.
+        // If not overridden, compute the theme using the configuration.uiMode night mask value
+        // and update the same in _stateManager.
+        if (featureInfo.themeNightMode == Configuration.UI_MODE_NIGHT_UNDEFINED) {
+            val isNewThemeDark =
+                (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
 
-        // Update embedded state manager
-        _stateManager.setIsDarkTheme(isNewThemeDark)
+            // Update embedded state manager
+            _stateManager.setIsDarkTheme(isNewThemeDark)
+        }
 
         // Pass the configuration change along to the view
         _view.dispatchConfigurationChanged(configuration)
@@ -476,7 +485,27 @@ open class Session(
         _stateManager.setIsExpanded(isExpanded)
     }
 
+    override fun requestRevokeUriPermission(uris: List<Uri>) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+
+        _backgroundScope.launch {
+            val deselectedMediaItems =
+                _dependencies.selection().get().snapshot().filter { media ->
+                    uris.contains(media.mediaUri)
+                }
+
+            _dependencies.selection().get().removeAll(deselectedMediaItems)
+        }
+    }
+
     private fun callClosedSessionError() {
         clientCallback.onSessionError(ParcelableException(IllegalStateException()))
+    }
+
+    private fun onMediaSelectionConfirmed() {
+        clientCallback.onSelectionComplete()
     }
 }

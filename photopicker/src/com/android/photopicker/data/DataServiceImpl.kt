@@ -22,9 +22,11 @@ import android.content.Intent
 import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
+import android.os.UserHandle
 import android.provider.CloudMediaProviderContract
 import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.GuardedBy
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Events
@@ -87,6 +89,7 @@ class DataServiceImpl(
     private val featureManager: FeatureManager,
     private val appContext: Context,
     private val events: Events,
+    private val processOwnerHandle: UserHandle
 ) : DataService {
     private val _activeContentResolver =
         MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
@@ -95,8 +98,12 @@ class DataServiceImpl(
     // Use [refreshPreGrantedItemsCount] to populate this with the latest value.
     private var _preGrantedMediaCount: MutableStateFlow<Int?> = MutableStateFlow(null)
 
-    // Keep track of the photo grid media and album grid paging source so that we can invalidate
-    // them in case the underlying data changes.
+    // Here default value being null signifies that the look up for the uris has not happened yet.
+    // Use [fetchMediaDataForUris] to populate this with the latest value.
+    private var _preSelectionMediaData: MutableStateFlow<List<Media>?> = MutableStateFlow(null)
+
+    // Keep track of the photo grid media, album grid and preview media paging sources so that we
+    // can invalidate them in case the underlying data changes.
     private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
     private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
@@ -193,6 +200,12 @@ class DataServiceImpl(
      * value set during the most recent [refreshPreGrantedItemsCount] call.
      */
     override val preGrantedMediaCount: StateFlow<Int?> = _preGrantedMediaCount
+
+    /**
+     * Same as [_preSelectionMediaData] but as an immutable StateFlow. The flow contains the latest
+     * value set during the most recent [fetchMediaDataForUris] call.
+     */
+    override val preSelectionMediaData: StateFlow<List<Media>?> = _preSelectionMediaData
 
     companion object {
         const val FLOW_TIMEOUT_MILLI_SECONDS: Long = 5000
@@ -388,6 +401,7 @@ class DataServiceImpl(
             awaitClose { notificationService.unregisterContentObserverCallback(resolver, observer) }
         }
 
+    @GuardedBy("albumMediaPagingSourceMutex")
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> =
         runBlocking {
             refreshAlbumMedia(album)
@@ -423,6 +437,7 @@ class DataServiceImpl(
             }
         }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -452,6 +467,7 @@ class DataServiceImpl(
     ): StateFlow<CloudMediaProviderDetails?> =
         throw NotImplementedError("This method is not implemented yet.")
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -473,17 +489,46 @@ class DataServiceImpl(
         }
     }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> = runBlocking {
+        mediaPagingSourceMutex.withLock {
+            val availableProviders: List<Provider> = availableProviders.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
+            val mediaPagingSource =
+                MediaPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                    events,
+                    /* is_preview_request */ true,
+                    currentSelection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
+                    currentDeselection
+                        .mapNotNull { it.mediaId }
+                        .toCollection(
+                            ArrayList(),
+                        ),
+                )
+
+            Log.v(
+                DataService.TAG,
+                "Created a media paging source that queries database for" + "preview items."
+            )
+            mediaPagingSources.add(mediaPagingSource)
+            mediaPagingSource
+        }
+    }
 
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value
         refreshMedia(availableProviders)
     }
 
+    @GuardedBy("albumMediaPagingSourceMutex")
     override suspend fun refreshAlbumMedia(album: Album) {
         albumMediaPagingSourceMutex.withLock {
             // Send album media refresh request only when the album media paging source is not
@@ -587,6 +632,8 @@ class DataServiceImpl(
         // refresh count for preGranted media.
         refreshPreGrantedItemsCount()
 
+        config.value.preSelectedUris?.let { fetchMediaDataForUris(it) }
+
         val previouslyAvailableProviders = _availableProviders.value
 
         _availableProviders.update { providers }
@@ -618,6 +665,31 @@ class DataServiceImpl(
                     _activeContentResolver.value,
                     config.value.callingPackageUid ?: -1
                 )
+            }
+        }
+    }
+
+    override fun fetchMediaDataForUris(uris: List<Uri>) {
+        // value for _preSelectionMediaData being null signifies that the data has not been fetched
+        // yet for this photopicker session.
+        if (_preSelectionMediaData.value == null && uris.isNotEmpty()) {
+            // Pre-selection state is not accessible cross-profile, so any time the
+            // [activeUserProfile] is not the Process owner's profile, pre-selections should not be
+            // refreshed and any cached state should not be updated to the UI.
+            if (
+                userStatus.value.activeUserProfile.handle.identifier ==
+                    processOwnerHandle.getIdentifier()
+            ) {
+                _preSelectionMediaData.update {
+                    mediaProviderClient.fetchFilteredMedia(
+                        MediaPageKey(),
+                        MediaStore.getPickImagesMaxLimit(),
+                        _activeContentResolver.value,
+                        _availableProviders.value,
+                        config.value,
+                        uris
+                    )
+                }
             }
         }
     }

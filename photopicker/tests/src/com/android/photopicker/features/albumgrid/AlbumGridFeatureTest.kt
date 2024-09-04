@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.UserManager
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.test.mock.MockContentResolver
@@ -44,7 +45,6 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.configuration.testGetContentConfiguration
@@ -141,8 +141,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
-    @Inject lateinit var bannerManager: Lazy<BannerManager>
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var dataService: DataService
 
     @Before
@@ -195,7 +194,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -230,7 +228,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -274,7 +271,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -320,7 +316,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -400,7 +395,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -482,7 +476,6 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -518,6 +511,82 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule
                 .onNode(hasText(resources.getString(R.string.photopicker_videos_empty_state_body)))
+                .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testEmptyStateContentForCamera() {
+
+        val testDataService = dataService as? TestDataServiceImpl
+        checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
+
+        // Force the data service to return no data for all test sources during this test.
+        testDataService.albumMediaSetSize = 0
+        testDataService.albumsList =
+            listOf(
+                Group.Album(
+                    id = ALBUM_ID_CAMERA,
+                    pickerId = 1234L,
+                    authority = "a",
+                    displayName = "Camera",
+                    coverUri =
+                        Uri.EMPTY.buildUpon()
+                            .apply {
+                                scheme("content")
+                                authority("a")
+                                path("1234")
+                            }
+                            .build(),
+                    dateTakenMillisLong = 12345678L,
+                    coverMediaSource = MediaSource.LOCAL,
+                )
+            )
+
+        val resources = getTestableContext().getResources()
+
+        testScope.runTest {
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            advanceTimeBy(100)
+
+            val testAlbumDisplayName = "Camera"
+            composeTestRule.onNode(hasText(testAlbumDisplayName)).performClick()
+
+            composeTestRule.waitForIdle()
+
+            // Allow the PreviewViewModel to collect flows
+            advanceTimeBy(100)
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_photos_empty_state_title)))
+                .assertIsDisplayed()
+
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_camera_empty_state_body)))
                 .assertIsDisplayed()
         }
     }

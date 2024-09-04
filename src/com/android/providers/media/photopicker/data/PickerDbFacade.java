@@ -1633,7 +1633,10 @@ public class PickerDbFacade {
         return qb;
     }
 
-    private static void addWhereClausesForMediaGrantsTable(SQLiteQueryBuilder qb, int userId,
+    /**
+     * Appends where clause for package and user id selection to the input query builder.
+     */
+    public static void addWhereClausesForMediaGrantsTable(SQLiteQueryBuilder qb, int userId,
             @NonNull String[] packageNames) {
         // Add where clause for userId selection.
         qb.appendWhereStandalone(

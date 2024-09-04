@@ -30,7 +30,7 @@ import com.android.providers.media.photopicker.util.CategoryOrganiserUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -41,65 +41,61 @@ public class CategoryOrganiserTest {
 
     @Test
     public void test_categoryOrder_meetsRequirements() {
-        List<Category> inputCategoryList = new ArrayList() {
-            {
-                add(new Category(
+        List<Category> inputCategoryList = Arrays.asList(
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory1",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory2",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory3",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-            }
-        };
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true)
+        );
 
         // Expected list contains all the categories in the input list but in the required order,
         // the order of custom categories is maintained.
-        List<Category> expectedCategoryList = new ArrayList() {
-            {
-                add(new Category(
+        List<Category> expectedCategoryList = Arrays.asList(
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS,
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory1",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory2",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-                add(new Category(
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true),
+                new Category(
                         "TestCategory3",
-                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true));
-            }
-        };
+                        LOCAL_PICKER_PROVIDER_AUTHORITY, "", null, 100, true)
+        );
 
         // perform reorder.
         CategoryOrganiserUtils.getReorganisedCategoryList(inputCategoryList);

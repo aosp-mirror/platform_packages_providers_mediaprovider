@@ -21,20 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> a punt"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"No es poden carregar algunes fotos"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Torna-ho a provar més tard. Les teves fotos estaran disponibles un cop el problema s\'hagi resolt."</string>
-    <!-- no translation found for photopicker_banner_cloud_media_available_title (3630564281302679941) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_media_available_message (6224134038092008505) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_title (286679907089224434) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_message (5173210485511611652) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_account_button (3407910358624445230) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_title (992613053341538886) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_provider_message (1102889303996108506) -->
-    <skip />
-    <!-- no translation found for photopicker_banner_cloud_choose_app_button (8228365266860220123) -->
-    <skip />
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Ara s\'ha inclòs la còpia de seguretat de les fotos"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Pots seleccionar fotos del compte de <xliff:g id="APP_NAME">%1$s</xliff:g> de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Tria un compte de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Per incloure les fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> aquí, tria un compte a l\'aplicació"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Tria un compte"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Tria una aplicació multimèdia amb servei al núvol"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Per incloure una còpia de seguretat de les fotos aquí, a Configuració, tria una aplicació multimèdia amb servei al núvol"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Tria una aplicació"</string>
 </resources>

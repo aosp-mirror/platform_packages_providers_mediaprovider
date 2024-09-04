@@ -17,6 +17,7 @@
 package com.android.photopicker.core.components
 
 import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
@@ -63,6 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +75,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -82,9 +86,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.theme.CustomAccentColorScheme
@@ -94,13 +101,14 @@ import com.android.photopicker.extensions.circleBackground
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
-private val CELLS_PER_ROW = 3
+private val CELLS_PER_ROW: Int = 3
 
 /** The number of grid cells per row for Tablet / expanded layouts */
-private val CELLS_PER_ROW_EXPANDED = 4
+private val CELLS_PER_ROW_EXPANDED: Int = 4
 
 /** The default (if not overridden) amount of content padding below the grid */
 private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 150.dp
@@ -184,9 +192,7 @@ fun mediaGrid(
     onItemClick: (item: MediaGridItem) -> Unit,
     onItemLongPress: (item: MediaGridItem) -> Unit = {},
     isExpandedScreen: Boolean = false,
-    columns: GridCells =
-        if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
-        else GridCells.Fixed(CELLS_PER_ROW),
+    columns: GridCells = GridCells.Fixed(getCellsPerRow(isExpandedScreen)),
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
@@ -201,7 +207,7 @@ fun mediaGrid(
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
-            onLongPress: ((item: MediaGridItem) -> Unit)?,
+            onLongPress: ((item: MediaGridItem) -> Unit)?
         ) -> Unit =
         { item, isSelected, onClick, onLongPress,
             ->
@@ -221,16 +227,46 @@ fun mediaGrid(
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
     },
+    bannerContent: (@Composable () -> Unit)? = null,
 ) {
+    // To know whether the request in coming from Embedded or PhotoPicker
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
+    /**
+     * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to
+     * get the regular updates of bottom sheet current state inside [LazyVerticalGrid]
+     */
+    val isExpanded = rememberUpdatedState(LocalEmbeddedState.current?.isExpanded ?: false)
     LazyVerticalGrid(
         columns = columns,
-        modifier = modifier,
+        modifier =
+            if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                modifier.transferGridTouchesToHostInEmbedded(state, isExpanded, host)
+            } else {
+                modifier
+            },
         state = state,
         contentPadding = contentPadding,
         userScrollEnabled = userScrollEnabled,
         horizontalArrangement = Arrangement.spacedBy(gridCellPadding),
         verticalArrangement = Arrangement.spacedBy(gridCellPadding),
     ) {
+
+        // If banner content was passed add it to the grid as a full span item
+        // so that it appears inside the scroll container.
+        bannerContent?.let {
+            item(
+                span = {
+                    if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
+                    else GridItemSpan(CELLS_PER_ROW)
+                }
+            ) {
+                it()
+            }
+        }
+
+        // Add the media items from the LazyPagingItems
         items(
             count = items.itemCount,
             key = { index -> MediaGridItem.keyFactory(items.peek(index), index) },
@@ -274,6 +310,14 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
 }
 
 /**
+ * Return the number of cells in a row based on whether the current configuration has expanded
+ * screen or not.
+ */
+public fun getCellsPerRow(isExpandedScreen: Boolean): Int {
+    return if (isExpandedScreen) CELLS_PER_ROW_EXPANDED else CELLS_PER_ROW
+}
+
+/**
  * Default [MediaGridItem.MediaItem] builder that loads media into a square (1:1) aspect ratio
  * GridCell, and provides animations and an icon for the selected state.
  */
@@ -310,10 +354,14 @@ private fun defaultBuildMediaItem(
             val selectedModifier =
                 baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
+            val mediaDescription = stringResource(R.string.photopicker_media_item)
+
             // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = mediaDescription
+
                         onClick(
                             action = {
                                 onClick?.invoke(item)
@@ -545,6 +593,9 @@ private fun defaultBuildAlbumItem(
                         }
                         id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
                             DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
+                        }
+                        id.equals(ALBUM_ID_CAMERA) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.PhotoCamera, modifier)
                         }
                         // Load the media item through the Glide entrypoint.
                         else -> {

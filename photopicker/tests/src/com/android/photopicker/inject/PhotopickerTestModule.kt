@@ -17,7 +17,6 @@
 package com.android.photopicker.inject
 
 import android.content.Context
-import android.os.Parcel
 import android.os.UserHandle
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.Main
@@ -25,7 +24,6 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.DeviceConfigProxy
-import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.database.DatabaseManagerTestImpl
@@ -69,7 +67,7 @@ import org.mockito.Mockito.mock
  */
 @Module
 @DisableInstallInCheck
-abstract class PhotopickerTestModule {
+abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Builder().build()) {
 
     @Singleton
     @Provides
@@ -97,6 +95,7 @@ abstract class PhotopickerTestModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -106,6 +105,7 @@ abstract class PhotopickerTestModule {
             EmbeddedViewModelFactory(
                 backgroundDispatcher,
                 configurationManager,
+                bannerManager,
                 dataService,
                 events,
                 featureManager,
@@ -146,8 +146,9 @@ abstract class PhotopickerTestModule {
         @Background dispatcher: CoroutineDispatcher,
         deviceConfigProxy: DeviceConfigProxy
     ): ConfigurationManager {
+
         return ConfigurationManager(
-            PhotopickerRuntimeEnv.ACTIVITY,
+            options.runtimeEnv,
             scope,
             dispatcher,
             deviceConfigProxy,
@@ -171,10 +172,7 @@ abstract class PhotopickerTestModule {
     @Singleton
     @Provides
     fun createUserHandle(): UserHandle {
-        val parcel1 = Parcel.obtain()
-        parcel1.writeInt(0)
-        parcel1.setDataPosition(0)
-        return UserHandle(parcel1)
+        return options.processOwnerHandle
     }
 
     @Singleton
@@ -218,8 +216,9 @@ abstract class PhotopickerTestModule {
         configurationManager: ConfigurationManager,
     ): FeatureManager {
         return FeatureManager(
-            configurationManager.configuration,
-            scope,
+            configuration = configurationManager.configuration,
+            scope = scope,
+            registeredFeatures = options.registeredFeatures,
         )
     }
 
@@ -240,6 +239,7 @@ abstract class PhotopickerTestModule {
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
         }
     }

@@ -43,6 +43,8 @@ import java.util.Arrays;
  * Helper class that keeps track of Picker related Constants.
  */
 public class PickerSQLConstants {
+    static final String COUNT_COLUMN = "Count";
+
     /**
      * An enum that holds the table names in Picker DB
      */
@@ -317,7 +319,7 @@ public class PickerSQLConstants {
         private String getIsPregranted(String intentAction) {
             if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
                 return String.format("CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
-                        PickerDataLayerV2.TABLE_CURRENT_GRANTS, MediaGrants.FILE_ID_COLUMN);
+                        PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN);
             } else {
                 return "0"; // default case for other intent actions
             }
@@ -328,7 +330,8 @@ public class PickerSQLConstants {
         PREV_PAGE_ID("prev_page_picker_id"),
         PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
         NEXT_PAGE_ID("next_page_picker_id"),
-        NEXT_PAGE_DATE_TAKEN("next_page_date_taken");
+        NEXT_PAGE_DATE_TAKEN("next_page_date_taken"),
+        ITEMS_BEFORE_COUNT("items_before_count");
 
         private final String mKey;
 

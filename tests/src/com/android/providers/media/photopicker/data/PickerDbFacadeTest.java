@@ -78,6 +78,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.UserHandle;
 import android.provider.CloudMediaProviderContract.MediaColumns;
 import android.provider.Column;
@@ -87,6 +88,7 @@ import android.provider.MediaStore.PickerMediaColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.android.providers.media.MediaGrants;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.ProjectionHelper;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
@@ -372,6 +374,29 @@ public class PickerDbFacadeTest {
                     "Unexpected number of grants ")
                     .that(cr.getCount()).isEqualTo(0);
         }
+    }
+
+    @Test
+    public void testAddWhereClausesForMediaGrantsTable() {
+        // set up
+        SQLiteQueryBuilder sqb = new SQLiteQueryBuilder();
+        int testUserId = 1;
+        String[] testPackageNames = {"com.test.example"};
+
+        // adding where clause
+        PickerDbFacade.addWhereClausesForMediaGrantsTable(sqb, testUserId, testPackageNames);
+
+        // verify where clauses have been added to the query.
+        String resultQuery = sqb.buildQuery(null, null, null, null, null, null);
+
+        assertWithMessage("Query should contain clause for userId.").that(
+                resultQuery.contains(String.format("%s = %d", MediaGrants.PACKAGE_USER_ID_COLUMN,
+                        testUserId))).isEqualTo(true);
+        assertWithMessage("Query should contain clause for packageNames.")
+                .that(resultQuery.contains(String.format("%s IN (\"%s\")",
+                        MediaGrants.OWNER_PACKAGE_NAME_COLUMN,
+                        testPackageNames[0]))).isEqualTo(
+                        true);
     }
 
     @Test

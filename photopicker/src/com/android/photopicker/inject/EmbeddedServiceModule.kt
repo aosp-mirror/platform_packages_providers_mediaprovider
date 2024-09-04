@@ -109,6 +109,7 @@ class EmbeddedServiceModule {
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
         configurationManager: Lazy<ConfigurationManager>,
+        bannerManager: Lazy<BannerManager>,
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
@@ -122,6 +123,7 @@ class EmbeddedServiceModule {
                 EmbeddedViewModelFactory(
                     backgroundDispatcher,
                     configurationManager,
+                    bannerManager,
                     dataService,
                     events,
                     featureManager,
@@ -239,6 +241,7 @@ class EmbeddedServiceModule {
         featureManager: FeatureManager,
         @ApplicationContext appContext: Context,
         events: Events,
+        processOwnerHandle: UserHandle
     ): DataService {
 
         if (!::dataService.isInitialized) {
@@ -257,6 +260,7 @@ class EmbeddedServiceModule {
                     featureManager,
                     appContext,
                     events,
+                    processOwnerHandle
                 )
         }
         return dataService
@@ -365,6 +369,7 @@ class EmbeddedServiceModule {
     fun provideSelection(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -383,6 +388,7 @@ class EmbeddedServiceModule {
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preSelectedMedia = dataService.preSelectionMediaData
                         )
                 }
             return selection

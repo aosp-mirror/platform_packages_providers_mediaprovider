@@ -30,6 +30,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -37,6 +39,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry.BannerType
+import com.android.photopicker.core.events.Telemetry.UserBannerInteraction
+import com.android.photopicker.core.features.FeatureToken.CORE
+import kotlinx.coroutines.launch
 
 /**
  * Object interface to generate a banner element for the UI. This abstracts the appearance of the
@@ -104,8 +113,11 @@ interface Banner {
 private val MEASUREMENT_BANNER_CARD_INTERNAL_PADDING =
     PaddingValues(start = 16.dp, top = 16.dp, end = 8.dp, bottom = 8.dp)
 private val MEASUREMENT_BANNER_ICON_GAP_SIZE = 16.dp
-private val MEASUREMENT_BANNER_ICON_SIZE = 24.dp
+private val MEASUREMENT_BANNER_ICON_SIZE = 32.dp
+private val MEASUREMENT_BANNER_ICON_PADDING = 4.dp
 private val MEASUREMENT_BANNER_BUTTON_ROW_SPACING = 8.dp
+private val MEASUREMENT_BANNER_TITLE_BOTTOM_SPACING = 6.dp
+private val MEASUREMENT_BANNER_TEXT_END_PADDING = 8.dp
 
 /**
  * A default compose implementation that relies on the [Banner] interface for all backing data.
@@ -122,6 +134,9 @@ fun Banner(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = {},
 ) {
+
+    val config = LocalPhotopickerConfiguration.current
+    val events = LocalEvents.current
 
     Card(
         // Consume the incoming modifier for positioning the banner.
@@ -144,19 +159,28 @@ fun Banner(
                         it,
                         contentDescription = banner.iconContentDescription(),
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(MEASUREMENT_BANNER_ICON_SIZE)
+                        modifier =
+                            Modifier.size(MEASUREMENT_BANNER_ICON_SIZE)
+                                .padding(MEASUREMENT_BANNER_ICON_PADDING)
                     )
                 }
 
                 // Stack the title and message vertically in the same horizontal container
                 // weight(1f) is used to ensure that the other siblings in this row are displayed,
                 // and this column will fill any remaining space.
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier =
+                        Modifier.padding(PaddingValues(end = MEASUREMENT_BANNER_TEXT_END_PADDING))
+                            .weight(1f)
+                ) {
                     if (banner.buildTitle().isNotEmpty()) {
                         Text(
                             text = banner.buildTitle(),
                             style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.align(Alignment.Start)
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier =
+                                Modifier.align(Alignment.Start)
+                                    .padding(bottom = MEASUREMENT_BANNER_TITLE_BOTTOM_SPACING)
                         )
                     }
                     Text(
@@ -170,6 +194,8 @@ fun Banner(
             // The action Row, which sometimes may be empty if the banner is not dismissable and
             // does not provide its own Action
             if (banner.declaration.dismissable || banner.actionLabel() != null) {
+                val scope = rememberCoroutineScope()
+
                 Row(
                     horizontalArrangement =
                         Arrangement.spacedBy(MEASUREMENT_BANNER_BUTTON_ROW_SPACING),
@@ -183,7 +209,23 @@ fun Banner(
                     banner.actionLabel()?.let {
                         val context = LocalContext.current
                         TextButton(
-                            onClick = { banner.onAction(context) },
+                            onClick = {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerBannerInteraction(
+                                            dispatcherToken = CORE.token,
+                                            sessionId = config.sessionId,
+                                            bannerType =
+                                                BannerType.fromBannerDeclaration(
+                                                    banner.declaration
+                                                ),
+                                            userInteraction =
+                                                UserBannerInteraction.CLICK_BANNER_ACTION_BUTTON
+                                        )
+                                    )
+                                }
+                                banner.onAction(context)
+                            },
                         ) {
                             Text(it)
                         }
@@ -194,12 +236,43 @@ fun Banner(
                     // clicked is up to the caller. A core string is used here to ensure consistency
                     // between banners.
                     if (banner.declaration.dismissable) {
-                        TextButton(onClick = onDismiss) {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerBannerInteraction(
+                                            dispatcherToken = CORE.token,
+                                            sessionId = config.sessionId,
+                                            bannerType =
+                                                BannerType.fromBannerDeclaration(
+                                                    banner.declaration
+                                                ),
+                                            userInteraction =
+                                                UserBannerInteraction.CLICK_BANNER_DISMISS_BUTTON
+                                        )
+                                    )
+                                }
+                                onDismiss()
+                            }
+                        ) {
                             Text(stringResource(R.string.photopicker_dismiss_banner_button_label))
                         }
                     }
                 }
             }
         }
+    }
+
+    // Add a log that the banner was shown.
+    LaunchedEffect(banner) {
+        events.dispatch(
+            Event.LogPhotopickerBannerInteraction(
+                dispatcherToken = CORE.token,
+                sessionId = config.sessionId,
+                bannerType = BannerType.fromBannerDeclaration(banner.declaration),
+                // TODO(b/357010907): Add banner shown interaction when the atom exists.
+                userInteraction = UserBannerInteraction.UNSET_BANNER_INTERACTION
+            )
+        )
     }
 }

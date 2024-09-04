@@ -52,6 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.android.providers.media.tools.photopickerv2.R
 import com.android.providers.media.tools.photopickerv2.utils.ButtonComponent
+import com.android.providers.media.tools.photopickerv2.utils.MetaDataDetails
 import com.android.providers.media.tools.photopickerv2.utils.SwitchComponent
 import com.android.providers.media.tools.photopickerv2.utils.isImage
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -80,6 +81,8 @@ fun PickerChoiceScreen(pickerChoiceViewModel: PickerChoiceViewModel = viewModel(
         var requestPermissionForImagesOnly by remember { mutableStateOf(false) }
         var requestPermissionForVideosOnly by remember { mutableStateOf(false) }
         var requestPermissionForBoth by remember { mutableStateOf(false) }
+
+        var showMetaData by remember { mutableStateOf(false) }
 
         val showLatestSelectionOnly by pickerChoiceViewModel
             .latestSelectionOnly.observeAsState(false)
@@ -214,17 +217,32 @@ fun PickerChoiceScreen(pickerChoiceViewModel: PickerChoiceViewModel = viewModel(
                 )
             }
 
+            // Switch for showing meta data
+            SwitchComponent(
+                label = stringResource(R.string.show_metadata),
+                checked = showMetaData,
+                onCheckedChange = { showMetaData = it }
+            )
+
             val mediaList by pickerChoiceViewModel.media.observeAsState(emptyList())
-            DisplayMedia(mediaList)
+            DisplayMedia(mediaList, showMetaData)
         }
     }
 }
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-fun DisplayMedia(mediaList: List<PickerChoiceViewModel.Media>) {
+fun DisplayMedia(mediaList: List<PickerChoiceViewModel.Media>, showMetaData: Boolean) {
     Column {
         mediaList.forEach { media ->
+            if (showMetaData) {
+                MetaDataDetails(
+                    uri = media.uri,
+                    contentResolver = LocalContext.current.contentResolver,
+                    showMetaData = showMetaData,
+                    inDocsUITab = false
+                )
+            }
             if (isImage(LocalContext.current, media.uri)) {
                 // To display image
                 GlideImage(

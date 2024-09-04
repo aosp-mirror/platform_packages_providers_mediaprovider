@@ -19,7 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.os.Build
 import android.provider.DeviceConfig
-import android.provider.EmbeddedPhotopickerFeatureInfo
+import android.provider.EmbeddedPhotoPickerFeatureInfo
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.isUnspecified
@@ -28,6 +28,7 @@ import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
+import com.android.photopicker.extensions.getPickImagesPreSelectedUris
 import com.android.photopicker.extensions.getStartDestination
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -139,7 +140,7 @@ class ConfigurationManager(
      * feature manager from being re-initialized.
      */
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotopickerFeatureInfo) {
+    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotoPickerFeatureInfo) {
         Log.d(TAG, "New featureInfo received: $featureInfo : Configuration will now update.")
 
         val selectionLimit = featureInfo.maxSelectionLimit
@@ -219,6 +220,9 @@ class ConfigurationManager(
                 }
             }
 
+        // get preSelection URIs from intent.
+        val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
+
         // Use updateAndGet to ensure the value is set before this method returns so the new
         // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -230,6 +234,7 @@ class ConfigurationManager(
                 mimeTypes = mimeTypes,
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,
+                preSelectedUris = pickerPreSelectionUris,
             )
         }
     }

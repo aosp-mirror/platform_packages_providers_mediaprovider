@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -104,10 +105,10 @@ import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
-private val CELLS_PER_ROW = 3
+private val CELLS_PER_ROW: Int = 3
 
 /** The number of grid cells per row for Tablet / expanded layouts */
-private val CELLS_PER_ROW_EXPANDED = 4
+private val CELLS_PER_ROW_EXPANDED: Int = 4
 
 /** The default (if not overridden) amount of content padding below the grid */
 private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 150.dp
@@ -191,9 +192,7 @@ fun mediaGrid(
     onItemClick: (item: MediaGridItem) -> Unit,
     onItemLongPress: (item: MediaGridItem) -> Unit = {},
     isExpandedScreen: Boolean = false,
-    columns: GridCells =
-        if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
-        else GridCells.Fixed(CELLS_PER_ROW),
+    columns: GridCells = GridCells.Fixed(getCellsPerRow(isExpandedScreen)),
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
@@ -311,6 +310,14 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
 }
 
 /**
+ * Return the number of cells in a row based on whether the current configuration has expanded
+ * screen or not.
+ */
+public fun getCellsPerRow(isExpandedScreen: Boolean): Int {
+    return if (isExpandedScreen) CELLS_PER_ROW_EXPANDED else CELLS_PER_ROW
+}
+
+/**
  * Default [MediaGridItem.MediaItem] builder that loads media into a square (1:1) aspect ratio
  * GridCell, and provides animations and an icon for the selected state.
  */
@@ -347,10 +354,14 @@ private fun defaultBuildMediaItem(
             val selectedModifier =
                 baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
+            val mediaDescription = stringResource(R.string.photopicker_media_item)
+
             // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = mediaDescription
+
                         onClick(
                             action = {
                                 onClick?.invoke(item)

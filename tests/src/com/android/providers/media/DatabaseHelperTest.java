@@ -448,6 +448,39 @@ public class DatabaseHelperTest {
         }
     }
 
+    @Test
+    public void testBackfillAsfMimeType() {
+        try (DatabaseHelper helper = new DatabaseHelperU(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/Downloads/test.asf");
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_NONE);
+                values.put(FileColumns.MIME_TYPE, "application/vnd.ms-asf");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+        }
+
+        try (DatabaseHelper helper = new DatabaseHelperV(sIsolatedContext, TEST_UPGRADE_DB)) {
+            SQLiteDatabase db = helper.getWritableDatabaseForTest();
+            {
+                final ContentValues values = new ContentValues();
+                values.put(FileColumns.DATA, "/storage/emulated/0/Downloads/test2.asf");
+                values.put(FileColumns.MEDIA_TYPE, FileColumns.MEDIA_TYPE_VIDEO);
+                values.put(FileColumns.MIME_TYPE, "application/vnd.ms-asf");
+                assertThat(db.insert("files", FileColumns.DATA, values)).isNotEqualTo(-1);
+            }
+
+            try (Cursor c = db.query("files", new String[]{"media_type"}, null, null, null, null,
+                    null)) {
+                assertEquals(2, c.getCount());
+                while (c.moveToNext()) {
+                    assertThat(c.getInt(0)).isEqualTo(FileColumns.MEDIA_TYPE_VIDEO);
+                }
+            }
+        }
+    }
+
     private long insertInInternal(SQLiteDatabase db, String path, String displayName) {
         final ContentValues values = new ContentValues();
         values.put(FileColumns.DATE_ADDED, System.currentTimeMillis());

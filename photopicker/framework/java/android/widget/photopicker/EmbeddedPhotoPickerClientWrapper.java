@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.RequiresApi;
 import android.net.Uri;
@@ -71,12 +71,17 @@ class EmbeddedPhotoPickerClientWrapper extends IEmbeddedPhotoPickerClient.Stub {
     }
 
     @Override
-    public void onItemsSelected(List<Uri> uris) {
-        mClientExecutor.execute(() -> mClientCallback.onItemsSelected(uris));
+    public void onUriPermissionGranted(List<Uri> uris) {
+        mClientExecutor.execute(() -> mClientCallback.onUriPermissionGranted(uris));
     }
 
     @Override
-    public void onItemsDeselected(List<Uri> uris) {
-        mClientExecutor.execute(() -> mClientCallback.onItemsDeselected(uris));
+    public void onUriPermissionRevoked(List<Uri> uris) {
+        mClientExecutor.execute(() -> mClientCallback.onUriPermissionRevoked(uris));
+    }
+
+    @Override
+    public void onSelectionComplete() {
+        mClientExecutor.execute(() -> mClientCallback.onSelectionComplete());
     }
 }

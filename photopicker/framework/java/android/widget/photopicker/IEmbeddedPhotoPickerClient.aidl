@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.os.Parcelable;
 import android.net.Uri;
 import java.util.List;
-import android.provider.EmbeddedPhotoPickerSessionResponse;
-import android.provider.ParcelableException;
+import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse;
+import android.widget.photopicker.ParcelableException;
 
 /**
  * Internal interface used to send callbacks to the host apps.
@@ -36,11 +36,9 @@ oneway interface IEmbeddedPhotoPickerClient {
 
     void onSessionError(in ParcelableException exception);
 
-    void onItemsSelected(in List<Uri> uri);
+    void onUriPermissionGranted(in List<Uri> uri);
 
-    void onItemsDeselected(in List<Uri> uri);
+    void onUriPermissionRevoked(in List<Uri> uri);
+
+    void onSelectionComplete();
 }
-
-
-
-

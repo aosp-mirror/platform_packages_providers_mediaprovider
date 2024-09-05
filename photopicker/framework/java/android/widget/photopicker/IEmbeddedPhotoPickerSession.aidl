@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.content.res.Configuration;
 
@@ -39,5 +39,5 @@ oneway interface IEmbeddedPhotoPickerSession {
 
     void notifyPhotopickerExpanded(boolean isExpanded);
 
-    void notifyItemsDeselected(in List<Uri> uris);
+    void requestRevokeUriPermission(in List<Uri> uris);
 }

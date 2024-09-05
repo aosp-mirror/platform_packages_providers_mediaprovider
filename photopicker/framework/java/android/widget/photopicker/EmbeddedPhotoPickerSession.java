@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.FlaggedApi;
 import android.annotation.RequiresApi;
@@ -111,5 +111,5 @@ public interface EmbeddedPhotoPickerSession {
      *
      * @param uris The {@link Uri} list of the deselected items.
      */
-    void notifyItemsDeselected(@NonNull List<Uri> uris);
+    void requestRevokeUriPermission(@NonNull List<Uri> uris);
 }

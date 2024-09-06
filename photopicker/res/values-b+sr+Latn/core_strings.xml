@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Počnite da snimate slike i video snimke"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Slike i videi koje je snimila aplikacija za kameru će se prikazati ovde"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Još nema omiljenih stavki"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Ovo je automatski album koji prikuplja stavke sa zvezdicom ili stavke označene kao omiljene"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Još nema videa"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Ovo je automatski album koji prikuplja sve vaše video snimke"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Nazad"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Odbaci"</string>
 </resources>

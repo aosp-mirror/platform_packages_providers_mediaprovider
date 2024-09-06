@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"เริ่มถ่ายภาพและวิดีโอ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"รูปภาพและวิดีโอที่ถ่ายโดยแอปกล้องจะปรากฏที่นี่"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ยังไม่มีรายการโปรด"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"อัลบั้มนี้เป็นอัลบั้มอัตโนมัติซึ่งรวบรวมรายการที่ติดดาวหรือทำเครื่องหมายว่าเป็นรายการโปรดไว้"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ยังไม่มีวิดีโอ"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"อัลบั้มนี้เป็นอัลบั้มอัตโนมัติที่รวบรวมวิดีโอทั้งหมดไว้"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"กลับ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ปิด"</string>
 </resources>

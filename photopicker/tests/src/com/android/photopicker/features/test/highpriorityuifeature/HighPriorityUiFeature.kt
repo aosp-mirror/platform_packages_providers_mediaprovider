@@ -30,10 +30,12 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.LocalNavController
@@ -48,7 +50,9 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "HighPriorityUiFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = true
+
         override fun build(featureManager: FeatureManager) = HighPriorityUiFeature()
 
         val UI_STRING = "I'm super important."
@@ -57,6 +61,14 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
         val DIALOG_ROUTE = "highpriority/dialog"
         val DIALOG_STRING = "I'm the dialog location."
     }
+
+    override val token = TAG
+
+    /** Events consumed by the Photo grid */
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    /** Events produced by the Photo grid */
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     /** Compose Location callback from feature framework */
     override fun registerLocations(): List<Pair<Location, Int>> {
@@ -77,6 +89,7 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     start()
@@ -93,6 +106,7 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
                 override val exitTransition = null
                 override val popEnterTransition = null
                 override val popExitTransition = null
+
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     dialog()
@@ -103,8 +117,11 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(location: Location) {
-
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
             else -> {}
@@ -149,7 +166,6 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
 
                 // Optionally add a navigation button if SimpleUiFeature is enabled.
                 if (featureManager.isFeatureEnabled(SimpleUiFeature::class.java)) {
-
                     Button(onClick = { navController.navigate(SimpleUiFeature.SIMPLE_ROUTE) }) {
                         Text("navigate to simple ui")
                     }

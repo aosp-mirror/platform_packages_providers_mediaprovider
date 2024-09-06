@@ -67,7 +67,7 @@ TEST(Test, GetLinksUtf8) {
     EXPECT_GT(Area(rects[0]), 0);
 
     EXPECT_EQ(1, urls.size());
-    EXPECT_EQ("http://www.antennahouse.com/purchase.htm", urls[0]);
+    EXPECT_EQ("https://www.google.com/", urls[0]);
 
     EXPECT_EQ(1, link_to_rect.size());
     EXPECT_EQ(0, link_to_rect[0]);

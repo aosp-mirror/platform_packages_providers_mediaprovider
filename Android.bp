@@ -51,6 +51,7 @@ android_app {
     jni_libs: [
         "libfuse_jni",
         "libfuse",
+        "libleveldb_jni",
     ],
     use_embedded_native_libs: true,
 
@@ -182,6 +183,8 @@ java_aconfig_library {
     name: "mediaprovider_flags_java_lib",
     aconfig_declarations: "mediaprovider_flags",
     min_sdk_version: "30",
+    sdk_version: "module_current",
+    libs: ["framework-configinfrastructure"],
     apex_available: [
         "com.android.mediaprovider",
     ],

@@ -63,6 +63,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.graphics.Color;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.provider.MediaStore;
 import android.text.format.DateUtils;
@@ -78,6 +80,7 @@ import com.android.providers.media.photopicker.DataLoaderThread;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.photopicker.data.PaginationParameters;
+import com.android.providers.media.photopicker.data.PickerResult;
 import com.android.providers.media.photopicker.data.Selection;
 import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.data.UserManagerState;
@@ -99,10 +102,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class PickerViewModelTest {
@@ -281,12 +285,12 @@ public class PickerViewModelTest {
             item.setPreGranted();
         }
         mItemsProvider.setItems(expectedItems);
-        List<String> preGrantedItems = List.of(expectedItems.get(0).getId(),
-                expectedItems.get(1).getId(),
-                expectedItems.get(2).getId());
+        List<Uri> preGrantedItems = List.of(expectedItems.get(0).getContentUri(),
+                expectedItems.get(1).getContentUri(),
+                expectedItems.get(2).getContentUri());
         Selection selection = mPickerViewModel.getSelection();
         // Add 3 item ids is preGranted set.
-        selection.setPreGrantedItemSet(new HashSet<>(preGrantedItems));
+        selection.setPreGrantedItems(preGrantedItems);
 
         // adding 1 item in selection item set.
         selection.addSelectedItem(expectedItems.get(1));
@@ -304,6 +308,141 @@ public class PickerViewModelTest {
 
         // Now the selection set should have 2 items.
         assertThat(selection.getSelectedItems().size()).isEqualTo(2);
+    }
+
+    @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
+    @Test
+    public void test_deselectPreGrantedItem_correctRevokeMapMaintained() {
+        // Enable managed selection for this test.
+        Intent intent = new Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP);
+        intent.putExtra(Intent.EXTRA_UID, 0);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+        for (Item item : expectedItems) {
+            item.setPreGranted();
+        }
+        mItemsProvider.setItems(expectedItems);
+
+        List<Uri> preGrantedItems = List.of(
+                expectedItems.get(0).getContentUri(),
+                expectedItems.get(1).getContentUri(),
+                expectedItems.get(2).getContentUri());
+
+
+        Selection selection = mPickerViewModel.getSelection();
+        // Add 3 item ids is preGranted set.
+        selection.setPreGrantedItems(preGrantedItems);
+
+        // adding 2 items in selection item set.
+        selection.addSelectedItem(expectedItems.get(0));
+        selection.addSelectedItem(expectedItems.get(1));
+
+        // revoking grant for the 0th item id.
+        selection.removeSelectedItem(expectedItems.get(0));
+
+        // since only one item is added in selection set, the size should be one.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(1);
+
+        // verify revoked item is present in the items to be revoked set.
+        Set<Item> itemsToBeRevoked = selection.getDeselectedItemsToBeRevoked();
+        assertThat(itemsToBeRevoked.size()).isEqualTo(1);
+        assertThat(itemsToBeRevoked.contains(expectedItems.get(0))).isTrue();
+
+        Set<Uri> itemUrisToBeRevoked = selection.getDeselectedUrisToBeRevoked();
+        assertThat(itemUrisToBeRevoked.size()).isEqualTo(1);
+        assertThat(itemUrisToBeRevoked.contains(expectedItems.get(0).getContentUri())).isTrue();
+    }
+
+    @Test
+    public void test_initialisePreSelectionItems_correctItemsLoaded() {
+        // Set the intent action as PICK_IMAGES
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        Bundle extras = new Bundle();
+        extras.putInt(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
+        intent.putExtras(extras);
+
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        // generate test items
+        final int numberOfTestItems = 4;
+        final List<Item> expectedItems = generateFakeImageItemList(numberOfTestItems);
+
+
+        // Mock the test items to return the required URI and id when used.
+        final List<Item> mockedExpectedItems = new ArrayList<>();
+        for (int i = 0; i < expectedItems.size(); i++) {
+            Item item = mock(Item.class);
+            when(item.getContentUri()).thenReturn(ItemsProvider.getItemsUri(
+                    expectedItems.get(i).getId(),
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                    UserId.CURRENT_USER));
+            when(item.getId()).thenReturn(expectedItems.get(i).getId());
+            mockedExpectedItems.add(item);
+        }
+        mItemsProvider.setItems(mockedExpectedItems);
+
+        // generate a list of input pre-selected picker URI and add them to test intent extras.
+        ArrayList<Uri> preGrantedPickerUris = new ArrayList<>();
+        for (int i = 0; i < expectedItems.size(); i++) {
+            preGrantedPickerUris.add(
+                    PickerResult.getPickerUrisForItems(MediaStore.ACTION_PICK_IMAGES,
+                            List.of(mockedExpectedItems.get(i))).get(0));
+        }
+        Bundle intentExtras = new Bundle();
+        intentExtras.putParcelableArrayList(MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS,
+                preGrantedPickerUris);
+
+        Selection selection = mPickerViewModel.getSelection();
+        // Since no item has been selected and no pre-granted URIs have been loaded, thus the size
+        // of selection should be 0.
+        assertThat(selection.getSelectedItems().size()).isEqualTo(0);
+
+        DataLoaderThread.waitForIdle();
+
+        // Initialise pre-granted items for selection.
+        mPickerViewModel.initialisePreGrantsIfNecessary(selection, intentExtras,
+                /* mimeTypeFilters */ null);
+        DataLoaderThread.waitForIdle();
+
+        // after initialization the items should have been added to selection.
+        assertThat(selection.getPreGrantedUris()).isNotNull();
+        assertThat(selection.getPreGrantedUris().size()).isEqualTo(4);
+        assertThat(mPickerViewModel.getSelection().getSelectedItems().size()).isEqualTo(4);
+    }
+
+
+    @Test
+    public void test_preSelectionItemsExceedMaxLimit_initialisationOfItemsFails() {
+        // Generate a list of test uris, the size being 2 uris more than the max number of URIs
+        // accepted.
+        String testUriPrefix = "content://media/picker/0/com.test.package/media/";
+        int numberOfPreselectedUris = MediaStore.getPickImagesMaxLimit() + 2;
+        ArrayList<Uri> testUrisAsString = new ArrayList<>();
+        for (int i = 0; i < numberOfPreselectedUris; i++) {
+            testUrisAsString.add(Uri.parse(testUriPrefix + String.valueOf(i)));
+        }
+
+        // set up the intent extras to contain the test uris. Also, parse a test PICK_IMAGES intent
+        // to ensure that PickerViewModel works in PICK_IMAGES action mode.
+        Bundle intentExtras = new Bundle();
+        intentExtras.putInt(MediaStore.EXTRA_PICK_IMAGES_MAX, MediaStore.getPickImagesMaxLimit());
+        intentExtras.putParcelableArrayList(MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS,
+                testUrisAsString);
+        final Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
+        intent.putExtras(intentExtras);
+        mPickerViewModel.parseValuesFromIntent(intent);
+
+        try {
+            mPickerViewModel.initialisePreGrantsIfNecessary(null, intentExtras, null);
+            fail("The initialisation of items should have failed since the number of pre-selected"
+                    + "items exceeds the max limit");
+        } catch (IllegalArgumentException illegalArgumentException) {
+            assertThat(illegalArgumentException.getMessage()).isEqualTo(
+                    "The number of URIs exceed the maximum allowed limit: "
+                            + MediaStore.getPickImagesMaxLimit());
+        }
     }
 
     private static Item generateFakeImageItem(String id) {
@@ -450,10 +589,9 @@ public class PickerViewModelTest {
         }
 
         @Override
-        public Cursor getLocalItemsForSelection(Category category,
-                @NonNull List<Integer> localIdSelection,
-                @Nullable String[] mimeTypes,
-                @Nullable UserId userId,
+        public Cursor getItemsForPreselectedMedia(Category category, @NonNull List<Uri>
+                preselectedUris, @Nullable String[] mimeTypes, @Nullable UserId userId,
+                boolean isLocalOnly, int callingPackageUid, boolean shouldScreenSelectionUris,
                 @Nullable CancellationSignal cancellationSignal) throws IllegalArgumentException {
             final String[] all_projection = new String[]{
                     ID,
@@ -475,10 +613,11 @@ public class PickerViewModelTest {
                     AUTHORITY,
             };
             final MatrixCursor c = new MatrixCursor(all_projection);
-
+            List<String> preSelectedIds = preselectedUris.stream().map(
+                    Uri::getLastPathSegment).collect(Collectors.toList());
             int itr = 1;
             for (Item item : mItemList) {
-                if (localIdSelection.contains(Integer.parseInt(item.getId()))) {
+                if (preSelectedIds.contains(item.getId())) {
                     c.addRow(new String[]{
                             item.getId(),
                             String.valueOf(itr),

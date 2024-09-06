@@ -2014,6 +2014,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("ALTER TABLE files ADD COLUMN oem_metadata BLOB DEFAULT NULL;");
     }
 
+    private static void updateBackfillAsfMimeType(SQLiteDatabase db) {
+        db.execSQL("UPDATE files SET media_type=? WHERE mime_type=\"application/vnd.ms-asf\";",
+                new String[]{String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)});
+    }
+
     private static void recomputeDataValues(SQLiteDatabase db) {
         try (Cursor c = db.query("files", new String[] { FileColumns._ID, FileColumns.DATA },
                 null, null, null, null, null, null)) {
@@ -2071,7 +2076,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    static final int VERSION_V = 1504;
+    static final int VERSION_V = 1505;
     public static final int VERSION_LATEST = VERSION_V;
 
     /**
@@ -2319,6 +2324,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1504) {
                 updateBackfillInferredDate(db);
+            }
+
+            if (fromVersion < 1505) {
+                updateBackfillAsfMimeType(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

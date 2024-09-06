@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Rasm va videolarni tanlashni boshlang"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Kamera ilovasi tomonidan olingan surat va videolar shu yerda chiqadi"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Sevimli suratlar topilmadi"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Bu avtomatik tuzilgan albomda sevimli deb belgilangan suratlar jamlanadi"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Hozircha hech qanday video kiritilmagan"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Bu avtomatik tuzilgan albomda sevimli deb belgilangan videolar jamlanadi"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Orqaga"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Yopish"</string>
 </resources>

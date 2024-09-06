@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"फ़ोटो लेना और वीडियो बनाना शुरू करें"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"आपके कैमरा ऐप्लिकेशन से कैप्चर की गई फ़ोटो और वीडियो यहां दिखेंगे"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"फ़िलहाल, पसंदीदा एल्बम में कोई फ़ोटो मौजूद नहीं है"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"यह एल्बम अपने-आप जनरेट होता है. इसमें वे फ़ोटो सेव की जाती हैं जिन पर स्टार के निशान लगे हों या जिन्हें पसंदीदा के तौर पर मार्क किया गया हो"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"फ़िलहाल, वीडियो एल्बम में कोई फ़ोटो मौजूद नहीं है"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"यह एल्बम अपने-आप जनरेट होता है. इसमें, आपके बनाए गए सभी वीडियो सेव रहते हैं"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"वापस जाएं"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"खारिज करें"</string>
 </resources>

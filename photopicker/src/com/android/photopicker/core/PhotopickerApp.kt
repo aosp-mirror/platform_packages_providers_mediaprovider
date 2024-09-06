@@ -17,6 +17,7 @@
 package com.android.photopicker.core
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -64,6 +65,7 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerNavGraph
+import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import kotlinx.coroutines.CompletableDeferred
@@ -107,6 +109,19 @@ fun PhotopickerAppWithBottomSheet(
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
+
+    // Attach a BackHandler above the BottomSheet & PhotopickerNavGraph composables.
+    // The NavHost composable attaches its own BackHandler (below this one) which will become
+    // disabled when the backstack size is zero. At that point, Back navigation will reach this
+    // handler.
+    BackHandler(true) {
+        // First try to pop the Backstack, but if that does not result in navigation, the user
+        // is at the startDestination with no further location to go back to, so then we should
+        // dismiss the Photopicker session.
+        if (!navController.popBackStack()) {
+            onDismissRequest()
+        }
+    }
 
     val state =
         rememberBottomSheetScaffoldState(
@@ -232,9 +247,14 @@ fun PhotopickerAppWithBottomSheet(
  *
  * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
  *   the UI has been created with is invalid
+ * @param onMediaSelectionConfirmed A callback to pass to the [Location.SELECTION_BAR] to indicate
+ *   the user has indicated the media selection is final.
  */
 @Composable
-fun PhotopickerApp(disruptiveDataNotification: Flow<Int>) {
+fun PhotopickerApp(
+    disruptiveDataNotification: Flow<Int>,
+    onMediaSelectionConfirmed: () -> Unit,
+) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
@@ -253,7 +273,7 @@ fun PhotopickerApp(disruptiveDataNotification: Flow<Int>) {
                         Location.SELECTION_BAR,
                         maxSlots = 1,
                         modifier = Modifier.padding(SELECTION_BAR_PADDING),
-                        params = LocationParams.None
+                        params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                     )
                 }
             }
@@ -333,9 +353,16 @@ fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
 private fun watchForDataDisruptions(disruptionCounter: Int) {
 
     val navController = LocalNavController.current
+    val selection = LocalSelection.current
     LaunchedEffect(disruptionCounter) {
         if (disruptionCounter > 0) {
             Log.d("Photopicker", "DisruptiveData notification received.")
+
+            // The selection may contain items from the provider that was removed, since this is
+            // a very unlikely event, the entire selection will be cleared to prevent the user
+            // from selecting any media from a provider that may no longer exist, or may be in a
+            // bad state.
+            selection.clear()
 
             try {
                 val startDestination =

@@ -53,13 +53,13 @@
   <string name="photopicker_favorites_empty_state_title" translation_description="Title of the message shown to the user when there are no favorite photos to show">No favorites yet</string>
 
   <!-- Empty state body when the favorites album has no photos -->
-  <string name="photopicker_favorites_empty_state_body" translation_description="Message shown to the user when there are no favorite photos to show">This is an automatic album that collects items starred or marked as favorite</string>
+  <string name="photopicker_favorites_empty_state_body" translation_description="Message shown to the user when there are no favorite photos to show">Photos and videos marked as favorites, or starred, will appear here</string>
 
   <!-- Empty state title when the videos album has no photos -->
   <string name="photopicker_videos_empty_state_title" translation_description="Title of the message shown to the user when there are no videos to show">No videos yet</string>
 
   <!-- Empty state body when the videos album has no photos -->
-  <string name="photopicker_videos_empty_state_body" translation_description="Message shown to the user when there are no videos to show">This is an automatic album that collects all of your videos</string>
+  <string name="photopicker_videos_empty_state_body" translation_description="Message shown to the user when there are no videos to show">Videos captured by your camera app, saved, or shared will appear here</string>
 
 
   <!-- Content description for a button which performs back option -->

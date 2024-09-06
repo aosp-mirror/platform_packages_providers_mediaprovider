@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.RequiresApi;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
 import androidx.annotation.NonNull;
+
+import java.util.List;
 
 /**
  * Wrapper class to {@link EmbeddedPhotoPickerSession} for internal use that helps with IPC between
@@ -111,6 +114,15 @@ class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
     public void notifyPhotoPickerExpanded(boolean isExpanded) {
         try {
             mSession.notifyPhotopickerExpanded(isExpanded);
+        } catch (RemoteException e) {
+            e.rethrowAsRuntimeException();
+        }
+    }
+
+    @Override
+    public void requestRevokeUriPermission(@NonNull List<Uri> uris) {
+        try {
+            mSession.requestRevokeUriPermission(uris);
         } catch (RemoteException e) {
             e.rethrowAsRuntimeException();
         }

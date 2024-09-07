@@ -47,6 +47,9 @@
     <!-- Permission required to access CloudMediaProviders. Declared by us -->
     <uses-permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
 
+    <!-- Permission required to bind to MediaCognitionService. Declared by us -->
+    <uses-permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE" />
+
     <!-- Allows an application to have access to OWNER_PACKAGE_NAME field of accessible media files.
          Applications are still required to have read access to media files.
          <p>Protection level: normal -->
@@ -57,6 +60,9 @@
 
     <permission android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
                 android:protectionLevel="signature" />
+
+    <permission android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE"
+                android:protectionLevel="signature"/>
 
     <!-- We use Photo Picker app icon and label for this package. It is necessary for Photo Picker
          GET_CONTENT take over. Some apps query packages that can handle GET_CONTENT and want to
@@ -92,13 +98,15 @@
         <provider
             android:name="com.android.providers.media.photopicker.PhotoPickerProvider"
             android:authorities="com.android.providers.media.photopicker"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS" />
 
         <provider
             android:name="com.android.providers.media.photopicker.RemoteVideoPreviewProvider"
             android:process=":PhotoPicker"
             android:authorities="com.android.providers.media.remote_video_preview"
-            android:exported="false" />
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+            android:exported="true" />
 
         <!-- Don't initialise WorkManager by default at startup -->
         <provider
@@ -272,7 +280,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:enabled="true">
-            <intent-filter android:priority="101" >
+            <intent-filter android:priority="105" >
                 <action android:name="android.intent.action.GET_CONTENT" />
                 <category android:name="android.intent.category.OPENABLE" />
                 <category android:name="android.intent.category.DEFAULT" />

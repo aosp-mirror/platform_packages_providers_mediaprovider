@@ -1,0 +1,32 @@
+<!--
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Title of the preloading progress dialog -->
+    <string name="photopicker_preloading_dialog_title" translation_description="Dialog title that is shown to the user while cloud media files are being downloaded">"Preparing your selected media"</string>
+
+    <!-- A message for the Progress Dialog shown while preloading selected items before "closing" Photo Picker. [CHAR LIMIT=NONE] -->
+    <string name="photopicker_preloading_progress_message" translation_description="Dialog message showing the user the progress of the media download"><xliff:g id="number_preloaded">%1$d</xliff:g> of <xliff:g id="number_total">%2$d</xliff:g> ready</string>
+
+    <!-- Preloader Error dialog title -->
+    <string name="photopicker_preloading_dialog_error_title"
+        translation_description="A generic error dialog the user sees when there was an issue with loading their photos.">Can\'t load some Photos</string>
+
+    <!-- Preloader Error dialog message -->
+    <string name="photopicker_preloading_dialog_error_message" translation_description="A generic error message letting the user know there was an issue loading their photos.">Try again later. Your photos will be available once the issue is resolved.</string>
+
+</resources>

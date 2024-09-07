@@ -44,19 +44,18 @@ public class SelectionBoundary {
      * {@link android.graphics.pdf.models.jni.SelectionBoundary}.
      *
      * @param selectionBoundary AOSP input
-     * @param isRtl             determines right-to-left
      * @return JNI output
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public static SelectionBoundary convert(
-            android.graphics.pdf.models.selection.SelectionBoundary selectionBoundary,
-            boolean isRtl) {
+            android.graphics.pdf.models.selection.SelectionBoundary selectionBoundary) {
         if (selectionBoundary.getIndex() >= 0) {
             return new SelectionBoundary(
-                    selectionBoundary.getIndex(), -1, -1, isRtl);
+                    selectionBoundary.getIndex(), -1, -1, selectionBoundary.getIsRtl());
         }
         return new SelectionBoundary(-1,
-                selectionBoundary.getPoint().x, selectionBoundary.getPoint().y, isRtl);
+                selectionBoundary.getPoint().x, selectionBoundary.getPoint().y,
+                selectionBoundary.getIsRtl());
     }
 
     public int getIndex() {

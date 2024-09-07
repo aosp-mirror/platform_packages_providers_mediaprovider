@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"تصاویر اور ویڈیوز کیپچر کرنا شروع کریں"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"آپ کے کیمرا ایپ سے کیپچر کردہ تصاویر اور ویڈیوز یہاں ظاہر ہوں گی"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"اب تک کوئی پسندیدہ نہیں"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"یہ ایک خودکار البم ہے جو ستارہ لگے ہوئے یا پسندیدہ کے طور پر نشان زد کیے ہوئے آئٹمز کو جمع کرتا ہے"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ابھی تک کوئی ویڈیو نہیں ہے"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"یہ ایک خودکار البم ہے جو آپ کی تمام ویڈیوز کو جمع کرتا ہے"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"پیچھے جائیں"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"برخاست کریں"</string>
 </resources>

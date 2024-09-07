@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Ξεκινήστε να κάνετε λήψη φωτογραφιών και βίντεο"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Οι φωτογραφίες και τα βίντεο των οποίων η λήψη πραγματοποιείται από την εφαρμογή κάμερας, θα εμφανίζονται εδώ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Δεν υπάρχουν ακόμη αγαπημένα"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Αυτό είναι ένα αυτόματο άλμπουμ που συλλέγει στοιχεία με αστέρι ή που έχουν επισημανθεί ως αγαπημένα"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Δεν υπάρχουν ακόμη βίντεο"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Αυτό είναι ένα αυτόματο άλμπουμ που συλλέγει όλα τα βίντεό σας"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Πίσω"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Παράβλεψη"</string>
 </resources>

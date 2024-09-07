@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Kom i gang med at tage billeder og optage videoer"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Billeder og videoer, de er taget med din kameraapp, vises her"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Der er ingen favoritter endnu"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Dette er et automatisk album, der samler de ting, der er stjernemarkeret eller markeret som favorit"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Der er ingen videoer endnu"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Dette er et automatisk album, der samler alle dine videoer"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Tilbage"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Luk"</string>
 </resources>

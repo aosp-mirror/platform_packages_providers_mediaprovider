@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ফট’ তুলিবলৈ আৰু ভিডিঅ’ ৰেকৰ্ড কৰিবলৈ আৰম্ভ কৰক"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"আপোনাৰ কেমেৰা এপে তোলা ফট’ আৰু ভিডিঅ’ ইয়াত দেখা পোৱা যাব"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"এতিয়ালৈকে কোনো প্ৰিয় নাই"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"এইটো এটা স্বয়ংক্ৰিয় এলবাম, যি তৰা চিহ্নযুক্ত বা প্ৰিয় হিচাপে চিহ্নিত কৰা বস্তুবোৰ সংগ্ৰহ কৰে"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"এতিয়ালৈকে কোনো ভিডিঅ’ নাই"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"এইটো এটা স্বয়ংক্ৰিয় এলবাম, যি আপোনাৰ আটাইবোৰ ভিডিঅ’ সংগ্ৰহ কৰে"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"উভতি যাওক"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"অগ্ৰাহ্য কৰক"</string>
 </resources>

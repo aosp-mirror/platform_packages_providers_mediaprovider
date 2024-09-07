@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Почните да снимате слике и видео снимке"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Слике и видеи које је снимила апликација за камеру ће се приказати овде"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Још нема омиљених ставки"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Ово је аутоматски албум који прикупља ставке са звездицом или ставке означене као омиљене"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Још нема видеа"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Ово је аутоматски албум који прикупља све ваше видео снимке"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Назад"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Одбаци"</string>
 </resources>

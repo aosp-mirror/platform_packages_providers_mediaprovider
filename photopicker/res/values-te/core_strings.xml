@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ఫోటోలు, వీడియోలను క్యాప్చర్ చేయడాన్ని ప్రారంభించండి"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"మీ కెమెరా యాప్‌తో క్యాప్చర్ చేసిన ఫోటోలు, వీడియోలు ఇక్కడ కనిపిస్తాయి"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ఇంకా ఫేవరెట్స్ ఏవీ లేవు"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"ఇది స్టార్ ఉన్న లేదా ఫేవరెట్స్‌గా మార్క్ చేసిన ఐటెమ్‌లను సేకరించే ఆటోమేటిక్ ఆల్బమ్"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ఇంకా వీడియోలు ఏవీ లేవు"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"ఇది మీ అన్ని వీడియోలను సేకరించే ఆటోమేటిక్ ఆల్బమ్"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"వెనుకకు"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"విస్మరించండి"</string>
 </resources>

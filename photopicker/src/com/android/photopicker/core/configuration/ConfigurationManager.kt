@@ -30,6 +30,7 @@ import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
 import com.android.photopicker.extensions.getPickImagesPreSelectedUris
 import com.android.photopicker.extensions.getStartDestination
+import com.android.providers.media.flags.Flags
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -318,6 +319,7 @@ class ConfigurationManager(
                     /* key= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.first,
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
+            PICKER_SEARCH_ENABLED = Flags.enablePhotopickerSearch(),
         )
     }
 

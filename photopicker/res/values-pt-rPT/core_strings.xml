@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Comece a capturar fotos e vídeos"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"As fotos e os vídeos capturados pela app da câmara são apresentados aqui."</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Ainda não tem favoritos"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Este é um álbum automático que reúne itens marcados com estrela ou como favoritos"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Ainda não tem vídeos"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Este é um álbum automático que reúne todos os seus vídeos"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Anterior"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Ignorar"</string>
 </resources>

@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ເລີ່ມຖ່າຍຮູບ ແລະ ວິດີໂອ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"ຮູບພາບ ແລະ ວິດີໂອທີ່ຖ່າຍດ້ວຍແອັບກ້ອງຖ່າຍຮູບຂອງທ່ານຈະປາກົດຢູ່ບ່ອນນີ້"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ຍັງບໍ່ມີລາຍການທີ່ມັກເທື່ອ"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"ນີ້ແມ່ນອະລະບ້ຳອັດຕະໂນມັດທີ່ຮວບຮວມລາຍການທີ່ຕິດດາວ ຫຼື ໝາຍເປັນລາຍການທີ່ມັກ"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ຍັງບໍ່ມີວິດີໂອເທື່ອ"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"ນີ້ແມ່ນອະລະບ້ຳອັດຕະໂນມັດທີ່ຮວບຮວມວິດີໂອທັງໝົດຂອງທ່ານ"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"ກັບຄືນ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ປິດໄວ້"</string>
 </resources>

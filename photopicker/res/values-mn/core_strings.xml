@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Зураг авч, видео бичиж эхэлнэ үү"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Таны камерын аппын авсан зураг болон видео энд харагдана"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Одоогоор дуртай гэж тэмдэглэсэн ямар ч зураг байхгүй"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Энэ нь одоор эсвэл дуртай гэж тэмдэглэсэн зургийг цуглуулдаг автомат цомог юм"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Одоогоор ямар ч видео байхгүй"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Энэ нь таны бүх видеог цуглуулдаг автомат цомог юм"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Буцах"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Хаах"</string>
 </resources>

@@ -31,7 +31,6 @@ import com.android.photopicker.features.photogrid.PhotoGridFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.privacyexplainer.PrivacyExplainerFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
-import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
@@ -83,7 +82,6 @@ class FeatureManager(
                 OverflowMenuFeature.Registration,
                 PrivacyExplainerFeature.Registration,
                 BrowseFeature.Registration,
-                SearchFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */

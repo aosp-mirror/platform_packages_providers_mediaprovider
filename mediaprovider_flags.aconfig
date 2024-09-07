@@ -148,3 +148,11 @@ flag {
     is_fixed_read_only: true
 }
 
+flag {
+    name: "enable_photopicker_search"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether to enable search feature in photopicker"
+    bug: "361026918"
+    is_fixed_read_only: true
+}

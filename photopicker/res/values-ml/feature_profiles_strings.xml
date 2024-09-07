@@ -25,8 +25,6 @@
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"നിങ്ങളുടെ അഡ്‌മിൻ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> ഫോട്ടോകൾ തുറക്കാൻ, നിങ്ങളുടെ <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> ആപ്പുകൾ ഓണാക്കിയ ശേഷം വീണ്ടും ശ്രമിക്കുക"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"ഈ പ്രൊഫൈലിൽ നിന്ന് ഡാറ്റ ആക്‌സസ് ചെയ്യുന്നത് നിങ്ങളുടെ അഡ്മിൻ അനുവദിച്ചിട്ടില്ല."</string>
-    <!-- no translation found for photopicker_profile_banner_switch_button_label (1652041405540769126) -->
-    <skip />
-    <!-- no translation found for photopicker_profile_switch_banner_message (2969185213956642828) -->
-    <skip />
+    <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"മാറുക"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"നിങ്ങൾ <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> പ്രൊഫൈലിൽ ആണ്. നിങ്ങളുടെ <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> പ്രൊഫൈലിലേക്ക് മാറണോ?"</string>
 </resources>

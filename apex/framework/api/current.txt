@@ -99,51 +99,6 @@ package android.provider {
     field public static final String WIDTH = "width";
   }
 
-  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerClient {
-    method public void onItemsDeselected(@NonNull java.util.List<android.net.Uri>);
-    method public void onItemsSelected(@NonNull java.util.List<android.net.Uri>);
-    method public void onSessionError(@NonNull Throwable);
-    method public void onSessionOpened(@NonNull android.provider.EmbeddedPhotoPickerSession);
-  }
-
-  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public final class EmbeddedPhotoPickerFeatureInfo implements android.os.Parcelable {
-    method public int describeContents();
-    method @ColorLong public long getAccentColor();
-    method public int getMaxSelectionLimit();
-    method @NonNull public java.util.List<java.lang.String> getMimeTypes();
-    method @NonNull public java.util.List<android.net.Uri> getPreSelectedUris();
-    method public boolean isOrderedSelection();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.provider.EmbeddedPhotoPickerFeatureInfo> CREATOR;
-  }
-
-  public static final class EmbeddedPhotoPickerFeatureInfo.Builder {
-    ctor public EmbeddedPhotoPickerFeatureInfo.Builder();
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo build();
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setAccentColor(@ColorLong long);
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setMaxSelectionLimit(@IntRange(from=1) int);
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setMimeTypes(@NonNull java.util.List<java.lang.String>);
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setOrderedSelection(boolean);
-    method @NonNull public android.provider.EmbeddedPhotoPickerFeatureInfo.Builder setPreSelectedUris(@NonNull java.util.List<android.net.Uri>);
-  }
-
-  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerProvider {
-    method public void openSession(@NonNull android.os.IBinder, int, int, int, @NonNull android.provider.EmbeddedPhotoPickerFeatureInfo, @NonNull java.util.concurrent.Executor, @NonNull android.provider.EmbeddedPhotoPickerClient);
-  }
-
-  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public class EmbeddedPhotoPickerProviderFactory {
-    method @NonNull public static android.provider.EmbeddedPhotoPickerProvider create(@NonNull android.content.Context);
-  }
-
-  @FlaggedApi("com.android.providers.media.flags.enable_embedded_photopicker") public interface EmbeddedPhotoPickerSession {
-    method public void close();
-    method @NonNull public android.view.SurfaceControlViewHost.SurfacePackage getSurfacePackage();
-    method public void notifyConfigurationChanged(@NonNull android.content.res.Configuration);
-    method public void notifyPhotoPickerExpanded(boolean);
-    method public void notifyResized(int, int);
-    method public void notifyVisibilityChanged(boolean);
-  }
-
   public final class MediaStore {
     ctor public MediaStore();
     method public static boolean canManageMedia(@NonNull android.content.Context);

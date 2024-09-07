@@ -16,6 +16,7 @@ android_test {
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
         // Include stubs for @TestApi methods
         "android_test_stubs_current",
         "framework-res",

@@ -14,9 +14,10 @@ android_library {
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
-        "framework-configinfrastructure",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
         "framework-statsd",
     ],
     javacflags: [

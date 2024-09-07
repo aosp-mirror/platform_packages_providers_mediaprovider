@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import static java.util.Objects.requireNonNull;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresApi;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
@@ -46,6 +47,7 @@ import java.util.Locale;
  * <li> Ordered selection of media items
  * <li> Max selection media count restriction
  * <li> Pre-selected uris
+ * <li> Theme night mode
  * </ul>
  *
  * <p> Callers should use {@link Builder} to set the desired features.
@@ -59,18 +61,21 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
     private final boolean mOrderedSelection;
     private final int mMaxSelectionLimit;
     private final List<Uri> mPreSelectedUris;
+    private final int mThemeNightMode;
 
     private EmbeddedPhotoPickerFeatureInfo(
             List<String> mimeTypes,
             long accentColor,
             boolean orderedSelection,
             int maxSelectionLimit,
-            List<Uri> preSelectedUris) {
+            List<Uri> preSelectedUris,
+            int themeNightMode) {
         this.mMimeTypes = mimeTypes;
         this.mAccentColor = accentColor;
         this.mOrderedSelection = orderedSelection;
         this.mMaxSelectionLimit = maxSelectionLimit;
         this.mPreSelectedUris = preSelectedUris;
+        this.mThemeNightMode = themeNightMode;
     }
     @NonNull
     public List<Uri> getPreSelectedUris() {
@@ -90,6 +95,9 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
     public List<String> getMimeTypes() {
         return this.mMimeTypes;
     }
+    public int getThemeNightMode() {
+        return this.mThemeNightMode;
+    }
 
     public static final class Builder {
         //All mime-types are returned by default.
@@ -102,15 +110,17 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
          * By-default session will open in multiselect mode and below is the maximum
          * selection limit if user doesn't specify anything.
          */
-        private static final int DEFAULT_MAX_SELECTION_LIMIT = MediaStore.getPickImagesMaxLimit();
+        private static final int DEFAULT_MAX_SELECTION_LIMIT = 100;
         @NonNull
         private static final List<Uri> DEFAULT_PRE_SELECTED_URIS = Arrays.asList();
+        private static final int DEFAULT_NIGHT_MODE = Configuration.UI_MODE_NIGHT_UNDEFINED;
 
         private List<String> mMimeTypes = DEFAULT_MIME_TYPES;
         private long mAccentColor = DEFAULT_ACCENT_COLOR;
         private boolean mOrderedSelection = DEFAULT_ORDERED_SELECTION;
         private int mMaxSelectionLimit = DEFAULT_MAX_SELECTION_LIMIT;
         private List<Uri> mPreSelectedUris = DEFAULT_PRE_SELECTED_URIS;
+        private int mThemeNightMode = DEFAULT_NIGHT_MODE;
 
         public Builder() {}
 
@@ -192,9 +202,9 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
          */
         @NonNull
         public Builder setMaxSelectionLimit(@IntRange(from = 1) int maxSelectionLimit) {
-            if (maxSelectionLimit > MediaStore.getPickImagesMaxLimit()) {
+            if (maxSelectionLimit > DEFAULT_MAX_SELECTION_LIMIT) {
                 throw new IllegalArgumentException("Max selection limit should be less than "
-                        + MediaStore.getPickImagesMaxLimit());
+                        + DEFAULT_MAX_SELECTION_LIMIT);
             }
             mMaxSelectionLimit = maxSelectionLimit;
             return this;
@@ -217,6 +227,35 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
         }
 
         /**
+         * Sets the embedded photo picker theme to light or dark irrespective of the device theme.
+         *
+         * @param themeNightMode hex code of the desired {@link Configuration#UI_MODE_NIGHT_MASK}
+         *                       value.
+         *
+         * <p> The default value is {@link Configuration#UI_MODE_NIGHT_UNDEFINED} to apply the
+         * system (device) theme.
+         *
+         * <p> Supported values are -</p>
+         * <li> {@link Configuration#UI_MODE_NIGHT_UNDEFINED} -> system theme
+         * <li> {@link Configuration#UI_MODE_NIGHT_YES} -> dark theme
+         * <li> {@link Configuration#UI_MODE_NIGHT_NO} -> light theme
+         */
+        @NonNull
+        public Builder setThemeNightMode(int themeNightMode) {
+            if (!isSupportedNightModeConstant(themeNightMode)) {
+                throw new IllegalArgumentException("Unsupported themeNightMode: " + themeNightMode);
+            }
+            mThemeNightMode = themeNightMode;
+            return this;
+        }
+
+        private static boolean isSupportedNightModeConstant(int value) {
+            return value == Configuration.UI_MODE_NIGHT_UNDEFINED
+                    || value == Configuration.UI_MODE_NIGHT_NO
+                    || value == Configuration.UI_MODE_NIGHT_YES;
+        }
+
+        /**
          * Build the class for desired feature info arguments
          */
         @NonNull
@@ -226,7 +265,8 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
                     mAccentColor,
                     mOrderedSelection,
                     mMaxSelectionLimit,
-                    mPreSelectedUris);
+                    mPreSelectedUris,
+                    mThemeNightMode);
         }
     }
     private EmbeddedPhotoPickerFeatureInfo(Parcel in) {
@@ -239,6 +279,7 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
         final ArrayList<Uri> preSelectedUris = new ArrayList<>();
         in.readTypedList(preSelectedUris, Uri.CREATOR);
         this.mPreSelectedUris = preSelectedUris;
+        this.mThemeNightMode = in.readInt();
     }
 
     @Override
@@ -248,6 +289,7 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
         dest.writeBoolean(mOrderedSelection);
         dest.writeInt(mMaxSelectionLimit);
         dest.writeTypedList(mPreSelectedUris, flags);
+        dest.writeInt(mThemeNightMode);
     }
 
     @Override
@@ -277,6 +319,7 @@ public final class EmbeddedPhotoPickerFeatureInfo implements Parcelable {
                 + ", mOrderedSelection=" + mOrderedSelection
                 + ", mMaxSelectionLimit=" + mMaxSelectionLimit
                 + ", mPreSelectedUris=" + mPreSelectedUris
+                + ", mThemeNightMode=" + mThemeNightMode
                 + '}';
     }
 }

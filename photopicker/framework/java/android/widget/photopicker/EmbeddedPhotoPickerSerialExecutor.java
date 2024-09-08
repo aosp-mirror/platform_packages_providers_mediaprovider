@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.provider;
+package android.widget.photopicker;
 
 import java.util.ArrayDeque;
 import java.util.Queue;

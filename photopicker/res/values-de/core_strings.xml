@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Nimm Fotos und Videos auf"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Fotos und Videos, die du mit deiner Kamera aufgenommen hast, werden hier angezeigt"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Noch keine Favoriten"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Das ist ein automatisch erstelltes Album, in dem markierte oder als Favorit markierte Elemente gespeichert werden"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Noch keine Videos"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Das ist ein automatisch erstelltes Album, in dem alle deine Videos gespeichert werden"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Zurück"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Schließen"</string>
 </resources>

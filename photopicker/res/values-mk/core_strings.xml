@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Започнете со снимање фотографии и видеа"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Фотографиите и видеата снимени со вашата апликација за камера ќе се појават овде"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Сѐ уште немате омилени"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Ова е автоматски албум што собира ставки означени со ѕвезда или означени како омилени"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Сѐ уште немате видеа"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Ова е автоматски албум што ги собира сите ваши видеа"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Назад"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Отфрли"</string>
 </resources>

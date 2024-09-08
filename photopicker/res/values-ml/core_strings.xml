@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ഫോട്ടോകളും വീഡിയോകളും എടുക്കാൻ ആരംഭിക്കുക"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"നിങ്ങളുടെ Camera ആപ്പ് എടുത്ത ഫോട്ടോകളും വീഡിയോകളും ഇവിടെ ദൃശ്യമാകും"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ഇതുവരെ പ്രിയപ്പെട്ടവയൊന്നുമില്ല"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"നക്ഷത്രചിഹ്നമിട്ടതോ പ്രിയപ്പെട്ടവയായി അടയാളപ്പെടുത്തിയതോ ആയ ഇനങ്ങൾ ശേഖരിക്കുന്ന ഓട്ടോമാറ്റിക് ആൽബമാണിത്"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ഇതുവരെ വീഡിയോകൾ ഒന്നുമില്ല"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"നിങ്ങളുടെ എല്ലാ വീഡിയോകളും ശേഖരിക്കുന്ന ഓട്ടോമാറ്റിക് ആൽബമാണിത്"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"മടങ്ങുക"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ഡിസ്‌മിസ് ചെയ്യുക"</string>
 </resources>

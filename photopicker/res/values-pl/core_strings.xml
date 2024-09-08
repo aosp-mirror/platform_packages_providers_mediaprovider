@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Zacznij robić zdjęcia i nagrywać filmy"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"W tym miejscu będą widoczne zdjęcia i filmy zapisane przez aplikację kamery"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Nie masz jeszcze ulubionych zdjęć"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"To jest album automatyczny, który gromadzi elementy oznaczone gwiazdką lub jako ulubione"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Jeszcze nie masz filmów"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"To jest album automatyczny, który gromadzi wszystkie Twoje filmy"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Wstecz"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Zamknij"</string>
 </resources>

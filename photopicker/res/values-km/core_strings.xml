@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ចាប់ផ្ដើមថតរូបថត និងវីដេអូ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"រូបថត និងវីដេអូដែលថតដោយកម្មវិធីកាមេរ៉ារបស់អ្នកនឹងបង្ហាញនៅទីនេះ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"មិនទាន់មាន​សំណព្វទេ"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"នេះ​គឺជា​អាល់ប៊ុម​ស្វ័យប្រវត្តិដែល​ប្រមូលធាតុដែលបានដាក់ផ្កាយ ឬដាក់​សម្គាល់​ថា​ជា​សំណព្វ"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"មិនទាន់មាន​វីដេអូ​​ទេ"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"នេះ​គឺជា​អាល់ប៊ុម​ស្វ័យប្រវត្តិដែល​ប្រមូលវីដេអូទាំងអស់របស់អ្នក"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"ថយក្រោយ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ច្រានចោល"</string>
 </resources>

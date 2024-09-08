@@ -17,6 +17,7 @@
 package com.android.photopicker.core.configuration
 
 import com.android.photopicker.util.hashCodeOf
+import com.android.providers.media.flags.Flags
 
 // Flag namespace for mediaprovider
 val NAMESPACE_MEDIAPROVIDER = "mediaprovider"
@@ -42,7 +43,8 @@ data class PhotopickerFlags(
     val CLOUD_ENFORCE_PROVIDER_ALLOWLIST: Boolean = FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.second,
     val CLOUD_MEDIA_ENABLED: Boolean = FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
     val PRIVATE_SPACE_ENABLED: Boolean = FEATURE_PRIVATE_SPACE_ENABLED.second,
-    val MANAGED_SELECTION_ENABLED: Boolean = FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second
+    val MANAGED_SELECTION_ENABLED: Boolean = FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
+    val PICKER_SEARCH_ENABLED: Boolean = Flags.enablePhotopickerSearch()
 ) {
     /**
      * Implement a custom equals method to correctly check the equality of the Array member
@@ -56,6 +58,7 @@ data class PhotopickerFlags(
         if (CLOUD_MEDIA_ENABLED != other.CLOUD_MEDIA_ENABLED) return false
         if (PRIVATE_SPACE_ENABLED != other.PRIVATE_SPACE_ENABLED) return false
         if (MANAGED_SELECTION_ENABLED != other.MANAGED_SELECTION_ENABLED) return false
+        if (PICKER_SEARCH_ENABLED != other.PICKER_SEARCH_ENABLED) return false
 
         return true
     }
@@ -70,6 +73,7 @@ data class PhotopickerFlags(
             CLOUD_ENFORCE_PROVIDER_ALLOWLIST,
             CLOUD_MEDIA_ENABLED,
             PRIVATE_SPACE_ENABLED,
-            MANAGED_SELECTION_ENABLED
+            MANAGED_SELECTION_ENABLED,
+            PICKER_SEARCH_ENABLED
         )
 }

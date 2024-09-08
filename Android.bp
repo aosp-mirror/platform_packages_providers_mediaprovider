@@ -41,10 +41,10 @@ android_app {
         "unsupportedappusage",
         "app-compat-annotations",
         "framework-annotations-lib",
-        "framework-configinfrastructure",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-mediaprovider.impl",
         "framework-media.stubs.module_lib",
-        "framework-statsd",
+        "framework-statsd.stubs.module_lib",
         "keepanno-annotations",
     ],
 

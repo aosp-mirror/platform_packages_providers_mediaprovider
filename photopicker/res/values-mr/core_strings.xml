@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"फोटो आणि व्हिडिओ कॅप्चर करणे सुरू करा"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"तुमच्या कॅमेरा अ‍ॅपद्वारे कॅप्चर केलेले फोटो आणि व्हिडिओ इथे दिसतील"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"अद्याप कोणतेही आवडते नाहीत"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"हा एक ऑटोमॅटिक अल्बम आहे, ज्यात तारांकित किंवा आवडते म्हणून मार्क केलेले आयटम एकत्र केले जातात"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"अद्याप कोणतेही व्हिडिओ नाहीत"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"हा एक ऑटोमॅटिक अल्बम आहे, ज्यात तुमचे सर्व व्हिडिओ एकत्र केले जातात"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"मागे जा"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"डिसमिस करा"</string>
 </resources>

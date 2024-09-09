@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.provider;
+package android.widget.photopicker;
 
 import android.annotation.FlaggedApi;
 import android.annotation.RequiresApi;
@@ -50,7 +50,7 @@ import java.util.concurrent.Executor;
  * via the {@link EmbeddedPhotoPickerClient#onSessionOpened api}
  *
  * <p> Callers pass an instance of {@link EmbeddedPhotoPickerClient} which is used by service to
- * notify about different events (like sessionError, item selected/deselected etc) to them.
+ * notify about different events (like sessionError, uri granted/revoked etc) to them.
  * One-to-one relationship of client to session must be maintained by a caller i.e. they shouldn't
  * reuse same callback for more than one openSession requests.
  *

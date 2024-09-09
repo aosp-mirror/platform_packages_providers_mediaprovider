@@ -29,9 +29,11 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Fotoğraf ve video çekmeye başlayın"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Kamera uygulamanızda çekilen fotoğraflar ve videolar burada görünür"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Henüz favori yok"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Bu, yıldız işaretli veya favori olarak işaretlenmiş öğelerin toplandığı otomatik bir albümdür"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
+    <skip />
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Henüz video yok"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Bu, tüm videolarınızın toplandığı otomatik bir albümdür"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Geri"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Kapat"</string>
 </resources>

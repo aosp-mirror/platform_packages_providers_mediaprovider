@@ -1348,7 +1348,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    if (flags != 0) {
+    // VFS handles request with RENAME_NOREPLACE by ensuring that new file does not exist
+    // before redirecting the call to FuseDaemon.
+    if (flags & ~RENAME_NOREPLACE) {
         return EINVAL;
     }
 

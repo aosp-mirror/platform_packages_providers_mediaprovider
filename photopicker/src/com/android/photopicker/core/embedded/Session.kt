@@ -23,12 +23,12 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
-import android.provider.IEmbeddedPhotoPickerSession
-import android.provider.ParcelableException
 import android.util.Log
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
+import android.widget.photopicker.IEmbeddedPhotoPickerSession
+import android.widget.photopicker.ParcelableException
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -402,7 +402,7 @@ open class Session(
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsSelected(listOf(item.mediaUri))
+                            clientCallback.onUriPermissionGranted(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -416,7 +416,7 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
+                            clientCallback.onUriPermissionRevoked(listOf(item.mediaUri))
                         } else {
                             Log.w(
                                 TAG,
@@ -485,7 +485,7 @@ open class Session(
         _stateManager.setIsExpanded(isExpanded)
     }
 
-    override fun notifyItemsDeselected(uris: List<Uri>) {
+    override fun requestRevokeUriPermission(uris: List<Uri>) {
         if (!isActive) {
             callClosedSessionError()
             return

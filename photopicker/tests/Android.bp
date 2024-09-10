@@ -12,7 +12,7 @@ android_test {
     sdk_version: "core_current",
     min_sdk_version: "30",
     libs: [
-        "android.test.mock",
+        "android.test.mock.stubs",
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",

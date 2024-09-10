@@ -1,18 +1,18 @@
 /*
-* Copyright 2024 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.android.photopicker.core.selection
 
@@ -21,6 +21,7 @@ import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Grantable
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,10 +58,11 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = SINGLE_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = SINGLE_SELECT_CONFIG,
+                    ),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val snapshot = selection.snapshot()
 
@@ -77,11 +79,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
 
         val snapshot = selection.snapshot()
@@ -99,17 +102,38 @@ class GrantsAwareSelectionTest {
     }
 
     @Test
+    fun testPreGrantsCountIsReflectedInSize() = runTest {
+        var countOfGrants = 120
+        val dataService = TestDataServiceImpl()
+        dataService.setInitPreGrantsCount(countOfGrants)
+        val selection: Selection<SelectionData> =
+            GrantsAwareSelectionImpl(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                preGrantedItemsCount = dataService.preGrantedMediaCount
+            )
+
+        assertWithMessage("Unexpected size of selection")
+            .that(selection.snapshot().size)
+            .isEqualTo(countOfGrants)
+    }
+
+    @Test
     fun testSelectionReturnsSuccess() = runTest {
         val selection: Selection<SelectionData> =
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
-
 
         assertWithMessage("Selection addition was expected to be successful: item 1")
             .that(selection.add(SelectionData(1)))
@@ -128,13 +152,13 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = SINGLE_SELECT_CONFIG
-                ),
-                initialSelection = setOf(SelectionData(1))
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = SINGLE_SELECT_CONFIG
+                    ),
+                initialSelection = setOf(SelectionData(1)),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
-
 
         assertWithMessage("Snapshot was expected to contain the initial selection")
             .that(selection.add(SelectionData(2)))
@@ -148,10 +172,11 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -181,10 +206,11 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -221,11 +247,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -260,11 +287,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = setOf(testItem, anotherTestItem)
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = setOf(testItem, anotherTestItem),
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -311,11 +339,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = values
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = values,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -350,11 +379,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -391,11 +421,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -442,11 +473,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = values
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = values,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
 
         assertWithMessage("Received unexpected position for item.")
@@ -461,11 +493,12 @@ class GrantsAwareSelectionTest {
             GrantsAwareSelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
             )
 
         val missingElement = SelectionData(id = 999)
@@ -477,69 +510,124 @@ class GrantsAwareSelectionTest {
 
     /** Ensures a single preGranted item can be removed and added again. */
     @Test
-    fun testSelectionCanRemoveSinglePreGrantedItem() =
-        runTest {
-            // mock a test item to return isPreGranted as true.
-            val testItem = SelectionData(id = 999, isPreGrantedParam = true)
+    fun testSelectionCanRemoveSinglePreGrantedItem() = runTest {
+        // mock a test item to return isPreGranted as true.
+        val testItem = SelectionData(id = 999, isPreGrantedParam = true)
 
-            val selection =
-                GrantsAwareSelectionImpl<SelectionData>(
-                    scope = backgroundScope,
-                    configuration =
+        val dataService = TestDataServiceImpl()
+        dataService.setInitPreGrantsCount(1)
+        val selection =
+            GrantsAwareSelectionImpl<SelectionData>(
+                scope = backgroundScope,
+                configuration =
                     provideTestConfigurationFlow(
                         scope = backgroundScope,
                         defaultConfiguration = MULTI_SELECT_CONFIG,
                     ),
-                    preGrantedItemsCount = 1, // corresponding to testItem
-                )
-
-            val emissions = mutableListOf<Set<SelectionData>>()
-            backgroundScope.launch { selection.flow.toList(emissions) }
-
-            val initialSnapshot = selection.snapshot()
-            // There is only one preGranted item
-            assertWithMessage("Initial Snapshot has an unexpected size")
-                .that(initialSnapshot)
-                .hasSize(1)
-
-            // remove preGranted item
-            selection.remove(testItem)
-
-            val snapshot = selection.snapshot()
-            advanceTimeBy(100)
-            val flow = emissions.last()
-
-            assertWithMessage("Deselection should contain test item").that(
-                selection.getDeselection()
-            ).contains(testItem)
-
-            assertWithMessage("Snapshot contains the removed item.")
-                .that(snapshot).doesNotContain(testItem)
-
-            assertWithMessage("Emitted flow value contains the removed item.")
-                .that(flow)
-                .doesNotContain(testItem)
-            assertWithMessage("Emitted flow has an unexpected size").that(flow).hasSize(0)
-
-            // Now add the preGranted item again and verify that it was removed from deselection.
-            selection.add(testItem)
-
-            val snapshot2 = selection.snapshot()
-            advanceTimeBy(100)
-            val flow2 = emissions.last()
-            assertWithMessage("Deselection should not contain test item").that(
-                selection
-                    .getDeselection(),
+                preGrantedItemsCount = dataService.preGrantedMediaCount
             )
-                .doesNotContain(testItem)
 
-            assertWithMessage("Snapshot contains the added item.")
-                .that(snapshot2).contains(testItem)
-            assertWithMessage("Snapshot has an unexpected size").that(snapshot2).hasSize(1)
+        val emissions = mutableListOf<Set<SelectionData>>()
+        backgroundScope.launch { selection.flow.toList(emissions) }
 
-            assertWithMessage("Emitted flow value contains the removed item.")
-                .that(flow2)
-                .contains(testItem)
-            assertWithMessage("Emitted flow has an unexpected size").that(flow2).hasSize(1)
-        }
+        val initialSnapshot = selection.snapshot()
+        // There is only one preGranted item
+        assertWithMessage("Initial Snapshot has an unexpected size")
+            .that(initialSnapshot)
+            .hasSize(1)
+
+        // remove preGranted item
+        selection.remove(testItem)
+
+        val snapshot = selection.snapshot()
+        advanceTimeBy(100)
+        val flow = emissions.last()
+
+        assertWithMessage("Deselection should contain test item")
+            .that(selection.getDeselection())
+            .contains(testItem)
+
+        assertWithMessage("Snapshot contains the removed item.")
+            .that(snapshot)
+            .doesNotContain(testItem)
+
+        assertWithMessage("Emitted flow value contains the removed item.")
+            .that(flow)
+            .doesNotContain(testItem)
+        assertWithMessage("Emitted flow has an unexpected size").that(flow).hasSize(0)
+
+        // Now add the preGranted item again and verify that it was removed from deselection.
+        selection.add(testItem)
+
+        val snapshot2 = selection.snapshot()
+        advanceTimeBy(100)
+        val flow2 = emissions.last()
+        assertWithMessage("Deselection should not contain test item")
+            .that(
+                selection.getDeselection(),
+            )
+            .doesNotContain(testItem)
+
+        assertWithMessage("Snapshot contains the added item.").that(snapshot2).contains(testItem)
+        assertWithMessage("Snapshot has an unexpected size").that(snapshot2).hasSize(1)
+
+        assertWithMessage("Emitted flow value contains the removed item.")
+            .that(flow2)
+            .contains(testItem)
+        assertWithMessage("Emitted flow has an unexpected size").that(flow2).hasSize(1)
+    }
+
+    /** Ensures a single preGranted item can be removed and added again. */
+    @Test
+    fun testSelectionWithDeSelectAllOption() = runTest {
+        // mock a test item to return isPreGranted as true.
+        val testItem = SelectionData(id = 999, isPreGrantedParam = true)
+
+        val dataService = TestDataServiceImpl()
+        dataService.setInitPreGrantsCount(1)
+        val selection =
+            GrantsAwareSelectionImpl<SelectionData>(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration = MULTI_SELECT_CONFIG,
+                    ),
+                preGrantedItemsCount = dataService.preGrantedMediaCount
+            )
+
+        val emissions = mutableListOf<Set<SelectionData>>()
+        backgroundScope.launch { selection.flow.toList(emissions) }
+
+        val initialSnapshot = selection.snapshot()
+        // There is only one preGranted item
+        assertWithMessage("Initial Snapshot has an unexpected size")
+            .that(initialSnapshot)
+            .hasSize(1)
+
+        // clear selection
+        selection.clear()
+
+        val snapshot = selection.snapshot()
+        advanceTimeBy(100)
+        val flow = emissions.last()
+
+        assertWithMessage("Deselection should not contain test item")
+            .that(selection.getDeselection())
+            .doesNotContain(testItem)
+
+        assertWithMessage("Snapshot contains the removed item.")
+            .that(snapshot)
+            .doesNotContain(testItem)
+
+        assertWithMessage("Emitted flow value contains the removed item.")
+            .that(flow)
+            .doesNotContain(testItem)
+
+        assertWithMessage("Emitted flow has an unexpected size").that(flow).hasSize(0)
+
+        assertWithMessage("Unexpected value for isDeSelectAllEnabled")
+            .that(selection.isDeSelectAllEnabled)
+            .isTrue()
+    }
 }

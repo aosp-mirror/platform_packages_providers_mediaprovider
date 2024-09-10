@@ -16,11 +16,13 @@
 
 package com.android.photopicker.core.banners
 
+import android.os.UserHandle
 import android.util.Log
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.extensions.pmap
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,8 +30,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
@@ -41,6 +46,8 @@ class BannerManagerImpl(
     private val databaseManager: DatabaseManager,
     private val featureManager: FeatureManager,
     private val dataService: DataService,
+    private val userMonitor: UserMonitor,
+    private val processOwnerHandle: UserHandle
 ) : BannerManager {
 
     companion object {
@@ -50,6 +57,24 @@ class BannerManagerImpl(
 
     val _flow: MutableStateFlow<Banner?> = MutableStateFlow(null)
     override val flow: StateFlow<Banner?> = _flow
+
+    /**
+     * Keeps track of any banners with [DismissStrategy.SESSION] that were dismissed during the
+     * current Photopicker session.
+     */
+    private val bannersDismissedInSession: MutableSet<BannerDefinitions> = mutableSetOf()
+
+    init {
+        // Observe Profile switches and always force banner refresh when the
+        // user changes the active profile.
+        scope.launch {
+            userMonitor.userStatus
+                .drop(1)
+                .map { it.activeUserProfile }
+                .distinctUntilChanged()
+                .collect { refreshBanners() }
+        }
+    }
 
     /**
      * Attempt to show the requested banner.
@@ -77,6 +102,15 @@ class BannerManagerImpl(
     override suspend fun markBannerAsDismissed(banner: BannerDefinitions) {
 
         if (banner.dismissable) {
+
+            // For SESSION dismissableStrategy banners, rather than writing state to the database,
+            // add the banner to the dismissed set that for this Photopicker session.
+            if (banner.dismissableStrategy == DismissStrategy.SESSION) {
+                bannersDismissedInSession.add(banner)
+                return
+            }
+
+            // For all other strategies, update the Database state for the current banner.
             setBannerState(
                 BannerState(
                     bannerId = banner.id,
@@ -95,6 +129,13 @@ class BannerManagerImpl(
                                         return@markBannerAsDismissed
                                     }
                             DismissStrategy.ONCE -> 0
+                            DismissStrategy.SESSION -> {
+                                return@markBannerAsDismissed
+                            }
+                            DismissStrategy.NONE -> {
+                                Log.w(TAG, "Cannot mark non-dismissable banner as dismissed.")
+                                return@markBannerAsDismissed
+                            }
                         },
                     dismissed = true
                 )
@@ -104,6 +145,22 @@ class BannerManagerImpl(
 
     /** Retrieve the requested banner state from the database */
     override suspend fun getBannerState(banner: BannerDefinitions): BannerState? {
+
+        // No need to check the database if the banner cannot be dismissed.
+        if (banner.dismissableStrategy == DismissStrategy.NONE) {
+            return null
+        }
+
+        // For SESSION dismissal, rely on the dismissed map. If the Banner is
+        // present in the already-dismissed set, mark it as dismissed.
+        if (banner.dismissableStrategy == DismissStrategy.SESSION) {
+            return BannerState(
+                bannerId = banner.id,
+                uid = configurationManager.configuration.value.callingPackageUid ?: 0,
+                dismissed = bannersDismissedInSession.contains(banner),
+            )
+        }
+
         return withContext(backgroundDispatcher) {
             try {
                 databaseManager
@@ -119,6 +176,7 @@ class BannerManagerImpl(
                                         "No callingPackageUid"
                                     }
                                 DismissStrategy.ONCE -> 0
+                                else -> 0
                             }
                     )
             } catch (ex: IllegalStateException) {
@@ -141,6 +199,21 @@ class BannerManagerImpl(
 
     override suspend fun refreshBanners() {
         Log.d(TAG, "Refresh of banners was requested.")
+
+        // [BannerState] is not accessible cross-profile, so any time the [activeUserProfile]
+        // is not the Process owner's profile, banners need to be hidden to avoid showing
+        // banner content that is not relevant to the active profile.
+        if (
+            userMonitor.userStatus.value.activeUserProfile.handle.identifier !=
+                processOwnerHandle.getIdentifier()
+        ) {
+            Log.d(
+                TAG,
+                "User profile has been changed and is no longer owner, banners will be cleared."
+            )
+            _flow.updateAndGet { null }
+            return
+        }
 
         // Force this work to the background
         withContext(backgroundDispatcher) {
@@ -167,6 +240,7 @@ class BannerManagerImpl(
                                         getBannerState(banner),
                                         configurationManager.configuration.value,
                                         dataService,
+                                        userMonitor,
                                     )
                                 }
                             } catch (_: TimeoutCancellationException) {
@@ -211,6 +285,6 @@ class BannerManagerImpl(
                 .filter { it.ownedBanners.contains(banner) }
                 .firstOrNull()
         checkNotNull(feature) { "Could not find an enabled builder for $banner" }
-        return feature.buildBanner(banner)
+        return feature.buildBanner(banner, dataService, userMonitor)
     }
 }

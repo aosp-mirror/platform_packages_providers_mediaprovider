@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"已備妥 <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> 個項目，共 <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> 個項目"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"無法載入部分相片"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"請稍後再試。問題解決後即可存取相片。"</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"已加入備份相片"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"你可以從「<xliff:g id="APP_NAME">%1$s</xliff:g>」帳戶 (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) 選取相片"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"選擇「<xliff:g id="APP_NAME">%1$s</xliff:g>」帳戶"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"如要在此加入「<xliff:g id="APP_NAME">%1$s</xliff:g>」中的相片，請在應用程式中選擇所需帳戶"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"選擇帳戶"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"選擇雲端媒體應用程式"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"如要在此加入備份相片，請在「設定」中選擇雲端媒體應用程式"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"選擇應用程式"</string>
 </resources>

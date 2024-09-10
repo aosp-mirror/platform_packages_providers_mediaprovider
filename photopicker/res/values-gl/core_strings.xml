@@ -17,14 +17,23 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_application_label" msgid="3482718304682270084">"Selector de contido multimedia"</string>
+    <string name="photopicker_application_label" msgid="7272391964836190376">"Fotos e vídeos"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"Multimedia"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Elemento seleccionado"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"Engadir <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"Feito"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Anular toda a selección"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Selecciona ata <xliff:g id="COUNT">%1$s</xliff:g> elementos"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Fotos"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Álbums"</string>
-    <string name="photopicker_back_option" msgid="986374743479020214">"Atrás"</string>
-    <!-- no translation found for photopicker_dismiss_banner_button_label (2309894998787905178) -->
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"De momento, non hai ningunha foto"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Empeza a facer fotos e vídeos"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Aquí mostraranse as fotos que faga e os vídeos que grave a aplicación da cámara"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"De momento, non hai ningún favorito"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
     <skip />
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"De momento, non hai ningún vídeo"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
+    <skip />
+    <string name="photopicker_back_option" msgid="986374743479020214">"Atrás"</string>
+    <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Pechar"</string>
 </resources>

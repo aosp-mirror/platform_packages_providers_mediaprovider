@@ -16,12 +16,15 @@
 
 package com.android.photopicker.data
 
+import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
+import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.Provider
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -38,6 +41,18 @@ interface DataService {
 
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
+
+    /** Count of all preGranted media for the current package and userID. */
+    val preGrantedMediaCount: StateFlow<Int?>
+
+    /** Data for preSelection media */
+    val preSelectionMediaData: StateFlow<List<Media>?>
+
+    /**
+     * A [Channel] that emits a [Unit] when a disruptive data change is observed in the backend. The
+     * UI can treat this emission as a signal to reset the UI.
+     */
+    val disruptiveDataUpdateChannel: Channel<Unit>
 
     /**
      * @param album This method creates and returns a paging source for media of the given album.
@@ -72,6 +87,15 @@ interface DataService {
     ): PagingSource<MediaPageKey, Media>
 
     /**
+     * Ensures that the available providers cache is up to date and returns the latest available
+     * providers.
+     */
+    suspend fun ensureProviders()
+
+    /** Returns all allowed providers for the given user. */
+    fun getAllAllowedProviders(): List<Provider>
+
+    /**
      * Sends a refresh media notification to the data source. This signal tells the data source to
      * refresh its cache.
      */
@@ -82,4 +106,16 @@ interface DataService {
      *   [Group.Album] to the data source. This signal tells the data source to refresh its cache.
      */
     suspend fun refreshAlbumMedia(album: Album)
+
+    /**
+     * @param A [Provider] object
+     * @return The [CollectionInfo] of the given [Provider].
+     */
+    suspend fun getCollectionInfo(provider: Provider): CollectionInfo
+
+    /** Refreshes the [preGrantedMediaCount] with the latest value in the data source. */
+    fun refreshPreGrantedItemsCount()
+
+    /** Refreshes the [preSelectionMediaData] with the latest value as per the input URIs. */
+    fun fetchMediaDataForUris(uris: List<Uri>)
 }

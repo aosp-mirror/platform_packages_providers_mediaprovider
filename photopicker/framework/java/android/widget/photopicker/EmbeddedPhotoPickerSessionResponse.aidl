@@ -1,0 +1,3 @@
+package android.widget.photopicker;
+
+parcelable EmbeddedPhotoPickerSessionResponse;

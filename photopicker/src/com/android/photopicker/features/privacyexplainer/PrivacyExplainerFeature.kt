@@ -36,6 +36,7 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 
 /** Feature class for the Photopicker's Privacy explainer. */
@@ -60,6 +61,7 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
         bannerState: BannerState?,
         config: PhotopickerConfiguration,
         dataService: DataService,
+        userMonitor: UserMonitor,
     ): Int {
         return when (banner) {
             BannerDefinitions.PRIVACY_EXPLAINER -> {
@@ -74,7 +76,11 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
         }
     }
 
-    override fun buildBanner(banner: BannerDefinitions): Banner {
+    override suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
         return when (banner) {
             BannerDefinitions.PRIVACY_EXPLAINER ->
                 object : Banner {

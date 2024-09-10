@@ -25,18 +25,42 @@
   <!-- Content description for the selected checkmark in the media grid -->
   <string name="photopicker_item_selected" translation_description="Accessibility text denoting an individual photo is selected in a grid of photos. [CHAR_LIMIT=NONE]">Selected</string>
 
-  <!-- Button label for the "Add" button in the selection bar -->
-  <string name="photopicker_add_button_label" translation_description="Button label that gives the user an option to add the number of selected items to the launching app's available photos.">Add <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+  <!-- Button label for the "Done" button in the selection bar -->
+  <string name="photopicker_done_button_label" translation_description="Button label that confirms the selected items and closes the photopicker.">Done</string>
+
+  <!-- Accessibility description for the X (deselect all) button in the selection bar -->
+  <string name="photopicker_clear_selection_button_description" translation_description="Button Accessibility description that unselects all selected media items.">Deselect all</string>
 
   <!-- Snackbar message when new items can't be selected because the selection is full -->
   <string name="photopicker_selection_limit_exceeded_snackbar" translation_description="">Select up to <xliff:g id="count" example="42">%1$s</xliff:g> items</string>
-
 
   <!-- Button label for the Photos navigation button -->
   <string name="photopicker_photos_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their photos.">Photos</string>
 
   <!-- Button label for the Albums navigation button -->
   <string name="photopicker_albums_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their albums.">Albums</string>
+
+  <!-- Empty state title when the photo grid has no photos -->
+  <string name="photopicker_photos_empty_state_title" translation_description="Title of the message shown to the user when there are no photos to show">No photos yet</string>
+
+  <!-- Empty state message when the photo grid has no photos -->
+  <string name="photopicker_photos_empty_state_body" translation_description="Message shown to the user when no photos are able to be shown underneath the primary message title">Start capturing photos and videos</string>
+
+  <!-- Empty state title when the camera album has no photos -->
+  <string name="photopicker_camera_empty_state_body" translation_description="Title of the message shown to the user when there are no photos in the camera album">Photos and videos captured by your camera app will appear here</string>
+
+  <!-- Empty state title when the favorites album has no photos -->
+  <string name="photopicker_favorites_empty_state_title" translation_description="Title of the message shown to the user when there are no favorite photos to show">No favorites yet</string>
+
+  <!-- Empty state body when the favorites album has no photos -->
+  <string name="photopicker_favorites_empty_state_body" translation_description="Message shown to the user when there are no favorite photos to show">Photos and videos marked as favorites, or starred, will appear here</string>
+
+  <!-- Empty state title when the videos album has no photos -->
+  <string name="photopicker_videos_empty_state_title" translation_description="Title of the message shown to the user when there are no videos to show">No videos yet</string>
+
+  <!-- Empty state body when the videos album has no photos -->
+  <string name="photopicker_videos_empty_state_body" translation_description="Message shown to the user when there are no videos to show">Videos captured by your camera app, saved, or shared will appear here</string>
+
 
   <!-- Content description for a button which performs back option -->
   <string name="photopicker_back_option" translation_description="Button content description that gives the user the option to navigate back to the parent view.">Back</string>

@@ -18,24 +18,35 @@ package com.android.photopicker.features.overflowmenu
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
+import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
+import kotlinx.coroutines.launch
 
 /**
  * Top of the OverflowMenu feature.
@@ -59,10 +70,30 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
     // Only show the overflow menu anchor if there will actually be items to select.
     if (LocalFeatureManager.current.getSizeOfLocationInRegistry(Location.OVERFLOW_MENU_ITEMS) > 0) {
         var expanded by remember { mutableStateOf(false) }
+        val events = LocalEvents.current
+        val scope = rememberCoroutineScope()
+        val configuration = LocalPhotopickerConfiguration.current
 
         // Wrapped in a box to consume anything in the incoming modifier.
         Box(modifier = modifier) {
-            IconButton(onClick = { expanded = !expanded }) {
+            IconButton(
+                onClick = {
+                    expanded = !expanded
+                    // Dispatch UI event to log interaction with picker menu
+                    if (expanded) {
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.OVERFLOW_MENU.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.PICKER_MENU_CLICK
+                                )
+                            )
+                        }
+                    }
+                }
+            ) {
                 Icon(
                     Icons.Filled.MoreVert,
                     contentDescription =
@@ -75,6 +106,8 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = !expanded },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = ElevationTokens.Level2,
             ) {
                 LocalFeatureManager.current.composeLocation(
                     Location.OVERFLOW_MENU_ITEMS,
@@ -101,6 +134,12 @@ fun OverflowMenu(modifier: Modifier = Modifier) {
 fun OverflowMenuItem(label: String, onClick: () -> Unit) {
     DropdownMenuItem(
         onClick = onClick,
-        text = { Text(label) },
+        text = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        modifier = Modifier.widthIn(min = 200.dp)
     )
 }

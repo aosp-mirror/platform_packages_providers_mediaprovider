@@ -40,8 +40,13 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "PickerDatabaseHelper";
 
     public static final String PICKER_DATABASE_NAME = "picker.db";
+
     private static final int VERSION_U = 11;
-    public static final int VERSION_LATEST = VERSION_U;
+    @VisibleForTesting
+    public static final int VERSION_INTRODUCING_MEDIA_GRANTS_TABLE = 12;
+    @VisibleForTesting
+    public static final int VERSION_INTRODUCING_DE_SELECTIONS_TABLE = 13;
+    public static final int VERSION_LATEST = VERSION_INTRODUCING_DE_SELECTIONS_TABLE;
 
     final Context mContext;
     final String mName;
@@ -71,7 +76,24 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     public void onUpgrade(final SQLiteDatabase db, final int oldV, final int newV) {
         Log.v(TAG, "onUpgrade() for " + mName + " from " + oldV + " to " + newV);
 
-        resetData(db);
+        // Minimum compatible version with database migrations is VERSION_U.
+        // Any database lower than VERSION_U needs to be reset with latest schema.
+        if (oldV < VERSION_U) {
+            resetData(db);
+            return;
+        }
+
+        // If the version is at least VERSION_U (see block above), then the
+        // database schema is fine, and all that's required is to add the
+        // new media_grants table.
+        if (oldV < VERSION_INTRODUCING_MEDIA_GRANTS_TABLE) {
+            createMediaGrantsTable(db);
+        }
+        if (oldV < VERSION_INTRODUCING_DE_SELECTIONS_TABLE) {
+            // Create de_selection table in picker.db if we are upgrading from a version where
+            // de_selection table did not exist.
+            createDeselectionTable(db);
+        }
     }
 
     @Override
@@ -149,6 +171,30 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "OR (local_id IS NOT NULL AND cloud_id IS NULL)),"
                 + "UNIQUE(local_id,  album_id),"
                 + "UNIQUE(cloud_id, album_id))");
+        createMediaGrantsTable(db);
+        createDeselectionTable(db);
+    }
+
+    private static void createMediaGrantsTable(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS media_grants");
+        db.execSQL("CREATE TABLE media_grants ("
+                + "owner_package_name TEXT,"
+                + "file_id INTEGER,"
+                + "package_user_id INTEGER,"
+                + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                + "  ON CONFLICT IGNORE "
+                + ")");
+    }
+
+    private static void createDeselectionTable(SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS de_selections");
+        db.execSQL("CREATE TABLE de_selections ("
+                + "owner_package_name TEXT,"
+                + "file_id INTEGER,"
+                + "package_user_id INTEGER,"
+                + "UNIQUE(owner_package_name, file_id, package_user_id)"
+                + "  ON CONFLICT IGNORE "
+                + ")");
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {

@@ -19,6 +19,8 @@ package com.android.photopicker.data.model
 import android.net.Uri
 import android.os.Parcel
 import android.os.Parcelable
+import androidx.compose.material3.ExperimentalMaterial3Api
+import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.glide.GlideLoadable
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.util.hashCodeOf
@@ -26,12 +28,18 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
 /** Holds metadata for a type of media item like [Image] or [Video]. */
-sealed interface Media : GlideLoadable, Grantable, Parcelable {
+sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
     /** This is the ID that provider has shared with Picker */
     val mediaId: String
 
     /** This is the Picker ID auto-generated in Picker DB */
     val pickerId: Long
+
+    /**
+     * This is an optional field that holds the value of the current item's index relative to other
+     * data in the Data Source.
+     */
+    val index: Int?
     val authority: String
     val mediaSource: MediaSource
     val mediaUri: Uri
@@ -40,7 +48,22 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
     val sizeInBytes: Long
     val mimeType: String
     val standardMimeTypeExtension: Int
+    override val selectionSource: Telemetry.MediaLocation?
+    override val mediaItemAlbum: Group.Album?
     override val isPreGranted: Boolean
+
+    companion object {
+        fun withSelectable(
+            item: Media,
+            selectionSource: Telemetry.MediaLocation,
+            album: Group.Album?
+        ): Media {
+            return when (item) {
+                is Image -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
+                is Video -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
+            }
+        }
+    }
 
     override fun getSignature(resolution: Resolution): ObjectKey {
         return ObjectKey("${mediaUri}_$resolution")
@@ -70,6 +93,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
     override fun writeToParcel(out: Parcel, flags: Int) {
         out.writeString(mediaId)
         out.writeLong(pickerId)
+        out.writeString(index?.toString())
         out.writeString(authority)
         out.writeString(mediaSource.toString())
         out.writeString(mediaUri.toString())
@@ -80,10 +104,13 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         out.writeInt(standardMimeTypeExtension)
     }
 
+    // TODO Make selectable values hold UNSET values instead of null
     /** Holds metadata for an image item. */
-    data class Image(
+    data class Image
+    constructor(
         override val mediaId: String,
         override val pickerId: Long,
+        override val index: Int? = null,
         override val authority: String,
         override val mediaSource: MediaSource,
         override val mediaUri: Uri,
@@ -93,6 +120,8 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         override val mimeType: String,
         override val standardMimeTypeExtension: Int,
         override val isPreGranted: Boolean = false,
+        override val selectionSource: Telemetry.MediaLocation? = null,
+        override val mediaItemAlbum: Group.Album? = null
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -124,11 +153,13 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
 
         companion object CREATOR : Parcelable.Creator<Image> {
 
+            @OptIn(ExperimentalMaterial3Api::class)
             override fun createFromParcel(parcel: Parcel): Image {
                 val image =
                     Image(
                         /* mediaId=*/ parcel.readString() ?: "",
                         /* pickerId=*/ parcel.readLong(),
+                        /* index=*/ parcel.readString()?.toIntOrNull(),
                         /* authority=*/ parcel.readString() ?: "",
                         /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
                         /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),
@@ -148,10 +179,13 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         }
     }
 
+    // TODO Make selectable values hold UNSET values instead of null
     /** Holds metadata for a video item. */
-    data class Video(
+    data class Video
+    constructor(
         override val mediaId: String,
         override val pickerId: Long,
+        override val index: Int? = null,
         override val authority: String,
         override val mediaSource: MediaSource,
         override val mediaUri: Uri,
@@ -162,6 +196,8 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
         override val standardMimeTypeExtension: Int,
         val duration: Int,
         override val isPreGranted: Boolean = false,
+        override val selectionSource: Telemetry.MediaLocation? = null,
+        override val mediaItemAlbum: Group.Album? = null
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -194,12 +230,14 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable {
 
         companion object CREATOR : Parcelable.Creator<Video> {
 
+            @OptIn(ExperimentalMaterial3Api::class)
             override fun createFromParcel(parcel: Parcel): Video {
                 val video =
                     Video(
 
                         /* mediaId=*/ parcel.readString() ?: "",
                         /* pickerId=*/ parcel.readLong(),
+                        /* index=*/ parcel.readString()?.toIntOrNull(),
                         /* authority=*/ parcel.readString() ?: "",
                         /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
                         /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),

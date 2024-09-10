@@ -66,7 +66,9 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.BackgroundThread;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.dao.FileRow;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -1148,7 +1150,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
                 + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL,"
-                + "oem_metadata BLOB DEFAULT NULL)");
+                + "oem_metadata BLOB DEFAULT NULL,"
+                + "inferred_media_date INTEGER,"
+                + "bits_per_sample INTEGER DEFAULT NULL, samplerate INTEGER DEFAULT NULL,"
+                + "inferred_date INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1969,6 +1974,36 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
     }
 
+    // Deprecated column, use inferred_date instead.
+    private static void updateAddInferredMediaDate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN inferred_media_date INTEGER;");
+    }
+
+    private static void updateAddInferredDate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN inferred_date INTEGER;");
+    }
+
+    private static void updateAddAudioSampleRate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN bits_per_sample INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN samplerate INTEGER DEFAULT NULL;");
+        // We want existing audio files to be re-scanned during idle maintenance if they are not
+        // already waiting for re-scanning.
+        if (SdkLevel.isAtLeastT() && Flags.audioSampleColumns()) {
+            db.execSQL("UPDATE files SET _modifier=? WHERE media_type=? AND _modifier=?;",
+                    new String[]{String.valueOf(FileColumns._MODIFIER_SCHEMA_UPDATE),
+                            String.valueOf(FileColumns.MEDIA_TYPE_AUDIO),
+                            String.valueOf(FileColumns._MODIFIER_MEDIA_SCAN)});
+        }
+    }
+
+    private static void updateBackfillInferredDate(SQLiteDatabase db) {
+        if (Flags.inferredMediaDate()) {
+            db.execSQL("UPDATE files SET _modifier=? WHERE inferred_date=0 AND _modifier=?;",
+                    new String[]{String.valueOf(FileColumns._MODIFIER_SCHEMA_UPDATE),
+                            String.valueOf(FileColumns._MODIFIER_MEDIA_SCAN)});
+        }
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -1977,6 +2012,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateAddOemMetadata(SQLiteDatabase db) {
         db.execSQL("ALTER TABLE files ADD COLUMN oem_metadata BLOB DEFAULT NULL;");
+    }
+
+    private static void updateBackfillAsfMimeType(SQLiteDatabase db) {
+        db.execSQL("UPDATE files SET media_type=? WHERE mime_type=\"application/vnd.ms-asf\";",
+                new String[]{String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)});
     }
 
     private static void recomputeDataValues(SQLiteDatabase db) {
@@ -2036,7 +2076,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    static final int VERSION_V = 1500;
+    static final int VERSION_V = 1505;
     public static final int VERSION_LATEST = VERSION_V;
 
     /**
@@ -2268,6 +2308,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1500) {
                 updateAddOemMetadata(db);
+            }
+
+            if (fromVersion < 1501) {
+                updateAddInferredMediaDate(db);
+            }
+
+            if (fromVersion < 1502) {
+                updateAddAudioSampleRate(db);
+            }
+
+            if (fromVersion < 1503) {
+                updateAddInferredDate(db);
+            }
+
+            if (fromVersion < 1504) {
+                updateBackfillInferredDate(db);
+            }
+
+            if (fromVersion < 1505) {
+                updateBackfillAsfMimeType(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data

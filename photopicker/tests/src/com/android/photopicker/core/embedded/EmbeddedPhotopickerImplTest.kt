@@ -16,13 +16,12 @@
 package com.android.photopicker.core.embedded
 
 import android.hardware.display.DisplayManager
-import android.net.Uri
 import android.os.Binder
 import android.os.Build
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.EmbeddedPhotopickerSessionResponse
-import android.provider.IEmbeddedPhotopickerClient
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
@@ -32,6 +31,7 @@ import com.android.photopicker.tests.utils.mockito.whenever
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertThrows
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
@@ -48,7 +48,7 @@ import org.mockito.MockitoAnnotations
 class EmbeddedPhotopickerImplTest {
 
     // TODO(b/354929684): Replace AIDL implementation with wrapper class.
-    @Mock lateinit var mockClient: IEmbeddedPhotopickerClient.Stub
+    @Mock lateinit var mockClient: IEmbeddedPhotoPickerClient.Stub
     @Mock lateinit var mockSession: Session
 
     companion object {
@@ -86,46 +86,49 @@ class EmbeddedPhotopickerImplTest {
             val host = SurfaceControlViewHost(context, display, Binder())
             whenever(mockSession.surfacePackage) { host.surfacePackage }
 
-            val clientProxy =
-                // TODO(b/354929684): Replace AIDL implementation with wrapper class.
-                object : IEmbeddedPhotopickerClient.Stub() {
-                    override fun onSessionOpened(response: EmbeddedPhotopickerSessionResponse) {
-                        mockClient.onSessionOpened(response)
-                    }
-
-                    override fun onSessionError(errorMsg: String) {
-                        mockClient.onSessionError(errorMsg)
-                    }
-
-                    override fun onItemSelected(uri: Uri) {
-                        mockClient.onItemSelected(uri)
-                    }
-
-                    override fun onItemDeselected(uri: Uri) {
-                        mockClient.onItemDeselected(uri)
-                    }
-                }
-
             val embeddedPhotopickerImpl =
                 EmbeddedPhotopickerImpl(
                     // Ignore all the session factory arguments since this just returns the
                     // mockSession.
                     { _, _, _, _, _, _, _, _ -> mockSession },
+                    { true }
                 )
 
             embeddedPhotopickerImpl.openSession(
                 TEST_PACKAGE_NAME,
-                TEST_UID,
                 /* hostToken*/ Binder(),
                 TEST_DISPLAY_ID,
                 TEST_WIDTH,
                 TEST_HEIGHT,
-                EmbeddedPhotopickerFeatureInfo.Builder().build(),
-                clientProxy
+                EmbeddedPhotoPickerFeatureInfo.Builder().build(),
+                mockClient
             )
 
             verify(mockClient, times(1))
-                .onSessionOpened(any(EmbeddedPhotopickerSessionResponse::class.java))
+                .onSessionOpened(any(EmbeddedPhotoPickerSessionResponse::class.java))
+        }
+    }
+
+    @Test
+    fun testOpenSessionThrowsExecptionForInvalidCalled() {
+        val embeddedPhotopickerImpl =
+            EmbeddedPhotopickerImpl(
+                // Ignore all the session factory arguments since this just returns the
+                // mockSession.
+                { _, _, _, _, _, _, _, _ -> mockSession },
+                { false } // verifyCaller returns false
+            )
+
+        assertThrows(SecurityException::class.java) {
+            embeddedPhotopickerImpl.openSession(
+                TEST_PACKAGE_NAME,
+                /* hostToken*/ Binder(),
+                TEST_DISPLAY_ID,
+                TEST_WIDTH,
+                TEST_HEIGHT,
+                EmbeddedPhotoPickerFeatureInfo.Builder().build(),
+                mockClient
+            )
         }
     }
 }

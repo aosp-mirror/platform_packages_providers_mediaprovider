@@ -15,13 +15,14 @@
  */
 package com.android.photopicker.core.embedded
 
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.EmbeddedPhotopickerSessionResponse
-import android.provider.IEmbeddedPhotopicker
-import android.provider.IEmbeddedPhotopickerClient
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse
+import android.widget.photopicker.IEmbeddedPhotoPicker
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.annotation.RequiresApi
 
 /**
@@ -32,7 +33,7 @@ import androidx.annotation.RequiresApi
  * from the client app back to to the Service.
  *
  * After a [Session] is ready, this implementation wraps the [Session] and its
- * [SurfaceControlViewHost.SurfacePackage] in a [EmbeddedPhotopickerSessionResponse] and dispatches
+ * [SurfaceControlViewHost.SurfacePackage] in a [EmbeddedPhotoPickerSessionResponse] and dispatches
  * it back to the client.
  *
  * @property sessionFactory A factory method for creating [Session]
@@ -42,8 +43,9 @@ import androidx.annotation.RequiresApi
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 class EmbeddedPhotopickerImpl(
     private val sessionFactory: SessionFactory,
+    private val verifyCaller: (packageName: String) -> Boolean,
     // TODO(b/354929684): Replace AIDL implementation with wrapper class.
-) : IEmbeddedPhotopicker.Stub() {
+) : IEmbeddedPhotoPicker.Stub() {
 
     /**
      * Implementation of [EmbeddedPhotoPickerProvider#openSession] api.
@@ -57,26 +59,31 @@ class EmbeddedPhotopickerImpl(
      * @param displayId [Display] id for setting up [SurfaceControlViewHost] for client
      * @param width Width of the embedded photopicker, in pixels
      * @param height Height of the embedded photopicker, in pixels
-     * @param featureInfo Required feature info [EmbeddedPhotopickerFeatureInfo] for given session
+     * @param featureInfo Required feature info [EmbeddedPhotoPickerFeatureInfo] for given session
      * @param clientCallback Callback to report to client for any events on the session that was
      *   setup
      */
     override fun openSession(
         packageName: String,
-        uid: Int,
         hostToken: IBinder,
         displayId: Int,
         width: Int,
         height: Int,
-        featureInfo: EmbeddedPhotopickerFeatureInfo,
+        featureInfo: EmbeddedPhotoPickerFeatureInfo,
         // TODO(b/354929684): Replace AIDL implementation with wrapper class.
-        clientCallback: IEmbeddedPhotopickerClient,
+        clientCallback: IEmbeddedPhotoPickerClient,
     ) {
+        // Verify that package actually belongs to the caller
+        if (!verifyCaller(packageName)) {
+            throw SecurityException(
+                "Caller does not have permission to openSession " + "for $packageName"
+            )
+        }
 
         val session =
             sessionFactory(
                 packageName,
-                uid,
+                Binder.getCallingUid(),
                 hostToken,
                 displayId,
                 width,
@@ -86,7 +93,7 @@ class EmbeddedPhotopickerImpl(
             )
 
         // Notify client about the successful creation of Session & SurfacePackage
-        val response = EmbeddedPhotopickerSessionResponse(session, session.surfacePackage)
+        val response = EmbeddedPhotoPickerSessionResponse(session, session.surfacePackage)
         clientCallback.onSessionOpened(response)
     }
 }

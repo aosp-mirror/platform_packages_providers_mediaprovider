@@ -20,21 +20,26 @@ import android.content.pm.PackageManager.ApplicationInfoFlags
 import android.content.pm.PackageManager.NameNotFoundException
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotopickerFeatureInfo
-import android.provider.IEmbeddedPhotopickerClient
-import android.provider.IEmbeddedPhotopickerSession
 import android.util.Log
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
+import android.widget.photopicker.IEmbeddedPhotoPickerSession
+import android.widget.photopicker.ParcelableException
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceComponent
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.PhotopickerApp
@@ -58,6 +63,12 @@ import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /** Alias that describes a factory function that creates a Session. */
@@ -69,8 +80,8 @@ internal typealias SessionFactory =
         displayId: Int,
         width: Int,
         height: Int,
-        featureInfo: EmbeddedPhotopickerFeatureInfo,
-        clientCallback: IEmbeddedPhotopickerClient,
+        featureInfo: EmbeddedPhotoPickerFeatureInfo,
+        clientCallback: IEmbeddedPhotoPickerClient,
     ) -> Session
 
 /**
@@ -110,10 +121,12 @@ open class Session(
     private val displayId: Int,
     private val width: Int,
     private val height: Int,
-    private val featureInfo: EmbeddedPhotopickerFeatureInfo,
-    private val clientCallback: IEmbeddedPhotopickerClient,
+    private val featureInfo: EmbeddedPhotoPickerFeatureInfo,
+    private val clientCallback: IEmbeddedPhotoPickerClient,
+    private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
+    private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
-) : IEmbeddedPhotopickerSession.Stub() {
+) : IEmbeddedPhotoPickerSession.Stub() {
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
@@ -145,6 +158,8 @@ open class Session(
 
         @Main fun scope(): CoroutineScope
 
+        @Background fun backgroundScope(): CoroutineScope
+
         fun selection(): Lazy<Selection<Media>>
 
         fun userMonitor(): Lazy<UserMonitor>
@@ -155,11 +170,26 @@ open class Session(
         EntryPoints.get(component, EmbeddedEntryPoint::class.java)
 
     private val _embeddedViewLifecycle: EmbeddedLifecycle = _dependencies.lifecycle()
-    private val _scope: CoroutineScope = _dependencies.scope()
     private val _main: CoroutineDispatcher = _dependencies.mainDispatcher()
+    private val _backgroundScope: CoroutineScope = _dependencies.backgroundScope()
+
+    // Wrap this in a lazy to prevent the [DataService] from getting initialized before the
+    // ComposeView is started.
+    // This flow is used to signal the UI when the DataService detects a provider update (or other
+    // data change which should disrupt the UI)
+    private val disruptiveDataNotification: Flow<Int> by lazy {
+        _dependencies.dataService().get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(
+            initial = 0
+        ) { prev, _ ->
+            prev + 1
+        }
+    }
 
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
+    private val _stateManager: EmbeddedStateManager
+
+    fun getView() = _view
 
     open val surfacePackage: SurfaceControlViewHost.SurfacePackage
         get() {
@@ -208,8 +238,9 @@ open class Session(
                 callingPackageLabel = clientPackageLabel
             )
 
-        // TODO(b/350965066): set featureInfo in the ConfigurationManager and hand any errors back
-        // to the client
+        // Update the [PhotopickerConfiguration] associated with the session using the
+        // [EmbeddedPhotopickerFeatureInfo].
+        _dependencies.configurationManager().get().setEmbeddedPhotopickerFeatureInfo(featureInfo)
 
         // Configuration is now stable, so the view can be created.
         // NOTE: Do not update the configuration after this line, it will cause the UI to
@@ -217,15 +248,27 @@ open class Session(
         Log.d(TAG, "EmbeddedConfiguration is stable, UI will now start.")
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
+        // This initialization should happen only after receiving the [_host]
+        _stateManager =
+            EmbeddedStateManager(host = _host, themeNightMode = featureInfo.themeNightMode)
         runBlocking(_main) { _host.setView(_view, width, height) }
+
+        // Start listening to selection/deselection events for this Session so
+        // we can grant/revoke permission to selected/deselected uris immediately.
+        listenForSelectionEvents()
     }
 
     override fun close() {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session close was requested.")
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
             _host.release()
+            _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
 
@@ -287,6 +330,8 @@ open class Session(
                                 .configuration
                                 .collectAsStateWithLifecycle()
 
+                        val embeddedState by _stateManager.state.collectAsStateWithLifecycle()
+
                         // Provide values to the entire compose stack.
                         CompositionLocalProvider(
                             LocalFeatureManager provides _dependencies.featureManager().get(),
@@ -298,9 +343,22 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
+                            LocalEmbeddedState provides embeddedState
                         ) {
-                            PhotopickerTheme(config = photopickerConfiguration) {
-                                PhotopickerApp(_dependencies.bannerManager().get())
+                            val currentEmbeddedState =
+                                checkNotNull(LocalEmbeddedState.current) {
+                                    "Embedded state cannot be null when runtime env is embedded."
+                                }
+                            PhotopickerTheme(
+                                isDarkTheme = currentEmbeddedState.isDarkTheme,
+                                config = photopickerConfiguration
+                            ) {
+                                PhotopickerApp(
+                                    disruptiveDataNotification = disruptiveDataNotification,
+                                    onMediaSelectionConfirmed = {
+                                        _backgroundScope.launch { onMediaSelectionConfirmed() }
+                                    },
+                                )
                             }
                         }
                     }
@@ -314,7 +372,72 @@ open class Session(
         }
     }
 
+    /**
+     * A collector that starts for a Session in embedded mode. This collector will grant/revoke uri
+     * permission when item is selected/deselected respectively.
+     *
+     * It emits both the previous and new selection of media items.
+     *
+     * todo(b/358537861): Debounce on uri selection/deselction
+     */
+    fun listenForSelectionEvents() {
+        _backgroundScope.launch {
+            _dependencies
+                .selection()
+                .get()
+                .flow
+                .flowWithLifecycle(_embeddedViewLifecycle.lifecycle, Lifecycle.State.STARTED)
+                .runningFold(initial = emptySet<Media>()) { _prevSelection, _newSelection ->
+                    // Get list of items removed/deselected by user so that we can revoke access to
+                    // those uris.
+                    var unselectedMedia: Set<Media> = _prevSelection.subtract(_newSelection)
+                    Log.d(TAG, "Revoking uri permission to $unselectedMedia")
+
+                    // Get list of items added/selected by user so that we can grant access to
+                    // those uris.
+                    var newlySelectedMedia: Set<Media> = _newSelection.subtract(_prevSelection)
+                    Log.d(TAG, "Granting uri permission to $newlySelectedMedia")
+
+                    // Grant uri to newly selected media and notify client
+                    newlySelectedMedia.iterator().forEach { item ->
+                        val result = grantUriPermission(clientPackageName, item.mediaUri)
+                        if (result == EmbeddedService.GrantResult.SUCCESS) {
+                            clientCallback.onUriPermissionGranted(listOf(item.mediaUri))
+                        } else {
+                            Log.w(
+                                TAG,
+                                "Error granting permission to uri ${item.mediaUri} " +
+                                    "for package $clientPackageName"
+                            )
+                        }
+                    }
+
+                    // Revoke uri to newly selected media and notify client
+                    unselectedMedia.iterator().forEach { item ->
+                        val result = revokeUriPermission(clientPackageName, item.mediaUri)
+                        if (result == EmbeddedService.GrantResult.SUCCESS) {
+                            clientCallback.onUriPermissionRevoked(listOf(item.mediaUri))
+                        } else {
+                            Log.w(
+                                TAG,
+                                "Error revoking permission to uri ${item.mediaUri} " +
+                                    "for package $clientPackageName"
+                            )
+                        }
+                    }
+
+                    // Update previous selection to current flow
+                    _newSelection
+                }
+                .collect()
+        }
+    }
+
     override fun notifyVisibilityChanged(isVisible: Boolean) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
             true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
@@ -323,14 +446,66 @@ open class Session(
     }
 
     override fun notifyResized(width: Int, height: Int) {
-        TODO("Not yet implemented")
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+        _host.relayout(width, height)
+        _stateManager.triggerRecompose()
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
-        TODO("Not yet implemented")
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+        if (configuration == null) return
+
+        // Check for the theme override in featureInfo.
+        // If not overridden, compute the theme using the configuration.uiMode night mask value
+        // and update the same in _stateManager.
+        if (featureInfo.themeNightMode == Configuration.UI_MODE_NIGHT_UNDEFINED) {
+            val isNewThemeDark =
+                (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
+
+            // Update embedded state manager
+            _stateManager.setIsDarkTheme(isNewThemeDark)
+        }
+
+        // Pass the configuration change along to the view
+        _view.dispatchConfigurationChanged(configuration)
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        TODO("Not yet implemented")
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+        _stateManager.setIsExpanded(isExpanded)
+    }
+
+    override fun requestRevokeUriPermission(uris: List<Uri>) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+
+        _backgroundScope.launch {
+            val deselectedMediaItems =
+                _dependencies.selection().get().snapshot().filter { media ->
+                    uris.contains(media.mediaUri)
+                }
+
+            _dependencies.selection().get().removeAll(deselectedMediaItems)
+        }
+    }
+
+    private fun callClosedSessionError() {
+        clientCallback.onSessionError(ParcelableException(IllegalStateException()))
+    }
+
+    private fun onMediaSelectionConfirmed() {
+        clientCallback.onSelectionComplete()
     }
 }

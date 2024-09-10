@@ -44,6 +44,7 @@ import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
@@ -92,6 +93,7 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -128,7 +130,7 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var databaseManager: DatabaseManager
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
 
     @Before
     fun setup() {
@@ -158,11 +160,13 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
             val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
             whenever(bannerStateDao.getBannerState(anyString(), anyInt())) { null }
 
-            configurationManager.setCaller(
-                callingPackage = "com.android.test.package",
-                callingPackageUid = 12345,
-                callingPackageLabel = "Test Package",
-            )
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
             advanceTimeBy(100)
 
             val resources = getTestableContext().getResources()
@@ -177,7 +181,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()
@@ -203,11 +206,13 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                 )
             }
             // Mock out database state with previously dismissed state.
-            configurationManager.setCaller(
-                callingPackage = "com.android.test.package",
-                callingPackageUid = 12345,
-                callingPackageLabel = "Test Package",
-            )
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
             advanceTimeBy(1000)
             val resources = getTestableContext().getResources()
             val expectedPrivacyMessage =
@@ -220,7 +225,6 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
             composeTestRule.waitForIdle()

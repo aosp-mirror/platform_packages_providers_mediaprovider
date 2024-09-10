@@ -19,6 +19,7 @@ import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,29 +43,36 @@ class DocsUIViewModel(
     fun validateAndLaunchPicker(
         isActionGetContentSelected: Boolean,
         isOpenDocumentSelected: Boolean,
+        isCreateDocumentSelected: Boolean,
         allowMultiple: Boolean,
         selectedMimeType: String,
         allowCustomMimeType: Boolean,
         customMimeTypeInput: String,
+        pickerInitialUri: Uri,
         launcher: (Intent) -> Unit
     ): String? {
 
-        var finalMimeType = ""
-        if (allowCustomMimeType) finalMimeType = customMimeTypeInput
-        else if (selectedMimeType != "") finalMimeType = selectedMimeType
-        else finalMimeType = "*/*"
-
         val intent = if (isActionGetContentSelected) {
             Intent(Intent.ACTION_GET_CONTENT).apply {
-                type = finalMimeType
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
                 addCategory(Intent.CATEGORY_OPENABLE)
             }
         } else if (isOpenDocumentSelected) {
             Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                type = finalMimeType
+                if (allowCustomMimeType) type = customMimeTypeInput
+                else if (selectedMimeType != "") type = selectedMimeType
+                else type = "*/*"
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple)
                 addCategory(Intent.CATEGORY_OPENABLE)
+            }
+        } else if (isCreateDocumentSelected){
+            Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/pdf" // TODO: (@adityasngh) please review and make it generic.
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, pickerInitialUri)
             }
         } else {
             Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)

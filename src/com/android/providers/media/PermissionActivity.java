@@ -44,6 +44,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -67,6 +68,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.WindowMetrics;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -75,6 +77,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.appcompat.widget.AppCompatTextView;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.util.Metrics;
@@ -103,6 +106,10 @@ public class PermissionActivity extends Activity {
     // TODO: narrow metrics to specific verb that was requested
 
     public static final int REQUEST_CODE = 42;
+    private static final String HEIGHT = "height";
+    private static final String WIDTH = "width";
+    private static final String HEIGHT_RATIO = "heightRatio";
+    private static final String WIDTH_RATIO = "widthRatio";
 
     private List<Uri> uris;
     private ContentValues values;
@@ -158,6 +165,13 @@ public class PermissionActivity extends Activity {
     private static final int ORDER_GENERIC = 4;
 
     private static final int MAX_THUMBS = 3;
+    private View mThumbFull;
+    private int mOriginalHeight = 0;
+    private int mOriginalWidth = 0;
+    private float mHeightRatio = 1f;
+    private WindowMetrics mCurrentWindowMetrics;
+    private WindowMetrics mMaximumWindowMetrics;
+    private Bundle mDimensionBundle;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -223,9 +237,19 @@ public class PermissionActivity extends Activity {
         handleImageViewVisibility(bodyView, uris);
         new DescriptionTask(bodyView).execute(uris);
 
+        // Initialising the custom dialog title
+        final View dialogTitleView = getLayoutInflater().inflate(
+                R.layout.dialog_title, null, false);
+        final AppCompatTextView dialogTitleTextView = dialogTitleView.findViewById(
+                R.id.dialog_title);
+        if (dialogTitleTextView == null) {
+            Log.e(TAG, "Could not inflate custom dialog title view");
+        }
+        dialogTitleTextView.setText(resolveTitleText());
+        dialogTitleTextView.setTextAppearance(R.style.PermissionAlertDialogTitle);
+
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // We set the title in message so that the text doesn't get truncated
-        builder.setMessage(resolveTitleText());
+        builder.setCustomTitle(dialogTitleTextView);
         builder.setPositiveButton(R.string.allow, this::onPositiveAction);
         builder.setNegativeButton(R.string.deny, this::onNegativeAction);
         builder.setCancelable(false);
@@ -233,14 +257,13 @@ public class PermissionActivity extends Activity {
 
         actionDialog = builder.show();
 
-        // The title is being set as a message above.
-        // We need to style it like the default AlertDialog title
-        TextView dialogMessage = (TextView) actionDialog.findViewById(
-                android.R.id.message);
-        if (dialogMessage != null) {
-            dialogMessage.setTextAppearance(R.style.PermissionAlertDialogTitle);
-        } else {
-            Log.w(TAG, "Couldn't find message element");
+        mThumbFull = bodyView.requireViewById(R.id.thumb_full);
+        mCurrentWindowMetrics = getWindowManager().getCurrentWindowMetrics();
+        mMaximumWindowMetrics = getWindowManager().getMaximumWindowMetrics();
+        mDimensionBundle = savedInstanceState;
+        if (savedInstanceState != null) {
+            // Resizing on window size change is only done for thumb_full ImageView
+            resizeImageView(savedInstanceState);
         }
 
         // Hunt around to find the title of our newly created dialog so we can
@@ -249,6 +272,44 @@ public class PermissionActivity extends Activity {
                 (view) -> {
                     return (view instanceof TextView) && view.isImportantForAccessibility();
                 });
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // The activity is not recreated on screen size changes in free-form mode, hence we use this
+        // method to resize the thumbnail.
+        if (mDimensionBundle != null) {
+            resizeImageView(mDimensionBundle);
+        }
+    }
+
+    private void resizeImageView(Bundle savedInstanceState) {
+        mOriginalHeight = savedInstanceState.getInt(HEIGHT);
+        mOriginalWidth = savedInstanceState.getInt(WIDTH);
+        mHeightRatio = savedInstanceState.getFloat(HEIGHT_RATIO);
+
+        final boolean isHeightLessThanScreenHeight = mCurrentWindowMetrics.getBounds().height()
+                < mMaximumWindowMetrics.getBounds().height();
+        final boolean isHeightEqualToScreenHeight = mCurrentWindowMetrics.getBounds().height()
+                == mMaximumWindowMetrics.getBounds().height();
+
+        // Resizing the alert dialog thumbnail is needed only when all the following are true:
+        // 2. R.id.thumb_full has its visibility set to View.VISIBLE
+        // 3. Activity's height is less than the screen height
+        if (mThumbFull.getVisibility() == View.VISIBLE
+                && isHeightLessThanScreenHeight) {
+            int newHeight = (int) (mHeightRatio * mCurrentWindowMetrics.getBounds().height());
+            float aspectRatio = (float) mOriginalWidth / mOriginalHeight;
+            int newWidth = (int) (aspectRatio * newHeight);
+            mThumbFull.getLayoutParams().height = newHeight;
+            mThumbFull.getLayoutParams().width = newWidth;
+            // This handles all the cases when the activity is destroyed and then recreated
+            // but resizing the thumbnail is not needed
+        } else if (mOriginalWidth != 0 || isHeightEqualToScreenHeight) {
+            mThumbFull.getLayoutParams().height = mOriginalHeight;
+            mThumbFull.getLayoutParams().width = mOriginalWidth;
+        }
     }
 
     private void createProgressDialog() {
@@ -263,6 +324,29 @@ public class PermissionActivity extends Activity {
                 .setCancelable(false)
                 .create();
     }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        // Save original dimensions when the activity is in full-screen mode on the first launch
+        // In subsequent calls of this method it is ensured that the saved dimensions stay the same
+        // throughout, i.e. the newly calculated dimensions are never stored
+        if (mOriginalWidth == 0) {
+            outState.putInt(HEIGHT, mThumbFull.getHeight());
+            outState.putInt(WIDTH, mThumbFull.getWidth());
+            // Ideally, we should calculate this ratio using the AlertDialog's height instead of the
+            // window height. However, accessing the AlertDialog's dimensions in onCreate
+            // returns 0 because the dialog hasn't been drawn yet.
+            outState.putFloat(HEIGHT_RATIO,
+                    (float) mThumbFull.getHeight() / mCurrentWindowMetrics.getBounds().height());
+        } else {
+            outState.putInt(HEIGHT, mOriginalHeight);
+            outState.putInt(WIDTH, mOriginalWidth);
+            outState.putFloat(HEIGHT_RATIO, mHeightRatio);
+        }
+    }
+
 
     @Override
     public void onDestroy() {
@@ -597,10 +681,14 @@ public class PermissionActivity extends Activity {
         }
 
         switch (firstMatch) {
-            case AUDIO_MEDIA_ID: return DATA_AUDIO;
-            case VIDEO_MEDIA_ID: return DATA_VIDEO;
-            case IMAGES_MEDIA_ID: return DATA_IMAGE;
-            default: return DATA_GENERIC;
+            case AUDIO_MEDIA_ID:
+                return DATA_AUDIO;
+            case VIDEO_MEDIA_ID:
+                return DATA_VIDEO;
+            case IMAGES_MEDIA_ID:
+                return DATA_IMAGE;
+            default:
+                return DATA_GENERIC;
         }
     }
 
@@ -726,10 +814,14 @@ public class PermissionActivity extends Activity {
                     final int match = matcher.matchUri(uri, false);
 
                     switch (match) {
-                        case AUDIO_MEDIA_ID: return ORDER_AUDIO;
-                        case VIDEO_MEDIA_ID: return ORDER_VIDEO;
-                        case IMAGES_MEDIA_ID: return ORDER_IMAGE;
-                        default: return ORDER_GENERIC;
+                        case AUDIO_MEDIA_ID:
+                            return ORDER_AUDIO;
+                        case VIDEO_MEDIA_ID:
+                            return ORDER_VIDEO;
+                        case IMAGES_MEDIA_ID:
+                            return ORDER_IMAGE;
+                        default:
+                            return ORDER_GENERIC;
                     }
                 };
                 final Comparator<Uri> bestScore = (a, b) ->
@@ -825,10 +917,10 @@ public class PermissionActivity extends Activity {
                 final int shownCount = Math.min(visualResults.size(), MAX_THUMBS - 1);
                 final int moreCount = results.size() - shownCount;
                 final CharSequence moreText =
-                    TextUtils.expandTemplate(
-                        StringUtils.getICUFormatString(
-                            res, moreCount, R.string.permission_more_thumb),
-                        String.valueOf(moreCount));
+                        TextUtils.expandTemplate(
+                                StringUtils.getICUFormatString(
+                                        res, moreCount, R.string.permission_more_thumb),
+                                String.valueOf(moreCount));
                 thumbMoreText.setText(moreText);
                 thumbMoreContainer.setVisibility(View.VISIBLE);
                 gradientView.setVisibility(View.VISIBLE);
@@ -867,10 +959,10 @@ public class PermissionActivity extends Activity {
                 if (list.size() >= MAX_THUMBS && results.size() > list.size()) {
                     final int moreCount = results.size() - list.size();
                     final CharSequence moreText =
-                        TextUtils.expandTemplate(
-                            StringUtils.getICUFormatString(
-                                res, moreCount, R.string.permission_more_text),
-                            String.valueOf(moreCount));
+                            TextUtils.expandTemplate(
+                                    StringUtils.getICUFormatString(
+                                            res, moreCount, R.string.permission_more_text),
+                                    String.valueOf(moreCount));
                     list.add(moreText);
                     break;
                 }
@@ -905,7 +997,7 @@ public class PermissionActivity extends Activity {
                 // textual to display in case we have image trouble below
                 if ((loadFlags & LOAD_CONTENT_DESCRIPTION) != 0) {
                     try (Cursor c = resolver.query(uri,
-                            new String[] { MediaColumns.DISPLAY_NAME }, null, null)) {
+                            new String[]{MediaColumns.DISPLAY_NAME}, null, null)) {
                         if (c.moveToFirst()) {
                             contentDescription = c.getString(0);
                         }

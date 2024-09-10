@@ -17,15 +17,20 @@
 package com.android.photopicker.core.configuration
 
 import android.content.Intent
+import android.os.Build
 import android.provider.DeviceConfig
 import android.util.Log
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.isUnspecified
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
+import com.android.photopicker.extensions.getPickImagesPreSelectedUris
 import com.android.photopicker.extensions.getStartDestination
+import com.android.providers.media.flags.Flags
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -58,12 +63,14 @@ import kotlinx.coroutines.launch
  *   in.
  * @property deviceConfigProxy This is provided to the ConfigurationManager to better support
  *   testing various device flags, without relying on the device's actual flags at test time.
+ * @property sessionId A randomly generated integer to identify the current photopicker session
  */
 class ConfigurationManager(
     private val runtimeEnv: PhotopickerRuntimeEnv,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val deviceConfigProxy: DeviceConfigProxy,
+    private val sessionId: Int,
 ) {
 
     companion object {
@@ -123,6 +130,55 @@ class ConfigurationManager(
     }
 
     /**
+     * Updates the [PhotopickerConfiguration] with the [EmbeddedPhotopickerFeatureInfo] that the
+     * Embedded Photopicker is running with.
+     *
+     * Since [ConfigurationManager] is bound to the [EmbeddedServiceComponent], it does not have a
+     * reference to the currently running Session (if there is one). This allows the session to set
+     * the current FeatureInfo externally once the session is available.
+     *
+     * It's important that this method is called before the FeatureManager is started to prevent the
+     * feature manager from being re-initialized.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotoPickerFeatureInfo) {
+        Log.d(TAG, "New featureInfo received: $featureInfo : Configuration will now update.")
+
+        val selectionLimit = featureInfo.maxSelectionLimit
+        val mimeTypes = featureInfo.mimeTypes
+        val preSelectedUris = featureInfo.preSelectedUris
+
+        /**
+         * Pick images in order is a combination of circumstances:
+         * - selectionLimit mode must be multiselect (more than 1)
+         * - The feature must be requested from the caller in the featureInfo
+         */
+        val pickImagesInOrder = featureInfo.isOrderedSelection && (selectionLimit > 1)
+
+        /** Check if the accent color was set and is valid. */
+        val accentColor =
+            with(AccentColorHelper(featureInfo.accentColor)) {
+                if (getAccentColor().isUnspecified) {
+                    null
+                } else {
+                    inputColor
+                }
+            }
+
+        // Use updateAndGet to ensure that the values are set before this method returns so that
+        // the new configuration is immediately available to the new subscribers.
+        _configuration.updateAndGet {
+            it.copy(
+                selectionLimit = selectionLimit,
+                accentColor = accentColor,
+                mimeTypes = mimeTypes.toCollection(ArrayList()),
+                preSelectedUris = preSelectedUris.toCollection(ArrayList()),
+                pickImagesInOrder = pickImagesInOrder,
+            )
+        }
+    }
+
+    /**
      * Sets the current intent & action Photopicker is running under.
      *
      * Since [ConfigurationManager] is bound to the [ActivityRetainedComponent] it does not have a
@@ -165,6 +221,9 @@ class ConfigurationManager(
                 }
             }
 
+        // get preSelection URIs from intent.
+        val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
+
         // Use updateAndGet to ensure the value is set before this method returns so the new
         // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -176,6 +235,7 @@ class ConfigurationManager(
                 mimeTypes = mimeTypes,
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,
+                preSelectedUris = pickerPreSelectionUris,
             )
         }
     }
@@ -210,6 +270,7 @@ class ConfigurationManager(
                 runtimeEnv = runtimeEnv,
                 action = "",
                 flags = getFlagsFromDeviceConfig(),
+                sessionId = sessionId,
             )
 
         Log.d(TAG, "Startup configuration: $config")
@@ -258,6 +319,7 @@ class ConfigurationManager(
                     /* key= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.first,
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
+            PICKER_SEARCH_ENABLED = Flags.enablePhotopickerSearch(),
         )
     }
 

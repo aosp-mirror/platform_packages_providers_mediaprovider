@@ -17,7 +17,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_privacy_explainer" msgid="9113071273402902195">"‫<xliff:g id="APP_NAME">%1$s</xliff:g> فقط می‌تواند به عکس‌های انتخابی شما دسترسی داشته باشد"</string>
+    <string name="photopicker_privacy_explainer" msgid="4607406928962678061">"‫<xliff:g id="APP_NAME">%1$s</xliff:g> فقط به عکس‌هایی که شما انتخاب می‌کنید دسترسی خواهد داشت"</string>
     <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"عکس‌ها و ویدیوهایی را انتخاب کنید که به <xliff:g id="APP_NAME">%1$s</xliff:g> اجازه می‌دهید به آن‌ها دسترسی داشته باشد"</string>
     <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"این برنامه"</string>
 </resources>

@@ -8,7 +8,7 @@
         errorLine2="                                                   ~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="372"
+            line="483"
             column="52"/>
     </issue>
 
@@ -19,8 +19,19 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="372"
+            line="483"
             column="13"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `applyEditTypeClick()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditTypeClick(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="484"
+            column="20"/>
     </issue>
 
     <issue
@@ -30,7 +41,7 @@
         errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="374"
+            line="485"
             column="59"/>
     </issue>
 
@@ -41,7 +52,18 @@
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="374"
+            line="485"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="FlaggedApi"
+        message="Method `applyEditTypeSetIndices()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditTypeSetIndices(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
+            line="486"
             column="20"/>
     </issue>
 
@@ -52,7 +74,7 @@
         errorLine2="                                                          ~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="376"
+            line="487"
             column="59"/>
     </issue>
 
@@ -63,85 +85,19 @@
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="376"
+            line="487"
             column="20"/>
     </issue>
 
     <issue
         id="FlaggedApi"
-        message="Method `getClickPoint()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditTypeClick` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="                editRecord.getClickPoint(), &quot;Can&apos;t apply click edit record without point&quot;);"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Method `applyEditSetText()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEdit` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
+        errorLine1="            return applyEditSetText(pageNum, editRecord);"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="384"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getClickPoint()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditTypeClick` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="        Point clickPoint = editRecord.getClickPoint();"
-        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="385"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getSelectedIndices()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditTypeSetIndices` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="        Set&lt;Integer> selectedIndices = editRecord.getSelectedIndices();"
-        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="394"
-            column="40"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getWidgetIndex()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditTypeSetIndices` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="                        pageNum, editRecord.getWidgetIndex(), new ArrayList&lt;>(selectedIndices));"
-        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="397"
-            column="34"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getText()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditSetText` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="                editRecord.getText(), &quot;Can&apos;t apply set text record without text&quot;);"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="406"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getText()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditSetText` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="        String text = editRecord.getText();"
-        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="407"
-            column="23"/>
-    </issue>
-
-    <issue
-        id="FlaggedApi"
-        message="Method `getWidgetIndex()` is a flagged API and should be inside an `if (Flags.enableFormFilling())` check (or annotate the surrounding method `applyEditSetText` with `@FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING) to transfer requirement to caller`)"
-        errorLine1="                mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);"
-        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/PdfProcessor.java"
-            line="409"
-            column="56"/>
+            line="488"
+            column="20"/>
     </issue>
 
 </issues>

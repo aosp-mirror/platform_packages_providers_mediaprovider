@@ -18,11 +18,12 @@ package android.graphics.pdf.models.jni;
 
 import android.annotation.FlaggedApi;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
-import android.graphics.pdf.models.selection.TextSelection;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents text selection on a particular page of a PDF coming from the JNI layer.
@@ -78,11 +79,11 @@ public class PageSelection {
 
     /** Converts JNI models to the public class */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public android.graphics.pdf.models.selection.PageSelection convert(boolean isRtl) {
-        TextSelection textSelectedContent = new TextSelection(mBounds,
-                new PdfPageTextContent(mText));
+    public android.graphics.pdf.models.selection.PageSelection convert() {
+        PdfPageTextContent selectedTextContent = new PdfPageTextContent(mText,
+                mBounds.stream().map(RectF::new).collect(Collectors.toList()));
         return new android.graphics.pdf.models.selection.PageSelection(mPage, mLeft.convert(),
                 mRight.convert(),
-                /* textSelectedContents = */ List.of(textSelectedContent), isRtl);
+                /* selectedContents = */ List.of(selectedTextContent));
     }
 }

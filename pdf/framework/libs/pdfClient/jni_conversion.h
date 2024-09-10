@@ -42,8 +42,9 @@ namespace convert {
 // Creates a Java PdfDocument object to wrap this Document instance.
 jobject ToJavaPdfDocument(JNIEnv* env, const Document* doc);
 
-// Creates a Java LoadPdfResult object using c++ objects status and Document
-jobject ToJavaLoadPdfResult(JNIEnv* env, const Status status, std::unique_ptr<Document> doc);
+// Creates a Java LoadPdfResult object using c++ objects status, Document and size of the pdf.
+jobject ToJavaLoadPdfResult(JNIEnv* env, const Status status, std::unique_ptr<Document> doc,
+                            size_t pdfSizeInByte);
 
 // Gets the PDF document pointer from the PdfDocument java object.
 Document* GetPdfDocPtr(JNIEnv* env, jobject jPdfDocument);
@@ -55,10 +56,10 @@ SelectionBoundary ToNativeBoundary(JNIEnv* env, jobject jBoundary);
 int ToNativeInteger(JNIEnv* env, jobject jInteger);
 
 // Convert a Java List<Integer> to C++ vector<int>.
-vector<int> ToNativeIntegerVector(JNIEnv* env, jobject jIntegerList);
+vector<int> ToNativeIntegerVector(JNIEnv* env, jintArray jintArray);
 
 // Convert a Java Set<Integer> to C++ std::unordered_set<int>.
-std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jobject jIntegerSet);
+std::unordered_set<int> ToNativeIntegerUnorderedSet(JNIEnv* env, jintArray jintArray);
 
 // Convert a pdfClient rectangle to an android.graphics.Rect.
 jobject ToJavaRect(JNIEnv* env, const Rectangle_i& r);

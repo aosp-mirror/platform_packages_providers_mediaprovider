@@ -140,7 +140,7 @@ java_library {
     libs: [
         "androidx.annotation_annotation",
         "framework-annotations-lib",
-        "framework-mediaprovider",
+        "framework-mediaprovider.stubs.module_lib",
     ],
     lint: {
         baseline_filename: "lint-baseline2.xml",

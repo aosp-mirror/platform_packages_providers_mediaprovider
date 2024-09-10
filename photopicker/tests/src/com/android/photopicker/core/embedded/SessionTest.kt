@@ -107,6 +107,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.anyList
 import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.any
@@ -448,6 +449,87 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
         }
 
     @Test
+    fun testURIDebounceOnSelectionOfMediaItems() =
+        testScope.runTest {
+            val component = embeddedServiceComponentBuilder.build()
+            val session = getSessionUnderTest(component)
+
+            val itemCount = 20
+            setUpTestDataWithStubProvider(itemCount)
+
+            advanceTimeBy(100)
+
+            // Now the view is in the test's compose tree, so do a simple check to make sure
+            // the view actually initialized and the test can locate the photo grid / modify the
+            // selection.
+            composeTestRule.setContent {
+                // Wrap the surfacePackage inside of an [AndroidView] to make the view accessible to
+                // the test.
+                AndroidView(
+                    factory = {
+                        SurfaceView(getTestableContext()).apply {
+                            setChildSurfacePackage(session.surfacePackage)
+                        }
+                    }
+                )
+            }
+
+            composeTestRule.waitForIdle()
+
+            clearInvocations(mockTextContextWrapper, mockClient)
+
+            val resources = getTestableContext().getResources()
+
+            // This is the accessibility label for a Photo in the grid.
+            val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+            // Get all image nodes
+            val allImageNodes = composeTestRule.onAllNodesWithContentDescription(mediaItemString)
+
+            // Make list of indices to select
+            var indicesToSelect = setOf(2, 0, 4) // Select images at indices 2, 0, and 4
+            var indicesToDeselect = setOf(0)
+            var expectedUrisSelected: List<Uri> = constructUrisForIndices(indicesToSelect)
+            var expectedUrisDeselected: List<Uri> = constructUrisForIndices(indicesToDeselect)
+
+            // Filter image nodes based on the indices to select and performClick
+            performClickForIndices(allImageNodes, indicesToSelect)
+
+            // Wait for PhotoGridViewModel to modify Selection
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            // Filter image nodes based on the indices to deselect and performClick
+            performClickForIndices(allImageNodes, indicesToDeselect)
+
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
+
+            // Ensure the click handler correctly ran by checking the selection snapshot.
+            assertWithMessage("Expected selection to contain an item, but it did not.")
+                .that(selection.snapshot().size)
+                .isEqualTo(2)
+
+            // Verify that grantUriPermission is invoked for all newly selected media.
+            verify(mockTextContextWrapper, times(3)).grantUriPermission(capture(uriCaptor))
+            var capturedUris = uriCaptor.allValues
+            assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUrisSelected)
+
+            verify(mockTextContextWrapper, times(1)).revokeUriPermission(capture(uriCaptor2))
+            capturedUris = uriCaptor2.allValues
+
+            assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUrisDeselected)
+
+            // Since we deselected an item just after selection within Uri debounce time ,
+            // deselected callback should not be invoked
+            verify(mockClient, never()).onUriPermissionRevoked(anyList())
+
+            verify(mockClient, times(1))
+                .onUriPermissionGranted(expectedUrisSelected - expectedUrisDeselected)
+        }
+
+    @Test
     fun testSelectionUpdateGrantsAndRevokesPermissionSuccess() =
         testScope.runTest {
             val component = embeddedServiceComponentBuilder.build()
@@ -492,8 +574,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Filter image nodes based on the indices to select and performClick
             performClickForIndices(allImageNodes, indicesToSelect)
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
             composeTestRule.waitForIdle()
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
@@ -509,9 +592,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
-            for (uri in expectedUris) {
-                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
-            }
+            verify(mockClient, times(1)).onUriPermissionGranted(expectedUris)
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -523,8 +604,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Filter image nodes based on the indices to select and performClick
             performClickForIndices(allImageNodes, indicesToDeselect)
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
             composeTestRule.waitForIdle()
 
             assertWithMessage("Expected selection to contain an item, but it did not.")
@@ -539,9 +621,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Verify that client callback is invoked for all uris that were successfully
             // revoked permission
-            for (uri in expectedUris) {
-                verify(mockClient, times(1)).onUriPermissionRevoked(listOf(uri))
-            }
+            verify(mockClient, times(1)).onUriPermissionRevoked(expectedUris)
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -552,8 +632,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Filter image nodes based on the indices to select and performClick
             performClickForIndices(allImageNodes, indicesToSelect)
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
             composeTestRule.waitForIdle()
 
             assertWithMessage("Expected selection to contain an item, but it did not.")
@@ -568,9 +649,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Verify that client callback is invoked for all uris that were successfully
             // granted permission
-            for (uri in expectedUris) {
-                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
-            }
+            verify(mockClient, times(1)).onUriPermissionGranted(expectedUris)
         }
 
     @Test
@@ -619,8 +698,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Filter image nodes based on the indices to select and performClick
             performClickForIndices(allImageNodes, indicesToSelect)
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
             composeTestRule.waitForIdle()
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
@@ -635,11 +715,8 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             assertThat(capturedUris.toList()).containsExactlyElementsIn(expectedUris)
 
-            for (uri in expectedUris) {
-                if (uri == grantFailureUri) continue
-                verify(mockClient, times(1)).onUriPermissionGranted(listOf(uri))
-            }
-            verify(mockClient, never()).onUriPermissionGranted(listOf(grantFailureUri))
+            verify(mockClient, never()).onUriPermissionGranted(expectedUris)
+            verify(mockClient, times(1)).onUriPermissionGranted(expectedUris - grantFailureUri)
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
@@ -656,8 +733,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Filter image nodes based on the indices to select and performClick
             performClickForIndices(allImageNodes, indicesToDeselect)
 
-            // Wait for PhotoGridViewModel to modify Selection
-            advanceTimeBy(100)
+            // Wait for PhotoGridViewModel to modify Selection and to invoke client
+            // callbacks after media selection/deselection
+            advanceTimeBy(100 + session.getURIDebounceTime())
             composeTestRule.waitForIdle()
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
@@ -783,7 +861,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     /** Gets the correct nodes of media item for given indices and performs click. */
     private fun performClickForIndices(
         allImageNodes: SemanticsNodeInteractionCollection,
-        indicesToSelect: Set<Int>
+        indicesToSelect: Set<Int>,
     ) {
         var imageNodesToSelect =
             indicesToSelect.mapNotNull { index ->
@@ -808,7 +886,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 authority = StubProvider.AUTHORITY,
                 mediaSource = MediaSource.LOCAL,
                 uid = 1,
-                displayName = "Stub Provider"
+                displayName = "Stub Provider",
             )
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -820,7 +898,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 authority = stubProvider.authority,
                 collectionId = null,
                 accountName = null,
-            )
+            ),
         )
 
         val testImages = StubProvider.getTestMediaFromStubProvider(mediaCount)

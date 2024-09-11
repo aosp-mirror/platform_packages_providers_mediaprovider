@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳನ್ನು ಕ್ಯಾಪ್ಚರ್ ಮಾಡಲು ಪ್ರಾರಂಭಿಸಿ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"ನಿಮ್ಮ ಕ್ಯಾಮರಾ ಆ್ಯಪ್‌ನಿಂದ ಸೆರೆಹಿಡಿಯಲಾದ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳು ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತವೆ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ಇನ್ನೂ ಯಾವುದೇ ಮೆಚ್ಚಿನವುಗಳಿಲ್ಲ"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"ಮೆಚ್ಚಿನವುಗಳೆಂದು ಗುರುತಿಸಲಾದ ಅಥವಾ ನಕ್ಷತ್ರ ಹಾಕಿರುವ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳು ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತವೆ"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ಇನ್ನೂ ಯಾವುದೇ ವೀಡಿಯೊಗಳಿಲ್ಲ"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"ನಿಮ್ಮ ಕ್ಯಾಮರಾ ಆ್ಯಪ್‌ನಿಂದ ಕ್ಯಾಪ್ಚರ್ ಮಾಡಲಾದ, ಸೇವ್ ಮಾಡಿದ ಅಥವಾ ಹಂಚಿಕೊಂಡ ವೀಡಿಯೊಗಳು ಇಲ್ಲಿ ಗೋಚರಿಸುತ್ತವೆ"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"ಹಿಂದಕ್ಕೆ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ವಜಾಗೊಳಿಸಿ"</string>
 </resources>

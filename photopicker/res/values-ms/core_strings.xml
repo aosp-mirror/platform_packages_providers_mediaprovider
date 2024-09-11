@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Mula merakam foto dan video"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Foto dan video yang dirakam oleh apl kamera anda akan dipaparkan disini"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Belum ada kegemaran lagi"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Foto dan video yang ditandai sebagai kegemaran atau dibintangi akan dipaparkan di sini"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Belum ada video lagi"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Video yang dirakam oleh apl kamera anda, yang disimpan atau dikongsi akan dipaparkan di sini"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Kembali"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Ketepikan"</string>
 </resources>

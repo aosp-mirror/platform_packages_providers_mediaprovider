@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"फोटो तथा भिडियो खिच्न थाल्नुहोस्"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"तपाईंको क्यामेरा एपले खिचेका फोटो र भिडियोहरू यहाँ देखिने छन्"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"अहिलेसम्म कुनै पनि फोटोलाई मन पर्ने फोटोका रूपमा चिन्ह लगाइएको छैन"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"मन पर्ने सामग्रीका रूपमा चिन्ह लगाइएका वा ताराङ्कन गरिएका फोटो वा भिडियोहरू यहाँ देखिने छन्"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"अहिलेसम्म कुनै पनि भिडियो छैन"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"तपाईंको क्यामेरा एपले खिचेका, सेभ गरेका वा सेयर गरेका भिडियोहरू यहाँ देखिने छन्"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"पछाडि"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"हटाउनुहोस्"</string>
 </resources>

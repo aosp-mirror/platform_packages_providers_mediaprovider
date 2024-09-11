@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ਫ਼ੋਟੋਆਂ ਅਤੇ ਵੀਡੀਓ ਨੂੰ ਕੈਪਚਰ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"ਤੁਹਾਡੀ ਕੈਮਰਾ ਐਪ ਰਾਹੀਂ ਕੈਪਚਰ ਕੀਤੀਆਂ ਗਈਆਂ ਫ਼ੋਟੋਆਂ ਅਤੇ ਵੀਡੀਓ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ਹਾਲੇ ਤੱਕ ਕੋਈ ਮਨਪਸੰਦ ਨਹੀਂ ਹੈ"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"ਜਿਨ੍ਹਾਂ ਫ਼ੋਟੋਆਂ ਅਤੇ ਵੀਡੀਓ ਦੀ ਮਨਪਸੰਦਾਂ ਵਜੋਂ ਨਿਸ਼ਾਨਦੇਹੀ ਕੀਤੀ ਗਈ ਹੈ ਜਾਂ ਜਿਨ੍ਹਾਂ ਨੂੰ ਤਾਰਾਬੱਧ ਕੀਤਾ ਗਿਆ ਹੈ, ਉਹ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ਹਾਲੇ ਕੋਈ ਵੀਡੀਓ ਨਹੀਂ"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"ਤੁਹਾਡੀ ਕੈਮਰਾ ਐਪ ਰਾਹੀਂ ਕੈਪਚਰ ਕੀਤੇ ਗਏ, ਰੱਖਿਅਤ ਕੀਤੇ ਗਏ ਜਾਂ ਸਾਂਝਾ ਕੀਤੇ ਗਏ ਵੀਡੀਓ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"ਪਿੱਛੇ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ਖਾਰਜ ਕਰੋ"</string>
 </resources>

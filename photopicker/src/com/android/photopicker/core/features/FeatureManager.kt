@@ -18,8 +18,19 @@ package com.android.photopicker.core.features
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import java.util.TreeSet
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.cloudmedia.CloudMediaFeature
+import com.android.photopicker.features.navigationbar.NavigationBarFeature
+import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
+import com.android.photopicker.features.photogrid.PhotoGridFeature
+import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.profileselector.ProfileSelectorFeature
+import com.android.photopicker.features.selectionbar.SelectionBarFeature
+import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
@@ -44,7 +55,10 @@ class FeatureManager(
     private val scope: CoroutineScope,
     // This is in the constructor to allow tests to swap in test features.
     private val registeredFeatures: Set<FeatureRegistration> =
-        FeatureManager.KNOWN_FEATURE_REGISTRATIONS
+        FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
+    // These are in the constructor to allow tests to swap in core event overrides.
+    private val coreEventsConsumed: Set<RegisteredEventClass> = FeatureManager.CORE_EVENTS_CONSUMED,
+    private val coreEventsProduced: Set<RegisteredEventClass> = FeatureManager.CORE_EVENTS_PRODUCED,
 ) {
     companion object {
         val TAG: String = "PhotopickerFeatureManager"
@@ -54,11 +68,38 @@ class FeatureManager(
          * Any features that include their registration here, are subject to be enabled by the
          * [FeatureManager] when their [FeatureRegistration#isEnabled] returns true.
          */
-        private val KNOWN_FEATURE_REGISTRATIONS: Set<FeatureRegistration> = setOf()
+        val KNOWN_FEATURE_REGISTRATIONS: Set<FeatureRegistration> =
+            setOf(
+                PhotoGridFeature.Registration,
+                SelectionBarFeature.Registration,
+                NavigationBarFeature.Registration,
+                PreviewFeature.Registration,
+                ProfileSelectorFeature.Registration,
+                AlbumGridFeature.Registration,
+                SnackbarFeature.Registration,
+                CloudMediaFeature.Registration,
+                OverflowMenuFeature.Registration,
+            )
+
+        /* The list of events that the core library consumes. */
+        val CORE_EVENTS_CONSUMED: Set<RegisteredEventClass> =
+            setOf(
+                Event.MediaSelectionConfirmed::class.java,
+            )
+
+        /* The list of events that the core library produces. */
+        val CORE_EVENTS_PRODUCED: Set<RegisteredEventClass> =
+            setOf(
+                Event.MediaSelectionConfirmed::class.java,
+                Event.ShowSnackbarMessage::class.java,
+            )
     }
 
     // The internal mutable set of enabled features.
     private val _enabledFeatures: MutableSet<PhotopickerFeature> = mutableSetOf()
+
+    // The internal map of claimed [FeatureToken] to the claiming [PhotopickerFeature]
+    private val _tokenMap: HashMap<String, PhotopickerFeature> = HashMap()
 
     /* Returns an immutable copy rather than the actual set. */
     val enabledFeatures: Set<PhotopickerFeature>
@@ -76,19 +117,15 @@ class FeatureManager(
      * Each pair represents a Feature which would like to draw UI at this Location, and the Priority
      * with which it would like to do so.
      *
-     * It is critical that the list always remains sorted to avoid drawing the wrong element for
-     * Location with a limited number of slots. (And also drawing elements in the correct order)
-     * As such, avoid using [MutableList#add] to add elements to this list, and instead use an
-     * insertion which maintains the sorted nature of this list.
-     *
-     * The sorted dataset is maintained in a [TreeSet] providing O(log n) for common operations,
-     * add, remove, and contains as these operations are performance critical during compose calls.
+     * It is critical that the list always remains sorted to avoid drawing the wrong element for a
+     * Location with a limited number of slots. It can be sorted with [PriorityDescendingComparator]
+     * to keep features sorted in order of Priority, then Registration (insertion) order.
      *
      * For Features who set the default Location [Priority.REGISTRATION_ORDER] they will
      * be drawn in order of registration in the [FeatureManager.KNOWN_FEATURE_REGISTRATIONS].
      *
      */
-    private val locationRegistry: HashMap<Location, TreeSet<Pair<PhotopickerUiFeature, Int>>> =
+    private val locationRegistry: HashMap<Location, MutableList<Pair<PhotopickerUiFeature, Int>>> =
         HashMap()
 
     /* Instantiate a shared single instance of our custom priority sorter to save memory */
@@ -131,6 +168,7 @@ class FeatureManager(
     /** Drops all known registrations and returns to a pre-initialization state */
     private fun resetAllRegistrations() {
         _enabledFeatures.clear()
+        _tokenMap.clear()
         locationRegistry.clear()
     }
 
@@ -140,6 +178,8 @@ class FeatureManager(
      *
      * @param config The configuration to use for initialization. Defaults to the current
      *   configuration.
+     * @throws [IllegalStateException] if multiple features attempt to claim the same
+     *   [FeatureToken].
      */
     private fun initializeFeatureSet(config: PhotopickerConfiguration = configuration.value) {
         Log.d(TAG, "Beginning feature initialization with config: ${configuration.value}")
@@ -148,32 +188,96 @@ class FeatureManager(
             if (featureCompanion.isEnabled(config)) {
                 val feature = featureCompanion.build(this)
                 _enabledFeatures.add(feature)
+                if (_tokenMap.contains(feature.token))
+                    throw IllegalStateException(
+                        "A feature has already claimed ${feature.token}. " +
+                            "Tokens must be unique for any given configuration."
+                    )
+                _tokenMap.put(feature.token, feature)
                 if (feature is PhotopickerUiFeature) registerLocationsForFeature(feature)
             }
         }
-        Log.d(TAG, "Feature initialization complete.")
+
+        validateEventRegistrations()
+
+        Log.d(
+            TAG,
+            "Feature initialization complete. Features: ${_enabledFeatures.map { it.token }}"
+        )
+    }
+
+    /**
+     * Inspect the event registrations for consumed and produced events based on the core library
+     * and the current set of enabledFeatures.
+     *
+     * This check ensures that all events that need to be consumed have at least one possible
+     * producer (it does not guarantee the event will actually be produced).
+     *
+     * In the event consumed events are not produced, this behaves differently depending on the
+     * [PhotopickerConfiguration].
+     * - If [PhotopickerConfiguration.deviceIsDebuggable] this will throw [IllegalStateException]
+     *   This is done to try to prevent bad configurations from escaping test and dev builds.
+     * - Else This will Log a warning, but allow initialization to proceed to avoid a runtime crash.
+     */
+    private fun validateEventRegistrations() {
+        // Include the events the CORE library expects to consume in the list of consumed events,
+        // along with all enabledFeatures.
+        val consumedEvents: Set<RegisteredEventClass> =
+            listOf(coreEventsConsumed, *_enabledFeatures.map { it.eventsConsumed }.toTypedArray())
+                .flatten()
+                .toSet()
+
+        // Include the events the CORE library expects to produce in the list of produced events,
+        // along with all enabledFeatures.
+        val producedEvents: Set<RegisteredEventClass> =
+            listOf(coreEventsProduced, *_enabledFeatures.map { it.eventsProduced }.toTypedArray())
+                .flatten()
+                .toSet()
+
+        val consumedButNotProduced = (consumedEvents subtract producedEvents)
+
+        if (consumedButNotProduced.isNotEmpty()) {
+            if (configuration.value.deviceIsDebuggable) {
+                // If the device is a debuggable build, throw an [IllegalStateException] to ensure
+                // that unregistered events don't introduce un-intentional side-effects.
+                throw IllegalStateException(
+                    "Events are expected to be consumed that are not produced: " +
+                        "$consumedButNotProduced"
+                )
+            } else {
+                // If this is a production build, this is still a bad state, but avoid crashing, and
+                // put a note in the logs that the event registration is potentially problematic.
+                Log.w(
+                    TAG,
+                    "Events are expected to be consumed that are not produced: " +
+                        "$consumedButNotProduced"
+                )
+            }
+        }
     }
 
     /**
      * Adds the [PhotopickerUiFeature]'s registered locations to the internal location registry.
      *
      * To minimize memory footprint, the location is only initialized if at least one feature has it
-     * in its list of registeredLocations. This avoids the underlying registry carrying empty
-     * [TreeSet]s for location that no feature wishes to use.
+     * in its list of registeredLocations. This avoids the underlying registry carrying empty lists
+     * for location that no feature wishes to use.
      *
-     * The [TreeSet] that is initialized uses the local [PriorityDescendingComparator] to keep the
-     * set of features at that location sorted by priority.
+     * The list that is initialized uses the local [PriorityDescendingComparator] to keep the
+     * features at that location sorted by priority.
      */
     private fun registerLocationsForFeature(feature: PhotopickerUiFeature) {
-
         val locationPairs = feature.registerLocations()
 
         for ((first, second) in locationPairs) {
-
             // Try to add the feature to this location's registry.
-            locationRegistry.get(first)?.add(Pair(feature, second))
-            // If this is the first registration for this location, initialize the TreeSet.
-            ?: locationRegistry.put(first, sortedSetOf(priorityDescending, Pair(feature, second)))
+            locationRegistry.get(first)?.let {
+                it.add(Pair(feature, second))
+                it.sortWith(priorityDescending)
+            }
+                // If this is the first registration for this location, initialize the list and add
+                // the current feature to the registry for this location.
+                ?: locationRegistry.put(first, mutableListOf(Pair(feature, second)))
         }
     }
 
@@ -188,6 +292,51 @@ class FeatureManager(
     }
 
     /**
+     * Check if a provided event can be dispatched with the current enabled feature set.
+     *
+     * This is called when an event is dispatched to ensure that features cannot dispatch events
+     * that they do not include in their [PhotopickerFeature.eventsProduced] event registry.
+     *
+     * This checks the claiming [dispatcherToken] in the Event and checks the corresponding
+     * feature's event registry to ensure the event has claimed it dispatches the particular Event
+     * class. In the event of a CORE library event, check the internal mapping owned by
+     * [FeatureManager].
+     *
+     * @return Whether the event complies with the event registry.
+     */
+    fun isEventDispatchable(event: Event): Boolean {
+        if (event.dispatcherToken == FeatureToken.CORE.token)
+            return coreEventsProduced.contains(event::class.java)
+        return _tokenMap.get(event.dispatcherToken)?.eventsProduced?.contains(event::class.java)
+            ?: false
+    }
+
+    /**
+     * Checks the run-time (current) maximum size (in terms of number of children created) of the
+     * provided [Location] in the [FeatureManager] internal [locationRegistry].
+     *
+     * This allows features to determine if a given [composeLocation] call will actually create any
+     * child elements at the location.
+     *
+     * The size returned is always stable for the current [PhotopickerConfiguration] but may change
+     * if the configuration is changed, since features could be added or removed under the new
+     * configuration.
+     *
+     * NOTE: This only returns the number of children, there is no way to directly interact with the
+     * feature classes registered at the given location.
+     *
+     * @param location The location to check the size of.
+     * @return the max number of children of the location. Cannot be negative.
+     * @see [composeLocation] for rendering the children of a [Location] in the compose tree.
+     */
+    fun getSizeOfLocationInRegistry(location: Location): Int {
+        // There is no guarantee the [Location] exists in the registry, since it is initialized
+        // lazily, its possible that features have not been registered for the current
+        // configuration.
+        return locationRegistry.get(location)?.size ?: 0
+    }
+
+    /**
      * Calls all of the relevant compose methods for all enabled [PhotopickerUiFeature] that have
      * the [Location] in their registered locations, in their declared priority descending order.
      *
@@ -198,26 +347,36 @@ class FeatureManager(
      * This can result in an empty [Composable] if no features have the provided [Location] in their
      * list of registered locations.
      *
-     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
-     * that is reguarly re-composed will result in the entire subtree being re-composed, which can
-     * impact performance.
+     * Additional parameters can be passed via the [LocationParams] interface for providing
+     * functionality such as click handlers or passing primitive data.
      *
      * @param location The UI location that needs to be composed
      * @param maxSlots (Optional, default unlimited) The maximum number of features that can compose
      *   at this location. If set, this will call features in priority order until all slots of been
      *   exhausted.
+     * @param modifier (Optional) A [Modifier] to pass in the compose call.
+     * @param params (Optional) A [LocationParams] to pass in the compose call.
+     * @see [LocationParams]
+     *
+     * Note: Be careful where this is called in the UI tree. Calling this inside of a composable
+     * that is regularly re-composed will result in the entire sub tree being re-composed, which can
+     * impact performance.
      */
     @Composable
-    fun composeLocation(location: Location, maxSlots: Int? = null) {
-        Log.d(TAG, "Composing for $location")
-
+    fun composeLocation(
+        location: Location,
+        maxSlots: Int? = null,
+        modifier: Modifier = Modifier,
+        params: LocationParams = LocationParams.None,
+    ) {
         val featurePairs = locationRegistry.get(location)
 
         // There is no guarantee the [Location] exists in the registry, since it is initialized
         // lazily, its possible that features have not been registered.
         featurePairs?.let {
             for (feature in featurePairs.take(maxSlots ?: featurePairs.size)) {
-                feature.first.compose(location)
+                Log.d(TAG, "Composing for $location for $feature")
+                feature.first.compose(location, modifier, params)
             }
         }
     }

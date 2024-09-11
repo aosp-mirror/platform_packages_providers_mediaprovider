@@ -20,13 +20,27 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 /**
  * <p>
  * Represents the content associated with an image type in a page of a PDF document.
  */
 @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-public final class PdfPageImageContent {
+public final class PdfPageImageContent implements Parcelable {
+    @NonNull
+    public static final Creator<PdfPageImageContent> CREATOR = new Creator<PdfPageImageContent>() {
+        @Override
+        public PdfPageImageContent createFromParcel(Parcel in) {
+            return new PdfPageImageContent(in);
+        }
+
+        @Override
+        public PdfPageImageContent[] newArray(int size) {
+            return new PdfPageImageContent[size];
+        }
+    };
     private final String mAltText;
 
     /**
@@ -41,6 +55,10 @@ public final class PdfPageImageContent {
         this.mAltText = altText;
     }
 
+    private PdfPageImageContent(Parcel in) {
+        mAltText = in.readString();
+    }
+
     /**
      * Gets the alternate text associated with the image represented by this instance. If there
      * is no such text associated with the image, the method will return an empty string.
@@ -50,5 +68,15 @@ public final class PdfPageImageContent {
     @NonNull
     public String getAltText() {
         return mAltText;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@androidx.annotation.NonNull Parcel dest, int flags) {
+        dest.writeString(mAltText);
     }
 }

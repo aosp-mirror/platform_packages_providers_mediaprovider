@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Хмарний мультимедійний додаток"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Хмарний мультимедійний додаток"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Хмарний мультимедійний додаток"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Отримуйте доступ до медіаконтенту в хмарі, коли додаток або веб-сайт пропонує вибрати фотографії чи відео"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Отримуйте доступ до медіаконтенту в хмарі, коли додаток або вебсайт пропонує вибрати фотографії чи відео"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Постачальник медіаконтенту з хмари"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Немає"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не вдалося змінити хмарний мультимедійний додаток."</string>

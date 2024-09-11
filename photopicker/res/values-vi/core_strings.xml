@@ -18,4 +18,11 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_application_label" msgid="3482718304682270084">"Công cụ chọn nội dung đa phương tiện"</string>
+    <string name="photopicker_media_item" msgid="3592234718212377636">"Nội dung nghe nhìn"</string>
+    <string name="photopicker_item_selected" msgid="3741045642641682375">"Đã chọn"</string>
+    <string name="photopicker_add_button_label" msgid="6805332693977632142">"Thêm <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Chọn tối đa <xliff:g id="COUNT">%1$s</xliff:g> mục"</string>
+    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Ảnh"</string>
+    <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Album"</string>
+    <string name="photopicker_back_option" msgid="986374743479020214">"Quay lại"</string>
 </resources>

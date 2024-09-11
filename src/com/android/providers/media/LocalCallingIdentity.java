@@ -456,9 +456,11 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        boolean targetSdkIsAtLeastR = getTargetSdkVersion() >= Build.VERSION_CODES.R;
+        // To address b/338519249, we will check for sdk version V+
+        boolean targetSdkIsAtLeastV =
+                getTargetSdkVersion() >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
         return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag,
-                    targetSdkIsAtLeastR);
+                targetSdkIsAtLeastV);
     }
 
     private volatile boolean shouldBypass;

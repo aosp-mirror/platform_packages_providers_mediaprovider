@@ -35,6 +35,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,7 +44,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -261,20 +261,22 @@ fun PhotopickerApp(
 
     // Provide the NavController to the rest of the Compose stack.
     CompositionLocalProvider(LocalNavController provides navController) {
-        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
-            PhotopickerMain(disruptiveDataNotification)
-            Column {
-                LocalFeatureManager.current.composeLocation(
-                    Location.SNACK_BAR,
-                    maxSlots = 1,
-                )
-                hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+        Surface(contentColor = MaterialTheme.colorScheme.onSurface, color = Color.Transparent) {
+            Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
+                PhotopickerMain(disruptiveDataNotification)
+                Column {
                     LocalFeatureManager.current.composeLocation(
-                        Location.SELECTION_BAR,
+                        Location.SNACK_BAR,
                         maxSlots = 1,
-                        modifier = Modifier.padding(SELECTION_BAR_PADDING),
-                        params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
                     )
+                    hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                        LocalFeatureManager.current.composeLocation(
+                            Location.SELECTION_BAR,
+                            maxSlots = 1,
+                            modifier = Modifier.padding(SELECTION_BAR_PADDING),
+                            params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
+                        )
+                    }
                 }
             }
         }

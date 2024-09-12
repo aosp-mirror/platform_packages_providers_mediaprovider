@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"사진 및 동영상 캡처를 시작하세요"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"카메라 앱으로 촬영한 사진 및 동영상이 여기에 표시됨"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"즐겨찾기한 항목이 없습니다"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"즐겨찾기로 표시하거나 별표표시한 사진과 동영상이 여기에 표시됩니다."</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"동영상이 없습니다"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"카메라 앱으로 캡처하거나 저장 또는 공유한 동영상이 여기에 표시됩니다."</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"뒤로"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"닫기"</string>
 </resources>

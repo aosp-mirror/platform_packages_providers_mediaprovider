@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ફોટા અને વીડિયો કૅપ્ચર કરવાનું શરૂ કરો"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"તમારી કૅમેરા ઍપ દ્વારા કૅપ્ચર કરેલા ફોટા અને વીડિયો અહીં દેખાશે"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"હજી સુધી કોઈ મનપસંદ નથી"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"મનપસંદ કરેલા કે સ્ટાર માર્ક કરેલા ફોટા અને વીડિયો અહીં દેખાશે"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"હજી સુધી કોઈ વીડિયો નથી"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"તમારી કૅમેરા ઍપ વડે કૅપ્ચર કરેલા, સાચવેલા કે શેર કરેલા વીડિયો અહીં દેખાશે"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"પાછળ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"છોડી દો"</string>
 </resources>

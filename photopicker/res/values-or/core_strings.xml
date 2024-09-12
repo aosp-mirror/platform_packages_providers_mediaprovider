@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ଫଟୋ ଏବଂ ଭିଡିଓଗୁଡ଼ିକୁ କେପଚର କରିବା ଆରମ୍ଭ କରନ୍ତୁ"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"ଆପଣଙ୍କ କେମେରା ଆପ ଦ୍ୱାରା କେପଚର କରାଯାଇଥିବା ଫଟୋ ଏବଂ ଭିଡିଓଗୁଡ଼ିକ ଏଠାରେ ଦେଖାଯିବ"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ପସନ୍ଦର ଆଲବମ ନାହିଁ"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"ପସନ୍ଦ ଭାବେ ମାର୍କ କରାଯାଇଥିବା କିମ୍ବା ଷ୍ଟାରଯୁକ୍ତ ଫଟୋ ଏବଂ ଭିଡିଓଗୁଡ଼ିକ ଏଠାରେ ଦେଖାଯିବ"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଭିଡିଓ ନାହିଁ"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"ଆପଣଙ୍କ କେମେରା ଆପ ଦ୍ୱାରା କେପଚର, ସେଭ କିମ୍ବା ସେୟାର କରାଯାଇଥିବା ଭିଡିଓଗୁଡ଼ିକ ଏଠାରେ ଦେଖାଯିବ"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"ପଛକୁ ଫେରନ୍ତୁ"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ଖାରଜ କରନ୍ତୁ"</string>
 </resources>

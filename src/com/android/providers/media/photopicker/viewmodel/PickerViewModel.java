@@ -1194,12 +1194,13 @@ public class PickerViewModel extends AndroidViewModel {
             } else {
                 mLogger.logPickerOpenUnknown(mInstanceId, callingUid, callingPackage);
             }
+            return;
+        }
+
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
         } else {
-            if (getUserIdManager().isManagedUserSelected()) {
-                mLogger.logPickerOpenWork(mInstanceId, callingUid, callingPackage);
-            } else {
-                mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
-            }
+            mLogger.logPickerOpenPersonal(mInstanceId, callingUid, callingPackage);
         }
 
         // TODO(b/235326735): Optimise logging multiple times on picker opened
@@ -1303,14 +1304,14 @@ public class PickerViewModel extends AndroidViewModel {
                 mLogger.logPickerConfirmUnknown(
                         mInstanceId, callingUid, callingPackage, countOfItemsConfirmed);
             }
+            return;
+        }
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
         } else {
-            if (getUserIdManager().isManagedUserSelected()) {
-                mLogger.logPickerConfirmWork(mInstanceId, callingUid, callingPackage,
-                        countOfItemsConfirmed);
-            } else {
-                mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
-                        countOfItemsConfirmed);
-            }
+            mLogger.logPickerConfirmPersonal(mInstanceId, callingUid, callingPackage,
+                    countOfItemsConfirmed);
         }
     }
 
@@ -1329,12 +1330,12 @@ public class PickerViewModel extends AndroidViewModel {
             } else {
                 mLogger.logPickerCancelUnknown(mInstanceId, callingUid, callingPackage);
             }
+            return;
+        }
+        if (getUserIdManager().isManagedUserSelected()) {
+            mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
         } else {
-            if (getUserIdManager().isManagedUserSelected()) {
-                mLogger.logPickerCancelWork(mInstanceId, callingUid, callingPackage);
-            } else {
-                mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
-            }
+            mLogger.logPickerCancelPersonal(mInstanceId, callingUid, callingPackage);
         }
     }
 

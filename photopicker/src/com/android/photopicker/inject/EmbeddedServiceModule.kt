@@ -291,7 +291,8 @@ class EmbeddedServiceModule {
             return events
         } else {
             Log.d(Events.TAG, "Events requested but not yet initialized. Initializing Events.")
-            return Events(scope, configurationManager.configuration, featureManager)
+            events = Events(scope, configurationManager.configuration, featureManager)
+            return events
         }
     }
 

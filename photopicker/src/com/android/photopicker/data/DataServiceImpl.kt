@@ -17,16 +17,23 @@
 package com.android.photopicker.data
 
 import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ResolveInfo
 import android.database.ContentObserver
 import android.net.Uri
+import android.os.UserHandle
+import android.provider.CloudMediaProviderContract
+import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.GuardedBy
 import androidx.paging.PagingSource
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.CloudMediaProviderDetails
 import com.android.photopicker.data.model.CollectionInfo
-import com.android.photopicker.data.model.CollectionInfoState
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -79,13 +86,24 @@ class DataServiceImpl(
     private val notificationService: NotificationService,
     private val mediaProviderClient: MediaProviderClient,
     private val config: StateFlow<PhotopickerConfiguration>,
-    private val featureManager: FeatureManager
+    private val featureManager: FeatureManager,
+    private val appContext: Context,
+    private val events: Events,
+    private val processOwnerHandle: UserHandle
 ) : DataService {
     private val _activeContentResolver =
         MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
 
-    // Keep track of the photo grid media and album grid paging source so that we can invalidate
-    // them in case the underlying data changes.
+    // Here default value being null signifies that the look up for the grants has not happened yet.
+    // Use [refreshPreGrantedItemsCount] to populate this with the latest value.
+    private var _preGrantedMediaCount: MutableStateFlow<Int?> = MutableStateFlow(null)
+
+    // Here default value being null signifies that the look up for the uris has not happened yet.
+    // Use [fetchMediaDataForUris] to populate this with the latest value.
+    private var _preSelectionMediaData: MutableStateFlow<List<Media>?> = MutableStateFlow(null)
+
+    // Keep track of the photo grid media, album grid and preview media paging sources so that we
+    // can invalidate them in case the underlying data changes.
     private val mediaPagingSources: MutableList<MediaPagingSource> = mutableListOf()
     private val albumPagingSources: MutableList<AlbumPagingSource> = mutableListOf()
 
@@ -105,9 +123,6 @@ class DataServiceImpl(
 
     // An internal lock to allow thread-safe updates to the [AlbumMediaPagingSource].
     private val albumMediaPagingSourceMutex = Mutex()
-
-    // Contains the caches collection info
-    private val collectionInfoState = CollectionInfoState()
 
     /**
      * Callback flow that listens to changes in the available providers and emits updated list of
@@ -174,7 +189,23 @@ class DataServiceImpl(
             _availableProviders.value
         )
 
+    // Contains collection info cache
+    private val collectionInfoState =
+        CollectionInfoState(mediaProviderClient, _activeContentResolver, availableProviders)
+
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
+
+    /**
+     * Same as [_preGrantedMediaCount] but as an immutable StateFlow. The count contains the latest
+     * value set during the most recent [refreshPreGrantedItemsCount] call.
+     */
+    override val preGrantedMediaCount: StateFlow<Int?> = _preGrantedMediaCount
+
+    /**
+     * Same as [_preSelectionMediaData] but as an immutable StateFlow. The flow contains the latest
+     * value set during the most recent [fetchMediaDataForUris] call.
+     */
+    override val preSelectionMediaData: StateFlow<List<Media>?> = _preSelectionMediaData
 
     companion object {
         const val FLOW_TIMEOUT_MILLI_SECONDS: Long = 5000
@@ -225,32 +256,7 @@ class DataServiceImpl(
                                 "Available providers update notification received $providers"
                             )
 
-                            // Send refresh media request to Photo Picker.
-                            // TODO(b/340246010): This is required even when  there is no change in
-                            // the [availableProviders] state flow because PhotoPicker relies on the
-                            // UI to trigger a sync when the cloud provider changes. Further, a
-                            // successful sync enables cloud queries, which then updates the UI.
-                            refreshMedia(providers)
-
-                            val previouslyAvailableProviders = _availableProviders.value
-
-                            _availableProviders.update { providers }
-
-                            // If the available providers are not a superset of previously available
-                            // providers, this is a disruptive data update that should ideally
-                            // reset the UI.
-                            if (!providers.containsAll(previouslyAvailableProviders)) {
-                                Log.d(
-                                    DataService.TAG,
-                                    "Sending a disruptive data update notification."
-                                )
-                                disruptiveDataUpdateChannel.send(Unit)
-                            }
-
-                            // Clear collection info cache immediately and update the cache from
-                            // data source in a child coroutine.
-                            collectionInfoState.clear()
-                            scope.launch(dispatcher) { updateCollectionInfo(providers) }
+                            updateAvailableProviders(providers)
                         }
                     }
 
@@ -395,12 +401,7 @@ class DataServiceImpl(
             awaitClose { notificationService.unregisterContentObserverCallback(resolver, observer) }
         }
 
-    private suspend fun updateCollectionInfo(providers: List<Provider>) {
-        val collectionInfo: List<CollectionInfo> =
-            mediaProviderClient.fetchCollectionInfo(_activeContentResolver.value)
-        collectionInfoState.updateCollectionInfo(providers, collectionInfo)
-    }
-
+    @GuardedBy("albumMediaPagingSourceMutex")
     override fun albumMediaPagingSource(album: Album): PagingSource<MediaPageKey, Media> =
         runBlocking {
             refreshAlbumMedia(album)
@@ -420,6 +421,7 @@ class DataServiceImpl(
                             mediaProviderClient,
                             dispatcher,
                             config.value,
+                            events,
                         )
 
                     Log.v(
@@ -435,6 +437,7 @@ class DataServiceImpl(
             }
         }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -446,6 +449,7 @@ class DataServiceImpl(
                     mediaProviderClient,
                     dispatcher,
                     config.value,
+                    events,
                 )
 
             Log.v(
@@ -463,6 +467,7 @@ class DataServiceImpl(
     ): StateFlow<CloudMediaProviderDetails?> =
         throw NotImplementedError("This method is not implemented yet.")
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
@@ -474,6 +479,7 @@ class DataServiceImpl(
                     mediaProviderClient,
                     dispatcher,
                     config.value,
+                    events,
                 )
 
             Log.v(DataService.TAG, "Created a media paging source that queries $availableProviders")
@@ -483,17 +489,46 @@ class DataServiceImpl(
         }
     }
 
+    @GuardedBy("mediaPagingSourceMutex")
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
         currentDeselection: Set<Media>
-    ): PagingSource<MediaPageKey, Media> =
-        throw NotImplementedError("This method is not implemented yet.")
+    ): PagingSource<MediaPageKey, Media> = runBlocking {
+        mediaPagingSourceMutex.withLock {
+            val availableProviders: List<Provider> = availableProviders.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
+            val mediaPagingSource =
+                MediaPagingSource(
+                    contentResolver,
+                    availableProviders,
+                    mediaProviderClient,
+                    dispatcher,
+                    config.value,
+                    events,
+                    /* is_preview_request */ true,
+                    currentSelection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
+                    currentDeselection
+                        .mapNotNull { it.mediaId }
+                        .toCollection(
+                            ArrayList(),
+                        ),
+                )
+
+            Log.v(
+                DataService.TAG,
+                "Created a media paging source that queries database for" + "preview items."
+            )
+            mediaPagingSources.add(mediaPagingSource)
+            mediaPagingSource
+        }
+    }
 
     override suspend fun refreshMedia() {
         val availableProviders: List<Provider> = availableProviders.value
         refreshMedia(availableProviders)
     }
 
+    @GuardedBy("albumMediaPagingSourceMutex")
     override suspend fun refreshAlbumMedia(album: Album) {
         albumMediaPagingSourceMutex.withLock {
             // Send album media refresh request only when the album media paging source is not
@@ -533,6 +568,138 @@ class DataServiceImpl(
         }
     }
 
+    override suspend fun getCollectionInfo(provider: Provider): CollectionInfo {
+        return collectionInfoState.getCollectionInfo(provider)
+    }
+
+    override suspend fun ensureProviders() {
+        mediaProviderClient.ensureProviders(_activeContentResolver.value)
+        updateAvailableProviders(fetchAvailableProviders())
+    }
+
+    override fun getAllAllowedProviders(): List<Provider> {
+        val configSnapshot = config.value
+        val user = userStatus.value.activeUserProfile.handle
+        val enforceAllowlist = configSnapshot.flags.CLOUD_ENFORCE_PROVIDER_ALLOWLIST
+        val allowlist = configSnapshot.flags.CLOUD_ALLOWED_PROVIDERS
+        val intent = Intent(CloudMediaProviderContract.PROVIDER_INTERFACE)
+        val packageManager = appContext.getPackageManager()
+        val allProviders: List<ResolveInfo> =
+            packageManager.queryIntentContentProvidersAsUser(intent, /* flags */ 0, user)
+
+        val allowedProviders =
+            allProviders
+                .filter {
+                    it.providerInfo.authority != null &&
+                        CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION.equals(
+                            it.providerInfo.readPermission
+                        ) &&
+                        (!enforceAllowlist || allowlist.contains(it.providerInfo.packageName))
+                }
+                .map {
+                    Provider(
+                        authority = it.providerInfo.authority,
+                        mediaSource = MediaSource.REMOTE,
+                        uid =
+                            packageManager.getPackageUid(
+                                it.providerInfo.packageName,
+                                /* flags */ 0
+                            ),
+                        displayName = it.loadLabel(packageManager) as? String ?: ""
+                    )
+                }
+
+        return allowedProviders
+    }
+
+    /**
+     * Sends an update to the [_availableProviders] State flow. Collection info cache gets cleared
+     * because it is potentially stale. If the new set of available providers does not contain all
+     * of the previously available providers, then the UI should ideally clear itself immediately to
+     * avoid displaying any media items from a clud provider that is not currently available. To
+     * communicate this with the UI, [disruptiveDataUpdateChannel] might emit a Unit object.
+     *
+     * @param providers The list of new available providers.
+     */
+    private suspend fun updateAvailableProviders(providers: List<Provider>) {
+        // Send refresh media request to Photo Picker.
+        // TODO(b/340246010): This is required even when there is no change in
+        // the [availableProviders] state flow because PhotoPicker relies on the
+        // UI to trigger a sync when the cloud provider changes. Further, a
+        // successful sync enables cloud queries, which then updates the UI.
+        refreshMedia(providers)
+
+        // refresh count for preGranted media.
+        refreshPreGrantedItemsCount()
+
+        config.value.preSelectedUris?.let { fetchMediaDataForUris(it) }
+
+        val previouslyAvailableProviders = _availableProviders.value
+
+        _availableProviders.update { providers }
+
+        // If the available providers are not a superset of previously available
+        // providers, this is a disruptive data update that should ideally
+        // reset the UI.
+        if (!providers.containsAll(previouslyAvailableProviders)) {
+            Log.d(DataService.TAG, "Sending a disruptive data update notification.")
+            disruptiveDataUpdateChannel.send(Unit)
+        }
+
+        // Clear collection info cache immediately and update the cache from
+        // data source in a child coroutine.
+        collectionInfoState.clear()
+    }
+
+    override fun refreshPreGrantedItemsCount() {
+        // value for _preGrantedMediaCount being null signifies that the count has not been fetched
+        // yet for this photopicker session.
+        // This should only be used in ACTION_USER_SELECT_IMAGES_FOR_APP mode since grants only
+        // exist for this mode.
+        if (
+            _preGrantedMediaCount.value == null &&
+                MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(config.value.action)
+        ) {
+            _preGrantedMediaCount.update {
+                mediaProviderClient.fetchMediaGrantsCount(
+                    _activeContentResolver.value,
+                    config.value.callingPackageUid ?: -1
+                )
+            }
+        }
+    }
+
+    override fun fetchMediaDataForUris(uris: List<Uri>) {
+        // value for _preSelectionMediaData being null signifies that the data has not been fetched
+        // yet for this photopicker session.
+        if (_preSelectionMediaData.value == null && uris.isNotEmpty()) {
+            // Pre-selection state is not accessible cross-profile, so any time the
+            // [activeUserProfile] is not the Process owner's profile, pre-selections should not be
+            // refreshed and any cached state should not be updated to the UI.
+            if (
+                userStatus.value.activeUserProfile.handle.identifier ==
+                    processOwnerHandle.getIdentifier()
+            ) {
+                _preSelectionMediaData.update {
+                    mediaProviderClient.fetchFilteredMedia(
+                        MediaPageKey(),
+                        MediaStore.getPickImagesMaxLimit(),
+                        _activeContentResolver.value,
+                        _availableProviders.value,
+                        config.value,
+                        uris
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Sends a refresh media notification to the data source. This signal tells the data source to
+     * refresh its cache.
+     *
+     * @param providers The list of currently available providers.
+     */
     private fun refreshMedia(availableProviders: List<Provider>) {
         if (availableProviders.isNotEmpty()) {
             mediaProviderClient.refreshMedia(
@@ -545,10 +712,11 @@ class DataServiceImpl(
         }
     }
 
-    override suspend fun getCollectionInfo(provider: Provider): CollectionInfo {
-        return collectionInfoState.getCollectionInfo(provider)
-    }
-
+    /**
+     * Fetch available providers from the data source and return it. If the [CloudMediaFeature] is
+     * turned off, the available list of providers received from the data source will filter out all
+     * providers that serve [MediaSource.Remote] items.
+     */
     private fun fetchAvailableProviders(): List<Provider> {
         var availableProviders =
             mediaProviderClient.fetchAvailableProviders(_activeContentResolver.value)

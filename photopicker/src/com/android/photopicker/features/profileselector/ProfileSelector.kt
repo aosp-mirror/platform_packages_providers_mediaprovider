@@ -17,17 +17,21 @@
 package com.android.photopicker.features.profileselector
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
@@ -45,8 +49,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
+import com.android.photopicker.core.components.ElevationTokens
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
+
+/* The size of the current profile's icon in the selector button */
+private val MEASUREMENT_PROFILE_ICON_SIZE = 22.dp
 
 /** Entry point for the profile selector. */
 @Composable
@@ -74,15 +82,22 @@ fun ProfileSelector(
         val currentProfile by viewModel.selectedProfile.collectAsStateWithLifecycle()
         var expanded by remember { mutableStateOf(false) }
         Box(modifier = modifier) {
-            IconButton(
+            FilledTonalButton(
                 modifier = Modifier.align(Alignment.CenterStart),
-                onClick = { expanded = !expanded }
+                onClick = { expanded = !expanded },
+                contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
+                colors =
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                    )
             ) {
                 currentProfile.icon?.let {
                     Icon(
                         it,
                         contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description)
+                            stringResource(R.string.photopicker_profile_switch_button_description),
+                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
                     )
                 }
                     // If the profile doesn't have an icon drawable set, then
@@ -90,8 +105,15 @@ fun ProfileSelector(
                     ?: Icon(
                         getIconForProfile(currentProfile),
                         contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description)
+                            stringResource(R.string.photopicker_profile_switch_button_description),
+                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
                     )
+
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
             }
 
             // DropdownMenu attaches to the element above it in the hierarchy, so this should stay
@@ -99,6 +121,8 @@ fun ProfileSelector(
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = !expanded },
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = ElevationTokens.Level2,
             ) {
                 for (profile in allProfiles) {
 
@@ -108,7 +132,7 @@ fun ProfileSelector(
                         color =
                             if (currentProfile == profile)
                                 MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
+                            else MaterialTheme.colorScheme.surfaceContainerHigh
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
@@ -132,7 +156,12 @@ fun ProfileSelector(
                                     }
                                 }
                             },
-                            text = { Text(profile.label ?: getLabelForProfile(profile)) },
+                            text = {
+                                Text(
+                                    text = profile.label ?: getLabelForProfile(profile),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                            },
                             leadingIcon = {
                                 profile.icon?.let {
                                     Icon(
@@ -140,7 +169,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                true -> MaterialTheme.colorScheme.primary
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
@@ -154,7 +183,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MenuDefaults.itemColors().leadingIconColor
+                                                true -> MaterialTheme.colorScheme.primary
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor

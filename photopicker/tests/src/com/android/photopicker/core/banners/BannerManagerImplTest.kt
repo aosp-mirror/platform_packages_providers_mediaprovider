@@ -16,31 +16,54 @@
 
 package com.android.photopicker.core.banners
 
+import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.content.pm.UserProperties
+import android.os.Parcel
+import android.os.UserHandle
+import android.os.UserManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import androidx.test.platform.app.InstrumentationRegistry
+import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.R
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.database.DatabaseManagerTestImpl
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
+import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.nonNullableEq
 import com.android.photopicker.tests.utils.mockito.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mock
 import org.mockito.Mockito.anyInt
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.isNull
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
@@ -53,11 +76,98 @@ class BannerManagerImplTest {
     // Isolate the test device by providing a test wrapper around device config so that the
     // tests can control the flag values that are returned.
     val deviceConfigProxy = TestDeviceConfigProxyImpl()
+    private val PLATFORM_PROVIDED_PROFILE_LABEL = "Platform Label"
+
+    private val USER_HANDLE_PRIMARY: UserHandle
+    private val USER_ID_PRIMARY: Int = 0
+    private val PRIMARY_PROFILE_BASE: UserProfile
+
+    private val USER_HANDLE_MANAGED: UserHandle
+    private val USER_ID_MANAGED: Int = 10
+    private val MANAGED_PROFILE_BASE: UserProfile
+    private val mockContentResolver: ContentResolver = mock(ContentResolver::class.java)
+
+    @Mock lateinit var mockContext: Context
+    @Mock lateinit var mockUserManager: UserManager
+    @Mock lateinit var mockPackageManager: PackageManager
+
+    init {
+        val parcel1 = Parcel.obtain()
+        parcel1.writeInt(USER_ID_PRIMARY)
+        parcel1.setDataPosition(0)
+        USER_HANDLE_PRIMARY = UserHandle(parcel1)
+        parcel1.recycle()
+
+        PRIMARY_PROFILE_BASE =
+            UserProfile(
+                handle = USER_HANDLE_PRIMARY,
+                profileType = UserProfile.ProfileType.PRIMARY,
+                label = PLATFORM_PROVIDED_PROFILE_LABEL
+            )
+
+        val parcel2 = Parcel.obtain()
+        parcel2.writeInt(USER_ID_MANAGED)
+        parcel2.setDataPosition(0)
+        USER_HANDLE_MANAGED = UserHandle(parcel2)
+        parcel2.recycle()
+
+        MANAGED_PROFILE_BASE =
+            UserProfile(
+                handle = USER_HANDLE_MANAGED,
+                profileType = UserProfile.ProfileType.MANAGED,
+                label = PLATFORM_PROVIDED_PROFILE_LABEL
+            )
+    }
+
+    val sessionId = generatePickerSessionId()
 
     @Before
     fun setup() {
         MockitoAnnotations.initMocks(this)
         deviceConfigProxy.reset()
+        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
+
+        mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
+        whenever(mockContext.packageManager) { mockPackageManager }
+        whenever(mockContext.contentResolver) { mockContentResolver }
+        whenever(mockContext.createPackageContextAsUser(any(), anyInt(), any())) { mockContext }
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            mockContext
+        }
+
+        // Initial setup state: Two profiles (Personal/Work), both enabled
+        whenever(mockUserManager.userProfiles) { listOf(USER_HANDLE_PRIMARY, USER_HANDLE_MANAGED) }
+
+        // Default responses for relevant UserManager apis
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_PRIMARY)) { false }
+        whenever(mockUserManager.isManagedProfile(USER_ID_PRIMARY)) { false }
+        whenever(mockUserManager.isQuietModeEnabled(USER_HANDLE_MANAGED)) { false }
+        whenever(mockUserManager.isManagedProfile(USER_ID_MANAGED)) { true }
+        whenever(mockUserManager.getProfileParent(USER_HANDLE_MANAGED)) { USER_HANDLE_PRIMARY }
+
+        val mockResolveInfo = mock(ResolveInfo::class.java)
+        whenever(mockResolveInfo.isCrossProfileIntentForwarderActivity()) { true }
+        whenever(mockPackageManager.queryIntentActivities(any(Intent::class.java), anyInt())) {
+            listOf(mockResolveInfo)
+        }
+
+        if (SdkLevel.isAtLeastV()) {
+            whenever(mockUserManager.getUserBadge()) {
+                resources.getDrawable(R.drawable.android, /* theme= */ null)
+            }
+            whenever(mockUserManager.getProfileLabel()) { PLATFORM_PROVIDED_PROFILE_LABEL }
+            whenever(mockUserManager.getUserProperties(USER_HANDLE_PRIMARY)) {
+                UserProperties.Builder().build()
+            }
+            // By default, allow managed profile to be available
+            whenever(mockUserManager.getUserProperties(USER_HANDLE_MANAGED)) {
+                UserProperties.Builder()
+                    .setCrossProfileContentSharingStrategy(
+                        UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+                    )
+                    .build()
+            }
+        }
     }
 
     /**
@@ -74,12 +184,25 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
                     emptySet<FeatureRegistration>(),
+                )
+
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
                 )
 
             val bannerManager =
@@ -90,6 +213,8 @@ class BannerManagerImplTest {
                     databaseManager = DatabaseManagerTestImpl(),
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             assertWithMessage("Expected no banner to be emitted")
@@ -109,6 +234,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -118,6 +244,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -126,6 +264,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             whenever(databaseManager.bannerState.getBannerState(anyString(), anyInt())) { null }
@@ -148,6 +288,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -157,6 +298,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -165,6 +318,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             // Set the caller because PRIVACY_EXPLAINER is PER_UID dismissal.
@@ -212,6 +367,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -221,6 +377,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -229,6 +397,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             // Set the caller because PRIVACY_EXPLAINER is PER_UID dismissal.
@@ -266,6 +436,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -275,6 +446,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -283,6 +466,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             assertWithMessage("Initial banner was not null.")
@@ -308,6 +493,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -317,6 +503,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -325,6 +523,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             assertWithMessage("Initial banner was not null.")
@@ -358,6 +558,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -367,6 +568,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -375,6 +588,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             bannerManager.markBannerAsDismissed(BannerDefinitions.CLOUD_CHOOSE_ACCOUNT)
@@ -403,6 +618,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
             val featureManager =
                 FeatureManager(
@@ -412,6 +628,18 @@ class BannerManagerImplTest {
                 )
             val databaseManager = DatabaseManagerTestImpl()
 
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
             val bannerManager =
                 BannerManagerImpl(
                     scope = this.backgroundScope,
@@ -420,8 +648,9 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
-
             // Set the caller because PRIVACY_EXPLAINER is PER_UID dismissal.
             configurationManager.setCaller(
                 callingPackage = "com.android.test.package",
@@ -434,6 +663,78 @@ class BannerManagerImplTest {
                 .setBannerState(
                     BannerState(
                         bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
+                        uid = 12345,
+                        dismissed = true,
+                    )
+                )
+        }
+    }
+
+    /**
+     * Ensures that the [BannerManagerImpl] persists dismiss state for the per uid dismissal
+     * strategy.
+     */
+    @Test
+    fun testMarkBannerAsDismissedSessionStrategy() {
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration)
+                )
+            val databaseManager = DatabaseManagerTestImpl()
+
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            val bannerManager =
+                BannerManagerImpl(
+                    scope = this.backgroundScope,
+                    backgroundDispatcher = StandardTestDispatcher(this.testScheduler),
+                    configurationManager = configurationManager,
+                    databaseManager = databaseManager,
+                    featureManager = featureManager,
+                    dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
+                )
+            // Set the caller because PRIVACY_EXPLAINER is PER_UID dismissal.
+            configurationManager.setCaller(
+                callingPackage = "com.android.test.package",
+                callingPackageUid = 12345,
+                callingPackageLabel = "Test Package",
+            )
+
+            bannerManager.markBannerAsDismissed(BannerDefinitions.SWITCH_PROFILE)
+
+            assertWithMessage("Expected banner state to be dismissed")
+                .that(bannerManager.getBannerState(BannerDefinitions.SWITCH_PROFILE)?.dismissed)
+                .isTrue()
+
+            // Ensure no calls to persist the state in the database.
+            verify(databaseManager.bannerState, never())
+                .setBannerState(
+                    BannerState(
+                        bannerId = BannerDefinitions.SWITCH_PROFILE.id,
                         uid = 12345,
                         dismissed = true,
                     )
@@ -463,6 +764,7 @@ class BannerManagerImplTest {
                     scope = this.backgroundScope,
                     dispatcher = StandardTestDispatcher(this.testScheduler),
                     deviceConfigProxy,
+                    sessionId
                 )
 
             val featureManager =
@@ -472,6 +774,18 @@ class BannerManagerImplTest {
                     setOf(mockRegistration)
                 )
             val databaseManager = DatabaseManagerTestImpl()
+
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
 
             // Set the caller because PRIVACY_EXPLAINER is PER_UID dismissal.
             configurationManager.setCaller(
@@ -489,6 +803,8 @@ class BannerManagerImplTest {
                     databaseManager = databaseManager,
                     featureManager = featureManager,
                     dataService = testDataService,
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
                 )
 
             whenever(mockSimpleUiFeature.ownedBanners) {
@@ -500,12 +816,73 @@ class BannerManagerImplTest {
                     isNull(),
                     nonNullableEq(configurationManager.configuration.value),
                     nonNullableEq(testDataService),
+                    nonNullableEq(userMonitor),
                 )
             ) {
                 -1
             }
 
             bannerManager.refreshBanners()
+
+            assertWithMessage("Incorrect banner was chosen.")
+                .that(bannerManager.flow.value)
+                .isNull()
+        }
+    }
+
+    /** Ensures that the [BannerManagerImpl] emits its current Banner. */
+    @Test
+    fun testHidesBannersOnProfileSwitch() {
+
+        runTest {
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    sessionId
+                )
+            val featureManager =
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    setOf(SimpleUiFeature.Registration)
+                )
+            val databaseManager = DatabaseManagerTestImpl()
+
+            val userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration = testActionPickImagesConfiguration,
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY
+                )
+
+            val bannerManager =
+                BannerManagerImpl(
+                    scope = this.backgroundScope,
+                    backgroundDispatcher = StandardTestDispatcher(this.testScheduler),
+                    configurationManager = configurationManager,
+                    databaseManager = databaseManager,
+                    featureManager = featureManager,
+                    dataService = TestDataServiceImpl(),
+                    userMonitor = userMonitor,
+                    processOwnerHandle = USER_HANDLE_PRIMARY
+                )
+
+            whenever(databaseManager.bannerState.getBannerState(anyString(), anyInt())) { null }
+            bannerManager.refreshBanners()
+
+            userMonitor.requestSwitchActiveUserProfile(
+                requested = MANAGED_PROFILE_BASE,
+                mockContext
+            )
+            advanceTimeBy(100)
 
             assertWithMessage("Incorrect banner was chosen.")
                 .that(bannerManager.flow.value)

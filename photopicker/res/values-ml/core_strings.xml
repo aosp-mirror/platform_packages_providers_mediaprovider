@@ -20,16 +20,18 @@
     <string name="photopicker_application_label" msgid="7272391964836190376">"ഫോട്ടോകളും വീഡിയോകളും"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"മീഡിയ"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"തിരഞ്ഞെടുത്തു"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g> ചേർക്കുക"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"പൂർത്തിയായി"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"തിരഞ്ഞെടുത്തത് എല്ലാം മാറ്റുക"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ഇനങ്ങൾ വരെ തിരഞ്ഞെടുക്കുക"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"ഫോട്ടോകൾ"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ആൽബങ്ങൾ"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ഇതുവരെ ഫോട്ടോകളൊന്നുമില്ല"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ഫോട്ടോകളും വീഡിയോകളും എടുക്കാൻ ആരംഭിക്കുക"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"നിങ്ങളുടെ Camera ആപ്പ് എടുത്ത ഫോട്ടോകളും വീഡിയോകളും ഇവിടെ ദൃശ്യമാകും"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"ഇതുവരെ പ്രിയപ്പെട്ടവയൊന്നുമില്ല"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"നക്ഷത്രചിഹ്നമിട്ടതോ പ്രിയപ്പെട്ടവയായി അടയാളപ്പെടുത്തിയതോ ആയ ഇനങ്ങൾ ശേഖരിക്കുന്ന ഓട്ടോമാറ്റിക് ആൽബമാണിത്"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"പ്രിയപ്പെട്ടവയായി അടയാളപ്പെടുത്തിയതോ നക്ഷത്രചിഹ്നമിട്ടതോ ആയ ഫോട്ടോകളും വീഡിയോകളും ഇവിടെ ദൃശ്യമാകും"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"ഇതുവരെ വീഡിയോകൾ ഒന്നുമില്ല"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"നിങ്ങളുടെ എല്ലാ വീഡിയോകളും ശേഖരിക്കുന്ന ഓട്ടോമാറ്റിക് ആൽബമാണിത്"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"നിങ്ങളുടെ ക്യാമറാ ആപ്പ് എടുത്തതോ സംരക്ഷിച്ചതോ പങ്കിട്ടതോ ആയ വീഡിയോകൾ ഇവിടെ ദൃശ്യമാകും"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"മടങ്ങുക"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ഡിസ്‌മിസ് ചെയ്യുക"</string>
 </resources>

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,7 @@ private val MEASUREMENT_ICON_SIZE = 24.dp
 private val MEASUREMENT_ICON_TITLE_SPACER = 16.dp
 private val MEASUREMENT_TITLE_BODY_SPACER = 8.dp
 private val MEASUREMENT_EMPTY_STATE_HORIZONTAL_MARGIN = 16.dp
+private val MEASUREMENT_MAX_WIDTH = 320.dp
 
 /**
  * Displays a message that indicates the current screen has no content to display.
@@ -80,18 +82,24 @@ fun EmptyState(
                 )
             }
         }
-        Spacer(Modifier.size(MEASUREMENT_ICON_TITLE_SPACER))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(Modifier.size(MEASUREMENT_TITLE_BODY_SPACER))
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            modifier = Modifier.widthIn(max = MEASUREMENT_MAX_WIDTH),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Spacer(Modifier.size(MEASUREMENT_ICON_TITLE_SPACER))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.size(MEASUREMENT_TITLE_BODY_SPACER))
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

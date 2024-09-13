@@ -17,13 +17,20 @@
 package com.android.photopicker.core.configuration
 
 import android.content.Intent
+import android.os.Build
 import android.provider.DeviceConfig
 import android.util.Log
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.isUnspecified
 import com.android.photopicker.core.navigation.PhotopickerDestinations
+import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
+import com.android.photopicker.extensions.getPickImagesPreSelectedUris
 import com.android.photopicker.extensions.getStartDestination
+import com.android.providers.media.flags.Flags
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
@@ -56,12 +63,14 @@ import kotlinx.coroutines.launch
  *   in.
  * @property deviceConfigProxy This is provided to the ConfigurationManager to better support
  *   testing various device flags, without relying on the device's actual flags at test time.
+ * @property sessionId A randomly generated integer to identify the current photopicker session
  */
 class ConfigurationManager(
     private val runtimeEnv: PhotopickerRuntimeEnv,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val deviceConfigProxy: DeviceConfigProxy,
+    private val sessionId: Int,
 ) {
 
     companion object {
@@ -121,6 +130,55 @@ class ConfigurationManager(
     }
 
     /**
+     * Updates the [PhotopickerConfiguration] with the [EmbeddedPhotopickerFeatureInfo] that the
+     * Embedded Photopicker is running with.
+     *
+     * Since [ConfigurationManager] is bound to the [EmbeddedServiceComponent], it does not have a
+     * reference to the currently running Session (if there is one). This allows the session to set
+     * the current FeatureInfo externally once the session is available.
+     *
+     * It's important that this method is called before the FeatureManager is started to prevent the
+     * feature manager from being re-initialized.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    fun setEmbeddedPhotopickerFeatureInfo(featureInfo: EmbeddedPhotoPickerFeatureInfo) {
+        Log.d(TAG, "New featureInfo received: $featureInfo : Configuration will now update.")
+
+        val selectionLimit = featureInfo.maxSelectionLimit
+        val mimeTypes = featureInfo.mimeTypes
+        val preSelectedUris = featureInfo.preSelectedUris
+
+        /**
+         * Pick images in order is a combination of circumstances:
+         * - selectionLimit mode must be multiselect (more than 1)
+         * - The feature must be requested from the caller in the featureInfo
+         */
+        val pickImagesInOrder = featureInfo.isOrderedSelection && (selectionLimit > 1)
+
+        /** Check if the accent color was set and is valid. */
+        val accentColor =
+            with(AccentColorHelper(featureInfo.accentColor)) {
+                if (getAccentColor().isUnspecified) {
+                    null
+                } else {
+                    inputColor
+                }
+            }
+
+        // Use updateAndGet to ensure that the values are set before this method returns so that
+        // the new configuration is immediately available to the new subscribers.
+        _configuration.updateAndGet {
+            it.copy(
+                selectionLimit = selectionLimit,
+                accentColor = accentColor,
+                mimeTypes = mimeTypes.toCollection(ArrayList()),
+                preSelectedUris = preSelectedUris.toCollection(ArrayList()),
+                pickImagesInOrder = pickImagesInOrder,
+            )
+        }
+    }
+
+    /**
      * Sets the current intent & action Photopicker is running under.
      *
      * Since [ConfigurationManager] is bound to the [ActivityRetainedComponent] it does not have a
@@ -130,18 +188,17 @@ class ConfigurationManager(
      * If Photopicker is running inside of an activity, it's important that this method is called
      * before the FeatureManager is started to prevent the feature manager being re-initialized.
      */
-    fun setIntent(intent: Intent?) {
+    fun setIntent(intent: Intent) {
         Log.d(TAG, "New intent received: $intent : Configuration will now update.")
 
         // Check for [MediaStore.EXTRA_PICK_IMAGES_MAX] and update the selection limit accordingly.
         val selectionLimit =
-            intent?.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
-                ?: DEFAULT_SELECTION_LIMIT
+            intent.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
 
         // MimeTypes can explicitly be passed in the intent extras, so extract them if they exist
         // (and are actually a media mimetype that is supported). If nothing is in the intent,
         // just set what is already set in the current configuration.
-        val mimeTypes = intent?.getPhotopickerMimeTypes() ?: _configuration.value.mimeTypes
+        val mimeTypes = intent.getPhotopickerMimeTypes() ?: _configuration.value.mimeTypes
 
         /**
          * Pick images in order is a combination of circumstances:
@@ -149,23 +206,36 @@ class ConfigurationManager(
          * - The extra must be requested from the caller in the intent
          */
         val pickImagesInOrder =
-            intent?.getPickImagesInOrderEnabled(default = false) ?: false && (selectionLimit > 1)
+            intent.getPickImagesInOrderEnabled(default = false) && (selectionLimit > 1)
 
         /** Handle [MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB] extra if it's in the intent */
-        val startDestination =
-            intent?.getStartDestination(default = PhotopickerDestinations.DEFAULT)
-                ?: _configuration.value.startDestination
+        val startDestination = intent.getStartDestination(default = PhotopickerDestinations.DEFAULT)
 
-        // Use updateAndGet to ensure the value is set before this method returns so the new intent
-        // is immediately available to new subscribers.
+        /** Check if the accent color was set and is valid. */
+        val accentColor =
+            with(AccentColorHelper.withIntent(intent)) {
+                if (getAccentColor().isUnspecified) {
+                    null
+                } else {
+                    inputColor
+                }
+            }
+
+        // get preSelection URIs from intent.
+        val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
+
+        // Use updateAndGet to ensure the value is set before this method returns so the new
+        // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
             it.copy(
-                action = intent?.getAction() ?: "",
+                action = intent.getAction() ?: "",
                 intent = intent,
                 selectionLimit = selectionLimit,
+                accentColor = accentColor,
                 mimeTypes = mimeTypes,
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,
+                preSelectedUris = pickerPreSelectionUris,
             )
         }
     }
@@ -200,6 +270,7 @@ class ConfigurationManager(
                 runtimeEnv = runtimeEnv,
                 action = "",
                 flags = getFlagsFromDeviceConfig(),
+                sessionId = sessionId,
             )
 
         Log.d(TAG, "Startup configuration: $config")
@@ -217,10 +288,12 @@ class ConfigurationManager(
     private fun getFlagsFromDeviceConfig(): PhotopickerFlags {
         return PhotopickerFlags(
             CLOUD_ALLOWED_PROVIDERS =
-                deviceConfigProxy.getFlag(
-                    NAMESPACE_MEDIAPROVIDER,
-                    /* key= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
-                    /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second
+                getAllowlistedPackages(
+                    deviceConfigProxy.getFlag(
+                        NAMESPACE_MEDIAPROVIDER,
+                        /* key= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
+                        /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second
+                    )
                 ),
             CLOUD_ENFORCE_PROVIDER_ALLOWLIST =
                 deviceConfigProxy.getFlag(
@@ -246,6 +319,38 @@ class ConfigurationManager(
                     /* key= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.first,
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
+            PICKER_SEARCH_ENABLED = Flags.enablePhotopickerSearch(),
         )
+    }
+
+    /**
+     * BACKWARD COMPATIBILITY WORKAROUND Initially, instead of using package names when
+     * allow-listing and setting the system default CloudMediaProviders we used authorities.
+     *
+     * This, however, introduced a vulnerability, so we switched to using package names. But, by
+     * then, we had been allow-listing and setting default CMPs using authorities.
+     *
+     * Luckily for us, all of those CMPs had authorities in one the following formats:
+     * "${package-name}.cloudprovider" or "${package-name}.picker", e.g. "com.hooli.android.photos"
+     * package would implement a CMP with "com.hooli.android.photos.cloudpicker" authority.
+     *
+     * So, in order for the old allow-listings and defaults to work now, we try to extract package
+     * names from authorities by removing the ".cloudprovider" and ".cloudpicker" suffixes.
+     *
+     * In the future, we'll need to be careful if package names of cloud media apps end with
+     * "cloudprovider" or "cloudpicker".
+     */
+    private fun getAllowlistedPackages(allowedProvidersArray: Array<String>): Array<String> {
+        return allowedProvidersArray
+            .map {
+                when {
+                    it.endsWith(".cloudprovider") ->
+                        it.substring(0, it.length - ".cloudprovider".length)
+                    it.endsWith(".cloudpicker") ->
+                        it.substring(0, it.length - ".cloudpicker".length)
+                    else -> it
+                }
+            }
+            .toTypedArray<String>()
     }
 }

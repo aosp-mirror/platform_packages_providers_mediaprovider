@@ -27,6 +27,9 @@ private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
 private const val COLLECTION_INFO_SEGMENT = "collection_info"
 private const val MEDIA_PATH_SEGMENT = "media"
 private const val ALBUM_PATH_SEGMENT = "album"
+private const val MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count"
+private const val PREVIEW_PATH_SEGMENT = "preview"
+private const val PRE_SELECTION_URI_PATH_SEGMENT = "pre_selection"
 
 private val pickerUri: Uri =
     Uri.Builder()
@@ -58,6 +61,30 @@ val AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI: Uri =
 
 /** URI for media metadata. */
 val MEDIA_URI: Uri = pickerUri.buildUpon().apply { appendPath(MEDIA_PATH_SEGMENT) }.build()
+
+/** URI for media_grants table. */
+val MEDIA_GRANTS_COUNT_URI: Uri =
+    pickerUri.buildUpon().apply { appendPath(MEDIA_GRANTS_COUNT_PATH_SEGMENT) }.build()
+
+/** URI for preview of media table. */
+val MEDIA_PREVIEW_URI: Uri =
+    pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(MEDIA_PATH_SEGMENT)
+            appendPath(PREVIEW_PATH_SEGMENT)
+        }
+        .build()
+
+/** URI for media table pre-selection items. */
+val MEDIA_PRE_SELECTION_URI: Uri =
+    pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(MEDIA_PATH_SEGMENT)
+            appendPath(PRE_SELECTION_URI_PATH_SEGMENT)
+        }
+        .build()
 
 /** URI that receives [ContentProvider] change notifications for media updates. */
 val MEDIA_CHANGE_NOTIFICATION_URI: Uri =

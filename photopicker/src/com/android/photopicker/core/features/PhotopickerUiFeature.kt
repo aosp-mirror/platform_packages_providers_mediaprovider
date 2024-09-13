@@ -23,6 +23,7 @@ import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 
 /**
@@ -65,12 +66,14 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * @param bannerState the persisted BannerState, if it exists.
      * @param config The current [PhotopickerConfiguration]
      * @param dataService A dataService that can be used to fetch external data.
+     * @param userMonitor UserMonitor for UserProfile access.
      */
     suspend fun getBannerPriority(
         banner: BannerDefinitions,
         bannerState: BannerState?,
         config: PhotopickerConfiguration,
         dataService: DataService,
+        userMonitor: UserMonitor,
     ): Int {
         return Priority.DISABLED.priority
     }
@@ -81,9 +84,15 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * only be called for any [BannerDefinition]s that are in the [ownedBanners] declaration.
      *
      * @param banner The [BannerDefinitions] that should be constructed.
+     * @param dataService A dataService that can be used to fetch external data.
+     * @param userMonitor UserMonitor for UserProfile access.
      * @return A [Banner] implementation for the requested [BannerDefinitions]
      */
-    fun buildBanner(banner: BannerDefinitions): Banner {
+    suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
         throw IllegalArgumentException("Cannot build the requested banner: ${banner.id}")
     }
 

@@ -17,6 +17,7 @@
 package com.android.photopicker.core.components
 
 import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
@@ -50,10 +51,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Gif
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Icon
@@ -64,6 +65,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +74,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -82,9 +86,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.theme.CustomAccentColorScheme
@@ -94,13 +101,14 @@ import com.android.photopicker.extensions.circleBackground
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
-private val CELLS_PER_ROW = 3
+private val CELLS_PER_ROW: Int = 3
 
 /** The number of grid cells per row for Tablet / expanded layouts */
-private val CELLS_PER_ROW_EXPANDED = 4
+private val CELLS_PER_ROW_EXPANDED: Int = 4
 
 /** The default (if not overridden) amount of content padding below the grid */
 private val MEASUREMENT_DEFAULT_CONTENT_PADDING = 150.dp
@@ -136,13 +144,19 @@ private val MEASUREMENT_SELECTED_CORNER_RADIUS = 16.dp
 private val MEASUREMENT_SEPARATOR_PADDING = 16.dp
 
 /** The radius to use for the corners of grid cells that are selected */
-val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 8.dp
+val MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS = 16.dp
 
 /** The size for the icon used inside the default album thumbnails */
 val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE = 56.dp
 
 /** The padding for the icon for the default album thumbnails */
 val MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING = 16.dp
+
+/** Additional padding between album items */
+val MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING = 16.dp
+
+/** Size of the spacer between the album icon and the album display label */
+val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 12.dp
 
 /**
  * Composable for creating a MediaItemGrid from a [PagingData] source of data that implements
@@ -178,9 +192,7 @@ fun mediaGrid(
     onItemClick: (item: MediaGridItem) -> Unit,
     onItemLongPress: (item: MediaGridItem) -> Unit = {},
     isExpandedScreen: Boolean = false,
-    columns: GridCells =
-        if (isExpandedScreen) GridCells.Fixed(CELLS_PER_ROW_EXPANDED)
-        else GridCells.Fixed(CELLS_PER_ROW),
+    columns: GridCells = GridCells.Fixed(getCellsPerRow(isExpandedScreen)),
     gridCellPadding: Dp = MEASUREMENT_CELL_SPACING,
     modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
@@ -195,7 +207,7 @@ fun mediaGrid(
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
-            onLongPress: ((item: MediaGridItem) -> Unit)?,
+            onLongPress: ((item: MediaGridItem) -> Unit)?
         ) -> Unit =
         { item, isSelected, onClick, onLongPress,
             ->
@@ -215,16 +227,46 @@ fun mediaGrid(
     contentSeparatorFactory: @Composable (item: MediaGridItem.SeparatorItem) -> Unit = { item ->
         defaultBuildSeparator(item)
     },
+    bannerContent: (@Composable () -> Unit)? = null,
 ) {
+    // To know whether the request in coming from Embedded or PhotoPicker
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
+    /**
+     * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to
+     * get the regular updates of bottom sheet current state inside [LazyVerticalGrid]
+     */
+    val isExpanded = rememberUpdatedState(LocalEmbeddedState.current?.isExpanded ?: false)
     LazyVerticalGrid(
         columns = columns,
-        modifier = modifier,
+        modifier =
+            if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                modifier.transferGridTouchesToHostInEmbedded(state, isExpanded, host)
+            } else {
+                modifier
+            },
         state = state,
         contentPadding = contentPadding,
         userScrollEnabled = userScrollEnabled,
         horizontalArrangement = Arrangement.spacedBy(gridCellPadding),
         verticalArrangement = Arrangement.spacedBy(gridCellPadding),
     ) {
+
+        // If banner content was passed add it to the grid as a full span item
+        // so that it appears inside the scroll container.
+        bannerContent?.let {
+            item(
+                span = {
+                    if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
+                    else GridItemSpan(CELLS_PER_ROW)
+                }
+            ) {
+                it()
+            }
+        }
+
+        // Add the media items from the LazyPagingItems
         items(
             count = items.itemCount,
             key = { index -> MediaGridItem.keyFactory(items.peek(index), index) },
@@ -268,6 +310,14 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
 }
 
 /**
+ * Return the number of cells in a row based on whether the current configuration has expanded
+ * screen or not.
+ */
+public fun getCellsPerRow(isExpandedScreen: Boolean): Int {
+    return if (isExpandedScreen) CELLS_PER_ROW_EXPANDED else CELLS_PER_ROW
+}
+
+/**
  * Default [MediaGridItem.MediaItem] builder that loads media into a square (1:1) aspect ratio
  * GridCell, and provides animations and an icon for the selected state.
  */
@@ -304,10 +354,14 @@ private fun defaultBuildMediaItem(
             val selectedModifier =
                 baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
+            val mediaDescription = stringResource(R.string.photopicker_media_item)
+
             // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
             Box(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = mediaDescription
+
                         onClick(
                             action = {
                                 onClick?.invoke(item)
@@ -471,7 +525,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                     }
                     false ->
                         Icon(
-                            Icons.Filled.CheckCircle,
+                            ImageVector.vectorResource(R.drawable.photopicker_selected_media),
                             modifier =
                                 Modifier
                                     // Background is necessary because the icon has negative
@@ -481,7 +535,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                                     // the image.
                                     .border(
                                         MEASUREMENT_SELECTED_ICON_BORDER,
-                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surfaceContainerHighest,
                                         CircleShape
                                     ),
                             contentDescription = stringResource(R.string.photopicker_item_selected),
@@ -507,8 +561,8 @@ private fun defaultBuildAlbumItem(
 ) {
     when (item) {
         is MediaGridItem.AlbumItem -> {
-            // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
-            Box(
+
+            Column(
                 // Apply semantics for the click handlers
                 Modifier.semantics(mergeDescendants = true) {
                         onClick(
@@ -523,56 +577,48 @@ private fun defaultBuildAlbumItem(
                             onTap = { onClick?.invoke(item) },
                         )
                     }
+                    .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
             ) {
-                // A background surface that is shown behind albums grid.
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                    // Container for albums and their title
-                    Column {
-                        // In the current implementation for AlbumsGrid, favourites and videos are
-                        // 2 mandatory albums and are shown even when they contain no data. For this
-                        // case they have special thumbnails associated with them.
-                        with(item.album) {
-                            val modifier =
-                                Modifier.fillMaxWidth()
-                                    .clip(
-                                        RoundedCornerShape(
-                                            MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS
-                                        )
-                                    )
-                                    .aspectRatio(1f)
-                            when {
-                                id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
-                                    DefaultAlbumIcon(
-                                        /* icon */ Icons.Outlined.StarOutline,
-                                        modifier
-                                    )
-                                }
-                                id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
-                                    DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
-                                }
-                                // Load the media item through the Glide entrypoint.
-                                else -> {
-                                    loadMedia(
-                                        media = item.album,
-                                        resolution = Resolution.THUMBNAIL,
-                                        // Modifier for album thumbnail
-                                        modifier = modifier
-                                    )
-                                }
-                            }
+                // In the current implementation for AlbumsGrid, favourites and videos are
+                // 2 mandatory albums and are shown even when they contain no data. For this
+                // case they have special thumbnails associated with them.
+                with(item.album) {
+                    val modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                            .aspectRatio(1f)
+                    when {
+                        id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.StarOutline, modifier)
                         }
-
-                        // Album title shown below the album thumbnail.
-                        Box {
-                            Text(
-                                text = item.album.displayName,
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1
+                        id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
+                        }
+                        id.equals(ALBUM_ID_CAMERA) && coverUri.equals(Uri.EMPTY) -> {
+                            DefaultAlbumIcon(/* icon */ Icons.Outlined.PhotoCamera, modifier)
+                        }
+                        // Load the media item through the Glide entrypoint.
+                        else -> {
+                            loadMedia(
+                                media = item.album,
+                                resolution = Resolution.THUMBNAIL,
+                                // Modifier for album thumbnail
+                                modifier = modifier
                             )
                         }
-                    } // Album Container
-                } // Album cell surface
-            } // Box for the grid cell
+                    }
+                }
+
+                Spacer(Modifier.size(MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE))
+                // Album title shown below the album thumbnail.
+                Text(
+                    text = item.album.displayName,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            } // Album cell column
         }
         else -> {}
     }
@@ -585,7 +631,7 @@ private fun defaultBuildAlbumItem(
 @Composable
 private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
     Box(Modifier.padding(MEASUREMENT_SEPARATOR_PADDING).semantics(mergeDescendants = true) {}) {
-        Text(item.label)
+        Text(item.label, style = MaterialTheme.typography.titleSmall)
     }
 }
 
@@ -597,25 +643,33 @@ private fun defaultBuildSeparator(item: MediaGridItem.SeparatorItem) {
  */
 @Composable
 private fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
-    Box(
-        // Modifier for album thumbnail
-        modifier = modifier.background(MaterialTheme.colorScheme.surface),
-        contentAlignment = Alignment.Center
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null, // Or provide a suitable content description
-            modifier =
-                Modifier
-                    // Equivalent to layout_width and layout_height
-                    .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer, // Background color
-                        shape = CircleShape // Circular background
-                    )
-                    // Padding inside the circle
-                    .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
-                    .clip(CircleShape), // Clip the image to a circle
-        )
+        Box(
+            // Modifier for album thumbnail
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null, // Or provide a suitable content description
+                modifier =
+                    Modifier
+                        // Equivalent to layout_width and layout_height
+                        .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainer, // Background color
+                            shape = CircleShape // Circular background
+                        )
+                        // Padding inside the circle
+                        .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)
+                        .clip(CircleShape), // Clip the image to a circle
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }

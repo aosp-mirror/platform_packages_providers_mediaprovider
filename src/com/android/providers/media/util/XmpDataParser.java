@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.UUID;
 
 public final class XmpDataParser implements Closeable {
 
@@ -223,9 +222,8 @@ public final class XmpDataParser implements Closeable {
         }
 
         static @NonNull XmpData extractXmpData(@NonNull IsoInterface iso) {
-            UUID uuid = UUID.fromString("be7acfcb-97a9-42e8-9c71-999491e3afac");
-            byte[] buf = iso.getBoxBytes(uuid);
-            long[] xmpOffsets = iso.getBoxRanges(uuid);
+            byte[] buf = iso.getBoxBytesForXmpUuid();
+            long[] xmpOffsets = iso.getBoxRangesForXmpUuid();
 
             if (buf == null) {
                 buf = iso.getBoxBytes(IsoInterface.BOX_XMP);

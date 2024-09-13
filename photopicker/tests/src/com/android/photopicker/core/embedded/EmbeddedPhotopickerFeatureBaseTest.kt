@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.tests.core.embedded
+package com.android.photopicker.core.embedded
 
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.android.photopicker.core.PhotopickerMain
-import com.android.photopicker.core.banners.BannerManager
-import com.android.photopicker.core.embedded.EmbeddedLifecycle
-import com.android.photopicker.core.embedded.LocalEmbeddedLifecycle
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
@@ -49,14 +46,13 @@ abstract class EmbeddedPhotopickerFeatureBaseTest : PhotopickerFeatureBaseTest()
         featureManager: FeatureManager,
         selection: Selection<Media>,
         events: Events,
-        bannerManager: BannerManager,
     ) {
         CompositionLocalProvider(
             LocalEmbeddedLifecycle provides embeddedLifecycle,
             LocalViewModelStoreOwner provides embeddedLifecycle,
             LocalOnBackPressedDispatcherOwner provides embeddedLifecycle,
         ) {
-            callPhotopickerMain(featureManager, selection, events, bannerManager)
+            callPhotopickerMain(featureManager, selection, events)
         }
     }
 }

@@ -12,10 +12,11 @@ android_test {
     sdk_version: "core_current",
     min_sdk_version: "30",
     libs: [
-        "android.test.mock",
+        "android.test.mock.stubs",
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
         // Include stubs for @TestApi methods
         "android_test_stubs_current",
         "framework-res",
@@ -30,6 +31,8 @@ android_test {
         "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
+        "flag-junit",
+        "glide-mocks",
         "hilt_android",
         "hilt_android_testing",
         "mockito-target",

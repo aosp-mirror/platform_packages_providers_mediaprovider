@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"Výběr fotek"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Uživatelské rozhraní Dokumentů"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"Možnosti výběru"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"Výběr fotek V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"Vyberte obrázky"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"Akce načtení obsahu"</string>
+    <string name="open_document" msgid="8593796561386540777">"Otevřít dokument"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"Otevřít strom dokumentu"</string>
+    <string name="create_document" msgid="6073553682715924527">"Vytvořit dokument"</string>
+    <string name="create_file" msgid="2532895579648102462">"Vytvořit soubor"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"Zobrazit pořadí výběru"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"Zobrazit pouze obrázky"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"Zobrazit pouze videa"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Zadejte typ MIME"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"Vybrat kartu spuštění"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"Povolit více výběrů"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"Povolit vlastní typ MIME"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"Maximální počet mediálních položek"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"Zadejte platné číslo vyšší než jedna"</string>
+    <string name="pick_media" msgid="5269447618857205416">"Vyberte média"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"Pracujeme na tom"</string>
+    <string name="show_metadata" msgid="132548935678717609">"Zobrazit metadata pro vybraná média"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"Umožnit předběžný výběr"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"Vyžadovat oprávnění"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"Vyžadovat oprávnění pro:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Funkce Picker Choice je k dispozici pouze pro zařízení s Androidem U a novějším. \n\nPokud ji chcete používat, upgradujte zařízení."</string>
+    <string name="images" msgid="4986074635830919568">"Obrázky"</string>
+    <string name="videos" msgid="4638519191891522146">"Videa"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"Obrázky i videa"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"Zobrazit pouze poslední výběr"</string>
+</resources>

@@ -20,22 +20,18 @@
     <string name="photopicker_application_label" msgid="7272391964836190376">"相片和影片"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"媒體"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"揀咗"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"新增 <xliff:g id="COUNT">(%1$s)</xliff:g> 張相片"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"完成"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"全部取消揀"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"選取最多 <xliff:g id="COUNT">%1$s</xliff:g> 個項目"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"相片"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"相簿"</string>
-    <!-- no translation found for photopicker_photos_empty_state_title (7018770515431149456) -->
-    <skip />
-    <!-- no translation found for photopicker_photos_empty_state_body (5959729294856198675) -->
-    <skip />
-    <!-- no translation found for photopicker_favorites_empty_state_title (3855048169943856242) -->
-    <skip />
-    <!-- no translation found for photopicker_favorites_empty_state_body (3265404004750778533) -->
-    <skip />
-    <!-- no translation found for photopicker_videos_empty_state_title (159181717463348909) -->
-    <skip />
-    <!-- no translation found for photopicker_videos_empty_state_body (5149028843414577039) -->
-    <skip />
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"暫時沒有相片"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"開始拍攝相片和影片"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"你的相機應用程式拍攝的相片和影片將在這裡顯示"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"暫時沒有最愛"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"標示為「我的最愛」或已加星號的相片和影片將在這裡顯示"</string>
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"暫時沒有影片"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"你的相機應用程式拍攝的影片，以及已儲存或分享的影片將在這裡顯示"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"返回"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"關閉"</string>
 </resources>

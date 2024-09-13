@@ -37,6 +37,7 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
 
@@ -65,6 +66,7 @@ open class SimpleUiFeature : PhotopickerUiFeature {
         bannerState: BannerState?,
         config: PhotopickerConfiguration,
         dataService: DataService,
+        userMonitor: UserMonitor,
     ): Int {
         // If the banner reports as being dismissed, don't show it.
         if (bannerState?.dismissed == true) {
@@ -75,7 +77,11 @@ open class SimpleUiFeature : PhotopickerUiFeature {
         return Priority.MEDIUM.priority
     }
 
-    override fun buildBanner(banner: BannerDefinitions): Banner {
+    override suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
         return object : Banner {
             override val declaration = BannerDefinitions.PRIVACY_EXPLAINER
 

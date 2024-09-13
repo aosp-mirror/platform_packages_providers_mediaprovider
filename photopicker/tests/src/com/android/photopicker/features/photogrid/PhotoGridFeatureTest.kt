@@ -45,11 +45,15 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerStateDao
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
@@ -83,6 +87,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.any
+import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.anyString
 import org.mockito.MockitoAnnotations
 
 @UninstallModules(
@@ -100,6 +106,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -107,11 +114,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for ViewModelModule */
-    @BindValue val viewModelScopeOverride: CoroutineScope? = mainScope.backgroundScope
+    @BindValue val viewModelScopeOverride: CoroutineScope? = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
@@ -129,13 +137,16 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
-    @Inject override lateinit var configurationManager: ConfigurationManager
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Inject lateinit var mockContext: Context
     @Inject lateinit var selection: Selection<Media>
     @Inject lateinit var featureManager: FeatureManager
     @Inject lateinit var events: Events
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var dataService: DataService
+    @Inject lateinit var databaseManager: DatabaseManager
+
+    val sessionId = generatePickerSessionId()
 
     @Before
     fun setup() {
@@ -161,17 +172,19 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotoGridIsAlwaysEnabled() {
-        val configOne = PhotopickerConfiguration(action = "TEST_ACTION")
+        val configOne = PhotopickerConfiguration(action = "TEST_ACTION", sessionId = sessionId)
         assertWithMessage("PhotoGridFeature is not always enabled for TEST_ACTION")
             .that(PhotoGridFeature.Registration.isEnabled(configOne))
             .isEqualTo(true)
 
-        val configTwo = PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES)
+        val configTwo =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, sessionId = sessionId)
         assertWithMessage("PhotoGridFeature is not always enabled")
             .that(PhotoGridFeature.Registration.isEnabled(configTwo))
             .isEqualTo(true)
 
-        val configThree = PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT)
+        val configThree =
+            PhotopickerConfiguration(action = Intent.ACTION_GET_CONTENT, sessionId = sessionId)
         assertWithMessage("PhotoGridFeature is not always enabled")
             .that(PhotoGridFeature.Registration.isEnabled(configThree))
             .isEqualTo(true)
@@ -188,13 +201,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                 configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
             )
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -212,13 +224,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -250,13 +261,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -277,13 +287,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
         val resources = getTestableContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -314,13 +323,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
         val resources = getTestableContext().getResources()
 
-        mainScope.runTest {
+        testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
                     selection = selection,
                     events = events,
-                    bannerManager = bannerManager.get(),
                 )
             }
 
@@ -335,6 +343,43 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(hasText(resources.getString(R.string.photopicker_photos_empty_state_body)))
                 .assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun testShowsBannersInGrid() {
+
+        testScope.runTest {
+            val bannerStateDao = databaseManager.acquireDao(BannerStateDao::class.java)
+            whenever(bannerStateDao.getBannerState(anyString(), anyInt())) { null }
+
+            configurationManager
+                .get()
+                .setCaller(
+                    callingPackage = "com.android.test.package",
+                    callingPackageUid = 12345,
+                    callingPackageLabel = "Test Package",
+                )
+            advanceTimeBy(100)
+
+            bannerManager.get().refreshBanners()
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            val resources = getTestableContext().getResources()
+            val expectedPrivacyMessage =
+                resources.getString(R.string.photopicker_privacy_explainer, "Test Package")
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule.onNode(hasText(expectedPrivacyMessage)).assertIsDisplayed()
         }
     }
 }

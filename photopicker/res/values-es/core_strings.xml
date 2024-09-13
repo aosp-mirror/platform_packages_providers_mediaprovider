@@ -20,21 +20,19 @@
     <string name="photopicker_application_label" msgid="7272391964836190376">"Fotos y vídeos"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"Contenido multimedia"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Seleccionado"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"Añadir <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"Hecho"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Desmarcar todo"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Selecciona hasta <xliff:g id="COUNT">%1$s</xliff:g> elementos"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Fotos"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Álbumes"</string>
-    <!-- no translation found for photopicker_photos_empty_state_title (7018770515431149456) -->
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Aún no hay fotos"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Empieza a hacer fotos y a grabar vídeos"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Las fotos y vídeos capturados por tu aplicación de cámara aparecerán aquí"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"No tienes favoritos"</string>
+    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
     <skip />
-    <!-- no translation found for photopicker_photos_empty_state_body (5959729294856198675) -->
-    <skip />
-    <!-- no translation found for photopicker_favorites_empty_state_title (3855048169943856242) -->
-    <skip />
-    <!-- no translation found for photopicker_favorites_empty_state_body (3265404004750778533) -->
-    <skip />
-    <!-- no translation found for photopicker_videos_empty_state_title (159181717463348909) -->
-    <skip />
-    <!-- no translation found for photopicker_videos_empty_state_body (5149028843414577039) -->
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Aún no hay vídeos"</string>
+    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
     <skip />
     <string name="photopicker_back_option" msgid="986374743479020214">"Atrás"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Cerrar"</string>

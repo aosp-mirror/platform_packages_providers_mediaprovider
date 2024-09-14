@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"படங்களையும் வீடியோக்களையும் படமெடுக்கத் தொடங்குங்கள்"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"உங்கள் கேமரா ஆப்ஸ் மூலம் எடுக்கப்பட்ட படங்களும் வீடியோக்களும் இங்கே தோன்றும்"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"பிடித்தவையில் இதுவரை எதுவுமில்லை"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"பிடித்தவை எனக் குறிக்கப்பட்ட அல்லது நட்சத்திரமிட்ட படங்களும் வீடியோக்களும் இங்கே தோன்றும்"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"வீடியோக்கள் இதுவரை எதுவுமில்லை"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"உங்கள் கேமரா ஆப்ஸ் மூலம் எடுக்கப்பட்டு, சேமிக்கப்பட்ட அல்லது பகிரப்பட்ட வீடியோக்கள் இங்கே தோன்றும்"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"பின்செல்லும்"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"மூடு"</string>
 </resources>

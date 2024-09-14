@@ -18,7 +18,7 @@ android_library {
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
         "framework-photopicker.impl",
-        "framework-statsd",
+        "framework-statsd.stubs.module_lib",
     ],
     javacflags: [
         "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",

@@ -140,7 +140,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.ALBUM_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                                     )
                                 )
                             }
@@ -197,7 +197,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(
                                 item = item.media,
-                                selectionLimitExceededMessage = selectionLimitExceededMessage
+                                selectionLimitExceededMessage = selectionLimitExceededMessage,
                             )
                             // Log user's interaction with picker's main grid(photo grid)
                             scope.launch {
@@ -206,26 +206,26 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.PHOTO_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION
+                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION,
                                     )
                                 )
                             }
                         }
                     },
                     onItemLongPress = { item ->
-                        // Log long pressing a media item in the photo grid
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
+                            // Log long pressing a media item in the photo grid
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             if (item is MediaGridItem.MediaItem) {
                                 // Log entry into the photopicker preview mode
                                 scope.launch {
@@ -234,7 +234,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                             FeatureToken.PREVIEW.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                         )
                                     )
                                 }
@@ -252,7 +252,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_PHOTOS
+                            Telemetry.UiEvent.UI_LOADED_PHOTOS,
                         )
                     )
                 }
@@ -285,7 +285,7 @@ private fun AnimatedBannerWrapper(
                     if (declaration is BannerDefinitions) {
                         viewModel.markBannerAsDismissed(declaration)
                     }
-                }
+                },
             )
         }
     }
@@ -312,7 +312,7 @@ fun PhotoGridNavButton(modifier: Modifier) {
                         FeatureToken.PHOTO_GRID.token,
                         configuration.sessionId,
                         configuration.callingPackageUid ?: -1,
-                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                     )
                 )
             }

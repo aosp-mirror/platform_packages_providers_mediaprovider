@@ -140,7 +140,7 @@ java_library {
     libs: [
         "androidx.annotation_annotation",
         "framework-annotations-lib",
-        "framework-mediaprovider",
+        "framework-mediaprovider.stubs.module_lib",
     ],
     lint: {
         baseline_filename: "lint-baseline2.xml",
@@ -185,7 +185,7 @@ java_aconfig_library {
     aconfig_declarations: "mediaprovider_flags",
     min_sdk_version: "30",
     sdk_version: "module_current",
-    libs: ["framework-configinfrastructure"],
+    libs: ["framework-configinfrastructure.stubs.module_lib"],
     apex_available: [
         "com.android.mediaprovider",
     ],

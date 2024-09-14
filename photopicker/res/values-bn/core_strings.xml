@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ফটো ও ভিডিও ক্যাপচার করা শুরু করুন"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"আপনার ক্যামেরা অ্যাপের মাধ্যমে ক্যাপচার করা ফটো ও ভিডিও এখানে দেখা যাবে"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"এখনও কোনও পছন্দসই কিছু নেই"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"পছন্দসই অথবা তারা চিহ্নিত হিসেবে চিহ্নিত করা ফটো এবং ভিডিও এখানে দেখা যাবে"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"আর কোনও ভিডিও নেই"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"আপনার ক্যামেরা অ্যাপের মাধ্যমে ক্যাপচার করা, সেভ এবং শেয়ার করা ভিডিও এখানে দেখা যাবে"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"ফিরে যান"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"বাতিল করুন"</string>
 </resources>

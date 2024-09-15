@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Maak nu foto\'s en video\'s"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Foto\'s en video\'s die met je camera-app zijn gemaakt, verschijnen hier"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Nog geen favorieten"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Hier komen je foto\'s en video\'s te staan die zijn gemarkeerd als favoriet of met een ster"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Nog geen video\'s"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Hier komen video\'s te staan die met je camera-app zijn gemaakt, opgeslagen of gedeeld"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Terug"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Sluiten"</string>
 </resources>

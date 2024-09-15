@@ -65,7 +65,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
@@ -130,6 +130,8 @@ open class Session(
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
+        // Time interval to notify client about selected/deselected Uris
+        private const val URI_DEBOUNCE_TIME: Long = 400 // In milliseconds
     }
 
     /**
@@ -185,6 +187,12 @@ open class Session(
         }
     }
 
+    /** List of all effectively selected Uris in current time interval */
+    private var _selectedUris: MutableList<Uri> = mutableListOf()
+
+    /** List of all effectively deselected Uris in current time interval */
+    private var _deselectedUris: MutableList<Uri> = mutableListOf()
+
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
     private val _stateManager: EmbeddedStateManager
@@ -221,7 +229,7 @@ open class Session(
                     .getApplicationLabel(
                         packageManager.getApplicationInfo(
                             clientPackageName,
-                            ApplicationInfoFlags.of(0)
+                            ApplicationInfoFlags.of(0),
                         )
                     )
                     .toString() // convert CharSequence to String
@@ -235,7 +243,7 @@ open class Session(
             .setCaller(
                 callingPackage = clientPackageName,
                 callingPackageUid = clientUid,
-                callingPackageLabel = clientPackageLabel
+                callingPackageLabel = clientPackageLabel,
             )
 
         // Update the [PhotopickerConfiguration] associated with the session using the
@@ -291,7 +299,7 @@ open class Session(
     private fun createSurfaceControlViewHost(
         context: Context,
         displayId: Int,
-        hostToken: IBinder
+        hostToken: IBinder,
     ): SurfaceControlViewHost {
         val displayManager: DisplayManager = context.requireSystemService()
         val display =
@@ -343,7 +351,7 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
-                            LocalEmbeddedState provides embeddedState
+                            LocalEmbeddedState provides embeddedState,
                         ) {
                             val currentEmbeddedState =
                                 checkNotNull(LocalEmbeddedState.current) {
@@ -351,7 +359,7 @@ open class Session(
                                 }
                             PhotopickerTheme(
                                 isDarkTheme = currentEmbeddedState.isDarkTheme,
-                                config = photopickerConfiguration
+                                config = photopickerConfiguration,
                             ) {
                                 PhotopickerApp(
                                     disruptiveDataNotification = disruptiveDataNotification,
@@ -382,6 +390,7 @@ open class Session(
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
+            @OptIn(kotlinx.coroutines.FlowPreview::class)
             _dependencies
                 .selection()
                 .get()
@@ -402,12 +411,18 @@ open class Session(
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onUriPermissionGranted(listOf(item.mediaUri))
+                            // no need to notify the client if some media item was
+                            // already selected -> deselected -> selected again
+                            if (_deselectedUris.contains(item.mediaUri)) {
+                                _deselectedUris.remove(item.mediaUri)
+                            } else {
+                                _selectedUris.add(item.mediaUri)
+                            }
                         } else {
                             Log.w(
                                 TAG,
                                 "Error granting permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
                     }
@@ -416,21 +431,44 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onUriPermissionRevoked(listOf(item.mediaUri))
+                            // no need to notify the client if some media item was
+                            // already deselected -> selected -> deselected again
+                            if (_selectedUris.contains(item.mediaUri)) {
+                                _selectedUris.remove(item.mediaUri)
+                            } else {
+                                _deselectedUris.add(item.mediaUri)
+                            }
                         } else {
                             Log.w(
                                 TAG,
                                 "Error revoking permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
                     }
-
                     // Update previous selection to current flow
                     _newSelection
                 }
-                .collect()
+                .debounce(URI_DEBOUNCE_TIME)
+                .collect {
+                    // When the user interaction remains stable for [URI_DEBOUNCE_TIME] time,
+                    // the code below will start executing, and the client callback will be
+                    // informed about the user media selection
+                    if (_selectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionGranted(_selectedUris.toList())
+                    }
+                    if (_deselectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionRevoked(_deselectedUris.toList())
+                    }
+                    _deselectedUris.clear()
+                    _selectedUris.clear()
+                }
         }
+    }
+
+    /** returns URI Debounce Time. This method is added specifically for tests */
+    fun getURIDebounceTime(): Long {
+        return URI_DEBOUNCE_TIME
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {

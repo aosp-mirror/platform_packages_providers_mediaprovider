@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"開始拍攝相片和影片"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"你的相機應用程式拍攝的相片和影片將在這裡顯示"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"暫時沒有最愛"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"標示為「我的最愛」或已加星號的相片和影片將在這裡顯示"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"暫時沒有影片"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"你的相機應用程式拍攝的影片，以及已儲存或分享的影片將在這裡顯示"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"返回"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"關閉"</string>
 </resources>

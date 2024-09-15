@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Qalisa ukuthatha izithombe namavidiyo"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Izithombe namavidiyo athathwe nge-app yekhamera yakho azovela lapha"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Azikho izintandokazi okwamanje"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Izithombe namavidiyo amakwe njengezintandokazi, noma anenkanyezi, azovela lapha"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Awakabikho amavidiyo"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Amavidiyo athwetshulwe yi-app yakho yekhamera, alondoloziwe, noma abiwe azovela lapha"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Emuva"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Chitha"</string>
 </resources>

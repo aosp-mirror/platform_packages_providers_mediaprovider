@@ -128,9 +128,6 @@ public abstract class CloudMediaProvider extends ContentProvider {
     private String mAuthority;
 
 
-    private final AsyncContentProviderWrapper mAsyncContentProviderWrapper =
-            new AsyncContentProviderWrapper();
-
     /**
      * Implementation is provided by the parent class. Cannot be overridden.
      */
@@ -158,7 +155,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @NonNull
     public final Bundle onGetAsyncContentProvider() {
         Bundle bundle = new Bundle();
-        bundle.putBinder(EXTRA_ASYNC_CONTENT_PROVIDER, mAsyncContentProviderWrapper.asBinder());
+        bundle.putBinder(EXTRA_ASYNC_CONTENT_PROVIDER,
+                (new AsyncContentProviderWrapper()).asBinder());
         return bundle;
     }
 
@@ -364,8 +362,12 @@ public abstract class CloudMediaProvider extends ContentProvider {
         }
     }
 
-    private Bundle callUnchecked(String method, String arg, Bundle extras)
+    private Bundle callUnchecked(@NonNull String method, @Nullable String arg,
+                                 @Nullable Bundle extras)
             throws FileNotFoundException {
+        if (extras == null) {
+            extras = new Bundle();
+        }
         Bundle result = new Bundle();
         if (METHOD_GET_MEDIA_COLLECTION_INFO.equals(method)) {
             long startTime = System.currentTimeMillis();

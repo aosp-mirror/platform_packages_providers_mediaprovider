@@ -29,7 +29,6 @@ import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * This class accesses the PdfClient tools to manipulate and render a PDF document. One instance of
@@ -127,7 +126,9 @@ public class PdfDocumentProxy {
      * @param transform an affine transform matrix in the form of an array.
      * @see android.graphics.Matrix#getValues(float[])
      * @param renderMode the render mode
-     * @param hideTextAnnots whether to hide text and highlight annotations
+     * @param showAnnotTypes Bitmask of renderFlags to indicate the types of annotations to
+     *                       be rendered
+     * @param renderFormFields true to included PDF form content in the output
      * @return true if the page was rendered into the destination bitmap
      */
     public native boolean render(
@@ -139,7 +140,8 @@ public class PdfDocumentProxy {
             int clipBottom,
             float[] transform,
             int renderMode,
-            boolean hideTextAnnots);
+            int showAnnotTypes,
+            boolean renderFormFields);
 
     /**
      * Clones the currently loaded document using the provided file descriptor.
@@ -227,7 +229,7 @@ public class PdfDocumentProxy {
      * <p>Optionally restricts by {@code typeIds}. If {@code typeIds} is empty, all form widgets on
      * the page will be returned.
      */
-    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, Set<Integer> typeIds);
+    public native List<FormWidgetInfo> getFormWidgetInfos(int pageNum, int[] typeIds);
 
     /**
      * Executes an interactive click on the page at the given point ({@code x}, {@code y}).
@@ -250,5 +252,5 @@ public class PdfDocumentProxy {
      * @return Rectangular areas of the page bitmap that have been invalidated by this action
      */
     public native List<Rect> setFormFieldSelectedIndices(
-            int pageNum, int annotIndex, List<Integer> selectedIndices);
+            int pageNum, int annotIndex, int[] selectedIndices);
 }

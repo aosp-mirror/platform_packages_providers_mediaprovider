@@ -23,16 +23,35 @@ java_sdk_library {
     srcs: [
         ":framework-pdf-v-updatable-sources",
     ],
+    libs: [
+        "androidx.annotation_annotation",
+        "app-compat-annotations",
+        "error_prone_annotations",
+        "modules-utils-preconditions",
+        "unsupportedappusage",
+        "pdf_viewer_flags_java_lib",
+    ],
+    stub_only_libs: [
+        "framework-pdf",
+    ],
+    impl_only_libs: [
+        "framework-pdf.impl",
+    ],
     permitted_packages: [
         "android.graphics.pdf",
     ],
     apex_available: [
         "com.android.mediaprovider",
     ],
+    aconfig_declarations: [
+        "pdf_viewer_flags",
+    ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
+        "//cts/tests/pdf:__subpackages__",
     ],
-    min_sdk_version: "34", // should be 35 (making it 34 for compiling for `-next`)
+    min_sdk_version: "35",
+    jarjar_rules: "jarjar-rules-v.txt",
 }
 
 filegroup {
@@ -42,4 +61,9 @@ filegroup {
         "java/**/*.java",
     ],
     path: "java",
+}
+
+platform_compat_config {
+    name: "framework-pdf-v-platform-compat-config",
+    src: ":framework-pdf-v",
 }

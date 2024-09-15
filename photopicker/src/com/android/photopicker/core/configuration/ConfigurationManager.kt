@@ -16,19 +16,20 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
 import android.provider.DeviceConfig
 import android.util.Log
+import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
 /**
@@ -43,6 +44,9 @@ import kotlinx.coroutines.launch
  * to batch any changes to configuration together, as it is anticipated that configuration changes
  * will cause lots of re-calculation of downstream state.
  *
+ * @property runtimeEnv The current [PhotopickerRuntimeEnv] environment, this value is used to create the
+ *   initial [PhotopickerConfiguration], and should never be changed during subsequent configuration
+ *   updates.
  * @property scope The [CoroutineScope] the configuration flow will be shared in.
  * @property dispatcher [CoroutineDispatcher] context that the DeviceConfig listener will execute
  *   in.
@@ -50,6 +54,7 @@ import kotlinx.coroutines.launch
  *   testing various device flags, without relying on the device's actual flags at test time.
  */
 class ConfigurationManager(
+    private val runtimeEnv: PhotopickerRuntimeEnv,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val deviceConfigProxy: DeviceConfigProxy,
@@ -71,16 +76,8 @@ class ConfigurationManager(
     private val _configuration: MutableStateFlow<PhotopickerConfiguration> =
         MutableStateFlow(generateInitialConfiguration())
 
-    /* Exposes the current configuration used by Photopicker. */
-    val configuration: StateFlow<PhotopickerConfiguration> =
-        _configuration.stateIn(
-            scope,
-            // This is shared Eagerly so that it is always up to date to prevent multiple emissions
-            // when the first subscriber joins. Configuration updates are expensive, so always
-            // keeping this flow current is very important.
-            SharingStarted.Eagerly,
-            initialValue = _configuration.value
-        )
+    /* Exposes the current configuration used by Photopicker as a ReadOnly StateFlow. */
+    val configuration: StateFlow<PhotopickerConfiguration> = _configuration
 
     /**
      * Setup a [DeviceConfig.OnPropertiesChangedListener] to receive DeviceConfig changes to flags
@@ -114,30 +111,45 @@ class ConfigurationManager(
             @OptIn(kotlinx.coroutines.FlowPreview::class)
             deviceConfigProxyChanges.debounce(DEBOUNCE_DELAY).collect { flags ->
                 Log.d(TAG, "Configuration is being updated! Received updated Device flags: $flags")
-                _configuration.update { it.copy(flags = flags) }
+                _configuration.updateAndGet { it.copy(flags = flags) }
             }
         }
     }
 
     /**
-     * Sets the current action Photopicker is running under.
+     * Sets the current intent & action Photopicker is running under.
      *
      * Since [ConfigurationManager] is bound to the [ActivityRetainedComponent] it does not have a
      * reference to the currently running Activity (if there is one.). This allows the activity to
-     * set the current Action externally once the activity is available.
+     * set the current Intent externally once the activity is available.
      *
      * If Photopicker is running inside of an activity, it's important that this method is called
      * before the FeatureManager is started to prevent the feature manager being re-initialized.
      */
-    fun setAction(action: String) {
-        Log.d(TAG, "New action received: $action : Configuration will now update.")
-        _configuration.update { it.copy(action = action) }
+    fun setIntent(intent: Intent?) {
+        Log.d(TAG, "New intent received: $intent : Configuration will now update.")
+
+        // Check for [MediaStore.EXTRA_PICK_IMAGES_MAX] and update the selection limit accordingly.
+        val selectionLimit =
+            intent?.getPhotopickerSelectionLimitOrDefault(default = DEFAULT_SELECTION_LIMIT)
+                ?: DEFAULT_SELECTION_LIMIT
+
+        // Use updateAndGet to ensure the value is set before this method returns so the new intent
+        // is immediately available to new subscribers.
+        _configuration.updateAndGet {
+            it.copy(
+                action = intent?.getAction() ?: "",
+                intent = intent,
+                selectionLimit = selectionLimit,
+            )
+        }
     }
 
     /** Assembles an initial configuration upon activity launch. */
     private fun generateInitialConfiguration(): PhotopickerConfiguration {
         val config =
             PhotopickerConfiguration(
+                runtimeEnv = runtimeEnv,
                 action = "",
                 flags = getFlagsFromDeviceConfig(),
             )

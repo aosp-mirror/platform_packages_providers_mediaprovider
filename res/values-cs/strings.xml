@@ -38,12 +38,12 @@
     <string name="allow" msgid="8885707816848569619">"Povolit"</string>
     <string name="deny" msgid="6040983710442068936">"Zakázat"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Procházet…"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Aplikace pro cloudová média"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikace pro cloudová média"</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Aplikace pro média v cloudu"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikace pro média v cloudu"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikace pro cloudová média"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Když vás aplikace nebo web požádá o výběr fotografií nebo videí, můžete přejít na svoje cloudová média"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Přístup ke cloudovým médiím z"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žádný"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Můžete si vybrat média v cloudu, když vás nějaká aplikace nebo webová stránka požádá o výběr fotografií či videí"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Vybrat média z této aplikace"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žádná aplikace"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Aplikaci pro cloudová média nyní nelze změnit."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Nástroj pro výběr médií"</string>
     <string name="picker_sync_notification_title" msgid="1122713382122055246">"Nástroj pro výběr médií"</string>

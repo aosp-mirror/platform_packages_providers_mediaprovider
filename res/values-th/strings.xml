@@ -66,7 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ตัวอย่าง"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"เปลี่ยนไปใช้โปรไฟล์งาน"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"เปลี่ยนไปใช้โปรไฟล์ส่วนตัว"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ส่วนตัว"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ส่วนบุคคล"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ผู้ดูแลระบบบล็อกไว้"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ไม่อนุญาตให้เข้าถึงข้อมูลงานจากแอปส่วนตัว"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ไม่อนุญาตให้เข้าถึงข้อมูลส่วนตัวจากแอปงาน"</string>

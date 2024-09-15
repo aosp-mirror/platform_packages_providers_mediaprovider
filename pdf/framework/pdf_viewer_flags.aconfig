@@ -5,6 +5,7 @@ container: "com.android.mediaprovider"
 
 flag {
     name: "enable_pdf_viewer"
+    is_exported: true
     namespace: "pdf_viewer"
     description: "This flag controls whether to enable pdf viewer APIs."
     bug: "319561098"
@@ -13,6 +14,7 @@ flag {
 
 flag {
     name: "enable_form_filling"
+    is_exported: true
     namespace: "pdf_viewer"
     description: "This flag controls whether to enable pdf viewer form filling APIs."
     bug: "319561098"

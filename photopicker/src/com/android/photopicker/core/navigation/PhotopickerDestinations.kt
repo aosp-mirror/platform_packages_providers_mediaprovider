@@ -20,4 +20,19 @@ enum class PhotopickerDestinations(val route: String) {
 
     // The default route, only used when no other Routes are registered.
     DEFAULT("default"),
+
+    // The main route which shows a grid of the user's photos.
+    PHOTO_GRID("photogrid"),
+
+    // Preview routes that show Full resolution media for the user to preview.
+    // See the [NavController] extensions to navigate to these routes, as [PREVIEW_MEDIA] requires
+    // data to be provided to the route in order to work correctly.
+    PREVIEW_MEDIA("preview/media"), // Preview route for an individual item
+    PREVIEW_SELECTION("preview/selection"), // Preview route for the current selection
+
+    // The route which shows a grid of the user's albums.
+    ALBUM_GRID("albumgrid"),
+
+    // The route used to navigate to album media grid.
+    ALBUM_MEDIA_GRID("albummediagrid"),
 }

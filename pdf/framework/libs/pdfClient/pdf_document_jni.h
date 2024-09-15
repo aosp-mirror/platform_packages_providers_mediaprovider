@@ -39,9 +39,6 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_saveToFd(J
                                                                                jobject jPdfDocument,
                                                                                jint jfd);
 
-JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getNumAvailablePages(
-        JNIEnv* env, jobject jPdfDocument, jobject jDoubleEndedFile, jint start, jint end);
-
 JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageWidth(JNIEnv* env,
                                                                                jobject jPdfDocument,
                                                                                jint pageNum);
@@ -53,7 +50,7 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
         jint clipTop, jint clipRight, int clipBottom, jfloatArray jTransform, jint renderMode,
-        jboolean hideTextAnnots);
+        jint showAnnotTypes, jboolean renderFormFields);
 
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_cloneWithoutSecurity(
         JNIEnv* env, jobject jPdfDocument, jint destination);
@@ -100,7 +97,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidg
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index);
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfos(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds);
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jintArray jTypeIds);
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_clickOnPage(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint x, jint y);
@@ -110,7 +107,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldSelectedIndices(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
-        jobject jSelectedIndices);
+        jintArray jSelectedIndices);
 
 #ifdef __cplusplus
 }

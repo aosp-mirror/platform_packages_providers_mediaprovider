@@ -31,13 +31,18 @@ cc_library_shared {
     ],
 
     shared_libs: [
-        "libpdfium",
         "liblog",
         "libjnigraphics",
+        "libdl",
+        "libft2",
+        "libicu",
+        "libjpeg",
+        "libz",
     ],
 
     static_libs: [
         "libbase_ndk",
+        "libpdfium_static",
     ],
 
     cflags: [
@@ -45,11 +50,23 @@ cc_library_shared {
         "-Wno-unused-parameter",
     ],
 
+    ldflags: [
+        // Matches libpdfium flags.
+        "-Wl,-icf=all",
+    ],
+
+    version_script: "jni.lds",
+
     sdk_version: "current",
     min_sdk_version: "apex_inherit",
     apex_available: ["com.android.mediaprovider"],
     stl: "c++_static",
     header_libs: ["jni_headers"],
+}
+
+filegroup {
+    name: "pdfClient_test_default_map",
+    srcs: ["pdfClient_test_default.map"],
 }
 
 cc_test {
@@ -70,11 +87,24 @@ cc_test {
         "testing/*.cc",
     ],
 
+    test_config: "pdfClient_test_config.xml",
+
+    // These tests run on older platform versions, so many libraries (such as libbase and libc++)
+    // need to be linked statically. The tests also need to be linked with a version script to
+    // ensure that the statically-linked library isn't exported from the executable, where it
+    // would override the shared libraries that the platform itself uses.
+    // See http://b/333438055 for an example of what goes wrong when libc++ is partially exported
+    // from an executable.
+    version_script: ":pdfClient_test_default_map",
+
     data: [
         "testdata/**/*.pdf",
     ],
 
-    test_suites: ["device-tests"],
+    test_suites: [
+        "device-tests",
+        "mts-mediaprovider",
+    ],
 
     static_libs: [
         "libbase_ndk",

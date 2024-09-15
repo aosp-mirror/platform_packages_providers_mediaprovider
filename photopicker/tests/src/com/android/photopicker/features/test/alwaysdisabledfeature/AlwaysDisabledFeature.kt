@@ -20,10 +20,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 
@@ -35,19 +38,32 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
         override val TAG: String = "AlwaysDisabledFeature"
+
         override fun isEnabled(config: PhotopickerConfiguration) = false
+
         override fun build(featureManager: FeatureManager) = AlwaysDisabledFeature()
 
         val UI_STRING = "Can anyone hear me? :("
     }
+
+    override val token = TAG
+
+    /** Events consumed by the Photo grid */
+    override val eventsConsumed = emptySet<RegisteredEventClass>()
+
+    /** Events produced by the Photo grid */
+    override val eventsProduced = emptySet<RegisteredEventClass>()
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
     }
 
     @Composable
-    override fun compose(location: Location) {
-
+    override fun compose(
+        location: Location,
+        modifier: Modifier,
+        params: LocationParams,
+    ) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
             else -> {}

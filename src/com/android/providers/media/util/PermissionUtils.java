@@ -41,6 +41,7 @@ import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_AUDIO;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_IMAGES;
 import static android.app.AppOpsManager.OPSTR_WRITE_MEDIA_VIDEO;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 
 import android.annotation.UserIdInt;
 import android.app.AppOpsManager;
@@ -207,8 +208,8 @@ public class PermissionUtils {
     }
 
     public static boolean checkIsLegacyStorageGranted(@NonNull Context context, int uid,
-            String packageName, @Nullable String attributionTag, boolean isTargetSdkAtLeastR) {
-        if (!isTargetSdkAtLeastR && context.getSystemService(AppOpsManager.class)
+            String packageName, @Nullable String attributionTag, boolean isTargetSdkAtLeastV) {
+        if (!isTargetSdkAtLeastV && context.getSystemService(AppOpsManager.class)
                 .unsafeCheckOp(OPSTR_LEGACY_STORAGE, uid, packageName) == MODE_ALLOWED) {
             return true;
         }
@@ -384,6 +385,22 @@ public class PermissionUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * @param context Application context
+     * @param pid calling process ID
+     * @param uid callers UID
+     * @return true if the given uid has MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION permission,
+     * otherwise returns false.
+     */
+    public static boolean checkManageCloudMediaProvidersPermission(@NonNull Context context,
+            int pid, @UserIdInt int uid) {
+        return context.checkPermission(
+                MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION,
+                pid,
+                uid
+        ) == PERMISSION_GRANTED;
     }
 
     @VisibleForTesting

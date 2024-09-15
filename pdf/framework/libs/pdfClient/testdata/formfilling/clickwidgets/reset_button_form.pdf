@@ -1,0 +1,89 @@
+%PDF-1.7
+% ò¤ô
+1 0 obj <<
+  /Type /Catalog
+  /Pages 2 0 R
+  /AcroForm << /Fields [ 4 0 R ] >>
+>>
+endobj
+2 0 obj <<
+  /Type /Pages /Count 1 /Kids [ 3 0 R ]
+>>
+endobj
+3 0 obj <<
+  /Type /Page
+  /Parent 2 0 R
+  /MediaBox [ 0 0 300 300 ]
+  /Contents 6 0 R
+  /Annots [ 4 0 R 7 0 R ]
+>>
+endobj
+4 0 obj <<
+  /Type /Annot
+  /Subtype /Widget
+  /F 4
+  /FT /Btn
+  /Rect [ 75 60 225 120 ]
+  /T (ResetButton)
+  /Ff 65536
+  /H
+  /P
+  /A 8 0 R
+  /AP << /N 5 0 R >>
+  /MK << /BG [ 1.0 0.0 0.0 ] >>
+>>
+endobj
+5 0 obj <<
+  /Subtype /Form
+  /BBox [ 0 40 50 00 ]
+  /Length 29
+>>
+stream
+q
+0 0 1 rg
+0 0 50 40 re B*
+Q
+endstream
+endobj
+6 0 obj <<
+  /Length 4
+>>
+stream
+q
+Q
+endstream
+endobj
+7 0 obj
+<<
+  /Type /Annot
+  /FT /Tx
+  /T (CharLimit)
+  /MaxLen 10
+  /DA (0 0 0 rg /F1 12 Tf)
+  /V (Elephant)
+  /DV (Mouse)
+  /Rect [ 100 200 200 225 ]
+  /Subtype /Widget
+>>
+endobj
+8 0 obj
+<</S/ResetForm>>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000104 00000 n 
+0000000165 00000 n 
+0000000288 00000 n 
+0000000492 00000 n 
+0000000612 00000 n 
+0000000666 00000 n 
+0000000846 00000 n 
+trailer <<
+  /Root 1 0 R
+  /Size 9
+>>
+startxref
+878
+%%EOF

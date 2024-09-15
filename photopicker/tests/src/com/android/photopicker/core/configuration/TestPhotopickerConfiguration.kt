@@ -16,6 +16,8 @@
 
 package com.android.photopicker.core.configuration
 
+import android.content.Intent
+import android.provider.MediaStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +25,54 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
 /**
+ * A [PhotopickerConfiguration] that allows selection of only a single item.
+ */
+val SINGLE_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 1)
+
+/**
+ * A [PhotopickerConfiguration] that allows selection of multiple (50 in this case) items.
+ */
+val MULTI_SELECT_CONFIG = PhotopickerConfiguration(action = "", selectionLimit = 50)
+
+/**
  * A [PhotopickerConfiguration] that can be used with most tests, that comes with sensible default
  * values.
  */
 val testPhotopickerConfiguration: PhotopickerConfiguration =
-    PhotopickerConfiguration(action = "TEST_ACTION")
+    PhotopickerConfiguration(
+        action = "TEST_ACTION",
+        intent = Intent("TEST_ACTION"),
+    )
+
+/**
+ * A [PhotopickerConfiguration] that can be used for codepaths that utilize
+ * [MediaStore.ACTION_PICK_IMAGES] intent action.
+ */
+val testActionPickImagesConfiguration: PhotopickerConfiguration =
+    PhotopickerConfiguration(
+        action = MediaStore.ACTION_PICK_IMAGES,
+        intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+    )
+
+/**
+ * A [PhotopickerConfiguration] that can be used for codepaths that utilize [Intent.GET_CONTENT]
+ * intent action.
+ */
+val testGetContentConfiguration: PhotopickerConfiguration =
+    PhotopickerConfiguration(
+        action = Intent.ACTION_GET_CONTENT,
+        intent = Intent(Intent.ACTION_GET_CONTENT),
+    )
+
+/**
+ * A [PhotopickerConfiguration] that can be used for codepaths that utilize
+ * [MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP] intent action.
+ */
+val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
+    PhotopickerConfiguration(
+        action = MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP,
+        intent = Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP),
+    )
 
 /**
  * Helper function to generate a [StateFlow] that mimics the flow emitted by the

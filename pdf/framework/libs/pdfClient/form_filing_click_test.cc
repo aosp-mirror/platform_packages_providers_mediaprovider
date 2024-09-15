@@ -22,16 +22,16 @@
 
 #include "document.h"
 #include "form_widget_info.h"
+#include "fpdf_formfill.h"
+#include "fpdfview.h"
+#include "linux_fileops.h"
 #include "page.h"
 #include "rect.h"
 #include "testing/document_utils.h"
-// #include "testing/looks_like.h"
-//  #include "image/base/rawimage.h"
-#include "fpdf_formfill.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
+using pdfClient::LinuxFileOps;
 using pdfClient::Page;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
@@ -104,17 +104,11 @@ TEST(Test, ReadOnlyCheckBoxGetFormWidgetInfo) {
  * perform a click or alter the state of the page. Verify that page bitmap has
  * not been changed by this action.
  */
-// TEST(Test, ReadOnlyCheckBoxClickOnPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kClickForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyCheckboxDeviceCoords));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ReadOnlyCheckBoxClickOnPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kClickForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    EXPECT_FALSE(page_zero->ClickOnPoint(kReadOnlyCheckboxDeviceCoords));
+}
 
 /**
  * Send a click action to the coordinates of the read-only checkbox. Should not
@@ -164,24 +158,16 @@ TEST(Test, CheckBoxGetFormWidgetInfo) {
  * Click on the checkbox (currently unchecked). Should be checked and the page
  * should display as expected.
  */
-// TEST(Test, CheckboxClickOnPoint) {
-//     std::unique_ptr<Document> doc = LoadDocument(kClickForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     ASSERT_TRUE(page_zero->ClickOnPoint(kCheckboxDeviceCoords));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kClickFormCheckEdited);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, CheckboxClickOnPoint) {
+    std::unique_ptr<Document> doc = LoadDocument(kClickForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(kCheckboxDeviceCoords);
+    EXPECT_EQ(FPDF_FORMFIELD_CHECKBOX, fwiInitial.widget_type());
+    EXPECT_EQ("false", fwiInitial.text_value());
+    ASSERT_TRUE(page_zero->ClickOnPoint(kCheckboxDeviceCoords));
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(kCheckboxDeviceCoords);
+    EXPECT_EQ("true", fwiResult.text_value());
+}
 
 /**
  * Click on the checkbox. This action changes state so Page should be holding
@@ -235,24 +221,18 @@ TEST(Test, ResetButtonGetFormWidgetInfo) {
  * DV value "Mouse" and current V value of "Elephant" so should be updated by
  * this action.
  */
-// TEST(Test, ResetButtonClickOnPoint) {
-//     std::unique_ptr<Document> doc = LoadDocument(kResetButtonForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->ClickOnPoint(kResetButtonDeviceCoords));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kResetButtonFormAfter);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ResetButtonClickOnPoint) {
+    std::unique_ptr<Document> doc = LoadDocument(kResetButtonForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("Elephant", fwiInitial.text_value());
+
+    EXPECT_TRUE(page_zero->ClickOnPoint(kResetButtonDeviceCoords));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(1);
+    EXPECT_EQ("Mouse", fwiResult.text_value());
+}
 
 /**
  * Click on the reset button. This action changes state so Page should be
@@ -308,17 +288,11 @@ TEST(Test, ReadOnlyRadioButtonGetFormWidgetInfo) {
  * button. Should not perform a click or alter the state of the page. Verify
  * that page bitmap has not been changed by this action.
  */
-// TEST(Test, ReadOnlyRadioButtonClickOnPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kClickForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     ASSERT_FALSE(page_zero->ClickOnPoint(kReadOnlyRadioButtonLeftButtonDeviceCoords));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ReadOnlyRadioButtonClickOnPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kClickForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    ASSERT_FALSE(page_zero->ClickOnPoint(kReadOnlyRadioButtonLeftButtonDeviceCoords));
+}
 
 /**
  * Send a click action to the coordinates of the left-most read-only radio
@@ -370,25 +344,17 @@ TEST(Test, RadioButtonGetFormWidgetInfo) {
  * be moved to that option, removed from the previous option and the page
  * should display as expected.
  */
-// TEST(Test, RadioButtonClickOnPoint) {
-//     std::unique_ptr<Document> doc = LoadDocument(kClickForm);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> image_before_editing = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_TRUE(page_zero->ClickOnPoint(kRadioButtonLeftButtonDeviceCoords));
-//
-//     std::unique_ptr<RawImage> image_after_editing = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_FALSE(pdfClient::testing::LooksLike(*image_before_editing, *image_after_editing,
-//                                            pdfClient::testing::kZeroToleranceDifference));
-//
-//     std::unique_ptr<Document> expected_doc = LoadDocument(kClickFormRadioEdited);
-//     std::shared_ptr<Page> expected_page_zero = expected_doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> expected_image = pdfClient::testing::RenderPage(*expected_page_zero);
-//
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*expected_image, *image_after_editing,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, RadioButtonClickOnPoint) {
+    std::unique_ptr<Document> doc = LoadDocument(kClickForm);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    FormWidgetInfo fwiInitial = page_zero->GetFormWidgetInfo(kRadioButtonLeftButtonDeviceCoords);
+    EXPECT_EQ("false", fwiInitial.text_value());
 
+    EXPECT_TRUE(page_zero->ClickOnPoint(kRadioButtonLeftButtonDeviceCoords));
+
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(kRadioButtonLeftButtonDeviceCoords);
+    EXPECT_EQ("true", fwiResult.text_value());
+}
 /**
  * Click on an unselected option in a set of radio buttons. This action changes
  * state so Page should be holding an invalidated rectangle. Both left-most and

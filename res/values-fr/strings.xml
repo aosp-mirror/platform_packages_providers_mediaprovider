@@ -42,7 +42,7 @@
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Appli multimédia cloud"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Appli multimédia cloud"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accédez à vos contenus multimédias stockés dans le cloud quand une appli ou un site Web vous demande de sélectionner des photos ou des vidéos"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Accéder aux contenus multimédias cloud à partir de"</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Accéder aux contenus multimédias cloud de"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Aucune"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Impossible de changer l\'appli multimédia cloud."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Sélecteur de fichiers multimédias"</string>
@@ -70,7 +70,7 @@
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Bloqué par votre administrateur"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Vous n\'êtes pas autorisé à accéder à des données professionnelles depuis une appli personnelle"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Vous n\'êtes pas autorisé à accéder à des données à caractère personnel depuis une appli professionnelle"</string>
-    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Vous n\'êtes pas autorisé à accéder à des données <xliff:g id="PROFILE1">%1$s</xliff:g> depuis une appli <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
+    <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Vous n\'avez pas l\'autorisation d\'accéder à des données <xliff:g id="PROFILE1">%1$s</xliff:g> depuis une appli <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Passer à <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Applis professionnelles en pause"</string>
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"Les applis <xliff:g id="PROFILE">%s</xliff:g> sont en veille"</string>

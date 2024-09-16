@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Commencez à prendre des photos et des vidéos"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Les photos et vidéos capturées par votre appli d\'appareil photo apparaîtront ici"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Aucun favori pour le moment"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Les photos et vidéos marquées comme favorites s\'afficheront ici"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Aucune vidéo pour le moment"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Les vidéos capturées par votre appli d\'appareil photo, ou enregistrées ou partagées apparaîtront ici"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Retour"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Fermer"</string>
 </resources>

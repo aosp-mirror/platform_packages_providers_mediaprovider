@@ -131,7 +131,7 @@ open class Session(
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
         // Time interval to notify client about selected/deselected Uris
-        private const val URI_DEBOUNCE_TIME: Long = 400 // In milliseconds
+        const val URI_DEBOUNCE_TIME: Long = 400 // In milliseconds
     }
 
     /**
@@ -186,12 +186,6 @@ open class Session(
             prev + 1
         }
     }
-
-    /** List of all effectively selected Uris in current time interval */
-    private var _selectedUris: MutableList<Uri> = mutableListOf()
-
-    /** List of all effectively deselected Uris in current time interval */
-    private var _deselectedUris: MutableList<Uri> = mutableListOf()
 
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
@@ -385,8 +379,6 @@ open class Session(
      * permission when item is selected/deselected respectively.
      *
      * It emits both the previous and new selection of media items.
-     *
-     * todo(b/358537861): Debounce on uri selection/deselction
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
@@ -396,6 +388,7 @@ open class Session(
                 .get()
                 .flow
                 .flowWithLifecycle(_embeddedViewLifecycle.lifecycle, Lifecycle.State.STARTED)
+                .debounce(URI_DEBOUNCE_TIME)
                 .runningFold(initial = emptySet<Media>()) { _prevSelection, _newSelection ->
                     // Get list of items removed/deselected by user so that we can revoke access to
                     // those uris.
@@ -407,17 +400,14 @@ open class Session(
                     var newlySelectedMedia: Set<Media> = _newSelection.subtract(_prevSelection)
                     Log.d(TAG, "Granting uri permission to $newlySelectedMedia")
 
+                    val selectedUris: MutableList<Uri> = mutableListOf()
+                    val deselectedUris: MutableList<Uri> = mutableListOf()
+
                     // Grant uri to newly selected media and notify client
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            // no need to notify the client if some media item was
-                            // already selected -> deselected -> selected again
-                            if (_deselectedUris.contains(item.mediaUri)) {
-                                _deselectedUris.remove(item.mediaUri)
-                            } else {
-                                _selectedUris.add(item.mediaUri)
-                            }
+                            selectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
@@ -431,13 +421,7 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            // no need to notify the client if some media item was
-                            // already deselected -> selected -> deselected again
-                            if (_selectedUris.contains(item.mediaUri)) {
-                                _selectedUris.remove(item.mediaUri)
-                            } else {
-                                _deselectedUris.add(item.mediaUri)
-                            }
+                            deselectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
@@ -446,29 +430,20 @@ open class Session(
                             )
                         }
                     }
+
+                    // notify client about final selection
+                    if (selectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionGranted(selectedUris)
+                    }
+                    if (deselectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionRevoked(deselectedUris)
+                    }
+
                     // Update previous selection to current flow
                     _newSelection
                 }
-                .debounce(URI_DEBOUNCE_TIME)
-                .collect {
-                    // When the user interaction remains stable for [URI_DEBOUNCE_TIME] time,
-                    // the code below will start executing, and the client callback will be
-                    // informed about the user media selection
-                    if (_selectedUris.isNotEmpty()) {
-                        clientCallback.onUriPermissionGranted(_selectedUris.toList())
-                    }
-                    if (_deselectedUris.isNotEmpty()) {
-                        clientCallback.onUriPermissionRevoked(_deselectedUris.toList())
-                    }
-                    _deselectedUris.clear()
-                    _selectedUris.clear()
-                }
+                .collect()
         }
-    }
-
-    /** returns URI Debounce Time. This method is added specifically for tests */
-    fun getURIDebounceTime(): Long {
-        return URI_DEBOUNCE_TIME
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {

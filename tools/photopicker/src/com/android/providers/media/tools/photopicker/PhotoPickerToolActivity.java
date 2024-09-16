@@ -20,14 +20,16 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.Cursor;
+import android.hardware.display.DisplayManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -38,11 +40,24 @@ import android.widget.RadioButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.VideoView;
+import android.widget.photopicker.EmbeddedPhotoPickerClient;
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo;
+import android.widget.photopicker.EmbeddedPhotoPickerProvider;
+import android.widget.photopicker.EmbeddedPhotoPickerProviderFactory;
+import android.widget.photopicker.EmbeddedPhotoPickerSession;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.snackbar.Snackbar;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class PhotoPickerToolActivity extends Activity {
 
@@ -69,11 +84,13 @@ public class PhotoPickerToolActivity extends Activity {
     private CheckBox mSetSelectionCountCheckBox;
     private CheckBox mAllowMultipleCheckBox;
     private CheckBox mGetContentCheckBox;
+    private CheckBox mEmbeddedPhotoPickerCheckBox;
 
     private CheckBox mOrderedSelectionCheckBox;
 
     private CheckBox mPickerLaunchTabCheckBox;
     private CheckBox mPickerAccentColorCheckBox;
+    private CheckBox mEmbeddedThemeNightModeCheckBox;
 
     private EditText mMaxCountText;
     private EditText mMimeTypeText;
@@ -81,6 +98,13 @@ public class PhotoPickerToolActivity extends Activity {
 
     private RadioButton mAlbumsRadioButton;
     private RadioButton mPhotosRadioButton;
+    private RadioButton mSystemThemeButton;
+    private RadioButton mLightThemeButton;
+    private RadioButton mNightThemeButton;
+    private EmbeddedPhotoPickerProvider mEmbeddedPickerProvider;
+    private SurfaceView mSurfaceView;
+    private EmbeddedPhotoPickerSession mSession = null;
+    private BottomSheetBehavior<View> mBottomSheetBehavior;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,15 +118,19 @@ public class PhotoPickerToolActivity extends Activity {
         mSetSelectionCountCheckBox = findViewById(R.id.cbx_set_selection_count);
         mSetVideoOnlyCheckBox = findViewById(R.id.cbx_set_video_only);
         mOrderedSelectionCheckBox = findViewById(R.id.cbx_ordered_selection);
+        mEmbeddedPhotoPickerCheckBox = findViewById(R.id.cbx_embedded_photopicker);
+        mEmbeddedThemeNightModeCheckBox = findViewById(R.id.cbx_set_theme_night_mode);
         mMaxCountText = findViewById(R.id.edittext_max_count);
         mMimeTypeText = findViewById(R.id.edittext_mime_type);
         mScrollView = findViewById(R.id.scrollview);
         mPickerLaunchTabCheckBox = findViewById(R.id.cbx_set_picker_launch_tab);
         mAlbumsRadioButton = findViewById(R.id.rb_albums);
         mPhotosRadioButton = findViewById(R.id.rb_photos);
+        mSystemThemeButton = findViewById(R.id.rb_system);
+        mLightThemeButton = findViewById(R.id.rb_light);
+        mNightThemeButton = findViewById(R.id.rb_night);
         mPickerAccentColorCheckBox = findViewById(R.id.cbx_set_accent_color);
         mAccentColorText = findViewById(R.id.edittext_accent_color);
-
         mSetImageOnlyCheckBox.setOnCheckedChangeListener(this::onShowImageOnlyCheckedChanged);
         mSetVideoOnlyCheckBox.setOnCheckedChangeListener(this::onShowVideoOnlyCheckedChanged);
         mSetMimeTypeCheckBox.setOnCheckedChangeListener(this::onSetMimeTypeCheckedChanged);
@@ -112,32 +140,54 @@ public class PhotoPickerToolActivity extends Activity {
                 this::onSetPickerLaunchTabCheckedChanged);
         mPickerAccentColorCheckBox.setOnCheckedChangeListener(
                 this::onSetPickerAccentColorCheckedChanged);
+        mEmbeddedThemeNightModeCheckBox.setOnCheckedChangeListener(
+                this::onSetEmbeddedThemeCheckedChanged);
 
-        mMaxCountText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                try {
-                    mMaxCount = Integer.parseInt(mMaxCountText.getText().toString().trim());
-                } catch (NumberFormatException ex) {
-                    // The input is not an integer type, set the mMaxCount to -1.
-                    mMaxCount = -1;
-                    final String wrongFormatWarning =
-                            "The count format is wrong! Please input correct number!";
-                    Snackbar.make(mMaxCountText, wrongFormatWarning, Snackbar.LENGTH_LONG).show();
-                }
-            }
-        });
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            enableEmbeddedPhotoPickerSupport();
+        }
         final Button launchButton = findViewById(R.id.launch_button);
         launchButton.setOnClickListener(this::onLaunchButtonClicked);
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    /** Enable checkbox and initialise bottom sheet to support Embedded PhotoPicker */
+    private void enableEmbeddedPhotoPickerSupport() {
+        mEmbeddedPhotoPickerCheckBox.setVisibility(View.VISIBLE);
+        // Prepare Bottom Sheet
+        View bottomSheet = findViewById(R.id.bottomSheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        BottomSheetBehavior.BottomSheetCallback bottomSheetCallback =
+                new BottomSheetBehavior.BottomSheetCallback() {
+                    @Override
+                    public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                        // notify current opened session about current bottom sheet state
+                        if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                            if (mSession != null) {
+                                mSession.notifyPhotoPickerExpanded(true);
+                            }
+                        } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                            if (mSession != null) {
+                                mSession.notifyPhotoPickerExpanded(false);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                        // Optional: Handle sliding behavior here
+                    }
+                };
+        mBottomSheetBehavior.addBottomSheetCallback(bottomSheetCallback);
+        // Initially hide the BottomSheet
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+
+        mEmbeddedPickerProvider =
+                EmbeddedPhotoPickerProviderFactory.create(getApplicationContext());
+        mSurfaceView = findViewById(R.id.surface);
+        mSurfaceView.setZOrderOnTop(true);
     }
 
     private void onShowImageOnlyCheckedChanged(View view, boolean isChecked) {
@@ -190,7 +240,56 @@ public class PhotoPickerToolActivity extends Activity {
         mAccentColorText.setEnabled(isChecked);
     }
 
+    private void onSetEmbeddedThemeCheckedChanged(View view, boolean isChecked) {
+        mSystemThemeButton.setEnabled(isChecked);
+        mLightThemeButton.setEnabled(isChecked);
+        mNightThemeButton.setEnabled(isChecked);
+    }
+
+    /** Implements {@link EmbeddedPhotoPickerClient} necessary methods to respond
+     * the notifications sent by the service */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private class ClientCallback implements EmbeddedPhotoPickerClient {
+        @Override
+        public void onSessionOpened(EmbeddedPhotoPickerSession session) {
+            mSession = session;
+            // Initially bottom sheet should be open in collapsed state
+            if (mBottomSheetBehavior != null) {
+                mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            }
+            mSurfaceView.setChildSurfacePackage(session.getSurfacePackage());
+            Log.d(TAG, "Embedded PhotoPicker session opened successfully");
+        }
+
+        @Override
+        public void onSessionError(@NonNull Throwable cause) {
+            mSession = null;
+            Log.e(TAG, "Error occurred in Embedded PhotoPicker session", cause);
+        }
+
+        @Override
+        public void onUriPermissionGranted(@NonNull List<Uri> uris) {
+            Log.d(TAG, "Uri permission granted for: " + uris);
+        }
+
+        @Override
+        public void onUriPermissionRevoked(@NonNull List<Uri> uris) {
+            Log.d(TAG, "Uri permission revoked for: " + uris);
+        }
+
+        @Override
+        public void onSelectionComplete() {
+            mSession.close();
+            Log.d(TAG, "User is done with their selection in Embedded PhotoPicker");
+        }
+    }
+
     private void onLaunchButtonClicked(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                && mEmbeddedPhotoPickerCheckBox.isChecked()) {
+            launchEmbeddedPhotoPicker();
+            return;
+        }
         final Intent intent;
         if (mGetContentCheckBox.isChecked()) {
             intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -238,6 +337,14 @@ public class PhotoPickerToolActivity extends Activity {
         }
 
         if (mSetSelectionCountCheckBox.isChecked()) {
+            try {
+                mMaxCount = Integer.parseInt(mMaxCountText.getText().toString().trim());
+            } catch (NumberFormatException ex) {
+                // The input is not an integer type, set the mMaxCount to -1.
+                mMaxCount = -1;
+                logErrorAndShowToast("The count format is wrong! Please input"
+                        + " correct number!");
+            }
             intent.putExtra(EXTRA_PICK_IMAGES_MAX, mMaxCount);
         }
 
@@ -248,6 +355,93 @@ public class PhotoPickerToolActivity extends Activity {
                     "No Activity found to handle Intent with type \"" + intent.getType() + "\"";
             logErrorAndShowToast(errorMessage);
         }
+    }
+
+    /** Set {@link EmbeddedPhotoPickerFeatureInfo} attributes and launch Embedded PhotoPicker */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private void launchEmbeddedPhotoPicker() {
+        EmbeddedPhotoPickerFeatureInfo.Builder embeddedPhotoPickerFeatureInfoBuilder =
+                new EmbeddedPhotoPickerFeatureInfo.Builder();
+
+        int displayId = getSystemService(DisplayManager.class).getDisplays()[0].getDisplayId();
+
+        // Set feature info attributes in EmbeddedPhotoPickerFeatureInfo builder
+        // TODO(b/365914283) Enable pre selected Uri feature
+
+        // Set mime types
+        List<String> mimeTypes = null;
+        if (mSetImageOnlyCheckBox.isChecked()) {
+            mimeTypes = List.of("image/*");
+        } else if (mSetVideoOnlyCheckBox.isChecked()) {
+            mimeTypes = List.of("video/*");
+        } else if (mSetMimeTypeCheckBox.isChecked()) {
+            final String inputText = mMimeTypeText.getText().toString();
+            mimeTypes = Arrays.stream(inputText.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+        }
+        if (mimeTypes != null) {
+            try {
+                embeddedPhotoPickerFeatureInfoBuilder.setMimeTypes(mimeTypes);
+            } catch (NullPointerException | IllegalArgumentException e) {
+                logErrorAndShowToast(e.getMessage());
+                return;
+            }
+        }
+
+        // Set Embedded Picker Accent color
+        if (mPickerAccentColorCheckBox.isChecked()) {
+            try {
+                long accentColor = Long.decode(mAccentColorText.getText().toString());
+                embeddedPhotoPickerFeatureInfoBuilder.setAccentColor(accentColor);
+            } catch (NumberFormatException e) {
+                logErrorAndShowToast("Invalid accent color format");
+                return;
+            }
+        }
+
+        // Set Embedded Picker Theme
+        if (mEmbeddedThemeNightModeCheckBox.isChecked()) {
+            if (mSystemThemeButton.isChecked()) {
+                embeddedPhotoPickerFeatureInfoBuilder.setThemeNightMode(
+                        Configuration.UI_MODE_NIGHT_UNDEFINED);
+            } else if (mLightThemeButton.isChecked()) {
+                embeddedPhotoPickerFeatureInfoBuilder.setThemeNightMode(
+                        Configuration.UI_MODE_NIGHT_NO);
+            } else if (mNightThemeButton.isChecked()) {
+                embeddedPhotoPickerFeatureInfoBuilder.setThemeNightMode(
+                        Configuration.UI_MODE_NIGHT_YES);
+            }
+        }
+
+        // Set if Ordered selection enabled in Embedded PhotoPicker
+        if (mOrderedSelectionCheckBox.isChecked()) {
+            embeddedPhotoPickerFeatureInfoBuilder.setOrderedSelection(true);
+        }
+
+        // Set selection limit in Embedded PhotoPicker
+        if (mSetSelectionCountCheckBox.isChecked()) {
+            try {
+                mMaxCount = Integer.parseInt(mMaxCountText.getText().toString().trim());
+                embeddedPhotoPickerFeatureInfoBuilder.setMaxSelectionLimit(mMaxCount);
+            } catch (NumberFormatException ex) {
+                logErrorAndShowToast("The count format is wrong!"
+                        + " Please input correct number!");
+                return;
+            } catch (IllegalArgumentException e) {
+                logErrorAndShowToast(e.getMessage());
+                return;
+            }
+        }
+
+        // open a new embedded PhotoPicker session
+        mEmbeddedPickerProvider.openSession(
+                mSurfaceView.getHostToken(),
+                displayId, mSurfaceView.getWidth(),
+                mSurfaceView.getHeight(),
+                embeddedPhotoPickerFeatureInfoBuilder.build(),
+                Executors.newSingleThreadExecutor(),
+                new ClientCallback());
     }
 
     private void logErrorAndShowToast(String errorMessage) {

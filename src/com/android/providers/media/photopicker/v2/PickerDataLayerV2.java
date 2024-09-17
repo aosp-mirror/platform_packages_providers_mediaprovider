@@ -251,8 +251,14 @@ public class PickerDataLayerV2 {
         }
 
         // Add cloud albums at the end.
-        allAlbumCursors.add(getCloudAlbumsCursor(appContext, query, effectiveLocalAuthority,
-                effectiveCloudAuthority));
+        // This is an external query into the CMP, so catch any exceptions that might get thrown
+        // so that at a minimum, the local results are sent back to the UI.
+        try {
+            allAlbumCursors.add(getCloudAlbumsCursor(appContext, query, effectiveLocalAuthority,
+                    effectiveCloudAuthority));
+        } catch (RuntimeException ex) {
+            Log.w(TAG, "Cloud provider exception while fetching cloud albums cursor", ex);
+        }
 
         // Remove empty cursors.
         allAlbumCursors.removeIf(it -> it == null || !it.moveToFirst());

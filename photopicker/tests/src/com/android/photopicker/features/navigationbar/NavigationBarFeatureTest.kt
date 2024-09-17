@@ -20,7 +20,11 @@ import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.UserManager
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
@@ -28,6 +32,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.filters.SdkSuppress
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -53,6 +58,7 @@ import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -91,6 +97,7 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
+    @get:Rule(order = 3) var setFlagsRule = SetFlagsRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -183,6 +190,82 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
                 configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
             )
 
+        val photosGridNavButtonLabel =
+            getTestableContext()
+                .getResources()
+                .getString(R.string.photopicker_photos_nav_button_label)
+        val albumsGridNavButtonLabel =
+            getTestableContext()
+                .getResources()
+                .getString(R.string.photopicker_albums_nav_button_label)
+
+        testScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            composeTestRule.waitForIdle()
+
+            // Photos Grid Nav Button and Albums Grid Nav Button
+            composeTestRule
+                .onNode(hasText(photosGridNavButtonLabel))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+
+            composeTestRule
+                .onNode(hasText(albumsGridNavButtonLabel))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+        }
+    }
+
+    /* Verify Navigation Bar when search flag disabled contains tabs for both photos and albums grid.*/
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testNavigationBar_withSearchFlagDisabled_IsVisibleWithFeatureTabs() {
+        val photosGridNavButtonLabel =
+            getTestableContext()
+                .getResources()
+                .getString(R.string.photopicker_photos_nav_button_label)
+        val albumsGridNavButtonLabel =
+            getTestableContext()
+                .getResources()
+                .getString(R.string.photopicker_albums_nav_button_label)
+
+        testScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            composeTestRule.waitForIdle()
+
+            // Photos Grid Nav Button and Albums Grid Nav Button
+            composeTestRule
+                .onNode(hasText(photosGridNavButtonLabel))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+
+            composeTestRule
+                .onNode(hasText(albumsGridNavButtonLabel))
+                .assertIsDisplayed()
+                .assert(hasClickAction())
+        }
+    }
+
+    /* Verify Navigation Bar when search flag enabled contains tabs for both photos and albums grid.*/
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testNavigationBar_withSearchFlagEnabled_IsVisibleWithFeatureTabs() {
         val photosGridNavButtonLabel =
             getTestableContext()
                 .getResources()

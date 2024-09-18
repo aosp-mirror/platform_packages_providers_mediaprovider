@@ -17,8 +17,10 @@
 package com.android.photopicker.features.navigationbar
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -50,6 +52,7 @@ import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
+import com.android.photopicker.features.search.SearchFeature
 
 /* Navigation bar button measurements */
 private val MEASUREMENT_ICON_BUTTON_WIDTH = 48.dp
@@ -72,6 +75,9 @@ private val MEASUREMENT_BOT_PADDING = 24.dp
  * This composable provides a full width row for the navigation bar and calls the feature manager to
  * provide [NavigationBarButton]s for the row.
  *
+ * If the search feature is enabled [Location.SEARCH_BAR] is drawn above the [NavigationBarButtons]
+ * at the top.
+ *
  * Additionally, the composable also calls for the [PROFILE_SELECTOR] and [OVERFLOW_MENU] locations.
  */
 @Composable
@@ -81,6 +87,8 @@ fun NavigationBar(modifier: Modifier = Modifier) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val featureManager = LocalFeatureManager.current
+    val searchFeatureEnabled = featureManager.isFeatureEnabled(SearchFeature::class.java)
+
     Row(
         modifier =
             modifier.padding(
@@ -92,94 +100,19 @@ fun NavigationBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
-        when (currentRoute) {
+        when {
 
             // When inside an album display the album title and a back button,
             // instead of the normal navigation bar contents.
-            PhotopickerDestinations.ALBUM_MEDIA_GRID.route -> {
+            currentRoute == PhotopickerDestinations.ALBUM_MEDIA_GRID.route ->
+                NavigationBarForAlbum(modifier)
 
-                val flow =
-                    navBackStackEntry
-                        ?.savedStateHandle
-                        ?.getStateFlow<Group.Album?>(AlbumGridFeature.ALBUM_KEY, null)
-                val album = flow?.value
-                when (album) {
-                    null -> {}
-                    else -> {
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            // back button
-                            IconButton(
-                                modifier =
-                                    Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                                        .padding(
-                                            horizontal = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING
-                                        ),
-                                onClick = { navController.navigateToAlbumGrid() }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    // For accessibility
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_back_option),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                            // Album name
-                            Text(
-                                text = album.displayName,
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1,
-                                style = MaterialTheme.typography.titleLarge,
-                            )
-                        }
-                    }
-                }
-            }
+            // When search feature is enabled then display search bar along with profile selector,
+            // overflow menu and the navigation buttons below it.
+            searchFeatureEnabled -> NavigationBarWithSearch(modifier)
 
             // For all other routes, show the profile selector and the navigation buttons
-            else -> {
-
-                val profileSelectorEnabled =
-                    remember(featureManager) {
-                        featureManager.isFeatureEnabled(ProfileSelectorFeature::class.java)
-                    }
-                if (profileSelectorEnabled) {
-                    featureManager.composeLocation(
-                        Location.PROFILE_SELECTOR,
-                        maxSlots = 1,
-                        modifier = Modifier.padding(start = 8.dp).weight(1f)
-                    )
-                } else {
-                    Spacer(
-                        Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                            .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
-                            .weight(1f)
-                    )
-                }
-
-                NavigationBarButtons(Modifier)
-            }
-        }
-
-        val overFlowMenuEnabled =
-            remember(featureManager) {
-                featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
-            }
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            if (overFlowMenuEnabled) {
-                featureManager.composeLocation(
-                    Location.OVERFLOW_MENU,
-                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
-                )
-            } else {
-                Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
-            }
+            else -> BasicNavigationBar(modifier)
         }
     }
 }
@@ -254,12 +187,182 @@ private fun NavigationBarButtons(modifier: Modifier) {
                     alignment = Alignment.CenterHorizontally
                 ),
         ) {
+            val featureManager = LocalFeatureManager.current
+            val searchFeatureEnabled = featureManager.isFeatureEnabled(SearchFeature::class.java)
             // Buttons are provided by registered features, so request for the features to fill
             // this content.
             LocalFeatureManager.current.composeLocation(
                 Location.NAVIGATION_BAR_NAV_BUTTON,
                 maxSlots = 2,
+                modifier =
+                    if (searchFeatureEnabled) {
+                        Modifier.weight(1f)
+                    } else {
+                        Modifier // No modifier needed when search not enabled
+                    }
             )
+        }
+    }
+}
+
+/**
+ * Composable that provides Navigation Bar when inside an album that displays the album title and a
+ * back button
+ *
+ * @param modifier Modifier used to configure the layout of the navigation bar.
+ */
+@Composable
+private fun NavigationBarForAlbum(modifier: Modifier) {
+    val navController = LocalNavController.current
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    Row(modifier = modifier.fillMaxWidth()) {
+        val flow =
+            navBackStackEntry
+                ?.savedStateHandle
+                ?.getStateFlow<Group.Album?>(AlbumGridFeature.ALBUM_KEY, null)
+        val album = flow?.value
+        when (album) {
+            null -> {}
+            else -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // back button
+                    IconButton(
+                        modifier =
+                            Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                                .padding(horizontal = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING),
+                        onClick = { navController.navigateToAlbumGrid() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            // For accessibility
+                            contentDescription = stringResource(R.string.photopicker_back_option),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    // Album name
+                    Text(
+                        text = album.displayName,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                }
+            }
+        }
+        val featureManager = LocalFeatureManager.current
+        val overFlowMenuEnabled =
+            remember(featureManager) {
+                featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+            }
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            if (overFlowMenuEnabled) {
+                featureManager.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                )
+            } else {
+                Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
+            }
+        }
+    }
+}
+
+/**
+ * A composable function that displays a Navigation Bar with an integrated search bar which is
+ * called when the search feature is enabled.
+ *
+ * This Navigation Bar also includes [PROFILE_SELECTOR] and [OVERFLOW_MENU]
+ *
+ * Navigation buttons are positioned below the search bar.
+ */
+@Composable
+private fun NavigationBarWithSearch(modifier: Modifier) {
+    val featureManager = LocalFeatureManager.current
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.Start
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+            featureManager.composeLocation(
+                Location.SEARCH_BAR,
+                maxSlots = 1,
+                modifier = Modifier.weight(1f)
+            )
+            featureManager.composeLocation(
+                Location.PROFILE_SELECTOR,
+                maxSlots = 1,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+            Row(
+                modifier = Modifier,
+                horizontalArrangement = Arrangement.End,
+            ) {
+                val overFlowMenuEnabled =
+                    remember(featureManager) {
+                        featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+                    }
+                if (overFlowMenuEnabled) {
+                    featureManager.composeLocation(
+                        Location.OVERFLOW_MENU,
+                        modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    )
+                } else {
+                    Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
+                }
+            }
+        }
+        NavigationBarButtons(Modifier)
+    }
+}
+
+/**
+ * A composable function that displays a default Navigation Bar. This includes a [PROFILE_SELECTOR]
+ * and [OVERFLOW_MENU] along with navigation buttons.
+ */
+@Composable
+private fun BasicNavigationBar(modifier: Modifier) {
+    val featureManager = LocalFeatureManager.current
+    val profileSelectorEnabled =
+        remember(featureManager) {
+            featureManager.isFeatureEnabled(ProfileSelectorFeature::class.java)
+        }
+    val overFlowMenuEnabled =
+        remember(featureManager) {
+            featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+        }
+    Row(modifier = modifier.fillMaxWidth()) {
+        if (profileSelectorEnabled) {
+            featureManager.composeLocation(
+                Location.PROFILE_SELECTOR,
+                maxSlots = 1,
+                modifier = Modifier.padding(start = 8.dp).weight(1f)
+            )
+        } else {
+            Spacer(
+                Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    .padding(start = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING)
+                    .weight(1f)
+            )
+        }
+        NavigationBarButtons(Modifier)
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            if (overFlowMenuEnabled) {
+                featureManager.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                )
+            } else {
+                Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
+            }
         }
     }
 }

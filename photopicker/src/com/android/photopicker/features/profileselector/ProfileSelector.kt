@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
 import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.user.UserProfile
 
@@ -66,14 +68,13 @@ fun ProfileSelector(
     // Collect selection to ensure this is recomposed when the selection is updated.
     val allProfiles by viewModel.allProfiles.collectAsStateWithLifecycle()
 
+    val config = LocalPhotopickerConfiguration.current
+
     // MutableState which defines which profile to use to display the [ProfileUnavailableDialog].
     // When this value is null, the dialog is hidden.
     var disabledDialogProfile: UserProfile? by remember { mutableStateOf(null) }
     disabledDialogProfile?.let {
-        ProfileUnavailableDialog(
-            onDismissRequest = { disabledDialogProfile = null },
-            profile = it,
-        )
+        ProfileUnavailableDialog(onDismissRequest = { disabledDialogProfile = null }, profile = it)
     }
 
     // Ensure there is more than one available profile before creating all of the UI.
@@ -90,7 +91,7 @@ fun ProfileSelector(
                     ButtonDefaults.filledTonalButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.primary,
-                    )
+                    ),
             ) {
                 currentProfile.icon?.let {
                     Icon(
@@ -132,11 +133,22 @@ fun ProfileSelector(
                         color =
                             if (currentProfile == profile)
                                 MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHigh
+                            else MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
-                            // enabled = profile.enabled,
+                            enabled =
+                                when (config.runtimeEnv) {
+
+                                    // The button is always enabled in activity runtime, as an error
+                                    // dialog will be shown to the user if the profile cannot be
+                                    // selected.
+                                    PhotopickerRuntimeEnv.ACTIVITY -> true
+
+                                    // For embedded, dialogs cannot be launched, so only allow the
+                                    // profile button to be enabled if the profile is enabled.
+                                    PhotopickerRuntimeEnv.EMBEDDED -> profile.enabled
+                                },
                             onClick = {
                                 // Only request a switch if the profile is actually different.
                                 if (currentProfile != profile) {
@@ -144,7 +156,7 @@ fun ProfileSelector(
                                     if (profile.enabled) {
                                         viewModel.requestSwitchUser(
                                             context = context,
-                                            requested = profile
+                                            requested = profile,
                                         )
                                         // Close the profile switcher popup
                                         expanded = false
@@ -173,7 +185,7 @@ fun ProfileSelector(
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
-                                            }
+                                            },
                                     )
                                 }
                                     // If the profile doesn't have an icon drawable set, then
@@ -187,7 +199,7 @@ fun ProfileSelector(
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
-                                            }
+                                            },
                                     )
                             },
                         )

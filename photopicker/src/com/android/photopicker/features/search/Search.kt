@@ -21,9 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -64,7 +66,7 @@ fun Search(modifier: Modifier = Modifier) {
         onExpandedChange = { focused.value = it },
         colors =
             SearchBarDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 dividerColor = MaterialTheme.colorScheme.outlineVariant,
             ),
         modifier =
@@ -82,6 +84,19 @@ fun Search(modifier: Modifier = Modifier) {
  *
  * This component provides a text field for entering search queries It also handles focus state and
  * provides callbacks for search query changes and focus changes.
+ *
+ * @param searchQuery The current text entered in search bar input field.
+ * @param focused A boolean value indicating whether the search input field is currently focused.
+ * @param onSearchQueryChanged A callback function that is invoked when the search query text
+ *   changes.
+ *     * This function receives the updated search query as a parameter.
+ *
+ * @param onFocused A callback function that is invoked when the focus state of the search field
+ *   changes.
+ *     * This function receives a boolean value indicating the new focus state.
+ *
+ * @param modifier A Modifier that can be applied to the SearchInput composable to customize its
+ *     * appearance and behavior.
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,21 +110,63 @@ private fun SearchInput(
     SearchBarDefaults.InputField(
         query = searchQuery,
         placeholder = {
-            Text(
-                text = stringResource(R.string.photopicker_search_placeholder_text),
-                style = MaterialTheme.typography.bodyLarge,
-            )
+            val placeholderText =
+                when (focused) {
+                    true -> stringResource(R.string.photopicker_searchView_placeholder_text)
+                    false -> stringResource(R.string.photopicker_search_placeholder_text)
+                }
+            Text(text = placeholderText, style = MaterialTheme.typography.bodyLarge)
         },
         colors =
             TextFieldDefaults.colors(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
         onQueryChange = onSearchQueryChanged,
         onSearch = { onFocused(true) },
         expanded = focused,
         onExpandedChange = onFocused,
-        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+        leadingIcon = { SearchBarIcon(focused, onFocused, onSearchQueryChanged) },
         modifier = modifier.height(MEASUREMENT_SEARCH_BAR_HEIGHT),
     )
+}
+
+/**
+ * A composable function that displays the leading icon in a SearchBar. The icon changes based on
+ * the focused state of the SearchBar.
+ *
+ * @param focused A boolean value indicating whether search input field of search bar is currently
+ *   focused.
+ * @param onFocused A callback function that is invoked when the focus state of the search field
+ *   changes.
+ *     * This function receives a boolean value indicating the new focus state.
+ *
+ * @param onSearchQueryChanged A callback function that is invoked when the search query text
+ *   changes.
+ *     * This function receives the updated search query as a parameter.
+ */
+@Composable
+private fun SearchBarIcon(
+    focused: Boolean,
+    onFocused: (Boolean) -> Unit,
+    onSearchQueryChanged: (String) -> Unit
+) {
+    if (focused) {
+        IconButton(
+            onClick = {
+                onFocused(false)
+                onSearchQueryChanged("")
+            }
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.photopicker_back_option)
+            )
+        }
+    } else {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = stringResource(R.string.photopicker_search_placeholder_text)
+        )
+    }
 }

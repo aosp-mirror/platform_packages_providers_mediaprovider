@@ -52,9 +52,6 @@ import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
-import com.android.photopicker.core.configuration.TEST_CALLING_PACKAGE
-import com.android.photopicker.core.configuration.TEST_CALLING_PACKAGE_LABEL
-import com.android.photopicker.core.configuration.TEST_CALLING_UID
 import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -166,9 +163,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             TestPhotopickerConfiguration.build {
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is always enabled when search flag is disabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
@@ -201,9 +198,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             TestPhotopickerConfiguration.build {
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
@@ -239,9 +236,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))

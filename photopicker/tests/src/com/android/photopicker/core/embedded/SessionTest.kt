@@ -140,7 +140,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
     @get:Rule(order = 3)
-    val mCheckFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
+    val checkFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module

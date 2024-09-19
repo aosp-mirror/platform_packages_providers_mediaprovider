@@ -53,9 +53,7 @@ import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_PROVIDER_A
 import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
 import com.android.photopicker.core.configuration.PhotopickerFlags
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -148,14 +146,14 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             authority = "local_authority",
             mediaSource = MediaSource.LOCAL,
             uid = 1,
-            displayName = "Local Provider"
+            displayName = "Local Provider",
         )
     private val cloudProvider =
         Provider(
             authority = "clout_authority",
             mediaSource = MediaSource.REMOTE,
             uid = 2,
-            displayName = "Cloud Provider"
+            displayName = "Cloud Provider",
         )
 
     @Before
@@ -171,17 +169,17 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.first,
-            true
+            true,
         )
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.first,
-            true
+            true,
         )
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
-            "com.android.test.cloudpicker"
+            "com.android.test.cloudpicker",
         )
 
         configurationManager
@@ -202,49 +200,75 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
         assertWithMessage("CloudMediaFeature is not always enabled (ACTION_PICK_IMAGES)")
             .that(
                 CloudMediaFeature.Registration.isEnabled(
-                    testActionPickImagesConfiguration.copy(
-                        flags =
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                        flags(
                             PhotopickerFlags(
                                 CLOUD_MEDIA_ENABLED = true,
-                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
                             )
-                    )
+                        )
+                    }
                 )
             )
             .isEqualTo(true)
 
         assertWithMessage("CloudMediaFeature is enabled with invalid flags (ACTION_PICK_IMAGES)")
-            .that(CloudMediaFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(false)
 
         assertWithMessage("CloudMediaFeature is not always enabled (ACTION_GET_CONTENT)")
             .that(
                 CloudMediaFeature.Registration.isEnabled(
-                    testGetContentConfiguration.copy(
-                        flags =
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                        flags(
                             PhotopickerFlags(
                                 CLOUD_MEDIA_ENABLED = true,
-                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
                             )
-                    )
+                        )
+                    }
                 )
             )
             .isEqualTo(true)
 
         assertWithMessage("CloudMediaFeature is enabled with invalid flags (ACTION_GET_CONTENT)")
-            .that(CloudMediaFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(false)
 
         assertWithMessage("CloudMediaFeature is not always disabled (USER_SELECT_FOR_APP)")
             .that(
                 CloudMediaFeature.Registration.isEnabled(
-                    testUserSelectImagesForAppConfiguration.copy(
-                        flags =
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                        flags(
                             PhotopickerFlags(
                                 CLOUD_MEDIA_ENABLED = true,
-                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority")
+                                CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
                             )
-                    )
+                        )
+                    }
                 )
             )
             .isEqualTo(false)
@@ -252,7 +276,17 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
         assertWithMessage(
                 "CloudMediaFeature is not always disabled (default flags) (USER_SELECT_FOR_APP)"
             )
-            .that(CloudMediaFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                CloudMediaFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
             .isEqualTo(false)
     }
 
@@ -302,11 +336,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
 
             // Setup an activityMonitor to catch any launched intents to settings
             val activityMonitor =
-                ActivityMonitor(
-                    intentFilter,
-                    /* result= */ null,
-                    /* block= */ true,
-                )
+                ActivityMonitor(intentFilter, /* result= */ null, /* block= */ true)
             InstrumentationRegistry.getInstrumentation().addMonitor(activityMonitor)
 
             composeTestRule.setContent {
@@ -357,19 +387,19 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.CLOUD_MEDIA_AVAILABLE.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 null
@@ -384,8 +414,8 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     authority = cloudProvider.authority,
                     collectionId = "collection-id",
                     accountName = "abc@xyz.com",
-                    accountConfigurationIntent = Intent()
-                )
+                    accountConfigurationIntent = Intent(),
+                ),
             )
 
             val resources = getTestableContext().getResources()
@@ -395,7 +425,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 resources.getString(
                     R.string.photopicker_banner_cloud_media_available_message,
                     cloudProvider.displayName,
-                    "abc@xyz.com"
+                    "abc@xyz.com",
                 )
 
             bannerManager.get().refreshBanners()
@@ -421,25 +451,25 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.CLOUD_MEDIA_AVAILABLE.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.CLOUD_MEDIA_AVAILABLE.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
@@ -452,8 +482,8 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     authority = cloudProvider.authority,
                     collectionId = "collection-id",
                     accountName = "abc@xyz.com",
-                    accountConfigurationIntent = Intent()
-                )
+                    accountConfigurationIntent = Intent(),
+                ),
             )
 
             val resources = getTestableContext().getResources()
@@ -463,7 +493,7 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                 resources.getString(
                     R.string.photopicker_banner_cloud_media_available_message,
                     cloudProvider.displayName,
-                    "abc@xyz.com"
+                    "abc@xyz.com",
                 )
 
             bannerManager.get().refreshBanners()
@@ -489,13 +519,13 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
@@ -508,8 +538,8 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     authority = cloudProvider.authority,
                     collectionId = null,
                     accountName = null,
-                    accountConfigurationIntent = Intent()
-                )
+                    accountConfigurationIntent = Intent(),
+                ),
             )
 
             val resources = getTestableContext().getResources()
@@ -544,26 +574,26 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.CLOUD_CHOOSE_ACCOUNT.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.CLOUD_CHOOSE_ACCOUNT.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
@@ -576,8 +606,8 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
                     authority = cloudProvider.authority,
                     collectionId = null,
                     accountName = null,
-                    accountConfigurationIntent = Intent()
-                )
+                    accountConfigurationIntent = Intent(),
+                ),
             )
 
             val resources = getTestableContext().getResources()
@@ -612,13 +642,13 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
@@ -656,26 +686,26 @@ class CloudMediaFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.CLOUD_CHOOSE_PROVIDER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.CLOUD_CHOOSE_PROVIDER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
 

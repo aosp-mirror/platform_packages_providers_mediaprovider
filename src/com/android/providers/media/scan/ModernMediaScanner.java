@@ -63,6 +63,7 @@ import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.OperationApplicationException;
@@ -114,6 +115,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaVolume;
+import com.android.providers.media.backupandrestore.RestoreExecutor;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
@@ -437,6 +439,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
+        private final Optional<RestoreExecutor> mRestoreExecutorOptional;
         private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
@@ -483,6 +486,7 @@ public class ModernMediaScanner implements MediaScanner {
             mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
+            mRestoreExecutorOptional = RestoreExecutor.getRestoreExecutor(mContext);
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
@@ -939,7 +943,7 @@ public class ModernMediaScanner implements MediaScanner {
             Trace.beginSection("Scanner.scanItem");
             try {
                 op = scanItem(existingId, realFile, attrs, actualMimeType, actualMediaType,
-                        mVolumeName);
+                        mVolumeName, mRestoreExecutorOptional.orElse(null));
             } finally {
                 Trace.endSection();
             }
@@ -1159,7 +1163,8 @@ public class ModernMediaScanner implements MediaScanner {
      * {@link SQLiteDatabase#replace} operation.
      */
     private @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName) {
+            BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName,
+            RestoreExecutor restoreExecutor) {
         if (Objects.equals(file.getName(), ".nomedia")) {
             if (LOGD) Log.d(TAG, "Ignoring .nomedia file: " + file);
             return null;
@@ -1167,6 +1172,24 @@ public class ModernMediaScanner implements MediaScanner {
 
         if (attrs.isDirectory()) {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
+        }
+
+        // Recovery is performed on first scan of file in target device
+        if (existingId == -1) {
+            try {
+                if (restoreExecutor != null) {
+                    Optional<ContentValues> restoredDataOptional =
+                            restoreExecutor.getMetadataForFileIfBackedUp(file.getAbsolutePath());
+                    if (restoredDataOptional.isPresent()) {
+                        ContentValues valuesRestored = restoredDataOptional.get();
+                        if (isRestoredMetadataOfActualFile(valuesRestored, attrs)) {
+                            return restoreDataFromBackup(valuesRestored, file, attrs, mimeType);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error while attempting to restore metadata from backup", e);
+            }
         }
 
         switch (mediaType) {
@@ -1185,6 +1208,25 @@ public class ModernMediaScanner implements MediaScanner {
             default:
                 return scanItemFile(existingId, file, attrs, mimeType, mediaType, volumeName);
         }
+    }
+
+    private boolean isRestoredMetadataOfActualFile(@NonNull ContentValues contentValues,
+            BasicFileAttributes attrs) {
+        long actualFileSize = attrs.size();
+        String fileSizeFromBackup = contentValues.getAsString(MediaStore.Files.FileColumns.SIZE);
+        if (fileSizeFromBackup == null) {
+            return false;
+        }
+
+        return actualFileSize == Long.parseLong(fileSizeFromBackup);
+    }
+
+    private ContentProviderOperation.Builder restoreDataFromBackup(
+            ContentValues restoredValues, File file, BasicFileAttributes attrs, String mimeType) {
+        final ContentProviderOperation.Builder op = newUpsert(MediaStore.VOLUME_EXTERNAL, -1);
+        withGenericValues(op, file, attrs, mimeType, /* mediaType */ null);
+        op.withValues(restoredValues);
+        return op;
     }
 
     /**

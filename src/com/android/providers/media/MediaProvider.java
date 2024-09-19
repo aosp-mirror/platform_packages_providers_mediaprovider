@@ -133,6 +133,7 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.flags.Flags.versionLockdown;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
@@ -331,6 +332,7 @@ import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 
+import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
 import org.jetbrains.annotations.NotNull;
@@ -7157,12 +7159,30 @@ public class MediaProvider extends ContentProvider {
             throw e.rethrowAsIllegalArgumentException();
         }
 
-        final String version = helper.runWithoutTransaction((db) ->
-                db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db));
-
+        final String version =
+                helper.runWithoutTransaction(
+                    (db) -> {
+                        final String dbUuid = DatabaseHelper.getOrCreateUuid(db);
+                        if (shouldLockdownMediaStoreVersion()) {
+                            final String input = dbUuid + mCallingIdentity.get().uid;
+                            final HashCode uuidHashCode =
+                                    Hashing.farmHashFingerprint64()
+                                       .hashString(input, StandardCharsets.UTF_8);
+                            return db.getVersion() + ":" + uuidHashCode;
+                        } else {
+                            return db.getVersion() + ":" + dbUuid;
+                        }
+                    });
         final Bundle res = new Bundle();
         res.putString(Intent.EXTRA_TEXT, version);
         return res;
+    }
+
+    private boolean shouldLockdownMediaStoreVersion() {
+        return versionLockdown()
+                && mCallingIdentity.get().getTargetSdkVersion()
+                    > Build.VERSION_CODES.VANILLA_ICE_CREAM
+                && Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM;
     }
 
     @NotNull

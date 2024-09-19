@@ -18,8 +18,10 @@ package com.android.photopicker.features.snackbar
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -35,9 +37,7 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
@@ -131,7 +131,7 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
             mockContext,
             mockUserManager,
             mockContentResolver,
-            mockPackageManager
+            mockPackageManager,
         )
     }
 
@@ -139,15 +139,39 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
     fun testSnackbarIsAlwaysEnabled() {
 
         assertWithMessage("SnackbarFeature is not always enabled for action pick image")
-            .that(SnackbarFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                SnackbarFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("SnackbarFeature is not always enabled for get content")
-            .that(SnackbarFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                SnackbarFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("SnackbarFeature is not always enabled for user select images")
-            .that(SnackbarFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                SnackbarFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
             .isEqualTo(true)
     }
 
@@ -161,10 +185,7 @@ class SnackbarFeatureTest : PhotopickerFeatureBaseTest() {
                     LocalEvents provides events,
                     LocalNavController provides createNavController(),
                 ) {
-                    LocalFeatureManager.current.composeLocation(
-                        Location.SNACK_BAR,
-                        maxSlots = 1,
-                    )
+                    LocalFeatureManager.current.composeLocation(Location.SNACK_BAR, maxSlots = 1)
                 }
             }
 

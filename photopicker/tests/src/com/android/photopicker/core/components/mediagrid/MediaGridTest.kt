@@ -18,8 +18,10 @@ package com.android.photopicker.core.components
 
 import android.content.ContentProvider
 import android.content.ContentResolver
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.MediaStore
 import android.view.SurfaceControlViewHost
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -64,13 +66,10 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.embedded.EmbeddedState
 import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.glide.GlideTestRule
@@ -299,7 +298,7 @@ class MediaGridTest {
             onItemClick = onItemClick,
             onItemLongPress = onItemLongPress,
             bannerContent = bannerContent,
-            modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG)
+            modifier = Modifier.testTag(MEDIA_GRID_TEST_TAG),
         )
     }
 
@@ -307,10 +306,7 @@ class MediaGridTest {
      * A custom content item factory that renders the same text string for each item in the grid.
      */
     @Composable
-    private fun customContentItemFactory(
-        item: MediaGridItem,
-        onClick: ((MediaGridItem) -> Unit)?,
-    ) {
+    private fun customContentItemFactory(item: MediaGridItem, onClick: ((MediaGridItem) -> Unit)?) {
         Box(
             modifier =
                 // .clickable also merges the semantics of its descendants
@@ -331,7 +327,7 @@ class MediaGridTest {
             modifier =
                 // Merge the semantics into the parent node to make it easy to asset and select
                 // these nodes in the tree.
-                Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG),
+                Modifier.semantics(mergeDescendants = true) {}.testTag(CUSTOM_ITEM_SEPARATOR_TAG)
         ) {
             Text(CUSTOM_ITEM_SEPARATOR_TEXT)
         }
@@ -344,17 +340,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
-                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                ) {
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -370,14 +374,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
-                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                ) {
                     grid(
                         selection = selection,
                         onItemClick = {},
@@ -385,9 +400,9 @@ class MediaGridTest {
                         bannerContent = {
                             Text(
                                 text = "bannerContent",
-                                modifier = Modifier.testTag(BANNER_CONTENT_TEST_TAG)
+                                modifier = Modifier.testTag(BANNER_CONTENT_TEST_TAG),
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -404,7 +419,7 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         // Modify the pager and flow to get data from the FakeInMemoryAlbumPagingSource.
@@ -419,13 +434,21 @@ class MediaGridTest {
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
-                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                ) {
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -444,18 +467,26 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
-                PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                PhotopickerTheme(
+                    isDarkTheme = false,
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                ) {
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -490,16 +521,31 @@ class MediaGridTest {
                     configuration =
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
-                            defaultConfiguration = SINGLE_SELECT_CONFIG
+                            defaultConfiguration =
+                                TestPhotopickerConfiguration.build {
+                                    action("")
+                                    selectionLimit(1)
+                                },
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides SINGLE_SELECT_CONFIG
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("")
+                            selectionLimit(1)
+                        }
                 ) {
-                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
+                    PhotopickerTheme(
+                        isDarkTheme = false,
+                        config =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(1)
+                            },
+                    ) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ { item ->
@@ -545,16 +591,31 @@ class MediaGridTest {
                     configuration =
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
-                            defaultConfiguration = MULTI_SELECT_CONFIG
+                            defaultConfiguration =
+                                TestPhotopickerConfiguration.build {
+                                    action("")
+                                    selectionLimit(50)
+                                },
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides MULTI_SELECT_CONFIG
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("")
+                            selectionLimit(50)
+                        }
                 ) {
-                    PhotopickerTheme(isDarkTheme = false, config = SINGLE_SELECT_CONFIG) {
+                    PhotopickerTheme(
+                        isDarkTheme = false,
+                        config =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ { item ->
@@ -595,7 +656,12 @@ class MediaGridTest {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val photopickerConfiguration: PhotopickerConfiguration =
-            testActionPickImagesConfiguration.copy(pickImagesInOrder = true, selectionLimit = 2)
+            TestPhotopickerConfiguration.build {
+                action(MediaStore.ACTION_PICK_IMAGES)
+                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                selectionLimit(2)
+                pickImagesInOrder(true)
+            }
 
         runTest {
             val selection =
@@ -604,14 +670,14 @@ class MediaGridTest {
                     configuration =
                         provideTestConfigurationFlow(
                             scope = backgroundScope,
-                            defaultConfiguration = photopickerConfiguration
+                            defaultConfiguration = photopickerConfiguration,
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides photopickerConfiguration,
+                    LocalPhotopickerConfiguration provides photopickerConfiguration
                 ) {
                     PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         grid(
@@ -659,14 +725,25 @@ class MediaGridTest {
                 SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
                 ) {
-                    PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
+                    PhotopickerTheme(
+                        isDarkTheme = false,
+                        config =
+                            TestPhotopickerConfiguration.build {
+                                action("TEST_ACTION")
+                                intent(Intent("TEST_ACTION"))
+                            },
+                    ) {
                         grid(
                             /* selection= */ selection,
                             /* onItemClick= */ {},
@@ -675,7 +752,7 @@ class MediaGridTest {
                                     if (item is MediaGridItem.MediaItem)
                                         selection.toggle(item.media)
                                 }
-                            }
+                            },
                         )
                     }
                 }
@@ -715,21 +792,28 @@ class MediaGridTest {
                 SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
                 ) {
                     val items = dataFlow.collectAsLazyPagingItems()
                     val selected by selection.flow.collectAsStateWithLifecycle()
-                    PhotopickerTheme(isDarkTheme = false, config = testPhotopickerConfiguration) {
-                        mediaGrid(
-                            items = items,
-                            selection = selected,
-                            onItemClick = {},
-                        )
+                    PhotopickerTheme(
+                        isDarkTheme = false,
+                        config =
+                            TestPhotopickerConfiguration.build {
+                                action("TEST_ACTION")
+                                intent(Intent("TEST_ACTION"))
+                            },
+                    ) {
+                        mediaGrid(items = items, selection = selected, onItemClick = {})
                     }
                 }
             }
@@ -748,12 +832,16 @@ class MediaGridTest {
                 SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
                 ) {
                     val items = flow.collectAsLazyPagingItems()
                     val selected by selection.flow.collectAsStateWithLifecycle()
@@ -788,12 +876,16 @@ class MediaGridTest {
                 SelectionImpl<Media>(
                     scope = backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
                 ) {
                     val items = dataFlow.collectAsLazyPagingItems()
                     val selected by selection.flow.collectAsStateWithLifecycle()
@@ -801,7 +893,7 @@ class MediaGridTest {
                         items = items,
                         selection = selected,
                         onItemClick = {},
-                        contentSeparatorFactory = { _ -> customContentSeparatorFactory() }
+                        contentSeparatorFactory = { _ -> customContentSeparatorFactory() },
                     )
                 }
             }
@@ -820,22 +912,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -858,22 +953,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -896,22 +994,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInCollapsedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -934,22 +1035,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -972,22 +1076,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }
@@ -1010,22 +1117,25 @@ class MediaGridTest {
             SelectionImpl<Media>(
                 scope = backgroundScope,
                 configuration = provideTestConfigurationFlow(scope = backgroundScope),
-                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
             )
 
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
-                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
+                LocalEmbeddedState provides testEmbeddedStateWithHostInExpandedState,
             ) {
                 PhotopickerTheme(
                     isDarkTheme = false,
-                    config = testEmbeddedPhotopickerConfiguration
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                 ) {
-                    grid(
-                        /* selection= */ selection,
-                        /* onItemClick= */ {},
-                    )
+                    grid(/* selection= */ selection, /* onItemClick= */ {})
                 }
             }
         }

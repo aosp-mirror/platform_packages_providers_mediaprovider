@@ -17,6 +17,7 @@
 package com.android.photopicker.core.banners
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.runtime.Composable
@@ -36,8 +37,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Event.LogPhotopickerBannerInteraction
 import com.android.photopicker.core.events.Events
@@ -141,7 +142,14 @@ class BannerTest {
         backgroundScope.launch { events.flow.toList(emissions) }
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
 
         advanceTimeBy(100)
@@ -182,7 +190,14 @@ class BannerTest {
         backgroundScope.launch { events.flow.toList(emissions) }
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule
             .onNodeWithText(TEST_BANNER_1_ACTION_LABEL)
@@ -222,7 +237,14 @@ class BannerTest {
             )
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule
             .onNode(hasContentDescription(TEST_BANNER_1_ICON_DESCRIPTION))
@@ -250,7 +272,14 @@ class BannerTest {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val dismissString = resources.getString(R.string.photopicker_dismiss_banner_button_label)
         composeTestRule.setContent {
-            showBanner(TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
 
         composeTestRule
@@ -293,7 +322,14 @@ class BannerTest {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val dismissString = resources.getString(R.string.photopicker_dismiss_banner_button_label)
         composeTestRule.setContent {
-            showBanner(TEST_BANNER_2, testPhotopickerConfiguration, events)
+            showBanner(
+                TEST_BANNER_2,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule.onNodeWithText(dismissString).assertIsNotDisplayed()
     }

@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core
 
+import android.content.Intent
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -28,8 +29,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.embedded.testEmbeddedStateCollapsed
 import com.android.photopicker.core.embedded.testEmbeddedStateExpanded
@@ -48,17 +49,18 @@ class HideWhenStateTest {
 
     @Composable
     private fun mockComposable() {
-        Text(
-            modifier = Modifier.testTag(TEST_COMPOSABLE_TAG),
-            text = "composable for testing",
-        )
+        Text(modifier = Modifier.testTag(TEST_COMPOSABLE_TAG), text = "composable for testing")
     }
 
     @Test
     fun testShowsContentWhenRuntimeIsActivityWithSelectorEmbedded() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
                 hideWhenState(StateSelector.Embedded) { mockComposable() }
             }
@@ -72,7 +74,11 @@ class HideWhenStateTest {
     fun testShowsContentWhenRuntimeIsActivityWithSelectorEmbeddedAndCollapsed() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
                 hideWhenState(StateSelector.EmbeddedAndCollapsed) { mockComposable() }
             }
@@ -86,7 +92,10 @@ class HideWhenStateTest {
     fun testHidesContentWhenRuntimeIsEmbeddedStateIsExpandedSelectorIsEmbedded() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
                 LocalEmbeddedState provides testEmbeddedStateExpanded,
             ) {
                 hideWhenState(StateSelector.Embedded) { mockComposable() }
@@ -101,7 +110,10 @@ class HideWhenStateTest {
     fun testHidesContentWhenRuntimeIsEmbeddedStateIsCollapsedSelectorIsEmbedded() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
                 LocalEmbeddedState provides testEmbeddedStateCollapsed,
             ) {
                 hideWhenState(StateSelector.Embedded) { mockComposable() }
@@ -116,7 +128,10 @@ class HideWhenStateTest {
     fun testShowsContentWhenRuntimeIsEmbeddedStateIsExpandedSelectorIsEmbeddedAndCollapsed() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
                 LocalEmbeddedState provides testEmbeddedStateExpanded,
             ) {
                 hideWhenState(StateSelector.EmbeddedAndCollapsed) { mockComposable() }
@@ -131,7 +146,10 @@ class HideWhenStateTest {
     fun testHidesContentWhenRuntimeIsEmbeddedStateIsCollapsedSelectorIsEmbeddedAndCollapsed() {
         composeTestRule.setContent {
             CompositionLocalProvider(
-                LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    },
                 LocalEmbeddedState provides testEmbeddedStateCollapsed,
             ) {
                 hideWhenState(StateSelector.EmbeddedAndCollapsed) { mockComposable() }

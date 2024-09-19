@@ -17,4 +17,7 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Search Bar placeholder text -->
     <string name="photopicker_search_placeholder_text" translation_description="Place holder text shown in Search Bar">Search</string>
+
+    <!-- Search view placeholder text -->
+    <string name="photopicker_searchView_placeholder_text" translation_description="Place holder text shown in Search Bar">Search your photos</string>
 </resources>

@@ -56,9 +56,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -368,7 +368,11 @@ class PreviewViewModelTest {
                     configuration =
                         provideTestConfigurationFlow(
                             scope = this.backgroundScope,
-                            defaultConfiguration = MULTI_SELECT_CONFIG,
+                            defaultConfiguration =
+                                TestPhotopickerConfiguration.build {
+                                    action("")
+                                    selectionLimit(50)
+                                },
                         ),
                     preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )

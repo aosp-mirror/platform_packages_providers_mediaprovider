@@ -24,8 +24,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testSessionId
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.data.MediaProviderClient
@@ -51,6 +51,7 @@ import org.mockito.MockitoAnnotations
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class AlbumMediaPagingSourceTest {
+    private val testSessionId = generatePickerSessionId()
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
     private val availableProviders: List<Provider> =
@@ -59,7 +60,7 @@ class AlbumMediaPagingSourceTest {
         PhotopickerConfiguration(
             action = MediaStore.ACTION_PICK_IMAGES,
             intent = Intent(MediaStore.ACTION_PICK_IMAGES),
-            sessionId = testSessionId
+            sessionId = testSessionId,
         )
 
     @Mock private lateinit var mockMediaProviderClient: MediaProviderClient
@@ -83,7 +84,7 @@ class AlbumMediaPagingSourceTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope, testPhotopickerConfiguration),
-                featureManager
+                featureManager,
             )
 
         val albumMediaPagingSource =
@@ -95,7 +96,7 @@ class AlbumMediaPagingSourceTest {
                 mediaProviderClient = mockMediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
                 testPhotopickerConfiguration,
-                events
+                events,
             )
 
         val pageKey = MediaPageKey()
@@ -104,7 +105,7 @@ class AlbumMediaPagingSourceTest {
             LoadParams.Append<MediaPageKey>(
                 key = pageKey,
                 loadSize = pageSize,
-                placeholdersEnabled = false
+                placeholdersEnabled = false,
             )
 
         backgroundScope.launch { albumMediaPagingSource.load(params) }
@@ -118,7 +119,7 @@ class AlbumMediaPagingSourceTest {
                 pageSize,
                 contentResolver,
                 availableProviders,
-                testPhotopickerConfiguration
+                testPhotopickerConfiguration,
             )
     }
 }

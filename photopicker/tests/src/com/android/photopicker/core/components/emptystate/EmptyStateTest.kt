@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.components
 
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.runtime.CompositionLocalProvider
@@ -25,7 +26,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.theme.PhotopickerTheme
 import org.junit.Rule
 import org.junit.Test
@@ -48,10 +49,20 @@ class EmptyStateTest {
             CompositionLocalProvider(
 
                 // Required for PhotopickerTheme
-                LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                LocalPhotopickerConfiguration provides
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
             ) {
                 // PhotopickerTheme is needed for CustomAccentColor support
-                PhotopickerTheme(config = testPhotopickerConfiguration) {
+                PhotopickerTheme(
+                    config =
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
+                ) {
                     EmptyState(
                         icon = Icons.Outlined.Image,
                         title = EMPTY_STATE_TEST_TITLE,

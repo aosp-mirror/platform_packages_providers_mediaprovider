@@ -27,6 +27,9 @@ import android.os.Binder
 import android.os.Build
 import android.os.Process
 import android.os.UserManager
+import android.platform.test.annotations.RequiresFlagsEnabled
+import android.platform.test.flag.junit.CheckFlagsRule
+import android.platform.test.flag.junit.DeviceFlagsValueProvider
 import android.test.mock.MockContentResolver
 import android.view.SurfaceView
 import android.view.WindowManager
@@ -80,6 +83,7 @@ import com.android.photopicker.tests.HiltTestActivity
 import com.android.photopicker.tests.utils.StubProvider
 import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
@@ -127,6 +131,7 @@ import org.mockito.MockitoAnnotations
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@RequiresFlagsEnabled(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
 class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     /** Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
@@ -134,6 +139,8 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
+    @get:Rule(order = 3)
+    val checkFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
 
     /** Setup dependencies for the UninstallModules for the test class. */
     @Module

@@ -56,7 +56,7 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
-import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.database.DatabaseManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
@@ -243,7 +243,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -278,7 +281,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateExpanded,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -314,7 +320,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -349,7 +358,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateExpanded,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -381,7 +393,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
         testScope.runTest {
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -421,7 +436,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
             withContext(Dispatchers.Main) {
                 composeTestRule.setContent {
                     CompositionLocalProvider(
-                        LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                        LocalPhotopickerConfiguration provides
+                            TestPhotopickerConfiguration.build {
+                                runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                            },
                         LocalEmbeddedState provides testEmbeddedStateExpanded,
                     ) {
                         callEmbeddedPhotopickerMain(
@@ -453,7 +471,13 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     fun testSnackbarIsAlwaysEnabledInEmbedded() {
 
         assertWithMessage("SnackbarFeature is not always enabled for action pick image")
-            .that(SnackbarFeature.Registration.isEnabled(testEmbeddedPhotopickerConfiguration))
+            .that(
+                SnackbarFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    }
+                )
+            )
             .isEqualTo(true)
     }
 
@@ -462,7 +486,10 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
         testScope.runTest {
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testEmbeddedPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                     LocalFeatureManager provides featureManager,
                     LocalSelection provides selection,
@@ -473,11 +500,14 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                 ) {
                     PhotopickerTheme(
                         isDarkTheme = false,
-                        config = testEmbeddedPhotopickerConfiguration
+                        config =
+                            TestPhotopickerConfiguration.build {
+                                runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                            },
                     ) {
                         PhotopickerApp(
                             disruptiveDataNotification = flow { emit(0) },
-                            onMediaSelectionConfirmed = {}
+                            onMediaSelectionConfirmed = {},
                         )
                     }
                 }
@@ -503,7 +533,13 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     fun testOverflowMenuDisabledInEmbedded() {
 
         assertWithMessage("Expected OverflowMenuFeature to be disabled in embedded runtime")
-            .that(OverflowMenuFeature.Registration.isEnabled(testEmbeddedPhotopickerConfiguration))
+            .that(
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    }
+                )
+            )
             .isEqualTo(false)
     }
 
@@ -511,7 +547,13 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     fun testPreviewDisabledInEmbedded() {
 
         assertWithMessage("Expected PreviewFeature to be disabled in embedded runtime")
-            .that(PreviewFeature.Registration.isEnabled(testEmbeddedPhotopickerConfiguration))
+            .that(
+                PreviewFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    }
+                )
+            )
             .isEqualTo(false)
     }
 }

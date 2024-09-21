@@ -29,9 +29,16 @@ import android.platform.test.flag.junit.SetFlagsRule
 import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.filters.SdkSuppress
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
@@ -45,9 +52,6 @@ import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
-import com.android.photopicker.core.configuration.TEST_CALLING_PACKAGE
-import com.android.photopicker.core.configuration.TEST_CALLING_PACKAGE_LABEL
-import com.android.photopicker.core.configuration.TEST_CALLING_UID
 import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -159,9 +163,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             TestPhotopickerConfiguration.build {
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is always enabled when search flag is disabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
@@ -194,9 +198,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             TestPhotopickerConfiguration.build {
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
@@ -232,9 +236,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
                 action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                 intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage(TEST_CALLING_PACKAGE)
-                callingPackageUid(TEST_CALLING_UID)
-                callingPackageLabel(TEST_CALLING_PACKAGE_LABEL)
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
@@ -245,6 +249,7 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testSearchBar_whenFlagEnabled_isDisplayed() =
         testScope.runTest {
+            val resources = getTestableContext().getResources()
             composeTestRule.setContent {
                 callPhotopickerMain(
                     featureManager = featureManager,
@@ -260,6 +265,97 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                             .getString(R.string.photopicker_search_placeholder_text)
                     )
                 )
+                .assertIsDisplayed()
+            composeTestRule.onNode(
+                hasContentDescription(
+                    resources.getString(R.string.photopicker_search_placeholder_text)
+                )
+            )
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_whenClicked_opensSearchViewWithBackAction() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .assertIsDisplayed()
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            // Asserts search view page with its placeholder text displayed
+            composeTestRule
+                .onNode(
+                    hasText(resources.getString(R.string.photopicker_searchView_placeholder_text))
+                )
+                .assertIsDisplayed()
+
+            // Perform click action on back button in search bar of search view page
+            composeTestRule
+                .onNode(
+                    hasContentDescription(resources.getString(R.string.photopicker_back_option))
+                )
+                .assert(hasClickAction())
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            // Search bar with Search text placeholder is displayed
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .assertIsDisplayed()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_onBackAction_clearsQuery() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            // Input test query in search bar and verify it is displayed
+            val testQuery = "testquery"
+            composeTestRule
+                .onNode(
+                    hasText(resources.getString(R.string.photopicker_searchView_placeholder_text))
+                )
+                .performTextInput(testQuery)
+
+            composeTestRule.onNodeWithText(testQuery).assertIsDisplayed()
+
+            // Perform click action on back button in search bar of search view page
+            composeTestRule
+                .onNode(
+                    hasContentDescription(resources.getString(R.string.photopicker_back_option))
+                )
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            // Make sure test query is cleared and Search text placeholder is displayed
+            composeTestRule.onNodeWithText(testQuery).assertIsNotDisplayed()
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
                 .assertIsDisplayed()
         }
 }

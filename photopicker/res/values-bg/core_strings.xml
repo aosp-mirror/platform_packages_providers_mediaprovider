@@ -31,7 +31,7 @@
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Още няма любими"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Тук ще се показват снимките и видеоклиповете, означени като любими или със звезда"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Още няма видеоклипове"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Тук ще се показват видеоклиповете, заснети с приложението ви за камера, запазените или споделените такива"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Тук ще се показват видеоклиповете, заснети с приложението ви за камера, както и запазените или споделените видеоклипове"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Назад"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Отхвърляне"</string>
 </resources>

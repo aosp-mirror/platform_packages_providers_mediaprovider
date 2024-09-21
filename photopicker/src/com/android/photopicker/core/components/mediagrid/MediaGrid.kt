@@ -27,9 +27,11 @@ import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,7 +65,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.AbsoluteAlignment
@@ -207,10 +211,9 @@ fun mediaGrid(
             item: MediaGridItem,
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
-            onLongPress: ((item: MediaGridItem) -> Unit)?
+            onLongPress: ((item: MediaGridItem) -> Unit)?,
         ) -> Unit =
-        { item, isSelected, onClick, onLongPress,
-            ->
+        { item, isSelected, onClick, onLongPress ->
             when (item) {
                 is MediaGridItem.MediaItem ->
                     defaultBuildMediaItem(
@@ -220,6 +223,7 @@ fun mediaGrid(
                         onClick = onClick,
                         onLongPress = onLongPress,
                     )
+
                 is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick)
                 else -> {}
             }
@@ -233,6 +237,7 @@ fun mediaGrid(
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val host = LocalEmbeddedState.current?.host
+
     /**
      * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to
      * get the regular updates of bottom sheet current state inside [LazyVerticalGrid]
@@ -283,6 +288,7 @@ fun mediaGrid(
                             onItemClick,
                             onItemLongPress,
                         )
+
                     is MediaGridItem.AlbumItem ->
                         contentItemFactory(
                             item,
@@ -290,9 +296,31 @@ fun mediaGrid(
                             onItemClick,
                             onItemLongPress,
                         )
+
                     is MediaGridItem.SeparatorItem -> contentSeparatorFactory(item)
                 }
             }
+        }
+    }
+    if (isEmbedded) {
+        // Remember the previous value of isExpanded
+        val wasPreviouslyExpanded = remember { mutableStateOf(!isExpanded.value) }
+
+        // Any time isExpanded changes, check if grid animation is required.
+        LaunchedEffect(isExpanded.value) {
+            val isCollapsed = !isExpanded.value
+
+            // Only animate if going from Expanded -> Collapsed
+            if (wasPreviouslyExpanded.value && isCollapsed) {
+                if (state.firstVisibleItemScrollOffset > 0) {
+                    state.animateScrollBy(
+                        value = -state.firstVisibleItemScrollOffset.toFloat(),
+                        animationSpec = tween(durationMillis = 500),
+                    )
+                }
+            }
+            // Update the previous state as the current state
+            wasPreviouslyExpanded.value = isExpanded.value
         }
     }
 }
@@ -304,6 +332,7 @@ private fun defaultBuildSpan(item: MediaGridItem?, isExpandedScreen: Boolean): G
         is MediaGridItem.SeparatorItem ->
             if (isExpandedScreen) GridItemSpan(CELLS_PER_ROW_EXPANDED)
             else GridItemSpan(CELLS_PER_ROW)
+
         is MediaGridItem.AlbumItem -> GridItemSpan(1)
         else -> GridItemSpan(1)
     }
@@ -380,20 +409,20 @@ private fun defaultBuildMediaItem(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { onClick?.invoke(item) },
-                            onLongPress = { onLongPress?.invoke(item) }
+                            onLongPress = { onLongPress?.invoke(item) },
                         )
                     }
             ) {
                 // A background surface that is shown behind selected images.
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 ) {
                     // Container for the image and it's mimetype icon
                     Box(
                         // Switch which modifier is getting applied based on if the item is
                         // selected or not.
-                        modifier = if (shouldIndicateSelected) selectedModifier else baseModifier,
+                        modifier = if (shouldIndicateSelected) selectedModifier else baseModifier
                     ) {
 
                         // Load the media item through the Glide entrypoint.
@@ -429,9 +458,7 @@ private fun defaultBuildMediaItem(
  */
 @Composable
 private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Row(
             Modifier.align(AbsoluteAlignment.TopRight)
                 .padding(MEASUREMENT_MIMETYPE_ICON_EDGE_PADDING),
@@ -440,7 +467,7 @@ private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
             if (item.media is Media.Video) {
                 Text(
                     text = DateUtils.formatElapsedTime(item.media.duration / 1000L),
-                    style = MaterialTheme.typography.labelSmall
+                    style = MaterialTheme.typography.labelSmall,
                 )
                 Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
                 Icon(Icons.Filled.PlayCircle, contentDescription = null)
@@ -449,10 +476,12 @@ private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
                     _SPECIAL_FORMAT_GIF -> {
                         Icon(Icons.Filled.Gif, contentDescription = null)
                     }
+
                     _SPECIAL_FORMAT_MOTION_PHOTO,
                     _SPECIAL_FORMAT_ANIMATED_WEBP -> {
                         Icon(Icons.Filled.MotionPhotosOn, contentDescription = null)
                     }
+
                     else -> {}
                 }
             }
@@ -523,6 +552,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                             softWrap = false,
                         )
                     }
+
                     false ->
                         Icon(
                             ImageVector.vectorResource(R.drawable.photopicker_selected_media),
@@ -536,7 +566,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                                     .border(
                                         MEASUREMENT_SELECTED_ICON_BORDER,
                                         MaterialTheme.colorScheme.surfaceContainerHighest,
-                                        CircleShape
+                                        CircleShape,
                                     ),
                             contentDescription = stringResource(R.string.photopicker_item_selected),
                             tint =
@@ -555,10 +585,7 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
  * GridCell, and provides a text title for it just below the thumbnail.
  */
 @Composable
-private fun defaultBuildAlbumItem(
-    item: MediaGridItem,
-    onClick: ((item: MediaGridItem) -> Unit)?,
-) {
+private fun defaultBuildAlbumItem(item: MediaGridItem, onClick: ((item: MediaGridItem) -> Unit)?) {
     when (item) {
         is MediaGridItem.AlbumItem -> {
 
@@ -572,11 +599,7 @@ private fun defaultBuildAlbumItem(
                             }
                         )
                     }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { onClick?.invoke(item) },
-                        )
-                    }
+                    .pointerInput(Unit) { detectTapGestures(onTap = { onClick?.invoke(item) }) }
                     .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
             ) {
                 // In the current implementation for AlbumsGrid, favourites and videos are
@@ -591,9 +614,11 @@ private fun defaultBuildAlbumItem(
                         id.equals(ALBUM_ID_FAVORITES) && coverUri.equals(Uri.EMPTY) -> {
                             DefaultAlbumIcon(/* icon */ Icons.Outlined.StarOutline, modifier)
                         }
+
                         id.equals(ALBUM_ID_VIDEOS) && coverUri.equals(Uri.EMPTY) -> {
                             DefaultAlbumIcon(/* icon */ Icons.Outlined.Videocam, modifier)
                         }
+
                         id.equals(ALBUM_ID_CAMERA) && coverUri.equals(Uri.EMPTY) -> {
                             DefaultAlbumIcon(/* icon */ Icons.Outlined.PhotoCamera, modifier)
                         }
@@ -603,7 +628,7 @@ private fun defaultBuildAlbumItem(
                                 media = item.album,
                                 resolution = Resolution.THUMBNAIL,
                                 // Modifier for album thumbnail
-                                modifier = modifier
+                                modifier = modifier,
                             )
                         }
                     }
@@ -620,6 +645,7 @@ private fun defaultBuildAlbumItem(
                 )
             } // Album cell column
         }
+
         else -> {}
     }
 }
@@ -647,12 +673,12 @@ private fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        shape = RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS)
+        shape = RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS),
     ) {
         Box(
             // Modifier for album thumbnail
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
@@ -663,7 +689,7 @@ private fun DefaultAlbumIcon(icon: ImageVector, modifier: Modifier) {
                         .size(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_SIZE)
                         .background(
                             color = MaterialTheme.colorScheme.surfaceContainer, // Background color
-                            shape = CircleShape // Circular background
+                            shape = CircleShape, // Circular background
                         )
                         // Padding inside the circle
                         .padding(MEASUREMENT_DEFAULT_ALBUM_THUMBNAIL_ICON_PADDING)

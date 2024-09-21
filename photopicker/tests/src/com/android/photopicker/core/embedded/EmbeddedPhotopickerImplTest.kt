@@ -57,7 +57,7 @@ class EmbeddedPhotopickerImplTest {
     @Mock lateinit var mockClient: IEmbeddedPhotoPickerClient.Stub
     @Mock lateinit var mockSession: Session
 
-    @get:Rule val mCheckFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
+    @get:Rule val checkFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
 
     companion object {
         const val TEST_PACKAGE_NAME = "test"

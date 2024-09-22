@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <!--
   Copyright 2021 The Android Open Source Project
 
@@ -15,169 +14,216 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <CheckBox
-        android:id="@+id/cbx_get_content"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ACTION_GET_CONTENT"
-        android:textSize="16sp" />
-
-    <CheckBox
-        android:id="@+id/cbx_allow_multiple"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ALLOW MULTIPLE"
-        android:textSize="16sp" />
-
+    android:orientation="vertical"
+    tools:context=".MainActivity">
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
+        android:layout_height="match_parent"
+        android:orientation="vertical">
         <CheckBox
-            android:id="@+id/cbx_set_image_only"
+            android:id="@+id/cbx_get_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SHOW IMAGE ONLY"
+            android:text="ACTION_GET_CONTENT"
             android:textSize="16sp" />
-
         <CheckBox
-            android:id="@+id/cbx_set_video_only"
+            android:id="@+id/cbx_allow_multiple"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SHOW VIDEO ONLY"
+            android:text="ALLOW MULTIPLE"
             android:textSize="16sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <CheckBox
-            android:id="@+id/cbx_set_mime_type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SET MIME TYPE"
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/edittext_mime_type"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:enabled="false"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <CheckBox
-            android:id="@+id/cbx_set_selection_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SET SELECTION COUNT"
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/edittext_max_count"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:enabled="false"
-            android:text="10"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-
-    <CheckBox
-        android:id="@+id/cbx_ordered_selection"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ORDERED SELECTION"
-        android:textSize="16sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <CheckBox
-            android:id="@+id/cbx_set_picker_launch_tab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/picker_launch_tab_option"
-            android:textSize="16sp" />
-
-        <RadioGroup
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-            <RadioButton android:id="@+id/rb_albums"
-                         android:layout_width="wrap_content"
-                         android:layout_height="wrap_content"
-                         android:text="Albums"
-                         android:enabled="false"/>
-            <RadioButton android:id="@+id/rb_photos"
-                         android:layout_width="wrap_content"
-                         android:layout_height="wrap_content"
-                         android:text="Photos"
-                         android:enabled="false"/>
-        </RadioGroup>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <CheckBox
-            android:id="@+id/cbx_set_accent_color"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SET ACCENT COLOR"
-            android:textSize="16sp" />
-
-        <EditText
-            android:id="@+id/edittext_accent_color"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:enabled="false"
-            android:hint="Color long value(for ex: 0xFFFF0000)"
-            android:textSize="16sp" />
-    </LinearLayout>
-
-
-    <Button
-        android:id="@+id/launch_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Launch"
-        android:textSize="16sp" />
-
-    <ScrollView
-        android:id="@+id/scrollview"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
         <LinearLayout
-            android:id="@+id/item_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
-</LinearLayout>
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_image_only"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SHOW IMAGE ONLY"
+                android:textSize="16sp" />
+            <CheckBox
+                android:id="@+id/cbx_set_video_only"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SHOW VIDEO ONLY"
+                android:textSize="16sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_mime_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SET MIME TYPE"
+                android:textSize="16sp" />
+            <EditText
+                android:id="@+id/edittext_mime_type"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:enabled="false"
+                android:textSize="16sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_selection_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SET SELECTION COUNT"
+                android:textSize="16sp" />
+            <EditText
+                android:id="@+id/edittext_max_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:enabled="false"
+                android:text="10"
+                android:textSize="16sp" />
+        </LinearLayout>
+        <CheckBox
+            android:id="@+id/cbx_ordered_selection"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ORDERED SELECTION"
+            android:textSize="16sp" />
+        <CheckBox
+            android:id="@+id/cbx_embedded_photopicker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SET EMBEDDED PHOTOPICKER"
+            android:textSize="16sp"
+            android:visibility="gone"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_theme_night_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SET EMBEDDED THEME"
+                android:textSize="16sp" />
+            <RadioGroup
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <RadioButton android:id="@+id/rb_system"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="System"
+                    android:enabled="false"/>
+                <RadioButton android:id="@+id/rb_light"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Light"
+                    android:enabled="false"/>
+                <RadioButton android:id="@+id/rb_night"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Night"
+                    android:enabled="false"/>
+            </RadioGroup>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_picker_launch_tab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/picker_launch_tab_option"
+                android:textSize="16sp" />
+            <RadioGroup
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <RadioButton android:id="@+id/rb_albums"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Albums"
+                    android:enabled="false"/>
+                <RadioButton android:id="@+id/rb_photos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Photos"
+                    android:enabled="false"/>
+            </RadioGroup>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox
+                android:id="@+id/cbx_set_accent_color"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SET ACCENT COLOR"
+                android:textSize="16sp" />
+            <EditText
+                android:id="@+id/edittext_accent_color"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:enabled="false"
+                android:hint="Color long value(for ex: 0xFFFF0000)"
+                android:textSize="16sp" />
+        </LinearLayout>
+        <Button
+            android:id="@+id/launch_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Launch"
+            android:textSize="16sp" />
+        <ScrollView
+            android:id="@+id/scrollview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:id="@+id/item_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:id="@+id/bottomSheet"
+        android:background="@android:color/darker_gray"
+        app:behavior_hideable="true"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Embedded PhotoPicker bottom sheet bar"
+            android:gravity="center"
+            android:layout_gravity="top|center_horizontal"
+            android:padding="20dp">
+        </TextView>
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <SurfaceView
+                android:id="@+id/surface"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </FrameLayout>
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

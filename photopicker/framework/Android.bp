@@ -1,4 +1,4 @@
-// Copyright (C) 2019 The Android Open Source Project
+// Copyright (C) 2024 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,52 +18,28 @@ package {
 }
 
 java_sdk_library {
-    name: "framework-pdf-v",
+    name: "framework-photopicker",
     defaults: ["framework-module-defaults"],
     srcs: [
-        ":framework-pdf-v-updatable-sources",
-    ],
-    libs: [
-        "androidx.annotation_annotation",
-        "app-compat-annotations",
-        "error_prone_annotations",
-        "modules-utils-preconditions",
-        "unsupportedappusage",
-        "pdf_viewer_flags_java_lib",
-    ],
-    stub_only_libs: [
-        "framework-pdf.stubs.module_lib",
-    ],
-    impl_only_libs: [
-        "framework-pdf.impl",
+        ":framework-photopicker-updatable-sources",
     ],
     permitted_packages: [
-        "android.graphics.pdf",
+        "android.widget.photopicker",
     ],
     apex_available: [
         "com.android.mediaprovider",
     ],
-    aconfig_declarations: [
-        "pdf_viewer_flags",
-    ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",
-        "//cts/tests/pdf:__subpackages__",
     ],
-    min_sdk_version: "35",
-    jarjar_rules: "jarjar-rules-v.txt",
+    min_sdk_version: "31", // new jars are only supported S+
 }
 
 filegroup {
-    name: "framework-pdf-v-updatable-sources",
+    name: "framework-photopicker-updatable-sources",
     defaults: ["framework-sources-module-defaults"],
     srcs: [
         "java/**/*.java",
     ],
     path: "java",
-}
-
-platform_compat_config {
-    name: "framework-pdf-v-platform-compat-config",
-    src: ":framework-pdf-v",
 }

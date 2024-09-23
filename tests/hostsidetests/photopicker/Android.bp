@@ -1,0 +1,24 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_android_storage",
+}
+
+java_test_host {
+    name: "PhotoPickerHostTestCases",
+    srcs: [
+        "src/**/*.java",
+        "src/**/*.kt",
+    ],
+    // tag this module as a cts test artifact
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
+    libs: [
+        "tradefed",
+        "compatibility-host-util",
+    ],
+    data: [
+        ":TestCloudMediaProviderApp",
+    ],
+}

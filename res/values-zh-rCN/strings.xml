@@ -57,7 +57,7 @@
     <string name="recent" msgid="6694613584743207874">"最近"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"无照片或视频"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"没有受支持的照片或视频"</string>
-    <string name="picker_albums_empty_message" msgid="8341079772950966815">"无影集"</string>
+    <string name="picker_albums_empty_message" msgid="8341079772950966815">"无相册"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"查看所选内容"</string>
     <string name="picker_photos" msgid="7415035516411087392">"照片"</string>
     <!-- no translation found for picker_videos (2886971435439047097) -->

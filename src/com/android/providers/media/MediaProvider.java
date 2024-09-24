@@ -4158,6 +4158,9 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
+        if (isRedactedUri(url)) {
+            url = getUriForRedactedUri(url);
+        }
         final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:

@@ -39,6 +39,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -52,6 +53,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.PhotopickerApp
 import com.android.photopicker.core.ViewModelModule
+import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
@@ -243,10 +245,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        TestPhotopickerConfiguration.build {
-                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -281,10 +279,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        TestPhotopickerConfiguration.build {
-                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                        },
                     LocalEmbeddedState provides testEmbeddedStateExpanded,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -320,10 +314,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        TestPhotopickerConfiguration.build {
-                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -358,10 +348,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        TestPhotopickerConfiguration.build {
-                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                        },
                     LocalEmbeddedState provides testEmbeddedStateExpanded,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -393,10 +379,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
         testScope.runTest {
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        TestPhotopickerConfiguration.build {
-                            runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                        },
                     LocalEmbeddedState provides testEmbeddedStateCollapsed,
                 ) {
                     callEmbeddedPhotopickerMain(
@@ -436,10 +418,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
             withContext(Dispatchers.Main) {
                 composeTestRule.setContent {
                     CompositionLocalProvider(
-                        LocalPhotopickerConfiguration provides
-                            TestPhotopickerConfiguration.build {
-                                runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
-                            },
                         LocalEmbeddedState provides testEmbeddedStateExpanded,
                     ) {
                         callEmbeddedPhotopickerMain(
@@ -555,5 +533,76 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                 )
             )
             .isEqualTo(false)
+    }
+
+    @Test
+    fun testBannerHidden_embeddedMode_collapsedState() = runTest {
+        configurationManager
+            .get()
+            .setCaller(
+                callingPackage = "com.android.test.package",
+                callingPackageUid = 12345,
+                callingPackageLabel = "Test Package",
+            )
+        advanceTimeBy(1000)
+
+        val resources = getTestableContext().getResources()
+        val expectedPrivacyMessage =
+            resources.getString(R.string.photopicker_privacy_explainer, "Test Package")
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalEmbeddedState provides testEmbeddedStateCollapsed,
+            ) {
+                callEmbeddedPhotopickerMain(
+                    embeddedLifecycle = embeddedLifecycle,
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        bannerManager.get().showBanner(BannerDefinitions.PRIVACY_EXPLAINER)
+        advanceTimeBy(100)
+
+        composeTestRule.onNodeWithText(expectedPrivacyMessage).assertIsNotDisplayed()
+    }
+
+    @Test
+    fun testBannerShown_embeddedMode_expandedState() = runTest {
+        configurationManager
+            .get()
+            .setCaller(
+                callingPackage = "com.android.test.package",
+                callingPackageUid = 12345,
+                callingPackageLabel = "Test Package",
+            )
+
+        val resources = getTestableContext().getResources()
+        val expectedPrivacyMessage =
+            resources.getString(R.string.photopicker_privacy_explainer, "Test Package")
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalEmbeddedState provides testEmbeddedStateExpanded,
+            ) {
+                callEmbeddedPhotopickerMain(
+                    embeddedLifecycle = embeddedLifecycle,
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        bannerManager.get().showBanner(BannerDefinitions.PRIVACY_EXPLAINER)
+        advanceTimeBy(100)
+
+        composeTestRule.onNodeWithText(expectedPrivacyMessage).assertIsDisplayed()
     }
 }

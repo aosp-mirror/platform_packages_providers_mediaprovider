@@ -258,6 +258,9 @@ open class Session(
         // Start listening to selection/deselection events for this Session so
         // we can grant/revoke permission to selected/deselected uris immediately.
         listenForSelectionEvents()
+
+        // Initialize / Refresh the banner state.
+        refreshBannerState()
     }
 
     override fun close() {
@@ -453,7 +456,13 @@ open class Session(
         }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
-            true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
+            true -> runBlocking(_main) {
+                _embeddedViewLifecycle.onResume()
+
+                // Refresh the banner state, it's possible that the external state has changed if
+                // the activity is returning from the background.
+                refreshBannerState()
+            }
             false -> runBlocking(_main) { _embeddedViewLifecycle.onStop() }
         }
     }
@@ -520,5 +529,14 @@ open class Session(
 
     private fun onMediaSelectionConfirmed() {
         clientCallback.onSelectionComplete()
+    }
+
+    private fun refreshBannerState() {
+        _backgroundScope.launch {
+            // Always ensure providers before requesting a banner refresh, banners depend on
+            // having accurate provider information to generate the correct banners.
+            _dependencies.dataService().get().ensureProviders()
+            _dependencies.bannerManager().get().refreshBanners()
+        }
     }
 }

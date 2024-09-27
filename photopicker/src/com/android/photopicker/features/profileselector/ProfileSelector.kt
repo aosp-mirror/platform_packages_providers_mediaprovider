@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +54,7 @@ import com.android.photopicker.core.components.ElevationTokens
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.obtainViewModel
+import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.user.UserProfile
 
 /* The size of the current profile's icon in the selector button */
@@ -82,6 +84,17 @@ fun ProfileSelector(
         val context = LocalContext.current
         val currentProfile by viewModel.selectedProfile.collectAsStateWithLifecycle()
         var expanded by remember { mutableStateOf(false) }
+
+        // The button color should be neutral if and the calling app has provided a valid custom
+        // color. This will avoid unpleasant clashes with the custom color and what is in the
+        // default material theme. If no custom color is set, then the button should be
+        // primaryContainer to align with the theme's accents.
+        val customAccentColorScheme = CustomAccentColorScheme.current
+        val buttonContainerColor =
+            if (customAccentColorScheme.isAccentColorDefined())
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            else MaterialTheme.colorScheme.primaryContainer
+
         Box(modifier = modifier) {
             FilledTonalButton(
                 modifier = Modifier.align(Alignment.CenterStart),
@@ -89,8 +102,11 @@ fun ProfileSelector(
                 contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
                 colors =
                     ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        containerColor = buttonContainerColor,
+                        contentColor =
+                            if (customAccentColorScheme.isAccentColorDefined())
+                                MaterialTheme.colorScheme.primary
+                            else contentColorFor(buttonContainerColor),
                     ),
             ) {
                 currentProfile.icon?.let {
@@ -127,13 +143,26 @@ fun ProfileSelector(
             ) {
                 for (profile in allProfiles) {
 
+                    // The surface color should be neutral if the profile is selected
+                    // and the calling app has provided a valid custom color. This will
+                    // avoid unpleasant clashes with the custom color and what is in the
+                    // default material theme. If no custom color is set, then the surfaceColor
+                    // should be primaryContainer to align with the theme's accents.
+                    val surfaceColor =
+                        when {
+                            currentProfile == profile ->
+                                if (customAccentColorScheme.isAccentColorDefined())
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                else MaterialTheme.colorScheme.primaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+                        }
+                    val surfaceContentColor = contentColorFor(surfaceColor)
+
                     // The background color behind the text
                     Surface(
                         modifier = Modifier.widthIn(min = 200.dp),
-                        color =
-                            if (currentProfile == profile)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        color = surfaceColor,
+                        contentColor = surfaceContentColor,
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
@@ -181,7 +210,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MaterialTheme.colorScheme.primary
+                                                true -> surfaceContentColor
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
@@ -195,7 +224,7 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MaterialTheme.colorScheme.primary
+                                                true -> surfaceContentColor
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor

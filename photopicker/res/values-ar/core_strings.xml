@@ -22,7 +22,7 @@
     <string name="photopicker_item_selected" msgid="3741045642641682375">"تم وضع علامة"</string>
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"تم"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"إلغاء اختيار الكل"</string>
-    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"اختَر ما يصل إلى <xliff:g id="COUNT">%1$s</xliff:g> عنصر"</string>
+    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"يمكن اختيار <xliff:g id="COUNT">%1$s</xliff:g> من العناصر بحدٍ أقصى"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"الصور"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"الألبومات"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"ما مِن صور حتى الآن"</string>

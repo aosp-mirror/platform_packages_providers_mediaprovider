@@ -41,9 +41,9 @@
     <string name="picker_settings" msgid="6443463167344790260">"Ap. na prístup k méd. v cloude"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplikácia na prístup k méd. v cloude"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplikácia na prístup k médiám v cloude"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Keď vás aplikácia alebo web požiada o výber fotiek alebo videí, prejdite do médií v cloude"</string>
-    <string name="picker_settings_selection_message" msgid="245453573086488596">"Získavať prístup k médiám v cloude v aplikácii"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žiadne"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Keď vás aplikácia alebo web požiada o výber fotiek alebo videí, prejdite do médií v cloude."</string>
+    <string name="picker_settings_selection_message" msgid="245453573086488596">"Pristupovať k médiám v cloude z aplikácie:"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Žiadna aplikácia"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Momentálne sa nepodarilo zmeniť cloudový prehrávač"</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Nástroj na výber médií"</string>
     <string name="picker_sync_notification_title" msgid="1122713382122055246">"Nástroj na výber médií"</string>

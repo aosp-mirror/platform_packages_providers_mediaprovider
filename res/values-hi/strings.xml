@@ -63,7 +63,7 @@
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
     <string name="picker_albums" msgid="4822511902115299142">"एल्बम"</string>
-    <string name="picker_preview" msgid="6257414886055861039">"झलक"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"झलक देखें"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"वर्क प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"निजी प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile_label" msgid="6189198163209597344">"निजी"</string>

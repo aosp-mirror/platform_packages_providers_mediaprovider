@@ -77,7 +77,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumMediaGrid(
     flow: StateFlow<Group.Album?>,
-    viewModel: AlbumGridViewModel = obtainViewModel()
+    viewModel: AlbumGridViewModel = obtainViewModel(),
 ) {
     val albumState by flow.collectAsStateWithLifecycle(initialValue = null)
     val album = albumState
@@ -157,24 +157,24 @@ private fun AlbumMediaGrid(
                             viewModel.handleAlbumMediaGridItemSelection(
                                 item.media,
                                 selectionLimitExceededMessage,
-                                album
+                                album,
                             )
                         }
                     },
                     onItemLongPress = { item ->
-                        // Dispatch UI event to log long pressing the media item
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
+                            // Dispatch UI event to log long pressing the media item
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             // Dispatch UI event to log entry into preview mode
                             scope.launch {
                                 events.dispatch(
@@ -182,7 +182,7 @@ private fun AlbumMediaGrid(
                                         FeatureToken.PREVIEW.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                     )
                                 )
                             }
@@ -198,7 +198,7 @@ private fun AlbumMediaGrid(
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS
+                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS,
                         )
                     )
                 }

@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
@@ -61,6 +62,7 @@ import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -192,7 +194,11 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                     items = items,
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
-                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
+                    bannerContent = {
+                        hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                            AnimatedBannerWrapper(currentBanner)
+                        }
+                    },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(

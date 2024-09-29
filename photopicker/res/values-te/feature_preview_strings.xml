@@ -17,7 +17,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_select_button_label" msgid="658102027531907034">"మొత్తం <xliff:g id="COUNT">(%1$s)</xliff:g>‌ను ఎంచుకోండి"</string>
+    <string name="photopicker_select_button_label" msgid="658102027531907034">"మొత్తం <xliff:g id="COUNT">(%1$s)</xliff:g>‌ ఎంచుకోండి"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"ఎంచుకోండి"</string>
     <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"మొత్తం <xliff:g id="COUNT">(%1$s)</xliff:g> ఎంపిక రద్దు చేయండి"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"ప్రివ్యూ చూడండి"</string>

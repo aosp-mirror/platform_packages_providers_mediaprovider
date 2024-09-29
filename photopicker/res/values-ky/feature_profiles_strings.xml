@@ -23,8 +23,8 @@
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Колдонуучунун профилин которуу"</string>
     <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> колдонмолору тындырылды"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Администраторуңуз бөгөттөп койгон"</string>
-    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> сүрөттөрүн ачуу үчүн <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> колдонмолорун иштетип, кайра аракет кылыңыз"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> сүрөттөрүн ачуу үчүн <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> колдонмолорун иштетип, кайталап көрүңүз"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Бул профилдеги маалыматка кирүүгө администраторуңуз уруксат бербейт."</string>
     <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"Которулуу"</string>
-    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> профилиндесиз. <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> профилиңизге которуласызбы?"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> профилдесиз. <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> профилиңизге которуласызбы?"</string>
 </resources>

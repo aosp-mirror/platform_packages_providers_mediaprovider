@@ -134,6 +134,7 @@ import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_S
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.flags.Flags.versionLockdown;
+import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
@@ -175,7 +176,6 @@ import static com.android.providers.media.util.SyntheticPathUtils.getRedactedRel
 import static com.android.providers.media.util.SyntheticPathUtils.isPickerPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isRedactedPath;
 import static com.android.providers.media.util.SyntheticPathUtils.isSyntheticPath;
-import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 
 import android.Manifest;
 import android.annotation.IntDef;
@@ -809,6 +809,7 @@ public class MediaProvider extends ContentProvider {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case Intent.ACTION_PACKAGE_REMOVED:
+                case Intent.ACTION_PACKAGE_CHANGED:
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
@@ -819,6 +820,21 @@ public class MediaProvider extends ContentProvider {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
                             invalidateDentryForExternalStorage(pkg);
+                        } else if (Intent.ACTION_PACKAGE_CHANGED.equals(intent.getAction())) {
+                            try {
+                                // If package has been modified e.g. has been enabled or disabled,
+                                // it should be checked against current set of providers.
+                                // Hence if a modified package is disable, attempt to remove it from
+                                // pickerSyncController.
+                                if (!getContext().getPackageManager().getApplicationInfo(pkg,
+                                        /* flags */ 0).enabled) {
+                                    Log.d(TAG, "Removing disabled package: " + pkg
+                                            + " from providers list if required.");
+                                    mPickerSyncController.notifyPackageRemoval(pkg);
+                                }
+                            } catch (NameNotFoundException ignored) {
+                                // no-op
+                            }
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -1413,6 +1429,7 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addDataScheme("package");
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
         // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
@@ -4250,6 +4267,9 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
+        if (isRedactedUri(url)) {
+            url = getUriForRedactedUri(url);
+        }
         final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:

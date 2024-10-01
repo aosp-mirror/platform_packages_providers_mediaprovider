@@ -1998,7 +1998,7 @@ static void do_readdir_common(fuse_req_t req,
         if (used + entry_size > len) {
             // When an entry is rejected, lookup called by readdir_plus will not be tracked by
             // kernel. Call forget on the rejected node to decrement the reference count.
-            if (plus) {
+            if (plus && e.ino > 0) {
                 do_forget(req, fuse, e.ino, 1);
             }
             break;

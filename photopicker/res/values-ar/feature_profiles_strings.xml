@@ -17,7 +17,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_profile_primary_label" msgid="4757455689901820680">"مساحة شخصية"</string>
+    <string name="photopicker_profile_primary_label" msgid="4757455689901820680">"المساحة الشخصية"</string>
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"مساحة العمل"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"غير ذلك"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"التبديل بين ملفات المستخدم الشخصية"</string>
@@ -26,5 +26,5 @@
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"لفتح صور \"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>\"، يُرجى تشغيل تطبيقات \"<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>\" وإعادة المحاولة"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"حَظَر المشرف إمكانية الوصول إلى البيانات من هذا الملف الشخصي."</string>
     <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"تبديل"</string>
-    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"أنت في ملف <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>. هل تريد التبديل إلى الملف <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>؟"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"أنت في \"<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>\". هل تريد التبديل إلى \"<xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>\"؟"</string>
 </resources>

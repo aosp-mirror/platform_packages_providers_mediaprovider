@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 
 private val MEASUREMENT_SEARCH_BAR_HEIGHT = 56.dp
 private val MEASUREMENT_SEARCH_BAR_PADDING =
@@ -59,7 +60,7 @@ fun Search(modifier: Modifier = Modifier) {
                 focused = focused.value,
                 onSearchQueryChanged = { searchTerm.value = it },
                 onFocused = { focused.value = it },
-                modifier
+                modifier,
             )
         },
         expanded = focused.value,
@@ -105,18 +106,11 @@ private fun SearchInput(
     focused: Boolean,
     onSearchQueryChanged: (String) -> Unit,
     onFocused: (Boolean) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     SearchBarDefaults.InputField(
         query = searchQuery,
-        placeholder = {
-            val placeholderText =
-                when (focused) {
-                    true -> stringResource(R.string.photopicker_searchView_placeholder_text)
-                    false -> stringResource(R.string.photopicker_search_placeholder_text)
-                }
-            Text(text = placeholderText, style = MaterialTheme.typography.bodyLarge)
-        },
+        placeholder = { SearchBarPlaceHolder(focused) },
         colors =
             TextFieldDefaults.colors(
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -149,7 +143,7 @@ private fun SearchInput(
 private fun SearchBarIcon(
     focused: Boolean,
     onFocused: (Boolean) -> Unit,
-    onSearchQueryChanged: (String) -> Unit
+    onSearchQueryChanged: (String) -> Unit,
 ) {
     if (focused) {
         IconButton(
@@ -160,13 +154,38 @@ private fun SearchBarIcon(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.photopicker_back_option)
+                contentDescription = stringResource(R.string.photopicker_back_option),
             )
         }
     } else {
         Icon(
             imageVector = Icons.Default.Search,
-            contentDescription = stringResource(R.string.photopicker_search_placeholder_text)
+            contentDescription = stringResource(R.string.photopicker_search_placeholder_text),
         )
     }
+}
+
+/**
+ * Composable function that displays a placeholder text in search bar.
+ *
+ * The placeholder text changes depending on whether the search bar is focused or not. When focused,
+ * it also considers the allowed MIME types from the `LocalPhotopickerConfiguration` to display a
+ * more specific placeholder.
+ *
+ * @param focused Boolean value indicating whether the search bar is currently focused.
+ */
+@Composable
+private fun SearchBarPlaceHolder(focused: Boolean) {
+    val placeholderText =
+        when (focused) {
+            true -> {
+                if (LocalPhotopickerConfiguration.current.hasOnlyVideoMimeTypes()) {
+                    stringResource(R.string.photopicker_search_videos_placeholder_text)
+                } else {
+                    stringResource(R.string.photopicker_search_photos_placeholder_text)
+                }
+            }
+            false -> stringResource(R.string.photopicker_search_placeholder_text)
+        }
+    Text(text = placeholderText, style = MaterialTheme.typography.bodyLarge)
 }

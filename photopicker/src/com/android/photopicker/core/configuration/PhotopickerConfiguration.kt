@@ -132,4 +132,14 @@ data class PhotopickerConfiguration(
 
         return false
     }
+
+    /**
+     * Checks if mimeTypes contains only video MIME types and no image MIME types.
+     *
+     * @return `true` if mimeTypes list contains only video MIME types (starting with "video/") and
+     *   no image MIME types (starting with "image/"), `false` otherwise.
+     */
+    fun hasOnlyVideoMimeTypes(): Boolean {
+        return mimeTypes.isNotEmpty() && mimeTypes.all { it.startsWith("video/") }
+    }
 }

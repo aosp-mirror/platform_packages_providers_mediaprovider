@@ -102,5 +102,6 @@ android_app {
         "//apex_available:platform",
         "com.android.mediaprovider",
     ],
+    updatable: true,
 
 }

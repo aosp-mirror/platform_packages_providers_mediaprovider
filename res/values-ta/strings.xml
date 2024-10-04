@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"கிளவுடு மீடியா ஆப்ஸ்"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"கிளவுடு மீடியா ஆப்ஸ்"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"கிளவுடு மீடியா ஆப்ஸ்"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"படங்களையோ வீடியோக்களையோ ஆப்ஸ் அல்லது இணையதளம் தேர்ந்தெடுக்குமாறு கேட்கும்போது உங்கள் கிளவுடு மீடியாவை அணுகவும்"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"படங்களையோ வீடியோக்களையோ ஆப்ஸ் அல்லது இணையதளம் தேர்ந்தெடுக்குமாறு கேட்கும்போது உங்கள் கிளவுடு மீடியாவை அணுகலாம்"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"கிளவுட் மீடியாவை இதிலிருந்து அணுகும்"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"எதுவுமில்லை"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"இப்போது கிளவுடு மீடியா ஆப்ஸை மாற்ற முடியாது"</string>

@@ -26,5 +26,5 @@
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"Ak chcete otvoriť fotky profilu <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>, zapnite aplikácie profilu <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> a skúste to znova"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Prístup k údajom z tohto profilu váš správca nepovolil."</string>
     <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"Prepnúť"</string>
-    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Ste v profile <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>. Chcete prepnúť na profil <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>?"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Používate <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> profil. Chcete prepnúť na <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> profil?"</string>
 </resources>

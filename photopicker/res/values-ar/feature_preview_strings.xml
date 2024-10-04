@@ -17,9 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_select_button_label" msgid="658102027531907034">"اختيار الكل: <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_select_button_label" msgid="658102027531907034">"اختيار الكل <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"اختيار"</string>
-    <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"إلغاء اختيار الكل: <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"إلغاء اختيار الكل <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"معاينة"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"مشكلة في تشغيل الفيديو"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"يُرجى التحقّق من الاتصال بالإنترنت، ثم إعادة المحاولة"</string>

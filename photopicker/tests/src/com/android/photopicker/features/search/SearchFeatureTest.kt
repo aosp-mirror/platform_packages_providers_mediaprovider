@@ -296,7 +296,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             // Asserts search view page with its placeholder text displayed
             composeTestRule
                 .onNode(
-                    hasText(resources.getString(R.string.photopicker_searchView_placeholder_text))
+                    hasText(
+                        resources.getString(R.string.photopicker_search_photos_placeholder_text)
+                    )
                 )
                 .assertIsDisplayed()
 
@@ -338,7 +340,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             val testQuery = "testquery"
             composeTestRule
                 .onNode(
-                    hasText(resources.getString(R.string.photopicker_searchView_placeholder_text))
+                    hasText(
+                        resources.getString(R.string.photopicker_search_photos_placeholder_text)
+                    )
                 )
                 .performTextInput(testQuery)
 
@@ -356,6 +360,139 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.onNodeWithText(testQuery).assertIsNotDisplayed()
             composeTestRule
                 .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .assertIsDisplayed()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_mimetypeOnlyVideo_showsVideoPlaceHolderText() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            val testIntent =
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayListOf("video/*", "video/mpeg"))
+                }
+            configurationManager.get().setIntent(testIntent)
+
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        resources.getString(R.string.photopicker_search_videos_placeholder_text)
+                    )
+                )
+                .assertIsDisplayed()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_mimetypeOnlyImage_showsPhotosPlaceHolderText() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            val testIntent =
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayListOf("image/*", "image/png"))
+                }
+            configurationManager.get().setIntent(testIntent)
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        resources.getString(R.string.photopicker_search_photos_placeholder_text)
+                    )
+                )
+                .assertIsDisplayed()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_mimetypeImageAndVideo_showsPhotosPlaceHolderText() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            val testIntent =
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayListOf("image/*", "video/*"))
+                }
+            configurationManager.get().setIntent(testIntent)
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        resources.getString(R.string.photopicker_search_photos_placeholder_text)
+                    )
+                )
+                .assertIsDisplayed()
+        }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchBar_mimeTypeAll_showsPhotosPlaceHolderText() =
+        testScope.runTest {
+            val resources = getTestableContext().getResources()
+            val testIntent =
+                Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayListOf("*/*"))
+                }
+            configurationManager.get().setIntent(testIntent)
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Perform click action on the Search bar
+            composeTestRule
+                .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
+                .performClick()
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onNode(
+                    hasText(
+                        resources.getString(R.string.photopicker_search_photos_placeholder_text)
+                    )
+                )
                 .assertIsDisplayed()
         }
 }

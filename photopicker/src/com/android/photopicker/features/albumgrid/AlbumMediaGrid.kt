@@ -44,11 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -61,6 +64,7 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -123,6 +127,9 @@ private fun AlbumMediaGrid(
         }
 
     val state = rememberLazyGridState()
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
     // Container encapsulating the album title followed by the album content in the form of a
     // grid, the content also includes date and month separators.
     Column(modifier = Modifier.fillMaxSize()) {
@@ -138,8 +145,15 @@ private fun AlbumMediaGrid(
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 val (title, body, icon) = getEmptyStateContentForAlbum(album)
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = icon,
                     title = title,
                     body = body,

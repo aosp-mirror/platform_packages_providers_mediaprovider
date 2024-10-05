@@ -19,5 +19,8 @@
     <string name="photopicker_search_placeholder_text" translation_description="Place holder text shown in Search Bar">Search</string>
 
     <!-- Search view placeholder text -->
-    <string name="photopicker_searchView_placeholder_text" translation_description="Place holder text shown in Search Bar">Search your photos</string>
+    <string name="photopicker_search_photos_placeholder_text" translation_description="Place holder text shown in Search Bar">Search your photos</string>
+
+    <!-- Search view placeholder text when videos MIME type filter is applied-->
+    <string name="photopicker_search_videos_placeholder_text" translation_description="Place holder text shown in Search Bar for videos MIME type filter">Search your videos</string>
 </resources>

@@ -133,15 +133,33 @@ public class PickerSyncManager {
             @NonNull Context context,
             @NonNull ConfigStore configStore,
             boolean shouldSchedulePeriodicSyncs) {
+        this(workManager, context, configStore, shouldSchedulePeriodicSyncs,
+                /* periodicSyncInitialDelay */10000L);
+    }
+
+    public PickerSyncManager(@NonNull WorkManager workManager,
+            @NonNull Context context,
+            @NonNull ConfigStore configStore,
+            boolean shouldSchedulePeriodicSyncs,
+            long periodicSyncInitialDelay) {
         mWorkManager = requireNonNull(workManager);
         mConfigStore = requireNonNull(configStore);
         mContext = requireNonNull(context);
 
-        setUpEndlessWork();
-
-        if (shouldSchedulePeriodicSyncs) {
-            setUpPeriodicWork();
-        }
+        // Move to a background thread to remove from MediaProvider boot path.
+        BackgroundThread.getHandler().postDelayed(
+                () -> {
+                    try {
+                        setUpEndlessWork();
+                        if (shouldSchedulePeriodicSyncs) {
+                            setUpPeriodicWork();
+                        }
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, "Could not schedule workers", e);
+                    }
+                },
+                periodicSyncInitialDelay
+        );
 
         // Subscribe to device config changes so we can enable periodic workers if Cloud
         // Photopicker is enabled.

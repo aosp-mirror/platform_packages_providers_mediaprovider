@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.StateSelector
 import com.android.photopicker.core.banners.Banner
@@ -72,6 +73,7 @@ import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
@@ -157,6 +159,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
     val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
+    val host = LocalEmbeddedState.current?.host
 
     Column(
         modifier =
@@ -176,8 +179,15 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 val emptyStatePadding =
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = Icons.Outlined.Image,
                     title = stringResource(R.string.photopicker_photos_empty_state_title),
                     body = stringResource(R.string.photopicker_photos_empty_state_body),

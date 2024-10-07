@@ -32,6 +32,7 @@ enum class FeatureToken(val token: String) {
     PREVIEW("PREVIEW"),
     PRIVACY_EXPLAINER("PRIVACY_EXPLAINER"),
     PROFILE_SELECTOR("PROFILE_SELECTOR"),
+    SEARCH("SEARCH"),
     SELECTION_BAR("SELECTION_BAR"),
     SNACK_BAR("SNACK_BAR"),
     // keep-sorted end

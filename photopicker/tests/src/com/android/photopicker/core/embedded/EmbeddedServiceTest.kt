@@ -19,9 +19,9 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.platform.test.annotations.DisableFlags
-import android.platform.test.annotations.EnableFlags
-import android.platform.test.flag.junit.SetFlagsRule
+import android.platform.test.annotations.RequiresFlagsEnabled
+import android.platform.test.flag.junit.CheckFlagsRule
+import android.platform.test.flag.junit.DeviceFlagsValueProvider
 import androidx.test.filters.SdkSuppress
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -32,7 +32,9 @@ import com.android.photopicker.core.EmbeddedServiceComponentBuilder
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
-import com.android.photopicker.inject.EmbeddedTestModule
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.inject.PhotopickerTestModule
+import com.android.photopicker.inject.TestOptions
 import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertThat
 import dagger.Module
@@ -61,16 +63,21 @@ import org.mockito.MockitoAnnotations
 )
 @HiltAndroidTest
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@RequiresFlagsEnabled(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
 class EmbeddedServiceTest {
 
     @get:Rule(order = 0) var hiltRule = HiltAndroidRule(this)
-    @get:Rule(order = 1) var setFlagsRule = SetFlagsRule()
+    @get:Rule(order = 1)
+    val checkFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
 
     @Inject lateinit var mockContext: Context
     @Inject lateinit var embeddedServiceComponentBuilder: EmbeddedServiceComponentBuilder
 
     /** Setup dependencies for the UninstallModules for the test class. */
-    @Module @InstallIn(SingletonComponent::class) class TestModule : EmbeddedTestModule()
+    @Module
+    @InstallIn(SingletonComponent::class)
+    class TestModule :
+        PhotopickerTestModule(TestOptions.build { runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED) })
 
     val testDispatcher = StandardTestDispatcher()
 
@@ -104,14 +111,7 @@ class EmbeddedServiceTest {
     }
 
     @Test
-    @EnableFlags(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
     fun testEmbeddedServiceOnBindIsNonNull() {
         assertThat(embeddedService.onBind(Intent())).isNotNull()
-    }
-
-    @DisableFlags(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
-    @Test
-    fun testEmbeddedServiceOnBindIsNullWhenEmbeddedDisabled() {
-        assertThat(embeddedService.onBind(Intent())).isNull()
     }
 }

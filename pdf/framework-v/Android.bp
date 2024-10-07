@@ -32,7 +32,7 @@ java_sdk_library {
         "pdf_viewer_flags_java_lib",
     ],
     stub_only_libs: [
-        "framework-pdf",
+        "framework-pdf.stubs.module_lib",
     ],
     impl_only_libs: [
         "framework-pdf.impl",

@@ -60,6 +60,7 @@ import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
 import static android.provider.MediaStore.REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL;
+import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
@@ -132,6 +133,8 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.flags.Flags.versionLockdown;
+import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
@@ -291,6 +294,7 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
+import com.android.providers.media.backupandrestore.BackupExecutor;
 import com.android.providers.media.dao.FileRow;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
@@ -328,6 +332,7 @@ import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
 
+import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
 import org.jetbrains.annotations.NotNull;
@@ -804,6 +809,7 @@ public class MediaProvider extends ContentProvider {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case Intent.ACTION_PACKAGE_REMOVED:
+                case Intent.ACTION_PACKAGE_CHANGED:
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
@@ -814,6 +820,21 @@ public class MediaProvider extends ContentProvider {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
                             invalidateDentryForExternalStorage(pkg);
+                        } else if (Intent.ACTION_PACKAGE_CHANGED.equals(intent.getAction())) {
+                            try {
+                                // If package has been modified e.g. has been enabled or disabled,
+                                // it should be checked against current set of providers.
+                                // Hence if a modified package is disable, attempt to remove it from
+                                // pickerSyncController.
+                                if (!getContext().getPackageManager().getApplicationInfo(pkg,
+                                        /* flags */ 0).enabled) {
+                                    Log.d(TAG, "Removing disabled package: " + pkg
+                                            + " from providers list if required.");
+                                    mPickerSyncController.notifyPackageRemoval(pkg);
+                                }
+                            } catch (NameNotFoundException ignored) {
+                                // no-op
+                            }
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -1133,6 +1154,11 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
+                if (deletedRow.getVolumeName() != null
+                        && deletedRow.getVolumeName().equalsIgnoreCase(VOLUME_EXTERNAL_PRIMARY)
+                        && enableBackupAndRestore()) {
+                    mExternalPrimaryBackupExecutor.deleteBackupForPath(deletedRow.getPath());
+                }
             });
         }
     };
@@ -1390,6 +1416,8 @@ public class MediaProvider extends ContentProvider {
                 mUriMatcher);
         mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
 
+        mExternalPrimaryBackupExecutor = new BackupExecutor(getContext(), mExternalDatabase);
+
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
         } else {
@@ -1401,6 +1429,7 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addDataScheme("package");
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
         // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
@@ -1696,6 +1725,12 @@ public class MediaProvider extends ContentProvider {
         // Calculate standard_mime_type_extension column for files which have SPECIAL_FORMAT column
         // value as NULL, and update the same in the picker db
         detectSpecialFormat(signal);
+
+        if (enableBackupAndRestore()) {
+            Log.i(TAG, "Backup is enabled");
+            // Backup needed for B&R
+            mExternalPrimaryBackupExecutor.doBackup(signal);
+        }
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -4232,6 +4267,9 @@ public class MediaProvider extends ContentProvider {
 
     @Override
     public String getType(Uri url) {
+        if (isRedactedUri(url)) {
+            url = getUriForRedactedUri(url);
+        }
         final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -7141,12 +7179,30 @@ public class MediaProvider extends ContentProvider {
             throw e.rethrowAsIllegalArgumentException();
         }
 
-        final String version = helper.runWithoutTransaction((db) ->
-                db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db));
-
+        final String version =
+                helper.runWithoutTransaction(
+                    (db) -> {
+                        final String dbUuid = DatabaseHelper.getOrCreateUuid(db);
+                        if (shouldLockdownMediaStoreVersion()) {
+                            final String input = dbUuid + mCallingIdentity.get().uid;
+                            final HashCode uuidHashCode =
+                                    Hashing.farmHashFingerprint64()
+                                       .hashString(input, StandardCharsets.UTF_8);
+                            return db.getVersion() + ":" + uuidHashCode;
+                        } else {
+                            return db.getVersion() + ":" + dbUuid;
+                        }
+                    });
         final Bundle res = new Bundle();
         res.putString(Intent.EXTRA_TEXT, version);
         return res;
+    }
+
+    private boolean shouldLockdownMediaStoreVersion() {
+        return versionLockdown()
+                && mCallingIdentity.get().getTargetSdkVersion()
+                    > Build.VERSION_CODES.VANILLA_ICE_CREAM
+                && Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM;
     }
 
     @NotNull
@@ -8375,6 +8431,8 @@ public class MediaProvider extends ContentProvider {
                 case IMAGES_MEDIA_ID:
                 case DOWNLOADS_ID:
                 case FILES_ID:
+                    // Check if the caller has the required permissions to do placement
+                    enforceCallingPermission(uri, extras, true);
                     break;
                 default:
                     throw new IllegalArgumentException("Movement of " + uri
@@ -11469,6 +11527,8 @@ public class MediaProvider extends ContentProvider {
     private TranscodeHelper mTranscodeHelper;
     private MediaGrants mMediaGrants;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
+
+    private BackupExecutor mExternalPrimaryBackupExecutor;
 
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;

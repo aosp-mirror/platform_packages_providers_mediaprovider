@@ -53,7 +53,7 @@ import com.android.photopicker.core.configuration.FEATURE_CLOUD_MEDIA_PROVIDER_A
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
@@ -205,17 +205,17 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.first,
-            true
+            true,
         )
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.first,
-            true
+            true,
         )
         testDeviceConfigProxy.setFlag(
             NAMESPACE_MEDIAPROVIDER,
             FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
-            "com.android.test.cloudpicker"
+            "com.android.test.cloudpicker",
         )
 
         val testIntent =
@@ -250,8 +250,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
-                    LocalEvents provides events.get()
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                    LocalEvents provides events.get(),
                 ) {
                     featureManager
                         .get()
@@ -265,7 +269,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
                                     }
 
                                     override val preloadMedia = mediaToPreload
-                                }
+                                },
                         )
                 }
             }
@@ -293,8 +297,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
-                    LocalEvents provides events.get()
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                    LocalEvents provides events.get(),
                 ) {
                     featureManager
                         .get()
@@ -308,7 +316,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
                                     }
 
                                     override val preloadMedia = mediaToPreload
-                                }
+                                },
                         )
                 }
             }
@@ -340,8 +348,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
-                    LocalEvents provides events.get()
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                    LocalEvents provides events.get(),
                 ) {
                     featureManager
                         .get()
@@ -355,7 +367,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
                                     }
 
                                     override val preloadMedia = mediaToPreload
-                                }
+                                },
                         )
                 }
             }
@@ -389,8 +401,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
             var preloadDeferred = CompletableDeferred<Boolean>()
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
-                    LocalEvents provides events.get()
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                    LocalEvents provides events.get(),
                 ) {
                     featureManager
                         .get()
@@ -404,7 +420,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
                                     }
 
                                     override val preloadMedia = mediaToPreload
-                                }
+                                },
                         )
                 }
             }
@@ -437,8 +453,12 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
 
             composeTestRule.setContent {
                 CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
-                    LocalEvents provides events.get()
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
+                    LocalEvents provides events.get(),
                 ) {
                     featureManager
                         .get()
@@ -452,7 +472,7 @@ class MediaPreloaderTest : PhotopickerFeatureBaseTest() {
                                     }
 
                                     override val preloadMedia = mediaToPreload
-                                }
+                                },
                         )
                 }
             }

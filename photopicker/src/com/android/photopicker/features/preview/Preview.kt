@@ -186,41 +186,46 @@ fun PreviewSelection(
                             snackbarHostState,
                             /* singleItemPreview */ previewSingleItem
                         )
-                        IconButton(
-                            modifier = Modifier.align(Alignment.TopStart),
-                            onClick = {
-                                val media = selection.get(state.currentPage)
-                                media?.let { viewModel.toggleInSelection(it, {}) }
-                            }
-                        ) {
-                            if (currentSelection.contains(selection.get(state.currentPage))) {
-                                Icon(
-                                    ImageVector.vectorResource(
-                                        R.drawable.photopicker_selected_media
-                                    ),
-                                    modifier =
-                                        Modifier
-                                            // Background is necessary because the icon has negative
-                                            // space.
-                                            .background(
-                                                MaterialTheme.colorScheme.onPrimary,
-                                                CircleShape
-                                            ),
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_media_item),
-                                    tint =
-                                        CustomAccentColorScheme.current
-                                            .getAccentColorIfDefinedOrElse(
-                                                /* fallback */ MaterialTheme.colorScheme.primary
-                                            ),
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Outlined.Circle,
-                                    contentDescription =
-                                        stringResource(R.string.photopicker_item_selected),
-                                    tint = Color.White
-                                )
+
+                        // Only show the selection button if not in single select.
+                        if (LocalPhotopickerConfiguration.current.selectionLimit > 1) {
+                            IconButton(
+                                modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp),
+                                onClick = {
+                                    val media = selection.get(state.currentPage)
+                                    media?.let { viewModel.toggleInSelection(it, {}) }
+                                }
+                            ) {
+                                if (currentSelection.contains(selection.get(state.currentPage))) {
+                                    Icon(
+                                        ImageVector.vectorResource(
+                                            R.drawable.photopicker_selected_media
+                                        ),
+                                        modifier =
+                                            Modifier
+                                                // Background is necessary because the icon has
+                                                // negative
+                                                // space.
+                                                .background(
+                                                    MaterialTheme.colorScheme.onPrimary,
+                                                    CircleShape
+                                                ),
+                                        contentDescription =
+                                            stringResource(R.string.photopicker_media_item),
+                                        tint =
+                                            CustomAccentColorScheme.current
+                                                .getAccentColorIfDefinedOrElse(
+                                                    /* fallback */ MaterialTheme.colorScheme.primary
+                                                ),
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Outlined.Circle,
+                                        contentDescription =
+                                            stringResource(R.string.photopicker_item_selected),
+                                        tint = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -250,7 +255,14 @@ fun PreviewSelection(
                     }
 
                     FilledTonalButton(
-                        onClick = { navController.popBackStack() },
+                        onClick = {
+                            if (config.selectionLimit == 1) {
+                                val media = selection.get(state.currentPage)
+                                media?.let { viewModel.toggleInSelection(it, {}) }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
                         colors =
                             ButtonDefaults.filledTonalButtonColors(
                                 containerColor =
@@ -264,7 +276,16 @@ fun PreviewSelection(
                                         ),
                             )
                     ) {
-                        Text(stringResource(R.string.photopicker_done_button_label))
+                        Text(
+                            text =
+                                when (config.selectionLimit) {
+                                    1 ->
+                                        stringResource(
+                                            R.string.photopicker_select_current_button_label
+                                        )
+                                    else -> stringResource(R.string.photopicker_done_button_label)
+                                }
+                        )
                     }
                 }
             }
@@ -390,7 +411,7 @@ private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
     loadMedia(
         media = image,
         resolution = Resolution.FULL,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         // by default loadMedia center crops, so use a custom request builder
         requestBuilderTransformation = { media, resolution, builder ->
             builder.set(RESOLUTION_REQUESTED, resolution).signature(media.getSignature(resolution))

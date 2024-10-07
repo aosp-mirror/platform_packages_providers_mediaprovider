@@ -877,6 +877,11 @@ public final class MediaStore {
      * <p>If images/videos were successfully picked this will return {@link Activity#RESULT_OK}
      * otherwise {@link Activity#RESULT_CANCELED} is returned.
      *
+     * <p>Number of grants for items that an app can hold per user id is limited to
+     * {@link com.android.providers.media.MediaGrants#PER_PACKAGE_GRANTS_LIMIT_CONST}.
+     * Anytime on user selection if new grants are added, a clean up (if required) is performed to
+     * remove least recent grants ensuring the count of grants stays within limit.
+     *
      * <p><strong>NOTE:</strong> You should probably not use this. This action requires the {@link
      * Manifest.permission#GRANT_RUNTIME_PERMISSIONS } permission.
      *
@@ -1059,7 +1064,7 @@ public final class MediaStore {
      *
      * <p>Only MediaStore content URI(s) of the item(s) received as a result of
      * {@link MediaStore#ACTION_PICK_IMAGES} action are accepted. The value of this intent-extra
-     * should be an ArrayList of type parcelables. Default value is null. Maximum number of URIs
+     * should be an ArrayList of type URIs. Default value is null. Maximum number of URIs
      * that can be accepted is limited by the value passed in
      * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} as part of the {@link MediaStore#ACTION_PICK_IMAGES}
      * intent. In case the count of input URIs is greater than the limit then

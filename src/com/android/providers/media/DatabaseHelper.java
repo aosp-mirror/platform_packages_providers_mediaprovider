@@ -1163,6 +1163,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
             updateAddMediaGrantsTable(db);
+            createSearchIndexProcessingStatusTable(db);
         }
 
         createLatestViews(db);
@@ -1996,6 +1997,14 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         }
     }
 
+    private static void updateBackfillInferredDate(SQLiteDatabase db) {
+        if (Flags.inferredMediaDate()) {
+            db.execSQL("UPDATE files SET _modifier=? WHERE inferred_date=0 AND _modifier=?;",
+                    new String[]{String.valueOf(FileColumns._MODIFIER_SCHEMA_UPDATE),
+                            String.valueOf(FileColumns._MODIFIER_MEDIA_SCAN)});
+        }
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
@@ -2004,6 +2013,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private static void updateAddOemMetadata(SQLiteDatabase db) {
         db.execSQL("ALTER TABLE files ADD COLUMN oem_metadata BLOB DEFAULT NULL;");
+    }
+
+    private static void updateBackfillAsfMimeType(SQLiteDatabase db) {
+        db.execSQL("UPDATE files SET media_type=? WHERE mime_type=\"application/vnd.ms-asf\";",
+                new String[]{String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)});
     }
 
     private static void recomputeDataValues(SQLiteDatabase db) {
@@ -2063,7 +2077,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    static final int VERSION_V = 1503;
+    static final int VERSION_V = 1506;
     public static final int VERSION_LATEST = VERSION_V;
 
     /**
@@ -2307,6 +2321,18 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1503) {
                 updateAddInferredDate(db);
+            }
+
+            if (fromVersion < 1504) {
+                updateBackfillInferredDate(db);
+            }
+
+            if (fromVersion < 1505) {
+                updateBackfillAsfMimeType(db);
+            }
+
+            if (fromVersion < 1506) {
+                createSearchIndexProcessingStatusTable(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data
@@ -2577,5 +2603,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private String traceSectionName(@NonNull String method) {
         return "DH[" + getDatabaseName() + "]." + method;
+    }
+
+    // Create a table search_index_processing_status which holds the processing status
+    // of all the parameters based on which the media items are indexed. Every processing status
+    // is set to 0 to begin with. New table is asynchronously populated with all the existing
+    // media items from the files table based on their generation numbers.
+    private void createSearchIndexProcessingStatusTable(@NonNull SQLiteDatabase database) {
+        Objects.requireNonNull(database, "Sqlite database object found to be null. "
+                + "Cannot create media status table");
+        database.execSQL("CREATE TABLE IF NOT EXISTS search_index_processing_status ("
+                + "media_id INTEGER PRIMARY_KEY,"
+                + "metadata_processing_status INTEGER DEFAULT 0,"
+                + "label_processing_status INTEGER DEFAULT 0,"
+                + "ocr_latin_processing_status INTEGER DEFAULT 0,"
+                + "location_processing_status INTEGER DEFAULT 0,"
+                + "generation_number INTEGER DEFAULT 0,"
+                + "display_name TEXT DEFAULT NULL,"
+                + "mime_type TEXT DEFAULT NULL,"
+                + "date_taken INTEGER DEFAULT 0,"
+                + "size INTEGER DEFAULT 0,"
+                + "latitude DOUBLE DEFAULT 0.0,"
+                + "longitude DOUBLE DEFAULT 0.0)");
     }
 }

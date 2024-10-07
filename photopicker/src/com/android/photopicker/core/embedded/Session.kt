@@ -23,12 +23,12 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
-import android.provider.IEmbeddedPhotoPickerSession
-import android.provider.ParcelableException
 import android.util.Log
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
+import android.widget.photopicker.IEmbeddedPhotoPickerSession
+import android.widget.photopicker.ParcelableException
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -65,6 +65,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
@@ -129,6 +130,8 @@ open class Session(
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
+        // Time interval to notify client about selected/deselected Uris
+        const val URI_DEBOUNCE_TIME: Long = 400 // In milliseconds
     }
 
     /**
@@ -220,7 +223,7 @@ open class Session(
                     .getApplicationLabel(
                         packageManager.getApplicationInfo(
                             clientPackageName,
-                            ApplicationInfoFlags.of(0)
+                            ApplicationInfoFlags.of(0),
                         )
                     )
                     .toString() // convert CharSequence to String
@@ -234,7 +237,7 @@ open class Session(
             .setCaller(
                 callingPackage = clientPackageName,
                 callingPackageUid = clientUid,
-                callingPackageLabel = clientPackageLabel
+                callingPackageLabel = clientPackageLabel,
             )
 
         // Update the [PhotopickerConfiguration] associated with the session using the
@@ -248,12 +251,16 @@ open class Session(
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
         // This initialization should happen only after receiving the [_host]
-        _stateManager = EmbeddedStateManager(_host)
+        _stateManager =
+            EmbeddedStateManager(host = _host, themeNightMode = featureInfo.themeNightMode)
         runBlocking(_main) { _host.setView(_view, width, height) }
 
         // Start listening to selection/deselection events for this Session so
         // we can grant/revoke permission to selected/deselected uris immediately.
         listenForSelectionEvents()
+
+        // Initialize / Refresh the banner state.
+        refreshBannerState()
     }
 
     override fun close() {
@@ -289,7 +296,7 @@ open class Session(
     private fun createSurfaceControlViewHost(
         context: Context,
         displayId: Int,
-        hostToken: IBinder
+        hostToken: IBinder,
     ): SurfaceControlViewHost {
         val displayManager: DisplayManager = context.requireSystemService()
         val display =
@@ -341,7 +348,7 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
-                            LocalEmbeddedState provides embeddedState
+                            LocalEmbeddedState provides embeddedState,
                         ) {
                             val currentEmbeddedState =
                                 checkNotNull(LocalEmbeddedState.current) {
@@ -349,10 +356,13 @@ open class Session(
                                 }
                             PhotopickerTheme(
                                 isDarkTheme = currentEmbeddedState.isDarkTheme,
-                                config = photopickerConfiguration
+                                config = photopickerConfiguration,
                             ) {
                                 PhotopickerApp(
-                                    disruptiveDataNotification,
+                                    disruptiveDataNotification = disruptiveDataNotification,
+                                    onMediaSelectionConfirmed = {
+                                        _backgroundScope.launch { onMediaSelectionConfirmed() }
+                                    },
                                 )
                             }
                         }
@@ -372,16 +382,16 @@ open class Session(
      * permission when item is selected/deselected respectively.
      *
      * It emits both the previous and new selection of media items.
-     *
-     * todo(b/358537861): Debounce on uri selection/deselction
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
+            @OptIn(kotlinx.coroutines.FlowPreview::class)
             _dependencies
                 .selection()
                 .get()
                 .flow
                 .flowWithLifecycle(_embeddedViewLifecycle.lifecycle, Lifecycle.State.STARTED)
+                .debounce(URI_DEBOUNCE_TIME)
                 .runningFold(initial = emptySet<Media>()) { _prevSelection, _newSelection ->
                     // Get list of items removed/deselected by user so that we can revoke access to
                     // those uris.
@@ -393,16 +403,19 @@ open class Session(
                     var newlySelectedMedia: Set<Media> = _newSelection.subtract(_prevSelection)
                     Log.d(TAG, "Granting uri permission to $newlySelectedMedia")
 
+                    val selectedUris: MutableList<Uri> = mutableListOf()
+                    val deselectedUris: MutableList<Uri> = mutableListOf()
+
                     // Grant uri to newly selected media and notify client
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsSelected(listOf(item.mediaUri))
+                            selectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
                                 "Error granting permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
                     }
@@ -411,14 +424,22 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
+                            deselectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
                                 "Error revoking permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
+                    }
+
+                    // notify client about final selection
+                    if (selectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionGranted(selectedUris)
+                    }
+                    if (deselectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionRevoked(deselectedUris)
                     }
 
                     // Update previous selection to current flow
@@ -435,7 +456,13 @@ open class Session(
         }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
-            true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
+            true -> runBlocking(_main) {
+                _embeddedViewLifecycle.onResume()
+
+                // Refresh the banner state, it's possible that the external state has changed if
+                // the activity is returning from the background.
+                refreshBannerState()
+            }
             false -> runBlocking(_main) { _embeddedViewLifecycle.onStop() }
         }
     }
@@ -456,13 +483,17 @@ open class Session(
         }
         if (configuration == null) return
 
-        // Check for dark theme
-        val isNewThemeDark =
-            (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
+        // Check for the theme override in featureInfo.
+        // If not overridden, compute the theme using the configuration.uiMode night mask value
+        // and update the same in _stateManager.
+        if (featureInfo.themeNightMode == Configuration.UI_MODE_NIGHT_UNDEFINED) {
+            val isNewThemeDark =
+                (configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                    Configuration.UI_MODE_NIGHT_YES
 
-        // Update embedded state manager
-        _stateManager.setIsDarkTheme(isNewThemeDark)
+            // Update embedded state manager
+            _stateManager.setIsDarkTheme(isNewThemeDark)
+        }
 
         // Pass the configuration change along to the view
         _view.dispatchConfigurationChanged(configuration)
@@ -476,7 +507,36 @@ open class Session(
         _stateManager.setIsExpanded(isExpanded)
     }
 
+    override fun requestRevokeUriPermission(uris: List<Uri>) {
+        if (!isActive) {
+            callClosedSessionError()
+            return
+        }
+
+        _backgroundScope.launch {
+            val deselectedMediaItems =
+                _dependencies.selection().get().snapshot().filter { media ->
+                    uris.contains(media.mediaUri)
+                }
+
+            _dependencies.selection().get().removeAll(deselectedMediaItems)
+        }
+    }
+
     private fun callClosedSessionError() {
         clientCallback.onSessionError(ParcelableException(IllegalStateException()))
+    }
+
+    private fun onMediaSelectionConfirmed() {
+        clientCallback.onSelectionComplete()
+    }
+
+    private fun refreshBannerState() {
+        _backgroundScope.launch {
+            // Always ensure providers before requesting a banner refresh, banners depend on
+            // having accurate provider information to generate the correct banners.
+            _dependencies.dataService().get().ensureProviders()
+            _dependencies.bannerManager().get().refreshBanners()
+        }
     }
 }

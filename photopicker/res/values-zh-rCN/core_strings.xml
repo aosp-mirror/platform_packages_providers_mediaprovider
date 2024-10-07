@@ -21,7 +21,7 @@
     <string name="photopicker_media_item" msgid="3592234718212377636">"媒体"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"已选择"</string>
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"完成"</string>
-    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"取消全选"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"全部不选"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"最多选择 <xliff:g id="COUNT">%1$s</xliff:g> 项"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"照片"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"相册"</string>
@@ -29,9 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"开始拍摄照片和视频"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"使用相机应用拍摄的照片和视频会显示在这里"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"尚未收藏任何内容"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"这是一个自动相册，会收集加星标或加入收藏的内容"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"标记为收藏或加星标的照片和视频会显示在这里"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"尚无视频"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"这是一个自动相册，会收集您的所有视频"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"使用相机应用拍摄、保存或分享的视频会显示在这里"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"返回"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"关闭"</string>
 </resources>

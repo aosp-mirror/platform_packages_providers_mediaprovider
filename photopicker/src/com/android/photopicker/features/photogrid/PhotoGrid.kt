@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
@@ -44,11 +45,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.components.getCellsPerRow
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -59,6 +63,7 @@ import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -68,6 +73,7 @@ import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
@@ -75,6 +81,10 @@ import kotlinx.coroutines.launch
 
 private val MEASUREMENT_BANNER_PADDING =
     PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp)
+
+// This is the number of rows we should include in the recents section at the top of the Photo Grid.
+// The recents section does not contain any separators.
+private val RECENTS_ROW_COUNT = 3
 
 /**
  * Primary composable for drawing the main PhotoGrid on [PhotopickerDestinations.PHOTO_GRID]
@@ -85,7 +95,6 @@ private val MEASUREMENT_BANNER_PADDING =
 @Composable
 fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
     val navController = LocalNavController.current
-    val items = viewModel.data.collectAsLazyPagingItems()
     val featureManager = LocalFeatureManager.current
     val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
 
@@ -100,6 +109,13 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
             WindowWidthSizeClass.Expanded -> true
             else -> false
         }
+
+    val cellsPerRow = remember(isExpandedScreen) { getCellsPerRow(isExpandedScreen) }
+
+    val items =
+        viewModel
+            .getData(/* recentsCellCount */ (cellsPerRow * RECENTS_ROW_COUNT))
+            .collectAsLazyPagingItems()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
     val selectionLimitExceededMessage =
@@ -128,7 +144,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.ALBUM_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                                     )
                                 )
                             }
@@ -143,6 +159,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
     val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
+    val host = LocalEmbeddedState.current?.host
 
     Column(
         modifier =
@@ -162,8 +179,15 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 val emptyStatePadding =
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = Icons.Outlined.Image,
                     title = stringResource(R.string.photopicker_photos_empty_state_title),
                     body = stringResource(R.string.photopicker_photos_empty_state_body),
@@ -180,12 +204,16 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                     items = items,
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
-                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
+                    bannerContent = {
+                        hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                            AnimatedBannerWrapper(currentBanner)
+                        }
+                    },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(
                                 item = item.media,
-                                selectionLimitExceededMessage = selectionLimitExceededMessage
+                                selectionLimitExceededMessage = selectionLimitExceededMessage,
                             )
                             // Log user's interaction with picker's main grid(photo grid)
                             scope.launch {
@@ -194,26 +222,26 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.PHOTO_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION
+                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION,
                                     )
                                 )
                             }
                         }
                     },
                     onItemLongPress = { item ->
-                        // Log long pressing a media item in the photo grid
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
+                            // Log long pressing a media item in the photo grid
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             if (item is MediaGridItem.MediaItem) {
                                 // Log entry into the photopicker preview mode
                                 scope.launch {
@@ -222,7 +250,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                             FeatureToken.PREVIEW.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                         )
                                     )
                                 }
@@ -230,6 +258,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                             }
                         }
                     },
+                    columns = GridCells.Fixed(cellsPerRow),
                     state = state,
                 )
                 LaunchedEffect(Unit) {
@@ -239,7 +268,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_PHOTOS
+                            Telemetry.UiEvent.UI_LOADED_PHOTOS,
                         )
                     )
                 }
@@ -272,7 +301,7 @@ private fun AnimatedBannerWrapper(
                     if (declaration is BannerDefinitions) {
                         viewModel.markBannerAsDismissed(declaration)
                     }
-                }
+                },
             )
         }
     }
@@ -299,7 +328,7 @@ fun PhotoGridNavButton(modifier: Modifier) {
                         FeatureToken.PHOTO_GRID.token,
                         configuration.sessionId,
                         configuration.callingPackageUid ?: -1,
-                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                     )
                 )
             }

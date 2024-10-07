@@ -18,6 +18,7 @@ package com.android.providers.media;
 
 import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
 import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
+import static com.android.providers.media.MediaGrants.PER_PACKAGE_GRANTS_LIMIT_CONST;
 import static com.android.providers.media.photopicker.data.ItemsProvider.getItemsUri;
 import static com.android.providers.media.util.FileCreationUtils.buildValidPickerUri;
 import static com.android.providers.media.util.FileCreationUtils.insertFileInResolver;
@@ -43,6 +44,8 @@ import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.model.UserId;
+
+import junit.framework.AssertionFailedError;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -106,6 +109,82 @@ public class MediaGrantsTest {
 
         assertGrantExistsForPackage(fileId1, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
         assertGrantExistsForPackage(fileId2, TEST_OWNER_PACKAGE_NAME, TEST_USER_ID);
+    }
+
+    @Test
+    public void testAddMediaGrantsCountExceedingLimit() throws Exception {
+        mGrants.setGrantsLimit(5);
+        String fileIdPlaceHolder = "test_file";
+        int numberOfInputFiles = 5;
+        List<Long> ids = new ArrayList<>();
+        List<Uri> uris = new ArrayList<>();
+        for (int i = 0; i < numberOfInputFiles; i++) {
+            Long file_id = insertFileInResolver(mIsolatedResolver, fileIdPlaceHolder + i);
+            ids.add(file_id);
+            uris.add(buildValidPickerUri(file_id));
+        }
+
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+        // 5 items were added assert that all of them are present as grants.
+        for (int i = 0; i < ids.size(); i++) {
+            assertGrantExistsForPackage(ids.get(i), TEST_OWNER_PACKAGE_NAME,
+                    TEST_USER_ID);
+        }
+
+        // now add one more item and verify that the first item that was added is no longer in the
+        // database.
+        Long file_id = insertFileInResolver(mIsolatedResolver, fileIdPlaceHolder + 6);
+        ids.add(file_id);
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, List.of(
+                buildValidPickerUri(file_id)), TEST_USER_ID);
+
+        // new item was added, assert that the first item is not in the list anymore.
+        try {
+            assertGrantExistsForPackage(ids.get(0), TEST_OWNER_PACKAGE_NAME,
+                    TEST_USER_ID);
+            throw new AssertionFailedError("The assertion should have failed");
+        } catch (AssertionError ignored) {
+            // ignore this is the expected result.
+        }
+
+        // assert grant should exist for file id 1 and above.
+        for (int i = 1; i < ids.size(); i++) {
+            assertGrantExistsForPackage(ids.get(i), TEST_OWNER_PACKAGE_NAME,
+                    TEST_USER_ID);
+        }
+        mGrants.setGrantsLimit(PER_PACKAGE_GRANTS_LIMIT_CONST);
+    }
+
+    @Test
+    public void testAddMediaGrantsCountExceedingLimitForDifferentPackages() throws Exception {
+        mGrants.setGrantsLimit(5);
+        String fileIdPlaceHolder = "test_file";
+        int numberOfInputFiles = 6;
+        List<Long> ids = new ArrayList<>();
+        List<Uri> uris = new ArrayList<>();
+        for (int i = 0; i < numberOfInputFiles; i++) {
+            Long file_id = insertFileInResolver(mIsolatedResolver, fileIdPlaceHolder + i);
+            ids.add(file_id);
+            uris.add(buildValidPickerUri(file_id));
+        }
+
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME, uris, TEST_USER_ID);
+
+        mGrants.addMediaGrantsForPackage(TEST_OWNER_PACKAGE_NAME2, uris, TEST_USER_ID);
+
+        // verify different grants are present for different packages.
+
+        // 5 items were added assert that all of them are present as grants.
+        for (int i = 1; i < ids.size(); i++) {
+            assertGrantExistsForPackage(ids.get(i), TEST_OWNER_PACKAGE_NAME,
+                    TEST_USER_ID);
+        }
+
+        // 5 items were added assert that all of them are present as grants.
+        for (int i = 1; i < ids.size(); i++) {
+            assertGrantExistsForPackage(ids.get(i), TEST_OWNER_PACKAGE_NAME2,
+                    TEST_USER_ID);
+        }
     }
 
     @Test

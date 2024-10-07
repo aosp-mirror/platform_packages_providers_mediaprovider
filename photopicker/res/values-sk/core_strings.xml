@@ -22,16 +22,16 @@
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Vybrané"</string>
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"Hotovo"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Zrušiť výber všetkého"</string>
-    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Vyberte maximálne <xliff:g id="COUNT">%1$s</xliff:g> položiek"</string>
+    <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Maximálny povolený počet vybratých položiek: <xliff:g id="COUNT">%1$s</xliff:g>"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Fotky"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albumy"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Zatiaľ žiadne fotky"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Začnite snímať fotky a videá"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Fotky a videá nasnímané vašou kamerovou aplikáciou sa budú zobrazovať tu"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Zatiaľ žiadne obľúbené položky"</string>
-    <string name="photopicker_favorites_empty_state_body" msgid="3265404004750778533">"Toto je automatický album zhromažďujúci položky označené hviezdičkami alebo ako obľúbené"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Tu sa budú zobrazovať fotky a videá označené ako obľúbené alebo označené hviezdičkami"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Zatiaľ žiadne videá"</string>
-    <string name="photopicker_videos_empty_state_body" msgid="5149028843414577039">"Toto je automatický album zhromažďujúci všetky vaše videá"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Tu sa budú zobrazovať videá nasnímané vašou kamerovou aplikáciou, ktoré boli uložené alebo zdieľané"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Späť"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Zavrieť"</string>
 </resources>

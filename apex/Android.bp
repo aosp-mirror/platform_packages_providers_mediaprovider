@@ -82,6 +82,7 @@ bootclasspath_fragment {
         "framework-mediaprovider",
         "framework-pdf",
         "framework-pdf-v",
+        "framework-photopicker",
     ],
     apex_available: ["com.android.mediaprovider"],
     // The bootclasspath_fragments that provide APIs on which this depends.
@@ -125,6 +126,8 @@ bootclasspath_fragment {
             "android.graphics.pdf.models.jni",
             "android.graphics.pdf.models.selection",
             "android.graphics.pdf.logging",
+            "android.widget.photopicker",
+            "com.android.providers.media.flags",
         ],
     },
 }

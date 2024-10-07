@@ -116,11 +116,11 @@ public class ExternalDbFacadeTest {
                     mock(VolumeCache.class));
 
             if (!facade.addDeletedMedia(ID1)) {
-                assertWithMessage("Adding item with ID %d failed",
+                assertWithMessage("Adding item with ID %s failed",
                         ID1).fail();
             }
             if (!facade.addDeletedMedia(ID2)) {
-                assertWithMessage("Adding item with ID %d failed",
+                assertWithMessage("Adding item with ID %s failed",
                         ID2).fail();
             }
 
@@ -153,11 +153,11 @@ public class ExternalDbFacadeTest {
 
             // Adding ids again should succeed but bump generation_modified of ID1 and ID2
             if (!facade.addDeletedMedia(ID1)) {
-                assertWithMessage("Adding item with ID %d failed",
+                assertWithMessage("Adding item with ID %s failed",
                         ID1).fail();
             }
             if (!facade.addDeletedMedia(ID2)) {
-                assertWithMessage("Adding item with ID %d failed",
+                assertWithMessage("Adding item with ID %s failed",
                         ID2).fail();
             }
 
@@ -172,11 +172,11 @@ public class ExternalDbFacadeTest {
 
             // Remove ID2 should succeed
             if (!facade.removeDeletedMedia(ID2)) {
-                assertWithMessage("Removing item with ID %d failed", ID2).fail();
+                assertWithMessage("Removing item with ID %s failed", ID2).fail();
             }
             // Remove ID2 again should fail
             if (facade.removeDeletedMedia(ID2)) {
-                assertWithMessage("Removing item with ID %d should have failed", ID2).fail();
+                assertWithMessage("Removing item with ID %s should have failed", ID2).fail();
             }
 
             // Verify only ID1 left

@@ -16,6 +16,9 @@
 
 package com.android.photopicker.core
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+
 /**
  * State selector interface for passing state in which a composable has to be hidden to
  * [hideWhenState] in embedded photopicker.
@@ -27,4 +30,12 @@ sealed interface StateSelector {
     // Indicates that the photopicker is running in an embedded environment and is currently
     // collapsed.
     object EmbeddedAndCollapsed : StateSelector
+
+    // Used for applying animated visibility on features when the photopicker is running in the
+    // embedded runtime.
+    interface AnimatedVisibilityInEmbedded : StateSelector {
+        val visible: Boolean
+        val enter: EnterTransition
+        val exit: ExitTransition
+    }
 }

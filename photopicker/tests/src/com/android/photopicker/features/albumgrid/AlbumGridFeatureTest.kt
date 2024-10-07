@@ -19,12 +19,14 @@ package com.android.photopicker.features.albumgrid
 import android.content.ContentProvider
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.UserManager
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -46,10 +48,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
@@ -169,19 +168,50 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testAlbumGridIsAlwaysEnabled() {
         assertWithMessage("AlbumGridFeature is not always enabled for TEST_ACTION")
-            .that(AlbumGridFeature.Registration.isEnabled(testPhotopickerConfiguration))
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("AlbumGridFeature is not always enabled")
-            .that(AlbumGridFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("AlbumGridFeature is not always enabled")
-            .that(AlbumGridFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("AlbumGridFeature is not always enabled")
-            .that(AlbumGridFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
             .isEqualTo(true)
     }
 

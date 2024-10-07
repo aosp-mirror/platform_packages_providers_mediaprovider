@@ -1987,4 +1987,24 @@ public class MediaProviderTest {
         sIsolatedResolver = sIsolatedContext.getContentResolver();
         sItemsProvider = new ItemsProvider(sIsolatedContext);
     }
+
+    @Test
+    public void testGetType() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File file = new File(dir, "test" + System.nanoTime() + ".jpg");
+        stage(R.raw.lg_g4_iso_800_jpg, file);
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, file);
+        try (ContentProviderClient cpc = sIsolatedResolver
+                .acquireContentProviderClient(MediaStore.AUTHORITY)) {
+            final MediaProvider mp = (MediaProvider) cpc.getLocalContentProvider();
+            final Uri redactedUri = mp.getRedactedUri(uri);
+
+            final String actualType = mp.getType(redactedUri);
+
+            assertEquals("image/dng", actualType);
+        } finally {
+            file.delete();
+        }
+    }
 }

@@ -18,6 +18,7 @@ java_library_host {
 
     static_libs: [
         "//external/error_prone:error_prone_core",
+        "jsr305",
     ],
 
     libs: [

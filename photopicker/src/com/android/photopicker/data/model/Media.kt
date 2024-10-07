@@ -34,6 +34,12 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
 
     /** This is the Picker ID auto-generated in Picker DB */
     val pickerId: Long
+
+    /**
+     * This is an optional field that holds the value of the current item's index relative to other
+     * data in the Data Source.
+     */
+    val index: Int?
     val authority: String
     val mediaSource: MediaSource
     val mediaUri: Uri
@@ -50,7 +56,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         fun withSelectable(
             item: Media,
             selectionSource: Telemetry.MediaLocation,
-            album: Group.Album?
+            album: Group.Album?,
         ): Media {
             return when (item) {
                 is Image -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
@@ -87,6 +93,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
     override fun writeToParcel(out: Parcel, flags: Int) {
         out.writeString(mediaId)
         out.writeLong(pickerId)
+        out.writeString(index?.toString())
         out.writeString(authority)
         out.writeString(mediaSource.toString())
         out.writeString(mediaUri.toString())
@@ -103,6 +110,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
     constructor(
         override val mediaId: String,
         override val pickerId: Long,
+        override val index: Int? = null,
         override val authority: String,
         override val mediaSource: MediaSource,
         override val mediaUri: Uri,
@@ -113,7 +121,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         override val standardMimeTypeExtension: Int,
         override val isPreGranted: Boolean = false,
         override val selectionSource: Telemetry.MediaLocation? = null,
-        override val mediaItemAlbum: Group.Album? = null
+        override val mediaItemAlbum: Group.Album? = null,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -151,6 +159,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
                     Image(
                         /* mediaId=*/ parcel.readString() ?: "",
                         /* pickerId=*/ parcel.readLong(),
+                        /* index=*/ parcel.readString()?.toIntOrNull(),
                         /* authority=*/ parcel.readString() ?: "",
                         /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
                         /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),
@@ -160,7 +169,6 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
                         /* mimeType=*/ parcel.readString() ?: "",
                         /* standardMimeTypeExtension=*/ parcel.readInt(),
                     )
-                parcel.recycle()
                 return image
             }
 
@@ -176,6 +184,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
     constructor(
         override val mediaId: String,
         override val pickerId: Long,
+        override val index: Int? = null,
         override val authority: String,
         override val mediaSource: MediaSource,
         override val mediaUri: Uri,
@@ -187,7 +196,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         val duration: Int,
         override val isPreGranted: Boolean = false,
         override val selectionSource: Telemetry.MediaLocation? = null,
-        override val mediaItemAlbum: Group.Album? = null
+        override val mediaItemAlbum: Group.Album? = null,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -227,6 +236,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
 
                         /* mediaId=*/ parcel.readString() ?: "",
                         /* pickerId=*/ parcel.readLong(),
+                        /* index=*/ parcel.readString()?.toIntOrNull(),
                         /* authority=*/ parcel.readString() ?: "",
                         /* mediaSource=*/ MediaSource.valueOf(parcel.readString() ?: "LOCAL"),
                         /* mediaUri= */ Uri.parse(parcel.readString() ?: ""),
@@ -237,7 +247,6 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
                         /* standardMimeTypeExtension=*/ parcel.readInt(),
                         /* duration=*/ parcel.readInt(),
                     )
-                parcel.recycle()
                 return video
             }
 

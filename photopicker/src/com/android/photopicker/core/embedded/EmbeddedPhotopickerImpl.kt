@@ -18,11 +18,11 @@ package com.android.photopicker.core.embedded
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.EmbeddedPhotoPickerSessionResponse
-import android.provider.IEmbeddedPhotoPicker
-import android.provider.IEmbeddedPhotoPickerClient
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse
+import android.widget.photopicker.IEmbeddedPhotoPicker
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.annotation.RequiresApi
 
 /**
@@ -79,21 +79,28 @@ class EmbeddedPhotopickerImpl(
                 "Caller does not have permission to openSession " + "for $packageName"
             )
         }
+        // This is needed to ensure the PhotoPicker identity is the one being checked for
+        // permissions, and not the caller.
+        val callingUid = Binder.getCallingUid()
+        val callingIdentity = Binder.clearCallingIdentity()
+        try {
+            val session =
+                sessionFactory(
+                    packageName,
+                    callingUid,
+                    hostToken,
+                    displayId,
+                    width,
+                    height,
+                    featureInfo,
+                    clientCallback,
+                )
 
-        val session =
-            sessionFactory(
-                packageName,
-                Binder.getCallingUid(),
-                hostToken,
-                displayId,
-                width,
-                height,
-                featureInfo,
-                clientCallback,
-            )
-
-        // Notify client about the successful creation of Session & SurfacePackage
-        val response = EmbeddedPhotoPickerSessionResponse(session, session.surfacePackage)
-        clientCallback.onSessionOpened(response)
+            // Notify client about the successful creation of Session & SurfacePackage
+            val response = EmbeddedPhotoPickerSessionResponse(session, session.surfacePackage)
+            clientCallback.onSessionOpened(response)
+        } finally {
+            Binder.restoreCallingIdentity(callingIdentity)
+        }
     }
 }

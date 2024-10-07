@@ -111,6 +111,7 @@
     -->
     <receiver android:name="com.android.photopicker.PhotopickerDeviceConfigReceiver"
               android:exported="true"
+              android:enabled="@bool/config_enablePhotopickerDeviceConfigReceiver"
               android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />

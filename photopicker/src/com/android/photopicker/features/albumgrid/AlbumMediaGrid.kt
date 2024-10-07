@@ -27,8 +27,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.StarOutline
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,11 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -61,6 +64,7 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,7 +81,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumMediaGrid(
     flow: StateFlow<Group.Album?>,
-    viewModel: AlbumGridViewModel = obtainViewModel()
+    viewModel: AlbumGridViewModel = obtainViewModel(),
 ) {
     val albumState by flow.collectAsStateWithLifecycle(initialValue = null)
     val album = albumState
@@ -123,6 +127,9 @@ private fun AlbumMediaGrid(
         }
 
     val state = rememberLazyGridState()
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val host = LocalEmbeddedState.current?.host
     // Container encapsulating the album title followed by the album content in the form of a
     // grid, the content also includes date and month separators.
     Column(modifier = Modifier.fillMaxSize()) {
@@ -138,8 +145,15 @@ private fun AlbumMediaGrid(
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 val (title, body, icon) = getEmptyStateContentForAlbum(album)
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = icon,
                     title = title,
                     body = body,
@@ -157,24 +171,24 @@ private fun AlbumMediaGrid(
                             viewModel.handleAlbumMediaGridItemSelection(
                                 item.media,
                                 selectionLimitExceededMessage,
-                                album
+                                album,
                             )
                         }
                     },
                     onItemLongPress = { item ->
-                        // Dispatch UI event to log long pressing the media item
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
+                            // Dispatch UI event to log long pressing the media item
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             // Dispatch UI event to log entry into preview mode
                             scope.launch {
                                 events.dispatch(
@@ -182,7 +196,7 @@ private fun AlbumMediaGrid(
                                         FeatureToken.PREVIEW.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                     )
                                 )
                             }
@@ -198,7 +212,7 @@ private fun AlbumMediaGrid(
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS
+                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS,
                         )
                     )
                 }
@@ -226,7 +240,7 @@ private fun getEmptyStateContentForAlbum(album: Group.Album): Triple<String, Str
             Triple(
                 stringResource(R.string.photopicker_videos_empty_state_title),
                 stringResource(R.string.photopicker_videos_empty_state_body),
-                Icons.Outlined.Videocam,
+                Icons.Outlined.PlayCircleOutline,
             )
         ALBUM_ID_CAMERA ->
             Triple(

@@ -16,12 +16,19 @@
 
 package android.provider;
 
+import static java.lang.annotation.RetentionPolicy.SOURCE;
+
+import android.annotation.FlaggedApi;
+import android.annotation.IntDef;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 
+import com.android.providers.media.flags.Flags;
+
+import java.lang.annotation.Retention;
 import java.util.UUID;
 
 /**
@@ -593,6 +600,37 @@ public final class CloudMediaProviderContract {
             "android.provider.extra.PREVIEW_THUMBNAIL";
 
     /**
+     * Extra used to specify the sorting behavior when querying from {@link CloudMediaProvider}.
+     * The value associated with this extra should be one of the integer constants
+     * defined in the {@link SortOrders}.
+     * <p>
+     * Type: INTEGER
+     *
+     * @see CloudMediaProvider#onSearchMedia
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final String EXTRA_SORT_ORDER = "android.provider.extra.SORT_ORDER";
+
+    /**
+     * Sort items in descending order by the {@code DATE_TAKEN_MILLIS}.
+     * <p>
+     * This means the most recently taken photos or videos will appear first.
+     * <p>
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SORT_ORDER_DESC_DATE_TAKEN = 1;
+
+    /**
+     * Defines integer constants to be used with the {@link #EXTRA_SORT_ORDER} extra
+     * for specifying the sorting order of media items.
+     * @hide
+     */
+    @IntDef(value = {SORT_ORDER_DESC_DATE_TAKEN})
+    @Retention(SOURCE)
+    public @interface SortOrder {}
+
+    /**
      * A boolean to indicate {@link com.android.providers.media.photopicker.PhotoPickerProvider}
      * this request is requesting a cached thumbnail file from MediaStore.
      *
@@ -734,4 +772,435 @@ public final class CloudMediaProviderContract {
      * {@hide}
      */
     public static final String URI_PATH_SURFACE_CONTROLLER = "surface_controller";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMediaCategories}
+     *
+     * @hide
+     */
+    public static final String URI_PATH_MEDIA_CATEGORY = "media_category";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMediaSets}
+     *
+     * @hide
+     */
+    public static final String URI_PATH_MEDIA_SET = "media_set";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQuerySearchSuggestions}
+     *
+     * @hide
+     */
+    public static final String URI_PATH_SEARCH_SUGGESTION = "search_suggestion";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onSearchMedia}
+     *
+     * @hide
+     */
+    public static final String URI_PATH_SEARCH_MEDIA = "search_media";
+
+    /**
+     * URI path for {@link CloudMediaProvider#onQueryMediaInMediaSet}
+     *
+     * @hide
+     */
+    public static final String URI_PATH_MEDIA_IN_MEDIA_SET =
+            "query_media_in_media_set";
+
+    /**
+     * Key for passing parent category Id as a parameter in the bundle
+     *
+     * @hide
+     */
+    public static final String KEY_PARENT_CATEGORY_ID = "parent_category_id";
+
+    /**
+     * Key for passing media category Id as a parameter in the bundle
+     *
+     * @hide
+     */
+    public static final String KEY_MEDIA_CATEGORY_ID = "media_category_id";
+
+    /**
+     * Key for passing media set Id as a parameter in the bundle
+     *
+     * @hide
+     */
+    public static final String KEY_MEDIA_SET_ID = "media_set_id";
+
+    /**
+     * Key for passing prefix text as a parameter in the bundle
+     *
+     * @hide
+     */
+    public static final String KEY_PREFIX_TEXT = "prefix_text";
+
+    /**
+     * Key for passing search query as a parameter in the bundle
+     *
+     * @hide
+     */
+    public static final String KEY_SEARCH_TEXT = "search_text";
+
+    /**
+     * MediaSet represents a cohesive collection of related unique media items,
+     * sharing a common meaningful context or theme.
+     * This is the basic and fundamental unit for organizing related media items.
+     *
+     * MediaSet in this context is represented
+     * by a set of columns present in {@link MediaSetColumns}
+     *
+     * Examples of media sets include:
+     * <ul>
+     *   <li>Faces of the same person</li>
+     *   <li>Photos of a specific location</li>
+     *   <li>All media as a search result to mountains</li>
+     * </ul>
+     *
+     *  Note: {@link AlbumColumns} which denotes an album can also be represented
+     *  using {@link MediaSetColumns}. But, it is recommended to keep using {@link AlbumColumns}
+     *  for existing user albums and use MediaSet only for supported MediaCategories .
+     *
+     * The currently supported MediaCategory in photo picker are
+     * {@link #MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS}.
+     *
+     * These are the fields of a MediaSet.
+     *
+     * @see MediaCategoryColumns
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final class MediaSetColumns {
+
+        private MediaSetColumns() {}
+
+        /**
+         * Unique ID of the media set. This ID is both provided by and interpreted
+         * by the {@link CloudMediaProvider}.
+         *
+         * Each media set must have a unique ID.
+         *
+         * A provider should return IDs which are stable,
+         * meaning it remains the same if nothing inside it changes,
+         * since they will be used to cache media set information in the OS.
+         *
+         * Type: STRING
+         */
+        public static final String ID = "id";
+
+        /**
+         * Display name of the media set.
+         * This display name provided should match the current devices locale settings.
+         * If there is no display name, pass {@code null} in this column.
+         *
+         * Type: STRING
+         */
+        public static final String DISPLAY_NAME = "display_name";
+
+        /**
+         * Total count of all media within the media set, including photos and videos.
+         *
+         * If this field is not provided,
+         * media sets will be shown without a count in the Photo Picker.
+         *
+         * Type: LONG
+         */
+        public static final String MEDIA_COUNT = "media_count";
+
+        /**
+         * Media ID to use as the media set cover photo.
+         *
+         * If this field is not provided,
+         * media sets will be shown in the Photo Picker with a default icon.
+         *
+         * Type: STRING
+         *
+         * @see CloudMediaProviderContract.MediaColumns#ID
+         */
+        public static final String MEDIA_COVER_ID = "media_cover_id";
+
+        /**
+         * Contains all column names for {@link MediaSetColumns} as an array.
+         * @hide
+         */
+        public static final String[] ALL_PROJECTION = new String[] {
+                MediaSetColumns.ID,
+                MediaSetColumns.DISPLAY_NAME,
+                MediaSetColumns.MEDIA_COUNT,
+                MediaSetColumns.MEDIA_COVER_ID
+        };
+    }
+
+    /**
+     * MediaCategory represents a broader structure
+     * that a {@link MediaSetColumns} or another {@link MediaCategoryColumns} belongs to.
+     *
+     * A MediaCategory in this context is represented by a set of columns present in
+     * {@link MediaCategoryColumns}
+     *
+     * A MediaCategory can have instances of other MediaCategories
+     * to support a multilevel hierarchy.
+     * Examples of MediaCategory:
+     * <ul>
+     *   <li>A MediaCategory of people and pet faces which contains instances of MediaSets
+     *   for different faces</li>
+     *   <li>A MediaCategory of locations which contains instances of MediaSets for
+     *   different locations</li>
+     * </ul>
+     *
+     * The currently supported MediaCategory in photo picker are
+     * {@link #MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS}.
+     *
+     * These are the fields of MediaCategory.
+     * @see CloudMediaProvider#onQueryMediaCategories
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final class MediaCategoryColumns {
+
+        private MediaCategoryColumns() {}
+
+        /**
+         * The unique identifier of the media category.
+         * This ID is both provided by and interpreted by the {@link CloudMediaProvider}.
+         *
+         * A provider should return IDs which are stable,
+         * meaning it remains the same if nothing inside it changes,
+         * since they will be used to cache information in the OS.
+         *
+         * Type: STRING
+         */
+        public static final String ID = "id";
+
+        /**
+         * The display name of the media category.
+         * This display name provided should match the current devices locale settings.
+         *
+         * If there is no display name, pass {@code null} in this column.
+         *
+         * Type: STRING
+         */
+        public static final String DISPLAY_NAME = "display_name";
+
+        /**
+         * The type of the media category.
+         * This must contain one of the values from the supported media category types.
+         * Currently supported types are: {@link #MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS}
+         *
+         * Type: INTEGER
+         */
+        public static final String MEDIA_CATEGORY_TYPE = "media_category_type";
+
+        /**
+         * The first cover media ID for displaying.
+         * <p>
+         * If none of the MEDIA_COVER_ID is provided,
+         * media category will be shown in the Photo Picker with a default icon.
+         * Otherwise, Photo Picker will show as many MEDIA_COVER_IDs as provided.
+         * <p>
+         * Type: STRING
+         */
+        public static final String MEDIA_COVER_ID1 = "media_cover_id1";
+
+        /**
+         * The second cover media ID for displaying.
+         * <p>
+         * If none of the MEDIA_COVER_ID is provided,
+         * media category will be shown in the Photo Picker with a default icon.
+         * Otherwise, Photo Picker will show as many MEDIA_COVER_IDs as provided.
+         * <p>
+         * Type: STRING
+         */
+        public static final String MEDIA_COVER_ID2 = "media_cover_id2";
+
+        /**
+         * The third cover media ID for displaying.
+         * <p>
+         * If none of the MEDIA_COVER_ID is provided,
+         * media category will be shown in the Photo Picker with a default icon.
+         * Otherwise, Photo Picker will show as many MEDIA_COVER_IDs as provided.
+         * <p>
+         * Type: STRING
+         */
+        public static final String MEDIA_COVER_ID3 = "media_cover_id3";
+
+        /**
+         * The fourth cover media ID for displaying.
+         * <p>
+         * If none of the MEDIA_COVER_ID is provided,
+         * media category will be shown in the Photo Picker with a default icon.
+         * Otherwise, Photo Picker will show as many MEDIA_COVER_IDs as provided.
+         * <p>
+         * Type: STRING
+         */
+        public static final String MEDIA_COVER_ID4 = "media_cover_id4";
+
+        /**
+         * Contains all column names for {@link MediaCategoryColumns} as an array.
+         *
+         * @hide
+         */
+        public static final String[] ALL_PROJECTION = new String[] {
+                MediaCategoryColumns.ID,
+                MediaCategoryColumns.DISPLAY_NAME,
+                MediaCategoryColumns.MEDIA_CATEGORY_TYPE,
+                MediaCategoryColumns.MEDIA_COVER_ID1,
+                MediaCategoryColumns.MEDIA_COVER_ID2,
+                MediaCategoryColumns.MEDIA_COVER_ID3,
+                MediaCategoryColumns.MEDIA_COVER_ID4
+        };
+
+    }
+
+    /**
+     * Represents media category related to faces of people and pets.
+     * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = 1;
+
+    /**
+     * Defines the types of media categories available and supported in photo picker.
+     * All MediaCategories returned must be of any type from the fields available in this class.
+     *
+     * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
+     * @hide
+     */
+    @IntDef(value = {MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS})
+    @Retention(SOURCE)
+    public @interface MediaCategoryTypes {}
+
+    /**
+     * Represents a search suggestion provided by the {@link CloudMediaProvider}.
+     * This is based on the user entered query.
+     * When the input query is empty (zero state), the provider can still return suggestions.
+     * Photo picker will show these zero state suggestions to the user,
+     * when nothing has been typed for search.
+     *
+     * This class contains the fields of SearchSuggestion.
+     *
+     * @see CloudMediaProvider#onQuerySearchSuggestions
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final class SearchSuggestionColumns {
+
+        private SearchSuggestionColumns() {}
+
+        /**
+         * The unique identifier of the media set associated with the search suggestion.
+         * This will be used to query media items if user clicked on this suggestion.
+         *
+         * <p>
+         * Type: STRING
+         *
+         * @see MediaSetColumns#ID
+         */
+        public static final String MEDIA_SET_ID = "media_set_id";
+        /**
+         * The display text for the search suggestion.
+         * <p>
+         * This is the text shown to the user as a suggestion.
+         * Display text provided should match the current devices locale settings.
+         *
+         * If no display text, pass {@code null} in this column.
+         *
+         * <p>
+         * Type: STRING
+         */
+        public static final String DISPLAY_TEXT = "display_text";
+        /**
+         * The type of the search suggestion.
+         * <p>
+         * This must contain one of the values from various supported search suggestion types.
+         * These are: {@link #SEARCH_SUGGESTION_TEXT},  {@link #SEARCH_SUGGESTION_FACE},
+         *  {@link #SEARCH_SUGGESTION_DATE},  {@link #SEARCH_SUGGESTION_LOCATION},
+         *  {@link #SEARCH_SUGGESTION_ALBUM}
+         * <p>
+         * This will be used to display to user different suggestions in different way.
+         * As examples: for Location type, a thumbnail of location will be used.
+         * For faces, face cover id (if provided) will be used.
+         * Type: INTEGER
+         */
+        public static final String TYPE = "type";
+
+        /**
+         * Media ID to use as the cover image for the search suggestion.
+         * <p>
+         * If this field is not provided,
+         * the search suggestion will be shown with a default cover.
+         * <p>
+         * Type: LONG
+         */
+        public static final String MEDIA_COVER_ID = "media_cover_id";
+
+        /**
+         * Contains all column names for {@link SearchSuggestionColumns} as an array.
+         *
+         * @hide
+         */
+        public static final String[] ALL_PROJECTION = new String[] {
+                SearchSuggestionColumns.MEDIA_SET_ID,
+                SearchSuggestionColumns.DISPLAY_TEXT,
+                SearchSuggestionColumns.TYPE,
+                SearchSuggestionColumns.MEDIA_COVER_ID
+        };
+    }
+
+    /**
+     * Represents a generic text search suggestion.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SEARCH_SUGGESTION_TEXT = 0;
+
+    /**
+     * Suggestion based on faces detected in photos.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SEARCH_SUGGESTION_FACE = 1;
+
+    /**
+     * Suggestion based on location data associated with photos.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SEARCH_SUGGESTION_LOCATION = 2;
+
+    /**
+     * Suggestion based on the date photos were taken.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SEARCH_SUGGESTION_DATE = 3;
+
+
+    /**
+     * Suggestion based on user albums.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: INTEGER
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    public static final int SEARCH_SUGGESTION_ALBUM = 4;
+
+    /**
+     * Defines the different types of search suggestions available and supported in photo picker.
+     *
+     * @see SearchSuggestionColumns#TYPE
+     * @hide
+     */
+    @IntDef(value = {
+            SEARCH_SUGGESTION_TEXT,
+            SEARCH_SUGGESTION_FACE,
+            SEARCH_SUGGESTION_LOCATION,
+            SEARCH_SUGGESTION_DATE,
+            SEARCH_SUGGESTION_ALBUM
+    })
+    @Retention(SOURCE)
+    public @interface SEARCH_SUGGESTION_ALBUM {}
 }

@@ -51,6 +51,7 @@ bootclasspath_fragment {
     contents: [
         "framework-mediaprovider",
         "framework-pdf",
+        "framework-photopicker",
     ],
     apex_available: ["com.android.mediaprovider"],
 

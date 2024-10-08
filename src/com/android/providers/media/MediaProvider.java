@@ -1863,6 +1863,7 @@ public class MediaProvider extends ContentProvider {
                 final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
                         new String[] { staleVolumeName });
                 Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
+                mDatabaseBackupAndRecovery.deleteBackupForVolume(staleVolumeName);
             }
             return null;
         });
@@ -7708,15 +7709,22 @@ public class MediaProvider extends ContentProvider {
         mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
     }
 
-    public void recoverPublicVolumes() {
-        for (MediaVolume mediaVolume : mVolumeCache.getExternalVolumes()) {
-            if (mediaVolume.isPublicVolume()) {
-                try {
-                    mExternalDatabase.tryRecoverPublicVolume(mediaVolume.getName());
-                } catch (Exception e) {
-                    Log.e(TAG, "Exception while recovering public volume: "
-                            + mediaVolume.getName());
-                }
+    public void recoverPublicVolume(MediaVolume volume) {
+        if (volume.isPublicVolume()
+                && mDatabaseBackupAndRecovery.isStableUrisEnabled(volume.getName())) {
+            Log.d(TAG, "Querying external_primary to make sure it's available");
+            try (Cursor cursor = getContext().getContentResolver()
+                    .query(MediaStore.Images.Media.getContentUri(VOLUME_EXTERNAL_PRIMARY),
+                            new String[]{FileColumns._ID}, null, null)) {
+            } catch (Exception e) {
+                Log.e(TAG, "Can't restore public volume because EXTERNAL_PRIMARY is not available");
+                return;
+            }
+
+            try {
+                mExternalDatabase.tryRecoverPublicVolume(volume.getName());
+            } catch (Exception e) {
+                Log.e(TAG, "Exception in public volume recovery for " + volume.getName(), e);
             }
         }
     }

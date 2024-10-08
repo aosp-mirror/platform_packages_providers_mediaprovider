@@ -103,6 +103,7 @@ android_app {
     apex_available: [
         "com.android.mediaprovider",
     ],
+    updatable: true,
 }
 
 // Used by MediaProvider and MediaProviderTests

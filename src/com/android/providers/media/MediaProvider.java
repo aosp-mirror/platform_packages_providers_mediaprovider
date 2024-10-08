@@ -190,6 +190,7 @@ import android.app.RemoteAction;
 import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
+import android.compat.annotation.EnabledSince;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -529,6 +530,14 @@ public class MediaProvider extends ContentProvider {
      * {@link com.android.settingslib.drawer.TileUtils.META_DATA_PREFERENCE_SUMMARY}
      */
     private static final String META_DATA_PREFERENCE_SUMMARY = "com.android.settings.summary";
+
+    /**
+     * Updates the MediaStore versioning schema and format to reduce identifying properties.
+     */
+    @ChangeId
+    // TODO(b/370999570): Set target SDK to Baklava once available for dev
+    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT)
+    static final long LOCKDOWN_MEDIASTORE_VERSION = 343977174L;
 
     @GuardedBy("mPendingOpenInfo")
     private final Map<Integer, PendingOpenInfo> mPendingOpenInfo = new ArrayMap<>();
@@ -7198,11 +7207,10 @@ public class MediaProvider extends ContentProvider {
         return res;
     }
 
-    private boolean shouldLockdownMediaStoreVersion() {
-        return versionLockdown()
-                && mCallingIdentity.get().getTargetSdkVersion()
-                    > Build.VERSION_CODES.VANILLA_ICE_CREAM
-                && Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM;
+    @VisibleForTesting
+    boolean shouldLockdownMediaStoreVersion() {
+        return versionLockdown() && CompatChanges.isChangeEnabled(
+                LOCKDOWN_MEDIASTORE_VERSION, mCallingIdentity.get().uid);
     }
 
     @NotNull

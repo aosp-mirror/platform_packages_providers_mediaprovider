@@ -124,6 +124,12 @@ public class IsolatedContext extends ContextWrapper {
             protected void updateQuotaTypeForUri(@NonNull FileRow row) {
                 return;
             }
+
+            @Override
+            boolean shouldLockdownMediaStoreVersion() {
+                // TODO(b/370999570): Set to true once Baklava is in dev
+                return false;
+            }
         };
     }
 

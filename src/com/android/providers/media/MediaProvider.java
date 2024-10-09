@@ -620,6 +620,7 @@ public class MediaProvider extends ContentProvider {
     private int mExternalStorageAuthorityAppId;
     private int mDownloadsAuthorityAppId;
     private Size mThumbSize;
+    private MaliciousAppDetector mMaliciousAppDetector;
 
     /**
      * Map from UID to cached {@link LocalCallingIdentity}. Values are only
@@ -1062,6 +1063,20 @@ public class MediaProvider extends ContentProvider {
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
+
+
+                // check for potentially malicious file creation activity
+                // to prevent excessive file creation that could exhaust system inodes,
+                // this check periodically monitors the number of files created by an app.
+                // if an app exceeds a defined threshold, it is flagged as potentially malicious
+                if (shouldCheckForMaliciousActivity()
+                        && insertedRow.getVolumeName().equals(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                        && insertedRow.getId()
+                        % mMaliciousAppDetector.getFrequencyOfMaliciousInsertionCheck()
+                        == 0) {
+                    mMaliciousAppDetector.detectFileCreationByMaliciousApp(getContext(), helper,
+                            insertedRow.getOwnerPackageName());
+                }
             });
         }
 
@@ -1533,6 +1548,7 @@ public class MediaProvider extends ContentProvider {
                 BackgroundThread.getExecutor(), this::storageNativeBootPropertyChangeListener);
 
         PulledMetrics.initialize(context);
+        mMaliciousAppDetector = createMaliciousAppDetector();
         return true;
     }
 
@@ -5467,6 +5483,13 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     private Uri insertInternal(@NonNull Uri uri, @Nullable ContentValues initialValues,
             @Nullable Bundle extras) throws FallbackException {
+        if (shouldCheckForMaliciousActivity() && !mMaliciousAppDetector.isAppAllowedToCreateFiles(
+                mCallingIdentity.get().uid)) {
+            Log.w(TAG, "Cannot be created, app has created files more than threshold limit of "
+                    + mMaliciousAppDetector.getFileCreationThresholdLimit());
+            throw new UnsupportedOperationException(
+                    "Cannot be created, app has created files more than threshold limit");
+        }
         final String originalVolumeName = getVolumeName(uri);
         PulledMetrics.logVolumeAccessViaMediaProvider(getCallingUidOrSelf(), originalVolumeName);
 
@@ -11861,5 +11884,19 @@ public class MediaProvider extends ContentProvider {
 
     protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
         return new DatabaseBackupAndRecovery(mConfigStore, mVolumeCache);
+    }
+
+    protected MaliciousAppDetector createMaliciousAppDetector() {
+        return new MaliciousAppDetector(getContext());
+    }
+
+    protected boolean shouldCheckForMaliciousActivity() {
+        // Check for malicious activity if not a system gallery app, not the media provider itself,
+        // and the malicious app detector flag is enabled
+        if (!SdkLevel.isAtLeastS()) {
+            return false;
+        }
+        return Flags.enableMaliciousAppDetector() && !isCallingPackageSystemGallery()
+                && !isCallingPackageSelf();
     }
 }

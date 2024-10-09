@@ -65,7 +65,7 @@ class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
         try {
             mSession.asBinder().linkToDeath(this, 0 /* flags*/);
         } catch (RemoteException e) {
-            this.binderDied(mSession.asBinder());
+            this.binderDied();
         }
     }
 
@@ -130,16 +130,10 @@ class EmbeddedPhotoPickerSessionWrapper implements EmbeddedPhotoPickerSession,
 
     @Override
     public void binderDied() {
-        // Overridden by binderDied(IBinder who)
+        mClientWrapper.onSessionError(new ParcelableException(
+                new RuntimeException("Binder object hosting this session has died. "
+                        + "Clean up resources.")));
     }
 
-    @Override
-    public void binderDied(@NonNull IBinder who) {
-        if (mSession.asBinder().equals(who)) {
-            mClientWrapper.onSessionError(new ParcelableException(
-                    new RuntimeException("Binder object hosting this session has died. "
-                            + "Clean up resources.")));
-        }
-    }
 }
 

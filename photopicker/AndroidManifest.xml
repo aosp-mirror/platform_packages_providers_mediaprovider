@@ -36,6 +36,12 @@
    <!-- Permissions required for fetching User profiles -->
   <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS"/>
 
+  <!--
+    Required for resolving packages based on their UID for privacy banner
+    Also required for resolving DocumentsUI and CloudMediaProviders.
+  -->
+  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
           android:icon="@mipmap/photopicker_app_icon"
@@ -132,29 +138,5 @@
     </service>
 
   </application>
-
-
-  <queries>
-    <!--
-      Ensure that all CLOUD_MEDIA_PROVIDER packages are visible to this app.
-      Since Photopicker does not hold QUERY_ALL_PACKAGES, but it queries the
-      CloudMediaProviders directly when loading media, declare the intent
-      action that all CloudMediaProviders use to identify themselves so their
-      packages are visible to Photopicker.
-    -->
-    <intent>
-      <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
-    </intent>
-
-    <!--
-      Ensure that Photopicker can resolve DocumentsUI which is the
-      default handler of [OPEN_DOCUMENT]. Photopicker uses this to redirect
-      the user to DocumentsUI in some ACTION_GET_CONTENT cases.
-    -->
-    <intent>
-      <action android:name="android.intent.action.OPEN_DOCUMENT" />
-      <data android:mimeType="*/*" />
-    </intent>
-  </queries>
 
 </manifest>

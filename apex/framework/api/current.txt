@@ -16,6 +16,12 @@ package android.provider {
     method @NonNull public android.database.Cursor onQueryAlbums(@NonNull android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryDeletedMedia(@NonNull android.os.Bundle);
     method @NonNull public abstract android.database.Cursor onQueryMedia(@NonNull android.os.Bundle);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onQueryMediaCategories(@Nullable String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onQueryMediaInMediaSet(@NonNull String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onQueryMediaSets(@NonNull String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onQuerySearchSuggestions(@NonNull String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onSearchMedia(@NonNull String, @Nullable String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.database.Cursor onSearchMedia(@NonNull String, @NonNull android.os.Bundle, @Nullable android.os.CancellationSignal);
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String) throws java.io.FileNotFoundException;
     method @NonNull public final android.os.ParcelFileDescriptor openFile(@NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @NonNull public final android.content.res.AssetFileDescriptor openTypedAssetFile(@NonNull android.net.Uri, @NonNull String, @Nullable android.os.Bundle) throws java.io.FileNotFoundException;
@@ -59,10 +65,18 @@ package android.provider {
     field public static final String EXTRA_PAGE_SIZE = "android.provider.extra.PAGE_SIZE";
     field public static final String EXTRA_PAGE_TOKEN = "android.provider.extra.PAGE_TOKEN";
     field public static final String EXTRA_PREVIEW_THUMBNAIL = "android.provider.extra.PREVIEW_THUMBNAIL";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String EXTRA_SORT_ORDER = "android.provider.extra.SORT_ORDER";
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
     field public static final String EXTRA_SYNC_GENERATION = "android.provider.extra.SYNC_GENERATION";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = 1; // 0x1
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_ALBUM = 4; // 0x4
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_DATE = 3; // 0x3
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_FACE = 1; // 0x1
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_LOCATION = 2; // 0x2
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_TEXT = 0; // 0x0
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SORT_ORDER_DESC_DATE_TAKEN = 1; // 0x1
   }
 
   public static final class CloudMediaProviderContract.AlbumColumns {
@@ -71,6 +85,16 @@ package android.provider {
     field public static final String ID = "id";
     field public static final String MEDIA_COUNT = "album_media_count";
     field public static final String MEDIA_COVER_ID = "album_media_cover_id";
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final class CloudMediaProviderContract.MediaCategoryColumns {
+    field public static final String DISPLAY_NAME = "display_name";
+    field public static final String ID = "id";
+    field public static final String MEDIA_CATEGORY_TYPE = "media_category_type";
+    field public static final String MEDIA_COVER_ID1 = "media_cover_id1";
+    field public static final String MEDIA_COVER_ID2 = "media_cover_id2";
+    field public static final String MEDIA_COVER_ID3 = "media_cover_id3";
+    field public static final String MEDIA_COVER_ID4 = "media_cover_id4";
   }
 
   public static final class CloudMediaProviderContract.MediaCollectionInfo {
@@ -97,6 +121,20 @@ package android.provider {
     field public static final int STANDARD_MIME_TYPE_EXTENSION_NONE = 0; // 0x0
     field public static final String SYNC_GENERATION = "sync_generation";
     field public static final String WIDTH = "width";
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final class CloudMediaProviderContract.MediaSetColumns {
+    field public static final String DISPLAY_NAME = "display_name";
+    field public static final String ID = "id";
+    field public static final String MEDIA_COUNT = "media_count";
+    field public static final String MEDIA_COVER_ID = "media_cover_id";
+  }
+
+  @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final class CloudMediaProviderContract.SearchSuggestionColumns {
+    field public static final String DISPLAY_TEXT = "display_text";
+    field public static final String MEDIA_COVER_ID = "media_cover_id";
+    field public static final String MEDIA_SET_ID = "media_set_id";
+    field public static final String TYPE = "type";
   }
 
   public final class MediaStore {

@@ -25,16 +25,27 @@ import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
+import static android.provider.CloudMediaProviderContract.KEY_MEDIA_CATEGORY_ID;
+import static android.provider.CloudMediaProviderContract.KEY_MEDIA_SET_ID;
+import static android.provider.CloudMediaProviderContract.KEY_PARENT_CATEGORY_ID;
+import static android.provider.CloudMediaProviderContract.KEY_PREFIX_TEXT;
+import static android.provider.CloudMediaProviderContract.KEY_SEARCH_TEXT;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_CATEGORY;
 import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_COLLECTION_INFO;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_SET;
+import static android.provider.CloudMediaProviderContract.URI_PATH_MEDIA_IN_MEDIA_SET;
+import static android.provider.CloudMediaProviderContract.URI_PATH_SEARCH_MEDIA;
+import static android.provider.CloudMediaProviderContract.URI_PATH_SEARCH_SUGGESTION;
 import static android.provider.CloudMediaProviderContract.URI_PATH_SURFACE_CONTROLLER;
 
 import android.annotation.DurationMillisLong;
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -61,6 +72,8 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
+
+import com.android.providers.media.flags.Flags;
 
 import java.io.FileNotFoundException;
 import java.lang.annotation.Retention;
@@ -118,6 +131,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
     private static final int MATCH_ALBUMS = 3;
     private static final int MATCH_MEDIA_COLLECTION_INFO = 4;
     private static final int MATCH_SURFACE_CONTROLLER = 5;
+    private static final int MATCH_MEDIA_CATEGORIES = 6;
+    private static final int MATCH_MEDIA_SETS = 7;
+    private static final int MATCH_SEARCH_SUGGESTION = 8;
+    private static final int MATCH_SEARCH = 9;
+    private static final int MATCH_MEDIAS_IN_MEDIA_SET = 10;
 
     private static final boolean DEFAULT_LOOPING_PLAYBACK_ENABLED = true;
     private static final boolean DEFAULT_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = false;
@@ -145,6 +163,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
         mMatcher.addURI(authority, URI_PATH_ALBUM, MATCH_ALBUMS);
         mMatcher.addURI(authority, URI_PATH_MEDIA_COLLECTION_INFO, MATCH_MEDIA_COLLECTION_INFO);
         mMatcher.addURI(authority, URI_PATH_SURFACE_CONTROLLER, MATCH_SURFACE_CONTROLLER);
+        mMatcher.addURI(authority, URI_PATH_MEDIA_CATEGORY, MATCH_MEDIA_CATEGORIES);
+        mMatcher.addURI(authority, URI_PATH_MEDIA_SET, MATCH_MEDIA_SETS);
+        mMatcher.addURI(authority, URI_PATH_SEARCH_SUGGESTION, MATCH_SEARCH_SUGGESTION);
+        mMatcher.addURI(authority, URI_PATH_SEARCH_MEDIA, MATCH_SEARCH);
+        mMatcher.addURI(authority, URI_PATH_MEDIA_IN_MEDIA_SET, MATCH_MEDIAS_IN_MEDIA_SET);
     }
 
     /**
@@ -272,6 +295,306 @@ public abstract class CloudMediaProvider extends ContentProvider {
     @NonNull
     public Cursor onQueryAlbums(@NonNull Bundle extras) {
         throw new UnsupportedOperationException("queryAlbums not supported");
+    }
+
+    /**
+     * Queries for the available MediaCategories under the given {@code parentCategoryId},
+     * filtered by {@code extras}. The columns of MediaCategories are
+     * in the class {@link CloudMediaProviderContract.MediaCategoryColumns}.
+     *
+     * When {@code parentCategoryId} is null, this returns the root categories.
+     * <p>
+     * The order in which media categories are sorted in the cursor
+     * will be retained when displaying results to the user.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
+     * by using {@link Cursor#setExtras}. Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     * <p>
+     * {@code extras} may contain some key-value pairs which should be used to filter the results.
+     * If the provider handled any filters in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     * Note: Currently this function does not pass any params in {@code extras}.
+     *
+     * @param parentCategoryId   the ID of the parent category to filter media categories.
+     * @param extras             containing keys to filter media categories.
+     * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor with {@link CloudMediaProviderContract.MediaCategoryColumns} columns
+     */
+    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onQueryMediaCategories(@Nullable String parentCategoryId,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("queryMediaCategories not supported");
+    }
+
+    /**
+     * Queries for the available MediaSets under a given {@code mediaCategoryId},
+     * filtered by {@code extras}. The columns of MediaSet are in the class
+     * {@link CloudMediaProviderContract.MediaSetColumns}.
+     *
+     * This returns MediaSets directly inside the given MediaCategoryId.
+     * If the passed mediaCategoryId has some more nested mediaCategories, the mediaSets inside
+     * the nested mediaCategories must not be returned in this response.
+     *
+     * <p>
+     * The order in which media sets are sorted in the cursor
+     * will be retained when displaying results to the user.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
+     * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     * <p>
+     *
+     * {@code extras} may contain some key-value pairs which should be used to prepare the results.
+     * If the provider handled any filters in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     *
+     * <p>
+     * If the cloud media provider supports pagination, they can set
+     * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
+     * as part of the returned cursor by using {@link Cursor#setExtras}.
+     *
+     * If a token is set, the OS will pass it as a  key-value pair in {@code extras}
+     * when querying for query media sets for subsequent pages.
+     *
+     * The provider can keep returning pagination tokens in the returned cursor
+     * by using {@link Cursor#setExtras} until the last page at which point it should not
+     * set a token in the returned cursor.
+     *
+     * @param mediaCategoryId    the ID of the media category to filter media sets.
+     * @param extras             containing keys to filter media sets:
+     *                           <ul>
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           </ul>
+     * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor representing {@link CloudMediaProviderContract.MediaSetColumns} columns
+     */
+    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onQueryMediaSets(@NonNull String mediaCategoryId,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("queryMediaSets not supported");
+    }
+
+    /**
+     * Queries for the available SearchSuggestions based on a {@code prefixText},
+     * filtered by {@code extras}. The columns of SearchSuggestions are in the class
+     * {@link CloudMediaProviderContract.SearchSuggestionColumns}
+     *
+     * If the user has not started typing, this is considered as zero state suggestion.
+     * In this case {@code prefixText} will be empty string.
+     *
+     * <p>
+     * The order in which suggestions are sorted in the cursor
+     * will be retained when displaying results to the user.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
+     * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     * <p>
+     * {@code extras} may contain some key-value pairs which should be used to prepare
+     * the results.
+     * If the provider handled any params in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     * Note: Currently this function does not pass any key-value params in {@code extras}.
+     *
+     * @param prefixText         the prefix text to filter search suggestions.
+     * @param extras             containing keys to filter search suggestions.
+     *                           <ul>
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           </ul>
+     * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor representing search suggestions containing all
+     * {@see CloudMediaProviderContract.SearchSuggestionColumns} columns
+     */
+    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onQuerySearchSuggestions(@NonNull String prefixText,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("querySearchSuggestions not supported");
+    }
+
+    /**
+     * Queries for the available media items under a given {@code mediaSetId},
+     * filtered by {@code extras}. The columns of Media are in the class
+     * {@link CloudMediaProviderContract.MediaColumns}. {@code mediaSetId} is the ID given
+     * as part of {@link CloudMediaProviderContract.MediaSetColumns#ID}
+     *
+     * <p>
+     * The order in which media items are sorted in the cursor
+     * will be retained when displaying results to the user.
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
+     * {@link Cursor} by using {@link Cursor#setExtras}.
+     * Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     *
+     * <p>
+     * {@code extras} may contain some key-value pairs which should be used to prepare the results.
+     * If the provider handled any filters in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     *
+     * <p>
+     * If the cloud media provider supports pagination, they can set
+     * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
+     * as part of the returned cursor by using {@link Cursor#setExtras}.
+     *
+     * If a token is set, the OS will pass it as a  key-value pair in {@code extras}
+     * when querying for media for subsequent pages.
+     *
+     * The provider can keep returning pagination tokens in the returned cursor
+     * by using {@link Cursor#setExtras} until the last page at which point it should not
+     * set a token in the returned cursor.
+     *
+     * @param mediaSetId         the ID of the media set to filter media items.
+     * @param extras             containing keys to filter media items:
+     *                           <ul>
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           </ul>
+     * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor representing {@link CloudMediaProviderContract.MediaColumns} columns
+     */
+    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onQueryMediaInMediaSet(@NonNull String mediaSetId,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("queryMedia in MediaSet not supported");
+    }
+
+    /**
+     * Searches media items based on a selected suggestion, managed by {@code extras} and
+     * returns a cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
+     *
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
+     * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     * <p>
+     *
+     * {@code extras} may contain some key-value pairs which should be used to prepare the results.
+     * If the provider handled any params in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     *
+     * <p>
+     * An example user journey:
+     * 1. User enters the search prompt.
+     * 2. Using {@link #onQuerySearchSuggestions},
+     * photo picker display suggestions as the user keeps typing.
+     * 3. User selects a suggestion.
+     * Photo picker calls: {@code onSearchMedia(suggestedMediaSetId, fallbackSearchText, extras)}
+     * with the {@code suggestedMediaSetId} corresponding to the user chosen suggestion.
+     * {@link CloudMediaProviderContract.SearchSuggestionColumns#MEDIA_SET_ID}
+     *
+     * <p>
+     * If the cloud media provider supports pagination, they can set
+     * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
+     * as part of the returned cursor by using {@link Cursor#setExtras}.
+     *
+     * If a token is set, the OS will pass it as a key value pair in {@code extras}
+     * when querying for search media for subsequent pages.
+     *
+     * The provider can keep returning pagination tokens in the returned cursor
+     * by using {@link Cursor#setExtras} until the last page at which point it should not
+     * set a token in the returned cursor
+     *
+     * @param suggestedMediaSetId the media set ID of the suggestion that the user wants to search.
+     * @param fallbackSearchText  optional search text to be used when {@code suggestedMediaSetId}
+     *                            is not useful.
+     * @param extras              containing keys to manage the search results:
+     *                            <ul>
+     *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
+     *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                            <li>{@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                            </ul>
+     * @param cancellationSignal  {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
+     * @see CloudMediaProviderContract.SearchSuggestionColumns#MEDIA_SET_ID
+     */
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onSearchMedia(@NonNull String suggestedMediaSetId,
+            @Nullable String fallbackSearchText,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("searchMedia with"
+                + " suggestedMediaSetId not supported");
+    }
+
+    /**
+     * Searches media items based on entered search text, managed by {@code extras} and
+     * returns a cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
+     *
+     * <p>
+     * The cloud media provider must set the
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
+     * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
+     * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     * <p>
+     *
+     * {@code extras} may contain some key-value pairs which should be used to prepare the results.
+     * If the provider handled any params in {@code extras}, it must add the key to
+     * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
+     * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
+     * without the extra being used.
+     *
+     * <p>
+     * An example user journey:
+     * 1. User enters the search prompt.
+     * 2. Using {@link #onQuerySearchSuggestions},
+     * photo picker display suggestions as the user keeps typing.
+     * 3. User types completely and then enters search,
+     * Photo picker calls: {@code onSearchMedia(searchText, extras)}
+     *
+     * <p>
+     * If the cloud media provider supports pagination, they can set
+     * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
+     * as part of the returned cursor by using {@link Cursor#setExtras}.
+     *
+     * If a token is set, the OS will pass it as a key value pair in {@code extras}
+     * when querying for search media for subsequent pages.
+     *
+     * The provider can keep returning pagination tokens in the returned cursor
+     * by using {@link Cursor#setExtras} until the last page at which point it should not
+     * set a token in the returned cursor.
+     *
+     * @param searchText         search text to be used.
+     * @param extras             containing keys to manage the search results:
+     *                           <ul>
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           </ul>
+     * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
+     * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
+     */
+    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
+    @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @NonNull
+    public Cursor onSearchMedia(@NonNull String searchText,
+            @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
+        throw new UnsupportedOperationException("searchMediaFromText not supported");
     }
 
     /**
@@ -537,6 +860,82 @@ public abstract class CloudMediaProvider extends ContentProvider {
                 CmpApiVerifier.verifyApiResult(new CmpApiResult(
                                 CmpApiVerifier.CloudMediaProviderApis.OnQueryAlbums, result),
                         System.currentTimeMillis() - startTime, mAuthority);
+                break;
+            case MATCH_MEDIA_CATEGORIES:
+                if (Flags.cloudMediaProviderSearch()) {
+                    final String parentCategoryId = queryArgs.getString(KEY_PARENT_CATEGORY_ID);
+                    queryArgs.remove(KEY_PARENT_CATEGORY_ID);
+                    result = onQueryMediaCategories(parentCategoryId, queryArgs, cancellationSignal
+                    );
+                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaCategories,
+                                    result),
+                            System.currentTimeMillis() - startTime, mAuthority);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                }
+                break;
+            case MATCH_MEDIA_SETS:
+                if (Flags.cloudMediaProviderSearch()) {
+                    final String mediaCategoryId = queryArgs.getString(KEY_MEDIA_CATEGORY_ID);
+                    queryArgs.remove(KEY_MEDIA_CATEGORY_ID);
+                    result = onQueryMediaSets(mediaCategoryId, queryArgs, cancellationSignal);
+                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaSets,
+                                    result),
+                            System.currentTimeMillis() - startTime, mAuthority);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                }
+                break;
+            case MATCH_SEARCH_SUGGESTION:
+                if (Flags.cloudMediaProviderSearch()) {
+                    final String prefixText = queryArgs.getString(KEY_PREFIX_TEXT);
+                    queryArgs.remove(KEY_PREFIX_TEXT);
+                    result = onQuerySearchSuggestions(prefixText, queryArgs, cancellationSignal);
+                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                    CmpApiVerifier.CloudMediaProviderApis.OnQuerySearchSuggestions,
+                                    result),
+                            System.currentTimeMillis() - startTime, mAuthority);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                }
+                break;
+            case MATCH_MEDIAS_IN_MEDIA_SET:
+                if (Flags.cloudMediaProviderSearch()) {
+                    final String mediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
+                    queryArgs.remove(KEY_MEDIA_SET_ID);
+                    result = onQueryMediaInMediaSet(mediaSetId, queryArgs, cancellationSignal);
+                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaInMediaSet,
+                                    result),
+                            System.currentTimeMillis() - startTime, mAuthority);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                }
+                break;
+            case MATCH_SEARCH:
+                if (Flags.cloudMediaProviderSearch()) {
+                    final String searchText = queryArgs.getString(KEY_SEARCH_TEXT);
+                    queryArgs.remove(KEY_SEARCH_TEXT);
+                    final String mediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
+                    queryArgs.remove(KEY_MEDIA_SET_ID);
+                    if (mediaSetId != null) {
+                        result = onSearchMedia(mediaSetId, searchText, queryArgs, cancellationSignal
+                        );
+                    } else if (searchText != null) {
+                        result = onSearchMedia(searchText, queryArgs, cancellationSignal);
+                    } else {
+                        throw new IllegalArgumentException("both suggested media set id "
+                                + "and search text can not be null together");
+                    }
+                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                    CmpApiVerifier.CloudMediaProviderApis.OnSearchMedia,
+                                    result),
+                            System.currentTimeMillis() - startTime, mAuthority);
+                } else {
+                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                }
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported Uri " + uri);

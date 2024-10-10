@@ -36,10 +36,13 @@ import android.os.ParcelFileDescriptor;
 import android.os.SystemProperties;
 import android.util.Log;
 
+import com.android.providers.media.flags.Flags;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -103,6 +106,30 @@ final class CmpApiVerifier {
                         verifyOnOpenMedia(result.getParcelFileDescriptor(), verificationResult,
                                 errors);
                         break;
+                    }
+                    case CloudMediaProviderApis.OnQueryMediaCategories: {
+                        verifyOnQueryMediaCategories(result.getCursor(),
+                                verificationResult, errors);
+                        break;
+                    }
+                    case CloudMediaProviderApis.OnQueryMediaSets: {
+                        verifyOnQueryMediaSets(result.getCursor(),
+                                verificationResult, errors);
+                        break;
+                    }
+                    case CloudMediaProviderApis.OnQuerySearchSuggestions: {
+                        verifyOnQuerySearchSuggestions(result.getCursor(),
+                                verificationResult, errors);
+                        break;
+                    }
+                    case CloudMediaProviderApis.OnSearchMedia: {
+                        verifyOnSearchMedia(result.getCursor(),
+                                verificationResult, errors);
+                        break;
+                    }
+                    case CloudMediaProviderApis.OnQueryMediaInMediaSet: {
+                        verifyOnQueryMediaInMediaSet(result.getCursor(),
+                                verificationResult, errors);
                     }
                     default:
                         throw new UnsupportedOperationException(
@@ -314,6 +341,135 @@ final class CmpApiVerifier {
         }
     }
 
+    /**
+     * Verifies OnQueryMediaCategories API by performing and logging the following checks:
+     *
+     * <ul>
+     * <li>Received Cursor is not null.</li>
+     * <li>Cursor contains non empty media collection ID:
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID}</li>
+     * <li>Projection for cursor is as expected:
+     * {@link CloudMediaProviderContract.MediaCategoryColumns#ALL_PROJECTION}</li>
+     * </ul>
+     */
+    static void verifyOnQueryMediaCategories(
+            Cursor cursor, List<String> verificationResult, List<String> errors
+    ) {
+        verifyCursorNotNullAndMediaCollectionIdPresent(cursor, verificationResult, errors);
+        if (cursor != null && Flags.cloudMediaProviderSearch()) {
+
+            verifyProjectionForCursor(
+                    cursor,
+                    Arrays.asList(CloudMediaProviderContract.MediaCategoryColumns.ALL_PROJECTION),
+                    errors
+            );
+        }
+    }
+
+    /**
+     * Verifies OnQueryMediaSets API by performing and logging the following checks:
+     *
+     * <ul>
+     * <li>Received Cursor is not null.</li>
+     * <li>Cursor contains non empty media collection ID:
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID}</li>
+     * <li>Projection for cursor is as expected:
+     * {@link CloudMediaProviderContract.MediaSetColumns#ALL_PROJECTION}</li>
+     * </ul>
+     */
+    static void verifyOnQueryMediaSets(
+            Cursor cursor, List<String> verificationResult, List<String> errors
+    ) {
+        verifyCursorNotNullAndMediaCollectionIdPresent(cursor, verificationResult, errors);
+        if (cursor != null && Flags.cloudMediaProviderSearch()) {
+
+            verifyProjectionForCursor(
+                    cursor,
+                    Arrays.asList(CloudMediaProviderContract.MediaSetColumns.ALL_PROJECTION),
+                    errors
+            );
+        }
+    }
+
+    /**
+     * Verifies OnQuerySearchSuggestions API by performing and logging the following checks:
+     *
+     * <ul>
+     * <li>Received Cursor is not null.</li>
+     * <li>Cursor contains non empty media collection ID:
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID}</li>
+     * <li>Projection for cursor is as expected:
+     * {@link CloudMediaProviderContract.SearchSuggestionColumns#ALL_PROJECTION}</li>
+     * </ul>
+     */
+    static void verifyOnQuerySearchSuggestions(
+            Cursor cursor, List<String> verificationResult, List<String> errors
+    ) {
+        verifyCursorNotNullAndMediaCollectionIdPresent(cursor, verificationResult, errors);
+        if (cursor != null && Flags.cloudMediaProviderSearch()) {
+
+            verifyProjectionForCursor(
+                    cursor,
+                    Arrays.asList(
+                            CloudMediaProviderContract.SearchSuggestionColumns.ALL_PROJECTION),
+                    errors
+            );
+        }
+    }
+
+    /**
+     * Verifies OnSearchMedia API by performing and logging the following checks:
+     *
+     * <ul>
+     * <li>Received Cursor is not null.</li>
+     * <li>Cursor contains non empty media collection ID:
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID}</li>
+     * <li>Projection for cursor is as expected:
+     * {@link CloudMediaProviderContract.MediaColumns#ALL_PROJECTION}</li>
+     * </ul>
+     */
+    static void verifyOnSearchMedia(
+            Cursor cursor, List<String> verificationResult, List<String> errors
+    ) {
+        verifyCursorNotNullAndMediaCollectionIdPresent(cursor, verificationResult, errors);
+        if (cursor != null && Flags.cloudMediaProviderSearch()) {
+
+            verifyProjectionForCursor(
+                    cursor,
+                    Arrays.asList(
+                            CloudMediaProviderContract.MediaColumns.ALL_PROJECTION),
+                    errors
+            );
+        }
+    }
+
+    /**
+     * Verifies OnQueryMediaInMediaSet by performing and logging the following checks:
+     *
+     * <ul>
+     * <li>Received Cursor is not null.</li>
+     * <li>Cursor contains non empty media collection ID:
+     * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID}</li>
+     * <li>Projection for cursor is as expected:
+     * {@link CloudMediaProviderContract.MediaColumns#ALL_PROJECTION}</li>
+     * </ul>
+     */
+    static void verifyOnQueryMediaInMediaSet(
+            Cursor cursor, List<String> verificationResult, List<String> errors
+    ) {
+        verifyCursorNotNullAndMediaCollectionIdPresent(cursor, verificationResult, errors);
+        if (cursor != null && Flags.cloudMediaProviderSearch()) {
+
+            verifyProjectionForCursor(
+                    cursor,
+                    Arrays.asList(
+                            CloudMediaProviderContract.MediaColumns.ALL_PROJECTION),
+                    errors
+            );
+        }
+    }
+
+
 
     /**
      * Verifies OnOpenPreview API by performing and logging the following checks:
@@ -369,7 +525,12 @@ final class CmpApiVerifier {
             CloudMediaProviderApis.OnQueryDeletedMedia,
             CloudMediaProviderApis.OnQueryAlbums,
             CloudMediaProviderApis.OnOpenPreview,
-            CloudMediaProviderApis.OnOpenMedia
+            CloudMediaProviderApis.OnOpenMedia,
+            CloudMediaProviderApis.OnQueryMediaCategories,
+            CloudMediaProviderApis.OnQueryMediaSets,
+            CloudMediaProviderApis.OnQuerySearchSuggestions,
+            CloudMediaProviderApis.OnSearchMedia,
+            CloudMediaProviderApis.OnQueryMediaInMediaSet,
     })
     @Retention(RetentionPolicy.SOURCE)
     @interface CloudMediaProviderApis {
@@ -379,14 +540,25 @@ final class CmpApiVerifier {
         String OnQueryAlbums = "onQueryAlbums";
         String OnOpenPreview = "onOpenPreview";
         String OnOpenMedia = "onOpenMedia";
+        String OnQueryMediaCategories = "onQueryMediaCategories";
+        String OnQueryMediaSets = "onQueryMediaSets";
+        String OnQuerySearchSuggestions = "onQuerySearchSuggestions";
+        String OnSearchMedia = "onSearchMedia";
+        String OnQueryMediaInMediaSet = "onQueryMediaInMediaSet";
     }
 
-    private static final Map<String, Long> CMP_API_TO_THRESHOLD_MAP = Map.of(
-            CloudMediaProviderApis.OnGetMediaCollectionInfo, 200L,
-            CloudMediaProviderApis.OnQueryMedia, 500L,
-            CloudMediaProviderApis.OnQueryDeletedMedia, 500L,
-            CloudMediaProviderApis.OnQueryAlbums, 500L,
-            CloudMediaProviderApis.OnOpenPreview, 1000L,
-            CloudMediaProviderApis.OnOpenMedia, 1000L
-    );
+    private static final Map<String, Long> CMP_API_TO_THRESHOLD_MAP = new HashMap<>(Map.ofEntries(
+            Map.entry(CloudMediaProviderApis.OnGetMediaCollectionInfo, 200L),
+            Map.entry(CloudMediaProviderApis.OnQueryMedia, 500L),
+            Map.entry(CloudMediaProviderApis.OnQueryDeletedMedia, 500L),
+            Map.entry(CloudMediaProviderApis.OnQueryAlbums, 500L),
+            Map.entry(CloudMediaProviderApis.OnOpenPreview, 1000L),
+            Map.entry(CloudMediaProviderApis.OnOpenMedia, 1000L),
+            Map.entry(CloudMediaProviderApis.OnQueryMediaCategories, 500L),
+            Map.entry(CloudMediaProviderApis.OnQueryMediaSets, 500L),
+            Map.entry(CloudMediaProviderApis.OnQuerySearchSuggestions, 500L),
+            Map.entry(CloudMediaProviderApis.OnSearchMedia, 1500L),
+            Map.entry(CloudMediaProviderApis.OnQueryMediaInMediaSet, 500L)
+    ));
+
 }

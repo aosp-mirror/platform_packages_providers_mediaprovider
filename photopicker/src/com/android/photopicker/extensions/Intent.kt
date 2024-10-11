@@ -17,8 +17,11 @@
 package com.android.photopicker.extensions
 
 import android.content.Intent
+import android.media.ApplicationMediaCapabilities
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -120,7 +123,7 @@ fun Intent.getStartDestination(default: PhotopickerDestinations): PhotopickerDes
                     getIntExtra(
                         MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB,
                         // The default does not match any destination
-                        /* default= */ 9999
+                        /* default= */ 9999,
                     )
                 ) {
                     MediaStore.PICK_IMAGES_TAB_ALBUMS -> PhotopickerDestinations.ALBUM_GRID
@@ -255,7 +258,7 @@ fun Intent.getPickImagesPreSelectedUris(): ArrayList<Uri>? {
                         (if (SdkLevel.isAtLeastT()) {
                                 it.getParcelableArrayList(
                                     MediaStore.EXTRA_PICKER_PRE_SELECTION_URIS,
-                                    Uri::class.java
+                                    Uri::class.java,
                                 ) as ArrayList<Uri>
                             } else {
                                 it.getParcelableArrayList<Uri>(
@@ -287,6 +290,38 @@ fun Intent.getPickImagesPreSelectedUris(): ArrayList<Uri>? {
             null
         }
     return preSelectedUris
+}
+
+/**
+ * Fetches the [MediaStore.EXTRA_MEDIA_CAPABILITIES] extra from the intent.
+ *
+ * @return The [ApplicationMediaCapabilities] if present, null otherwise.
+ */
+@Suppress("DEPRECATION")
+@RequiresApi(Build.VERSION_CODES.S)
+fun Intent.getApplicationMediaCapabilities(): ApplicationMediaCapabilities? {
+    extras?.apply {
+        if (containsKey(MediaStore.EXTRA_MEDIA_CAPABILITIES)) {
+            if (action != MediaStore.ACTION_PICK_IMAGES) {
+                // This intent extra is only supported for ACTION_PICK_IMAGES
+                throw IllegalIntentExtraException(
+                    "EXTRA_MEDIA_CAPABILITIES is not supported for $action, " +
+                        "use ACTION_PICK_IMAGES instead."
+                )
+            }
+
+            return if (SdkLevel.isAtLeastT()) {
+                getParcelable(
+                    MediaStore.EXTRA_MEDIA_CAPABILITIES,
+                    ApplicationMediaCapabilities::class.java,
+                )
+            } else {
+                getParcelable(MediaStore.EXTRA_MEDIA_CAPABILITIES)
+            }
+        }
+    }
+
+    return null
 }
 
 /**

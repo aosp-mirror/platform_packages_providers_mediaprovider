@@ -17,7 +17,6 @@
 package com.android.providers.media.photopicker.v2;
 
 import android.annotation.SuppressLint;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.annotation.NonNull;

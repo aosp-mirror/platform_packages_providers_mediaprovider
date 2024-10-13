@@ -274,6 +274,7 @@ struct fuse {
           zero_addr(0),
           disable_dentry_cache(false),
           passthrough(false),
+          upstream_passthrough(false),
           bpf(_bpf),
           bpf_fd(std::move(_bpf_fd)),
           supported_transcoding_relative_paths(_supported_transcoding_relative_paths),
@@ -396,6 +397,7 @@ struct fuse {
     std::atomic_bool* active;
     std::atomic_bool disable_dentry_cache;
     std::atomic_bool passthrough;
+    std::atomic_bool upstream_passthrough;
     std::atomic_bool bpf;
 
     const android::base::unique_fd bpf_fd;
@@ -755,6 +757,10 @@ static void pf_init(void* userdata, struct fuse_conn_info* conn) {
             //   b. Files requiring redaction are still faster than no-passthrough devices that use
             //      direct_io
             disable_splice_write = true;
+        } else if (conn->capable & FUSE_CAP_PASSTHROUGH_UPSTREAM) {
+            mask |= FUSE_CAP_PASSTHROUGH_UPSTREAM;
+            disable_splice_write = true;
+            fuse->upstream_passthrough = true;
         } else {
             LOG(WARNING) << "Passthrough feature not supported by the kernel";
             fuse->passthrough = false;
@@ -999,7 +1005,10 @@ static void do_forget(fuse_req_t req, struct fuse* fuse, fuse_ino_t ino, uint64_
         // This is a narrowing conversion from an unsigned 64bit to a 32bit value. For
         // some reason we only keep 32 bit refcounts but the kernel issues
         // forget requests with a 64 bit counter.
-        node->Release(static_cast<uint32_t>(nlookup));
+        int backing_id = node->GetBackingId();
+        if (node->Release(static_cast<uint32_t>(nlookup))) {
+            if (backing_id) fuse_passthrough_close(req, backing_id);
+        }
     }
 }
 
@@ -1447,7 +1456,7 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     }
 
     if (fuse->passthrough && allow_passthrough) {
-        *keep_cache = transforms_complete;
+        *keep_cache = transforms_complete && !fuse->upstream_passthrough;
         // We only enabled passthrough iff these 2 conditions hold
         // 1. Redaction is not needed
         // 2. Node transforms are completed, e.g transcoding.
@@ -1495,14 +1504,33 @@ static handle* create_handle_for_node(struct fuse* fuse, const string& path, int
     return handle;
 }
 
-static bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd) {
-    int passthrough_fh = fuse_passthrough_enable(req, fd);
+static bool do_passthrough_enable(fuse_req_t req, struct fuse_file_info* fi, unsigned int fd,
+                                  node* node) {
+    struct fuse* fuse = get_fuse(req);
 
-    if (passthrough_fh <= 0) {
-        return false;
+    if (fuse->upstream_passthrough) {
+        int backing_id = node->GetBackingId();
+        if (!backing_id) {
+            backing_id = fuse_passthrough_open(req, fd);
+            if (!backing_id) return false;
+            // We only ever want one backing id per backed file
+            if (!node->SetBackingId(backing_id)) {
+                fuse_passthrough_close(req, backing_id);
+                backing_id = node->GetBackingId();
+                if (!backing_id) return false;
+            }
+        }
+
+        fi->backing_id = backing_id;
+    } else {
+        int passthrough_fh = fuse_passthrough_enable(req, fd);
+
+        if (passthrough_fh <= 0) {
+            return false;
+        }
+
+        fi->passthrough_fh = passthrough_fh;
     }
-
-    fi->passthrough_fh = passthrough_fh;
     return true;
 }
 
@@ -1611,7 +1639,7 @@ static void pf_open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi) {
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (h->passthrough && !do_passthrough_enable(req, fi, fd)) {
+    if (h->passthrough && !do_passthrough_enable(req, fi, fd, node)) {
         // TODO: Should we crash here so we can find errors easily?
         PLOG(ERROR) << "Passthrough OPEN failed for " << io_path;
         fuse_reply_err(req, EFAULT);
@@ -2258,7 +2286,7 @@ static void pf_create(fuse_req_t req,
     // TODO(b/173190192) ensuring that h->cached must be enabled in order to
     // user FUSE passthrough is a conservative rule and might be dropped as
     // soon as demonstrated its correctness.
-    if (h->passthrough && !do_passthrough_enable(req, fi, fd)) {
+    if (h->passthrough && !do_passthrough_enable(req, fi, fd, node)) {
         PLOG(ERROR) << "Passthrough CREATE failed for " << child_path;
         fuse_reply_err(req, EFAULT);
         return;

@@ -156,3 +156,21 @@ flag {
     bug: "361026918"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "cloud_media_provider_search"
+    is_exported: true
+    namespace: "mediaprovider"
+    is_fixed_read_only: true
+    description: "This flag will enable the apis for cloud media provider to donate search results"
+    bug: "316356081"
+}
+
+flag {
+    name: "enable_malicious_app_detector"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable malicious app detector, putting limits on file creation"
+    bug: "293301664"
+    is_fixed_read_only: true
+}

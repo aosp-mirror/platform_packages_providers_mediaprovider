@@ -3686,6 +3686,15 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Check if enable_unicode_check flag is enabled
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean isUnicodeCheckEnabledForFuse() {
+        return Flags.enableUnicodeCheck();
+    }
+
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {

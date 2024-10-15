@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.v2;
 
 import android.annotation.SuppressLint;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.annotation.NonNull;
@@ -32,8 +33,6 @@ import java.util.List;
  */
 public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQueryBuilder> {
     @NonNull
-    private SQLiteDatabase mDatabase;
-    @NonNull
     private String mTables;
     @Nullable
     private String[] mProjection;
@@ -46,8 +45,6 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
 
     public SelectSQLiteQueryBuilder(@NonNull SQLiteDatabase database) {
         super(database);
-
-        mDatabase = database;
     }
 
     @Override
@@ -137,6 +134,7 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
     /**
      * @return the raw select query built using class variables.
      */
+    @Override
     public String buildQuery() {
         return mSQLiteQueryBuilder.buildQuery(
                 mProjection,
@@ -152,7 +150,7 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
      * @return The SQLiteDatabase instance this query will run on.
      */
     public SQLiteDatabase getDatabase() {
-        return mDatabase;
+        return mSQLiteDatabase;
     }
 
     /**

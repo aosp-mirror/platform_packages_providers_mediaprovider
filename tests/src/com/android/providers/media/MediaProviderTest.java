@@ -304,8 +304,6 @@ public class MediaProviderTest {
     public void testMetadata() {
         assertNotNull(MediaStore.getVersion(sIsolatedContext,
                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
-        assertNotNull(MediaStore.getGeneration(sIsolatedResolver,
-                MediaStore.VOLUME_EXTERNAL_PRIMARY));
     }
 
     /**

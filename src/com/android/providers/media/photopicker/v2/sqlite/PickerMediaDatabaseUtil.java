@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.v2.sqlite;
 
 import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.getDefaultEmptyAlbum;
+import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -37,6 +38,7 @@ import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.VideoMediaQuery;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Utility class for querying the Picker DB to fetch media metadata.
@@ -504,38 +506,23 @@ public class PickerMediaDatabaseUtil {
             @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
+        final MediaProjection projectionUtil = new MediaProjection(
+                localAuthority,
+                cloudAuthority,
+                query.getIntentAction(),
+                table
+        );
+
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(query.getTableWithRequiredJoins(table.toString(), appContext,
                         query.getCallingPackageUid(), query.getIntentAction()))
-                .setProjection(List.of(
-                        PickerSQLConstants.MediaResponse.MEDIA_ID.getProjection(),
-                        PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
-                        PickerSQLConstants.MediaResponse
-                                .AUTHORITY.getProjection(localAuthority, cloudAuthority),
-                        PickerSQLConstants.MediaResponse.MEDIA_SOURCE.getProjection(),
-                        PickerSQLConstants.MediaResponse.WRAPPED_URI.getProjection(
-                                localAuthority, cloudAuthority, query.getIntentAction()),
-                        PickerSQLConstants.MediaResponse
-                                .UNWRAPPED_URI.getProjection(localAuthority, cloudAuthority),
-                        PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection(),
-                        PickerSQLConstants.MediaResponse.SIZE_IN_BYTES.getProjection(),
-                        PickerSQLConstants.MediaResponse.MIME_TYPE.getProjection(),
-                        PickerSQLConstants.MediaResponse.STANDARD_MIME_TYPE.getProjection(),
-                        PickerSQLConstants.MediaResponse.DURATION_MS.getProjection(),
-                        PickerSQLConstants.MediaResponse.IS_PRE_GRANTED.getProjection(
-                                query.getIntentAction())
-                ))
-                .setSortOrder(
-                        String.format(
-                                "%s DESC, %s DESC",
-                                PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName(),
-                                PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName()
-                        )
-                )
+                .setProjection(projectionUtil.getAll())
+                .setSortOrder(getSortOrder(table, /* reverseOrder */ false))
                 .setLimit(query.getPageSize());
 
         query.addWhereClause(
                 queryBuilder,
+                table,
                 localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ false
@@ -559,26 +546,28 @@ public class PickerMediaDatabaseUtil {
             return null;
         }
 
+        final MediaProjection projectionUtil = new MediaProjection(
+                localAuthority,
+                cloudAuthority,
+                query.getIntentAction(),
+                table
+        );
+
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(
                         query.getTableWithRequiredJoins(table.toString(), appContext,
                                 query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of(
-                        PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
-                        PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection()
+                        projectionUtil.get(PickerSQLConstants.MediaResponse.PICKER_ID),
+                        projectionUtil.get(PickerSQLConstants.MediaResponse.DATE_TAKEN_MS)
                 ))
-                .setSortOrder(
-                        String.format(
-                                "%s DESC, %s DESC",
-                                PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName(),
-                                PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName()
-                        )
-                )
+                .setSortOrder(getSortOrder(table, /* reverseOrder */ false))
                 .setLimit(1)
                 .setOffset(query.getPageSize());
 
         query.addWhereClause(
                 queryBuilder,
+                table,
                 localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ false
@@ -602,24 +591,27 @@ public class PickerMediaDatabaseUtil {
             @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
-        SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
+        final MediaProjection projectionUtil = new MediaProjection(
+                localAuthority,
+                cloudAuthority,
+                query.getIntentAction(),
+                table
+        );
+
+        final SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(
                         query.getTableWithRequiredJoins(table.toString(), appContext,
                                 query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of(
-                        PickerSQLConstants.MediaResponse.PICKER_ID.getProjection(),
-                        PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjection()
-                )).setSortOrder(
-                        String.format(
-                                "%s ASC, %s ASC",
-                                PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName(),
-                                PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName()
-                        )
+                        projectionUtil.get(PickerSQLConstants.MediaResponse.PICKER_ID),
+                        projectionUtil.get(PickerSQLConstants.MediaResponse.DATE_TAKEN_MS)
+                )).setSortOrder(getSortOrder(table, /* reverseOrder */ true)
                 ).setLimit(query.getPageSize());
 
 
         query.addWhereClause(
                 queryBuilder,
+                table,
                 localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ true
@@ -646,16 +638,11 @@ public class PickerMediaDatabaseUtil {
                         query.getTableWithRequiredJoins(table.toString(), appContext,
                                 query.getCallingPackageUid(), query.getIntentAction()))
                 .setProjection(List.of("Count(*) AS " + PickerSQLConstants.COUNT_COLUMN))
-                .setSortOrder(
-                        String.format(
-                                "%s ASC, %s ASC",
-                                PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName(),
-                                PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName()
-                        )
-                );
+                .setSortOrder(getSortOrder(table, /* reverseOrder */ true));
 
         query.addWhereClause(
                 queryBuilder,
+                table,
                 localAuthority,
                 cloudAuthority,
                 /* reverseOrder */ true
@@ -742,6 +729,34 @@ public class PickerMediaDatabaseUtil {
                         nextPageKeyCursor.getLong(dateTakenColumnIndex)
                 );
             }
+        }
+    }
+
+    private static String getSortOrder(
+            @NonNull PickerSQLConstants.Table table,
+            boolean reverseOrder) {
+        if (reverseOrder) {
+            return String.format(
+                    Locale.ROOT,
+                    "%s ASC, %s ASC",
+                    prependTableName(
+                            table,
+                            PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName()),
+                    prependTableName(
+                            table,
+                            PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName())
+            );
+        } else  {
+            return String.format(
+                    Locale.ROOT,
+                    "%s DESC, %s DESC",
+                    prependTableName(
+                            table,
+                            PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getColumnName()),
+                    prependTableName(
+                            table,
+                            PickerSQLConstants.MediaResponse.PICKER_ID.getColumnName())
+            );
         }
     }
 }

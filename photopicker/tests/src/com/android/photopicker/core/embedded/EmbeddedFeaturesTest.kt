@@ -37,6 +37,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
@@ -741,5 +742,38 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
             @Suppress("DEPRECATION")
             verify(mockSurfaceControlViewHost, never()).transferTouchGestureToHost()
         }
+    }
+
+    @Test
+    fun testPreviewDisabled_onLongPressMediaItem_photosGrid() = runTest {
+        val resources = getTestableContext().getResources()
+        val mediaItemString = resources.getString(R.string.photopicker_media_item)
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalEmbeddedState provides testEmbeddedStateExpanded) {
+                callEmbeddedPhotopickerMain(
+                    embeddedLifecycle = embeddedLifecycle,
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+        }
+
+        advanceTimeBy(100)
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onAllNodesWithContentDescription(mediaItemString)
+            .onFirst()
+            .performTouchInput { longClick() }
+
+        advanceTimeBy(100)
+        composeTestRule.waitForIdle()
+
+        val route = navController.currentBackStackEntry?.destination?.route
+        assertWithMessage("Expected preview to be disabled and the current route to be Photo grid.")
+            .that(route)
+            .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
     }
 }

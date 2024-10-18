@@ -841,6 +841,14 @@ public final class MediaStore {
      * is returned. Use {@link MediaStore#EXTRA_PICK_IMAGES_IN_ORDER} in multiple selection mode to
      * allow the user to pick images in order.
      *
+     * <p>If the caller needs to specify the {@link ApplicationMediaCapabilities} that should be
+     * used while picking video files, use {@link MediaStore#EXTRA_MEDIA_CAPABILITIES} to indicate
+     * this.
+     *
+     * <p>When the requested file format does not match the capabilities specified by caller and
+     * the video duration is within the range that the system can handle, it will get transcoded to
+     * a default supported format, otherwise, the caller will receive the original file.
+     *
      * <p>Callers may use {@link Intent#EXTRA_LOCAL_ONLY} to limit content selection to local data.
      *
      * <p>For system stability, it is preferred to open the URIs obtained from using this action
@@ -1033,20 +1041,23 @@ public final class MediaStore {
             "android.provider.extra.ACCEPT_ORIGINAL_MEDIA_FORMAT";
 
     /**
-     * Specify the {@link ApplicationMediaCapabilities} that should be used while opening a media.
+     * Specify the {@link ApplicationMediaCapabilities} that should be used while opening a media
+     * or picking media files.
      *
-     * If the capabilities specified matches the format of the original file, the app will receive
-     * the original file, otherwise, it will get transcoded to a default supported format.
+     * <p>If the capabilities specified matches the format of the original file, the app will
+     * receive the original file, otherwise, it will get transcoded to a default supported format.
      *
-     * This flag takes higher precedence over the applications declared
-     * {@code media_capabilities.xml} and is useful for apps that want to have more granular control
-     * over their supported media capabilities.
+     * <p>When used while opening a media, add this option to the {@code opts} {@link Bundle} in
+     * various {@link ContentResolver} {@code open} methods. This flag takes higher precedence over
+     * the applications declared {@code media_capabilities.xml} and is useful for apps that want to
+     * have more granular control over their supported media capabilities.
      *
-     * <p>This option can be added to the {@code opts} {@link Bundle} in various
-     * {@link ContentResolver} {@code open} methods.
+     * <p>When used while picking media files, add this option to the intent-extra of
+     * {@link MediaStore#ACTION_PICK_IMAGES}.
      *
      * @see ContentResolver#openTypedAssetFileDescriptor(Uri, String, Bundle)
      * @see ContentResolver#openTypedAssetFile(Uri, String, Bundle, CancellationSignal)
+     * @see MediaStore#ACTION_PICK_IMAGES
      */
     public final static String EXTRA_MEDIA_CAPABILITIES =
             "android.provider.extra.MEDIA_CAPABILITIES";

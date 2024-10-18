@@ -63,6 +63,8 @@ import com.android.providers.media.photopicker.v2.model.PreviewMediaQuery;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 import com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SearchMediaQuery;
+import com.android.providers.media.photopicker.v2.sqlite.SearchResultsDatabaseUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -147,7 +149,7 @@ public class PickerDataLayerV2 {
      *                  results.
      */
     @NonNull
-    static Cursor queryMedia(@NonNull Context appContext, @NonNull Bundle queryArgs) {
+    public static Cursor queryMedia(@NonNull Context appContext, @NonNull Bundle queryArgs) {
         final MediaQuery query = new MediaQuery(queryArgs);
         final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
         final String effectiveLocalAuthority =
@@ -328,6 +330,46 @@ public class PickerDataLayerV2 {
                     effectiveCloudAuthority
             );
         }
+    }
+
+    /**
+     * Returns a cursor with the Photo Picker search results media in response.
+     *
+     * @param queryArgs The arguments help us filter on the media query to yield the desired
+     *                  results.
+     * @param searchRequestID Identifier of the search request.
+     */
+    public static Cursor querySearchMedia(
+            @NonNull Bundle queryArgs,
+            @NonNull int searchRequestID) {
+        final SearchMediaQuery query = new SearchMediaQuery(queryArgs, searchRequestID);
+
+        // Validate query input
+        if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(query.getIntentAction())) {
+            throw new RuntimeException("Search feature cannot be enabled with Picker Choice");
+        }
+
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final String effectiveLocalAuthority =
+                query.getProviders().contains(syncController.getLocalProvider())
+                        ? syncController.getLocalProvider()
+                        : null;
+        final String cloudAuthority = syncController
+                .getCloudProviderOrDefault(/* defaultValue */ null);
+        final String effectiveCloudAuthority =
+                syncController.shouldQueryCloudMedia(query.getProviders(), cloudAuthority)
+                        ? cloudAuthority
+                        : null;
+
+        // TODO(b/361041500) wait for sync before querying the database
+        // TODO(b/361042632) resume sync if required
+
+        return SearchResultsDatabaseUtil.querySearchMedia(
+                syncController,
+                query,
+                effectiveLocalAuthority,
+                effectiveCloudAuthority
+        );
     }
 
     /**

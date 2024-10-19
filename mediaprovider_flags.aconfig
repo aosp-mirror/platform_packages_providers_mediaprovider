@@ -183,3 +183,12 @@ flag {
     bug: "263914218"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "index_media_latitude_longitude"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls the indexing of latitude and longitude for both new and existing on-device media items"
+    bug: "361019344"
+    is_fixed_read_only: true
+}

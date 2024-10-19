@@ -18,8 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Kërko"</string>
-    <!-- no translation found for photopicker_search_photos_placeholder_text (4193624269605283280) -->
-    <skip />
-    <!-- no translation found for photopicker_search_videos_placeholder_text (6373176950925263103) -->
-    <skip />
+    <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Kërko te fotografitë e tua"</string>
+    <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Kërko te videot e tua"</string>
 </resources>

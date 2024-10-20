@@ -47,6 +47,8 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.Images.ImageColumns.LATITUDE;
+import static android.provider.MediaStore.Images.ImageColumns.LONGITUDE;
 import static android.provider.MediaStore.MediaColumns.OEM_METADATA;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
@@ -133,6 +135,7 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.flags.Flags.indexMediaLatitudeLongitude;
 import static com.android.providers.media.flags.Flags.versionLockdown;
 import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
@@ -261,7 +264,6 @@ import android.provider.MediaStore.Downloads;
 import android.provider.MediaStore.Files;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.Images;
-import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.provider.OpenAssetFileRequest;
@@ -3686,6 +3688,15 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    /**
+     * Check if enable_unicode_check flag is enabled
+     * Called from JNI in jni/MediaProviderWrapper.cpp
+     */
+    @Keep
+    public boolean isUnicodeCheckEnabledForFuse() {
+        return Flags.enableUnicodeCheck();
+    }
+
     @Override
     public int checkUriPermission(@NonNull Uri uri, int uid,
             /* @Intent.AccessUriMode */ int modeFlags) {
@@ -3961,10 +3972,21 @@ public class MediaProvider extends ContentProvider {
 
         Cursor c;
 
-        if (Flags.enableOemMetadata() && hasOemMetadataInProjection(qb, projection)
+        if (Flags.enableOemMetadata()
+                && hasColumnsToFilterInProjection(qb, projection, List.of(OEM_METADATA))
                 && !mCallingIdentity.get().checkCallingPermissionOemMetadata()) {
             // Filter oem_data column to return as NULL
-            projection = updateProjectionToFilterOemMetadata(qb, projection);
+            projection = updateProjectionToFilterColumns(qb, projection, List.of(OEM_METADATA));
+        }
+
+        // The prev deprecated latitude and longitude columns are being populated again for
+        // picker search. We prevent any read access to them if they are present in the
+        // query projection.
+        if (indexMediaLatitudeLongitude() && hasColumnsToFilterInProjection(
+                        qb, projection, List.of(LATITUDE, LONGITUDE)) && !isCallingPackageSelf()) {
+            // Filter latitude and longitude to return as NULL
+            projection = updateProjectionToFilterColumns(
+                    qb, projection,  List.of(LATITUDE, LONGITUDE));
         }
 
         if (shouldFilterOwnerPackageNameFlag()
@@ -4014,27 +4036,47 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
-    private String[] updateProjectionToFilterOemMetadata(SQLiteQueryBuilder qb,
-            String[] projection) {
-        projection = maybeReplaceNullProjection(projection, qb);
-        if (qb.getProjectionAllowlist() == null) {
-            qb.setProjectionAllowlist(new ArrayList<>());
+    private boolean hasColumnsToFilterInProjection(
+            SQLiteQueryBuilder qb, String[] projection, List<String> columnsToFilter) {
+        boolean columnsFound = false;
+        List<String> projectionInLowerCase = new ArrayList<>();
+        if (projection != null) {
+            projectionInLowerCase = Arrays.asList(projection);
+            projectionInLowerCase.replaceAll(String::toLowerCase);
         }
-        final String[] updatedProjection = new String[projection.length];
-        for (int i = 0; i < projection.length; i++) {
-            if (!OEM_METADATA.equalsIgnoreCase(projection[i])) {
-                updatedProjection[i] = projection[i];
-            } else {
-                updatedProjection[i] = constructOemMetadataProjection();
+        for (String column: columnsToFilter) {
+            columnsFound =
+                    (!projectionInLowerCase.isEmpty() && projectionInLowerCase.contains(column))
+                    || (projection == null && qb.getProjectionMap() != null
+                    && qb.getProjectionMap().containsKey(column));
+            if (columnsFound) {
+                return columnsFound;
             }
         }
-        return updatedProjection;
+        return columnsFound;
     }
 
-    private boolean hasOemMetadataInProjection(SQLiteQueryBuilder qb, String[] projection) {
-        return (projection != null && Arrays.asList(projection).contains(OEM_METADATA))
-                || (projection == null && qb.getProjectionMap() != null
-                        && qb.getProjectionMap().containsKey(OEM_METADATA));
+    private String[] updateProjectionToFilterColumns(
+            SQLiteQueryBuilder qb, String[] projection, List<String> columnsToFilter) {
+        projection = maybeReplaceNullProjection(projection, qb);
+        List<String> projectionList = Arrays.asList(projection);
+        projectionList.replaceAll(String::toLowerCase);
+
+        for (String columnToFilter: columnsToFilter) {
+            if (projectionList.contains(columnToFilter)) {
+                int indexOfColumnToBeFiltered = projectionList.indexOf(columnToFilter);
+                projectionList.set(
+                        indexOfColumnToBeFiltered,
+                        constructNullProjectionForColumn(columnToFilter)
+                );
+            }
+        }
+        String[] updatedProjection = new String[projectionList.size()];
+        return projectionList.toArray(updatedProjection);
+    }
+
+    private String constructNullProjectionForColumn(String columnName) {
+        return "NULL AS " + columnName;
     }
 
     /**
@@ -4059,14 +4101,6 @@ public class MediaProvider extends ContentProvider {
                 .append(OWNER_PACKAGE_NAME);
 
         Log.d(TAG, "Constructed owner_package_name substitution: " + newProjection);
-        return newProjection.toString();
-    }
-
-    private String constructOemMetadataProjection() {
-        final StringBuilder newProjection = new StringBuilder()
-                .append("NULL AS ")
-                .append(OEM_METADATA);
-
         return newProjection.toString();
     }
 
@@ -5601,15 +5635,16 @@ public class MediaProvider extends ContentProvider {
 
             if (!isCallingPackageSelf()) {
                 initialValues.remove(FileColumns.IS_DOWNLOAD);
+
+                // We no longer track location metadata
+                if (initialValues.containsKey(LATITUDE)) {
+                    initialValues.putNull(LATITUDE);
+                }
+                if (initialValues.containsKey(LONGITUDE)) {
+                    initialValues.putNull(LONGITUDE);
+                }
             }
 
-            // We no longer track location metadata
-            if (initialValues.containsKey(ImageColumns.LATITUDE)) {
-                initialValues.putNull(ImageColumns.LATITUDE);
-            }
-            if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
-                initialValues.putNull(ImageColumns.LONGITUDE);
-            }
             if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
                 // These columns are removed in R.
                 if (initialValues.containsKey("primary_directory")) {
@@ -6397,7 +6432,61 @@ public class MediaProvider extends ContentProvider {
             appendWhereStandalone(qb, ownerPackageMatchClause);
         }
 
+        // Prevent a query from returning results if the selection clauses query on latitude and
+        // longitude. Only return results if these columns are present in the sort clause to avoid
+        // breaking any existing usage but return them in any arbitrary fashion instead of actually
+        // sorting them.
+        List<String> filterClauses = getClausesForFilteringGeolocationData(extras, type);
+        if (indexMediaLatitudeLongitude() && !isCallingPackageSelf() && !filterClauses.isEmpty()) {
+            if (filterClauses.contains(QUERY_ARG_SQL_SORT_ORDER)) {
+                String sortArgs = extras.getString(QUERY_ARG_SQL_SORT_ORDER);
+                if (sortArgs != null) {
+                    if (sortArgs.contains(LATITUDE)) {
+                        sortArgs = sortArgs.replace(LATITUDE, /* replacement */ "NULL");
+                    }
+                    if (sortArgs.contains(LONGITUDE)) {
+                        sortArgs = sortArgs.replace(LONGITUDE, /* replacement */ "NULL");
+                    }
+                    extras.putString(QUERY_ARG_SQL_SORT_ORDER, sortArgs);
+                }
+            } else {
+                final String geolocationClause = "FALSE";
+                appendWhereStandalone(qb, geolocationClause);
+            }
+        }
         return qb;
+    }
+
+    private List<String> getClausesForFilteringGeolocationData(
+            Bundle queryArgs, int type) {
+        if (type == TYPE_QUERY) {
+            return getClausesForFilteringGeolocationData(queryArgs);
+        }
+        return List.of();
+    }
+
+    private List<String> getClausesForFilteringGeolocationData(Bundle queryArgs) {
+        final String selection = queryArgs.getString(QUERY_ARG_SQL_SELECTION, "")
+                .toLowerCase(Locale.ROOT);
+        final String groupBy = queryArgs.getString(QUERY_ARG_SQL_GROUP_BY, "")
+                .toLowerCase(Locale.ROOT);
+        final String sort = queryArgs.getString(QUERY_ARG_SQL_SORT_ORDER, "")
+                .toLowerCase(Locale.ROOT);
+        final String having = queryArgs.getString(QUERY_ARG_SQL_HAVING, "")
+                .toLowerCase(Locale.ROOT);
+
+        List<String> filteringClauses = new ArrayList<>();
+        if (sort.contains(LATITUDE) || sort.contains(LONGITUDE)) {
+            filteringClauses.add(QUERY_ARG_SQL_SORT_ORDER);
+        }
+        if (selection.contains(LATITUDE) || selection.contains(LONGITUDE)
+                || groupBy.contains(LATITUDE) || groupBy.contains(LONGITUDE)
+                || having.contains(LATITUDE) || having.contains(LONGITUDE)) {
+            filteringClauses.add(QUERY_ARG_SQL_SELECTION);
+            filteringClauses.add(QUERY_ARG_SQL_GROUP_BY);
+            filteringClauses.add(QUERY_ARG_SQL_HAVING);
+        }
+        return filteringClauses;
     }
 
     private boolean shouldFilterOwnerPackageNameInSelection(Bundle queryArgs, int type) {
@@ -8392,12 +8481,15 @@ public class MediaProvider extends ContentProvider {
             }
 
             // We no longer track location metadata
-            if (initialValues.containsKey(ImageColumns.LATITUDE)) {
-                initialValues.putNull(ImageColumns.LATITUDE);
+            if (!isCallingPackageSelf()) {
+                if (initialValues.containsKey(LATITUDE)) {
+                    initialValues.putNull(LATITUDE);
+                }
+                if (initialValues.containsKey(LONGITUDE)) {
+                    initialValues.putNull(LONGITUDE);
+                }
             }
-            if (initialValues.containsKey(ImageColumns.LONGITUDE)) {
-                initialValues.putNull(ImageColumns.LONGITUDE);
-            }
+
             if (getCallingPackageTargetSdkVersion() <= Build.VERSION_CODES.Q) {
                 // These columns are removed in R.
                 if (initialValues.containsKey("primary_directory")) {

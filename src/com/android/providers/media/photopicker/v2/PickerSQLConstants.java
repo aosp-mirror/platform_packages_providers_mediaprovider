@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static androidx.annotation.VisibleForTesting.PACKAGE_PRIVATE;
+
 import static com.android.providers.media.PickerUriResolver.getPickerSegmentFromIntentAction;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_DATE_TAKEN_MS;
@@ -33,6 +35,7 @@ import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
@@ -48,9 +51,11 @@ public class PickerSQLConstants {
     /**
      * An enum that holds the table names in Picker DB
      */
-    enum Table {
+    public enum Table {
         MEDIA,
         ALBUM_MEDIA,
+        SEARCH_REQUEST,
+        SEARCH_RESULT_MEDIA
     }
 
     /**
@@ -341,6 +346,44 @@ public class PickerSQLConstants {
 
         public String getKey() {
             return mKey;
+        }
+    }
+
+    public enum SearchRequestTableColumns {
+        SEARCH_REQUEST_ID("_id"),
+        SYNC_RESUME_KEY("sync_resume_key"),
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        SUGGESTION_TYPE("suggestion_type"),
+        AUTHORITY("authority"),
+        MIME_TYPES("mime_types");
+
+        private final String mColumnName;
+
+        SearchRequestTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+    public enum SearchResultMediaTableColumns {
+        PICKER_ID("_id"),
+        SEARCH_REQUEST_ID("search_request_id"),
+        LOCAL_ID("local_id"),
+        CLOUD_ID("cloud_id");
+
+        private final String mColumnName;
+
+        SearchResultMediaTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
         }
     }
 }

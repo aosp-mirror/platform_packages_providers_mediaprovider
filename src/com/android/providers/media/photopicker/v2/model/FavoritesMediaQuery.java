@@ -26,7 +26,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 /**
  * This is a convenience class for Favorites album related SQL queries performed on the Picker

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker.v2;
+package com.android.providers.media.photopicker.v2.sqlite;
 
 import android.database.sqlite.SQLiteDatabase;
 

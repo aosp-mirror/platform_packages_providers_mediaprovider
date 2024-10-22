@@ -8104,8 +8104,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         private File getThumbnailFile(Uri uri) throws IOException {
-            final String volumeName = resolveVolumeName(uri);
-            final File volumePath = getVolumePath(volumeName);
+            // Always save generated thumbnails to primary storage
+            final File volumePath = getVolumePath(MediaStore.VOLUME_EXTERNAL_PRIMARY);
             return FileUtils.buildPath(volumePath, directoryName,
                     DIRECTORY_THUMBNAILS, ContentUris.parseId(uri) + ".jpg");
         }

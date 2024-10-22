@@ -219,7 +219,7 @@ public class MediaQuery {
 
         if (localAuthority == null) {
             queryBuilder.appendWhereStandalone(
-                    prependTableName(table, KEY_LOCAL_ID) + " IS NULL");
+                    prependTableName(table, KEY_CLOUD_ID) + " IS NOT NULL");
         }
 
         addMimeTypeClause(queryBuilder, table);

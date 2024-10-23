@@ -52,6 +52,8 @@ public class LocalUriMatcherTest {
                 LocalUriMatcher.PICKER_GET_CONTENT_ID,
                 assembleTestUri(
                         new String[]{"picker_get_content", "0", "anything", "media", "anything"}));
+        assertMatchesPublic(LocalUriMatcher.PICKER_TRANSCODED_ID, assembleTestUri(
+                new String[]{"picker_transcoded", "0", "anything", "media", "anything"}));
 
         assertMatchesPublic(LocalUriMatcher.CLI, assembleTestUri(new String[] {"cli"}));
 

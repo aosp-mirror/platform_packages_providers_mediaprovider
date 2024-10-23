@@ -124,6 +124,7 @@ import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
+import static com.android.providers.media.LocalUriMatcher.PICKER_TRANSCODED_ID;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
@@ -134,6 +135,7 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES;
 import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
+import static com.android.providers.media.PickerUriResolver.PICKER_TRANSCODED_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
 import static com.android.providers.media.flags.Flags.indexMediaLatitudeLongitude;
 import static com.android.providers.media.flags.Flags.versionLockdown;
@@ -602,6 +604,7 @@ public class MediaProvider extends ContentProvider {
      */
     public void freeCache(long bytes) {
         mTranscodeHelper.freeCache(bytes);
+        mPhotoPickerTranscodeHelper.freeCache(bytes);
     }
 
     public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
@@ -1143,8 +1146,11 @@ public class MediaProvider extends ContentProvider {
                     deletedRow.getId());
             acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
                     deletedRow.getId(), deletedRow.getMediaType(), deletedRow.isDownload());
+
             // Remove cached transcoded file if any
             mTranscodeHelper.deleteCachedTranscodeFile(deletedRow.getId());
+            mPhotoPickerTranscodeHelper.deleteCachedTranscodedFile(
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, deletedRow.getId());
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
@@ -1438,6 +1444,7 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore, pickerSyncLockManager);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
+        mPhotoPickerTranscodeHelper = new PhotoPickerTranscodeHelper();
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
                 mUriMatcher);
         mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
@@ -1745,6 +1752,9 @@ public class MediaProvider extends ContentProvider {
         deleteStaleVolumes(signal);
 
         final long itemCount = mExternalDatabase.runWithTransaction(DatabaseHelper::getItemCount);
+
+        // Clean picker transcoded media cache.
+        mPhotoPickerTranscodeHelper.cleanAllTranscodedFiles(signal);
 
         // Cleaning media files for users that have been removed
         cleanMediaFilesForRemovedUser(signal);
@@ -2519,14 +2529,16 @@ public class MediaProvider extends ContentProvider {
         boolean result = false;
         switch (segmentCount) {
             case 1:
-                // .../picker or .../picker_get_content
-                if (lastSegment.equals(PICKER_SEGMENT) || lastSegment.equals(
-                        PICKER_GET_CONTENT_SEGMENT)) {
+                // .../picker or .../picker_get_content or .../picker_transcoded
+                if (lastSegment.equals(PICKER_SEGMENT)
+                        || lastSegment.equals(PICKER_GET_CONTENT_SEGMENT)
+                        || lastSegment.equals(PICKER_TRANSCODED_SEGMENT)) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 2:
-                // .../picker/<user-id> or .../picker_get_content/<user-id>
+                // .../picker/<user-id> or .../picker_get_content/<user-id> or
+                // .../picker_transcoded/<user-id>
                 try {
                     Integer.parseInt(lastSegment);
                     result = file.exists() || file.mkdir();
@@ -2536,19 +2548,23 @@ public class MediaProvider extends ContentProvider {
                 }
                 break;
             case 3:
-                // .../picker/<user-id>/<authority> or .../picker_get_content/<user-id>/<authority>
+                // .../picker/<user-id>/<authority> or
+                // .../picker_get_content/<user-id>/<authority> or
+                // .../picker_transcoded/<user-id>/<authority>
                 result = preparePickerAuthorityPathSegment(file, lastSegment, uid);
                 break;
             case 4:
                 // .../picker/<user-id>/<authority>/media or
-                // .../picker_get_content/<user-id>/<authority>/media
+                // .../picker_get_content/<user-id>/<authority>/media or
+                // .../picker_transcoded/<user-id>/<authority>/media
                 if (lastSegment.equals("media")) {
                     result = file.exists() || file.mkdir();
                 }
                 break;
             case 5:
                 // .../picker/<user-id>/<authority>/media/<media-id.extension> or
-                // .../picker_get_content/<user-id>/<authority>/media/<media-id.extension>
+                // .../picker_get_content/<user-id>/<authority>/media/<media-id.extension> or
+                // .../picker_transcoded/<user-id>/<authority>/media/<media-id.extension>
                 final String pickerSegmentType = syntheticRelativePathSegments.get(0);
                 final String fileUserId = syntheticRelativePathSegments.get(1);
                 final String authority = syntheticRelativePathSegments.get(2);
@@ -2572,7 +2588,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         // ['', 'storage', 'emulated', '0', 'transforms', 'synthetic',
-        // 'picker' or 'picker_get_content', '<user-id>', '<host>', 'media', '<fileName>']
+        // 'picker' or 'picker_get_content' or 'picker_transcoded',
+        // '<user-id>', '<host>', 'media', '<fileName>']
         final String pickerSegmentType = segments[6];
         final String userId = segments[7];
         final String fileName = segments[10];
@@ -2586,25 +2603,32 @@ public class MediaProvider extends ContentProvider {
         }
 
         final String mediaId = fileName.substring(0, lastDotIndex);
-        final Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
-
-        IBinder binder = getContext().getContentResolver()
-                .call(uri, METHOD_GET_ASYNC_CONTENT_PROVIDER, null, null)
-                .getBinder(EXTRA_ASYNC_CONTENT_PROVIDER);
-        if (binder == null) {
-            Log.e(TAG, "Picker file open failed. No cloud media provider found.");
-            return FileOpenResult.createError(OsConstants.ENOENT, uid);
-        }
-        IAsyncContentProvider iAsyncContentProvider = IAsyncContentProvider.Stub.asInterface(
-                binder);
-        AsyncContentProvider asyncContentProvider = new AsyncContentProvider(iAsyncContentProvider);
         final ParcelFileDescriptor pfd;
-        try {
-            pfd = asyncContentProvider.openMedia(uri, "r");
-        } catch (FileNotFoundException | ExecutionException | InterruptedException
-                | TimeoutException | RemoteException e) {
-            Log.e(TAG, "Picker file open failed. Failed to open URI: " + uri, e);
-            return FileOpenResult.createError(OsConstants.ENOENT, uid);
+        if (pickerSegmentType.equalsIgnoreCase(PICKER_TRANSCODED_SEGMENT)) {
+            try {
+                pfd = mPhotoPickerTranscodeHelper.openTranscodedFile(host, mediaId);
+            } catch (FileNotFoundException e) {
+                Log.e(TAG, "Picker transcoded file open failed. No cached transcoded file found.");
+                return FileOpenResult.createError(OsConstants.ENOENT, uid);
+            }
+        } else {
+            final Uri uri = getMediaUri(authority).buildUpon().appendPath(mediaId).build();
+            IBinder binder = getContext().getContentResolver()
+                    .call(uri, METHOD_GET_ASYNC_CONTENT_PROVIDER, null, null)
+                    .getBinder(EXTRA_ASYNC_CONTENT_PROVIDER);
+            if (binder == null) {
+                Log.e(TAG, "Picker file open failed. No cloud media provider found.");
+                return FileOpenResult.createError(OsConstants.ENOENT, uid);
+            }
+            IAsyncContentProvider iAsyncProvider = IAsyncContentProvider.Stub.asInterface(binder);
+            AsyncContentProvider asyncContentProvider = new AsyncContentProvider(iAsyncProvider);
+            try {
+                pfd = asyncContentProvider.openMedia(uri, "r");
+            } catch (FileNotFoundException | ExecutionException | InterruptedException
+                     | TimeoutException | RemoteException e) {
+                Log.e(TAG, "Picker file open failed. Failed to open URI: " + uri, e);
+                return FileOpenResult.createError(OsConstants.ENOENT, uid);
+            }
         }
 
         try (FileInputStream fis = new FileInputStream(pfd.getFileDescriptor())) {
@@ -2615,6 +2639,7 @@ public class MediaProvider extends ContentProvider {
             LocalCallingIdentity callingIdentityForOriginalUid = getCachedCallingIdentityForFuse(
                     uid);
             final boolean isRedactionNeeded = pickerSegmentType.equalsIgnoreCase(PICKER_SEGMENT)
+                    || pickerSegmentType.equalsIgnoreCase(PICKER_TRANSCODED_SEGMENT)
                     || callingIdentityForOriginalUid == null
                     || isRedactionNeededForPickerUri(callingIdentityForOriginalUid);
             Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
@@ -2650,9 +2675,21 @@ public class MediaProvider extends ContentProvider {
         try (Cursor cursor = mPickerUriResolver.query(uri, projection, /* callingPid */0, uid,
                 mCallingIdentity.get().getPackageName())) {
             if (cursor != null && cursor.moveToFirst()) {
-                final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
+                // For picker transcoded files, get their actual size, as ths value may differ from
+                // the source file. The code is put after the query operation to make sure that
+                // the app accessing the file have required permissions.
+                if (pickerSegmentType.equalsIgnoreCase(PICKER_TRANSCODED_SEGMENT)) {
+                    long size = mPhotoPickerTranscodeHelper.getTranscodedFileSize(authority,
+                            mediaId);
+                    if (size > 0) {
+                        return createSparseFile(file, size);
+                    }
+                    return false;
+                }
 
+                final int sizeBytesIdx = cursor.getColumnIndex(MediaStore.PickerMediaColumns.SIZE);
                 if (sizeBytesIdx != -1) {
+
                     return createSparseFile(file, cursor.getLong(sizeBytesIdx));
                 }
             }
@@ -7055,6 +7092,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
                 return getResultForPickerMediaInit(extras);
             }
+            case MediaStore.PICKER_TRANSCODE_CALL: {
+                return getResultForPickerTranscode(extras);
+            }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 return getResultForGetCloudProvider();
             }
@@ -7560,6 +7600,30 @@ public class MediaProvider extends ContentProvider {
         }
         mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
         return null;
+    }
+
+    @NotNull
+    private Bundle getResultForPickerTranscode(@NonNull Bundle extras) {
+        Log.i(TAG, "Received media transcode request for extras: " + extras);
+
+        // Check the caller.
+        if (!checkPermissionShell(Binder.getCallingUid())
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
+            throw new SecurityException(getSecurityExceptionMessage("Picker media transcode"));
+        }
+
+        // Transcode the media.
+        final Uri uri = Objects.requireNonNull(extras).getParcelable(MediaStore.EXTRA_URI);
+        if (uri == null) {
+            throw new IllegalArgumentException("Extras does not contains a URI for transcoding.");
+        }
+        boolean transcodeResult = mPhotoPickerTranscodeHelper.transcode(getContext(), uri);
+
+        // Return the result.
+        final Bundle bundle = new Bundle();
+        bundle.putBoolean(MediaStore.PICKER_TRANSCODE_RESULT, transcodeResult);
+        return bundle;
     }
 
     @NotNull
@@ -8104,8 +8168,8 @@ public class MediaProvider extends ContentProvider {
         }
 
         private File getThumbnailFile(Uri uri) throws IOException {
-            final String volumeName = resolveVolumeName(uri);
-            final File volumePath = getVolumePath(volumeName);
+            // Always save generated thumbnails to primary storage
+            final File volumePath = getVolumePath(MediaStore.VOLUME_EXTERNAL_PRIMARY);
             return FileUtils.buildPath(volumePath, directoryName,
                     DIRECTORY_THUMBNAILS, ContentUris.parseId(uri) + ".jpg");
         }
@@ -9230,7 +9294,8 @@ public class MediaProvider extends ContentProvider {
 
     private boolean isPickerUri(Uri uri) {
         final int match = matchUri(uri, /* allowHidden */ isCallingPackageAllowedHidden());
-        return match == PICKER_ID || match == PICKER_GET_CONTENT_ID;
+        return match == PICKER_ID || match == PICKER_GET_CONTENT_ID
+                || match == PICKER_TRANSCODED_ID;
     }
 
     @Override
@@ -11656,6 +11721,7 @@ public class MediaProvider extends ContentProvider {
     private ConfigStore mConfigStore;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
+    private PhotoPickerTranscodeHelper mPhotoPickerTranscodeHelper;
     private MediaGrants mMediaGrants;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
 

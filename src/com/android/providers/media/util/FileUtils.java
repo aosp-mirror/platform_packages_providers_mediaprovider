@@ -1004,6 +1004,7 @@ public class FileUtils {
             "(?i)^/storage/[^/]+(?:/[0-9]+)?/"
                     + "(?:(?:Android/(?:data|obb|sandbox)$)|"
                     + "(?:\\.transforms$)|"
+                    + "(?:\\.picker_transcoded$)|"
                     + "(?:(?:Movies|Music|Pictures)/.thumbnails$))");
 
     /**

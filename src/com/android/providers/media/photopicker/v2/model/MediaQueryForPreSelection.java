@@ -28,7 +28,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.HashSet;

@@ -40,7 +40,7 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.List;

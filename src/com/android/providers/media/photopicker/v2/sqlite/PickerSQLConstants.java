@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker.v2;
+package com.android.providers.media.photopicker.v2.sqlite;
 
 import static androidx.annotation.VisibleForTesting.PACKAGE_PRIVATE;
 
@@ -38,6 +38,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.MediaGrants;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import java.util.Arrays;
@@ -61,7 +62,7 @@ public class PickerSQLConstants {
     /**
      * An enum that holds the columns names for the Available Providers query response.
      */
-    enum AvailableProviderResponse {
+    public enum AvailableProviderResponse {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
         UID("uid"),
@@ -78,7 +79,7 @@ public class PickerSQLConstants {
         }
     }
 
-    enum CollectionInfoResponse {
+    public enum CollectionInfoResponse {
         AUTHORITY("authority"),
         COLLECTION_ID("collection_id"),
         ACCOUNT_NAME("account_name");
@@ -138,7 +139,7 @@ public class PickerSQLConstants {
     /**
      * An enum that holds the DB columns names and projections for the Media SQL query response.
      */
-    enum MediaResponse {
+    public enum MediaResponse {
         MEDIA_ID(CloudMediaProviderContract.MediaColumns.ID),
         AUTHORITY(CloudMediaProviderContract.MediaColumns.AUTHORITY),
         MEDIA_SOURCE("media_source"),
@@ -331,7 +332,7 @@ public class PickerSQLConstants {
         }
     }
 
-    enum MediaResponseExtras {
+    public enum MediaResponseExtras {
         PREV_PAGE_ID("prev_page_picker_id"),
         PREV_PAGE_DATE_TAKEN("prev_page_date_taken"),
         NEXT_PAGE_ID("next_page_picker_id"),

@@ -226,6 +226,8 @@ android_test {
         "SettingsLibSelectorWithWidgetPreference",
         "mediaprovider_flags_java_lib",
         "flag-junit",
+        "androidx.media3.media3-common",
+        "androidx.media3.media3-transformer",
     ],
 
     certificate: "media",

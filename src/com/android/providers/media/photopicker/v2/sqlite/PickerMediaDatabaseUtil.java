@@ -79,6 +79,7 @@ public class PickerMediaDatabaseUtil {
 
             try {
                 database.beginTransactionNonExclusive();
+
                 Cursor pageData = database.rawQuery(
                         getMediaPageQuery(
                                 appContext,
@@ -659,7 +660,7 @@ public class PickerMediaDatabaseUtil {
      * The page key in this case refers to the date taken and the picker id of the first item in
      * the page.
      */
-    private static void addPrevPageKey(Bundle extraArgs, Cursor prevPageKeyCursor) {
+    public static void addPrevPageKey(Bundle extraArgs, Cursor prevPageKeyCursor) {
         if (prevPageKeyCursor.moveToLast()) {
             final int pickerIdColumnIndex = prevPageKeyCursor.getColumnIndex(
                     PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()
@@ -707,7 +708,7 @@ public class PickerMediaDatabaseUtil {
      * The page key in this case refers to the date taken and the picker id of the first item in
      * the page.
      */
-    private static void addNextPageKey(Bundle extraArgs, Cursor nextPageKeyCursor) {
+    public static void addNextPageKey(Bundle extraArgs, Cursor nextPageKeyCursor) {
         if (nextPageKeyCursor.moveToFirst()) {
             final int pickerIdColumnIndex = nextPageKeyCursor.getColumnIndex(
                     PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()

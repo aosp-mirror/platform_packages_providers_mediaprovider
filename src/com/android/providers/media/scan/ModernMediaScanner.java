@@ -113,8 +113,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaVolume;
 import com.android.providers.media.backupandrestore.RestoreExecutor;
 import com.android.providers.media.flags.Flags;
@@ -397,6 +399,20 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    /**
+     * Invalidate FUSE dentry cache while setting directory dirty
+     */
+    private void invalidateFuseDentryInBg(File file) {
+        BackgroundThread.getExecutor().execute(() -> {
+            try (ContentProviderClient client =
+                         mContext.getContentResolver().acquireContentProviderClient(
+                                 MediaStore.AUTHORITY)) {
+                ((MediaProvider) client.getLocalContentProvider()).invalidateFuseDentry(file);
+            }
+        });
+    }
+
+
     @Override
     public void onDirectoryDirty(@NonNull File dir) {
         requireNonNull(dir);
@@ -410,6 +426,7 @@ public class ModernMediaScanner implements MediaScanner {
         synchronized (mPendingCleanDirectories) {
             mPendingCleanDirectories.remove(dir.getPath().toLowerCase(Locale.ROOT));
             FileUtils.setDirectoryDirty(dir, /* isDirty */ true);
+            invalidateFuseDentryInBg(dir);
         }
     }
 
@@ -1072,6 +1089,9 @@ public class ModernMediaScanner implements MediaScanner {
                             dir.toFile().getPath().toLowerCase(Locale.ROOT))) {
                         // If |dir| is still clean, then persist
                         FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+                        if (!MediaStore.VOLUME_INTERNAL.equals(mVolumeName)) {
+                            invalidateFuseDentryInBg(dir.toFile());
+                        }
                         mIsDirectoryTreeDirty = false;
                     }
                 }

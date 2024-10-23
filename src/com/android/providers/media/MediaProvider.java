@@ -9871,7 +9871,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void invalidateFuseDentry(@NonNull File file) {
+    /**
+     * Invalidate fuse dentry cache for filepath
+     */
+    public void invalidateFuseDentry(@NonNull File file) {
         invalidateFuseDentry(file.getAbsolutePath());
     }
 
@@ -10253,6 +10256,7 @@ public class MediaProvider extends ContentProvider {
                         mNonHiddenPaths.put(key, 0);
                     } else {
                         mMediaScanner.onDirectoryDirty(topNoMediaDir);
+                        invalidateFuseDentry(topNoMediaDir);
                     }
                 }
             }

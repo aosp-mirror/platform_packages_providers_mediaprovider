@@ -516,7 +516,11 @@ public class PickerUriResolver {
         return builder;
     }
 
-    @VisibleForTesting
+    /**
+     * Gets the user id of the picker uri.
+     *
+     * @param uri The picker URI.
+     */
     static int getUserId(Uri uri) {
         // content://media/picker/<user-id>/<media-id>/...
         return Integer.parseInt(uri.getPathSegments().get(1));

@@ -602,6 +602,7 @@ public class MediaProvider extends ContentProvider {
      */
     public void freeCache(long bytes) {
         mTranscodeHelper.freeCache(bytes);
+        mPhotoPickerTranscodeHelper.freeCache(bytes);
     }
 
     public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
@@ -1143,8 +1144,11 @@ public class MediaProvider extends ContentProvider {
                     deletedRow.getId());
             acceptWithExpansion(helper::notifyDelete, deletedRow.getVolumeName(),
                     deletedRow.getId(), deletedRow.getMediaType(), deletedRow.isDownload());
+
             // Remove cached transcoded file if any
             mTranscodeHelper.deleteCachedTranscodeFile(deletedRow.getId());
+            mPhotoPickerTranscodeHelper.deleteCachedTranscodedFile(
+                    PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, deletedRow.getId());
 
             helper.postBackground(() -> {
                 // Item no longer exists, so revoke all access to it
@@ -1438,6 +1442,7 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore, pickerSyncLockManager);
         mPickerDataLayer = PickerDataLayer.create(context, mPickerDbFacade, mPickerSyncController,
                 mConfigStore);
+        mPhotoPickerTranscodeHelper = new PhotoPickerTranscodeHelper();
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
                 mUriMatcher);
         mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
@@ -1746,6 +1751,9 @@ public class MediaProvider extends ContentProvider {
 
         final long itemCount = mExternalDatabase.runWithTransaction(DatabaseHelper::getItemCount);
 
+        // Clean picker transcoded media cache.
+        mPhotoPickerTranscodeHelper.cleanAllTranscodedFiles(signal);
+
         // Cleaning media files for users that have been removed
         cleanMediaFilesForRemovedUser(signal);
 
@@ -1865,6 +1873,7 @@ public class MediaProvider extends ContentProvider {
                 final int num = db.delete("files", FileColumns.VOLUME_NAME + "=?",
                         new String[] { staleVolumeName });
                 Log.d(TAG, "Forgot " + num + " stale items from " + staleVolumeName);
+                mDatabaseBackupAndRecovery.deleteBackupForVolume(staleVolumeName);
             }
             return null;
         });
@@ -7054,6 +7063,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
                 return getResultForPickerMediaInit(extras);
             }
+            case MediaStore.PICKER_TRANSCODE_CALL: {
+                return getResultForPickerTranscode(extras);
+            }
             case MediaStore.GET_CLOUD_PROVIDER_CALL: {
                 return getResultForGetCloudProvider();
             }
@@ -7562,6 +7574,30 @@ public class MediaProvider extends ContentProvider {
     }
 
     @NotNull
+    private Bundle getResultForPickerTranscode(@NonNull Bundle extras) {
+        Log.i(TAG, "Received media transcode request for extras: " + extras);
+
+        // Check the caller.
+        if (!checkPermissionShell(Binder.getCallingUid())
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
+            throw new SecurityException(getSecurityExceptionMessage("Picker media transcode"));
+        }
+
+        // Transcode the media.
+        final Uri uri = Objects.requireNonNull(extras).getParcelable(MediaStore.EXTRA_URI);
+        if (uri == null) {
+            throw new IllegalArgumentException("Extras does not contains a URI for transcoding.");
+        }
+        boolean transcodeResult = mPhotoPickerTranscodeHelper.transcode(getContext(), uri);
+
+        // Return the result.
+        final Bundle bundle = new Bundle();
+        bundle.putBoolean(MediaStore.PICKER_TRANSCODE_RESULT, transcodeResult);
+        return bundle;
+    }
+
+    @NotNull
     private Bundle getResultForGetCloudProvider() {
         if (!checkPermissionShell(Binder.getCallingUid())
                 && !checkPermissionSelf(Binder.getCallingUid())) {
@@ -7788,15 +7824,22 @@ public class MediaProvider extends ContentProvider {
         mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
     }
 
-    public void recoverPublicVolumes() {
-        for (MediaVolume mediaVolume : mVolumeCache.getExternalVolumes()) {
-            if (mediaVolume.isPublicVolume()) {
-                try {
-                    mExternalDatabase.tryRecoverPublicVolume(mediaVolume.getName());
-                } catch (Exception e) {
-                    Log.e(TAG, "Exception while recovering public volume: "
-                            + mediaVolume.getName());
-                }
+    public void recoverPublicVolume(MediaVolume volume) {
+        if (volume.isPublicVolume()
+                && mDatabaseBackupAndRecovery.isStableUrisEnabled(volume.getName())) {
+            Log.d(TAG, "Querying external_primary to make sure it's available");
+            try (Cursor cursor = getContext().getContentResolver()
+                    .query(MediaStore.Images.Media.getContentUri(VOLUME_EXTERNAL_PRIMARY),
+                            new String[]{FileColumns._ID}, null, null)) {
+            } catch (Exception e) {
+                Log.e(TAG, "Can't restore public volume because EXTERNAL_PRIMARY is not available");
+                return;
+            }
+
+            try {
+                mExternalDatabase.tryRecoverPublicVolume(volume.getName());
+            } catch (Exception e) {
+                Log.e(TAG, "Exception in public volume recovery for " + volume.getName(), e);
             }
         }
     }
@@ -11648,6 +11691,7 @@ public class MediaProvider extends ContentProvider {
     private ConfigStore mConfigStore;
     private PickerSyncController mPickerSyncController;
     private TranscodeHelper mTranscodeHelper;
+    private PhotoPickerTranscodeHelper mPhotoPickerTranscodeHelper;
     private MediaGrants mMediaGrants;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
 

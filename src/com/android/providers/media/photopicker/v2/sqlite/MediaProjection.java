@@ -53,7 +53,7 @@ public class MediaProjection {
     private final PickerSQLConstants.Table mTableName;
     private static final String DEFAULT_PROJECTION = "%s AS %s";
 
-    MediaProjection(
+    public MediaProjection(
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             @Nullable String intentAction,

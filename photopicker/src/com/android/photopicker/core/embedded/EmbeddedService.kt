@@ -68,7 +68,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
         if (SdkLevel.isAtLeastU() && enableEmbeddedPhotopicker()) {
             EmbeddedPhotopickerImpl(
                 sessionFactory = ::buildSession,
-                verifyCaller = ::verifyCallerIdentity
+                verifyCaller = ::verifyCallerIdentity,
             )
         } else {
             // Embedded Photopicker is only available on U+ devices when the build flag is enabled.
@@ -105,7 +105,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private fun cleanupSessions() {
         for (session in allSessions) {
-            if (session.isActive) {
+            if (session.isActive.get()) {
                 session.close()
             }
         }
@@ -184,7 +184,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
      */
     enum class GrantResult {
         SUCCESS,
-        FAILURE
+        FAILURE,
     }
 
     /** Verify that package belongs to caller by mapping their uids */

@@ -35,6 +35,8 @@ android_app {
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
         "mediaprovider_flags_java_lib",
+        "androidx.media3.media3-common",
+        "androidx.media3.media3-transformer",
     ],
 
     libs: [

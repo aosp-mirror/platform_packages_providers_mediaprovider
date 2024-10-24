@@ -23,4 +23,13 @@
 
     <!-- Search view placeholder text when videos MIME type filter is applied-->
     <string name="photopicker_search_videos_placeholder_text" translation_description="Place holder text shown in Search Bar for videos MIME type filter">Search your videos</string>
+
+    <!-- Empty state title when the search has no results -->
+    <string name="photopicker_search_result_empty_state_title" translation_description="Title of the message shown to the user when there are no search results to show">No results found</string>
+
+    <!-- Empty state message when search has no results -->
+    <string name="photopicker_search_result_empty_state_body" translation_description="Message shown to the user when no search results are able to be shown underneath the primary message title">Try searching for similar words</string>
+
+    <!-- Suggestions title in the search view suggestions list -->
+    <string name="photopicker_search_suggestions_text" translation_description="Title in the search suggestions list">Suggestions</string>
 </resources>

@@ -332,6 +332,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PICKER_MEDIA_INIT_CALL = "picker_media_init";
     /** {@hide} */
+    public static final String PICKER_TRANSCODE_CALL = "picker_transcode";
+    /** {@hide} */
+    public static final String PICKER_TRANSCODE_RESULT = "picker_transcode_result";
+    /** {@hide} */
     public static final String EXTRA_LOCAL_ONLY = "is_local_only";
     /** {@hide} */
     public static final String EXTRA_ALBUM_ID = "album_id";

@@ -287,6 +287,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     * <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      * </ul>
      * @return cursor representing album items containing all
      * {@link CloudMediaProviderContract.AlbumColumns} columns
@@ -320,7 +321,10 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * Note: Currently this function does not pass any params in {@code extras}.
      *
      * @param parentCategoryId   the ID of the parent category to filter media categories.
-     * @param extras             containing keys to filter media categories.
+     * @param extras             containing keys to filter media categories:
+     *                           <ul>
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
+     *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor with {@link CloudMediaProviderContract.MediaCategoryColumns} columns
      */
@@ -374,6 +378,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <ul>
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaSetColumns} columns
@@ -469,6 +474,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaColumns} columns
@@ -528,6 +534,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                            <li>{@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                            <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                            </ul>
      * @param cancellationSignal  {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
@@ -585,6 +592,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.

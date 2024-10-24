@@ -28,8 +28,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.photopicker.v2.PickerSQLConstants;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;

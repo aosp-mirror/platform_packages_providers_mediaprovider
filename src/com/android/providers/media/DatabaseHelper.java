@@ -572,27 +572,40 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             tryRecoverDatabase(db, MediaStore.VOLUME_INTERNAL);
         } else {
             tryRecoverDatabase(db, MediaStore.VOLUME_EXTERNAL_PRIMARY);
-            mDatabaseBackupAndRecovery.queuePublicVolumeRecovery(mContext);
         }
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
     public void tryRecoverPublicVolume(String volumeName) {
-        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
-                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+        if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)
+                || !mDatabaseBackupAndRecovery.isPublicVolumeMarkedForRecovery(volumeName)) {
             return;
         }
-        tryRecoverDatabase(super.getWritableDatabase(), mVolumeName);
+
+        try {
+            mDatabaseBackupAndRecovery.waitForVolumeToBeAttached(volumeName);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Volume not attached in given time. Cannot recover data.", e);
+        }
+
+        synchronized (sRecoveryLock) {
+            final SQLiteDatabase db = super.getWritableDatabase();
+            mIsRecovering.set(true);
+            try {
+                mDatabaseBackupAndRecovery.recoverData(db, volumeName);
+            } catch (Exception exception) {
+                Log.e(TAG, "Error in recovering data", exception);
+            } finally {
+                mDatabaseBackupAndRecovery.removePublicVolumeRecoveryFlag(volumeName);
+                mIsRecovering.set(false);
+                mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
+            }
+        }
     }
 
     private void tryRecoverDatabase(SQLiteDatabase db, String volumeName) {
-        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
-                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            // Implement for public volume
-            return;
-        }
-
         if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
@@ -620,7 +633,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
-
             MediaProviderStatsLog.write(
                     MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED, isInternal()
                             ?
@@ -640,6 +652,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 mIsRecovering.set(false);
                 mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
                 updateSessionIdInDatabaseAndExternalStorage(db);
+                if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+                    mDatabaseBackupAndRecovery.markPublicVolumesRecovery();
+                }
             }
         }
     }

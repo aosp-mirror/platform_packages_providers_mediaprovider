@@ -21,7 +21,7 @@
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"Hautatu"</string>
     <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"Desautatu guztiak (<xliff:g id="COUNT">(%1$s)</xliff:g>)"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Aurreikusi"</string>
-    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Arazoren bat izan da bideoa erreproduzitzean"</string>
+    <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Arazoak daude bideoa erreproduzitzeko"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Egiaztatu Internetera konektatuta zaudela eta saiatu berriro"</string>
     <string name="photopicker_preview_dialog_error_retry_button_label" msgid="6246977209614737255">"Saiatu berriro"</string>
     <string name="photopicker_preview_video_error_snackbar" msgid="5090849265316922614">"Ezin da erreproduzitu bideoa"</string>

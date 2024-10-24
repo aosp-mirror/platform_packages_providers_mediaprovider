@@ -16,6 +16,7 @@
 
 package com.android.photopicker.features.search.data
 
+import android.net.Uri
 import android.os.CancellationSignal
 import androidx.paging.PagingSource
 import com.android.photopicker.data.DataService
@@ -44,11 +45,20 @@ class FakeSearchDataServiceImpl(private val dataService: DataService) : SearchDa
         limit: Int,
         cancellationSignal: CancellationSignal?,
     ): List<SearchSuggestion> {
+        if (prefix == "testempty") {
+            return emptyList()
+        }
         return listOf(
             SearchSuggestion("1", "authority", "France", SearchSuggestionType.LOCATION, null),
             SearchSuggestion("2", "authority", "Favorites", SearchSuggestionType.ALBUM, null),
+            SearchSuggestion("2", "authority", "Videos", SearchSuggestionType.VIDEOS_ALBUM, null),
             SearchSuggestion(null, "authority", "france", SearchSuggestionType.HISTORY, null),
+            SearchSuggestion(null, "authority", "paris", SearchSuggestionType.HISTORY, null),
             SearchSuggestion("3", "authority", "March", SearchSuggestionType.DATE, null),
+            SearchSuggestion("4", "authority", "Emma", SearchSuggestionType.FACE, Uri.parse("xyz")),
+            SearchSuggestion("5", "authority", "Bob", SearchSuggestionType.FACE, Uri.parse("xyz")),
+            SearchSuggestion("6", "authority", "April", SearchSuggestionType.DATE, null),
+            SearchSuggestion("7", "authority", null, SearchSuggestionType.FACE, Uri.parse("xyz")),
         )
     }
 

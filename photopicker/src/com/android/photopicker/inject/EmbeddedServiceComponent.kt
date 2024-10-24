@@ -23,7 +23,9 @@ import dagger.hilt.components.SingletonComponent
  *
  * @see [EmbeddedSessionModule] which is a dependency container installed in this component.
  */
-@DefineComponent(parent = SingletonComponent::class) public interface EmbeddedServiceComponent
+@SessionScoped
+@DefineComponent(parent = SingletonComponent::class)
+public interface EmbeddedServiceComponent
 
 /**
  * A component builder that can be used to obtain a new instance of the [EmbeddedServiceComponent].

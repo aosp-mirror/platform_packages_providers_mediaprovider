@@ -332,6 +332,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PICKER_MEDIA_INIT_CALL = "picker_media_init";
     /** {@hide} */
+    public static final String PICKER_TRANSCODE_CALL = "picker_transcode";
+    /** {@hide} */
+    public static final String PICKER_TRANSCODE_RESULT = "picker_transcode_result";
+    /** {@hide} */
     public static final String EXTRA_LOCAL_ONLY = "is_local_only";
     /** {@hide} */
     public static final String EXTRA_ALBUM_ID = "album_id";
@@ -1064,7 +1068,7 @@ public final class MediaStore {
      *
      * <p>Only MediaStore content URI(s) of the item(s) received as a result of
      * {@link MediaStore#ACTION_PICK_IMAGES} action are accepted. The value of this intent-extra
-     * should be an ArrayList of type parcelables. Default value is null. Maximum number of URIs
+     * should be an ArrayList of type URIs. Default value is null. Maximum number of URIs
      * that can be accepted is limited by the value passed in
      * {@link MediaStore#EXTRA_PICK_IMAGES_MAX} as part of the {@link MediaStore#ACTION_PICK_IMAGES}
      * intent. In case the count of input URIs is greater than the limit then

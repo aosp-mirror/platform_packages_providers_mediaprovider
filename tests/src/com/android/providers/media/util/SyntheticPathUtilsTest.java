@@ -54,6 +54,8 @@ public class SyntheticPathUtilsTest {
                 ".transforms/synthetic/picker");
         assertThat(getPickerRelativePath(PickerUriResolver.PICKER_GET_CONTENT_SEGMENT)).isEqualTo(
                 ".transforms/synthetic/picker_get_content");
+        assertThat(getPickerRelativePath(PickerUriResolver.PICKER_TRANSCODED_SEGMENT)).isEqualTo(
+                ".transforms/synthetic/picker_transcoded");
     }
 
     @Test
@@ -100,6 +102,10 @@ public class SyntheticPathUtilsTest {
                         /* userId */ 0)).isTrue();
         assertThat(isPickerPath("/storage/emulated/10/.transforms/synthetic/picker/foo",
                         /* userId */ 10)).isTrue();
+        assertThat(isPickerPath("/storage/emulated/0/.transforms/synthetic/picker_transcoded/foo",
+                /* userId */ 0)).isTrue();
+        assertThat(isPickerPath("/storage/emulated/10/.transforms/synthetic/picker_transcoded/foo",
+                /* userId */ 10)).isTrue();
         assertThat(isPickerPath("/storage/emulated/0/.transforms/synthetic/PICKER/bar/baz",
                         /* userId */ 0)).isTrue();
 
@@ -107,6 +113,10 @@ public class SyntheticPathUtilsTest {
                         /* userId */ 10)).isFalse();
         assertThat(isPickerPath("/storage/emulated/10/.transforms/synthetic/picker/foo",
                         /* userId */ 0)).isFalse();
+        assertThat(isPickerPath("/storage/emulated/0/.transforms/synthetic/picker_transcoded/foo",
+                /* userId */ 10)).isFalse();
+        assertThat(isPickerPath("/storage/emulated/10/.transforms/synthetic/picker_transcoded/foo",
+                /* userId */ 0)).isFalse();
         assertThat(isPickerPath("/storage/emulated/0/.transforms/synthetic/redacted/foo",
                         /* userId */ 0)).isFalse();
         assertThat(isPickerPath("/storage/emulated/0/.transforms/picker/foo", /* userId */ 0))

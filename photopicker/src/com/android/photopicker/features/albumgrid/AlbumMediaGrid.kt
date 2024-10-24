@@ -86,10 +86,13 @@ fun AlbumMediaGrid(
     val albumState by flow.collectAsStateWithLifecycle(initialValue = null)
     val album = albumState
 
-    when (album) {
-        null -> {}
-        else -> {
-            AlbumMediaGrid(album = album, albumItems = viewModel.getAlbumMedia(album))
+    Column(modifier = Modifier.fillMaxSize()) {
+        when (album) {
+            null -> {}
+            else -> {
+                val albumItems = remember(album) { viewModel.getAlbumMedia(album) }
+                AlbumMediaGrid(album = album, albumItems = albumItems)
+            }
         }
     }
 }

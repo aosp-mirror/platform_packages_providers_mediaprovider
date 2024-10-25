@@ -903,80 +903,60 @@ public abstract class CloudMediaProvider extends ContentProvider {
                         System.currentTimeMillis() - startTime, mAuthority);
                 break;
             case MATCH_MEDIA_CATEGORIES:
-                if (Flags.cloudMediaProviderSearch()) {
-                    final String parentCategoryId = queryArgs.getString(KEY_PARENT_CATEGORY_ID);
-                    queryArgs.remove(KEY_PARENT_CATEGORY_ID);
-                    result = onQueryMediaCategories(parentCategoryId, queryArgs, cancellationSignal
-                    );
-                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaCategories,
-                                    result),
-                            System.currentTimeMillis() - startTime, mAuthority);
-                } else {
-                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
-                }
+                final String parentCategoryId = queryArgs.getString(KEY_PARENT_CATEGORY_ID);
+                queryArgs.remove(KEY_PARENT_CATEGORY_ID);
+                result = onQueryMediaCategories(parentCategoryId, queryArgs, cancellationSignal
+                );
+                CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaCategories,
+                                result),
+                        System.currentTimeMillis() - startTime, mAuthority);
                 break;
             case MATCH_MEDIA_SETS:
-                if (Flags.cloudMediaProviderSearch()) {
-                    final String mediaCategoryId = queryArgs.getString(KEY_MEDIA_CATEGORY_ID);
-                    queryArgs.remove(KEY_MEDIA_CATEGORY_ID);
-                    result = onQueryMediaSets(mediaCategoryId, queryArgs, cancellationSignal);
-                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaSets,
-                                    result),
-                            System.currentTimeMillis() - startTime, mAuthority);
-                } else {
-                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
-                }
+                final String mediaCategoryId = queryArgs.getString(KEY_MEDIA_CATEGORY_ID);
+                queryArgs.remove(KEY_MEDIA_CATEGORY_ID);
+                result = onQueryMediaSets(mediaCategoryId, queryArgs, cancellationSignal);
+                CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaSets,
+                                result),
+                        System.currentTimeMillis() - startTime, mAuthority);
                 break;
             case MATCH_SEARCH_SUGGESTION:
-                if (Flags.cloudMediaProviderSearch()) {
-                    final String prefixText = queryArgs.getString(KEY_PREFIX_TEXT);
-                    queryArgs.remove(KEY_PREFIX_TEXT);
-                    result = onQuerySearchSuggestions(prefixText, queryArgs, cancellationSignal);
-                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                                    CmpApiVerifier.CloudMediaProviderApis.OnQuerySearchSuggestions,
-                                    result),
-                            System.currentTimeMillis() - startTime, mAuthority);
-                } else {
-                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
-                }
+                final String prefixText = queryArgs.getString(KEY_PREFIX_TEXT);
+                queryArgs.remove(KEY_PREFIX_TEXT);
+                result = onQuerySearchSuggestions(prefixText, queryArgs, cancellationSignal);
+                CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                CmpApiVerifier.CloudMediaProviderApis.OnQuerySearchSuggestions,
+                                result),
+                        System.currentTimeMillis() - startTime, mAuthority);
                 break;
             case MATCH_MEDIAS_IN_MEDIA_SET:
-                if (Flags.cloudMediaProviderSearch()) {
-                    final String mediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
-                    queryArgs.remove(KEY_MEDIA_SET_ID);
-                    result = onQueryMediaInMediaSet(mediaSetId, queryArgs, cancellationSignal);
-                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                                    CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaInMediaSet,
-                                    result),
-                            System.currentTimeMillis() - startTime, mAuthority);
-                } else {
-                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
-                }
+                final String mediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
+                queryArgs.remove(KEY_MEDIA_SET_ID);
+                result = onQueryMediaInMediaSet(mediaSetId, queryArgs, cancellationSignal);
+                CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                CmpApiVerifier.CloudMediaProviderApis.OnQueryMediaInMediaSet,
+                                result),
+                        System.currentTimeMillis() - startTime, mAuthority);
                 break;
             case MATCH_SEARCH:
-                if (Flags.cloudMediaProviderSearch()) {
-                    final String searchText = queryArgs.getString(KEY_SEARCH_TEXT);
-                    queryArgs.remove(KEY_SEARCH_TEXT);
-                    final String mediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
-                    queryArgs.remove(KEY_MEDIA_SET_ID);
-                    if (mediaSetId != null) {
-                        result = onSearchMedia(mediaSetId, searchText, queryArgs, cancellationSignal
-                        );
-                    } else if (searchText != null) {
-                        result = onSearchMedia(searchText, queryArgs, cancellationSignal);
-                    } else {
-                        throw new IllegalArgumentException("both suggested media set id "
-                                + "and search text can not be null together");
-                    }
-                    CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                                    CmpApiVerifier.CloudMediaProviderApis.OnSearchMedia,
-                                    result),
-                            System.currentTimeMillis() - startTime, mAuthority);
+                final String searchText = queryArgs.getString(KEY_SEARCH_TEXT);
+                queryArgs.remove(KEY_SEARCH_TEXT);
+                final String searchMediaSetId = queryArgs.getString(KEY_MEDIA_SET_ID);
+                queryArgs.remove(KEY_MEDIA_SET_ID);
+                if (searchMediaSetId != null) {
+                    result = onSearchMedia(
+                            searchMediaSetId, searchText, queryArgs, cancellationSignal);
+                } else if (searchText != null) {
+                    result = onSearchMedia(searchText, queryArgs, cancellationSignal);
                 } else {
-                    throw new UnsupportedOperationException("Unsupported Uri " + uri);
+                    throw new IllegalArgumentException("both suggested media set id "
+                            + "and search text can not be null together");
                 }
+                CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                                CmpApiVerifier.CloudMediaProviderApis.OnSearchMedia,
+                                result),
+                        System.currentTimeMillis() - startTime, mAuthority);
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported Uri " + uri);

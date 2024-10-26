@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 import android.util.Log;
 
@@ -43,7 +44,10 @@ import androidx.media3.transformer.ExportException;
 import androidx.media3.transformer.ExportResult;
 import androidx.media3.transformer.Transformer;
 
+import com.android.providers.media.util.FileUtils;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -79,6 +83,40 @@ public class PhotoPickerTranscodeHelper {
         if (!mTranscodeDirectory.exists()) {
             mTranscodeDirectory.mkdir();
         }
+    }
+
+    /**
+     * Opens the transcoded file for the given host and media ID.
+     *
+     * @param host The host of the transcoded file.
+     * @param mediaId The media ID of the transcoded file.
+     * @return The ParcelFileDescriptor of the transcoded file.
+     * @throws FileNotFoundException If the transcoded file does not exist.
+     */
+    public ParcelFileDescriptor openTranscodedFile(@NonNull String host, @NonNull String mediaId)
+            throws FileNotFoundException {
+        final String transcodedFilePath = toTranscodedFilePath(host, mediaId);
+        final File transcodedFile = new File(transcodedFilePath);
+
+        return FileUtils.openSafely(transcodedFile, ParcelFileDescriptor.MODE_READ_ONLY);
+    }
+
+    /**
+     * Gets the size of the transcoded file for the given host and media ID.
+     *
+     * @param host The host of the transcoded file.
+     * @param mediaId The media ID of the transcoded file.
+     * @return The size of the transcoded file in bytes, or -1 if the file does not exist.
+     */
+    public long getTranscodedFileSize(@NonNull String host, @NonNull String mediaId) {
+        final String transcodedFilePath = toTranscodedFilePath(host, mediaId);
+        final File transcodedFile = new File(transcodedFilePath);
+
+        if (transcodedFile.exists()) {
+            return transcodedFile.length();
+        }
+
+        return -1L;
     }
 
     /**

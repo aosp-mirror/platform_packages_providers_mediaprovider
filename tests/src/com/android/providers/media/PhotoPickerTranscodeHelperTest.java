@@ -28,6 +28,7 @@ import static com.google.common.truth.Truth.assertThat;
 import android.content.Context;
 import android.net.Uri;
 import android.os.CancellationSignal;
+import android.os.ParcelFileDescriptor;
 import android.os.UserHandle;
 
 import androidx.annotation.NonNull;
@@ -40,6 +41,7 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.List;
 
@@ -148,6 +150,40 @@ public class PhotoPickerTranscodeHelperTest {
             }
         });
         assertThat(helper.transcode(getTargetContext(), mTestUri)).isFalse();
+    }
+
+    @Test
+    public void openTranscodedFile() throws IOException {
+        // Pre-create corresponded cached transcoded file.
+        final File cachedFile = new File(mTestDirectory, mTestHost + "_" + mTestMediaId);
+        if (cachedFile.createNewFile()) {
+            assertThat(cachedFile.exists()).isTrue();
+        }
+
+        // Act & Assert.
+        ParcelFileDescriptor pfd = mHelper.openTranscodedFile(mTestHost, mTestMediaId);
+        assertThat(pfd).isNotNull();
+
+        // Cleanup.
+        cachedFile.delete();
+    }
+
+    @Test
+    public void getTranscodedFileSize() throws IOException {
+        // Pre-create corresponded cached transcoded file.
+        final File cachedFile = new File(mTestDirectory, mTestHost + "_" + mTestMediaId);
+        if (cachedFile.createNewFile()) {
+            assertThat(cachedFile.exists()).isTrue();
+        }
+        final RandomAccessFile raf = new RandomAccessFile(cachedFile, "rw");
+        raf.setLength(3);
+
+        // Act & Assert.
+        long fileSize = mHelper.getTranscodedFileSize(mTestHost, mTestMediaId);
+        assertThat(fileSize).isEqualTo(3);
+
+        // Cleanup.
+        cachedFile.delete();
     }
 
     @Test

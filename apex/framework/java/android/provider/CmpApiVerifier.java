@@ -80,6 +80,10 @@ final class CmpApiVerifier {
                         CMP_API_TO_THRESHOLD_MAP.get(result.getApi()), errors);
 
                 switch (result.getApi()) {
+                    case CloudMediaProviderApis.OnGetCapabilities: {
+                        verifyOnGetCapabilities(result.getBundle(), verificationResult, errors);
+                        break;
+                    }
                     case CloudMediaProviderApis.OnGetMediaCollectionInfo: {
                         verifyOnGetMediaCollectionInfo(result.getBundle(), verificationResult,
                                 errors);
@@ -139,6 +143,44 @@ final class CmpApiVerifier {
                         verificationResult, errors);
             } catch (Exception e) {
                 VerificationLogsHelper.logException(e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Verifies the {@link CloudMediaProvider#onGetCapabilities()} API.
+     *
+     * Verifies the Capabilities object returned is non-null.
+     */
+    static void verifyOnGetCapabilities(
+            Bundle outputBundle, List<String> verificationResult, List<String> errors) {
+
+        // Only Verify if the flag for capabilities is on.
+        if (Flags.enableCloudMediaProviderCapabilities()) {
+
+            if (outputBundle != null
+                    && outputBundle.containsKey(
+                            CloudMediaProviderContract.EXTRA_PROVIDER_CAPABILITIES)) {
+
+                verificationResult.add("Capabilities is present.");
+
+                CloudMediaProviderContract.Capabilities capabilities = outputBundle
+                        .getParcelable(CloudMediaProviderContract.EXTRA_PROVIDER_CAPABILITIES);
+
+                // Verify CMP search capabilities if the search flag is on.
+                if (Flags.cloudMediaProviderSearch()) {
+                    if (capabilities.isAlbumsAsCategoryEnabled()
+                            && !capabilities.isMediaCollectionsEnabled()) {
+                        errors.add(createIsNotValidLog("Declared capabilities are invalid. "
+                                + "AlbumsAsCategory capability can only be enabled when "
+                                + "MediaCollections is enabled."));
+                    } else {
+                        verificationResult.add("Declared Capabilities are valid.");
+                    }
+
+                }
+            } else {
+                errors.add(createIsNullLog("Capabilities were not returned by OnGetCapabilities"));
             }
         }
     }
@@ -520,6 +562,7 @@ final class CmpApiVerifier {
     }
 
     @StringDef({
+            CloudMediaProviderApis.OnGetCapabilities,
             CloudMediaProviderApis.OnGetMediaCollectionInfo,
             CloudMediaProviderApis.OnQueryMedia,
             CloudMediaProviderApis.OnQueryDeletedMedia,
@@ -534,6 +577,7 @@ final class CmpApiVerifier {
     })
     @Retention(RetentionPolicy.SOURCE)
     @interface CloudMediaProviderApis {
+        String OnGetCapabilities = "OnGetCapabilities";
         String OnGetMediaCollectionInfo = "onGetMediaCollectionInfo";
         String OnQueryMedia = "onQueryMedia";
         String OnQueryDeletedMedia = "onQueryDeletedMedia";
@@ -548,6 +592,7 @@ final class CmpApiVerifier {
     }
 
     private static final Map<String, Long> CMP_API_TO_THRESHOLD_MAP = new HashMap<>(Map.ofEntries(
+            Map.entry(CloudMediaProviderApis.OnGetCapabilities, 200L),
             Map.entry(CloudMediaProviderApis.OnGetMediaCollectionInfo, 200L),
             Map.entry(CloudMediaProviderApis.OnQueryMedia, 500L),
             Map.entry(CloudMediaProviderApis.OnQueryDeletedMedia, 500L),

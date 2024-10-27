@@ -40,7 +40,8 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.PickerSyncController;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -75,11 +76,12 @@ public class PreviewMediaQuery extends MediaQuery {
     @Override
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
-        super.addWhereClause(queryBuilder, localAuthority, cloudAuthority, reverseOrder);
+        super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
         addIdSelectionClause(queryBuilder);
     }

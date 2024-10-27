@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.v2.model;
 
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
+import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
 import android.content.Context;
 import android.net.Uri;
@@ -28,7 +29,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -61,21 +63,24 @@ public class MediaQueryForPreSelection extends MediaQuery {
     @Override
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
-        super.addWhereClause(queryBuilder, localAuthority, cloudAuthority, reverseOrder);
+        super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
-        String idSelection = addIdSelectionClause(cloudAuthority);
+        String idSelection = addIdSelectionClause(table, cloudAuthority);
         queryBuilder.appendWhereStandalone(idSelection);
     }
 
-    private String addIdSelectionClause(@Nullable String cloudAuthority) {
+    private String addIdSelectionClause(
+            @NonNull PickerSQLConstants.Table table,
+            @Nullable String cloudAuthority) {
 
         StringBuilder idSelectionClause = new StringBuilder();
 
-        idSelectionClause.append(KEY_LOCAL_ID).append(" IN (\'");
+        idSelectionClause.append(prependTableName(table, KEY_LOCAL_ID)).append(" IN (\'");
         idSelectionClause.append(String.join("\',\'", mLocalIdSelection));
         idSelectionClause.append("\')");
 
@@ -83,7 +88,7 @@ public class MediaQueryForPreSelection extends MediaQuery {
             if (!idSelectionClause.toString().isEmpty()) {
                 idSelectionClause.append(" OR ");
             }
-            idSelectionClause.append(KEY_CLOUD_ID).append(" IN (\'");
+            idSelectionClause.append(prependTableName(table, KEY_CLOUD_ID)).append(" IN (\'");
             idSelectionClause.append(String.join("\',\'", mCloudIdSelection));
             idSelectionClause.append("\')");
         }

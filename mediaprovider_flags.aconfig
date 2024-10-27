@@ -192,3 +192,29 @@ flag {
     bug: "361019344"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "enable_photopicker_transcoding"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether to enable transcoding feature in photopicker"
+    bug: "367886883"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_cloud_media_provider_capabilities"
+    namespace: "mediaprovider"
+    description: "This flag controls the Capabilities APIs in CloudMediaProvider and the contract."
+    bug: "370445733"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "motion_photo_intent"
+    is_exported: true
+    namespace: "mediaprovider"
+    is_fixed_read_only: true
+    description: "This flag will enable the motion photo capture intents."
+    bug: "362580165"
+}

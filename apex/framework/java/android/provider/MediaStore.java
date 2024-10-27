@@ -332,6 +332,10 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PICKER_MEDIA_INIT_CALL = "picker_media_init";
     /** {@hide} */
+    public static final String PICKER_TRANSCODE_CALL = "picker_transcode";
+    /** {@hide} */
+    public static final String PICKER_TRANSCODE_RESULT = "picker_transcode_result";
+    /** {@hide} */
     public static final String EXTRA_LOCAL_ONLY = "is_local_only";
     /** {@hide} */
     public static final String EXTRA_ALBUM_ID = "album_id";
@@ -704,6 +708,56 @@ public final class MediaStore {
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_IMAGE_CAPTURE_SECURE =
             "android.media.action.IMAGE_CAPTURE_SECURE";
+
+    /**
+     * Standard Intent action that can be sent to have the camera application
+     * capture a
+     * <a href="{@docRoot}media/platform/motion-photo-format">motion photo</a> and
+     * return it.
+     * <p>
+     * The caller must either pass an extra EXTRA_OUTPUT to control where the image will be written,
+     * or a uri through {@link android.content.Intent#setClipData(ClipData)}. If you don't set a
+     * ClipData, it will be copied there for you when calling {@link Context#startActivity(Intent)}.
+     * <p>
+     * When an image is captured via this intent, {@link android.hardware.Camera#ACTION_NEW_PICTURE}
+     * won't be broadcasted.
+     * <p>
+     * Note: If your app declares as using the {@link android.Manifest.permission#CAMERA} permission
+     * which is not granted, then attempting to use this action will result in a {@link
+     * java.lang.SecurityException}.
+     *
+     * @see #EXTRA_OUTPUT
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    @FlaggedApi(com.android.providers.media.flags.Flags.FLAG_MOTION_PHOTO_INTENT)
+    public static final String ACTION_MOTION_PHOTO_CAPTURE =
+            "android.provider.action.MOTION_PHOTO_CAPTURE";
+
+    /**
+     * Intent action that can be sent to have the camera application capture a
+     * <a href="{@docRoot}media/platform/motion-photo-format">motion photo</a> and
+     * return it when the device is secured (e.g. with a pin, password, pattern, or face unlock).
+     * Applications responding to this intent must not expose any personal content like existing
+     * photos or videos on the device. The applications should be careful not to share any photo
+     * or video with other applications or Internet. The activity should use {@link
+     * Activity#setShowWhenLocked} to display on top of the
+     * lock screen while secured. There is no activity stack when this flag is used, so
+     * launching more than one activity is strongly discouraged.
+     * <p>
+     * The caller must either pass an extra EXTRA_OUTPUT to control where the image will be written,
+     * or a uri through {@link android.content.Intent#setClipData(ClipData)}. If you don't set a
+     * ClipData, it will be copied there for you when calling {@link Context#startActivity(Intent)}.
+     * <p>
+     * When an image is captured via this intent, {@link android.hardware.Camera#ACTION_NEW_PICTURE}
+     * won't be broadcasted.
+     *
+     * @see #ACTION_MOTION_PHOTO_CAPTURE
+     * @see #EXTRA_OUTPUT
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    @FlaggedApi(com.android.providers.media.flags.Flags.FLAG_MOTION_PHOTO_INTENT)
+    public static final String ACTION_MOTION_PHOTO_CAPTURE_SECURE =
+            "android.provider.action.MOTION_PHOTO_CAPTURE_SECURE";
 
     /**
      * Standard Intent action that can be sent to have the camera application

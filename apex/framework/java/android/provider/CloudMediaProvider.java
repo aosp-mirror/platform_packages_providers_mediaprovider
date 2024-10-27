@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.EXTRA_ERROR_MESSAGE;
 import static android.provider.CloudMediaProviderContract.EXTRA_FILE_DESCRIPTOR;
 import static android.provider.CloudMediaProviderContract.EXTRA_LOOPING_PLAYBACK_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_MEDIASTORE_THUMB;
+import static android.provider.CloudMediaProviderContract.EXTRA_PROVIDER_CAPABILITIES;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED;
 import static android.provider.CloudMediaProviderContract.EXTRA_SURFACE_STATE_CALLBACK;
@@ -32,6 +33,7 @@ import static android.provider.CloudMediaProviderContract.KEY_PREFIX_TEXT;
 import static android.provider.CloudMediaProviderContract.KEY_SEARCH_TEXT;
 import static android.provider.CloudMediaProviderContract.METHOD_CREATE_SURFACE_CONTROLLER;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_CAPABILITIES;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_MEDIA_COLLECTION_INFO;
 import static android.provider.CloudMediaProviderContract.URI_PATH_ALBUM;
 import static android.provider.CloudMediaProviderContract.URI_PATH_DELETED_MEDIA;
@@ -184,6 +186,27 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     /**
+     * Returns the {@link CloudMediaProviderContract.Capabilities} of this
+     * CloudMediaProvider.
+     *
+     * This object is used to determine which APIs can be safely invoked during
+     * runtime.
+     *
+     * If not overridden the default capabilities are used.
+     *
+     * IMPORTANT: This method is performance critical and should avoid long running
+     * or expensive operations.
+     *
+     * @see CloudMediaProviderContract.Capabilities
+     *
+     */
+    @NonNull
+    @FlaggedApi(Flags.FLAG_ENABLE_CLOUD_MEDIA_PROVIDER_CAPABILITIES)
+    public CloudMediaProviderContract.Capabilities onGetCapabilities() {
+        return new CloudMediaProviderContract.Capabilities.Builder().build();
+    }
+
+    /**
      * Returns metadata about the media collection itself.
      * <p>
      * This is useful for the OS to determine if its cache of media items in the collection is
@@ -287,6 +310,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <li> {@link CloudMediaProviderContract#EXTRA_SYNC_GENERATION}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      * <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     * <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      * </ul>
      * @return cursor representing album items containing all
      * {@link CloudMediaProviderContract.AlbumColumns} columns
@@ -320,7 +344,10 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * Note: Currently this function does not pass any params in {@code extras}.
      *
      * @param parentCategoryId   the ID of the parent category to filter media categories.
-     * @param extras             containing keys to filter media categories.
+     * @param extras             containing keys to filter media categories:
+     *                           <ul>
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
+     *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor with {@link CloudMediaProviderContract.MediaCategoryColumns} columns
      */
@@ -374,6 +401,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <ul>
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaSetColumns} columns
@@ -469,6 +497,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaColumns} columns
@@ -528,6 +557,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                            <li>{@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                            <li>{@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                            <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                            </ul>
      * @param cancellationSignal  {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
@@ -585,6 +615,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_PAGE_SIZE}
      *                           <li> {@link CloudMediaProviderContract#EXTRA_SORT_ORDER}
+     *                           <li> {@link android.content.Intent#EXTRA_MIME_TYPES}
      *                           </ul>
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
@@ -686,7 +717,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
     }
 
     private Bundle callUnchecked(@NonNull String method, @Nullable String arg,
-                                 @Nullable Bundle extras)
+            @Nullable Bundle extras)
             throws FileNotFoundException {
         if (extras == null) {
             extras = new Bundle();
@@ -696,12 +727,22 @@ public abstract class CloudMediaProvider extends ContentProvider {
             long startTime = System.currentTimeMillis();
             result = onGetMediaCollectionInfo(extras);
             CmpApiVerifier.verifyApiResult(new CmpApiResult(
-                            CmpApiVerifier.CloudMediaProviderApis.OnGetMediaCollectionInfo, result),
+                    CmpApiVerifier.CloudMediaProviderApis.OnGetMediaCollectionInfo, result),
                     System.currentTimeMillis() - startTime, mAuthority);
         } else if (METHOD_CREATE_SURFACE_CONTROLLER.equals(method)) {
             result = onCreateCloudMediaSurfaceController(extras);
         } else if (METHOD_GET_ASYNC_CONTENT_PROVIDER.equals(method)) {
             result = onGetAsyncContentProvider();
+        } else if (Flags.enableCloudMediaProviderCapabilities()
+                    && METHOD_GET_CAPABILITIES.equals(method)) {
+            long startTime = System.currentTimeMillis();
+
+            CloudMediaProviderContract.Capabilities capabilities = onGetCapabilities();
+            result.putParcelable(EXTRA_PROVIDER_CAPABILITIES, capabilities);
+
+            CmpApiVerifier.verifyApiResult(new CmpApiResult(
+                    CmpApiVerifier.CloudMediaProviderApis.OnGetCapabilities, result),
+                    System.currentTimeMillis() - startTime, mAuthority);
         } else {
             throw new UnsupportedOperationException("Method not supported " + method);
         }

@@ -18,7 +18,7 @@ java_test_host {
         "tradefed",
         "compatibility-host-util",
     ],
-    data: [
+    device_common_data: [
         ":TestCloudMediaProviderApp",
     ],
 }

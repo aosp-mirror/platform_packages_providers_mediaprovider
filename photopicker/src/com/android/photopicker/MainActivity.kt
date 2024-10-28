@@ -70,7 +70,10 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
 import com.android.photopicker.extensions.getUserProfilesVisibleToPhotopicker
-import com.android.photopicker.features.cloudmedia.CloudMediaFeature
+import com.android.photopicker.features.preparemedia.PrepareMediaFeature
+import com.android.photopicker.features.preparemedia.PrepareMediaResult
+import com.android.photopicker.features.preparemedia.PrepareMediaResult.PrepareMediaFailed
+import com.android.photopicker.features.preparemedia.PrepareMediaResult.PreparedMedia
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.scopes.ActivityRetainedScoped
@@ -127,27 +130,27 @@ class MainActivity : Hilt_MainActivity() {
     private lateinit var photopickerEventLogger: PhotopickerEventLogger
 
     /**
-     * A flow used to trigger the preloader. When media is ready to be preloaded it should be
-     * provided to the preloader by emitting into this flow.
+     * A flow used to trigger the preparer. When media is ready to be prepared it should be provided
+     * to the preparer by emitting into this flow.
      *
-     * The main activity should create a new [_preloadDeferred] before emitting, and then monitor
-     * that deferred to obtain the result of the preload operation that this flow will trigger.
+     * The main activity should create a new [_prepareDeferred] before emitting, and then monitor
+     * that deferred to obtain the result of the prepare operation that this flow will trigger.
      */
-    private val preloadMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
+    private val prepareMedia: MutableSharedFlow<Set<Media>> = MutableSharedFlow()
 
     /**
-     * A deferred which tracks the current state of any preload operation requested by the main
+     * A deferred which tracks the current state of any prepare operation requested by the main
      * activity.
      */
-    private var _preloadDeferred: CompletableDeferred<Boolean> = CompletableDeferred()
+    private var _prepareDeferred: CompletableDeferred<PrepareMediaResult> = CompletableDeferred()
 
     /**
      * Public access to the deferred, behind a getter. (To ensure any access to this property always
      * obtains the latest value)
      */
-    val preloadDeferred: CompletableDeferred<Boolean>
+    val prepareDeferred: CompletableDeferred<PrepareMediaResult>
         get() {
-            return _preloadDeferred
+            return _prepareDeferred
         }
 
     /**
@@ -232,8 +235,8 @@ class MainActivity : Hilt_MainActivity() {
                                 withContext(background) { onMediaSelectionConfirmed() }
                             }
                         },
-                        preloadMedia = preloadMedia,
-                        obtainPreloaderDeferred = { preloadDeferred },
+                        prepareMedia = prepareMedia,
+                        obtainPreparerDeferred = { prepareDeferred },
                         disruptiveDataNotification,
                     )
                 }
@@ -246,7 +249,7 @@ class MainActivity : Hilt_MainActivity() {
                 override fun handleOnBackPressed() {
                     isPickerClosedByBackGesture = true
                 }
-            }
+            },
         )
 
         // Log the picker launch details
@@ -330,7 +333,7 @@ class MainActivity : Hilt_MainActivity() {
                                 isOrderedSelectionSet,
                                 isAccentColorSet,
                                 isLaunchTabSet,
-                                isSearchEnabled
+                                isSearchEnabled,
                             )
                         )
                 }
@@ -352,7 +355,7 @@ class MainActivity : Hilt_MainActivity() {
                             isOrderedSelectionSet,
                             isAccentColorSet,
                             isLaunchTabSet,
-                            isSearchEnabled
+                            isSearchEnabled,
                         )
                     )
             }
@@ -469,7 +472,7 @@ class MainActivity : Hilt_MainActivity() {
                         pickedItemsSize,
                         profileSwitchButtonVisible,
                         pickerMode,
-                        pickerCloseMethod
+                        pickerCloseMethod,
                     )
                 )
         }
@@ -562,33 +565,40 @@ class MainActivity : Hilt_MainActivity() {
     suspend fun onMediaSelectionConfirmed() {
 
         val snapshot = selection.get().snapshot()
-        // Determine if any preload of the selected media needs to happen, and
-        // await the result of the preloader before proceeding.
-        if (featureManager.get().isFeatureEnabled(CloudMediaFeature::class.java)) {
+        var selection = snapshot
+        // Determine if any prepare of the selected media needs to happen, and
+        // await the result of the preparer before proceeding.
+        if (featureManager.get().isFeatureEnabled(PrepareMediaFeature::class.java)) {
 
             // Create a new [CompletableDeferred] that represents the result of this
-            // preload operation
-            _preloadDeferred = CompletableDeferred()
-            preloadMedia.emit(snapshot)
+            // prepare operation
+            _prepareDeferred = CompletableDeferred()
+            prepareMedia.emit(snapshot)
 
             // Await a response from the deferred before proceeding.
             // This will suspend until the response is available.
-            val preloadSuccessful = _preloadDeferred.await()
+            val prepareResult = _prepareDeferred.await()
+            if (prepareResult is PreparedMedia) {
+                selection = prepareResult.preparedMedia
+            } else {
+                if (prepareResult !is PrepareMediaFailed) {
+                    Log.e(TAG, "Expected prepare result object was not a PrepareMediaFailed")
+                }
 
-            // The preload failed, so the activity cannot be completed.
-            if (!preloadSuccessful) {
+                // The prepare failed, so the activity cannot be completed.
                 return
             }
         }
-        val deselectionSnapshot = selection.get().getDeselection().toHashSet()
-        onMediaSelectionReady(snapshot, deselectionSnapshot)
+
+        val deselectionSnapshot = this.selection.get().getDeselection().toHashSet()
+        onMediaSelectionReady(selection, deselectionSnapshot)
     }
 
     /**
      * This will end the activity.
      *
      * This method should be called when the user has confirmed their selection of media and would
-     * like to exit the Photopicker. All Media preloading should be completed before this method is
+     * like to exit the Photopicker. All Media preparing should be completed before this method is
      * invoked. This method will then arrange for the correct data to be returned based on the
      * configuration Photopicker is running under.
      *
@@ -649,7 +659,7 @@ class MainActivity : Hilt_MainActivity() {
                 ClipData(
                     /* label= */ null,
                     /* mimeTypes= */ selection.map { it.mimeType }.distinct().toTypedArray(),
-                    /* item= */ ClipData.Item(uris.removeFirst())
+                    /* item= */ ClipData.Item(uris.removeFirst()),
                 )
 
             // If there are any remaining items in the list, attach those as additional
@@ -715,7 +725,7 @@ class MainActivity : Hilt_MainActivity() {
                             mediaItem.mediaItemAlbum,
                             mediaType,
                             cloudOnly,
-                            pickerSize
+                            pickerSize,
                         )
                     )
             }
@@ -742,7 +752,7 @@ class MainActivity : Hilt_MainActivity() {
     private suspend fun updateGrantsForApp(
         currentSelection: Set<Media>,
         currentDeSelection: Set<Media>,
-        uid: Int
+        uid: Int,
     ) {
 
         val selection = selection.get()
@@ -761,7 +771,7 @@ class MainActivity : Hilt_MainActivity() {
             MediaStore.revokeMediaReadForPackages(
                 getApplicationContext(),
                 uid,
-                urisForItemsToBeRevoked
+                urisForItemsToBeRevoked,
             )
         }
         // Adding grants for items selected by the user.

@@ -47,6 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
@@ -94,6 +97,9 @@ fun ProfileSelector(
             if (customAccentColorScheme.isAccentColorDefined())
                 MaterialTheme.colorScheme.surfaceContainerHigh
             else MaterialTheme.colorScheme.primaryContainer
+        val currentProfileLabel = currentProfile.label ?: getLabelForProfile(currentProfile)
+        val profileSelectorDescription =
+            stringResource(R.string.photopicker_profile_switch_button_description)
 
         Box(modifier = modifier) {
             FilledTonalButton(
@@ -112,18 +118,22 @@ fun ProfileSelector(
                 currentProfile.icon?.let {
                     Icon(
                         it,
-                        contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description),
-                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
+                        contentDescription = currentProfileLabel,
+                        modifier =
+                            Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE).semantics {
+                                onClick(label = profileSelectorDescription, action = null)
+                            },
                     )
                 }
                     // If the profile doesn't have an icon drawable set, then
                     // generate one.
                     ?: Icon(
                         getIconForProfile(currentProfile),
-                        contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description),
-                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
+                        contentDescription = currentProfileLabel,
+                        modifier =
+                            Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE).semantics {
+                                onClick(label = profileSelectorDescription, action = null)
+                            },
                     )
 
                 Icon(
@@ -157,6 +167,12 @@ fun ProfileSelector(
                             else -> MaterialTheme.colorScheme.surfaceContainerHigh
                         }
                     val surfaceContentColor = contentColorFor(surfaceColor)
+                    val selectedProfileDescription =
+                        stringResource(
+                            R.string.photopicker_selected_profile_description,
+                            currentProfileLabel,
+                        )
+                    val profileLabel = profile.label ?: getLabelForProfile(profile)
 
                     // The background color behind the text
                     Surface(
@@ -199,8 +215,16 @@ fun ProfileSelector(
                             },
                             text = {
                                 Text(
-                                    text = profile.label ?: getLabelForProfile(profile),
+                                    text = profileLabel,
                                     style = MaterialTheme.typography.bodyLarge,
+                                    modifier =
+                                        Modifier.semantics {
+                                            contentDescription =
+                                                when (currentProfile == profile) {
+                                                    true -> selectedProfileDescription
+                                                    false -> profileLabel
+                                                }
+                                        },
                                 )
                             },
                             leadingIcon = {

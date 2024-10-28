@@ -16,6 +16,8 @@
 
 package com.android.photopicker.features.navigationbar
 
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -42,8 +43,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
+import com.android.photopicker.core.animations.standardDecelerate
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.CustomAccentColorScheme
@@ -134,7 +139,7 @@ fun NavigationBarButton(
     onClick: () -> Unit,
     modifier: Modifier,
     isCurrentRoute: (String) -> Boolean,
-    buttonContent: @Composable () -> Unit
+    buttonContent: @Composable () -> Unit,
 ) {
     val navController = LocalNavController.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -177,15 +182,15 @@ private fun NavigationBarButtons(modifier: Modifier) {
     Row(
         // Consume the incoming modifier to get the correct positioning.
         modifier = modifier,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Center,
     ) {
         Row(
             // Layout in individual buttons in a row, and space them evenly.
             horizontalArrangement =
                 Arrangement.spacedBy(
                     MEASUREMENT_SPACER_SIZE,
-                    alignment = Alignment.CenterHorizontally
-                ),
+                    alignment = Alignment.CenterHorizontally,
+                )
         ) {
             val featureManager = LocalFeatureManager.current
             val searchFeatureEnabled = featureManager.isFeatureEnabled(SearchFeature::class.java)
@@ -199,7 +204,7 @@ private fun NavigationBarButtons(modifier: Modifier) {
                         Modifier.weight(1f)
                     } else {
                         Modifier // No modifier needed when search not enabled
-                    }
+                    },
             )
         }
     }
@@ -224,15 +229,13 @@ private fun NavigationBarForAlbum(modifier: Modifier) {
         when (album) {
             null -> {}
             else -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     // back button
                     IconButton(
                         modifier =
                             Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
                                 .padding(horizontal = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING),
-                        onClick = { navController.navigateToAlbumGrid() }
+                        onClick = { navController.navigateToAlbumGrid() },
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -256,14 +259,11 @@ private fun NavigationBarForAlbum(modifier: Modifier) {
             remember(featureManager) {
                 featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
             }
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.End,
-        ) {
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
             if (overFlowMenuEnabled) {
                 featureManager.composeLocation(
                     Location.OVERFLOW_MENU,
-                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
                 )
             } else {
                 Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
@@ -286,23 +286,20 @@ private fun NavigationBarWithSearch(modifier: Modifier) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
+        horizontalAlignment = Alignment.Start,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
             featureManager.composeLocation(
                 Location.SEARCH_BAR,
                 maxSlots = 1,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             featureManager.composeLocation(
                 Location.PROFILE_SELECTOR,
                 maxSlots = 1,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
             )
-            Row(
-                modifier = Modifier,
-                horizontalArrangement = Arrangement.End,
-            ) {
+            Row(modifier = Modifier, horizontalArrangement = Arrangement.End) {
                 val overFlowMenuEnabled =
                     remember(featureManager) {
                         featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
@@ -310,7 +307,7 @@ private fun NavigationBarWithSearch(modifier: Modifier) {
                 if (overFlowMenuEnabled) {
                     featureManager.composeLocation(
                         Location.OVERFLOW_MENU,
-                        modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                        modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
                     )
                 } else {
                     Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
@@ -341,7 +338,7 @@ private fun BasicNavigationBar(modifier: Modifier) {
             featureManager.composeLocation(
                 Location.PROFILE_SELECTOR,
                 maxSlots = 1,
-                modifier = Modifier.padding(start = 8.dp).weight(1f)
+                modifier = Modifier.padding(start = 8.dp).weight(1f),
             )
         } else {
             Spacer(
@@ -350,15 +347,21 @@ private fun BasicNavigationBar(modifier: Modifier) {
                     .weight(1f)
             )
         }
-        NavigationBarButtons(Modifier)
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.End,
+        hideWhenState(
+            selector =
+                object : StateSelector.AnimatedVisibilityInEmbedded {
+                    override val visible = LocalEmbeddedState.current?.isExpanded ?: false
+                    override val enter = expandVertically(animationSpec = standardDecelerate(150))
+                    override val exit = shrinkVertically(animationSpec = standardDecelerate(100))
+                }
         ) {
+            NavigationBarButtons(Modifier)
+        }
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
             if (overFlowMenuEnabled) {
                 featureManager.composeLocation(
                     Location.OVERFLOW_MENU,
-                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
                 )
             } else {
                 Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))

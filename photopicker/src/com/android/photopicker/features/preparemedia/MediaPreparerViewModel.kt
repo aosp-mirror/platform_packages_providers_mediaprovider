@@ -256,7 +256,7 @@ constructor(
         // End early if there are not any items need to be prepared.
         if (countPrepareRequired == 0) {
             Log.i(PrepareMediaFeature.TAG, "Prepare not required, no remote or incompatible items.")
-            deferred.complete(PreparedMedia(preparedMedia = emptySet()))
+            deferred.complete(PreparedMedia(preparedMedia = getPreparedMedia()))
             return
         }
 

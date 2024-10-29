@@ -43,7 +43,7 @@
     <string name="picker_settings_title" msgid="5647700706470673258">"App multimediale cloud"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accedi ai tuoi contenuti multimediali sul cloud quando un\'app o un sito web ti chiede di selezionare foto o video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedi ai contenuti multimediali sul cloud da"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna app"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ora è impossibile cambiare app multimediale cloud."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Selettore media"</string>
     <string name="picker_sync_notification_title" msgid="1122713382122055246">"Selettore media"</string>

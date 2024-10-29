@@ -26,6 +26,7 @@ enum class FeatureToken(val token: String) {
     BROWSE("BROWSE"),
     CLOUD_MEDIA("CLOUD_MEDIA"),
     CORE("CORE"),
+    MEDIA_PREPARE("MEDIA_PREPARE"),
     NAVIGATION_BAR("NAVIGATION_BAR"),
     OVERFLOW_MENU("OVERFLOW_MENU"),
     PHOTO_GRID("PHOTO_GRID"),

@@ -162,7 +162,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
                     collectionInfo =
                         checkNotNull(collectionInfo) {
                             "collectionInfo was null during buildBanner"
-                        }
+                        },
                 )
             BannerDefinitions.CLOUD_MEDIA_AVAILABLE ->
                 buildCloudMediaAvailableBanner(
@@ -185,15 +185,14 @@ class CloudMediaFeature : PhotopickerUiFeature {
     override val eventsProduced =
         setOf<RegisteredEventClass>(
             Event.LogPhotopickerMenuInteraction::class.java,
-            Event.LogPhotopickerUIEvent::class.java
+            Event.LogPhotopickerUIEvent::class.java,
         )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
-            Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
             // Medium priority for OVERFLOW_MENU_ITEMS so that [BrowseFeature] can
             // have the top spot if it's enabled.
-            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority),
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority)
         )
     }
 
@@ -202,16 +201,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         val events = LocalEvents.current
         val scope = rememberCoroutineScope()
         val configuration = LocalPhotopickerConfiguration.current
         when (location) {
-            Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
             Location.OVERFLOW_MENU_ITEMS -> {
                 val context = LocalContext.current
                 val clickAction = params as? LocationParams.WithClickAction
@@ -228,11 +222,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
                                     token,
                                     configuration.sessionId,
                                     configuration.callingPackageUid ?: -1,
-                                    Telemetry.MenuItemSelected.CLOUD_SETTINGS
+                                    Telemetry.MenuItemSelected.CLOUD_SETTINGS,
                                 )
                             )
                         }
-                    }
+                    },
                 )
             }
             else -> {}

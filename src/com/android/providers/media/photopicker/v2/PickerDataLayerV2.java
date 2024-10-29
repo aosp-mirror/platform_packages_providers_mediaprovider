@@ -430,14 +430,14 @@ public class PickerDataLayerV2 {
         if (localAuthority != null) {
             SyncCompletionWaiter.waitForSync(
                     getWorkManager(appContext),
-                    SyncTrackerRegistry.getGrantsSyncTracker(),
-                    IMMEDIATE_GRANTS_SYNC_WORK_NAME
+                    SyncTrackerRegistry.getLocalSyncTracker(),
+                    IMMEDIATE_LOCAL_SYNC_WORK_NAME
             );
             if (isUserSelectAction) {
                 SyncCompletionWaiter.waitForSync(
                         getWorkManager(appContext),
-                        SyncTrackerRegistry.getLocalSyncTracker(),
-                        IMMEDIATE_LOCAL_SYNC_WORK_NAME
+                        SyncTrackerRegistry.getGrantsSyncTracker(),
+                        IMMEDIATE_GRANTS_SYNC_WORK_NAME
                 );
             }
         }

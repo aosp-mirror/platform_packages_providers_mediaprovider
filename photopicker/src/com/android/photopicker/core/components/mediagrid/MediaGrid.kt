@@ -25,10 +25,10 @@ import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO
 import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -70,6 +70,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +93,8 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.animations.emphasizedAccelerateFloat
+import com.android.photopicker.core.animations.springDefaultEffectFloat
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -513,20 +516,26 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                         y = -MEASUREMENT_SELECTED_ICON_OFFSET,
                     ),
             visible = isSelected,
-            enter = scaleIn(),
-            // No exit transition so it disappears on the next frame.
-            exit = ExitTransition.None,
+            enter = scaleIn(animationSpec = springDefaultEffectFloat),
+            exit = scaleOut(animationSpec = emphasizedAccelerateFloat),
         ) {
             val configuration = LocalPhotopickerConfiguration.current
-            val shouldIndicateSelected = isSelected && configuration.selectionLimit > 1
+            val shouldIndicateSelected = configuration.selectionLimit > 1
             if (shouldIndicateSelected) {
                 when (configuration.pickImagesInOrder) {
                     true -> {
                         val numberFormatter = remember { NumberFormat.getInstance() }
+                        var rememberedIndex by remember { mutableStateOf(selectedIndex) }
+
+                        LaunchedEffect(isSelected, selectedIndex) {
+                            if (isSelected) {
+                                rememberedIndex = selectedIndex
+                            }
+                        }
                         Text(
                             // Since this is a 0-based index, increment it by 1 for displaying
                             // to the user.
-                            text = numberFormatter.format(selectedIndex + 1),
+                            text = numberFormatter.format(rememberedIndex + 1),
                             textAlign = TextAlign.Center,
                             modifier =
                                 Modifier.circleBackground(

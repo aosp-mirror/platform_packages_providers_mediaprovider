@@ -32,7 +32,7 @@ enum class Location {
 
     // keep-sorted start
     COMPOSE_TOP, // UI feature entrypoint at the top of the compose UI tree.
-    MEDIA_PRELOADER, // Where the MEDIA_PRELOADER is attached to the compose tree.
+    MEDIA_PREPARER, // Where the MEDIA_PREPARER is attached to the compose tree.
     NAVIGATION_BAR, // Where the navigation bar should be drawn (when it is active).
     NAVIGATION_BAR_NAV_BUTTON, // Where the navigation bar draws navigation buttons.
     OVERFLOW_MENU, // The overflow menu anchor

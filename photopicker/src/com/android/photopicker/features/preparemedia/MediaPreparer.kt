@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.cloudmedia
+package com.android.photopicker.features.preparemedia
 
 import android.util.Log
 import androidx.compose.foundation.layout.Column
@@ -37,9 +37,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,110 +62,110 @@ private val MEASUREMENT_DIALOG_PADDING = 24.dp
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 /**
- * Attaches a [MediaPreloader] so that it can handle emissions in the
- * [LocationParams.WithMediaPreloader.preloadMedia] and display preloading dialogs to the user.
+ * Attaches a [MediaPreparer] so that it can handle emissions in the
+ * [LocationParams.WithMediaPreparer.prepareMedia] and display preparing dialogs to the user.
  *
  * This composable has three states:
- * - Empty (No preload activity, no error state)
- * - Loading (A preload operation is currently running)
- * - Error (A preloading operation has failed)
+ * - Empty (No prepare activity, no error state)
+ * - Preparing (A prepare operation is currently running)
+ * - Error (A preparing operation has failed)
  *
  * For the non empty states, the appropriate dialog is shown to the user. For an empty state, this
- * composable exists to attach the [MediaPreloaderViewModel] so that it can monitor the event bus.
+ * composable exists to attach the [MediaPreparerViewModel] so that it can monitor the event bus.
  */
-fun MediaPreloader(
+fun MediaPreparer(
     // The incoming modifier is ignored, since no elements are actually added to
-    // [Location.MEDIA_PRELOADER], only floating dialogs that sit above the app.
+    // [Location.MEDIA_PREPARER], only floating dialogs that sit above the app.
     @Suppress("UNUSED_PARAMETER") modifier: Modifier,
     params: LocationParams,
-    viewModel: MediaPreloaderViewModel = obtainViewModel(),
+    viewModel: MediaPreparerViewModel = obtainViewModel(),
 ) {
 
     // Data flow from the view model for which Dialog to display.
     val dialogData by viewModel.dialogData.collectAsStateWithLifecycle()
 
-    // These must be set by the parent composable for the preloader to have any effect.
-    val preloaderParameters = params as? LocationParams.WithMediaPreloader
+    // These must be set by the parent composable for the preparer to have any effect.
+    val preparerParameters = params as? LocationParams.WithMediaPreparer
 
     val configuration = LocalPhotopickerConfiguration.current
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
+    val context = LocalContext.current
 
-    preloaderParameters?.let {
+    preparerParameters?.let {
         LaunchedEffect(params) {
-            // Listen for emissions of media to preload, and begin the preload when requested.
-            it.preloadMedia.collect { media ->
-                // Dispatch UI event to log the beginning of media items preloading
+            // Listen for emissions of media to prepare, and begin the prepare when requested.
+            it.prepareMedia.collect { media ->
+                // Dispatch UI event to log the beginning of media items preparing
                 scope.launch {
                     events.dispatch(
                         Event.LogPhotopickerUIEvent(
                             FeatureToken.CORE.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.PICKER_PRELOADING_START
+                            Telemetry.UiEvent.PICKER_PRELOADING_START,
                         )
                     )
                 }
-                viewModel.startPreload(media, it.obtainDeferred())
+
+                viewModel.startPrepare(media, it.obtainDeferred(), context)
             }
         }
     }
-        // If no preloaderParameters were passed to this location, there is no way to trigger
-        // the preloader.
+        // If no preparerParameters were passed to this location, there is no way to trigger
+        // the preparer.
         ?: Log.w(
-            CloudMediaFeature.TAG,
-            "MediaPreloader did not receive parameters from parent location," +
-                "  the preloader will not be active."
+            PrepareMediaFeature.TAG,
+            "MediaPreparer did not receive parameters from parent location," +
+                "  the preparer will not be active.",
         )
 
-    // Show a dialog or empty state based on which [PreloaderDialogData] is present.
+    // Show a dialog or empty state based on which [PreparerDialogData] is present.
     when (val data = dialogData) {
         null -> Unit // Empty state, no dialog
-        is PreloaderDialogData.PreloaderLoadingDialogData ->
-            MediaPreloaderLoadingDialog(
+        is PreparerDialogData.PreparingDialogData ->
+            MediaPreparerPreparingDialog(
                 dialogData = data,
                 onDismissRequest = {
-                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
+                    viewModel.cancelPrepare(preparerParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
                 },
             )
-        is PreloaderDialogData.PreloaderLoadingErrorDialog ->
-            MediaPreloaderErrorDialog(
+        is PreparerDialogData.PreparingErrorDialog ->
+            MediaPreparerErrorDialog(
                 onDismissRequest = {
-                    viewModel.cancelPreload(preloaderParameters?.obtainDeferred())
+                    viewModel.cancelPrepare(preparerParameters?.obtainDeferred())
                     viewModel.hideAllDialogs()
-                },
+                }
             )
     }
 }
 
 /**
- * This is the Loading state dialog of the Preloader.
+ * This is the Preparing state dialog of the Preparer.
  *
- * This dialog shows a Loading message and progress indicator to the user which updates as the
- * [MediaPreloaderViewModel] emits updated [PreloaderDialogData].
+ * This dialog shows a Preparing message and progress indicator to the user which updates as the
+ * [MediaPreparerViewModel] emits updated [PreparerDialogData].
  *
- * The user can cancel the preload operation to return to the previous screen. (This will also
+ * The user can cancel the prepare operation to return to the previous screen. (This will also
  * prevent the Photopicker from being closed when the Media is ready.)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MediaPreloaderLoadingDialog(
+private fun MediaPreparerPreparingDialog(
     onDismissRequest: () -> Unit,
-    dialogData: PreloaderDialogData.PreloaderLoadingDialogData,
+    dialogData: PreparerDialogData.PreparingDialogData,
 ) {
-    BasicAlertDialog(
-        onDismissRequest = {},
-    ) {
+    BasicAlertDialog(onDismissRequest = {}) {
         Surface(
             modifier = Modifier.wrapContentWidth().wrapContentHeight(),
             shape = MaterialTheme.shapes.large,
-            tonalElevation = AlertDialogDefaults.TonalElevation
+            tonalElevation = AlertDialogDefaults.TonalElevation,
         ) {
             Column(modifier = Modifier.padding(MEASUREMENT_DIALOG_PADDING)) {
                 Text(
                     stringResource(R.string.photopicker_preloading_dialog_title),
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.height(MEASUREMENT_DIALOG_SPACER_SIZE))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -175,16 +175,14 @@ private fun MediaPreloaderLoadingDialog(
                         stringResource(
                             R.string.photopicker_preloading_progress_message,
                             dialogData.completed,
-                            dialogData.total
+                            dialogData.total,
                         ),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 Spacer(modifier = Modifier.height(MEASUREMENT_DIALOG_SPACER_SIZE))
                 Row(Modifier.align(Alignment.End)) {
-                    TextButton(
-                        onClick = onDismissRequest,
-                    ) {
+                    TextButton(onClick = onDismissRequest) {
                         Text(stringResource(android.R.string.cancel))
                     }
                 }
@@ -196,40 +194,34 @@ private fun MediaPreloaderLoadingDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 /**
- * This is the Error state dialog of the Preloader.
+ * This is the Error state dialog of the Preparer.
  *
  * This dialog shows a generic Error message to the user which updates as the
- * [MediaPreloaderViewModel] emits updated [PreloaderDialogData].
+ * [MediaPreparerViewModel] emits updated [PreparerDialogData].
  *
  * The user can dismiss the dialog to return to the previous screen.
  */
-private fun MediaPreloaderErrorDialog(
-    onDismissRequest: () -> Unit,
-) {
+private fun MediaPreparerErrorDialog(onDismissRequest: () -> Unit) {
 
-    BasicAlertDialog(
-        onDismissRequest = onDismissRequest,
-    ) {
+    BasicAlertDialog(onDismissRequest = onDismissRequest) {
         Surface(
             modifier = Modifier.wrapContentWidth().wrapContentHeight(),
             shape = MaterialTheme.shapes.large,
-            tonalElevation = AlertDialogDefaults.TonalElevation
+            tonalElevation = AlertDialogDefaults.TonalElevation,
         ) {
             Column(modifier = Modifier.padding(MEASUREMENT_DIALOG_PADDING)) {
                 Text(
                     stringResource(R.string.photopicker_preloading_dialog_error_title),
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.height(MEASUREMENT_DIALOG_SPACER_SIZE))
                 Text(
                     stringResource(R.string.photopicker_preloading_dialog_error_message),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(modifier = Modifier.height(MEASUREMENT_DIALOG_SPACER_SIZE))
                 Row(Modifier.align(Alignment.End)) {
-                    TextButton(
-                        onClick = onDismissRequest,
-                    ) {
+                    TextButton(onClick = onDismissRequest) {
                         Text(stringResource(android.R.string.ok))
                     }
                 }

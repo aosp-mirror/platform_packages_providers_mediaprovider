@@ -183,6 +183,14 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     val DATA =
         buildList<Media>() {
             for (i in 1..20) {
+                val uri =
+                    Uri.EMPTY.buildUpon()
+                        .apply {
+                            scheme(ContentResolver.SCHEME_CONTENT)
+                            authority(MockContentProviderWrapper.AUTHORITY)
+                            path("$i")
+                        }
+                        .build()
                 add(
                     Media.Image(
                         mediaId = "$i",
@@ -194,22 +202,35 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
                                 true -> MediaSource.LOCAL
                                 false -> MediaSource.REMOTE
                             },
-                        mediaUri =
-                            Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme(ContentResolver.SCHEME_CONTENT)
-                                    authority(MockContentProviderWrapper.AUTHORITY)
-                                    path("$i")
-                                }
-                                .build(),
-                        glideLoadableUri =
-                            Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme(ContentResolver.SCHEME_CONTENT)
-                                    authority(MockContentProviderWrapper.AUTHORITY)
-                                    path("$i")
-                                }
-                                .build(),
+                        mediaUri = uri,
+                        glideLoadableUri = uri,
+                        dateTakenMillisLong = 123456789L,
+                        sizeInBytes = 1000L,
+                        mimeType = "image/png",
+                        standardMimeTypeExtension = 1,
+                    )
+                )
+            }
+        }
+    val LOCAL_IMAGE_DATA =
+        buildList<Media>() {
+            for (i in 1..20) {
+                val uri =
+                    Uri.EMPTY.buildUpon()
+                        .apply {
+                            scheme(ContentResolver.SCHEME_CONTENT)
+                            authority(MockContentProviderWrapper.AUTHORITY)
+                            path("$i")
+                        }
+                        .build()
+                add(
+                    Media.Image(
+                        mediaId = "$i",
+                        pickerId = i.toLong(),
+                        authority = "a",
+                        mediaSource = MediaSource.LOCAL,
+                        mediaUri = uri,
+                        glideLoadableUri = uri,
                         dateTakenMillisLong = 123456789L,
                         sizeInBytes = 1000L,
                         mimeType = "image/png",
@@ -357,41 +378,48 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     fun testMediaPreparerCompletesDeferredWhenSuccessful() =
         testScope.runTest {
             val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
-
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
-            composeTestRule.waitForIdle()
+            initialMediaPreparer(prepareDeferred)
 
             selection.get().addAll(DATA)
             advanceTimeBy(100)
 
-            mediaToPrepare.emit(selection.get().snapshot())
+            val snapshot = selection.get().snapshot()
+            mediaToPrepare.emit(snapshot)
 
             val prepareResult = prepareDeferred.await()
 
             assertWithMessage("Expected prepare result to be true, the prepare must have failed.")
                 .that(prepareResult is PrepareMediaResult.PreparedMedia)
+                .isTrue()
+
+            val preparedMedia = (prepareResult as? PrepareMediaResult.PreparedMedia)?.preparedMedia
+            assertWithMessage("Expected prepared media size was not same as selected")
+                .that(snapshot.size == preparedMedia?.size)
+                .isTrue()
+        }
+
+    @Test
+    fun testMediaPreparerCompletesDeferredWhenPreparationNotRequired() =
+        testScope.runTest {
+            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
+            initialMediaPreparer(prepareDeferred)
+
+            // Local images do not need to be preloaded and transcoded.
+            selection.get().addAll(LOCAL_IMAGE_DATA)
+            advanceTimeBy(100)
+
+            val snapshot = selection.get().snapshot()
+            mediaToPrepare.emit(snapshot)
+
+            val prepareResult = prepareDeferred.await()
+
+            assertWithMessage("Expected prepare result to be true, the prepare must have failed.")
+                .that(prepareResult is PrepareMediaResult.PreparedMedia)
+                .isTrue()
+
+            val preparedMedia = (prepareResult as? PrepareMediaResult.PreparedMedia)?.preparedMedia
+            assertWithMessage("Expected prepared media size was not same as selected")
+                .that(snapshot.size == preparedMedia?.size)
                 .isTrue()
         }
 
@@ -402,31 +430,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             val loadingDialogTitle =
                 resources.getString(R.string.photopicker_preloading_dialog_title)
 
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
-
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
-            composeTestRule.waitForIdle()
+            initialMediaPreparer(CompletableDeferred())
 
             selection.get().addAll(DATA)
             advanceTimeBy(100)
@@ -451,31 +455,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             val loadingDialogTitle =
                 resources.getString(R.string.photopicker_preloading_dialog_title)
 
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
-
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
-            composeTestRule.waitForIdle()
+            initialMediaPreparer(CompletableDeferred())
 
             selection.get().addAll(DATA)
             advanceTimeBy(100)
@@ -502,31 +482,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testMediaPreparerLoadsRemoteMedia() =
         testScope.runTest {
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
-
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
-            composeTestRule.waitForIdle()
+            initialMediaPreparer(CompletableDeferred())
 
             selection.get().addAll(DATA)
             advanceTimeBy(100)
@@ -545,30 +501,8 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testMediaPreparerTranscodeMedia() =
         testScope.runTest {
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
+            initialMediaPreparer(CompletableDeferred())
 
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
             // Use mock Transcoder to bypass checks require extracting info from videos.
             val viewModel = composeTestRule.activity.viewModels<MediaPreparerViewModel>().value
             val mockTranscoder = mock(Transcoder::class.java)
@@ -604,30 +538,8 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testMediaPreparerTranscodeMedia_notTranscodeOverDurationLimitVideos() =
         testScope.runTest {
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
+            initialMediaPreparer(CompletableDeferred())
 
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
             // Use mock Transcoder to bypass checks require extracting info from videos.
             val viewModel = composeTestRule.activity.viewModels<MediaPreparerViewModel>().value
             val mockTranscoder = mock(Transcoder::class.java)
@@ -660,7 +572,6 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testMediaPreparerFailureShowsErrorDialog() =
         testScope.runTest {
-            val prepareDeferred = CompletableDeferred<PrepareMediaResult>()
             val resources = getTestableContext().getResources()
             val errorDialogTitle =
                 resources.getString(R.string.photopicker_preloading_dialog_error_title)
@@ -670,30 +581,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             whenever(mockContentProvider.openTypedAssetFile(any(), any(), any()))
                 .thenThrow(FileNotFoundException())
 
-            composeTestRule.setContent {
-                CompositionLocalProvider(
-                    LocalPhotopickerConfiguration provides
-                        configurationManager.get().configuration.value,
-                    LocalEvents provides events.get(),
-                ) {
-                    val params =
-                        object : LocationParams.WithMediaPreparer {
-                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
-                                return prepareDeferred
-                            }
-
-                            override val prepareMedia = mediaToPrepare
-                        }
-                    featureManager
-                        .get()
-                        .composeLocation(
-                            location = Location.MEDIA_PREPARER,
-                            modifier = Modifier,
-                            params = params,
-                        )
-                }
-            }
-            composeTestRule.waitForIdle()
+            initialMediaPreparer(CompletableDeferred())
 
             selection.get().addAll(DATA)
             advanceTimeBy(100)
@@ -706,4 +594,31 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             composeTestRule.onNode(hasText(errorDialogTitle)).assertIsDisplayed()
             composeTestRule.onNode(hasText(errorDialogMessage)).assertIsDisplayed()
         }
+
+    private fun initialMediaPreparer(prepareDeferred: CompletableDeferred<PrepareMediaResult>) {
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalPhotopickerConfiguration provides
+                    configurationManager.get().configuration.value,
+                LocalEvents provides events.get(),
+            ) {
+                val params =
+                    object : LocationParams.WithMediaPreparer {
+                        override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
+                            return prepareDeferred
+                        }
+
+                        override val prepareMedia = mediaToPrepare
+                    }
+                featureManager
+                    .get()
+                    .composeLocation(
+                        location = Location.MEDIA_PREPARER,
+                        modifier = Modifier,
+                        params = params,
+                    )
+            }
+        }
+        composeTestRule.waitForIdle()
+    }
 }

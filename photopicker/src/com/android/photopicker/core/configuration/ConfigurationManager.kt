@@ -23,8 +23,10 @@ import android.util.Log
 import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.isUnspecified
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.AccentColorHelper
+import com.android.photopicker.extensions.getApplicationMediaCapabilities
 import com.android.photopicker.extensions.getPhotopickerMimeTypes
 import com.android.photopicker.extensions.getPhotopickerSelectionLimitOrDefault
 import com.android.photopicker.extensions.getPickImagesInOrderEnabled
@@ -38,7 +40,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
@@ -224,6 +225,14 @@ class ConfigurationManager(
         // get preSelection URIs from intent.
         val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
 
+        // get application media capabilities from intent.
+        val applicationMediaCapabilities =
+            if (SdkLevel.isAtLeastS()) {
+                intent.getApplicationMediaCapabilities()
+            } else {
+                null
+            }
+
         // Use updateAndGet to ensure the value is set before this method returns so the new
         // intent is immediately available to new subscribers.
         _configuration.updateAndGet {
@@ -236,6 +245,7 @@ class ConfigurationManager(
                 pickImagesInOrder = pickImagesInOrder,
                 startDestination = startDestination,
                 preSelectedUris = pickerPreSelectionUris,
+                callingPackageMediaCapabilities = applicationMediaCapabilities,
             )
         }
     }
@@ -248,11 +258,7 @@ class ConfigurationManager(
      * @param callingPackageUid the uid of the caller
      * @param callingPackageLabel the display label of the caller
      */
-    fun setCaller(
-        callingPackage: String?,
-        callingPackageUid: Int?,
-        callingPackageLabel: String?,
-    ) {
+    fun setCaller(callingPackage: String?, callingPackageUid: Int?, callingPackageLabel: String?) {
         Log.d(TAG, "Caller information updated : Configuration will now update.")
         _configuration.updateAndGet {
             it.copy(
@@ -292,14 +298,14 @@ class ConfigurationManager(
                     deviceConfigProxy.getFlag(
                         NAMESPACE_MEDIAPROVIDER,
                         /* key= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.first,
-                        /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second
+                        /* defaultValue= */ FEATURE_CLOUD_MEDIA_PROVIDER_ALLOWLIST.second,
                     )
                 ),
             CLOUD_ENFORCE_PROVIDER_ALLOWLIST =
                 deviceConfigProxy.getFlag(
                     NAMESPACE_MEDIAPROVIDER,
                     /* key= */ FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.first,
-                    /* defaultValue= */ FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.second
+                    /* defaultValue= */ FEATURE_CLOUD_ENFORCE_PROVIDER_ALLOWLIST.second,
                 ),
             CLOUD_MEDIA_ENABLED =
                 deviceConfigProxy.getFlag(
@@ -320,6 +326,7 @@ class ConfigurationManager(
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
             PICKER_SEARCH_ENABLED = Flags.enablePhotopickerSearch(),
+            PICKER_TRANSCODING_ENABLED = Flags.enablePhotopickerTranscoding(),
         )
     }
 

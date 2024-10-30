@@ -50,6 +50,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.sync.SyncCompletionWaiter;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
@@ -340,6 +341,7 @@ public class PickerDataLayerV2 {
      * @param searchRequestID Identifier of the search request.
      */
     public static Cursor querySearchMedia(
+            @NonNull Context appContext,
             @NonNull Bundle queryArgs,
             @NonNull int searchRequestID) {
         final SearchMediaQuery query = new SearchMediaQuery(queryArgs, searchRequestID);
@@ -361,7 +363,8 @@ public class PickerDataLayerV2 {
                         ? cloudAuthority
                         : null;
 
-        // TODO(b/361041500) wait for sync before querying the database
+        waitForOngoingSearchResultSync(appContext, effectiveLocalAuthority,
+                effectiveCloudAuthority);
         // TODO(b/361042632) resume sync if required
 
         return SearchResultsDatabaseUtil.querySearchMedia(
@@ -476,6 +479,32 @@ public class PickerDataLayerV2 {
         SyncCompletionWaiter.waitForSyncWithTimeout(
                 SyncTrackerRegistry.getAlbumSyncTracker(isLocal),
                 /* timeoutInMillis */ 500);
+    }
+
+    /**
+     * @param appContext The application context.
+     * @param localAuthority The effective local authority that we need to consider for this
+     *                       transaction. If the local items should not be queried but the local
+     *                       authority has some value, the effective local authority would be null.
+     * @param cloudAuthority The effective cloud authority that we need to consider for this
+     *                       transaction. If the cloud items should not be queried but the cloud
+     *                       authority has some value, the effective cloud authority would be null.
+     */
+    private static void waitForOngoingSearchResultSync(
+            @NonNull Context appContext,
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority) {
+        final SearchState searchState = PickerSyncController.getInstanceOrThrow().getSearchState();
+
+        if (localAuthority != null && searchState.isLocalSearchEnabled()) {
+            SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getLocalSearchSyncTracker(), /* timeoutInMillis */ 500);
+        }
+
+        if (cloudAuthority != null && searchState.isCloudSearchEnabled(appContext)) {
+            SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getCloudSearchSyncTracker(), /* timeoutInMillis */ 3000);
+        }
     }
 
     /**

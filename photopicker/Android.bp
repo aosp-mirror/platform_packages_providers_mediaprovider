@@ -16,9 +16,10 @@ android_library {
     libs: [
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
+        "framework-media.stubs.module_lib",
         "framework-mediaprovider.impl",
         "framework-photopicker.impl",
-        "framework-statsd",
+        "framework-statsd.stubs.module_lib",
     ],
     javacflags: [
         "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
@@ -65,6 +66,8 @@ android_library {
         "kotlinx_coroutines",
         "mediaprovider_flags_java_lib",
         "modules-utils-build",
+        "androidx.media3.media3-common",
+        "androidx.media3.media3-exoplayer",
     ],
     apex_available: [
         "//apex_available:platform",
@@ -102,5 +105,6 @@ android_app {
         "//apex_available:platform",
         "com.android.mediaprovider",
     ],
+    updatable: true,
 
 }

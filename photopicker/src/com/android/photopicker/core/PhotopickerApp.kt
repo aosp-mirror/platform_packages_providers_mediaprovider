@@ -18,6 +18,11 @@ package com.android.photopicker.core
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,6 +40,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
@@ -43,7 +49,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,6 +73,7 @@ import com.android.photopicker.core.navigation.PhotopickerNavGraph
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
+import com.android.photopicker.features.preparemedia.PrepareMediaResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -79,6 +85,11 @@ private val MEASUREMENT_BANNER_PADDING =
 /* Spacing around the selection bar and the edges of the screen */
 private val SELECTION_BAR_PADDING =
     PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 48.dp)
+private val NAV_BAR_EMBEDDED_ENTER_ANIMATION =
+    expandVertically(animationSpec = tween(durationMillis = 500)) +
+        fadeIn(animationSpec = tween(durationMillis = 750))
+private val NAV_BAR_EMBEDDED_EXIT_ANIMATION =
+    shrinkVertically(animationSpec = tween(durationMillis = 500)) + fadeOut()
 
 /**
  * This is an entrypoint of the Photopicker Compose UI. This is called from the MainActivity and is
@@ -88,9 +99,9 @@ private val SELECTION_BAR_PADDING =
  * @param onDismissRequest handler for when the BottomSheet is dismissed.
  * @param onMediaSelectionConfirmed A callback to pass to the [Location.SELECTION_BAR] to indicate
  *   the user has indicated the media selection is final.
- * @param preloadMedia A flow of Media that the [MEDIA_PRELOADER] should begin preloading.
- * @param obtainPreloaderDeferred A callback to obtain a deferred for the currently requested media
- *   preload.
+ * @param prepareMedia A flow of Media that the [MEDIA_PREPARER] should begin preparing.
+ * @param obtainPreparerDeferred A callback to obtain a deferred for the currently requested media
+ *   prepare.
  * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
  *   the UI has been created with is invalid
  */
@@ -99,8 +110,8 @@ private val SELECTION_BAR_PADDING =
 fun PhotopickerAppWithBottomSheet(
     onDismissRequest: () -> Unit,
     onMediaSelectionConfirmed: () -> Unit,
-    preloadMedia: Flow<Set<Media>>,
-    obtainPreloaderDeferred: () -> CompletableDeferred<Boolean>,
+    prepareMedia: Flow<Set<Media>>,
+    obtainPreparerDeferred: () -> CompletableDeferred<PrepareMediaResult>,
     disruptiveDataNotification: Flow<Int>,
 ) {
     // Initialize and remember the NavController. This needs to be provided before the call to
@@ -140,7 +151,7 @@ fun PhotopickerAppWithBottomSheet(
                                             FeatureToken.CORE.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.EXPAND_PICKER
+                                            Telemetry.UiEvent.EXPAND_PICKER,
                                         )
                                     )
                                 }
@@ -151,7 +162,7 @@ fun PhotopickerAppWithBottomSheet(
                                             FeatureToken.CORE.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.COLLAPSE_PICKER
+                                            Telemetry.UiEvent.COLLAPSE_PICKER,
                                         )
                                     )
                                 }
@@ -160,7 +171,7 @@ fun PhotopickerAppWithBottomSheet(
                     },
 
                     // Allow a hidden state to close the bottom sheet.
-                    skipHiddenState = false
+                    skipHiddenState = false,
                 )
         )
 
@@ -169,9 +180,7 @@ fun PhotopickerAppWithBottomSheet(
     val sheetPeekHeight = remember(localConfig) { (localConfig.screenHeightDp * .75).dp }
 
     // Provide the NavController to the rest of the Compose stack.
-    CompositionLocalProvider(
-        LocalNavController provides navController,
-    ) {
+    CompositionLocalProvider(LocalNavController provides navController) {
         Column(
             modifier =
                 // Apply WindowInsets to this wrapping column to prevent the Bottom Sheet
@@ -189,9 +198,14 @@ fun PhotopickerAppWithBottomSheet(
                 sheetContent = {
                     Box(
                         modifier = Modifier.fillMaxHeight(),
-                        contentAlignment = Alignment.BottomCenter
+                        contentAlignment = Alignment.BottomCenter,
                     ) {
-                        PhotopickerMain(disruptiveDataNotification)
+                        PhotopickerMain(
+                            disruptiveDataNotification,
+                            onSearchBarClicked = {
+                                scope.launch { state.bottomSheetState.expand() }
+                            },
+                        )
                         Column(
                             modifier =
                                 // Some elements needs to be drawn over the UI inside of the
@@ -200,9 +214,9 @@ fun PhotopickerAppWithBottomSheet(
                                 Modifier.offset {
                                     IntOffset(
                                         x = 0,
-                                        y = -state.bottomSheetState.requireOffset().toInt()
+                                        y = -state.bottomSheetState.requireOffset().toInt(),
                                     )
-                                },
+                                }
                         ) {
                             LocalFeatureManager.current.composeLocation(
                                 Location.SNACK_BAR,
@@ -213,26 +227,27 @@ fun PhotopickerAppWithBottomSheet(
                                 maxSlots = 1,
                                 modifier = Modifier.padding(SELECTION_BAR_PADDING),
                                 params =
-                                    LocationParams.WithClickAction { onMediaSelectionConfirmed() }
+                                    LocationParams.WithClickAction { onMediaSelectionConfirmed() },
                             )
                         }
                     }
-                    // If a [MEDIA_PRELOADER] is configured in the current session, attach it
+                    // If a [MEDIA_PREPARER] is configured in the current session, attach it
                     // to the compose UI here, so that any dialogs it shows are drawn overtop
                     // of the application.
-                    LocalFeatureManager.current.composeLocation(
-                        Location.MEDIA_PRELOADER,
-                        maxSlots = 1,
-                        params =
-                            object : LocationParams.WithMediaPreloader {
-                                override fun obtainDeferred(): CompletableDeferred<Boolean> {
-                                    return obtainPreloaderDeferred()
-                                }
-
-                                override val preloadMedia = preloadMedia
+                    val params =
+                        object : LocationParams.WithMediaPreparer {
+                            override fun obtainDeferred(): CompletableDeferred<PrepareMediaResult> {
+                                return obtainPreparerDeferred()
                             }
+
+                            override val prepareMedia = prepareMedia
+                        }
+                    LocalFeatureManager.current.composeLocation(
+                        Location.MEDIA_PREPARER,
+                        maxSlots = 1,
+                        params = params,
                     )
-                }
+                },
             ) {
                 // Intentionally empty, this is the background content behind the BottomSheet.
             }
@@ -251,30 +266,26 @@ fun PhotopickerAppWithBottomSheet(
  *   the user has indicated the media selection is final.
  */
 @Composable
-fun PhotopickerApp(
-    disruptiveDataNotification: Flow<Int>,
-    onMediaSelectionConfirmed: () -> Unit,
-) {
+fun PhotopickerApp(disruptiveDataNotification: Flow<Int>, onMediaSelectionConfirmed: () -> Unit) {
     // Initialize and remember the NavController. This needs to be provided before the call to
     // the NavigationGraph, so this is done at the top.
     val navController = rememberNavController()
 
     // Provide the NavController to the rest of the Compose stack.
     CompositionLocalProvider(LocalNavController provides navController) {
-        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
-            PhotopickerMain(disruptiveDataNotification)
-            Column {
-                LocalFeatureManager.current.composeLocation(
-                    Location.SNACK_BAR,
-                    maxSlots = 1,
-                )
-                hideWhenState(StateSelector.EmbeddedAndCollapsed) {
-                    LocalFeatureManager.current.composeLocation(
-                        Location.SELECTION_BAR,
-                        maxSlots = 1,
-                        modifier = Modifier.padding(SELECTION_BAR_PADDING),
-                        params = LocationParams.WithClickAction { onMediaSelectionConfirmed() }
-                    )
+        Surface(contentColor = MaterialTheme.colorScheme.onSurface, color = Color.Transparent) {
+            Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
+                PhotopickerMain(disruptiveDataNotification)
+                Column {
+                    LocalFeatureManager.current.composeLocation(Location.SNACK_BAR, maxSlots = 1)
+                    hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                        LocalFeatureManager.current.composeLocation(
+                            Location.SELECTION_BAR,
+                            maxSlots = 1,
+                            modifier = Modifier.padding(SELECTION_BAR_PADDING),
+                            params = LocationParams.WithClickAction { onMediaSelectionConfirmed() },
+                        )
+                    }
                 }
             }
         }
@@ -298,9 +309,11 @@ fun PhotopickerApp(
  *
  * @param disruptiveDataNotification The data disruption flow that emits when the underlying data
  *   the UI has been created with is invalid
+ * @param onSearchBarClicked A callback to pass to the [Location.SEARCH_BAR] from
+ *   [Location.NAVIGATION_BAR] to indicate the user has clicked on Search Bar.
  */
 @Composable
-fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
+fun PhotopickerMain(disruptiveDataNotification: Flow<Int>, onSearchBarClicked: () -> Unit = {}) {
 
     // Collect the data disrupt flow so that Photopicker will navigate on disruptive data changes.
     // The data service can detect when the providers that are supplying grid data have changed
@@ -312,23 +325,29 @@ fun PhotopickerMain(disruptiveDataNotification: Flow<Int>) {
     watchForDataDisruptions(disruptCounter)
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
     val host = LocalEmbeddedState.current?.host
     Box(modifier = Modifier.fillMaxSize()) {
         Column {
             // The navigation bar and banners are drawn above the navigation graph
-            hideWhenState(selector = StateSelector.EmbeddedAndCollapsed) {
+            hideWhenState(
+                selector =
+                    object : StateSelector.AnimatedVisibilityInEmbedded {
+                        override val visible = isExpanded
+                        override val enter = NAV_BAR_EMBEDDED_ENTER_ANIMATION
+                        override val exit = NAV_BAR_EMBEDDED_EXIT_ANIMATION
+                    }
+            ) {
                 LocalFeatureManager.current.composeLocation(
                     Location.NAVIGATION_BAR,
                     maxSlots = 1,
                     modifier =
                         if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
-                            Modifier.fillMaxWidth()
-                                .transferTouchesToHostInEmbedded(
-                                    host = host,
-                                )
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
                         } else {
                             Modifier.fillMaxWidth()
-                        }
+                        },
+                    params = LocationParams.WithClickAction { onSearchBarClicked() },
                 )
             }
 
@@ -390,7 +409,7 @@ private fun watchForDataDisruptions(disruptionCounter: Int) {
                 Log.e(
                     "Photopicker",
                     "disruptiveDataNotification was received, but unable to resolve the graph.",
-                    e
+                    e,
                 )
             }
         }

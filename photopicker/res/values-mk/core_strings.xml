@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Започнете со снимање фотографии и видеа"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Фотографиите и видеата снимени со вашата апликација за камера ќе се појават овде"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Сѐ уште немате омилени"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Фотографиите и видеата што се означени како омилени или означени со ѕвезда ќе се појават овде"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Сѐ уште немате видеа"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Видеата што се снимени со вашата апликација за камера, зачувани или споделени ќе се појават овде"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Назад"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Отфрли"</string>
 </resources>

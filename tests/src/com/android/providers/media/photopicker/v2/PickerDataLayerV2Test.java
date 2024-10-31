@@ -84,6 +84,7 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 
 import org.junit.After;
 import org.junit.Before;

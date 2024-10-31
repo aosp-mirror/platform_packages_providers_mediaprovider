@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"ဓာတ်ပုံနှင့် ဗီဒီယိုများကို စတင်ရိုက်ကူးနေသည်"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"သင့်ကင်မရာအက်ပ်က ရိုက်ကူးထားသော ဓာတ်ပုံနှင့် ဗီဒီယိုများကို ဤနေရာတွင် မြင်ရမည်"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"အကြိုက်ဆုံး မရှိသေးပါ"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"အကြိုက်ဆုံးများ (သို့) ကြယ်ပွင့်ပြအဖြစ် သတ်မှတ်ထားသော ဓာတ်ပုံနှင့် ဗီဒီယိုများကို ဤနေရာတွင် တွေ့ရမည်"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"မည်သည့် ဗီဒီယိုမျှ မရှိသေးပါ"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"သင့်ကင်မရာအက်ပ်က ရိုက်ကူးထားပြီး သိမ်းထား (သို့) မျှဝေထားသော ဗီဒီယိုများကို ဤနေရာတွင် တွေ့ရမည်"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"နောက်သို့"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"ပယ်ရန်"</string>
 </resources>

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
+import com.android.photopicker.core.animations.springDefaultEffectOffset
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -68,13 +69,11 @@ class AlbumGridFeature : PhotopickerUiFeature {
         setOf(
             Event.ShowSnackbarMessage::class.java,
             Event.LogPhotopickerUIEvent::class.java,
-            Event.LogPhotopickerAlbumOpenedUIEvent::class.java
+            Event.LogPhotopickerAlbumOpenedUIEvent::class.java,
         )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(
-            Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority),
-        )
+        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
@@ -100,44 +99,48 @@ class AlbumGridFeature : PhotopickerUiFeature {
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
-                            EnterTransition.None
+                            // Negative value to slide right-to-left
+                            // if previous route was from ALBUM_MEDIA_GRID.
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         } else {
                             // Positive value to slide left-to-right
-                            slideInHorizontally { it }
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
                         }
                     }
                 override val exitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
-                            ExitTransition.None
+                            // Negative value to slide right-to-left
+                            // if target route is ALBUM_MEDIA_GRID
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         } else {
                             // Positive value to slide left-to-right
-                            slideOutHorizontally { it }
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
                         }
                     }
                 override val popEnterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
-                            EnterTransition.None
+                            // Negative value to slide right-to-left
+                            // if previous route was from ALBUM_MEDIA_GRID.
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         } else {
                             // Positive value to slide left-to-right
-                            slideInHorizontally { it }
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
                         }
                     }
                 override val popExitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // no animation required if previous route was from ALBUM_MEDIA_GRID.
-                            ExitTransition.None
+                            // Negative value to slide right-to-left
+                            // if target route is ALBUM_MEDIA_GRID
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         } else {
                             // Positive value to slide left-to-right
-                            slideOutHorizontally { it }
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
                         }
                     }
 
@@ -162,22 +165,23 @@ class AlbumGridFeature : PhotopickerUiFeature {
                 override val enterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        EnterTransition.None
+                        // Positive value to slide left-to-right
+                        slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
                     }
                 override val exitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        ExitTransition.None
+                        slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
                     }
                 override val popEnterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        EnterTransition.None
+                        slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
                     }
                 override val popExitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        ExitTransition.None
+                        slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
                     }
 
                 @Composable
@@ -186,7 +190,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
                         checkNotNull(
                             navBackStackEntry
                                 ?.savedStateHandle
-                                ?.getStateFlow<Group.Album?>(ALBUM_KEY, null),
+                                ?.getStateFlow<Group.Album?>(ALBUM_KEY, null)
                         ) {
                             "Unable to get a savedStateHandle for album content grid"
                         }
@@ -197,11 +201,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.NAVIGATION_BAR_NAV_BUTTON -> AlbumGridNavButton(modifier)
             else -> {}

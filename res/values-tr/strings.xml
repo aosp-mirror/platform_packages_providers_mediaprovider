@@ -74,7 +74,7 @@
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> hesabına geç"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"İş uygulamaları duraklatıldı"</string>
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> uygulamaları duraklatıldı"</string>
-    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"İş fotoğraflarını açmak için iş uygulamalarını açıp tekrar deneyin"</string>
+    <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"İş fotoğraflarını açmak için iş uygulamalarını etkinleştirip tekrar deneyin"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> fotoğraflarını açmak için <xliff:g id="PROFILE2">%2$s</xliff:g> uygulamalarınızı etkinleştirip tekrar deneyin"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Bu uygulama yalnızca seçtiğiniz fotoğraflara erişebilir"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Bu uygulamanın erişmesine izin verdiğiniz fotoğrafları ve videoları seçin"</string>

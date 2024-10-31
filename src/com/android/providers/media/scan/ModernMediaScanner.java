@@ -51,6 +51,7 @@ import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.flags.Flags.enableOemMetadata;
+import static com.android.providers.media.flags.Flags.indexMediaLatitudeLongitude;
 import static com.android.providers.media.util.FileUtils.canonicalize;
 import static com.android.providers.media.util.IsoInterface.MAX_XMP_SIZE_BYTES;
 import static com.android.providers.media.util.Metrics.translateReason;
@@ -63,6 +64,7 @@ import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.OperationApplicationException;
@@ -114,6 +116,7 @@ import androidx.annotation.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.MediaVolume;
+import com.android.providers.media.backupandrestore.RestoreExecutor;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.ExifUtils;
@@ -437,6 +440,7 @@ public class ModernMediaScanner implements MediaScanner {
         private final String mVolumeName;
         private final Uri mFilesUri;
         private final CancellationSignal mSignal;
+        private final Optional<RestoreExecutor> mRestoreExecutorOptional;
         private final List<String> mExcludeDirs;
 
         private final long mStartGeneration;
@@ -483,6 +487,7 @@ public class ModernMediaScanner implements MediaScanner {
             mVolumeName = mVolume.getName();
             mFilesUri = MediaStore.Files.getContentUri(mVolumeName);
             mSignal = new CancellationSignal();
+            mRestoreExecutorOptional = RestoreExecutor.getRestoreExecutor(mContext);
 
             mStartGeneration = MediaStore.getGeneration(mResolver, mVolumeName);
             mSingleFile = mRoot.isFile();
@@ -939,7 +944,7 @@ public class ModernMediaScanner implements MediaScanner {
             Trace.beginSection("Scanner.scanItem");
             try {
                 op = scanItem(existingId, realFile, attrs, actualMimeType, actualMediaType,
-                        mVolumeName);
+                        mVolumeName, mRestoreExecutorOptional.orElse(null));
             } finally {
                 Trace.endSection();
             }
@@ -1159,7 +1164,8 @@ public class ModernMediaScanner implements MediaScanner {
      * {@link SQLiteDatabase#replace} operation.
      */
     private @Nullable ContentProviderOperation.Builder scanItem(long existingId, File file,
-            BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName) {
+            BasicFileAttributes attrs, String mimeType, int mediaType, String volumeName,
+            RestoreExecutor restoreExecutor) {
         if (Objects.equals(file.getName(), ".nomedia")) {
             if (LOGD) Log.d(TAG, "Ignoring .nomedia file: " + file);
             return null;
@@ -1167,6 +1173,24 @@ public class ModernMediaScanner implements MediaScanner {
 
         if (attrs.isDirectory()) {
             return scanItemDirectory(existingId, file, attrs, mimeType, volumeName);
+        }
+
+        // Recovery is performed on first scan of file in target device
+        if (existingId == -1) {
+            try {
+                if (restoreExecutor != null) {
+                    Optional<ContentValues> restoredDataOptional =
+                            restoreExecutor.getMetadataForFileIfBackedUp(file.getAbsolutePath());
+                    if (restoredDataOptional.isPresent()) {
+                        ContentValues valuesRestored = restoredDataOptional.get();
+                        if (isRestoredMetadataOfActualFile(valuesRestored, attrs)) {
+                            return restoreDataFromBackup(valuesRestored, file, attrs, mimeType);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error while attempting to restore metadata from backup", e);
+            }
         }
 
         switch (mediaType) {
@@ -1185,6 +1209,25 @@ public class ModernMediaScanner implements MediaScanner {
             default:
                 return scanItemFile(existingId, file, attrs, mimeType, mediaType, volumeName);
         }
+    }
+
+    private boolean isRestoredMetadataOfActualFile(@NonNull ContentValues contentValues,
+            BasicFileAttributes attrs) {
+        long actualFileSize = attrs.size();
+        String fileSizeFromBackup = contentValues.getAsString(MediaStore.Files.FileColumns.SIZE);
+        if (fileSizeFromBackup == null) {
+            return false;
+        }
+
+        return actualFileSize == Long.parseLong(fileSizeFromBackup);
+    }
+
+    private ContentProviderOperation.Builder restoreDataFromBackup(
+            ContentValues restoredValues, File file, BasicFileAttributes attrs, String mimeType) {
+        final ContentProviderOperation.Builder op = newUpsert(MediaStore.VOLUME_EXTERNAL, -1);
+        withGenericValues(op, file, attrs, mimeType, /* mediaType */ null);
+        op.withValues(restoredValues);
+        return op;
     }
 
     /**
@@ -1502,6 +1545,12 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
                 withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
+
+                // TODO b/373352459 Latitude and Longitude for backup and restore
+                // Fill up the latitude and longitude columns
+                if (indexMediaLatitudeLongitude()) {
+                    populateVideoGeolocationCoordinates(op, mmr);
+                }
             }
 
             // Also hunt around for XMP metadata
@@ -1514,6 +1563,38 @@ public class ModernMediaScanner implements MediaScanner {
         }
         return op;
     }
+
+    private void populateVideoGeolocationCoordinates(
+            ContentProviderOperation.Builder op, MediaMetadataRetriever mmr) {
+        // Extract geolocation data
+        final int locationArraySize = 2;
+        // First element of the array is the latitude and the second is the longitude
+        final int latitudeIndex = 0;
+        final int longitudeIndex = 1;
+        String imageGeolocationCoordinates = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_LOCATION);
+        if (imageGeolocationCoordinates != null) {
+            // The extracted geolocation string is of the form +90.87-87.68.
+            // where the first half +90.87 is the latitude including the first
+            // leading +/- sign and the second half -87.68. is the longitude including the
+            // last '.' character. The following processing includes the signs and
+            // discards the last '.' character.
+            String[] locationParts = imageGeolocationCoordinates.split("(?=[+-])");
+            if (locationParts.length == locationArraySize) {
+                float latitude = Float.parseFloat(locationParts[latitudeIndex]);
+                // Remove last character which is a '.' in the string
+                float longitude = Float.parseFloat(
+                        locationParts[longitudeIndex].substring(
+                                0, locationParts[longitudeIndex].length() - 1));
+                op.withValue(VideoColumns.LATITUDE, latitude);
+                op.withValue(VideoColumns.LONGITUDE, longitude);
+            } else {
+                Log.e(TAG, "Couldn't extract image geolocation coordinates");
+            }
+        }
+    }
+
+
 
     private @NonNull ContentProviderOperation.Builder scanItemImage(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
@@ -1545,6 +1626,12 @@ public class ModernMediaScanner implements MediaScanner {
             withOptionalValue(op, ImageColumns.SCENE_CAPTURE_TYPE,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_SCENE_CAPTURE_TYPE)));
 
+            // TODO b/373352459 Latitude and Longitude for backup and restore
+            // Fill up the latitude and longitude columns
+            if (indexMediaLatitudeLongitude()) {
+                populateImageGeolocationCoordinates(op, exif);
+            }
+
             // Also hunt around for XMP metadata
             final XmpInterface xmp = XmpDataParser.createXmpInterface(exif);
             withXmpValues(op, xmp, mimeType);
@@ -1554,6 +1641,18 @@ public class ModernMediaScanner implements MediaScanner {
             logTroubleScanning(file, e);
         }
         return op;
+    }
+
+    private void populateImageGeolocationCoordinates(
+            ContentProviderOperation.Builder op, ExifInterface exif) {
+        // Array to hold the geolocation coordinates - latitude and longitude
+        final int locationArraySize = 2;
+        float[] locationCoordinates = new float[locationArraySize];
+        if (exif.getLatLong(locationCoordinates)) {
+            // First element is the latitude and the second is the longitude
+            op.withValue(ImageColumns.LATITUDE, locationCoordinates[/* latitudeIndex */ 0]);
+            op.withValue(ImageColumns.LONGITUDE, locationCoordinates[/* longitudeIndex */ 1]);
+        }
     }
 
     private @NonNull ContentProviderOperation.Builder scanItemFile(long existingId,

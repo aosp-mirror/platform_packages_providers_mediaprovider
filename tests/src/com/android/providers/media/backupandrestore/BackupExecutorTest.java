@@ -16,7 +16,7 @@
 
 package com.android.providers.media.backupandrestore;
 
-import static com.android.providers.media.backupandrestore.BackupExecutor.BACKUP_COLUMNS;
+import static com.android.providers.media.backupandrestore.BackupAndRestoreUtils.BACKUP_COLUMNS;
 import static com.android.providers.media.scan.MediaScanner.REASON_UNKNOWN;
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 
@@ -237,7 +237,7 @@ public final class BackupExecutorTest {
         stage(resId, file);
     }
 
-    private static void createColumnToKeyMap() {
+    static void createColumnToKeyMap() {
         sColumnIdToKeyMap = new HashMap<>();
         sColumnIdToKeyMap.put("0", MediaStore.Files.FileColumns.IS_FAVORITE);
         sColumnIdToKeyMap.put("1", MediaStore.Files.FileColumns.MEDIA_TYPE);

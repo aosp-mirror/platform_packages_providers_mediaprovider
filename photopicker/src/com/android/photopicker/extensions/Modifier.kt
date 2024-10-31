@@ -50,7 +50,7 @@ fun Modifier.circleBackground(
     color: Color,
     padding: Dp,
     borderColor: Color = Color.Unspecified,
-    borderWidth: Dp = 1.dp
+    borderWidth: Dp = 1.dp,
 ): Modifier {
     val backgroundModifier = drawBehind {
         drawCircle(color, size.width / 2f, center = Offset(size.width / 2f, size.height / 2f))
@@ -59,7 +59,7 @@ fun Modifier.circleBackground(
                 borderColor,
                 size.width / 2f,
                 center = Offset(size.width / 2f, size.height / 2f),
-                style = Stroke(width = borderWidth.roundToPx().toFloat())
+                style = Stroke(width = borderWidth.roundToPx().toFloat()),
             )
         }
     }
@@ -81,7 +81,7 @@ fun Modifier.circleBackground(
             // Place the composable at the calculated position
             placeable.placeRelative(
                 (newDiameter - currentWidth) / 2,
-                (newDiameter - currentHeight) / 2
+                (newDiameter - currentHeight) / 2,
             )
         }
     }
@@ -103,14 +103,10 @@ fun Modifier.circleBackground(
 fun Modifier.transferGridTouchesToHostInEmbedded(
     state: LazyGridState,
     isExpanded: State<Boolean>,
-    host: SurfaceControlViewHost
+    host: SurfaceControlViewHost,
 ): Modifier {
     return this then
-        transferTouchesToSurfaceControlViewHost(
-            state = state,
-            isExpanded = isExpanded,
-            host = host,
-        )
+        transferTouchesToSurfaceControlViewHost(state = state, isExpanded = isExpanded, host = host)
 }
 
 /**
@@ -127,7 +123,13 @@ fun Modifier.transferTouchesToHostInEmbedded(host: SurfaceControlViewHost): Modi
 }
 
 /**
- * Transfer necessary touch events to host on runtime in Embedded Photopicker
+ * Transfer necessary touch events to host on runtime in Embedded Photopicker.
+ *
+ * This custom modifier has been explicitly applied to four different components - the navigation
+ * bar, Album media grid's empty state, Photos grid's empty state and media grid.
+ *
+ * Todo(b/368021407): Touches should also be transferred into the empty spaces left within the
+ * embedded
  *
  * @param state the state of Photos/albums grid. If state is null means Photos/Albums grid has not
  *   requested the custom modifier
@@ -139,7 +141,7 @@ fun Modifier.transferTouchesToHostInEmbedded(host: SurfaceControlViewHost): Modi
 private fun Modifier.transferTouchesToSurfaceControlViewHost(
     state: LazyGridState?,
     isExpanded: State<Boolean>?,
-    host: SurfaceControlViewHost
+    host: SurfaceControlViewHost,
 ): Modifier {
 
     /**
@@ -160,20 +162,18 @@ private fun Modifier.transferTouchesToSurfaceControlViewHost(
                     // Suspend until next pointer event
                     val event: PointerEvent = awaitPointerEvent()
                     event.changes.forEach { change ->
-                        if (state != null) {
-                            when (event.type) {
-                                PointerEventType.Press -> {
-                                    // Set initial Y position when user touches the screen
-                                    initialY = change.position.y
-                                }
-                                PointerEventType.Move -> {
-                                    // Position difference with respect to initial position
-                                    dy = change.position.y - initialY
-                                }
-                                PointerEventType.Release -> {
-                                    // Resetting the position change for next touch event
-                                    dy = 0F
-                                }
+                        when (event.type) {
+                            PointerEventType.Press -> {
+                                // Set initial Y position when user touches the screen
+                                initialY = change.position.y
+                            }
+                            PointerEventType.Move -> {
+                                // Position difference with respect to initial position
+                                dy = change.position.y - initialY
+                            }
+                            PointerEventType.Release -> {
+                                // Resetting the position change for next touch event
+                                dy = 0F
                             }
                         }
                     }
@@ -188,8 +188,10 @@ private fun Modifier.transferTouchesToSurfaceControlViewHost(
                     val shouldTransferToHost =
                         when {
 
-                            // Never transfer if the event type isn't move
-                            event.type != PointerEventType.Move -> false
+                            // Never transfer any horizontal (Left or right) moves. We consume
+                            // horizontal moves in the service to enable switching between
+                            // "Photos" and "Albums" tabs.
+                            dy == 0F -> false
 
                             // Case for Not Grid attached modifiers
                             state == null -> true

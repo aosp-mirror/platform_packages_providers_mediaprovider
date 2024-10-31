@@ -21,10 +21,10 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"वर्क प्रोफ़ाइल"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"अन्य"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"उपयोगकर्ता प्रोफ़ाइल बदलें"</string>
-    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> से जुड़े ऐप्लिकेशन पर रोक लगा दी गई है"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> ऐप्लिकेशन रोके गए हैं"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"आपके एडमिन ने रोक लगाई है"</string>
-    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> की फ़ोटो खोलने के लिए, <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> से जुड़े ऐप्लिकेशन को खोलें. इसके बाद, फिर से कोशिश करें"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> प्रोफ़ाइल में मौजूद फ़ोटो देखने के लिए, <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> के ऐप्लिकेशन चालू करें और दोबारा कोशिश करें"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"आपके एडमिन ने इस प्रोफ़ाइल के डेटा को ऐक्सेस करने की अनुमति नहीं दी है."</string>
     <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"स्विच करें"</string>
-    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"आपने अपनी <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> प्रोफ़ाइल में साइन इन किया है. क्या आपको अपनी <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> प्रोफ़ाइल पर स्विच करना है?"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"आपने <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g> प्रोफ़ाइल में साइन इन किया है. क्या आपको <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g> प्रोफ़ाइल पर स्विच करना है?"</string>
 </resources>

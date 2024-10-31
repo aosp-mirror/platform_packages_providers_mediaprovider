@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
@@ -115,7 +116,11 @@ private val MEASUREMENT_FACE_RESULT_ICON = 32.dp
 /** A composable function that displays a SearchBar. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun Search(modifier: Modifier = Modifier, viewModel: SearchViewModel = obtainViewModel()) {
+fun Search(
+    modifier: Modifier = Modifier,
+    params: LocationParams,
+    viewModel: SearchViewModel = obtainViewModel(),
+) {
     val focused = rememberSaveable { mutableStateOf(false) }
     val searchTerm = rememberSaveable { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
@@ -126,7 +131,13 @@ fun Search(modifier: Modifier = Modifier, viewModel: SearchViewModel = obtainVie
                 viewModel = viewModel,
                 focused = focused.value,
                 searchTerm = searchTerm.value,
-                onFocused = { focused.value = it },
+                onFocused = {
+                    if (it) {
+                        val clickAction = params as? LocationParams.WithClickAction
+                        clickAction?.onClick()
+                    }
+                    focused.value = it
+                },
                 onSearchQueryChanged = {
                     searchTerm.value = it
                     viewModel.clearSearch()

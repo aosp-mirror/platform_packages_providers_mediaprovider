@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"検索"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"写真を検索"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"自分の動画を検索"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"一致する結果はありません"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"似た言葉を検索してみてください"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"候補"</string>
 </resources>

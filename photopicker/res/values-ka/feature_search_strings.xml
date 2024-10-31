@@ -20,4 +20,10 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"ძიება"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"თქვენი ფოტოების ძიება"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"თქვენი ვიდეოების ძიება"</string>
+    <!-- no translation found for photopicker_search_result_empty_state_title (5464851093908453867) -->
+    <skip />
+    <!-- no translation found for photopicker_search_result_empty_state_body (1732249539645056618) -->
+    <skip />
+    <!-- no translation found for photopicker_search_suggestions_text (1758802235973720586) -->
+    <skip />
 </resources>

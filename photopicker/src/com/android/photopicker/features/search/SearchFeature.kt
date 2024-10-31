@@ -47,7 +47,7 @@ class SearchFeature : PhotopickerUiFeature {
     @Composable
     override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
-            Location.SEARCH_BAR -> Search(modifier)
+            Location.SEARCH_BAR -> Search(modifier, params)
             else -> {}
         }
     }

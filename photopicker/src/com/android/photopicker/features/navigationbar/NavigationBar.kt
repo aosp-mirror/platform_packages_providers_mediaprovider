@@ -48,6 +48,7 @@ import com.android.photopicker.core.animations.standardDecelerate
 import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
@@ -86,7 +87,7 @@ private val MEASUREMENT_BOT_PADDING = 24.dp
  * Additionally, the composable also calls for the [PROFILE_SELECTOR] and [OVERFLOW_MENU] locations.
  */
 @Composable
-fun NavigationBar(modifier: Modifier = Modifier) {
+fun NavigationBar(modifier: Modifier = Modifier, params: LocationParams) {
 
     val navController = LocalNavController.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -114,7 +115,7 @@ fun NavigationBar(modifier: Modifier = Modifier) {
 
             // When search feature is enabled then display search bar along with profile selector,
             // overflow menu and the navigation buttons below it.
-            searchFeatureEnabled -> NavigationBarWithSearch(modifier)
+            searchFeatureEnabled -> NavigationBarWithSearch(modifier, params)
 
             // For all other routes, show the profile selector and the navigation buttons
             else -> BasicNavigationBar(modifier)
@@ -281,7 +282,7 @@ private fun NavigationBarForAlbum(modifier: Modifier) {
  * Navigation buttons are positioned below the search bar.
  */
 @Composable
-private fun NavigationBarWithSearch(modifier: Modifier) {
+private fun NavigationBarWithSearch(modifier: Modifier, params: LocationParams) {
     val featureManager = LocalFeatureManager.current
     Column(
         modifier = modifier,
@@ -293,6 +294,7 @@ private fun NavigationBarWithSearch(modifier: Modifier) {
                 Location.SEARCH_BAR,
                 maxSlots = 1,
                 modifier = Modifier.weight(1f),
+                params,
             )
             featureManager.composeLocation(
                 Location.PROFILE_SELECTOR,

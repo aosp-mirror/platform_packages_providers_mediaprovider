@@ -43,9 +43,9 @@ android_test {
         "libstaticjvmtiagent",
     ],
     libs: [
-        "android.test.base",
-        "android.test.mock",
-        "android.test.runner",
+        "android.test.base.stubs.system",
+        "android.test.mock.stubs.system",
+        "android.test.runner.stubs.system",
         "framework-pdf.impl",
     ],
 }
@@ -77,9 +77,9 @@ android_test {
         "platform-compat-test-rules",
     ],
     libs: [
-        "android.test.base",
-        "android.test.mock",
-        "android.test.runner",
+        "android.test.base.stubs.system",
+        "android.test.mock.stubs.system",
+        "android.test.runner.stubs.system",
         "framework-pdf.impl",
         "framework-pdf-v.impl",
     ],

@@ -28,13 +28,14 @@ import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
+import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.tests.utils.mockito.capture
 import com.android.photopicker.tests.utils.mockito.mockSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
@@ -100,7 +101,7 @@ class UserMonitorTest {
             UserProfile(
                 handle = USER_HANDLE_PRIMARY,
                 profileType = UserProfile.ProfileType.PRIMARY,
-                label = PLATFORM_PROVIDED_PROFILE_LABEL
+                label = PLATFORM_PROVIDED_PROFILE_LABEL,
             )
 
         val parcel2 = Parcel.obtain()
@@ -113,14 +114,14 @@ class UserMonitorTest {
             UserProfile(
                 handle = USER_HANDLE_MANAGED,
                 profileType = UserProfile.ProfileType.MANAGED,
-                label = PLATFORM_PROVIDED_PROFILE_LABEL
+                label = PLATFORM_PROVIDED_PROFILE_LABEL,
             )
 
         initialExpectedStatus =
             UserStatus(
                 activeUserProfile = PRIMARY_PROFILE_BASE,
                 allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
-                activeContentResolver = mockContentResolver
+                activeContentResolver = mockContentResolver,
             )
     }
 
@@ -182,11 +183,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -221,11 +226,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -252,11 +261,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -296,11 +309,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -321,11 +338,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -350,11 +371,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -383,11 +408,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -427,11 +456,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -471,11 +504,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             launch {
@@ -510,11 +547,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -543,9 +584,9 @@ class UserMonitorTest {
                             PRIMARY_PROFILE_BASE,
                             MANAGED_PROFILE_BASE.copy(
                                 disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE)
-                            )
+                            ),
                         ),
-                    activeContentResolver = mockContentResolver
+                    activeContentResolver = mockContentResolver,
                 )
 
             assertThat(emissions.size).isEqualTo(2)
@@ -564,11 +605,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -615,11 +660,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -630,7 +679,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = USER_HANDLE_MANAGED),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
@@ -641,7 +690,7 @@ class UserMonitorTest {
                 UserStatus(
                     activeUserProfile = MANAGED_PROFILE_BASE,
                     allProfiles = listOf(PRIMARY_PROFILE_BASE, MANAGED_PROFILE_BASE),
-                    activeContentResolver = mockContentResolver
+                    activeContentResolver = mockContentResolver,
                 )
 
             assertThat(emissions.size).isEqualTo(2)
@@ -672,10 +721,10 @@ class UserMonitorTest {
                         UserProfile(
                             handle = USER_HANDLE_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
-                            disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE)
-                        )
+                            disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE),
+                        ),
                     ),
-                activeContentResolver = mockContentResolver
+                activeContentResolver = mockContentResolver,
             )
 
         runTest { // this: TestScope
@@ -684,11 +733,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -699,7 +752,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = USER_HANDLE_MANAGED),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
             }
@@ -721,11 +774,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val parcel = Parcel.obtain()
@@ -742,7 +799,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = unknownUserHandle),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_UNKNOWN_PROFILE)
             }
@@ -767,11 +824,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -785,7 +846,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = USER_HANDLE_MANAGED),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.SUCCESS)
             }
@@ -837,11 +898,11 @@ class UserMonitorTest {
                             disabledReasons =
                                 setOf(
                                     UserProfile.DisabledReason.QUIET_MODE,
-                                    UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
-                                )
-                        )
+                                    UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW,
+                                ),
+                        ),
                     ),
-                activeContentResolver = mockContentResolver
+                activeContentResolver = mockContentResolver,
             )
 
         runTest { // this: TestScope
@@ -850,11 +911,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -865,7 +930,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = USER_HANDLE_MANAGED),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
             }
@@ -899,13 +964,10 @@ class UserMonitorTest {
                         UserProfile(
                             handle = USER_HANDLE_MANAGED,
                             profileType = UserProfile.ProfileType.MANAGED,
-                            disabledReasons =
-                                setOf(
-                                    UserProfile.DisabledReason.QUIET_MODE,
-                                )
-                        )
+                            disabledReasons = setOf(UserProfile.DisabledReason.QUIET_MODE),
+                        ),
                     ),
-                activeContentResolver = mockContentResolver
+                activeContentResolver = mockContentResolver,
             )
 
         runTest { // this: TestScope
@@ -914,11 +976,15 @@ class UserMonitorTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val emissions = mutableListOf<UserStatus>()
@@ -929,7 +995,7 @@ class UserMonitorTest {
                 val switchResult =
                     userMonitor.requestSwitchActiveUserProfile(
                         UserProfile(handle = USER_HANDLE_MANAGED),
-                        mockContext
+                        mockContext,
                     )
                 assertThat(switchResult).isEqualTo(SwitchUserProfileResult.FAILED_PROFILE_DISABLED)
             }
@@ -952,15 +1018,15 @@ class UserMonitorTest {
                 activeUserProfile =
                     b.activeUserProfile.copy(
                         icon = a.activeUserProfile.icon,
-                        label = a.activeUserProfile.label
+                        label = a.activeUserProfile.label,
                     ),
                 allProfiles =
                     b.allProfiles.mapIndexed { index, profile ->
                         profile.copy(
                             icon = a.allProfiles.get(index).icon,
-                            label = a.allProfiles.get(index).label
+                            label = a.allProfiles.get(index).label,
                         )
-                    }
+                    },
             )
 
         assertThat(a).isEqualTo(bWithIgnoredFields)

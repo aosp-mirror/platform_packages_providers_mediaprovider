@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Comece a tirar fotos e gravar vídeos"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"As fotos e os vídeos capturados pelo seu app de câmera vão aparecer aqui"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Nenhum favorito ainda"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Fotos e vídeos marcados como favoritos ou com estrela vão aparecer aqui"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Ainda não há vídeos"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Os vídeos capturados pelo seu app de câmera, salvos ou compartilhados vão aparecer aqui"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Voltar"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Dispensar"</string>
 </resources>

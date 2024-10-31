@@ -19,6 +19,7 @@ package com.android.providers.media.photopicker.v2.model;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS_FAVORITE;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
+import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Bundle;
@@ -26,7 +27,10 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
+
+import java.util.Locale;
 
 /**
  * This is a convenience class for Favorites album related SQL queries performed on the Picker
@@ -51,14 +55,15 @@ public class FavoritesMediaQuery extends MediaQuery {
     @Override
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder) {
-        super.addWhereClause(queryBuilder, localAuthority, cloudAuthority, reverseOrder);
+        super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
         final String localFavoriteMediaWhereClause =
-                getLocalFavoriteMediaWhereClause(queryBuilder, cloudAuthority);
-        final String cloudFavoriteMediaWhereClause = getCloudFavoriteMediaWhereClause();
+                getLocalFavoriteMediaWhereClause(queryBuilder, table, cloudAuthority);
+        final String cloudFavoriteMediaWhereClause = getCloudFavoriteMediaWhereClause(table);
 
         final String favoriteMediaWhereClause = (localFavoriteMediaWhereClause
                 + " OR " + cloudFavoriteMediaWhereClause);
@@ -67,16 +72,24 @@ public class FavoritesMediaQuery extends MediaQuery {
 
     private String getLocalFavoriteMediaWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String cloudAuthority) {
         if (cloudAuthority == null) {
-            return "(" + KEY_IS_FAVORITE + " = 1 AND " + KEY_CLOUD_ID + " IS NULL)";
+            return String.format(
+                    Locale.ROOT,
+                    "(%s = 1 AND %s IS NULL)",
+                    prependTableName(table, KEY_IS_FAVORITE),
+                    prependTableName(table, KEY_CLOUD_ID)
+            );
         } else {
             // Select all the deduped local media items that have been marked as favorite in the
             // local media provider or the cloud media provider.
             final String[] columns = new String[1];
-            columns[0] = KEY_LOCAL_ID;
-            final String localMediaWhereClause = KEY_LOCAL_ID + " IS NOT NULL";
-            final String favoriteMediaWhereClause = KEY_IS_FAVORITE + " = 1";
+            columns[0] = prependTableName(table, KEY_LOCAL_ID);
+            final String localMediaWhereClause =
+                    prependTableName(table, KEY_LOCAL_ID) + " IS NOT NULL";
+            final String favoriteMediaWhereClause =
+                    prependTableName(table, KEY_IS_FAVORITE) + " = 1";
 
             final String innerQuery = SQLiteQueryBuilder.buildQueryString(
                     /* distinct */ true,
@@ -89,11 +102,17 @@ public class FavoritesMediaQuery extends MediaQuery {
                     /* limit */ null
             );
 
-            return "(" + KEY_LOCAL_ID + " IN (" + innerQuery + "))";
+            return String.format(Locale.ROOT,
+                    "(%s IN (%s))",
+                    prependTableName(table, KEY_LOCAL_ID),
+                    innerQuery);
         }
     }
 
-    private String getCloudFavoriteMediaWhereClause() {
-        return "(" + KEY_IS_FAVORITE + " = 1 AND " + KEY_LOCAL_ID + " IS NULL)";
+    private String getCloudFavoriteMediaWhereClause(@NonNull PickerSQLConstants.Table table) {
+        return String.format(Locale.ROOT,
+                "(%s = 1 AND %s IS NULL)",
+                prependTableName(table, KEY_IS_FAVORITE),
+                prependTableName(table, KEY_LOCAL_ID));
     }
 }

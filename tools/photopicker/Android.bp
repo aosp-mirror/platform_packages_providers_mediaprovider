@@ -6,7 +6,10 @@ package {
 android_app {
     name: "PhotoPickerTool",
     manifest: "AndroidManifest.xml",
-
+    libs: [
+        "framework-photopicker.impl",
+        "framework-mediaprovider.impl",
+    ],
     static_libs: [
         "com.google.android.material_material",
         "glide-prebuilt",
@@ -17,9 +20,8 @@ android_app {
         "androidx.vectordrawable_vectordrawable-animated",
         "androidx.exifinterface_exifinterface",
     ],
-
+    sdk_version: "module_current",
     srcs: ["src/**/*.java"],
-    sdk_version: "current",
     target_sdk_version: "30",
     min_sdk_version: "30",
 }

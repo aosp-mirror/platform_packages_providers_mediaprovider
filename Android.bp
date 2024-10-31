@@ -35,6 +35,8 @@ android_app {
         "SettingsLibProfileSelector",
         "SettingsLibSelectorWithWidgetPreference",
         "mediaprovider_flags_java_lib",
+        "androidx.media3.media3-common",
+        "androidx.media3.media3-transformer",
     ],
 
     libs: [
@@ -103,6 +105,7 @@ android_app {
     apex_available: [
         "com.android.mediaprovider",
     ],
+    updatable: true,
 }
 
 // Used by MediaProvider and MediaProviderTests
@@ -185,7 +188,7 @@ java_aconfig_library {
     aconfig_declarations: "mediaprovider_flags",
     min_sdk_version: "30",
     sdk_version: "module_current",
-    libs: ["framework-configinfrastructure"],
+    libs: ["framework-configinfrastructure.stubs.module_lib"],
     apex_available: [
         "com.android.mediaprovider",
     ],

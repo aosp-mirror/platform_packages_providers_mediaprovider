@@ -54,7 +54,7 @@ class NavigationBarFeature : PhotopickerUiFeature {
     @Composable
     override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
-            Location.NAVIGATION_BAR -> NavigationBar(modifier)
+            Location.NAVIGATION_BAR -> NavigationBar(modifier, params)
             else -> {}
         }
     }

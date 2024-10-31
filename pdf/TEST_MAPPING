@@ -4,6 +4,11 @@
           "name": "CtsPdfModuleTestCases[com.google.android.mediaprovider.apex]"
     }
   ],
+  "mediaprovider-mainline-presubmit": [
+    {
+          "name": "CtsPdfModuleTestCases"
+    }
+  ],
   "presubmit": [
     {
       "name": "CtsPdfModuleTestCases"

@@ -1,3 +1,0 @@
-package android.provider;
-
-parcelable EmbeddedPhotoPickerSessionResponse;

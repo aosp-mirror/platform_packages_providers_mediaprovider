@@ -27,6 +27,7 @@ import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
 import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_TRANSCODED_ID;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_CLOUD_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_ID_SELECTION;
 import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_LOCAL_ID_SELECTION;
@@ -82,6 +83,7 @@ public class PickerUriResolver {
 
     public static final String PICKER_GET_CONTENT_SEGMENT = "picker_get_content";
     private static final String PICKER_INTERNAL_SEGMENT = "picker_internal";
+    public static final String PICKER_TRANSCODED_SEGMENT = "picker_transcoded";
     /** A uri with prefix "content://media/picker" is considered as a picker uri */
     public static final Uri PICKER_URI = MediaStore.AUTHORITY_URI.buildUpon().
             appendPath(PICKER_SEGMENT).build();
@@ -322,6 +324,8 @@ public class PickerUriResolver {
                 return PICKER_SEGMENT;
             case PICKER_GET_CONTENT_ID:
                 return PICKER_GET_CONTENT_SEGMENT;
+            case PICKER_TRANSCODED_ID:
+                return PICKER_TRANSCODED_SEGMENT;
         }
 
         return null;
@@ -516,7 +520,11 @@ public class PickerUriResolver {
         return builder;
     }
 
-    @VisibleForTesting
+    /**
+     * Gets the user id of the picker uri.
+     *
+     * @param uri The picker URI.
+     */
     static int getUserId(Uri uri) {
         // content://media/picker/<user-id>/<media-id>/...
         return Integer.parseInt(uri.getPathSegments().get(1));

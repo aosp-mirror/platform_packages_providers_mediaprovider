@@ -22,9 +22,9 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
 import android.util.Log
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import androidx.annotation.RequiresApi
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.EmbeddedServiceComponentBuilder
@@ -68,7 +68,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
         if (SdkLevel.isAtLeastU() && enableEmbeddedPhotopicker()) {
             EmbeddedPhotopickerImpl(
                 sessionFactory = ::buildSession,
-                verifyCaller = ::verifyCallerIdentity
+                verifyCaller = ::verifyCallerIdentity,
             )
         } else {
             // Embedded Photopicker is only available on U+ devices when the build flag is enabled.
@@ -105,7 +105,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private fun cleanupSessions() {
         for (session in allSessions) {
-            if (session.isActive) {
+            if (session.isActive.get()) {
                 session.close()
             }
         }
@@ -184,7 +184,7 @@ class EmbeddedService : Hilt_EmbeddedService() {
      */
     enum class GrantResult {
         SUCCESS,
-        FAILURE
+        FAILURE,
     }
 
     /** Verify that package belongs to caller by mapping their uids */

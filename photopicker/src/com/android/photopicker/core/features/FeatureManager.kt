@@ -28,9 +28,11 @@ import com.android.photopicker.features.cloudmedia.CloudMediaFeature
 import com.android.photopicker.features.navigationbar.NavigationBarFeature
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.photogrid.PhotoGridFeature
+import com.android.photopicker.features.preparemedia.PrepareMediaFeature
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.privacyexplainer.PrivacyExplainerFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
+import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +84,8 @@ class FeatureManager(
                 OverflowMenuFeature.Registration,
                 PrivacyExplainerFeature.Registration,
                 BrowseFeature.Registration,
+                SearchFeature.Registration,
+                PrepareMediaFeature.Registration,
             )
 
         /* The list of events that the core library consumes. */
@@ -105,7 +109,7 @@ class FeatureManager(
                 Event.ReportPhotopickerAlbumSyncInfo::class.java,
                 Event.ReportPhotopickerSearchInfo::class.java,
                 Event.ReportSearchDataExtractionDetails::class.java,
-                Event.ReportEmbeddedPhotopickerInfo::class.java
+                Event.ReportEmbeddedPhotopickerInfo::class.java,
             )
     }
 
@@ -216,7 +220,7 @@ class FeatureManager(
 
         Log.d(
             TAG,
-            "Feature initialization complete. Features: ${_enabledFeatures.map { it.token }}"
+            "Feature initialization complete. Features: ${_enabledFeatures.map { it.token }}",
         )
     }
 
@@ -264,7 +268,7 @@ class FeatureManager(
                 Log.w(
                     TAG,
                     "Events are expected to be consumed that are not produced: " +
-                        "$consumedButNotProduced"
+                        "$consumedButNotProduced",
                 )
             }
         }

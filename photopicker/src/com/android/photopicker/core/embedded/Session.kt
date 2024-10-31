@@ -23,12 +23,13 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.EmbeddedPhotoPickerFeatureInfo
-import android.provider.IEmbeddedPhotoPickerClient
-import android.provider.IEmbeddedPhotoPickerSession
-import android.provider.ParcelableException
+import android.os.RemoteException
 import android.util.Log
 import android.view.SurfaceControlViewHost
+import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
+import android.widget.photopicker.IEmbeddedPhotoPickerClient
+import android.widget.photopicker.IEmbeddedPhotoPickerSession
+import android.widget.photopicker.ParcelableException
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -61,11 +62,12 @@ import dagger.Lazy
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
@@ -126,10 +128,12 @@ open class Session(
     private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
-) : IEmbeddedPhotoPickerSession.Stub() {
+) : IEmbeddedPhotoPickerSession.Stub(), IBinder.DeathRecipient {
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
+        // Time interval to notify client about selected/deselected Uris
+        const val URI_DEBOUNCE_TIME: Long = 400 // In milliseconds
     }
 
     /**
@@ -200,7 +204,7 @@ open class Session(
      * Whether the session is currently active and has active resources. Sessions cannot be
      * restarted once closed.
      */
-    var isActive = true
+    var isActive = AtomicBoolean(true)
 
     init {
 
@@ -221,7 +225,7 @@ open class Session(
                     .getApplicationLabel(
                         packageManager.getApplicationInfo(
                             clientPackageName,
-                            ApplicationInfoFlags.of(0)
+                            ApplicationInfoFlags.of(0),
                         )
                     )
                     .toString() // convert CharSequence to String
@@ -235,7 +239,7 @@ open class Session(
             .setCaller(
                 callingPackage = clientPackageName,
                 callingPackageUid = clientUid,
-                callingPackageLabel = clientPackageLabel
+                callingPackageLabel = clientPackageLabel,
             )
 
         // Update the [PhotopickerConfiguration] associated with the session using the
@@ -256,14 +260,32 @@ open class Session(
         // Start listening to selection/deselection events for this Session so
         // we can grant/revoke permission to selected/deselected uris immediately.
         listenForSelectionEvents()
+
+        // Initialize / Refresh the banner state.
+        refreshBannerState()
+
+        // Link death recipient on client callback to clean up the session resources
+        // when client dies
+        try {
+            clientCallback.asBinder()?.linkToDeath(this, 0 /* flags*/)
+        } catch (e: RemoteException) {
+            this.binderDied()
+        }
     }
 
     override fun close() {
-        if (!isActive) {
-            callClosedSessionError()
+        if (!isActive.get()) {
+            // session is already closed and the binder is still alive
+            if (clientCallback.asBinder()?.isBinderAlive() ?: false) {
+                callClosedSessionError()
+            }
             return
         }
-        Log.d(TAG, "Session close was requested.")
+        Log.d(TAG, "Session close was requested")
+
+        // Closing this session, and it can never be reactivated.
+        isActive.set(false)
+
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
@@ -271,9 +293,15 @@ open class Session(
             _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
+    }
 
-        // This session is now closed, and can never be reactivated.
-        isActive = false
+    override fun binderDied() {
+        Log.d(TAG, "Client is no longer active. Cleaning up the session resources")
+        if (isActive.get()) {
+            // Binder died here, so close session
+            close()
+        }
+        clientCallback.asBinder()?.unlinkToDeath(this, 0)
     }
 
     /**
@@ -291,7 +319,7 @@ open class Session(
     private fun createSurfaceControlViewHost(
         context: Context,
         displayId: Int,
-        hostToken: IBinder
+        hostToken: IBinder,
     ): SurfaceControlViewHost {
         val displayManager: DisplayManager = context.requireSystemService()
         val display =
@@ -343,7 +371,7 @@ open class Session(
                             LocalEmbeddedLifecycle provides _embeddedViewLifecycle,
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
-                            LocalEmbeddedState provides embeddedState
+                            LocalEmbeddedState provides embeddedState,
                         ) {
                             val currentEmbeddedState =
                                 checkNotNull(LocalEmbeddedState.current) {
@@ -351,7 +379,7 @@ open class Session(
                                 }
                             PhotopickerTheme(
                                 isDarkTheme = currentEmbeddedState.isDarkTheme,
-                                config = photopickerConfiguration
+                                config = photopickerConfiguration,
                             ) {
                                 PhotopickerApp(
                                     disruptiveDataNotification = disruptiveDataNotification,
@@ -377,16 +405,16 @@ open class Session(
      * permission when item is selected/deselected respectively.
      *
      * It emits both the previous and new selection of media items.
-     *
-     * todo(b/358537861): Debounce on uri selection/deselction
      */
     fun listenForSelectionEvents() {
         _backgroundScope.launch {
+            @OptIn(kotlinx.coroutines.FlowPreview::class)
             _dependencies
                 .selection()
                 .get()
                 .flow
                 .flowWithLifecycle(_embeddedViewLifecycle.lifecycle, Lifecycle.State.STARTED)
+                .debounce(URI_DEBOUNCE_TIME)
                 .runningFold(initial = emptySet<Media>()) { _prevSelection, _newSelection ->
                     // Get list of items removed/deselected by user so that we can revoke access to
                     // those uris.
@@ -398,16 +426,19 @@ open class Session(
                     var newlySelectedMedia: Set<Media> = _newSelection.subtract(_prevSelection)
                     Log.d(TAG, "Granting uri permission to $newlySelectedMedia")
 
+                    val selectedUris: MutableList<Uri> = mutableListOf()
+                    val deselectedUris: MutableList<Uri> = mutableListOf()
+
                     // Grant uri to newly selected media and notify client
                     newlySelectedMedia.iterator().forEach { item ->
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsSelected(listOf(item.mediaUri))
+                            selectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
                                 "Error granting permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
                     }
@@ -416,14 +447,22 @@ open class Session(
                     unselectedMedia.iterator().forEach { item ->
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
-                            clientCallback.onItemsDeselected(listOf(item.mediaUri))
+                            deselectedUris.add(item.mediaUri)
                         } else {
                             Log.w(
                                 TAG,
                                 "Error revoking permission to uri ${item.mediaUri} " +
-                                    "for package $clientPackageName"
+                                    "for package $clientPackageName",
                             )
                         }
+                    }
+
+                    // notify client about final selection
+                    if (selectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionGranted(selectedUris)
+                    }
+                    if (deselectedUris.isNotEmpty()) {
+                        clientCallback.onUriPermissionRevoked(deselectedUris)
                     }
 
                     // Update previous selection to current flow
@@ -434,19 +473,26 @@ open class Session(
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
-            true -> runBlocking(_main) { _embeddedViewLifecycle.onResume() }
+            true ->
+                runBlocking(_main) {
+                    _embeddedViewLifecycle.onResume()
+
+                    // Refresh the banner state, it's possible that the external state has changed
+                    // if the activity is returning from the background.
+                    refreshBannerState()
+                }
             false -> runBlocking(_main) { _embeddedViewLifecycle.onStop() }
         }
     }
 
     override fun notifyResized(width: Int, height: Int) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -455,7 +501,7 @@ open class Session(
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -478,15 +524,15 @@ open class Session(
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
         _stateManager.setIsExpanded(isExpanded)
     }
 
-    override fun notifyItemsDeselected(uris: List<Uri>) {
-        if (!isActive) {
+    override fun requestRevokeUriPermission(uris: List<Uri>) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -507,5 +553,14 @@ open class Session(
 
     private fun onMediaSelectionConfirmed() {
         clientCallback.onSelectionComplete()
+    }
+
+    private fun refreshBannerState() {
+        _backgroundScope.launch {
+            // Always ensure providers before requesting a banner refresh, banners depend on
+            // having accurate provider information to generate the correct banners.
+            _dependencies.dataService().get().ensureProviders()
+            _dependencies.bannerManager().get().refreshBanners()
+        }
     }
 }

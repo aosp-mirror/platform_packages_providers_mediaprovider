@@ -28,6 +28,7 @@ import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_IS
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_MIME_TYPE;
 import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.CURRENT_GRANTS_TABLE;
+import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
 import android.content.Context;
 import android.content.Intent;
@@ -40,7 +41,8 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaGrants;
 import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -173,6 +175,7 @@ public class MediaQuery {
                 CURRENT_GRANTS_TABLE);
 
         return String.format(
+                Locale.ROOT,
                 "%s LEFT JOIN %s"
                         + " ON %s.%s = %s.%s ",
                 table,
@@ -187,6 +190,7 @@ public class MediaQuery {
     /**
      * @param queryBuilder Adds SQL query where clause based on the Media query arguments to the
      *                     given query builder.
+     * @param table The SQL table that is being used to fetch media metadata.
      * @param localAuthority the authority of the local provider if we should include local media in
      *                       the query response. Otherwise, this is null.
      * @param cloudAuthority The authority of the cloud provider if we should include cloud media in
@@ -198,30 +202,35 @@ public class MediaQuery {
      */
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
         if (mShouldDedupe) {
-            queryBuilder.appendWhereStandalone(KEY_IS_VISIBLE + " = 1");
+            queryBuilder.appendWhereStandalone(
+                    prependTableName(table, KEY_IS_VISIBLE) + " = 1");
         }
 
         if (cloudAuthority == null) {
-            queryBuilder.appendWhereStandalone(KEY_CLOUD_ID + " IS NULL");
+            queryBuilder.appendWhereStandalone(
+                    prependTableName(table, KEY_CLOUD_ID) + " IS NULL");
         }
 
         if (localAuthority == null) {
-            queryBuilder.appendWhereStandalone(KEY_LOCAL_ID + " IS NULL");
+            queryBuilder.appendWhereStandalone(
+                    prependTableName(table, KEY_CLOUD_ID) + " IS NOT NULL");
         }
 
-        addMimeTypeClause(queryBuilder);
-        addDateTakenClause(queryBuilder, reverseOrder);
+        addMimeTypeClause(queryBuilder, table);
+        addDateTakenClause(queryBuilder, table, reverseOrder);
     }
 
     /**
      * Adds the date taken clause to the given query builder.
      *
      * @param queryBuilder SelectSQLiteQueryBuilder to add the where clause
+     * @param table The SQL table that is being used to fetch media metadata.
      * @param reverseOrder Since the media results are sorted by (Date taken DESC, Picker ID DESC),
      *                     this field is true when the query is made in the reverse order of the
      *                     expected sort order i.e. (Date taken ASC, Picker ID ASC),
@@ -229,18 +238,23 @@ public class MediaQuery {
      */
     private void addDateTakenClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             boolean reverseOrder
     ) {
         if (reverseOrder) {
             queryBuilder.appendWhereStandalone(
-                        KEY_DATE_TAKEN_MS + " > " + mDateTakenMs
-                        + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
-                        + " AND " + KEY_ID + " > " + mPickerId + ")");
+                    String.format(Locale.ROOT,
+                            "%s > %s OR (%s = %s AND %s > %s)",
+                            prependTableName(table, KEY_DATE_TAKEN_MS), mDateTakenMs,
+                            prependTableName(table, KEY_DATE_TAKEN_MS), mDateTakenMs,
+                            prependTableName(table, KEY_ID), mPickerId));
         } else {
             queryBuilder.appendWhereStandalone(
-                        KEY_DATE_TAKEN_MS + " < " + mDateTakenMs
-                        + " OR ( " + KEY_DATE_TAKEN_MS + " = " + mDateTakenMs
-                        + " AND " + KEY_ID + " <= " + mPickerId + ")");
+                    String.format(Locale.ROOT,
+                            "%s < %s OR (%s = %s AND %s <= %s)",
+                            prependTableName(table, KEY_DATE_TAKEN_MS), mDateTakenMs,
+                            prependTableName(table, KEY_DATE_TAKEN_MS), mDateTakenMs,
+                            prependTableName(table, KEY_ID), mPickerId));
         }
     }
 
@@ -249,7 +263,9 @@ public class MediaQuery {
      *
      * @param queryBuilder SelectSQLiteQueryBuilder to add the where clause.
      */
-    private void addMimeTypeClause(@NonNull SelectSQLiteQueryBuilder queryBuilder) {
+    private void addMimeTypeClause(
+            @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table) {
         if (mMimeTypes == null || mMimeTypes.isEmpty()) {
             return;
         }
@@ -257,9 +273,22 @@ public class MediaQuery {
         List<String> whereClauses = new ArrayList<>();
         for (String mimeType : mMimeTypes) {
             if (!TextUtils.isEmpty(mimeType)) {
-                whereClauses.add(KEY_MIME_TYPE + " LIKE '" + mimeType.replace('*', '%') + "'");
+                whereClauses.add(
+                        String.format(
+                                Locale.ROOT,
+                                "%s LIKE '%s'",
+                                prependTableName(table, KEY_MIME_TYPE),
+                                mimeType.replace(/* oldChar */ '*', /* newChar */ '%')
+                        )
+                );
             }
         }
-        queryBuilder.appendWhereStandalone(" ( " + TextUtils.join(" OR ", whereClauses) + " ) ");
+        queryBuilder.appendWhereStandalone(
+                String.format(
+                        Locale.ROOT,
+                        " ( %s ) ",
+                        TextUtils.join(" OR ", whereClauses)
+                )
+        );
     }
 }

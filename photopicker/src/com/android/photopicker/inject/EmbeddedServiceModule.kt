@@ -89,9 +89,10 @@ class EmbeddedServiceModule {
     private lateinit var userMonitor: UserMonitor
 
     @Provides
+    @SessionScoped
     fun provideEmbeddedLifecycle(
         viewModelFactory: EmbeddedViewModelFactory,
-        @Main dispatcher: CoroutineDispatcher
+        @Main dispatcher: CoroutineDispatcher,
     ): EmbeddedLifecycle {
         if (::embeddedLifecycle.isInitialized) {
             return embeddedLifecycle
@@ -105,6 +106,7 @@ class EmbeddedServiceModule {
     }
 
     @Provides
+    @SessionScoped
     fun provideViewModelFactory(
         @Background backgroundDispatcher: CoroutineDispatcher,
         featureManager: Lazy<FeatureManager>,
@@ -136,6 +138,7 @@ class EmbeddedServiceModule {
 
     /** Provider for a @Background Dispatcher [CoroutineScope]. */
     @Provides
+    @SessionScoped
     @Background
     fun provideBackgroundScope(
         @Background dispatcher: CoroutineDispatcher,
@@ -156,7 +159,7 @@ class EmbeddedServiceModule {
                             Lifecycle.Event.ON_DESTROY -> {
                                 Log.d(
                                     TAG,
-                                    "Embedded lifecycle is ending, cancelling background scope."
+                                    "Embedded lifecycle is ending, cancelling background scope.",
                                 )
                                 backgroundScope.cancel()
                             }
@@ -171,6 +174,7 @@ class EmbeddedServiceModule {
 
     /** Provider for an implementation of [BannerManager]. */
     @Provides
+    @SessionScoped
     fun provideBannerManager(
         @Background backgroundScope: CoroutineScope,
         @Background backgroundDispatcher: CoroutineDispatcher,
@@ -202,6 +206,7 @@ class EmbeddedServiceModule {
 
     /** Provider for the [ConfigurationManager]. */
     @Provides
+    @SessionScoped
     fun provideConfigurationManager(
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
@@ -213,7 +218,7 @@ class EmbeddedServiceModule {
             Log.d(
                 ConfigurationManager.TAG,
                 "ConfigurationManager requested but not yet initialized." +
-                    " Initializing ConfigurationManager."
+                    " Initializing ConfigurationManager.",
             )
             configurationManager =
                 ConfigurationManager(
@@ -232,6 +237,7 @@ class EmbeddedServiceModule {
      * initialization costs of this module.
      */
     @Provides
+    @SessionScoped
     fun provideDataService(
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
@@ -241,13 +247,13 @@ class EmbeddedServiceModule {
         featureManager: FeatureManager,
         @ApplicationContext appContext: Context,
         events: Events,
-        processOwnerHandle: UserHandle
+        processOwnerHandle: UserHandle,
     ): DataService {
 
         if (!::dataService.isInitialized) {
             Log.d(
                 DataService.TAG,
-                "DataService requested but not yet initialized. Initializing DataService."
+                "DataService requested but not yet initialized. Initializing DataService.",
             )
             dataService =
                 DataServiceImpl(
@@ -260,13 +266,14 @@ class EmbeddedServiceModule {
                     featureManager,
                     appContext,
                     events,
-                    processOwnerHandle
+                    processOwnerHandle,
                 )
         }
         return dataService
     }
 
     @Provides
+    @SessionScoped
     fun provideDatabaseManager(@ApplicationContext context: Context): DatabaseManager {
         if (::databaseManager.isInitialized) {
             return databaseManager
@@ -282,6 +289,7 @@ class EmbeddedServiceModule {
      * initialization costs of this module.
      */
     @Provides
+    @SessionScoped
     fun provideEvents(
         @Background scope: CoroutineScope,
         featureManager: FeatureManager,
@@ -291,14 +299,16 @@ class EmbeddedServiceModule {
             return events
         } else {
             Log.d(Events.TAG, "Events requested but not yet initialized. Initializing Events.")
-            return Events(scope, configurationManager.configuration, featureManager)
+            events = Events(scope, configurationManager.configuration, featureManager)
+            return events
         }
     }
 
     @Provides
+    @SessionScoped
     fun provideFeatureManager(
-        @Background scope: CoroutineScope,
-        configurationManager: ConfigurationManager,
+        @SessionScoped @Background scope: CoroutineScope,
+        @SessionScoped configurationManager: ConfigurationManager,
     ): FeatureManager {
 
         if (::featureManager.isInitialized) {
@@ -306,21 +316,19 @@ class EmbeddedServiceModule {
         } else {
             Log.d(
                 FeatureManager.TAG,
-                "FeatureManager requested but not yet initialized. Initializing FeatureManager."
+                "FeatureManager requested but not yet initialized. Initializing FeatureManager.",
             )
             featureManager =
                 // Do not pass a set of FeatureRegistrations here to use the standard set of
                 // enabled features.
-                FeatureManager(
-                    configurationManager.configuration,
-                    scope,
-                )
+                FeatureManager(configurationManager.configuration, scope)
             return featureManager
         }
     }
 
     /** Provider for a @Main Dispatcher [CoroutineScope]. */
     @Provides
+    @SessionScoped
     @Main
     fun provideMainScope(
         @Main dispatcher: CoroutineDispatcher,
@@ -352,13 +360,14 @@ class EmbeddedServiceModule {
     }
 
     @Provides
+    @SessionScoped
     fun provideNotificationService(): NotificationService {
 
         if (!::notificationService.isInitialized) {
             Log.d(
                 NotificationService.TAG,
                 "NotificationService requested but not yet initialized. " +
-                    "Initializing NotificationService."
+                    "Initializing NotificationService.",
             )
             notificationService = NotificationServiceImpl()
         }
@@ -366,6 +375,7 @@ class EmbeddedServiceModule {
     }
 
     @Provides
+    @SessionScoped
     fun provideSelection(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
@@ -388,7 +398,7 @@ class EmbeddedServiceModule {
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
-                            preSelectedMedia = dataService.preSelectionMediaData
+                            preSelectedMedia = dataService.preSelectionMediaData,
                         )
                 }
             return selection
@@ -397,12 +407,14 @@ class EmbeddedServiceModule {
 
     /** Provides the UserHandle of the current process owner. */
     @Provides
+    @SessionScoped
     fun provideUserHandle(): UserHandle {
         return Process.myUserHandle()
     }
 
     /** Provider for the [UserMonitor]. This is lazily initialized only when requested. */
     @Provides
+    @SessionScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
         configurationManager: ConfigurationManager,
@@ -415,7 +427,7 @@ class EmbeddedServiceModule {
         } else {
             Log.d(
                 UserMonitor.TAG,
-                "UserMonitor requested but not yet initialized. Initializing UserMonitor."
+                "UserMonitor requested but not yet initialized. Initializing UserMonitor.",
             )
             userMonitor =
                 UserMonitor(context, configurationManager.configuration, scope, dispatcher, handle)

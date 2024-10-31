@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -37,10 +38,8 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testEmbeddedPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -132,19 +131,49 @@ class BrowseFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testBrowseEnabledInConfigurations() {
         assertWithMessage("BrowseFeature is enabled (ACTION_PICK_IMAGES)")
-            .that(BrowseFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                BrowseFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(false)
 
         assertWithMessage("BrowseFeature is not always enabled (ACTION_GET_CONTENT)")
-            .that(BrowseFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                BrowseFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("BrowseFeature is enabled (USER_SELECT_FOR_APP)")
-            .that(BrowseFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                BrowseFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
             .isEqualTo(false)
 
         assertWithMessage("BrowseFeature is enabled in Embedded configurations")
-            .that(BrowseFeature.Registration.isEnabled(testEmbeddedPhotopickerConfiguration))
+            .that(
+                BrowseFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
+                    }
+                )
+            )
             .isEqualTo(false)
     }
 

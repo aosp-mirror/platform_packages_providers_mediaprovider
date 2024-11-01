@@ -7350,7 +7350,7 @@ public class MediaProvider extends ContentProvider {
                             final HashCode uuidHashCode =
                                     Hashing.farmHashFingerprint64()
                                        .hashString(input, StandardCharsets.UTF_8);
-                            return db.getVersion() + ":" + uuidHashCode;
+                            return uuidHashCode.toString();
                         } else {
                             return db.getVersion() + ":" + dbUuid;
                         }

@@ -48,28 +48,24 @@ import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.IllegalIntentExtraException
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.PhotopickerEventLogger
 import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.events.dispatchReportPhotopickerApiInfoEvent
+import com.android.photopicker.core.events.dispatchReportPhotopickerMediaItemStatusEvent
+import com.android.photopicker.core.events.dispatchReportPhotopickerSessionInfoEvent
 import com.android.photopicker.core.features.FeatureManager
-import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
-import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
-import com.android.photopicker.core.theme.AccentColorHelper
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.core.user.UserMonitor
-import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
-import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.extensions.canHandleGetContentIntentMimeTypes
-import com.android.photopicker.extensions.getUserProfilesVisibleToPhotopicker
 import com.android.photopicker.features.preparemedia.PrepareMediaFeature
 import com.android.photopicker.features.preparemedia.PrepareMediaResult
 import com.android.photopicker.features.preparemedia.PrepareMediaResult.PrepareMediaFailed
@@ -274,9 +270,6 @@ class MainActivity : Hilt_MainActivity() {
 
     /** Dispatches an event to log all details with which the photopicker launched */
     private fun reportPhotopickerApiInfo() {
-        val intent = getIntent()
-        val dispatcherToken = FeatureToken.CORE.token
-        val sessionId = configurationManager.configuration.value.sessionId
         val intentAction =
             when (intent.action) {
                 MediaStore.ACTION_PICK_IMAGES -> Telemetry.PickerIntentAction.ACTION_PICK_IMAGES
@@ -285,81 +278,13 @@ class MainActivity : Hilt_MainActivity() {
                     Telemetry.PickerIntentAction.ACTION_USER_SELECT
                 else -> Telemetry.PickerIntentAction.UNSET_PICKER_INTENT_ACTION
             }
-        // We always launch the picker in collapsed state. We track change in the picker bottom
-        // sheet as UI event
-        val pickerSize = Telemetry.PickerSize.COLLAPSED
-        val mediaFilters = configurationManager.configuration.value.mimeTypes
-        val pickItemsMax = configurationManager.configuration.value.selectionLimit
-        val pickerConfig = configurationManager.configuration.value
-        val launchTab = configurationManager.configuration.value.startDestination
-        val selectedTab =
-            when (launchTab) {
-                PhotopickerDestinations.PHOTO_GRID -> Telemetry.SelectedTab.PHOTOS
-                PhotopickerDestinations.ALBUM_GRID -> Telemetry.SelectedTab.ALBUMS
-                else -> Telemetry.SelectedTab.UNSET_SELECTED_TAB
-            }
 
-        val selectedAlbum = Telemetry.SelectedAlbum.UNSET_SELECTED_ALBUM
-        val isOrderedSelectionSet = pickerConfig.pickImagesInOrder
-        // TODO Creating a new instance of AccentColorHelper() to check color seems unnecessary.
-        // Fix later
-        val isAccentColorSet = AccentColorHelper.withIntent(intent).isValidAccentColorSet()
-        val isLaunchTabSet = pickerConfig.startDestination != PhotopickerDestinations.DEFAULT
-        // TODO Update when search is added
-        val isSearchEnabled = false
-        var mediaFilter = Telemetry.MediaType.UNSET_MEDIA_TYPE
-        if (mediaFilters.size > 1) {
-            for (filter in mediaFilters) {
-                if (filter.contains("image") && filter.contains("video")) {
-                    mediaFilter = Telemetry.MediaType.PHOTO_VIDEO
-                } else if (filter.startsWith("image/")) {
-                    mediaFilter = Telemetry.MediaType.PHOTO
-                } else if (filter.startsWith("video/")) {
-                    mediaFilter = Telemetry.MediaType.VIDEO
-                }
-                lifecycleScope.launch {
-                    events
-                        .get()
-                        .dispatch(
-                            Event.ReportPhotopickerApiInfo(
-                                dispatcherToken,
-                                sessionId,
-                                intentAction,
-                                pickerSize,
-                                mediaFilter,
-                                pickItemsMax,
-                                selectedTab,
-                                selectedAlbum,
-                                isOrderedSelectionSet,
-                                isAccentColorSet,
-                                isLaunchTabSet,
-                                isSearchEnabled,
-                            )
-                        )
-                }
-            }
-        } else {
-            lifecycleScope.launch {
-                events
-                    .get()
-                    .dispatch(
-                        Event.ReportPhotopickerApiInfo(
-                            dispatcherToken,
-                            sessionId,
-                            intentAction,
-                            pickerSize,
-                            mediaFilter,
-                            pickItemsMax,
-                            selectedTab,
-                            selectedAlbum,
-                            isOrderedSelectionSet,
-                            isAccentColorSet,
-                            isLaunchTabSet,
-                            isSearchEnabled,
-                        )
-                    )
-            }
-        }
+        dispatchReportPhotopickerApiInfoEvent(
+            coroutineScope = lifecycleScope,
+            lazyEvents = events,
+            photopickerConfiguration = configurationManager.configuration.value,
+            pickerIntentAction = intentAction,
+        )
     }
 
     /**
@@ -401,49 +326,11 @@ class MainActivity : Hilt_MainActivity() {
 
     /** Dispatches an event to log all the final state details of the picker */
     private fun reportSessionInfo() {
-        val configuration = configurationManager.configuration.value
-        val pickerSelection =
-            if (configuration.selectionLimit == 1) {
-                Telemetry.PickerSelection.SINGLE
-            } else {
-                Telemetry.PickerSelection.MULTIPLE
-            }
-        val cloudProviderUid =
-            dataService
-                .get()
-                .availableProviders
-                .value
-                .filter { provider -> provider.mediaSource == MediaSource.REMOTE }
-                .firstOrNull()
-                ?.uid ?: -1
-        val userProfileType = userMonitor.get().userStatus.value.activeUserProfile.profileType
-        val currentActiveProfile =
-            when (userProfileType) {
-                UserProfile.ProfileType.PRIMARY -> Telemetry.UserProfile.PERSONAL
-                UserProfile.ProfileType.MANAGED -> Telemetry.UserProfile.WORK
-                else -> Telemetry.UserProfile.UNKNOWN
-            }
-        val pickedMediaItemsSet = selection.get().flow.value
         val pickerStatus =
             if (activityResultSet == RESULT_CANCELED) {
                 Telemetry.PickerStatus.CANCELED
             } else {
                 Telemetry.PickerStatus.CONFIRMED
-            }
-        val pickedItemsCount = pickedMediaItemsSet.size
-        var pickedItemsSize = 0
-        for (mediaItem in pickedMediaItemsSet) {
-            pickedItemsSize += mediaItem.sizeInBytes.toInt()
-        }
-        val pickerMode =
-            when {
-                configuration.action.equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) ->
-                    Telemetry.PickerMode.PERMISSION_MODE_PICKER
-                configuration.runtimeEnv.equals(PhotopickerRuntimeEnv.ACTIVITY) ->
-                    Telemetry.PickerMode.REGULAR_PICKER
-                configuration.runtimeEnv.equals(PhotopickerRuntimeEnv.EMBEDDED) ->
-                    Telemetry.PickerMode.EMBEDDED_PICKER
-                else -> Telemetry.PickerMode.UNSET_PICKER_MODE
             }
         val pickerCloseMethod =
             if (isPickerClosedByBackGesture) {
@@ -454,28 +341,16 @@ class MainActivity : Hilt_MainActivity() {
                 Telemetry.PickerCloseMethod.SWIPE_DOWN
             }
 
-        lifecycleScope.launch {
-            val profileSwitchButtonVisible =
-                userMonitor.get().userStatus.getUserProfilesVisibleToPhotopicker().first().size > 1
-            events
-                .get()
-                .dispatch(
-                    Event.ReportPhotopickerSessionInfo(
-                        FeatureToken.CORE.token,
-                        configuration.sessionId,
-                        configuration.callingPackageUid ?: -1,
-                        pickerSelection,
-                        cloudProviderUid,
-                        currentActiveProfile,
-                        pickerStatus,
-                        pickedItemsCount,
-                        pickedItemsSize,
-                        profileSwitchButtonVisible,
-                        pickerMode,
-                        pickerCloseMethod,
-                    )
-                )
-        }
+        dispatchReportPhotopickerSessionInfoEvent(
+            coroutineScope = lifecycleScope,
+            lazyEvents = events,
+            photopickerConfiguration = configurationManager.configuration.value,
+            lazyDataService = dataService,
+            lazyUserMonitor = userMonitor,
+            lazyMediaSelection = selection,
+            pickerStatus = pickerStatus,
+            pickerCloseMethod = pickerCloseMethod,
+        )
     }
 
     /**
@@ -685,50 +560,16 @@ class MainActivity : Hilt_MainActivity() {
 
     /** Dispatches an Event to log details of all the picked media items */
     private fun dispatchSelectedMediaItemsStatusEvent(selection: Set<Media>) {
-        val sessionId = configurationManager.configuration.value.sessionId
         val mediaStatus = Telemetry.MediaStatus.SELECTED
 
         for (mediaItem in selection) {
-            // TODO Update the media item position here once the Media class holds the resultIndex
-            //  property: b/342555096
-            val itemPosition = 0
-            val mimeType = mediaItem.mimeType
-            // TODO find live photo format
-            val mediaType =
-                if (mimeType.startsWith("image/")) {
-                    if (mimeType.contains("gif")) {
-                        Telemetry.MediaType.GIF
-                    } else {
-                        Telemetry.MediaType.PHOTO
-                    }
-                } else if (mimeType.startsWith("video/")) {
-                    Telemetry.MediaType.VIDEO
-                } else {
-                    Telemetry.MediaType.OTHER
-                }
-
-            val cloudOnly = mediaItem.mediaSource == MediaSource.REMOTE
-            // TODO Keeping for now while the field still exists in the actual atom to prevent the
-            // picker from crashing on selection with a null value
-            val pickerSize = Telemetry.PickerSize.EXPANDED
-            lifecycleScope.launch {
-                events
-                    .get()
-                    .dispatch(
-                        Event.ReportPhotopickerMediaItemStatus(
-                            FeatureToken.CORE.token,
-                            sessionId,
-                            mediaStatus,
-                            mediaItem.selectionSource
-                                ?: Telemetry.MediaLocation.UNSET_MEDIA_LOCATION,
-                            itemPosition,
-                            mediaItem.mediaItemAlbum,
-                            mediaType,
-                            cloudOnly,
-                            pickerSize,
-                        )
-                    )
-            }
+            dispatchReportPhotopickerMediaItemStatusEvent(
+                coroutineScope = lifecycleScope,
+                lazyEvents = events,
+                photopickerConfiguration = configurationManager.configuration.value,
+                mediaItem = mediaItem,
+                mediaStatus = mediaStatus,
+            )
         }
     }
 

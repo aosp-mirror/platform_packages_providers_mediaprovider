@@ -36,7 +36,7 @@ public abstract class SearchRequest {
     @Nullable
     protected final List<String> mMimeTypes;
     @Nullable
-    protected final String mResumeKey;
+    protected String mResumeKey;
 
     protected SearchRequest(@Nullable List<String> rawMimeTypes) {
         this (
@@ -105,6 +105,13 @@ public abstract class SearchRequest {
     @Nullable
     public String getResumeKey() {
         return mResumeKey;
+    }
+
+    /**
+     * Set the resume key for a given search request.
+     */
+    public void setResumeKey(@Nullable String mResumeKey) {
+        this.mResumeKey = mResumeKey;
     }
 }
 

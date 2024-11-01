@@ -18,7 +18,21 @@ package com.android.photopicker.features.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
+import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionModifiedResult
+import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.insertMonthSeparators
+import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.features.search.data.SearchDataService
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
@@ -26,8 +40,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -48,12 +64,16 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     @Background val backgroundDispatcher: CoroutineDispatcher,
     private val searchDataService: SearchDataService,
+    private val selection: Selection<Media>,
+    private val events: Events,
 ) : ViewModel() {
 
     companion object {
         const val HISTORY_SUGGESTION_MAX_LIMIT = 3
         const val FACE_SUGGESTION_MAX_LIMIT = 6
         const val ALL_SUGGESTION_MAX_LIMIT = 6
+        const val SEARCH_RESULT_GRID_PAGE_SIZE = 50
+        const val SEARCH_RESULT_GRID_MAX_ITEMS_IN_MEMORY = SEARCH_RESULT_GRID_PAGE_SIZE * 10
     }
 
     // Check if a scope override was injected before using the default [viewModelScope]
@@ -123,6 +143,44 @@ constructor(
         }
     }
 
+    /**
+     * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing search result for a
+     * search suggestion or query based on search state.
+     */
+    fun getSearchResults(): Flow<PagingData<MediaGridItem>> {
+        val currentSearchState = _searchState.value
+        val pagerForSearchResult =
+            Pager(
+                PagingConfig(
+                    pageSize = SEARCH_RESULT_GRID_PAGE_SIZE,
+                    maxSize = SEARCH_RESULT_GRID_MAX_ITEMS_IN_MEMORY,
+                )
+            ) {
+                when (currentSearchState) {
+                    is SearchState.Active.SuggestionSearch -> {
+                        searchDataService.getSearchResults(
+                            suggestion = currentSearchState.suggestion
+                        )
+                    }
+                    is SearchState.Active.QuerySearch -> {
+                        searchDataService.getSearchResults(searchText = currentSearchState.query)
+                    }
+                    is SearchState.Inactive -> {
+                        throw IllegalStateException("Cannot create Pager in inactive search state.")
+                    }
+                }
+            }
+
+        /** Export the data from the pager and prepare it for use in the [MediaGridItem] */
+        return pagerForSearchResult.flow
+            .toMediaGridItemFromMedia()
+            .insertMonthSeparators()
+            // After the load and transformations, cache the data in the viewModelScope.
+            // This ensures that the list position and state will be remembered by the
+            // MediaGrid when navigating back to the SearchResult route.
+            .cachedIn(scope)
+    }
+
     /** Sets Inactive search state where no search result is active */
     fun clearSearch() {
         _searchState.value = SearchState.Inactive
@@ -144,6 +202,35 @@ constructor(
      */
     fun performSearch(query: String) {
         _searchState.value = SearchState.Active.QuerySearch(query)
+    }
+
+    /**
+     * Click handler that is called when items in the grid are clicked. Selection updates are made
+     * in the viewModelScope to ensure they aren't canceled if the user navigates away from the
+     * PhotoGrid composable.
+     */
+    fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
+        // TODO Replace UNSET_MEDIA_LOCATION with the correct enum after it is added.
+        // Update the selectable values in the received media object.
+        val updatedMediaItem =
+            Media.withSelectable(
+                item,
+                /* selectionSource */ Telemetry.MediaLocation.UNSET_MEDIA_LOCATION,
+                /* album */ null,
+            )
+        scope.launch {
+            val result = selection.toggle(updatedMediaItem)
+            if (result == SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                scope.launch {
+                    events.dispatch(
+                        Event.ShowSnackbarMessage(
+                            FeatureToken.SEARCH.token,
+                            selectionLimitExceededMessage,
+                        )
+                    )
+                }
+            }
+        }
     }
 
     /**

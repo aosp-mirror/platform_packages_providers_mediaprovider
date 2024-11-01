@@ -19,20 +19,23 @@ package com.android.photopicker.features.search
 import android.platform.test.annotations.EnableFlags
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.core.selection.SelectionImpl
+import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.TestSearchDataServiceImpl
+import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -41,24 +44,23 @@ import org.junit.runner.RunWith
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
-
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+    lateinit var selection: Selection<Media>
+    lateinit var events: Events
 
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testfetchSuggestions_initialState_hasFaceSuggestionAsSeparateList() {
         runTest {
+            provideSelectionEvents(this.backgroundScope)
+
             val viewModel =
-                SearchViewModel(this.backgroundScope, testDispatcher, TestSearchDataServiceImpl())
+                SearchViewModel(
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    TestSearchDataServiceImpl(),
+                    selection,
+                    events,
+                )
             viewModel.fetchSuggestions("")
             advanceTimeBy(1000)
             val suggestionLists = viewModel.suggestionLists.value
@@ -81,8 +83,15 @@ class SearchViewModelTest {
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testfetchSuggestions_textQueryState_hasFaceSuggestionIntegratedList() {
         runTest {
+            provideSelectionEvents(this.backgroundScope)
             val viewModel =
-                SearchViewModel(this.backgroundScope, testDispatcher, TestSearchDataServiceImpl())
+                SearchViewModel(
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    TestSearchDataServiceImpl(),
+                    selection,
+                    events,
+                )
             viewModel.fetchSuggestions("abc")
             advanceTimeBy(1000)
             val suggestionLists = viewModel.suggestionLists.value
@@ -104,8 +113,15 @@ class SearchViewModelTest {
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun clearSearch_searchState_isInactive() = runTest {
+        provideSelectionEvents(this.backgroundScope)
         val viewModel =
-            SearchViewModel(this.backgroundScope, testDispatcher, TestSearchDataServiceImpl())
+            SearchViewModel(
+                this.backgroundScope,
+                StandardTestDispatcher(this.testScheduler),
+                TestSearchDataServiceImpl(),
+                selection,
+                events,
+            )
         viewModel.performSearch("test") // Set a search state
         viewModel.clearSearch()
         assertWithMessage("Search state is not Inactive")
@@ -116,8 +132,15 @@ class SearchViewModelTest {
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun performSearch_withSuggestion_searchStateIsActiveSuggestion() = runTest {
+        provideSelectionEvents(this.backgroundScope)
         val viewModel =
-            SearchViewModel(this.backgroundScope, testDispatcher, TestSearchDataServiceImpl())
+            SearchViewModel(
+                this.backgroundScope,
+                StandardTestDispatcher(this.testScheduler),
+                TestSearchDataServiceImpl(),
+                selection,
+                events,
+            )
         val suggestion =
             SearchSuggestion(
                 "suggestion",
@@ -135,12 +158,41 @@ class SearchViewModelTest {
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun performSearch_withQuery_searchStateIsActiveQuery() = runTest {
+        provideSelectionEvents(this.backgroundScope)
         val viewModel =
-            SearchViewModel(this.backgroundScope, testDispatcher, TestSearchDataServiceImpl())
+            SearchViewModel(
+                this.backgroundScope,
+                StandardTestDispatcher(this.testScheduler),
+                TestSearchDataServiceImpl(),
+                selection,
+                events,
+            )
         val query = "test query"
         viewModel.performSearch(query)
         assertWithMessage("Search state is not Active for query search")
             .that(SearchState.Active.QuerySearch(query))
             .isEqualTo(viewModel.searchState.value)
+    }
+
+    private fun provideSelectionEvents(scope: CoroutineScope) {
+        selection =
+            SelectionImpl<Media>(
+                scope = scope,
+                configuration = provideTestConfigurationFlow(scope = scope),
+                preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
+            )
+
+        val featureManager =
+            FeatureManager(
+                configuration = provideTestConfigurationFlow(scope = scope),
+                scope = scope,
+            )
+
+        events =
+            Events(
+                scope = scope,
+                provideTestConfigurationFlow(scope = scope),
+                featureManager = featureManager,
+            )
     }
 }

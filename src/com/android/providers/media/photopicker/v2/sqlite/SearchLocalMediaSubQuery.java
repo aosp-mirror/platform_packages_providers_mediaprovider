@@ -58,6 +58,9 @@ public class SearchLocalMediaSubQuery extends SearchMediaSubQuery {
     ) {
         super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
+        // In order to identify if a row represents local media item and not a cloud media item,
+        // check if the cloud_id is null. We can't have a check on local_id because local_id can be
+        // populated for a cloud media item as well.
         queryBuilder.appendWhereStandalone(
                 String.format(
                         Locale.ROOT,

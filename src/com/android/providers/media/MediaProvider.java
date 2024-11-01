@@ -539,8 +539,7 @@ public class MediaProvider extends ContentProvider {
      * Updates the MediaStore versioning schema and format to reduce identifying properties.
      */
     @ChangeId
-    // TODO(b/370999570): Set target SDK to Baklava once available for dev
-    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT)
+    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.BAKLAVA)
     static final long LOCKDOWN_MEDIASTORE_VERSION = 343977174L;
 
     @GuardedBy("mPendingOpenInfo")

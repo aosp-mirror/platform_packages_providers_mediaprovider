@@ -32,7 +32,8 @@ import androidx.annotation.Nullable;
 import java.io.FileNotFoundException;
 
 public class CloudMediaProviderSearch extends CloudMediaProvider {
-
+    public static final String SEARCH_PROVIDER_FOR_PICKER_CLIENT_AUTHORITY =
+            "com.android.providers.media.photopicker.tests.cloud_provider_for_search_client";
     public static final String[] MEDIA_PROJECTIONS =  new String[] {
             CloudMediaProviderContract.MediaColumns.ID
     };

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker.v2;
+package com.android.providers.media.photopicker.sync;
 
 import static java.util.Objects.requireNonNull;
 
@@ -60,8 +60,12 @@ public class PickerSearchProviderClient {
      * Note: This functions does not expect pagination args.
      */
     @Nullable
-    public Cursor fetchSearchResultsFromCmp(@Nullable String suggestedMediaSetId,
-            @Nullable String searchText, @NonNull @SortOrder int sortOrder,
+    public Cursor fetchSearchResultsFromCmp(
+            @Nullable String suggestedMediaSetId,
+            @Nullable String searchText,
+            @SortOrder int sortOrder,
+            int pageSize,
+            @Nullable String resumePageToken,
             @Nullable CancellationSignal cancellationSignal) {
         if (suggestedMediaSetId == null && searchText == null) {
             throw new IllegalArgumentException(
@@ -70,6 +74,8 @@ public class PickerSearchProviderClient {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_SEARCH_TEXT, searchText);
         queryArgs.putString(CloudMediaProviderContract.KEY_MEDIA_SET_ID, suggestedMediaSetId);
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, pageSize);
+        queryArgs.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, resumePageToken);
         queryArgs.putInt(CloudMediaProviderContract.EXTRA_SORT_ORDER, sortOrder);
 
         return mContext.getContentResolver().query(

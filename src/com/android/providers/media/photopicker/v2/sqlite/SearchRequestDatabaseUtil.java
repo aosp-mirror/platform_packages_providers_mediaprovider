@@ -34,6 +34,7 @@ import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Convenience class for running Picker Search related sql queries.
@@ -51,15 +52,15 @@ public class SearchRequestDatabaseUtil {
     public static final String PLACEHOLDER_FOR_NULL = "";
 
     /**
-     * Tries to insert the given search request in the DB with the IGNORE constraint conflict
+     * Tries to insert the given search request in the DB with the REPLACE constraint conflict
      * resolution strategy.
      *
      * @param database The database you need to run the query on.
      * @param searchRequest An object that contains search request details.
-     * @return The row id of the inserted row. If the insertion did not happen, return -1.
+     * @return The row id of the inserted row or -1 in case of a SQLite constraint conflict.
      * @throws RuntimeException if an error occurs in running the sql command.
      */
-    public static long saveSearchRequestIfRequired(
+    public static long saveSearchRequest(
             @NonNull SQLiteDatabase database,
             @NonNull SearchRequest searchRequest) {
         final String table = PickerSQLConstants.Table.SEARCH_REQUEST.name();
@@ -73,12 +74,47 @@ public class SearchRequestDatabaseUtil {
             );
 
             if (result == -1) {
-                Log.e(TAG, "Insertion ignored because the row already exists");
+                Log.e(TAG, "Could not save request due to a conflict constraint");
             }
             return result;
         } catch (RuntimeException e) {
             throw new RuntimeException("Could not save search request ", e);
         }
+    }
+
+    /**
+     * Update resume key for the given search request ID.
+     *
+     * @param database The database you need to run the query on.
+     * @param searchRequestId Identifier for a search request.
+     * @param resumeKey The resume key that can be used to fetch the next page of results,
+     *                  or indicate that the sync is complete.
+     * @throws RuntimeException if an error occurs in running the sql command.
+     */
+    public static void updateResumeKey(
+            @NonNull SQLiteDatabase database,
+            int searchRequestId,
+            @Nullable String resumeKey) {
+        final String table = PickerSQLConstants.Table.SEARCH_REQUEST.name();
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(
+                PickerSQLConstants.SearchRequestTableColumns.SYNC_RESUME_KEY.getColumnName(),
+                resumeKey);
+
+        database.update(
+                table,
+                contentValues,
+                String.format(
+                        Locale.ROOT,
+                        "%s.%s = %d",
+                        table,
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .SEARCH_REQUEST_ID.getColumnName(),
+                        searchRequestId
+                ),
+                null
+        );
     }
 
     /**
@@ -134,6 +170,7 @@ public class SearchRequestDatabaseUtil {
      * or null if it can't find the search request in the database. In case multiple search
      * requests are a match, the first one is returned.
      */
+    @Nullable
     public static SearchRequest getSearchRequestDetails(
             @NonNull SQLiteDatabase database,
             @NonNull int searchRequestID

@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"શોધો"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"તમારા ફોટા શોધો"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"તમારા વીડિયો શોધો"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"કોઈ પરિણામ મળ્યું નથી"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"સમાન શબ્દો શોધવાનો પ્રયાસ કરો"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"સૂચનો"</string>
 </resources>

@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Tìm kiếm"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Tìm kiếm ảnh của bạn"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Tìm kiếm video của bạn"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Không tìm thấy kết quả"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Hãy thử tìm những từ tương tự"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Nội dung đề xuất"</string>
 </resources>

@@ -19,6 +19,7 @@ package com.android.photopicker.core.configuration
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.media.ApplicationMediaCapabilities
 import android.net.Uri
 import android.os.SystemProperties
 import android.provider.MediaStore
@@ -46,6 +47,8 @@ enum class PhotopickerRuntimeEnv {
  * @property callingPackage the package name of the caller
  * @property callingPackageUid the uid of the caller
  * @property callingPackageLabel the display label of the caller that can be shown to the user
+ * @property callingPackageMediaCapabilities the value of [MediaStore.EXTRA_MEDIA_CAPABILITIES]. If
+ *   set, represents the [ApplicationMediaCapabilities] of the calling package.
  * @property accentColor the accent color (if valid) from
  *   [MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR]
  * @property mimeTypes the mimetypes to filter all media requests with for the current session.
@@ -70,6 +73,7 @@ data class PhotopickerConfiguration(
     val callingPackage: String? = null,
     val callingPackageUid: Int? = null,
     val callingPackageLabel: String? = null,
+    val callingPackageMediaCapabilities: ApplicationMediaCapabilities? = null,
     val accentColor: Long? = null,
     val mimeTypes: ArrayList<String> = arrayListOf("image/*", "video/*"),
     val pickImagesInOrder: Boolean = false,
@@ -127,7 +131,7 @@ data class PhotopickerConfiguration(
             // Log a warning that the intent was null, but probably shouldn't have been.
             ?: Log.w(
                 ConfigurationManager.TAG,
-                "No intent available for checking cross-profile access."
+                "No intent available for checking cross-profile access.",
             )
 
         return false

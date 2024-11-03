@@ -86,6 +86,7 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_SYNC_SOURCE = "INPUT_SYNC_TYPE";
     static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
+    static final String SYNC_WORKER_INPUT_SEARCH_REQUEST_ID = "INPUT_SEARCH_REQUEST_ID";
     static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
     static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.

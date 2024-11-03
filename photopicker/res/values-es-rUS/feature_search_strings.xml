@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Buscar"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Buscar fotos"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Buscar en tus videos"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"No se encontraron resultados"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Intenta buscar palabras similares"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Sugerencias"</string>
 </resources>

@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"തിരയുക"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"നിങ്ങളുടെ ഫോട്ടോകൾ തിരയുക"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"നിങ്ങളുടെ വീഡിയോകൾ തിരയുക"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"ഫലങ്ങളൊന്നും കണ്ടെത്തിയില്ല"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"സമാനമായ വാക്കുകൾ തിരഞ്ഞുനോക്കൂ"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"നിർദ്ദേശങ്ങൾ"</string>
 </resources>

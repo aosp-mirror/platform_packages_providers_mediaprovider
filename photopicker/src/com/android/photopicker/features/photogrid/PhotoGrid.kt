@@ -17,6 +17,8 @@
 package com.android.photopicker.features.photogrid
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.StateSelector
+import com.android.photopicker.core.animations.standardDecelerate
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
@@ -205,7 +208,17 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
                     bannerContent = {
-                        hideWhenState(StateSelector.EmbeddedAndCollapsed) {
+                        hideWhenState(
+                            selector =
+                                object : StateSelector.AnimatedVisibilityInEmbedded {
+                                    override val visible =
+                                        LocalEmbeddedState.current?.isExpanded ?: false
+                                    override val enter =
+                                        expandVertically(animationSpec = standardDecelerate(300))
+                                    override val exit =
+                                        shrinkVertically(animationSpec = standardDecelerate(150))
+                                }
+                        ) {
                             AnimatedBannerWrapper(currentBanner)
                         }
                     },

@@ -44,7 +44,8 @@ data class PhotopickerFlags(
     val CLOUD_MEDIA_ENABLED: Boolean = FEATURE_CLOUD_MEDIA_FEATURE_ENABLED.second,
     val PRIVATE_SPACE_ENABLED: Boolean = FEATURE_PRIVATE_SPACE_ENABLED.second,
     val MANAGED_SELECTION_ENABLED: Boolean = FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
-    val PICKER_SEARCH_ENABLED: Boolean = Flags.enablePhotopickerSearch()
+    val PICKER_SEARCH_ENABLED: Boolean = Flags.enablePhotopickerSearch(),
+    val PICKER_TRANSCODING_ENABLED: Boolean = Flags.enablePhotopickerTranscoding(),
 ) {
     /**
      * Implement a custom equals method to correctly check the equality of the Array member
@@ -59,6 +60,7 @@ data class PhotopickerFlags(
         if (PRIVATE_SPACE_ENABLED != other.PRIVATE_SPACE_ENABLED) return false
         if (MANAGED_SELECTION_ENABLED != other.MANAGED_SELECTION_ENABLED) return false
         if (PICKER_SEARCH_ENABLED != other.PICKER_SEARCH_ENABLED) return false
+        if (PICKER_TRANSCODING_ENABLED != other.PICKER_TRANSCODING_ENABLED) return false
 
         return true
     }
@@ -74,6 +76,7 @@ data class PhotopickerFlags(
             CLOUD_MEDIA_ENABLED,
             PRIVATE_SPACE_ENABLED,
             MANAGED_SELECTION_ENABLED,
-            PICKER_SEARCH_ENABLED
+            PICKER_SEARCH_ENABLED,
+            PICKER_TRANSCODING_ENABLED,
         )
 }

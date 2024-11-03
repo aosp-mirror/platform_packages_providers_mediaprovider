@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"검색"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"내 사진 검색"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"내 동영상 검색"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"일치하는 결과 없음"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"비슷한 단어를 검색해 보세요."</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"추천"</string>
 </resources>

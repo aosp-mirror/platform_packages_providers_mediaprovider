@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Leita"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Leitaðu í myndasafninu þínu"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Leitaðu í vídeóunum þínum"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Engar niðurstöður fundust"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Prófaðu að leita að svipuðum orðum"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Tillögur"</string>
 </resources>

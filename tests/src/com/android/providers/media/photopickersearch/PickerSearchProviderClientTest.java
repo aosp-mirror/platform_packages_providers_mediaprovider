@@ -17,6 +17,7 @@
 package com.android.providers.media.photopickersearch;
 
 import static com.android.providers.media.photopickersearch.CloudMediaProviderSearch.MEDIA_PROJECTIONS;
+import static com.android.providers.media.photopickersearch.CloudMediaProviderSearch.SEARCH_PROVIDER_FOR_PICKER_CLIENT_AUTHORITY;
 import static com.android.providers.media.photopickersearch.CloudMediaProviderSearch.TEST_MEDIA_CATEGORY_ID;
 import static com.android.providers.media.photopickersearch.CloudMediaProviderSearch.TEST_MEDIA_ID_FROM_SUGGESTED_SEARCH;
 import static com.android.providers.media.photopickersearch.CloudMediaProviderSearch.TEST_MEDIA_ID_FROM_TEXT_SEARCH;
@@ -38,7 +39,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.providers.media.flags.Flags;
-import com.android.providers.media.photopicker.v2.PickerSearchProviderClient;
+import com.android.providers.media.photopicker.sync.PickerSearchProviderClient;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,9 +54,6 @@ public class PickerSearchProviderClientTest {
     @Rule
     public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
 
-    private static final String CLOUD_SEARCH_PROVIDER_AUTHORITY =
-            "com.android.providers.media.photopickersearch.tests.cloud_provider_search";
-
     private PickerSearchProviderClient mPickerSearchProviderClient;
     private Context mContext;
 
@@ -63,7 +61,8 @@ public class PickerSearchProviderClientTest {
     public void setUp() {
         mContext = InstrumentationRegistry.getTargetContext();
         mPickerSearchProviderClient =
-                PickerSearchProviderClient.create(mContext, CLOUD_SEARCH_PROVIDER_AUTHORITY);
+                PickerSearchProviderClient.create(
+                        mContext, SEARCH_PROVIDER_FOR_PICKER_CLIENT_AUTHORITY);
     }
 
     @Test
@@ -80,7 +79,8 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchSuggestedSearchResultsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchResultsFromCmp(
-                TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, null, 1, null);
+                TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, null, 1, 100,
+                null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_ID_FROM_SUGGESTED_SEARCH, cursor.getString(cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.ID)));
@@ -90,7 +90,8 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchTextSearchResultsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchResultsFromCmp(
-                null, "test", 1, null);
+                null, "test", 1, 100,
+                null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_ID_FROM_TEXT_SEARCH, cursor.getString(cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.ID)));

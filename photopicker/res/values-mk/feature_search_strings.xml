@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Пребарајте"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Пребарајте ги фотографиите"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Пребарајте ги видеата"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Не се најдени резултати"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Обидете се да пребарувате слични зборови"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Предлози"</string>
 </resources>

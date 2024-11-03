@@ -20,4 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"Pretražite"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"Pretražite fotografije"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"Pretražite videozapise"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Nije pronađen nijedan rezultat"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Pokušajte pretražiti slične riječi"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Prijedlozi"</string>
 </resources>

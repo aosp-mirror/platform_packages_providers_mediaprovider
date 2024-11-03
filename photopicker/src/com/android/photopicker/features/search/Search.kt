@@ -16,16 +16,19 @@
 
 package com.android.photopicker.features.search
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +52,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,14 +71,28 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.paging.PagingData
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.EmptyState
+import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.core.features.LocationParams
+import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.obtainViewModel
+import com.android.photopicker.core.selection.LocalSelection
+import com.android.photopicker.core.theme.LocalWindowSizeClass
+import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import com.android.photopicker.util.rememberBitmapFromUri
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 private val MEASUREMENT_SEARCH_BAR_HEIGHT = 56.dp
 private val MEASUREMENT_SEARCH_BAR_PADDING =
@@ -115,7 +133,11 @@ private val MEASUREMENT_FACE_RESULT_ICON = 32.dp
 /** A composable function that displays a SearchBar. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun Search(modifier: Modifier = Modifier, viewModel: SearchViewModel = obtainViewModel()) {
+fun Search(
+    modifier: Modifier = Modifier,
+    params: LocationParams,
+    viewModel: SearchViewModel = obtainViewModel(),
+) {
     val focused = rememberSaveable { mutableStateOf(false) }
     val searchTerm = rememberSaveable { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
@@ -126,7 +148,13 @@ fun Search(modifier: Modifier = Modifier, viewModel: SearchViewModel = obtainVie
                 viewModel = viewModel,
                 focused = focused.value,
                 searchTerm = searchTerm.value,
-                onFocused = { focused.value = it },
+                onFocused = {
+                    if (it) {
+                        val clickAction = params as? LocationParams.WithClickAction
+                        clickAction?.onClick()
+                    }
+                    focused.value = it
+                },
                 onSearchQueryChanged = {
                     searchTerm.value = it
                     viewModel.clearSearch()
@@ -151,7 +179,23 @@ fun Search(modifier: Modifier = Modifier, viewModel: SearchViewModel = obtainVie
         content = {
             when (searchState) {
                 is SearchState.Active -> {
-                    ResultMediaGrid() // Todo : update with search result
+                    val searchResults =
+                        remember(searchState) {
+                            try {
+                                viewModel.getSearchResults()
+                            } catch (e: IllegalStateException) {
+                                // If search state is inactive fetching search results would throw
+                                // an IllegalStateException but this is not expected to ever happen
+                                // as search results will be called only for active search states.
+                                Log.e(
+                                    SearchFeature.TAG,
+                                    " Cannot show search results in inactive search state",
+                                    e,
+                                )
+                                flow { PagingData.from(emptyList()) }
+                            }
+                        }
+                    ResultMediaGrid(searchResults)
                 }
                 SearchState.Inactive -> {
                     if (suggestionLists.totalSuggestions > 0) {
@@ -630,8 +674,67 @@ fun ShowSuggestionIcon(
 
 /** Composable for drawing the search results Grid */
 @Composable
-private fun ResultMediaGrid() {
-    // Todo: Show paging results int Media Grid
+private fun ResultMediaGrid(
+    resultItems: Flow<PagingData<MediaGridItem>>,
+    viewModel: SearchViewModel = obtainViewModel(),
+) {
+    val navController = LocalNavController.current
+    val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val featureManager = LocalFeatureManager.current
+    val isPreviewEnabled = remember { featureManager.isFeatureEnabled(PreviewFeature::class.java) }
+    val selectionLimitExceededMessage =
+        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+    val items = resultItems.collectAsLazyPagingItems()
+
+    // Collect the selection to notify the mediaGrid of selection changes.
+    val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
+
+    // Use the expanded layout any time the Width is Medium or larger.
+    val isExpandedScreen: Boolean =
+        when (LocalWindowSizeClass.current.widthSizeClass) {
+            WindowWidthSizeClass.Medium,
+            WindowWidthSizeClass.Expanded -> true
+            else -> false
+        }
+
+    val state = rememberLazyGridState()
+    val isEmptyAndNoMorePages =
+        items.itemCount == 0 &&
+            items.loadState.source.append is LoadState.NotLoading &&
+            items.loadState.source.append.endOfPaginationReached
+
+    when {
+        isEmptyAndNoMorePages -> {
+            EmptySearchResult()
+        }
+        else -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                mediaGrid(
+                    items = items,
+                    isExpandedScreen = isExpandedScreen,
+                    selection = selection,
+                    onItemClick = { item ->
+                        if (item is MediaGridItem.MediaItem) {
+                            viewModel.handleGridItemSelection(
+                                item = item.media,
+                                selectionLimitExceededMessage = selectionLimitExceededMessage,
+                            )
+                        }
+                    },
+                    onItemLongPress = { item ->
+                        // If the [PreviewFeature] is enabled, launch the preview route.
+                        if (isPreviewEnabled) {
+                            // TODO Log entry into the photopicker preview mode for search
+                            if (item is MediaGridItem.MediaItem) {
+                                navController.navigateToPreviewMedia(item.media)
+                            }
+                        }
+                    },
+                    state = state,
+                )
+            }
+        }
+    }
 }
 
 /**

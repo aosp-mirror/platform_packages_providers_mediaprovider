@@ -16,6 +16,7 @@ android_library {
     libs: [
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
+        "framework-media.stubs.module_lib",
         "framework-mediaprovider.impl",
         "framework-photopicker.impl",
         "framework-statsd.stubs.module_lib",
@@ -65,6 +66,8 @@ android_library {
         "kotlinx_coroutines",
         "mediaprovider_flags_java_lib",
         "modules-utils-build",
+        "androidx.media3.media3-common",
+        "androidx.media3.media3-exoplayer",
     ],
     apex_available: [
         "//apex_available:platform",

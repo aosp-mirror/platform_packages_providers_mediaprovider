@@ -64,13 +64,13 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -88,13 +88,13 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, suggestionRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, suggestionRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, suggestionRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, suggestionRequest);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -110,7 +110,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest1);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest1);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -127,7 +127,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest2);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest2);
         assertWithMessage("Insert search request failed")
                 .that(secondInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -140,7 +140,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long thirdInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest3);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest3);
         assertWithMessage("Insert search request failed")
                 .that(thirdInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -157,7 +157,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long fourthInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest4);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest4);
         assertWithMessage("Insert search request failed")
                 .that(fourthInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -171,7 +171,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -181,7 +181,7 @@ public class SearchRequestDatabaseUtilTest {
                 /* searchText */ "volcano"
         );
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -191,7 +191,7 @@ public class SearchRequestDatabaseUtilTest {
                 /* searchText */ "volcano"
         );
         final long thirdInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Third insert for same search request should fail silently")
                 .that(thirdInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -209,7 +209,7 @@ public class SearchRequestDatabaseUtilTest {
 
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -240,7 +240,7 @@ public class SearchRequestDatabaseUtilTest {
 
         // Insert a search request
         final long insertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(insertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -292,7 +292,7 @@ public class SearchRequestDatabaseUtilTest {
 
         // Insert a search request
         final long insertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(insertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -334,5 +334,54 @@ public class SearchRequestDatabaseUtilTest {
         assertWithMessage("Search request search text is not as expected")
                 .that(resultSearchSuggestionRequest.getSearchSuggestionType())
                 .isEqualTo(suggestionType);
+    }
+
+    @Test
+    public void testResumeKeyUpdate() {
+        final List<String> mimeTypes = List.of("video/mp4", "image/*", "image/gif");
+        final String mediaSetID = "MEDIA-SET-ID";
+        final String authority = "com.random.authority";
+        final SearchSuggestionType suggestionType = SearchSuggestionType.LOCATION;
+        SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
+                mimeTypes,
+                null,
+                mediaSetID,
+                authority,
+                suggestionType,
+                null
+        );
+
+        // Insert a search request
+        final long insertResult =
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
+        assertWithMessage("Insert search request failed")
+                .that(insertResult)
+                .isAtLeast(/* minimum row id */ 0);
+
+        // Get search request ID
+        final int searchRequestID =
+                SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest);
+        assertWithMessage("Search request ID should exist in DB")
+                .that(searchRequestID)
+                .isAtLeast(0);
+
+        // Fetch search details from search request ID
+        final SearchRequest savedSearchRequest =
+                SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
+        assertWithMessage("Initial search request resume key is not null")
+                .that(savedSearchRequest.getResumeKey())
+                .isNull();
+
+        // Update resume key and save
+        final String randomResumeKey = "RAMDOM_RESUME_KEY";
+        savedSearchRequest.setResumeKey(randomResumeKey);
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID, randomResumeKey);
+
+        // Fetch updated search details from search request ID
+        final SearchRequest updatedSearchRequest =
+                SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
+        assertWithMessage("Initial search request resume key is not null")
+                .that(updatedSearchRequest.getResumeKey())
+                .isEqualTo(randomResumeKey);
     }
 }

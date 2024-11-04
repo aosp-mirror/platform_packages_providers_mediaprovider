@@ -48,7 +48,9 @@ public class PickerSQLConstants {
         MEDIA,
         ALBUM_MEDIA,
         SEARCH_REQUEST,
-        SEARCH_RESULT_MEDIA
+        SEARCH_RESULT_MEDIA,
+        SEARCH_HISTORY,
+        SEARCH_SUGGESTION
     }
 
     /**
@@ -220,6 +222,47 @@ public class PickerSQLConstants {
         private final String mColumnName;
 
         SearchResultMediaTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+    public enum SearchHistoryTableColumns {
+        PICKER_ID("_id"),
+        AUTHORITY("authority"),
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        COVER_MEDIA_ID("cover_media_id"),
+        CREATION_TIME_MS("creation_time_ms");
+
+        private final String mColumnName;
+
+        SearchHistoryTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+    public enum SearchSuggestionsTableColumns {
+        PICKER_ID("_id"),
+        AUTHORITY("authority"),
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        COVER_MEDIA_ID("cover_media_id"),
+        SUGGESTION_TYPE("suggestion_type"),
+        CREATION_TIME_MS("creation_time_ms");
+
+        private final String mColumnName;
+
+        SearchSuggestionsTableColumns(@NonNull String columnName) {
             mColumnName = columnName;
         }
 

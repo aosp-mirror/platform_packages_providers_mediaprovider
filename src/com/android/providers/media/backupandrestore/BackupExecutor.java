@@ -18,20 +18,20 @@ package com.android.providers.media.backupandrestore;
 
 import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 
+import static com.android.providers.media.backupandrestore.BackupAndRestoreUtils.BACKUP_COLUMNS;
+import static com.android.providers.media.backupandrestore.BackupAndRestoreUtils.BACKUP_DIRECTORY_NAME;
+import static com.android.providers.media.backupandrestore.BackupAndRestoreUtils.FIELD_SEPARATOR;
+import static com.android.providers.media.backupandrestore.BackupAndRestoreUtils.KEY_VALUE_SEPARATOR;
 import static com.android.providers.media.util.Logging.TAG;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
 import android.os.CancellationSignal;
-import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
-import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
-import android.provider.MediaStore.Video.VideoColumns;
 import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper;
 import com.android.providers.media.leveldb.LevelDBEntry;
@@ -40,7 +40,6 @@ import com.android.providers.media.leveldb.LevelDBManager;
 import com.android.providers.media.leveldb.LevelDBResult;
 
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -70,81 +69,9 @@ public final class BackupExecutor {
     private static final String LAST_BACKED_GENERATION_NUMBER_KEY = "LAST_BACKED_GENERATION_NUMBER";
 
     /**
-     * String separator used for separating key, value pairs.
-     */
-    @VisibleForTesting
-    static final String FIELD_SEPARATOR = ":::";
-
-    /**
-     * String separator used for key and value.
-     */
-    @VisibleForTesting
-    static final String KEY_VALUE_SEPARATOR = "=";
-
-    /**
-     * Backup directory under file's directory.
-     */
-    private static final String BACKUP_DIRECTORY_NAME = "backup";
-
-    /**
      * Name of files table in MediaProvider database.
      */
     private static final String FILES_TABLE_NAME = "files";
-
-    /**
-     * Array of columns backed up for restore in the future.
-     */
-    static final String[] BACKUP_COLUMNS = new String[]{
-            FileColumns.IS_FAVORITE,
-            FileColumns.MEDIA_TYPE,
-            FileColumns.MIME_TYPE,
-            FileColumns._USER_ID,
-            FileColumns.SIZE,
-            MediaColumns.DATE_TAKEN,
-            MediaColumns.CD_TRACK_NUMBER,
-            MediaColumns.ALBUM,
-            MediaColumns.ARTIST,
-            MediaColumns.AUTHOR,
-            MediaColumns.COMPOSER,
-            MediaColumns.GENRE,
-            MediaColumns.TITLE,
-            MediaColumns.YEAR,
-            MediaColumns.DURATION,
-            MediaColumns.NUM_TRACKS,
-            MediaColumns.WRITER,
-            MediaColumns.ALBUM_ARTIST,
-            MediaColumns.DISC_NUMBER,
-            MediaColumns.COMPILATION,
-            MediaColumns.BITRATE,
-            MediaColumns.CAPTURE_FRAMERATE,
-            AudioColumns.TRACK,
-            MediaColumns.DOCUMENT_ID,
-            MediaColumns.INSTANCE_ID,
-            MediaColumns.ORIGINAL_DOCUMENT_ID,
-            MediaColumns.RESOLUTION,
-            MediaColumns.ORIENTATION,
-            VideoColumns.COLOR_STANDARD,
-            VideoColumns.COLOR_TRANSFER,
-            VideoColumns.COLOR_RANGE,
-            FileColumns._VIDEO_CODEC_TYPE,
-            MediaColumns.WIDTH,
-            MediaColumns.HEIGHT,
-            ImageColumns.DESCRIPTION,
-            ImageColumns.EXPOSURE_TIME,
-            ImageColumns.F_NUMBER,
-            ImageColumns.ISO,
-            ImageColumns.SCENE_CAPTURE_TYPE,
-            FileColumns._SPECIAL_FORMAT,
-            FileColumns.OWNER_PACKAGE_NAME,
-            // Keeping at the last as it is a BLOB type and can have separator used in our
-            // serialisation
-            MediaColumns.XMP,
-    };
-
-    /**
-     * Map used to store key id for given column and vice versa.
-     */
-    private static BiMap<String, String> sColumnToKeyBiMap;
 
     private final Context mContext;
 
@@ -156,56 +83,6 @@ public final class BackupExecutor {
         mContext = context;
         mExternalDatabaseHelper = databaseHelper;
         mLevelDBInstance = LevelDBManager.getInstance(getBackupFilePath());
-        createColumnToKeyMap();
-    }
-
-
-    private void createColumnToKeyMap() {
-        // TODO(b/356340730): Move to xml definition
-        sColumnToKeyBiMap = HashBiMap.create();
-        sColumnToKeyBiMap.put("0", FileColumns.IS_FAVORITE);
-        sColumnToKeyBiMap.put("1", FileColumns.MEDIA_TYPE);
-        sColumnToKeyBiMap.put("2", FileColumns.MIME_TYPE);
-        sColumnToKeyBiMap.put("3", FileColumns._USER_ID);
-        sColumnToKeyBiMap.put("4", FileColumns.SIZE);
-        sColumnToKeyBiMap.put("5", MediaColumns.DATE_TAKEN);
-        sColumnToKeyBiMap.put("6", MediaColumns.CD_TRACK_NUMBER);
-        sColumnToKeyBiMap.put("7", MediaColumns.ALBUM);
-        sColumnToKeyBiMap.put("8", MediaColumns.ARTIST);
-        sColumnToKeyBiMap.put("9", MediaColumns.AUTHOR);
-        sColumnToKeyBiMap.put("10", MediaColumns.COMPOSER);
-        sColumnToKeyBiMap.put("11", MediaColumns.GENRE);
-        sColumnToKeyBiMap.put("12", MediaColumns.TITLE);
-        sColumnToKeyBiMap.put("13", MediaColumns.YEAR);
-        sColumnToKeyBiMap.put("14", MediaColumns.DURATION);
-        sColumnToKeyBiMap.put("15", MediaColumns.NUM_TRACKS);
-        sColumnToKeyBiMap.put("16", MediaColumns.WRITER);
-        sColumnToKeyBiMap.put("17", MediaColumns.ALBUM_ARTIST);
-        sColumnToKeyBiMap.put("18", MediaColumns.DISC_NUMBER);
-        sColumnToKeyBiMap.put("19", MediaColumns.COMPILATION);
-        sColumnToKeyBiMap.put("20", MediaColumns.BITRATE);
-        sColumnToKeyBiMap.put("21", MediaColumns.CAPTURE_FRAMERATE);
-        sColumnToKeyBiMap.put("22", AudioColumns.TRACK);
-        sColumnToKeyBiMap.put("23", MediaColumns.DOCUMENT_ID);
-        sColumnToKeyBiMap.put("24", MediaColumns.INSTANCE_ID);
-        sColumnToKeyBiMap.put("25", MediaColumns.ORIGINAL_DOCUMENT_ID);
-        sColumnToKeyBiMap.put("26", MediaColumns.RESOLUTION);
-        sColumnToKeyBiMap.put("27", MediaColumns.ORIENTATION);
-        sColumnToKeyBiMap.put("28", VideoColumns.COLOR_STANDARD);
-        sColumnToKeyBiMap.put("29", VideoColumns.COLOR_TRANSFER);
-        sColumnToKeyBiMap.put("30", VideoColumns.COLOR_RANGE);
-        sColumnToKeyBiMap.put("31", FileColumns._VIDEO_CODEC_TYPE);
-        sColumnToKeyBiMap.put("32", MediaColumns.WIDTH);
-        sColumnToKeyBiMap.put("33", MediaColumns.HEIGHT);
-        sColumnToKeyBiMap.put("34", ImageColumns.DESCRIPTION);
-        sColumnToKeyBiMap.put("35", ImageColumns.EXPOSURE_TIME);
-        sColumnToKeyBiMap.put("36", ImageColumns.F_NUMBER);
-        sColumnToKeyBiMap.put("37", ImageColumns.ISO);
-        sColumnToKeyBiMap.put("38", ImageColumns.SCENE_CAPTURE_TYPE);
-        sColumnToKeyBiMap.put("39", FileColumns._SPECIAL_FORMAT);
-        sColumnToKeyBiMap.put("40", FileColumns.OWNER_PACKAGE_NAME);
-        // Adding number gap to allow addition of new values
-        sColumnToKeyBiMap.put("80", MediaColumns.XMP);
     }
 
     /**
@@ -282,14 +159,14 @@ public final class BackupExecutor {
 
     private static String serialiseValueString(Cursor c) {
         StringBuilder sb = new StringBuilder();
-        BiMap<String, String> inverseMap = sColumnToKeyBiMap.inverse();
+        BiMap<String, String> columnToIdBiMap =  BackupAndRestoreUtils.sIdToColumnBiMap.inverse();
         for (String backupColumn : BACKUP_COLUMNS) {
             Optional<String> optionalValue = extractValue(c, backupColumn);
             if (!optionalValue.isPresent()) {
                 continue;
             }
 
-            sb.append(inverseMap.get(backupColumn)).append(KEY_VALUE_SEPARATOR).append(
+            sb.append(columnToIdBiMap.get(backupColumn)).append(KEY_VALUE_SEPARATOR).append(
                     optionalValue.get());
             sb.append(FIELD_SEPARATOR);
         }

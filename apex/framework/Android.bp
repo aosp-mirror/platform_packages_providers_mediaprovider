@@ -38,6 +38,11 @@ java_sdk_library {
 
     installable: true,
 
+    stub_only_libs: [
+        // Needed for javadoc references.
+        "framework-media.stubs.module_lib",
+    ],
+
     libs: [
         "androidx.annotation_annotation",
         "framework-media.stubs.module_lib",

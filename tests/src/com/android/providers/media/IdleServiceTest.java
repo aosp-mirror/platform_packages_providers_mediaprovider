@@ -261,7 +261,7 @@ public class IdleServiceTest {
             final int initialGenerationModified;
             try (Cursor cr = resolver.query(uri, projection, null, null, null)) {
                 assertThat(cr.getCount()).isEqualTo(1);
-                assertThat(cr.moveToFirst()).isNotNull();
+                assertThat(cr.moveToFirst()).isTrue();
                 assertThat(cr.isNull(0)).isTrue();
                 initialGenerationModified = cr.getInt(1);
             }
@@ -275,7 +275,7 @@ public class IdleServiceTest {
 
             try (Cursor cr = resolver.query(uri, projection, null, null, null)) {
                 assertThat(cr.getCount()).isEqualTo(1);
-                assertThat(cr.moveToFirst()).isNotNull();
+                assertThat(cr.moveToFirst()).isTrue();
                 assertThat(cr.getInt(0)).isEqualTo(_SPECIAL_FORMAT_NONE);
                 // Make sure that updating special format column doesn't update GENERATION_MODIFIED
                 assertThat(cr.getInt(1)).isEqualTo(initialGenerationModified);

@@ -458,6 +458,7 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager =
                 new PickerSyncManager(mMockWorkManager, mMockContext,
-                        mConfigStore, schedulePeriodicSyncs);
+                        mConfigStore, schedulePeriodicSyncs, /* periodicSyncInitialDelay */ 0L);
+        waitForIdle();
     }
 }

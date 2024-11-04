@@ -632,7 +632,7 @@ public final class PdfRendererPreV implements AutoCloseable {
         }
 
         private void doClose() {
-            if (mPdfProcessor != null) {
+            if (mPdfProcessor != null && mIndex != -1) {
                 mPdfProcessor.releasePage(mIndex);
                 mIndex = -1;
             }

@@ -1,0 +1,35 @@
+<!--
+  ~ Copyright (C) 2024 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Search Bar placeholder text -->
+    <string name="photopicker_search_placeholder_text" translation_description="Place holder text shown in Search Bar">Search</string>
+
+    <!-- Search view placeholder text -->
+    <string name="photopicker_search_photos_placeholder_text" translation_description="Place holder text shown in Search Bar">Search your photos</string>
+
+    <!-- Search view placeholder text when videos MIME type filter is applied-->
+    <string name="photopicker_search_videos_placeholder_text" translation_description="Place holder text shown in Search Bar for videos MIME type filter">Search your videos</string>
+
+    <!-- Empty state title when the search has no results -->
+    <string name="photopicker_search_result_empty_state_title" translation_description="Title of the message shown to the user when there are no search results to show">No results found</string>
+
+    <!-- Empty state message when search has no results -->
+    <string name="photopicker_search_result_empty_state_body" translation_description="Message shown to the user when no search results are able to be shown underneath the primary message title">Try searching for similar words</string>
+
+    <!-- Suggestions title in the search view suggestions list -->
+    <string name="photopicker_search_suggestions_text" translation_description="Title in the search suggestions list">Suggestions</string>
+</resources>

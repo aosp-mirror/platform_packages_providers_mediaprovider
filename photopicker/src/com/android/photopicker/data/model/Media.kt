@@ -56,7 +56,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         fun withSelectable(
             item: Media,
             selectionSource: Telemetry.MediaLocation,
-            album: Group.Album?
+            album: Group.Album?,
         ): Media {
             return when (item) {
                 is Image -> item.copy(selectionSource = selectionSource, mediaItemAlbum = album)
@@ -121,7 +121,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         override val standardMimeTypeExtension: Int,
         override val isPreGranted: Boolean = false,
         override val selectionSource: Telemetry.MediaLocation? = null,
-        override val mediaItemAlbum: Group.Album? = null
+        override val mediaItemAlbum: Group.Album? = null,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -169,7 +169,6 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
                         /* mimeType=*/ parcel.readString() ?: "",
                         /* standardMimeTypeExtension=*/ parcel.readInt(),
                     )
-                parcel.recycle()
                 return image
             }
 
@@ -197,7 +196,7 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         val duration: Int,
         override val isPreGranted: Boolean = false,
         override val selectionSource: Telemetry.MediaLocation? = null,
-        override val mediaItemAlbum: Group.Album? = null
+        override val mediaItemAlbum: Group.Album? = null,
     ) : Media {
 
         override fun writeToParcel(out: Parcel, flags: Int) {
@@ -248,7 +247,6 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
                         /* standardMimeTypeExtension=*/ parcel.readInt(),
                         /* duration=*/ parcel.readInt(),
                     )
-                parcel.recycle()
                 return video
             }
 

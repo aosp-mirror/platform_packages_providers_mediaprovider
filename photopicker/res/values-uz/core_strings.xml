@@ -23,17 +23,15 @@
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"Tayyor"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Hammasini bekor qilish"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> tagacha elementni tanlang"</string>
-    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Photos"</string>
+    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Suratlar"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albomlar"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Hozircha hech qanday surat kiritilmagan"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Rasm va videolarni tanlashni boshlang"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Kamera ilovasi tomonidan olingan surat va videolar shu yerda chiqadi"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Sevimli suratlar topilmadi"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Sevimli yoki yulduzchali surat va videolar shu yerda chiqadi"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Hozircha hech qanday video kiritilmagan"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Kamera ilovasiga olingan, saqlangan yoki ulashilgan videolar shu yerda chiqadi"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Orqaga"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Yopish"</string>
 </resources>

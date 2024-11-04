@@ -572,27 +572,40 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
             tryRecoverDatabase(db, MediaStore.VOLUME_INTERNAL);
         } else {
             tryRecoverDatabase(db, MediaStore.VOLUME_EXTERNAL_PRIMARY);
-            mDatabaseBackupAndRecovery.queuePublicVolumeRecovery(mContext);
         }
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
     public void tryRecoverPublicVolume(String volumeName) {
-        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
-                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+        if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)
+                || !mDatabaseBackupAndRecovery.isPublicVolumeMarkedForRecovery(volumeName)) {
             return;
         }
-        tryRecoverDatabase(super.getWritableDatabase(), mVolumeName);
+
+        try {
+            mDatabaseBackupAndRecovery.waitForVolumeToBeAttached(volumeName);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Volume not attached in given time. Cannot recover data.", e);
+        }
+
+        synchronized (sRecoveryLock) {
+            final SQLiteDatabase db = super.getWritableDatabase();
+            mIsRecovering.set(true);
+            try {
+                mDatabaseBackupAndRecovery.recoverData(db, volumeName);
+            } catch (Exception exception) {
+                Log.e(TAG, "Error in recovering data", exception);
+            } finally {
+                mDatabaseBackupAndRecovery.removePublicVolumeRecoveryFlag(volumeName);
+                mIsRecovering.set(false);
+                mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
+            }
+        }
     }
 
     private void tryRecoverDatabase(SQLiteDatabase db, String volumeName) {
-        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
-                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
-            // Implement for public volume
-            return;
-        }
-
         if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
@@ -620,7 +633,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 return;
             }
 
-
             MediaProviderStatsLog.write(
                     MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED, isInternal()
                             ?
@@ -640,6 +652,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 mIsRecovering.set(false);
                 mDatabaseBackupAndRecovery.resetLastBackedUpGenerationNumber(volumeName);
                 updateSessionIdInDatabaseAndExternalStorage(db);
+                if (MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+                    mDatabaseBackupAndRecovery.markPublicVolumesRecovery();
+                }
             }
         }
     }
@@ -1163,6 +1178,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
             updateAddMediaGrantsTable(db);
+            createSearchIndexProcessingStatusTable(db);
         }
 
         createLatestViews(db);
@@ -2076,7 +2092,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    static final int VERSION_V = 1505;
+    static final int VERSION_V = 1506;
     public static final int VERSION_LATEST = VERSION_V;
 
     /**
@@ -2328,6 +2344,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1505) {
                 updateBackfillAsfMimeType(db);
+            }
+
+            if (fromVersion < 1506) {
+                createSearchIndexProcessingStatusTable(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data
@@ -2598,5 +2618,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private String traceSectionName(@NonNull String method) {
         return "DH[" + getDatabaseName() + "]." + method;
+    }
+
+    // Create a table search_index_processing_status which holds the processing status
+    // of all the parameters based on which the media items are indexed. Every processing status
+    // is set to 0 to begin with. New table is asynchronously populated with all the existing
+    // media items from the files table based on their generation numbers.
+    private void createSearchIndexProcessingStatusTable(@NonNull SQLiteDatabase database) {
+        Objects.requireNonNull(database, "Sqlite database object found to be null. "
+                + "Cannot create media status table");
+        database.execSQL("CREATE TABLE IF NOT EXISTS search_index_processing_status ("
+                + "media_id INTEGER PRIMARY_KEY,"
+                + "metadata_processing_status INTEGER DEFAULT 0,"
+                + "label_processing_status INTEGER DEFAULT 0,"
+                + "ocr_latin_processing_status INTEGER DEFAULT 0,"
+                + "location_processing_status INTEGER DEFAULT 0,"
+                + "generation_number INTEGER DEFAULT 0,"
+                + "display_name TEXT DEFAULT NULL,"
+                + "mime_type TEXT DEFAULT NULL,"
+                + "date_taken INTEGER DEFAULT 0,"
+                + "size INTEGER DEFAULT 0,"
+                + "latitude DOUBLE DEFAULT 0.0,"
+                + "longitude DOUBLE DEFAULT 0.0)");
     }
 }

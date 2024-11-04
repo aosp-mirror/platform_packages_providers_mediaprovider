@@ -283,6 +283,21 @@ public class PickerUriResolverTest {
     }
 
     @Test
+    public void testOpenPickerTranscodedFile() throws Exception {
+        final Uri transcodedUri = Uri.parse(
+                "content://media/picker_transcoded/0/com.android.providers.media"
+                        + ".photopicker/media/" + TEST_ID);
+        updateReadUriPermission(transcodedUri, /* grant */ true);
+
+        // Act & Assert.
+        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(transcodedUri,
+                "r", /* signal */ null,
+                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */0))) {
+            assertThat(pfd).isNotNull();
+        }
+    }
+
+    @Test
     public void testProcessUrisForSelection_withoutPermissionOrAuthorityChecks() {
         sTestPickerUri = getPickerUriForId(ContentUris.parseId(sMediaStoreUriInOtherContext),
                 TEST_USER, ACTION_PICK_IMAGES);

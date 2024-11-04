@@ -19,5 +19,5 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_overflow_menu_description" msgid="6548535301621140571">"Mer"</string>
     <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Molnmedieapp"</string>
-    <string name="photopicker_overflow_browse" msgid="6764715084773515122">"Bläddra bland …"</string>
+    <string name="photopicker_overflow_browse" msgid="6764715084773515122">"Bläddra …"</string>
 </resources>

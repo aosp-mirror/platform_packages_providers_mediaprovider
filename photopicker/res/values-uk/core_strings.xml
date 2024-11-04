@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Почніть знімати фото й відео"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Тут з’являться фотографії і відео, зняті додатком камери"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Вибраного немає"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Тут з’являтимуться фотографії і відео, які ви додасте у вибране (позначите зірочкою)"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Відео немає"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Тут з’являтимуться відео, зняті на камеру, збережені або спільні"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Назад"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Закрити"</string>
 </resources>

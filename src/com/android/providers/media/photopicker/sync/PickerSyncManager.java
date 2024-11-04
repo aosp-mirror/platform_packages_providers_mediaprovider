@@ -86,6 +86,7 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_SYNC_SOURCE = "INPUT_SYNC_TYPE";
     static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
+    static final String SYNC_WORKER_INPUT_SEARCH_REQUEST_ID = "INPUT_SEARCH_REQUEST_ID";
     static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
     static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
@@ -133,15 +134,33 @@ public class PickerSyncManager {
             @NonNull Context context,
             @NonNull ConfigStore configStore,
             boolean shouldSchedulePeriodicSyncs) {
+        this(workManager, context, configStore, shouldSchedulePeriodicSyncs,
+                /* periodicSyncInitialDelay */10000L);
+    }
+
+    public PickerSyncManager(@NonNull WorkManager workManager,
+            @NonNull Context context,
+            @NonNull ConfigStore configStore,
+            boolean shouldSchedulePeriodicSyncs,
+            long periodicSyncInitialDelay) {
         mWorkManager = requireNonNull(workManager);
         mConfigStore = requireNonNull(configStore);
         mContext = requireNonNull(context);
 
-        setUpEndlessWork();
-
-        if (shouldSchedulePeriodicSyncs) {
-            setUpPeriodicWork();
-        }
+        // Move to a background thread to remove from MediaProvider boot path.
+        BackgroundThread.getHandler().postDelayed(
+                () -> {
+                    try {
+                        setUpEndlessWork();
+                        if (shouldSchedulePeriodicSyncs) {
+                            setUpPeriodicWork();
+                        }
+                    } catch (RuntimeException e) {
+                        Log.e(TAG, "Could not schedule workers", e);
+                    }
+                },
+                periodicSyncInitialDelay
+        );
 
         // Subscribe to device config changes so we can enable periodic workers if Cloud
         // Photopicker is enabled.

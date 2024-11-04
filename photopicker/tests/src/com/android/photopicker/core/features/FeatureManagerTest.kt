@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.features
 
+import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -32,8 +33,8 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -223,7 +224,14 @@ class FeatureManagerTest {
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
 
-        val configFlow = MutableStateFlow(testPhotopickerConfiguration)
+        val configFlow =
+            MutableStateFlow(
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                    sessionId(1234)
+                }
+            )
 
         runTest {
             FeatureManager(
@@ -235,14 +243,17 @@ class FeatureManagerTest {
             )
 
             advanceTimeBy(100) // Wait for initialization
-            configFlow.update { it.copy(action = "SOME_OTHER_ACTION") }
+            val updatedConfig =
+                TestPhotopickerConfiguration.build {
+                    action("SOME_OTHER_ACTION")
+                    intent(Intent("SOME_OTHER_ACTION"))
+                    sessionId(1234)
+                }
+            configFlow.update { updatedConfig }
             advanceTimeBy(100) // Wait for the update to reach the StateFlow
 
             // The feature should have received a call with the new configuration
-            verify(mockSimpleUiFeature)
-                .onConfigurationChanged(
-                    testPhotopickerConfiguration.copy(action = "SOME_OTHER_ACTION")
-                )
+            verify(mockSimpleUiFeature).onConfigurationChanged(updatedConfig)
         }
     }
 
@@ -266,7 +277,7 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = true,
-                    sessionId = sessionId
+                    sessionId = sessionId,
                 )
             )
 
@@ -278,7 +289,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                     backgroundScope,
-                    setOf(mockRegistration)
+                    setOf(mockRegistration),
                 )
             }
         }
@@ -304,7 +315,7 @@ class FeatureManagerTest {
                 PhotopickerConfiguration(
                     action = "TEST",
                     deviceIsDebuggable = false,
-                    sessionId = sessionId
+                    sessionId = sessionId,
                 )
             )
 
@@ -316,7 +327,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                     backgroundScope,
-                    setOf(mockRegistration)
+                    setOf(mockRegistration),
                 )
             } catch (e: IllegalStateException) {
                 fail("IllegalStateException was thrown in a production configuration.")
@@ -342,7 +353,7 @@ class FeatureManagerTest {
                 featureManagerTestUiComposeTop(
                     featureManager,
                     null,
-                    params = LocationParams.WithClickAction { deferred.complete(true) }
+                    params = LocationParams.WithClickAction { deferred.complete(true) },
                 )
             }
 

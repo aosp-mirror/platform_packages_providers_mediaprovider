@@ -18,6 +18,7 @@ package com.android.photopicker.data
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ProviderInfo
 import android.content.pm.ResolveInfo
@@ -31,9 +32,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerFlags
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testSessionId
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -75,6 +75,9 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataServiceImplTest {
+
+    val testSessionId = generatePickerSessionId()
+
     companion object {
         private fun createUserHandle(userId: Int = 0): UserHandle {
             val parcel = Parcel.obtain()
@@ -95,7 +98,7 @@ class DataServiceImplTest {
         private val userProfileManaged: UserProfile =
             UserProfile(
                 handle = createUserHandle(10),
-                profileType = UserProfile.ProfileType.MANAGED
+                profileType = UserProfile.ProfileType.MANAGED,
             )
     }
 
@@ -124,7 +127,7 @@ class DataServiceImplTest {
             UserStatus(
                 activeUserProfile = userProfilePrimary,
                 allProfiles = listOf(userProfilePrimary),
-                activeContentResolver = testContentResolver
+                activeContentResolver = testContentResolver,
             )
         testFeatureManager =
             FeatureManager(
@@ -143,7 +146,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -157,7 +160,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -177,7 +180,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         testFeatureManager =
@@ -192,8 +195,8 @@ class DataServiceImplTest {
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
                                     CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                )
-                        )
+                                ),
+                        ),
                 ),
                 this.backgroundScope,
                 setOf(CloudMediaFeature.Registration),
@@ -219,13 +222,13 @@ class DataServiceImplTest {
                                     PhotopickerFlags(
                                         CLOUD_MEDIA_ENABLED = true,
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                    )
-                            )
+                                    ),
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -240,13 +243,13 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
@@ -277,13 +280,13 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
         val userStatusFlow: StateFlow<UserStatus> = MutableStateFlow(userStatus)
@@ -300,7 +303,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                featureManager
+                featureManager,
             )
         val dataService: DataService =
             DataServiceImpl(
@@ -309,11 +312,17 @@ class DataServiceImplTest {
                 notificationService = notificationService,
                 mediaProviderClient = mediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                config = MutableStateFlow(testPhotopickerConfiguration),
+                config =
+                    MutableStateFlow(
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        }
+                    ),
                 appContext = mockContext,
                 featureManager = featureManager,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -336,7 +345,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         testFeatureManager =
@@ -351,8 +360,8 @@ class DataServiceImplTest {
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
                                     CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                )
-                        )
+                                ),
+                        ),
                 ),
                 this.backgroundScope,
                 setOf(CloudMediaFeature.Registration),
@@ -377,13 +386,13 @@ class DataServiceImplTest {
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
                                     CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                )
-                        )
+                                ),
+                        ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -412,20 +421,20 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
         userStatusFlow.update {
             it.copy(
                 activeUserProfile = userProfileManaged,
-                activeContentResolver = updatedContentResolver
+                activeContentResolver = updatedContentResolver,
             )
         }
 
@@ -459,7 +468,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -473,7 +482,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -493,7 +502,7 @@ class DataServiceImplTest {
                 nonNullableEq(testContentResolver),
                 nonNullableEq(availableProvidersUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         verify(mockNotificationService)
@@ -501,7 +510,7 @@ class DataServiceImplTest {
                 nonNullableEq(testContentResolver),
                 nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         verify(mockNotificationService)
@@ -509,7 +518,7 @@ class DataServiceImplTest {
                 nonNullableEq(testContentResolver),
                 nonNullableEq(albumMediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         // Change the active user
@@ -521,20 +530,20 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
         userStatusFlow.update {
             it.copy(
                 activeUserProfile = userProfileManaged,
-                activeContentResolver = updatedContentResolver
+                activeContentResolver = updatedContentResolver,
             )
         }
 
@@ -543,7 +552,7 @@ class DataServiceImplTest {
         verify(mockNotificationService, times(3))
             .unregisterContentObserverCallback(
                 nonNullableEq(testContentResolver),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         verify(mockNotificationService)
@@ -551,7 +560,7 @@ class DataServiceImplTest {
                 nonNullableEq(updatedContentResolver),
                 nonNullableEq(availableProvidersUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         verify(mockNotificationService)
@@ -559,7 +568,7 @@ class DataServiceImplTest {
                 nonNullableEq(updatedContentResolver),
                 nonNullableEq(mediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
 
         verify(mockNotificationService)
@@ -567,7 +576,7 @@ class DataServiceImplTest {
                 nonNullableEq(updatedContentResolver),
                 nonNullableEq(albumMediaUpdateUri),
                 ArgumentMatchers.eq(true),
-                nonNullableAny(ContentObserver::class.java, defaultContentObserver)
+                nonNullableAny(ContentObserver::class.java, defaultContentObserver),
             )
     }
 
@@ -578,7 +587,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -592,7 +601,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val emissions = mutableListOf<List<Provider>>()
@@ -614,13 +623,13 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
@@ -648,7 +657,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -662,7 +671,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         // Check initial available provider emissions
@@ -685,13 +694,13 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
@@ -718,7 +727,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val userStatusFlow: MutableStateFlow<UserStatus> = MutableStateFlow(userStatus)
@@ -733,7 +742,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
         advanceTimeBy(100)
 
@@ -747,7 +756,7 @@ class DataServiceImplTest {
                 dateTakenMillisLong = Long.MAX_VALUE,
                 displayName = "album",
                 coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
-                coverMediaSource = testContentProvider.providers[0].mediaSource
+                coverMediaSource = testContentProvider.providers[0].mediaSource,
             )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
@@ -798,7 +807,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -812,7 +821,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         // Check initial available provider emissions
@@ -832,7 +841,7 @@ class DataServiceImplTest {
                 dateTakenMillisLong = Long.MAX_VALUE,
                 displayName = "album",
                 coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
-                coverMediaSource = testContentProvider.providers[0].mediaSource
+                coverMediaSource = testContentProvider.providers[0].mediaSource,
             )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
@@ -854,13 +863,13 @@ class DataServiceImplTest {
                     authority = testContentProvider.providers[0].authority,
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
@@ -894,7 +903,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -908,7 +917,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
         advanceTimeBy(100)
 
@@ -945,7 +954,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -959,7 +968,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
         advanceTimeBy(100)
 
@@ -972,7 +981,7 @@ class DataServiceImplTest {
                 dateTakenMillisLong = Long.MAX_VALUE,
                 displayName = "album",
                 coverUri = Uri.parse("content://media/picker/authority/media/${Long.MAX_VALUE}"),
-                coverMediaSource = testContentProvider.providers[0].mediaSource
+                coverMediaSource = testContentProvider.providers[0].mediaSource,
             )
 
         val firstAlbumMediaPagingSource: PagingSource<MediaPageKey, Media> =
@@ -1019,7 +1028,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         testContentProvider.providers =
@@ -1028,8 +1037,8 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
-                ),
+                    displayName = "",
+                )
             )
 
         testFeatureManager =
@@ -1044,8 +1053,8 @@ class DataServiceImplTest {
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
                                     CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                )
-                        )
+                                ),
+                        ),
                 ),
                 this.backgroundScope,
                 setOf(CloudMediaFeature.Registration),
@@ -1071,13 +1080,13 @@ class DataServiceImplTest {
                                     PhotopickerFlags(
                                         CLOUD_MEDIA_ENABLED = true,
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf("cloud_authority"),
-                                    )
-                            )
+                                    ),
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -1105,13 +1114,13 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
 
@@ -1130,8 +1139,8 @@ class DataServiceImplTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
-                ),
+                    displayName = "",
+                )
             )
 
         notificationService.dispatchChangeToObservers(availableProvidersUpdateUri)
@@ -1150,7 +1159,7 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
 
         val dataService: DataService =
@@ -1164,7 +1173,7 @@ class DataServiceImplTest {
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val availableProviderEmissions = mutableListOf<List<Provider>>()
@@ -1202,21 +1211,21 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
                 MediaSource.REMOTE,
                 /* uid */ 0,
-                /* displayName */ "primary cloud provider"
+                /* displayName */ "primary cloud provider",
             )
         val cloudProvider2 =
             Provider(
                 "cloud_secondary",
                 MediaSource.REMOTE,
                 /* uid */ 1,
-                /* displayName */ "secondary cloud provider"
+                /* displayName */ "secondary cloud provider",
             )
         val resolveInfo1 = createResolveInfo(cloudProvider1)
         val resolveInfo2 = createResolveInfo(cloudProvider2)
@@ -1244,17 +1253,17 @@ class DataServiceImplTest {
                                         CLOUD_ALLOWED_PROVIDERS =
                                             arrayOf(
                                                 cloudProvider1.authority,
-                                                cloudProvider2.authority
+                                                cloudProvider2.authority,
                                             ),
-                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true,
                                     ),
-                                sessionId = sessionId
-                            )
+                                sessionId = sessionId,
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1270,21 +1279,21 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
                 MediaSource.REMOTE,
                 /* uid */ 0,
-                /* displayName */ "primary cloud provider"
+                /* displayName */ "primary cloud provider",
             )
         val cloudProvider2 =
             Provider(
                 "cloud_secondary",
                 MediaSource.REMOTE,
                 /* uid */ 1,
-                /* displayName */ "secondary cloud provider"
+                /* displayName */ "secondary cloud provider",
             )
         val resolveInfo1 = createResolveInfo(cloudProvider1)
         val resolveInfo2 = createResolveInfo(cloudProvider2)
@@ -1310,15 +1319,15 @@ class DataServiceImplTest {
                                 flags =
                                     PhotopickerFlags(
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf(cloudProvider1.authority),
-                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true,
                                     ),
-                                sessionId = sessionId
-                            )
+                                sessionId = sessionId,
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1333,21 +1342,21 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
                 MediaSource.REMOTE,
                 /* uid */ 0,
-                /* displayName */ "primary cloud provider"
+                /* displayName */ "primary cloud provider",
             )
         val cloudProvider2 =
             Provider(
                 "cloud_secondary",
                 MediaSource.REMOTE,
                 /* uid */ 1,
-                /* displayName */ "secondary cloud provider"
+                /* displayName */ "secondary cloud provider",
             )
         val resolveInfo2 = createResolveInfo(cloudProvider2)
 
@@ -1374,17 +1383,17 @@ class DataServiceImplTest {
                                         CLOUD_ALLOWED_PROVIDERS =
                                             arrayOf(
                                                 cloudProvider1.authority,
-                                                cloudProvider2.authority
+                                                cloudProvider2.authority,
                                             ),
-                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = true,
                                     ),
-                                sessionId = sessionId
-                            )
+                                sessionId = sessionId,
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()
@@ -1399,21 +1408,21 @@ class DataServiceImplTest {
             Events(
                 scope = this.backgroundScope,
                 provideTestConfigurationFlow(this.backgroundScope),
-                testFeatureManager
+                testFeatureManager,
             )
         val cloudProvider1 =
             Provider(
                 "cloud_primary",
                 MediaSource.REMOTE,
                 /* uid */ 0,
-                /* displayName */ "primary cloud provider"
+                /* displayName */ "primary cloud provider",
             )
         val cloudProvider2 =
             Provider(
                 "cloud_secondary",
                 MediaSource.REMOTE,
                 /* uid */ 1,
-                /* displayName */ "secondary cloud provider"
+                /* displayName */ "secondary cloud provider",
             )
         val resolveInfo1 = createResolveInfo(cloudProvider1)
         val resolveInfo2 = createResolveInfo(cloudProvider2)
@@ -1439,15 +1448,15 @@ class DataServiceImplTest {
                                 flags =
                                     PhotopickerFlags(
                                         CLOUD_ALLOWED_PROVIDERS = arrayOf(),
-                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = false
+                                        CLOUD_ENFORCE_PROVIDER_ALLOWLIST = false,
                                     ),
-                                sessionId = sessionId
-                            )
+                                sessionId = sessionId,
+                            ),
                     ),
                 featureManager = testFeatureManager,
                 appContext = mockContext,
                 events = events,
-                processOwnerHandle = userProfilePrimary.handle
+                processOwnerHandle = userProfilePrimary.handle,
             )
 
         val actualAllAllowedProviders = dataService.getAllAllowedProviders()

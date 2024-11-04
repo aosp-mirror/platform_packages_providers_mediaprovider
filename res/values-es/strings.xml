@@ -39,7 +39,7 @@
     <string name="deny" msgid="6040983710442068936">"Denegar"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Buscar…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"App multimedia en la nube"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicación multimedia en la nube"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicación de fotos en la nube"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Aplicación multimedia en la nube"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accede a tu contenido multimedia en la nube cuando una aplicación o sitio web te pide que selecciones fotos o vídeos"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accede al contenido multimedia en la nube desde"</string>

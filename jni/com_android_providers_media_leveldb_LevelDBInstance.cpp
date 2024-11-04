@@ -162,6 +162,17 @@ JNIEXPORT jobject JNICALL Java_com_android_providers_media_leveldb_LevelDBInstan
     return createLevelDBResult(env, status, "");
 }
 
+/*
+ * Class:     com_android_providers_media_leveldb_LevelDBInstance
+ * Method:    nativeDeleteLevelDb
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_android_providers_media_leveldb_LevelDBInstance_nativeDeleteLevelDb(
+        JNIEnv* env, jobject obj, jlong leveldbptr) {
+    leveldb::DB* leveldb = reinterpret_cast<leveldb::DB*>(leveldbptr);
+    delete leveldb;
+}
+
 #ifdef __cplusplus
 }
 #endif

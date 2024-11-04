@@ -37,8 +37,6 @@ import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaService;
 import com.android.providers.media.MediaVolume;
 
-import com.android.modules.utils.BackgroundThread;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;

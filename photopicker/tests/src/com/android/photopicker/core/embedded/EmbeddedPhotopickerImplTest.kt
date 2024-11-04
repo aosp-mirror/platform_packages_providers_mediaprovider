@@ -18,6 +18,9 @@ package com.android.photopicker.core.embedded
 import android.hardware.display.DisplayManager
 import android.os.Binder
 import android.os.Build
+import android.platform.test.annotations.RequiresFlagsEnabled
+import android.platform.test.flag.junit.CheckFlagsRule
+import android.platform.test.flag.junit.DeviceFlagsValueProvider
 import android.view.SurfaceControlViewHost
 import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
 import android.widget.photopicker.EmbeddedPhotoPickerSessionResponse
@@ -28,12 +31,14 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.extensions.requireSystemService
 import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.providers.media.flags.Flags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertThrows
 import org.junit.Assume.assumeTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
@@ -45,11 +50,14 @@ import org.mockito.MockitoAnnotations
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@RequiresFlagsEnabled(Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
 class EmbeddedPhotopickerImplTest {
 
     // TODO(b/354929684): Replace AIDL implementation with wrapper class.
     @Mock lateinit var mockClient: IEmbeddedPhotoPickerClient.Stub
     @Mock lateinit var mockSession: Session
+
+    @get:Rule val checkFlagsRule: CheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule()
 
     companion object {
         const val TEST_PACKAGE_NAME = "test"
@@ -91,7 +99,7 @@ class EmbeddedPhotopickerImplTest {
                     // Ignore all the session factory arguments since this just returns the
                     // mockSession.
                     { _, _, _, _, _, _, _, _ -> mockSession },
-                    { true }
+                    { true },
                 )
 
             embeddedPhotopickerImpl.openSession(
@@ -101,7 +109,7 @@ class EmbeddedPhotopickerImplTest {
                 TEST_WIDTH,
                 TEST_HEIGHT,
                 EmbeddedPhotoPickerFeatureInfo.Builder().build(),
-                mockClient
+                mockClient,
             )
 
             verify(mockClient, times(1))
@@ -110,13 +118,13 @@ class EmbeddedPhotopickerImplTest {
     }
 
     @Test
-    fun testOpenSessionThrowsExecptionForInvalidCalled() {
+    fun testOpenSessionThrowsExceptionForInvalidCalled() {
         val embeddedPhotopickerImpl =
             EmbeddedPhotopickerImpl(
                 // Ignore all the session factory arguments since this just returns the
                 // mockSession.
                 { _, _, _, _, _, _, _, _ -> mockSession },
-                { false } // verifyCaller returns false
+                { false }, // verifyCaller returns false
             )
 
         assertThrows(SecurityException::class.java) {
@@ -127,7 +135,7 @@ class EmbeddedPhotopickerImplTest {
                 TEST_WIDTH,
                 TEST_HEIGHT,
                 EmbeddedPhotoPickerFeatureInfo.Builder().build(),
-                mockClient
+                mockClient,
             )
         }
     }

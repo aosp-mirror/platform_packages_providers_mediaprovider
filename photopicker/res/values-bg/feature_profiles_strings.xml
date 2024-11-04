@@ -21,10 +21,10 @@
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Служебен"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Друго"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Превключване на потребителския профил"</string>
-    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"<xliff:g id="PROFILE_NAME">%1$s</xliff:g> приложения са поставени на пауза"</string>
+    <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Приложенията от „<xliff:g id="PROFILE_NAME">%1$s</xliff:g>“ са поставени на пауза"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Блокирано от администратора ви"</string>
-    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"За да отворите <xliff:g id="PROFILE_NAME_0">%1$s</xliff:g> снимки, включете <xliff:g id="PROFILE_NAME_1">%1$s</xliff:g> приложения и след това опитайте отново"</string>
+    <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"За да отворите снимките от потребителския профил „<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>“, включете приложенията за „<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>“ и след това опитайте отново"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_message" msgid="7978497980448982863">"Администраторът ви не разрешава достъпа до данните от този потребителски профил."</string>
     <string name="photopicker_profile_banner_switch_button_label" msgid="1652041405540769126">"Превключване"</string>
-    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Използвате своя потребителски профил <xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>. Искате ли да превключите към своя <xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>?"</string>
+    <string name="photopicker_profile_switch_banner_message" msgid="2969185213956642828">"Използвате своя „<xliff:g id="CURRENT_PROFILE_NAME">%1$s</xliff:g>“ потребителски профил. Искате ли да превключите към „<xliff:g id="TARGET_PROFILE_NAME">%2$s</xliff:g>“?"</string>
 </resources>

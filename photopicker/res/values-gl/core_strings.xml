@@ -29,11 +29,9 @@
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Empeza a facer fotos e vídeos"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Aquí mostraranse as fotos que faga e os vídeos que grave a aplicación da cámara"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"De momento, non hai ningún favorito"</string>
-    <!-- no translation found for photopicker_favorites_empty_state_body (4206436541083780797) -->
-    <skip />
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Aquí mostraranse as fotos e vídeos marcados como favoritos ou con estrela"</string>
     <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"De momento, non hai ningún vídeo"</string>
-    <!-- no translation found for photopicker_videos_empty_state_body (6940271544640894270) -->
-    <skip />
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Aquí mostraranse os vídeos gravados coa aplicación da cámara, gardados ou compartidos"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Atrás"</string>
     <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Pechar"</string>
 </resources>

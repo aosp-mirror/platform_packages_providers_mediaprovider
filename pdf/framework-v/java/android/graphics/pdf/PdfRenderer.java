@@ -27,7 +27,6 @@ import android.annotation.SuppressLint;
 import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
-import android.compat.annotation.EnabledSince;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -805,7 +804,7 @@ public final class PdfRenderer implements AutoCloseable {
         }
 
         private void doClose() {
-            if (mPdfProcessor != null) {
+            if (mPdfProcessor != null && mIndex != -1) {
                 mPdfProcessor.releasePage(mIndex);
                 mIndex = -1;
             }

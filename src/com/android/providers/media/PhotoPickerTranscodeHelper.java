@@ -171,6 +171,11 @@ public class PhotoPickerTranscodeHelper {
      */
     public void freeCache(long bytes) {
         final File[] files = mTranscodeDirectory.listFiles();
+
+        if (files == null) {
+            return;
+        }
+
         for (File file : files) {
             if (bytes <= 0) {
                 return;
@@ -192,6 +197,11 @@ public class PhotoPickerTranscodeHelper {
      */
     public void cleanAllTranscodedFiles(@Nullable CancellationSignal signal) {
         final File[] files = mTranscodeDirectory.listFiles();
+
+        if (files == null) {
+            return;
+        }
+
         for (File file : files) {
             if (signal != null && signal.isCanceled()) {
                 Log.i(TAG, "Received a cancellation signal during cleaning cache.");

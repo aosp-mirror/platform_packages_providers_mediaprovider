@@ -173,6 +173,14 @@ flag {
     description: "This flag will enable malicious app detector, putting limits on file creation"
     bug: "293301664"
     is_fixed_read_only: true
+ }
+
+flag {
+    name: "enable_mark_media_as_favorite_api"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Enables mark media as favorite API"
+    bug: "294364218"
 }
 
 flag {

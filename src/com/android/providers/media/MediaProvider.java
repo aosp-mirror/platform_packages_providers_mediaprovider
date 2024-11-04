@@ -7077,6 +7077,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.CREATE_DELETE_REQUEST_CALL: {
                 return getResultForCreateOperationsRequest(method, extras);
             }
+            case MediaStore.MARK_MEDIA_AS_FAVORITE: {
+                return markMediaAsFavorite(extras);
+            }
             case MediaStore.CREATE_CANCELLATION_SIGNAL_CALL: {
                 return getResultForCreateCancellationSignal();
             }
@@ -7540,6 +7543,32 @@ public class MediaProvider extends ContentProvider {
         final Bundle res = new Bundle();
         res.putParcelable(MediaStore.EXTRA_RESULT, pi);
         return res;
+    }
+
+    private Bundle markMediaAsFavorite(Bundle extras) {
+        final ContentValues values = extras.getParcelable(MediaStore.EXTRA_CONTENT_VALUES);
+        final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
+        final List<Uri> uris = collectUris(clipData);
+
+        if (!isCallingPackageManager()) {
+            for (Uri uri : uris) {
+                if (!AccessChecker.hasAccessToCollection(mCallingIdentity.get(),
+                        matchUri(uri, isCallingPackageAllowedHidden()), /* forWrite= */false)) {
+                    throw new UnsupportedOperationException("Uri " + uri
+                            + " does not have required permission to mark media as favorite");
+                }
+            }
+        }
+
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            for (Uri uri : uris) {
+                update(uri, values, null);
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return null;
     }
 
     @NotNull

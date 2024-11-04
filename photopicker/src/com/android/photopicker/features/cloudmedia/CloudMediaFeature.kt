@@ -29,6 +29,7 @@ import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -88,6 +89,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
         userMonitor: UserMonitor,
     ): Int {
 
+        val isEmbedded = config.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
         // If any of the banners owned by [CloudMediaFeature] have been previously dismissed, then
         // return a disabled priority.
         if (bannerState?.dismissed == true) {
@@ -106,26 +108,36 @@ class CloudMediaFeature : PhotopickerUiFeature {
 
         return when (banner) {
             BannerDefinitions.CLOUD_CHOOSE_PROVIDER -> {
-                if (
+                return when {
+                    // Don't show in Embedded, as the banner starts an activity which can cause a
+                    // crash.
+                    isEmbedded -> Priority.DISABLED.priority
+
+                    // If there is no current provider, but a list of allowed providers exists
                     currentCloudProvider == null &&
-                        dataService.getAllAllowedProviders().isNotEmpty()
-                ) {
-                    return Priority.MEDIUM.priority
-                } else {
-                    return Priority.DISABLED.priority
+                        dataService.getAllAllowedProviders().isNotEmpty() ->
+                        Priority.MEDIUM.priority
+
+                    // There's a cloud provider set, so don't show
+                    else -> Priority.DISABLED.priority
                 }
             }
             BannerDefinitions.CLOUD_CHOOSE_ACCOUNT -> {
                 collectionInfo?.let {
-                    if (it.accountName == null) {
-                        Priority.MEDIUM.priority
-                    } else {
-                        Priority.DISABLED.priority
+                    when {
+                        // Don't show in Embedded, as the banner starts an activity which can cause
+                        // a crash.
+                        isEmbedded -> Priority.DISABLED.priority
+
+                        // If there is no current cloud provider account
+                        it.accountName == null -> Priority.MEDIUM.priority
+
+                        // There's a cloud provider account set, so don't show
+                        else -> Priority.DISABLED.priority
                     }
                 } ?: Priority.DISABLED.priority
             }
             BannerDefinitions.CLOUD_MEDIA_AVAILABLE -> {
-
                 collectionInfo?.let {
                     if (it.accountName != null && it.collectionId != null) {
                         Priority.MEDIUM.priority

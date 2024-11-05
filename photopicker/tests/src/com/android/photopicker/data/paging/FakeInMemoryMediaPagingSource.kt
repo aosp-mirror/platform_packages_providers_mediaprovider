@@ -39,10 +39,10 @@ private constructor(val DATA_SIZE: Int = DEFAULT_SIZE, private val DATA_LIST: Li
     PagingSource<MediaPageKey, Media>() {
 
     companion object {
-        const val DEFAULT_SIZE = 10_000
+        const val DEFAULT_SIZE = 1_000
     }
 
-    constructor(dataSize: Int = 10_000) : this(dataSize, null)
+    constructor(dataSize: Int = DEFAULT_SIZE) : this(dataSize, null)
 
     constructor(dataList: List<Media>) : this(DEFAULT_SIZE, dataList)
 
@@ -94,11 +94,7 @@ private constructor(val DATA_SIZE: Int = DEFAULT_SIZE, private val DATA_LIST: Li
         // Handle a data size of 0 for the first page, and return an empty page with no further
         // keys.
         if (DATA_SIZE == 0 && params.key == null) {
-            return LoadResult.Page(
-                data = emptyList(),
-                nextKey = null,
-                prevKey = null,
-            )
+            return LoadResult.Page(data = emptyList(), nextKey = null, prevKey = null)
         }
 
         // This is inefficient, but a reliable way to locate the record being requested by the
@@ -124,7 +120,7 @@ private constructor(val DATA_SIZE: Int = DEFAULT_SIZE, private val DATA_LIST: Li
             else
                 MediaPageKey(
                     pickerId = nextRow.pickerId,
-                    dateTakenMillis = nextRow.dateTakenMillisLong
+                    dateTakenMillis = nextRow.dateTakenMillisLong,
                 )
 
         // Find the start of the previous page and generate a Page key.
@@ -134,14 +130,10 @@ private constructor(val DATA_SIZE: Int = DEFAULT_SIZE, private val DATA_LIST: Li
             else
                 MediaPageKey(
                     pickerId = prevPageRow.pickerId,
-                    dateTakenMillis = prevPageRow.dateTakenMillisLong
+                    dateTakenMillis = prevPageRow.dateTakenMillisLong,
                 )
 
-        return LoadResult.Page(
-            data = pageData,
-            nextKey = nextKey,
-            prevKey = prevKey,
-        )
+        return LoadResult.Page(data = pageData, nextKey = nextKey, prevKey = prevKey)
     }
 
     override fun getRefreshKey(state: PagingState<MediaPageKey, Media>): MediaPageKey? {

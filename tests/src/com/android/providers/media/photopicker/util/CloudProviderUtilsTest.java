@@ -36,7 +36,6 @@ import java.util.Set;
 
 
 public class CloudProviderUtilsTest {
-
     @Test
     public void getAllAvailableCloudProvidersTest() {
         final Context context = InstrumentationRegistry.getTargetContext();

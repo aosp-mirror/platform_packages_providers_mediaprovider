@@ -33,7 +33,7 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
-import com.android.providers.media.photopicker.v2.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 
 /**
  * A wrapper for Albums cursor to map a value from the cursor received from CMP to the value in the

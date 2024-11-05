@@ -164,6 +164,8 @@ public class PickerSyncController {
     private ProviderCollectionInfo mLatestLocalProviderCollectionInfo;
     @NonNull
     private ProviderCollectionInfo mLatestCloudProviderCollectionInfo;
+    @NonNull
+    private SearchState mSearchState;
     @Nullable
     private static PickerSyncController sInstance;
 
@@ -251,6 +253,7 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mPickerSyncLockManager = pickerSyncLockManager;
         mLocalProvider = localProvider;
+        mSearchState = new SearchState(mConfigStore);
 
         // Listen to the device config, and try to enable cloud features when the config changes.
         mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::initCloudProvider);
@@ -839,6 +842,11 @@ public class PickerSyncController {
         }
     }
 
+    @NonNull
+    public SearchState getSearchState() {
+        return mSearchState;
+    }
+
     private void resetCloudProvider() {
         try (CloseableReentrantLock ignored = mPickerSyncLockManager
                 .lock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
@@ -1282,6 +1290,10 @@ public class PickerSyncController {
             // We need this to trigger a sync from the UI
             PickerNotificationSender.notifyAvailableProvidersChange(mContext);
             updateLatestKnownCollectionInfoLocked(false, null);
+
+            if (mSearchState != null) {
+                mSearchState.clearCache();
+            }
         }
     }
 

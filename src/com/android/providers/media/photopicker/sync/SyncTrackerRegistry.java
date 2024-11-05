@@ -35,6 +35,8 @@ public class SyncTrackerRegistry {
     private static SyncTracker sCloudSyncTracker = new SyncTracker();
     private static SyncTracker sCloudAlbumSyncTracker = new SyncTracker();
     private static SyncTracker sGrantsSyncTracker = new SyncTracker();
+    private static SyncTracker sLocalSearchTracker = new SyncTracker();
+    private static SyncTracker sCloudSearchTracker = new SyncTracker();
 
     public static SyncTracker getLocalSyncTracker() {
         return sLocalSyncTracker;
@@ -98,6 +100,32 @@ public class SyncTrackerRegistry {
 
     public static SyncTracker getGrantsSyncTracker() {
         return sGrantsSyncTracker;
+    }
+
+    public static SyncTracker getLocalSearchSyncTracker() {
+        return sLocalSearchTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setLocalSearchSyncTracker(
+            SyncTracker localSearchSyncTracker) {
+        sLocalSearchTracker = localSearchSyncTracker;
+    }
+
+    public static SyncTracker getCloudSearchSyncTracker() {
+        return sCloudSearchTracker;
+    }
+
+    /**
+     * This setter is required to inject mock data for tests. Do not use this anywhere else.
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setCloudSearchSyncTracker(
+            SyncTracker cloudSearchSyncTracker) {
+        sCloudSearchTracker = cloudSearchSyncTracker;
     }
 
     /**
@@ -188,6 +216,20 @@ public class SyncTrackerRegistry {
         }
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudAlbumSyncTracker().markSyncCompleted(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark the required futures as complete for existing search result sync requests.
+     */
+    public static void markSearchResultsSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalSearchSyncTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudSearchSyncTracker().markSyncCompleted(syncRequestId);
         }
     }
 }

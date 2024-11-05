@@ -33,6 +33,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.provider.CloudMediaProvider;
+import android.provider.CloudMediaProviderContract;
 
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -70,6 +71,11 @@ public class SearchProvider extends CloudMediaProvider {
     public Cursor onSearchMedia(String searchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
         return sSearchResults;
+    }
+
+    @Override
+    public CloudMediaProviderContract.Capabilities onGetCapabilities() {
+        return new CloudMediaProviderContract.Capabilities.Builder().setSearchEnabled(true).build();
     }
 
     @Override

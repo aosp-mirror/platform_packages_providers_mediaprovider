@@ -18,6 +18,7 @@ package com.android.providers.media.util;
 
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
+import static com.android.providers.media.PickerUriResolver.PICKER_TRANSCODED_SEGMENT;
 import static com.android.providers.media.util.FileUtils.buildPath;
 import static com.android.providers.media.util.FileUtils.buildPrimaryVolumeFile;
 import static com.android.providers.media.util.FileUtils.extractFileName;
@@ -76,9 +77,11 @@ public final class SyntheticPathUtils {
                 PICKER_SEGMENT)).getAbsolutePath();
         final String pickerGetContentDir = buildPrimaryVolumeFile(userId,
                 getPickerRelativePath(PICKER_GET_CONTENT_SEGMENT)).getAbsolutePath();
+        final String pickerTranscodedDir = buildPrimaryVolumeFile(userId, getPickerRelativePath(
+                PICKER_TRANSCODED_SEGMENT)).getAbsolutePath();
 
         return path != null && (startsWith(path, pickerDir) || startsWith(path,
-                pickerGetContentDir));
+                pickerGetContentDir) || startsWith(path, pickerTranscodedDir));
     }
 
     public static boolean isSyntheticPath(String path, int userId) {

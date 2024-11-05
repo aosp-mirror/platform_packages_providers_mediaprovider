@@ -23,6 +23,7 @@ import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.os.RemoteException
 import android.util.Log
 import android.view.SurfaceControlViewHost
 import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
@@ -61,6 +62,7 @@ import dagger.Lazy
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
 import dagger.hilt.InstallIn
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -126,7 +128,7 @@ open class Session(
     private val grantUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     private val revokeUriPermission: (packageName: String, uri: Uri) -> EmbeddedService.GrantResult,
     // TODO(b/354929684): Replace AIDL implementations with wrapper classes.
-) : IEmbeddedPhotoPickerSession.Stub() {
+) : IEmbeddedPhotoPickerSession.Stub(), IBinder.DeathRecipient {
 
     companion object {
         val TAG: String = "PhotopickerEmbeddedSession"
@@ -202,7 +204,7 @@ open class Session(
      * Whether the session is currently active and has active resources. Sessions cannot be
      * restarted once closed.
      */
-    var isActive = true
+    var isActive = AtomicBoolean(true)
 
     init {
 
@@ -261,14 +263,29 @@ open class Session(
 
         // Initialize / Refresh the banner state.
         refreshBannerState()
+
+        // Link death recipient on client callback to clean up the session resources
+        // when client dies
+        try {
+            clientCallback.asBinder()?.linkToDeath(this, 0 /* flags*/)
+        } catch (e: RemoteException) {
+            this.binderDied()
+        }
     }
 
     override fun close() {
-        if (!isActive) {
-            callClosedSessionError()
+        if (!isActive.get()) {
+            // session is already closed and the binder is still alive
+            if (clientCallback.asBinder()?.isBinderAlive() ?: false) {
+                callClosedSessionError()
+            }
             return
         }
-        Log.d(TAG, "Session close was requested.")
+        Log.d(TAG, "Session close was requested")
+
+        // Closing this session, and it can never be reactivated.
+        isActive.set(false)
+
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
@@ -276,9 +293,15 @@ open class Session(
             _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
+    }
 
-        // This session is now closed, and can never be reactivated.
-        isActive = false
+    override fun binderDied() {
+        Log.d(TAG, "Client is no longer active. Cleaning up the session resources")
+        if (isActive.get()) {
+            // Binder died here, so close session
+            close()
+        }
+        clientCallback.asBinder()?.unlinkToDeath(this, 0)
     }
 
     /**
@@ -450,25 +473,26 @@ open class Session(
     }
 
     override fun notifyVisibilityChanged(isVisible: Boolean) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
         Log.d(TAG, "Session visibility has changed: $isVisible")
         when (isVisible) {
-            true -> runBlocking(_main) {
-                _embeddedViewLifecycle.onResume()
+            true ->
+                runBlocking(_main) {
+                    _embeddedViewLifecycle.onResume()
 
-                // Refresh the banner state, it's possible that the external state has changed if
-                // the activity is returning from the background.
-                refreshBannerState()
-            }
+                    // Refresh the banner state, it's possible that the external state has changed
+                    // if the activity is returning from the background.
+                    refreshBannerState()
+                }
             false -> runBlocking(_main) { _embeddedViewLifecycle.onStop() }
         }
     }
 
     override fun notifyResized(width: Int, height: Int) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -477,7 +501,7 @@ open class Session(
     }
 
     override fun notifyConfigurationChanged(configuration: Configuration?) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -500,7 +524,7 @@ open class Session(
     }
 
     override fun notifyPhotopickerExpanded(isExpanded: Boolean) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }
@@ -508,7 +532,7 @@ open class Session(
     }
 
     override fun requestRevokeUriPermission(uris: List<Uri>) {
-        if (!isActive) {
+        if (!isActive.get()) {
             callClosedSessionError()
             return
         }

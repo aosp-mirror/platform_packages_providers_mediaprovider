@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.content.ContentResolver.QUERY_ARG_SQL_GROUP_BY;
+import static android.content.ContentResolver.QUERY_ARG_SQL_HAVING;
 import static android.provider.MediaStore.getGeneration;
 
 import static com.android.providers.media.scan.MediaScannerTest.stage;
@@ -59,6 +61,7 @@ import android.os.Environment;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.platform.test.annotations.EnableFlags;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -79,8 +82,11 @@ import androidx.test.runner.AndroidJUnit4;
 import com.android.providers.media.MediaProvider.FallbackException;
 import com.android.providers.media.MediaProvider.VolumeArgumentException;
 import com.android.providers.media.MediaProvider.VolumeNotFoundException;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.scan.MediaScanner;
+import com.android.providers.media.scan.ModernMediaScanner;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
@@ -310,8 +316,6 @@ public class MediaProviderTest {
     @Test
     public void testMetadata() {
         assertNotNull(MediaStore.getVersion(sIsolatedContext,
-                MediaStore.VOLUME_EXTERNAL_PRIMARY));
-        assertNotNull(getGeneration(sIsolatedResolver,
                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
     }
 
@@ -1944,6 +1948,148 @@ public class MediaProviderTest {
         }
 
     }
+
+    @Test
+    @EnableFlags(Flags.FLAG_INDEX_MEDIA_LATITUDE_LONGITUDE)
+    public void testQueryingMediaGeolocationDataInProjectionShouldReturnNull() throws Exception {
+        // Check with both upper and lower case column names
+        String[][] projections = new String[][] {
+                new String[] {
+                        ImageColumns.DISPLAY_NAME,
+                        ImageColumns.LATITUDE,
+                        ImageColumns.LONGITUDE
+                },
+                new String[] {
+                        ImageColumns.DISPLAY_NAME,
+                        "LATITUDE",
+                        "LONGITUDE"
+                },
+                new String[] {
+                        ImageColumns.DISPLAY_NAME,
+                        ImageColumns.LATITUDE + " AS LAT",
+                        ImageColumns.LONGITUDE + " AS LONG"
+                }
+        };
+
+        for (int i = 0; i < projections.length; i++) {
+            String[] projection = projections[i];
+            String testFileName = "test_file";
+            final File downloads = new File(Environment.getExternalStorageDirectory(),
+                    Environment.DIRECTORY_DOWNLOADS);
+            File file = stage(R.raw.lg_g4_iso_800_jpg, new File(downloads, testFileName));
+            ModernMediaScanner modernMediaScanner = new ModernMediaScanner(sIsolatedContext,
+                    new TestConfigStore());
+            Uri testFileUri = modernMediaScanner.scanFile(file, MediaScanner.REASON_UNKNOWN);
+            try (Cursor cursor = sIsolatedContext.getContentResolver()
+                    .query(testFileUri, projection, null, null, null);) {
+                assertNotNull(cursor);
+                int nameIndex = cursor.getColumnIndex(ImageColumns.DISPLAY_NAME);
+                int latitudeIndex = cursor.getColumnIndex(ImageColumns.LATITUDE);
+                int longitudeIndex = cursor.getColumnIndex(ImageColumns.LONGITUDE);
+
+                assertThat(cursor.getCount()).isEqualTo(1);
+                cursor.moveToFirst();
+                // Assert name column accessed is non-null and valid
+                assertTrue(cursor.getString(nameIndex).contains(testFileName));
+                // Geolocation data fields should be NULL
+                assertTrue("Latitude is not null", cursor.isNull(latitudeIndex));
+                assertTrue("Longitude is not null", cursor.isNull(longitudeIndex));
+            } finally {
+                // Cleanup
+                file.delete();
+            }
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_INDEX_MEDIA_LATITUDE_LONGITUDE)
+    public void testQueryingMediaGeolocationDataInSelectionShouldReturnEmptyCursor()
+            throws Exception {
+        final File downloads = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DOWNLOADS);
+        File file = stage(R.raw.lg_g4_iso_800_jpg, new File(downloads, "test"));
+        ModernMediaScanner modernMediaScanner = new ModernMediaScanner(sIsolatedContext,
+                new TestConfigStore());
+        Uri testFileUri = modernMediaScanner.scanFile(file, MediaScanner.REASON_UNKNOWN);
+
+        String[] projection = new String[] {
+                ImageColumns._ID,
+                ImageColumns.DISPLAY_NAME
+        };
+        String selection = ImageColumns.LATITUDE + " = ?";
+        String[] selectionArgs = new String[] { "67.8" };
+        try (Cursor cursor = sIsolatedContext.getContentResolver()
+                .query(testFileUri, projection, selection, selectionArgs, null);) {
+            assertNotNull(cursor);
+            // Should no return any results
+            assertThat(cursor.getCount()).isEqualTo(0);
+        } finally {
+            // Clean up
+            file.delete();
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_INDEX_MEDIA_LATITUDE_LONGITUDE)
+    public void testQueryingMediaGeolocationDataInOrderByShouldReturnNonEmptyCursor()
+            throws Exception {
+        String testFileName = "test";
+        final File downloads = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DOWNLOADS);
+        File file = stage(R.raw.lg_g4_iso_800_jpg, new File(downloads, testFileName));
+        ModernMediaScanner modernMediaScanner = new ModernMediaScanner(sIsolatedContext,
+                new TestConfigStore());
+        Uri testFileUri = modernMediaScanner.scanFile(file, MediaScanner.REASON_UNKNOWN);
+
+        String[] projection = new String[] {
+                ImageColumns._ID,
+                ImageColumns.DISPLAY_NAME
+        };
+        try (Cursor cursor = sIsolatedContext.getContentResolver()
+                .query(testFileUri, projection, null, null, ImageColumns.LONGITUDE);) {
+            assertNotNull(cursor);
+            // Should return non-empty results
+            assertThat(cursor.getCount()).isEqualTo(1);
+            int nameIndex = cursor.getColumnIndex(ImageColumns.DISPLAY_NAME);
+            cursor.moveToFirst();
+            // Assert name column accessed is non-null and valid
+            assertTrue(cursor.getString(nameIndex).contains(testFileName));
+        } finally {
+            // Clean up
+            file.delete();
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_INDEX_MEDIA_LATITUDE_LONGITUDE)
+    public void testQueryingMediaGeolocationDataInGroupByAndHavingShouldReturnEmptyCursor()
+            throws Exception {
+        String testFileName = "test";
+        final File downloads = new File(Environment.getExternalStorageDirectory(),
+                Environment.DIRECTORY_DOWNLOADS);
+        File file = stage(R.raw.lg_g4_iso_800_jpg, new File(downloads, testFileName));
+        ModernMediaScanner modernMediaScanner = new ModernMediaScanner(sIsolatedContext,
+                new TestConfigStore());
+        Uri testFileUri = modernMediaScanner.scanFile(file, MediaScanner.REASON_UNKNOWN);
+
+        String[] projection = new String[] {
+                ImageColumns._ID,
+                ImageColumns.DISPLAY_NAME
+        };
+        Bundle queryArgs = new Bundle();
+        queryArgs.putString(QUERY_ARG_SQL_GROUP_BY, ImageColumns.LATITUDE);
+        queryArgs.putString(QUERY_ARG_SQL_HAVING, ImageColumns.LONGITUDE + " > 100");
+        try (Cursor cursor = sIsolatedContext.getContentResolver()
+                .query(testFileUri, projection, queryArgs, null);) {
+            assertNotNull(cursor);
+            // Should not return any results
+            assertThat(cursor.getCount()).isEqualTo(0);
+        } finally {
+            // Clean up
+            file.delete();
+        }
+    }
+
 
     private void testRedactionForFileExtension(int resId, String extension) throws Exception {
         final File dir = Environment

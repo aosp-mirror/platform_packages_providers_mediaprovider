@@ -99,7 +99,7 @@
     <string name="picker_play_video" msgid="7106025944628666250">"Erreproduzitu"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausatu"</string>
     <string name="picker_error_snackbar" msgid="5970192792792369203">"Ezin da erreproduzitu bideoa"</string>
-    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Arazoren bat izan da bideoa erreproduzitzean"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Arazoak daude bideoa erreproduzitzeko"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Egiaztatu Internetera konektatuta zaudela eta saiatu berriro"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Saiatu berriro"</string>
     <string name="not_selected" msgid="2244008151669896758">"hautatu gabe"</string>

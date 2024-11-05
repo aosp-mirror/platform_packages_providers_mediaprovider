@@ -198,6 +198,8 @@ public final class MediaStore {
     /** {@hide} */
     public static final String CREATE_FAVORITE_REQUEST_CALL = "create_favorite_request";
     /** {@hide} */
+    public static final String MARK_MEDIA_AS_FAVORITE = "mark_media_as_favorite";
+    /** {@hide} */
     public static final String CREATE_DELETE_REQUEST_CALL = "create_delete_request";
 
     /** {@hide} */
@@ -1630,6 +1632,45 @@ public final class MediaStore {
         }
         return createRequest(resolver, CREATE_FAVORITE_REQUEST_CALL, uris, values);
     }
+
+    /**
+     * Sets the media isFavorite status if the calling app has wider read permission on media
+     * files for given type. Calling app should have one of READ_EXTERNAL_STORAGE or
+     * WRITE_EXTERNAL_STORAGE if target sdk <= T. For target sdk > T, it
+     * should have READ_MEDIA_IMAGES for images, READ_MEDIA_VIDEOS for videos or READ_MEDIA_AUDIO
+     * for audio files or MANAGE_EXTERNAL_STORAGE permission.
+     *
+     * @param resolver used to connect with {@link MediaStore#AUTHORITY}
+     * @param uris a collection of media items to include in this request. Each item
+     *            must be hosted by {@link MediaStore#AUTHORITY} and must
+     *            reference a specific media item by {@link BaseColumns#_ID}
+     *            sample uri - content://media/external_primary/images/media/24
+     * @param areFavorites the {@link MediaColumns#IS_FAVORITE} value to apply.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_MARK_MEDIA_AS_FAVORITE_API)
+    public static void markIsFavoriteStatus(@NonNull ContentResolver resolver,
+            @NonNull Collection<Uri> uris, boolean areFavorites) {
+        Objects.requireNonNull(resolver);
+        Objects.requireNonNull(uris);
+
+        final ContentValues values = new ContentValues();
+        if (areFavorites) {
+            values.put(MediaColumns.IS_FAVORITE, 1);
+        } else {
+            values.put(MediaColumns.IS_FAVORITE, 0);
+        }
+        final Iterator<Uri> it = uris.iterator();
+        final ClipData clipData = ClipData.newRawUri(null, it.next());
+        while (it.hasNext()) {
+            clipData.addItem(new ClipData.Item(it.next()));
+        }
+
+        final Bundle extras = new Bundle();
+        extras.putParcelable(EXTRA_CLIP_DATA, clipData);
+        extras.putParcelable(EXTRA_CONTENT_VALUES, values);
+        resolver.call(AUTHORITY, MARK_MEDIA_AS_FAVORITE, null, extras);
+    }
+
 
     /**
      * Create a {@link PendingIntent} that will prompt the user to permanently

@@ -93,9 +93,11 @@ public class PickerSearchProviderClient {
      */
     @Nullable
     public Cursor fetchSearchSuggestionsFromCmp(@NonNull String prefixText,
+            int limit,
             @Nullable CancellationSignal cancellationSignal) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_PREFIX_TEXT, requireNonNull(prefixText));
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, limit);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_SEARCH_SUGGESTION),
                 null, queryArgs,  cancellationSignal);

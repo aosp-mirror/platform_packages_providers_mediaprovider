@@ -25,10 +25,12 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
+import android.os.Build;
 import android.platform.test.annotations.DisableFlags;
 import android.platform.test.annotations.EnableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.TestConfigStore;
@@ -42,6 +44,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+// SetFlagsRule.ClassRule is not available in lower Android versions and Search feature will only
+// be enabled for Android T+ devices.
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 public class SearchStateTest {
     @Mock
     private PickerSyncController mMockSyncController;

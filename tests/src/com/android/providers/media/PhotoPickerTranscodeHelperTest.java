@@ -202,6 +202,24 @@ public class PhotoPickerTranscodeHelperTest {
     }
 
     @Test
+    public void freeCache_returnCorrectBytesFreed() throws IOException {
+        // Pre-create corresponded cached transcoded file.
+        final File cachedFile = new File(mTestDirectory, mTestHost + "_" + mTestMediaId);
+        if (cachedFile.createNewFile()) {
+            assertThat(cachedFile.exists()).isTrue();
+        }
+        final RandomAccessFile raf = new RandomAccessFile(cachedFile, "rw");
+        raf.setLength(17);
+
+        // Act.
+        final long bytesFreed = mHelper.freeCache(1024);
+
+        // Assert.
+        assertThat(cachedFile.exists()).isFalse();
+        assertThat(bytesFreed).isEqualTo(17);
+    }
+
+    @Test
     public void cleanAllTranscodedFiles() throws IOException {
         final List<String> fileNamesToBeFreed = Arrays.asList("100", "101", "102");
         createTestFiles(fileNamesToBeFreed);

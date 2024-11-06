@@ -91,19 +91,19 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
                     @Composable
                     override fun buildMessage(): String {
                         val config = LocalPhotopickerConfiguration.current
+                        val genericAppName =
+                            stringResource(R.string.photopicker_privacy_explainer_generic_app_name)
 
                         return when (config.action) {
                             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP ->
                                 stringResource(
                                     R.string.photopicker_privacy_explainer_permission_mode,
-                                    config.callingPackageLabel
-                                        ?: R.string.photopicker_privacy_explainer_generic_app_name
+                                    config.callingPackageLabel ?: genericAppName,
                                 )
                             else ->
                                 stringResource(
                                     R.string.photopicker_privacy_explainer,
-                                    config.callingPackageLabel
-                                        ?: R.string.photopicker_privacy_explainer_generic_app_name
+                                    config.callingPackageLabel ?: genericAppName,
                                 )
                         }
                     }

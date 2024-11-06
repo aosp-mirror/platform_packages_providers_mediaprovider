@@ -323,16 +323,16 @@ public class SearchRequestDatabaseUtilTest {
         final SearchSuggestionRequest resultSearchSuggestionRequest =
                 (SearchSuggestionRequest) resultSearchRequest;
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getSearchText())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getSearchText())
                 .isNull();
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getMediaSetId())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getMediaSetId())
                 .isEqualTo(mediaSetID);
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getAuthority())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getAuthority())
                 .isEqualTo(authority);
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getSearchSuggestionType())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType())
                 .isEqualTo(suggestionType);
     }
 

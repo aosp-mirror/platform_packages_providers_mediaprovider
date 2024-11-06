@@ -21,11 +21,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.user.SwitchUserProfileResult
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
+import com.android.photopicker.core.user.UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.extensions.getUserProfilesVisibleToPhotopicker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +53,8 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     private val selection: Selection<Media>,
     private val userMonitor: UserMonitor,
+    private val events: Events,
+    private val configurationManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
@@ -63,11 +72,14 @@ constructor(
     /** All of the profiles that are available to Photopicker */
     val allProfiles: StateFlow<List<UserProfile>> =
         userMonitor.userStatus
-            .map { it.allProfiles }
+            .getUserProfilesVisibleToPhotopicker()
             .stateIn(
                 scope,
                 SharingStarted.WhileSubscribed(),
-                initialValue = userMonitor.userStatus.value.allProfiles
+                initialValue =
+                    userMonitor.userStatus.value.allProfiles.filterNot {
+                        it.disabledReasons.contains(QUIET_MODE_DO_NOT_SHOW)
+                    }
             )
 
     /** The current active profile */
@@ -81,11 +93,11 @@ constructor(
             )
 
     /**
-     * Request for the profile to be changed to the provided profile.
-     * This is not guaranteed to succeed (the profile could be disabled/unavailable etc)
+     * Request for the profile to be changed to the provided profile. This is not guaranteed to
+     * succeed (the profile could be disabled/unavailable etc)
      *
-     * If it does succeed, this will also clear out any selected media since
-     * media cannot be selected from multiple profiles simultaneously.
+     * If it does succeed, this will also clear out any selected media since media cannot be
+     * selected from multiple profiles simultaneously.
      */
     fun requestSwitchUser(context: Context, requested: UserProfile) {
         scope.launch {
@@ -94,6 +106,16 @@ constructor(
                 // If the profile is actually changed, ensure the selection is cleared since
                 // content cannot be chosen from multiple profiles simultaneously.
                 selection.clear()
+                val configuration = configurationManager.configuration.value
+                // Log switching user profile in the picker
+                events.dispatch(
+                    Event.LogPhotopickerUIEvent(
+                        FeatureToken.PROFILE_SELECTOR.token,
+                        configuration.sessionId,
+                        configuration.callingPackageUid ?: -1,
+                        Telemetry.UiEvent.SWITCH_USER_PROFILE
+                    )
+                )
             }
         }
     }

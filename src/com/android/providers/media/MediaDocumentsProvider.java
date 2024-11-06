@@ -108,7 +108,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static final String IMAGE_MIME_TYPES = joinNewline("image/*");
 
-    private static final String VIDEO_MIME_TYPES = joinNewline("video/*");
+    private static final String VIDEO_MIME_TYPES = joinNewline("video/*", "application/vnd.ms-asf");
 
     private static final String AUDIO_MIME_TYPES = joinNewline(
             "audio/*", "application/ogg", "application/x-flac");

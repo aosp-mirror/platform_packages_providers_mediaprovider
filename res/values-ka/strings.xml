@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"გაუქმება"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"მოცდა"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"უსაფრთხოების დაცვა"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"ტრანსკოდირების ადგილობრივი გაფრთხილება"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"ტრანსკოდირების ადგილობრივი პროგრესი"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ტრანსკოდირების შეტყობინებები"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ტრანსკოდირების პროგრესი"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"ცადეთ მოგვიანებით. თქვენი ფოტოები ხარვეზის აღმოფხვრის შემდეგ იქნება ხელმისაწვდომი."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ზოგიერთი ფოტოს ჩატვირთვა ვერ ხერხდება"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"გასაგებია"</string>

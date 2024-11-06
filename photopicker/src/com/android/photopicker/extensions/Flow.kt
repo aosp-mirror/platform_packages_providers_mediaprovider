@@ -20,6 +20,8 @@ import androidx.paging.PagingData
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.user.UserProfile
+import com.android.photopicker.core.user.UserStatus
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import java.time.LocalDateTime
@@ -51,23 +53,27 @@ fun Flow<PagingData<Group.Album>>.toMediaGridItemFromAlbum(): Flow<PagingData<Me
 }
 
 /**
- * An extension function which accepts a flow of [PagingData<MediaGridItem.MediaItem] (the actual
+ * An extension function which accepts a flow of [PagingData<MediaGridItem.MediaItem>] (the actual
  * [Media] grid representation wrappers) and processes them inserting month separators in between
  * items that have different month.
  *
- * TODO(b/323830434): Update logic for separators after 4th row when UX finalizes.
- * Note: This does not include a separator for the first month of data.
- *
- * @return A [PagingData<MediaGridItem] that can be processed further, or provided to the
+ * @return A [PagingData<MediaGridItem>] that can be processed further, or provided to the
  *   [MediaGrid].
+ *
+ * TODO(b/323830434): Update logic for separators after 4th row when UX finalizes. Note: This does
+ *   not include a separator for the first month of data.
  */
-fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
-    Flow<PagingData<MediaGridItem>> {
+fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators(
+    recentsCellCount: Int = Int.MIN_VALUE
+): Flow<PagingData<MediaGridItem>> {
     return this.map {
         it.insertSeparators { before, after ->
+            val afterIndex = after?.media?.index ?: Int.MAX_VALUE
 
             // If this is the first or last item in the list, no separators are required.
-            if (after == null || before == null) {
+            // If the item index is populated and it is part of the recents section,
+            // don't add separators.
+            if (after == null || before == null || afterIndex <= recentsCellCount) {
                 return@insertSeparators null
             }
 
@@ -78,7 +84,11 @@ fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
             val afterLocalDateTime =
                 LocalDateTime.ofEpochSecond((after.media.getTimestamp() / 1000), 0, ZoneOffset.UTC)
 
-            if (beforeLocalDateTime.getMonth() != afterLocalDateTime.getMonth()) {
+            // Always add a separator after the recents section.
+            if (
+                beforeLocalDateTime.getMonth() != afterLocalDateTime.getMonth() ||
+                    afterIndex == (recentsCellCount + 1)
+            ) {
                 val format =
                     // If the current calendar year is different from the items year, append the
                     // year to to the month string.
@@ -96,6 +106,20 @@ fun Flow<PagingData<MediaGridItem.MediaItem>>.insertMonthSeparators():
                 // Both Media have the same month, so no separator needed between the two.
                 null
             }
+        }
+    }
+}
+
+/**
+ * An extension function which filters all the available user profiles based on whether a profile is
+ * hidden or not.
+ *
+ * @return A list of all the user profiles available to the photopicker
+ */
+fun Flow<UserStatus>.getUserProfilesVisibleToPhotopicker(): Flow<List<UserProfile>> {
+    return this.map {
+        it.allProfiles.filterNot {
+            it.disabledReasons.contains(UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW)
         }
     }
 }

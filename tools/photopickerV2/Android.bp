@@ -1,0 +1,46 @@
+package {
+    // See: http://go/android-license-faq
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_app {
+    name: "PhotoPickerToolV2",
+    manifest: "AndroidManifest.xml",
+    libs: [
+        "framework-mediaprovider.impl",
+    ],
+    resource_dirs: ["res"],
+    static_libs: [
+        "androidx.activity_activity-compose",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime-livedata",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.ui_ui",
+        "androidx.core_core-ktx",
+        "androidx.lifecycle_lifecycle-runtime-compose",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.compose.material_material-icons-extended",
+        "androidx.hilt_hilt-navigation-compose",
+        "androidx.navigation_navigation-compose",
+        "androidx.navigation_navigation-runtime-ktx",
+        "glide-annotation-and-compiler-prebuilt",
+        "glide-prebuilt",
+        "glide-ktx-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-compose-prebuilt",
+        "hilt_android",
+        "kotlin-stdlib",
+        "kotlinx-coroutines-android",
+        "kotlinx_coroutines",
+        "modules-utils-build",
+    ],
+    plugins: [
+        "glide-annotation-processor",
+    ],
+    srcs: ["src/**/*.kt"],
+    sdk_version: "module_current",
+    target_sdk_version: "34",
+    min_sdk_version: "34",
+}

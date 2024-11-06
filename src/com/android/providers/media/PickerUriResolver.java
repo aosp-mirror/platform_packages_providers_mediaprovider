@@ -34,8 +34,6 @@ import static com.android.providers.media.photopicker.PickerDataLayer.QUERY_SHOU
 import static com.android.providers.media.photopicker.util.CursorUtils.getCursorString;
 import static com.android.providers.media.util.FileUtils.toFuseFile;
 
-import static java.util.Objects.requireNonNull;
-
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -55,6 +53,7 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -329,12 +328,12 @@ public class PickerUriResolver {
     }
 
     /**
-     * @param intentAction The intent action associated with the Picker session.
+     * @param intentAction The intent action associated with the Picker session. Note that the
+     *                     intent action could be null in case of embedded picker.
      * @return The Picker URI path segment.
      */
-    public static String getPickerSegmentFromIntentAction(String intentAction) {
-        requireNonNull(intentAction);
-        if (intentAction.equals(Intent.ACTION_GET_CONTENT)) {
+    public static String getPickerSegmentFromIntentAction(@Nullable String intentAction) {
+        if (intentAction != null && intentAction.equals(Intent.ACTION_GET_CONTENT)) {
             return PICKER_GET_CONTENT_SEGMENT;
         }
         return PICKER_SEGMENT;
@@ -483,8 +482,10 @@ public class PickerUriResolver {
         }
     }
 
-    @VisibleForTesting
-    static Uri unwrapProviderUri(Uri uri) {
+    /**
+     * Unwraps picker uri for processing host and id.
+     */
+    public static Uri unwrapProviderUri(Uri uri) {
         return unwrapProviderUri(uri, true);
     }
 
@@ -521,20 +522,33 @@ public class PickerUriResolver {
         return Integer.parseInt(uri.getPathSegments().get(1));
     }
 
-    private void checkUriPermission(Uri uri, int pid, int uid) {
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public void checkUriPermission(Uri uri, int pid, int uid) {
+        checkUriPermission(mContext, uri, pid, uid);
+    }
+
+    /**
+     * Checks if the package represented by input uid and pid have access to the uri.
+     */
+    public static void checkUriPermission(Context context, Uri uri, int pid, int uid) {
         // Clear query parameters to check for URI permissions, apps can add requireOriginal
         // query parameter to URI, URI grants will not be present in that case.
         Uri uriWithoutQueryParams = uri.buildUpon().clearQuery().build();
         if (!isSelf(uid)
-                && !PermissionUtils.checkManageCloudMediaProvidersPermission(mContext, pid, uid)
-                && mContext.checkUriPermission(uriWithoutQueryParams, pid, uid,
+                && !PermissionUtils.checkManageCloudMediaProvidersPermission(context, pid, uid)
+                && context.checkUriPermission(uriWithoutQueryParams, pid, uid,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION) != PERMISSION_GRANTED) {
             throw new SecurityException("Calling uid ( " + uid + " ) does not have permission to " +
                     "access picker uri: " + uriWithoutQueryParams);
         }
     }
 
-    private void checkPermissionForRequireOriginalQueryParam(Uri uri,
+    /**
+     * Checks if the caller has the required permission to require original for the picker URI.
+     */
+    public void checkPermissionForRequireOriginalQueryParam(Uri uri,
             LocalCallingIdentity localCallingIdentity) {
         String value = uri.getQueryParameter(MediaStore.PARAM_REQUIRE_ORIGINAL);
         if (value == null || value.isEmpty()) {
@@ -557,7 +571,7 @@ public class PickerUriResolver {
         }
     }
 
-    private boolean isSelf(int uid) {
+    private static boolean isSelf(int uid) {
         return UserHandle.getAppId(Process.myUid()) == UserHandle.getAppId(uid);
     }
 

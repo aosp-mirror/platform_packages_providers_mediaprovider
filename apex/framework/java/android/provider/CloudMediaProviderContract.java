@@ -1408,7 +1408,8 @@ public final class CloudMediaProviderContract {
     }
 
     /**
-     * Represents a generic text search suggestion.
+     * Represents a generic text search suggestion. This can be treated as a default when the type
+     * of search suggestions is unknown.
      * @see SearchSuggestionColumns#TYPE
      * Type: INTEGER
      */

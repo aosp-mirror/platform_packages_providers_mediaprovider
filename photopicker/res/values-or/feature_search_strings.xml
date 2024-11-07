@@ -20,10 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"ସର୍ଚ୍ଚ କରନ୍ତୁ"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"ଆପଣଙ୍କ ଫଟୋଗୁଡ଼ିକୁ ସର୍ଚ୍ଚ କରନ୍ତୁ"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"ଆପଣଙ୍କ ଭିଡିଓଗୁଡ଼ିକୁ ସର୍ଚ୍ଚ କରନ୍ତୁ"</string>
-    <!-- no translation found for photopicker_search_result_empty_state_title (5464851093908453867) -->
-    <skip />
-    <!-- no translation found for photopicker_search_result_empty_state_body (1732249539645056618) -->
-    <skip />
-    <!-- no translation found for photopicker_search_suggestions_text (1758802235973720586) -->
-    <skip />
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"କୌଣସି ଫଳାଫଳ ମିଳିଲା ନାହିଁ"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"ସମାନ ଶବ୍ଦଗୁଡ଼ିକ ସର୍ଚ୍ଚ କରିବାକୁ ଚେଷ୍ଟା କରନ୍ତୁ"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"ପରାମର୍ଶ"</string>
 </resources>

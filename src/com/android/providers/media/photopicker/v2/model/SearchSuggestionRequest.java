@@ -16,8 +16,6 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
-import static java.util.Objects.requireNonNull;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -27,14 +25,8 @@ import java.util.List;
  * Represents a user initiated search request by choosing a search suggestion.
  */
 public class SearchSuggestionRequest extends SearchRequest {
-    @Nullable
-    protected final String mSearchText;
     @NonNull
-    protected final String mMediaSetId;
-    @NonNull
-    protected final String mAuthority;
-    @NonNull
-    protected final SearchSuggestionType mSearchSuggestionType;
+    private final SearchSuggestion mSearchSuggestion;
 
     public SearchSuggestionRequest(
             @Nullable List<String> mimeTypes,
@@ -43,31 +35,26 @@ public class SearchSuggestionRequest extends SearchRequest {
             @NonNull String authority,
             @NonNull SearchSuggestionType searchSuggestionType,
             @Nullable String resumeKey) {
+        this(mimeTypes, searchText, mediaSetId, authority, searchSuggestionType, resumeKey,
+                /* coverMediaSetId */ null);
+    }
+
+    public SearchSuggestionRequest(
+            @Nullable List<String> mimeTypes,
+            @Nullable String searchText,
+            @NonNull String mediaSetId,
+            @NonNull String authority,
+            @NonNull SearchSuggestionType searchSuggestionType,
+            @Nullable String resumeKey,
+            @Nullable String coverMediaId) {
         super(mimeTypes, resumeKey);
 
-        mSearchText = searchText;
-        mMediaSetId = requireNonNull(mediaSetId);
-        mAuthority = requireNonNull(authority);
-        mSearchSuggestionType = requireNonNull(searchSuggestionType);
-    }
-
-    @Nullable
-    public String getSearchText() {
-        return mSearchText;
+        mSearchSuggestion = new SearchSuggestion(searchText, mediaSetId, authority,
+                searchSuggestionType, coverMediaId);
     }
 
     @NonNull
-    public String getMediaSetId() {
-        return mMediaSetId;
-    }
-
-    @NonNull
-    public String getAuthority() {
-        return mAuthority;
-    }
-
-    @NonNull
-    public SearchSuggestionType getSearchSuggestionType() {
-        return mSearchSuggestionType;
+    public SearchSuggestion getSearchSuggestion() {
+        return mSearchSuggestion;
     }
 }

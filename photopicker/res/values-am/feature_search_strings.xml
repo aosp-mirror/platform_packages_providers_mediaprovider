@@ -20,10 +20,7 @@
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"ፍለጋ"</string>
     <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"ፎቶዎችዎን ይፈልጉ"</string>
     <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"ቪድዮዎችዎን ይፈልጉ"</string>
-    <!-- no translation found for photopicker_search_result_empty_state_title (5464851093908453867) -->
-    <skip />
-    <!-- no translation found for photopicker_search_result_empty_state_body (1732249539645056618) -->
-    <skip />
-    <!-- no translation found for photopicker_search_suggestions_text (1758802235973720586) -->
-    <skip />
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"ምንም ውጤቶች አልተገኙም"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"ተመሳሳይ ቃላትን ለመፈለግ ይሞክሩ"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"ጥቆማዎች"</string>
 </resources>

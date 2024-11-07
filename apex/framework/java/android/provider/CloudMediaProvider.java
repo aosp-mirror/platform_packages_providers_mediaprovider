@@ -300,6 +300,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
      * {@link Cursor#setExtras} {@link Bundle}. Not setting this is an error and invalidates the
      * returned {@link Cursor}.
+     *
      * <p>
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned
@@ -326,15 +327,19 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * filtered by {@code extras}. The columns of MediaCategories are
      * in the class {@link CloudMediaProviderContract.MediaCategoryColumns}.
      *
+     * <p>
      * When {@code parentCategoryId} is null, this returns the root categories.
+     *
      * <p>
      * The order in which media categories are sorted in the cursor
      * will be retained when displaying results to the user.
+     *
      * <p>
      * The cloud media provider must set the
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
      * by using {@link Cursor#setExtras}. Not setting this is an error and invalidates the
      * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     *
      * <p>
      * {@code extras} may contain some key-value pairs which should be used to filter the results.
      * If the provider handled any filters in {@code extras}, it must add the key to
@@ -351,12 +356,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor with {@link CloudMediaProviderContract.MediaCategoryColumns} columns
      */
-    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @NonNull
     public Cursor onQueryMediaCategories(@Nullable String parentCategoryId,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("queryMediaCategories not supported");
+        throw new UnsupportedOperationException("onQueryMediaCategories is not supported");
     }
 
     /**
@@ -364,6 +368,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * filtered by {@code extras}. The columns of MediaSet are in the class
      * {@link CloudMediaProviderContract.MediaSetColumns}.
      *
+     * <p>
      * This returns MediaSets directly inside the given MediaCategoryId.
      * If the passed mediaCategoryId has some more nested mediaCategories, the mediaSets inside
      * the nested mediaCategories must not be returned in this response.
@@ -371,13 +376,14 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <p>
      * The order in which media sets are sorted in the cursor
      * will be retained when displaying results to the user.
+     *
      * <p>
      * The cloud media provider must set the
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
      * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
      * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
-     * <p>
      *
+     * <p>
      * {@code extras} may contain some key-value pairs which should be used to prepare the results.
      * If the provider handled any filters in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
@@ -388,10 +394,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * If the cloud media provider supports pagination, they can set
      * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
      * as part of the returned cursor by using {@link Cursor#setExtras}.
-     *
      * If a token is set, the OS will pass it as a  key-value pair in {@code extras}
      * when querying for query media sets for subsequent pages.
-     *
      * The provider can keep returning pagination tokens in the returned cursor
      * by using {@link Cursor#setExtras} until the last page at which point it should not
      * set a token in the returned cursor.
@@ -406,12 +410,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaSetColumns} columns
      */
-    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @NonNull
     public Cursor onQueryMediaSets(@NonNull String mediaCategoryId,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("queryMediaSets not supported");
+        throw new UnsupportedOperationException("onQueryMediaSets is not supported");
     }
 
     /**
@@ -419,17 +422,20 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * filtered by {@code extras}. The columns of SearchSuggestions are in the class
      * {@link CloudMediaProviderContract.SearchSuggestionColumns}
      *
+     * <p>
      * If the user has not started typing, this is considered as zero state suggestion.
      * In this case {@code prefixText} will be empty string.
      *
      * <p>
      * The order in which suggestions are sorted in the cursor
      * will be retained when displaying results to the user.
+     *
      * <p>
      * The cloud media provider must set the
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
      * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
      * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
+     *
      * <p>
      * {@code extras} may contain some key-value pairs which should be used to prepare
      * the results.
@@ -438,6 +444,10 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link Cursor#setExtras}. If not honored, photo picker will assume the result of the query is
      * without the extra being used.
      * Note: Currently this function does not pass any key-value params in {@code extras}.
+     *
+     * <p>
+     * Results may not be displayed if it takes longer than 300 milliseconds to get a response from
+     * the cloud media provider.
      *
      * @param prefixText         the prefix text to filter search suggestions.
      * @param extras             containing keys to filter search suggestions.
@@ -448,12 +458,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * @return cursor representing search suggestions containing all
      * {@see CloudMediaProviderContract.SearchSuggestionColumns} columns
      */
-    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @NonNull
     public Cursor onQuerySearchSuggestions(@NonNull String prefixText,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("querySearchSuggestions not supported");
+        throw new UnsupportedOperationException("onQuerySearchSuggestions is not supported");
     }
 
     /**
@@ -465,6 +474,7 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * <p>
      * The order in which media items are sorted in the cursor
      * will be retained when displaying results to the user.
+     *
      * <p>
      * The cloud media provider must set the
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned
@@ -483,10 +493,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * If the cloud media provider supports pagination, they can set
      * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
      * as part of the returned cursor by using {@link Cursor#setExtras}.
-     *
      * If a token is set, the OS will pass it as a  key-value pair in {@code extras}
      * when querying for media for subsequent pages.
-     *
      * The provider can keep returning pagination tokens in the returned cursor
      * by using {@link Cursor#setExtras} until the last page at which point it should not
      * set a token in the returned cursor.
@@ -502,12 +510,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor representing {@link CloudMediaProviderContract.MediaColumns} columns
      */
-    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @NonNull
     public Cursor onQueryMediaInMediaSet(@NonNull String mediaSetId,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("queryMedia in MediaSet not supported");
+        throw new UnsupportedOperationException("onQueryMediaInMediaSet is not supported");
     }
 
     /**
@@ -529,25 +536,30 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * <p>
      * An example user journey:
-     * 1. User enters the search prompt.
-     * 2. Using {@link #onQuerySearchSuggestions},
-     * photo picker display suggestions as the user keeps typing.
-     * 3. User selects a suggestion.
-     * Photo picker calls: {@code onSearchMedia(suggestedMediaSetId, fallbackSearchText, extras)}
-     * with the {@code suggestedMediaSetId} corresponding to the user chosen suggestion.
-     * {@link CloudMediaProviderContract.SearchSuggestionColumns#MEDIA_SET_ID}
+     * <ol>
+     *     <li>User enters the search prompt.</li>
+     *     <li>Using {@link #onQuerySearchSuggestions}, photo picker display suggestions as the user
+     *     keeps typing.</li>
+     *     <li>User selects a suggestion, Photo picker calls:
+     *     {@code onSearchMedia(suggestedMediaSetId, fallbackSearchText, extras)}
+     *     with the {@code suggestedMediaSetId} corresponding to the user chosen suggestion.
+     *     {@link CloudMediaProviderContract.SearchSuggestionColumns#MEDIA_SET_ID}</li>
+     * </ol>
+     *
      *
      * <p>
      * If the cloud media provider supports pagination, they can set
      * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
      * as part of the returned cursor by using {@link Cursor#setExtras}.
-     *
      * If a token is set, the OS will pass it as a key value pair in {@code extras}
      * when querying for search media for subsequent pages.
-     *
      * The provider can keep returning pagination tokens in the returned cursor
      * by using {@link Cursor#setExtras} until the last page at which point it should not
      * set a token in the returned cursor
+     *
+     * <p>
+     * Results may not be displayed if it takes longer than 3 seconds to get a paged response from
+     * the cloud media provider.
      *
      * @param suggestedMediaSetId the media set ID of the suggestion that the user wants to search.
      * @param fallbackSearchText  optional search text to be used when {@code suggestedMediaSetId}
@@ -568,8 +580,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
     public Cursor onSearchMedia(@NonNull String suggestedMediaSetId,
             @Nullable String fallbackSearchText,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("searchMedia with"
-                + " suggestedMediaSetId not supported");
+        throw new UnsupportedOperationException("onSearchMedia for"
+                + " suggestion media set id is not supported");
     }
 
     /**
@@ -581,8 +593,8 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * {@link CloudMediaProviderContract#EXTRA_MEDIA_COLLECTION_ID} as part of the returned cursor
      * by using {@link Cursor#setExtras} . Not setting this is an error and invalidates the
      * returned {@link Cursor}, meaning photo picker will not use the cursor for any operation.
-     * <p>
      *
+     * <p>
      * {@code extras} may contain some key-value pairs which should be used to prepare the results.
      * If the provider handled any params in {@code extras}, it must add the key to
      * the {@link ContentResolver#EXTRA_HONORED_ARGS} as part of the returned cursor by using
@@ -591,23 +603,27 @@ public abstract class CloudMediaProvider extends ContentProvider {
      *
      * <p>
      * An example user journey:
-     * 1. User enters the search prompt.
-     * 2. Using {@link #onQuerySearchSuggestions},
-     * photo picker display suggestions as the user keeps typing.
-     * 3. User types completely and then enters search,
-     * Photo picker calls: {@code onSearchMedia(searchText, extras)}
+     * <ol>
+     *     <li>User enters the search prompt.</li>
+     *     <li>Using {@link #onQuerySearchSuggestions}, photo picker display suggestions as the user
+     *     keeps typing.</li>
+     *     <li>User types completely and then enters search,
+     *     Photo picker calls: {@code onSearchMedia(searchText, extras)}</li>
+     * </ol>
      *
      * <p>
      * If the cloud media provider supports pagination, they can set
      * {@link CloudMediaProviderContract#EXTRA_PAGE_TOKEN} as the next page token,
      * as part of the returned cursor by using {@link Cursor#setExtras}.
-     *
      * If a token is set, the OS will pass it as a key value pair in {@code extras}
      * when querying for search media for subsequent pages.
-     *
      * The provider can keep returning pagination tokens in the returned cursor
      * by using {@link Cursor#setExtras} until the last page at which point it should not
      * set a token in the returned cursor.
+     *
+     * <p>
+     * Results may not be displayed if it takes longer than 3 seconds to get a paged response from
+     * the cloud media provider.
      *
      * @param searchText         search text to be used.
      * @param extras             containing keys to manage the search results:
@@ -620,12 +636,11 @@ public abstract class CloudMediaProvider extends ContentProvider {
      * @param cancellationSignal {@link CancellationSignal} to check if request has been cancelled.
      * @return cursor of {@link CloudMediaProviderContract.MediaColumns} based on the match.
      */
-    // TODO(b/358309179): Add a description of timely response from the provider and a threshold
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @NonNull
     public Cursor onSearchMedia(@NonNull String searchText,
             @NonNull Bundle extras, @Nullable CancellationSignal cancellationSignal) {
-        throw new UnsupportedOperationException("searchMediaFromText not supported");
+        throw new UnsupportedOperationException("onSearchMedia for search text is not supported");
     }
 
     /**

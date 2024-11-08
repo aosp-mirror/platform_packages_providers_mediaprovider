@@ -47,8 +47,15 @@ import com.android.photopicker.core.PhotopickerApp
 import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.PhotopickerEventLogger
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.events.dispatchPhotopickerExpansionStateChangedEvent
+import com.android.photopicker.core.events.dispatchReportPhotopickerApiInfoEvent
+import com.android.photopicker.core.events.dispatchReportPhotopickerMediaItemStatusEvent
+import com.android.photopicker.core.events.dispatchReportPhotopickerSessionInfoEvent
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.selection.LocalSelection
@@ -145,6 +152,8 @@ open class Session(
     @EntryPoint
     @InstallIn(EmbeddedServiceComponent::class)
     interface EmbeddedEntryPoint {
+
+        @Background fun backgroundDispatcher(): CoroutineDispatcher
 
         fun bannerManager(): Lazy<BannerManager>
 
@@ -250,12 +259,19 @@ open class Session(
         // NOTE: Do not update the configuration after this line, it will cause the UI to
         // re-initialize.
         Log.d(TAG, "EmbeddedConfiguration is stable, UI will now start.")
+
+        // Picker event logger starts listening for events dispatched throughout the session
+        startListeningToTelemetryEvents()
+
         _view = createPhotopickerComposeView(context)
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
         // This initialization should happen only after receiving the [_host]
         _stateManager =
             EmbeddedStateManager(host = _host, themeNightMode = featureInfo.themeNightMode)
         runBlocking(_main) { _host.setView(_view, width, height) }
+
+        // Log the picker launch details
+        reportPhotopickerApiInfo()
 
         // Start listening to selection/deselection events for this Session so
         // we can grant/revoke permission to selected/deselected uris immediately.
@@ -285,6 +301,9 @@ open class Session(
 
         // Closing this session, and it can never be reactivated.
         isActive.set(false)
+
+        // Log the final state of the session
+        reportSessionInfo()
 
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
@@ -434,6 +453,9 @@ open class Session(
                         val result = grantUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
                             selectedUris.add(item.mediaUri)
+
+                            // Report media item selected
+                            reportMediaItemStatus(item, Telemetry.MediaStatus.SELECTED)
                         } else {
                             Log.w(
                                 TAG,
@@ -448,6 +470,9 @@ open class Session(
                         val result = revokeUriPermission(clientPackageName, item.mediaUri)
                         if (result == EmbeddedService.GrantResult.SUCCESS) {
                             deselectedUris.add(item.mediaUri)
+
+                            // Report media item unselected
+                            reportMediaItemStatus(item, Telemetry.MediaStatus.UNSELECTED)
                         } else {
                             Log.w(
                                 TAG,
@@ -528,6 +553,10 @@ open class Session(
             callClosedSessionError()
             return
         }
+
+        // Log picker expanded / collapsed
+        reportPhotopickerExpansionStateChanged(isExpanded)
+
         _stateManager.setIsExpanded(isExpanded)
     }
 
@@ -544,6 +573,11 @@ open class Session(
                 }
 
             _dependencies.selection().get().removeAll(deselectedMediaItems)
+
+            // Report media item unselected
+            deselectedMediaItems.forEach { item ->
+                reportMediaItemStatus(item, Telemetry.MediaStatus.UNSELECTED)
+            }
         }
     }
 
@@ -563,4 +597,75 @@ open class Session(
             _dependencies.bannerManager().get().refreshBanners()
         }
     }
+
+    // ---------- Begin Telemetry event functions ----------
+
+    /** Picker event logger starts listening for events dispatched throughout the session */
+    private fun startListeningToTelemetryEvents() {
+        PhotopickerEventLogger(_dependencies.dataService())
+            .start(
+                scope = _backgroundScope,
+                backgroundDispatcher = _dependencies.backgroundDispatcher(),
+                events = _dependencies.events().get(),
+            )
+    }
+
+    /** Log the picker launch details by dispatching [Event.ReportPhotopickerApiInfo] */
+    private fun reportPhotopickerApiInfo() {
+        dispatchReportPhotopickerApiInfoEvent(
+            coroutineScope = _backgroundScope,
+            lazyEvents = _dependencies.events(),
+            photopickerConfiguration =
+                _dependencies.configurationManager().get().configuration.value,
+        )
+    }
+
+    /** Dispatch [Event.ReportPhotopickerSessionInfo] to log the final state of the session */
+    private fun reportSessionInfo() {
+        val pickerStatus =
+            if (_dependencies.selection().get().flow.value.isNotEmpty())
+                Telemetry.PickerStatus.CONFIRMED
+            else Telemetry.PickerStatus.CANCELED
+
+        dispatchReportPhotopickerSessionInfoEvent(
+            coroutineScope = _backgroundScope,
+            lazyEvents = _dependencies.events(),
+            photopickerConfiguration =
+                _dependencies.configurationManager().get().configuration.value,
+            lazyDataService = _dependencies.dataService(),
+            lazyUserMonitor = _dependencies.userMonitor(),
+            lazyMediaSelection = _dependencies.selection(),
+            pickerStatus = pickerStatus,
+        )
+    }
+
+    /** Dispatch [Event.ReportPhotopickerMediaItemStatus] to log media item selected / unselected */
+    private fun reportMediaItemStatus(item: Media, mediaStatus: Telemetry.MediaStatus) {
+        val pickerSize =
+            if (_stateManager.state.value.isExpanded) Telemetry.PickerSize.EXPANDED
+            else Telemetry.PickerSize.COLLAPSED
+
+        dispatchReportPhotopickerMediaItemStatusEvent(
+            coroutineScope = _backgroundScope,
+            lazyEvents = _dependencies.events(),
+            photopickerConfiguration =
+                _dependencies.configurationManager().get().configuration.value,
+            mediaItem = item,
+            mediaStatus = mediaStatus,
+            pickerSize = pickerSize,
+        )
+    }
+
+    /** Dispatch [Event.LogPhotopickerUIEvent] to log picker expanded / collapsed */
+    private fun reportPhotopickerExpansionStateChanged(isExpanded: Boolean) {
+        dispatchPhotopickerExpansionStateChangedEvent(
+            coroutineScope = _backgroundScope,
+            lazyEvents = _dependencies.events(),
+            photopickerConfiguration =
+                _dependencies.configurationManager().get().configuration.value,
+            isExpanded = isExpanded,
+        )
+    }
+
+    // ---------- End Telemetry event functions ----------
 }

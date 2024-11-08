@@ -129,6 +129,10 @@ public class PickerViewModelPaginationTest {
         final Context isolatedContext = new IsolatedContext(sTargetContext, /* tag */ "databases",
                 /* asFuseThread */ false, sTargetContext.getUser(), testConfigStore);
         when(mApplication.getApplicationContext()).thenReturn(isolatedContext);
+
+        final UserIdManager userIdManager = mock(UserIdManager.class);
+        when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+
         sInstrumentation.runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
@@ -136,14 +140,13 @@ public class PickerViewModelPaginationTest {
                     setConfigStore(testConfigStore);
                 }
             };
+            mPickerViewModel.initUserManagers(userIdManager);
         });
         if (testConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
             final UserManagerState userManagerState = mock(UserManagerState.class);
             when(userManagerState.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
             mPickerViewModel.setUserManagerState(userManagerState);
         } else {
-            final UserIdManager userIdManager = mock(UserIdManager.class);
-            when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
             mPickerViewModel.setUserIdManager(userIdManager);
         }
 

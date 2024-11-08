@@ -371,7 +371,8 @@ class DispatchersTest {
                 isOrderedSelectionSet = false,
                 isAccentColorSet = false,
                 isDefaultTabSet = false,
-                isSearchEnabled = false,
+                isCloudSearchEnabled = false,
+                isLocalSearchEnabled = false,
             )
 
         // Action

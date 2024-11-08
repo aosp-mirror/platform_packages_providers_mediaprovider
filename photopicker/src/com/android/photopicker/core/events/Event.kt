@@ -75,7 +75,7 @@ interface Event {
         val pickedItemsSize: Int,
         val profileSwitchButtonVisible: Boolean,
         val pickerMode: Telemetry.PickerMode,
-        val pickerCloseMethod: Telemetry.PickerCloseMethod
+        val pickerCloseMethod: Telemetry.PickerCloseMethod,
     ) : Event
 
     /**
@@ -94,7 +94,8 @@ interface Event {
         val isOrderedSelectionSet: Boolean,
         val isAccentColorSet: Boolean,
         val isDefaultTabSet: Boolean,
-        val isSearchEnabled: Boolean
+        val isCloudSearchEnabled: Boolean,
+        val isLocalSearchEnabled: Boolean,
     ) : Event
 
     /**
@@ -105,14 +106,14 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val packageUid: Int,
-        val uiEvent: Telemetry.UiEvent
+        val uiEvent: Telemetry.UiEvent,
     ) : Event
 
     data class LogPhotopickerAlbumOpenedUIEvent(
         override val dispatcherToken: String,
         val sessionId: Int,
         val packageUid: Int,
-        val albumOpened: Group.Album
+        val albumOpened: Group.Album,
     ) : Event
 
     /** Details out the information of a picker media item */
@@ -125,7 +126,7 @@ interface Event {
         val selectedAlbum: Group.Album?,
         val mediaType: Telemetry.MediaType,
         val cloudOnly: Boolean,
-        val pickerSize: Telemetry.PickerSize
+        val pickerSize: Telemetry.PickerSize,
     ) : Event
 
     /** Captures details of the picker's preview mode */
@@ -135,7 +136,7 @@ interface Event {
         val previewModeEntry: Telemetry.PreviewModeEntry,
         val previewItemCount: Int,
         val mediaType: Telemetry.MediaType,
-        val videoInteraction: Telemetry.VideoPlayBackInteractions
+        val videoInteraction: Telemetry.VideoPlayBackInteractions,
     ) : Event
 
     /** Logs the user's interaction with the photopicker menu */
@@ -143,7 +144,7 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val packageUid: Int,
-        val menuItem: Telemetry.MenuItemSelected
+        val menuItem: Telemetry.MenuItemSelected,
     ) : Event
 
     /** Logs the user's interaction with different picker banners */
@@ -151,7 +152,7 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val bannerType: Telemetry.BannerType,
-        val userInteraction: Telemetry.UserBannerInteraction
+        val userInteraction: Telemetry.UserBannerInteraction,
     ) : Event
 
     /** Logs details of the picker media library size */
@@ -160,7 +161,7 @@ interface Event {
         val sessionId: Int,
         val cloudProviderUid: Int,
         val librarySize: Int,
-        val mediaCount: Int
+        val mediaCount: Int,
     ) : Event
 
     /**
@@ -171,7 +172,7 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val pageNumber: Int,
-        val itemsLoadedInPage: Int
+        val itemsLoadedInPage: Int,
     ) : Event
 
     /** Logs picker media sync information: both sync start/end and incremental syncs. */
@@ -185,7 +186,7 @@ interface Event {
         val incrementalMediaSyncStartTime: Int,
         val incrementalMediaSyncEndTime: Int,
         val incrementalDeletedMediaSyncStartTime: Int,
-        val incrementalDeletedMediaSyncEndTime: Int
+        val incrementalDeletedMediaSyncEndTime: Int,
     ) : Event
 
     /** Logs sync information for picker albums: both the album details and its content */
@@ -195,7 +196,7 @@ interface Event {
         val getAlbumsStartTime: Int,
         val getAlbumsEndTime: Int,
         val getAlbumMediaStartTime: Int,
-        val getAlbumMediaEndTime: Int
+        val getAlbumMediaEndTime: Int,
     ) : Event
 
     /** Logs information about the picker's search functionality */
@@ -203,9 +204,8 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val searchMethod: Telemetry.SearchMethod,
-        val pickedItems: Int,
         val startTime: Int,
-        val endTime: Int
+        val endTime: Int,
     ) : Event
 
     /** Logs details about the requests made for extracting search data */
@@ -216,7 +216,7 @@ interface Event {
         val processingStartTime: Int,
         val processingEndTime: Int,
         val isProcessingSuccessful: Boolean,
-        val isResponseReceived: Boolean
+        val isResponseReceived: Boolean,
     ) : Event
 
     /** Logs information about the embedded photopicker(implementation details) */
@@ -225,7 +225,7 @@ interface Event {
         val sessionId: Int,
         val isSurfacePackageCreationSuccessful: Boolean,
         val surfacePackageDeliveryStartTime: Int,
-        val surfacePackageDeliveryEndTime: Int
+        val surfacePackageDeliveryEndTime: Int,
     ) : Event
 }
 
@@ -251,7 +251,7 @@ interface Telemetry {
         UNSET_PICKER_SELECTION(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_PERMITTED_SELECTION__UNSET_PICKER_PERMITTED_SELECTION
-        )
+        ),
     }
 
     /*
@@ -267,7 +267,7 @@ interface Telemetry {
         UNSET_USER_PROFILE(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__USER_PROFILE__UNSET_USER_PROFILE
-        )
+        ),
     }
 
     /*
@@ -282,7 +282,7 @@ interface Telemetry {
         UNSET_PICKER_STATUS(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_STATUS__UNSET_PICKER_STATUS
-        )
+        ),
     }
 
     /*
@@ -302,7 +302,7 @@ interface Telemetry {
         ),
         UNSET_PICKER_MODE(
             MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_MODE__UNSET_PICKER_MODE
-        )
+        ),
     }
 
     /*
@@ -328,7 +328,7 @@ interface Telemetry {
         UNSET_PICKER_CLOSE_METHOD(
             MediaProviderStatsLog
                 .PHOTOPICKER_SESSION_INFO_REPORTED__PICKER_CLOSE_METHOD__UNSET_PICKER_CLOSE_METHOD
-        )
+        ),
     }
 
     /*
@@ -339,7 +339,7 @@ interface Telemetry {
         EXPANDED(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__EXPANDED),
         UNSET_PICKER_SIZE(
             MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SCREEN_SIZE__UNSET_PICKER_SIZE
-        )
+        ),
     }
 
     /*
@@ -361,7 +361,7 @@ interface Telemetry {
         UNSET_PICKER_INTENT_ACTION(
             MediaProviderStatsLog
                 .PHOTOPICKER_API_INFO_REPORTED__PICKER_INTENT_ACTION__UNSET_PICKER_INTENT_ACTION
-        )
+        ),
     }
 
     /*
@@ -381,7 +381,7 @@ interface Telemetry {
         UNSET_MEDIA_TYPE(
             MediaProviderStatsLog
                 .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_TYPE__UNSET_MEDIA_TYPE
-        )
+        ),
     }
 
     /*
@@ -393,7 +393,7 @@ interface Telemetry {
         COLLECTIONS(MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__COLLECTIONS),
         UNSET_SELECTED_TAB(
             MediaProviderStatsLog.PHOTOPICKER_API_INFO_REPORTED__SELECTED_TAB__UNSET_SELECTED_TAB
-        )
+        ),
     }
 
     /*
@@ -416,7 +416,7 @@ interface Telemetry {
         UNSET_SELECTED_ALBUM(
             MediaProviderStatsLog
                 .PHOTOPICKER_API_INFO_REPORTED__SELECTED_ALBUM__UNSET_SELECTED_ALBUM
-        )
+        ),
     }
 
     /*
@@ -524,7 +524,7 @@ interface Telemetry {
         SELECT_SEARCH_CATEGORY(
             MediaProviderStatsLog.PHOTOPICKER_UIEVENT_LOGGED__UI_EVENT__SELECT_SEARCH_CATEGORY
         ),
-        UNSET_UI_EVENT(MediaProviderStatsLog.PHOTOPICKER_UIEVENT_LOGGED__UI_EVENT__UNSET_UI_EVENT)
+        UNSET_UI_EVENT(MediaProviderStatsLog.PHOTOPICKER_UIEVENT_LOGGED__UI_EVENT__UNSET_UI_EVENT),
     }
 
     /*
@@ -540,7 +540,7 @@ interface Telemetry {
         UNSET_MEDIA_STATUS(
             MediaProviderStatsLog
                 .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_STATUS__UNSET_MEDIA_STATUS
-        )
+        ),
     }
 
     /*
@@ -551,11 +551,10 @@ interface Telemetry {
             MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__MAIN_GRID
         ),
         ALBUM(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__ALBUM),
-        GROUP(MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__GROUP),
         UNSET_MEDIA_LOCATION(
             MediaProviderStatsLog
                 .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__UNSET_MEDIA_LOCATION
-        )
+        ),
     }
 
     /*
@@ -571,7 +570,7 @@ interface Telemetry {
         UNSET_PREVIEW_MODE_ENTRY(
             MediaProviderStatsLog
                 .PHOTOPICKER_PREVIEW_INFO_LOGGED__PREVIEW_MODE_ENTRY__UNSET_PREVIEW_MODE_ENTRY
-        )
+        ),
     }
 
     /*
@@ -585,7 +584,7 @@ interface Telemetry {
         UNSET_VIDEO_PLAYBACK_INTERACTION(
             MediaProviderStatsLog
                 .PHOTOPICKER_PREVIEW_INFO_LOGGED__VIDEO_INTERACTIONS__UNSET_VIDEO_PLAYBACK_INTERACTION
-        )
+        ),
     }
 
     /*
@@ -602,7 +601,7 @@ interface Telemetry {
         UNSET_MENU_ITEM_SELECTED(
             MediaProviderStatsLog
                 .PHOTOPICKER_MENU_INTERACTION_LOGGED__MENU_ITEM_SELECTED__UNSET_MENU_ITEM_SELECTED
-        )
+        ),
     }
 
     /*
@@ -673,7 +672,7 @@ interface Telemetry {
         UNSET_BANNER_INTERACTION(
             MediaProviderStatsLog
                 .PHOTOPICKER_BANNER_INTERACTION_LOGGED__BANNER_TYPE__UNSET_BANNER_TYPE
-        )
+        ),
     }
 
     /*
@@ -683,9 +682,6 @@ interface Telemetry {
         SEARCH_QUERY(
             MediaProviderStatsLog.PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__SEARCH_QUERY
         ),
-        COLLECTION(
-            MediaProviderStatsLog.PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__COLLECTION
-        ),
         SUGGESTED_SEARCHES(
             MediaProviderStatsLog
                 .PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__SUGGESTED_SEARCHES
@@ -693,6 +689,6 @@ interface Telemetry {
         UNSET_SEARCH_METHOD(
             MediaProviderStatsLog
                 .PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__UNSET_SEARCH_METHOD
-        )
+        ),
     }
 }

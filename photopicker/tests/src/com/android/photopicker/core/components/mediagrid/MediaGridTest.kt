@@ -850,7 +850,7 @@ class MediaGridTest {
                         selection = selected,
                         onItemClick = {},
                         onItemLongPress = {},
-                        contentItemFactory = { item, _, onClick, _ ->
+                        contentItemFactory = { item, _, onClick, _, _ ->
                             customContentItemFactory(item, onClick)
                         },
                     )

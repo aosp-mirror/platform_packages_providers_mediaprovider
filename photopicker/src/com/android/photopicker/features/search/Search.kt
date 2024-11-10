@@ -17,11 +17,13 @@
 package com.android.photopicker.features.search
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,14 +36,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PhotoAlbum
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material.icons.outlined.HideImage
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.PhotoAlbum
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -108,6 +111,9 @@ private val MEASUREMENT_MEDIUM_PADDING = 8.dp
 private val MEASUREMENT_SMALL_PADDING = 4.dp
 private val MEASUREMENT_EXTRA_SMALL_PADDING = 2.dp
 
+private val MEASUREMENT_SUGGESTION_ITEM_PADDING =
+    PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+
 private val CARD_CORNER_RADIUS_LARGE = 28.dp
 private val CARD_CORNER_RADIUS_SMALL = 4.dp
 private val TOP_SUGGESTION_CARD_SHAPE =
@@ -127,8 +133,9 @@ private val BOTTOM_SUGGESTION_CARD_SHAPE =
 private val MIDDLE_SUGGESTION_CARD_SHAPE = RoundedCornerShape(CARD_CORNER_RADIUS_SMALL)
 private val SINGLE_SUGGESTION_CARD_SHAPE = RoundedCornerShape(CARD_CORNER_RADIUS_LARGE)
 
-private val MEASUREMENT_FACE_SUCCESTION_ICON = 48.dp
+private val MEASUREMENT_FACE_SUGGESTION_ICON = 48.dp
 private val MEASUREMENT_FACE_RESULT_ICON = 32.dp
+private val MEASUREMENT_OTHER_ICON = 40.dp
 
 /** A composable function that displays a SearchBar. */
 @Composable
@@ -418,7 +425,7 @@ private fun SearchBarIcon(
         }
     } else {
         Icon(
-            imageVector = Icons.Default.Search,
+            imageVector = Icons.Outlined.Search,
             contentDescription = stringResource(R.string.photopicker_search_placeholder_text),
         )
     }
@@ -485,8 +492,9 @@ private fun ShowSuggestions(
     val historySuggestions = suggestionLists.history
     val faceSuggestions = suggestionLists.face
     val otherSuggestions = suggestionLists.other
-    Box(modifier = modifier.padding(MEASUREMENT_SMALL_PADDING)) {
+    Box(modifier = modifier.padding(MEASUREMENT_LARGE_PADDING)) {
         LazyColumn {
+            item { Spacer(modifier = Modifier.height(MEASUREMENT_MEDIUM_PADDING)) }
             items(historySuggestions.take(SearchViewModel.HISTORY_SUGGESTION_MAX_LIMIT)) {
                 suggestion ->
                 val size =
@@ -574,20 +582,35 @@ private fun ShowSuggestionCard(
  * Composable that displays the actual suggestion item within a suggestion card
  *
  * @param suggestion The search suggestion item to display.
+ * @param viewModel The `SearchViewModel` providing the search logic and state.
  */
 @Composable
-fun SuggestionItem(suggestion: SearchSuggestion) {
+fun SuggestionItem(suggestion: SearchSuggestion, viewModel: SearchViewModel = obtainViewModel()) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(MEASUREMENT_LARGE_PADDING),
+        modifier = Modifier.fillMaxWidth().padding(MEASUREMENT_SUGGESTION_ITEM_PADDING),
     ) {
-        Icon(
-            imageVector = getImageVector(suggestion.type),
-            contentDescription = suggestion.displayText ?: "",
-            modifier = Modifier.padding(6.dp),
-        )
+        Box(
+            modifier =
+                Modifier.background(MaterialTheme.colorScheme.surface, CircleShape).padding(6.dp)
+        ) {
+            Icon(
+                imageVector = getImageVector(suggestion.type),
+                contentDescription = suggestion.displayText ?: "",
+            )
+        }
         val text = suggestion.displayText ?: ""
-        Text(text = text, modifier = Modifier.padding(start = MEASUREMENT_LARGE_PADDING))
+        Text(text = text, modifier = Modifier.padding(start = MEASUREMENT_LARGE_PADDING).weight(1f))
+        if (suggestion.type != SearchSuggestionType.FACE && suggestion.iconUri != null) {
+            rememberBitmapFromUri(suggestion.iconUri, viewModel.backgroundDispatcher)?.let {
+                imageBitmap ->
+                ShowSuggestionIcon(
+                    suggestion,
+                    imageBitmap,
+                    modifier = Modifier.size(MEASUREMENT_OTHER_ICON),
+                )
+            }
+        }
     }
 }
 
@@ -631,7 +654,7 @@ fun ShowFaceSuggestions(
                     suggestion,
                     imageBitmap,
                     modifier =
-                        Modifier.size(MEASUREMENT_FACE_SUCCESTION_ICON)
+                        Modifier.size(MEASUREMENT_FACE_SUGGESTION_ICON)
                             .clip(CircleShape)
                             .clickable { onSuggestionClick(suggestion) },
                 )
@@ -745,28 +768,31 @@ private fun ResultMediaGrid(
 private fun getImageVector(suggestionType: SearchSuggestionType): ImageVector {
     return when (suggestionType) {
         SearchSuggestionType.HISTORY -> {
-            Icons.Filled.History
+            Icons.Outlined.History
         }
         SearchSuggestionType.FAVORITES_ALBUM -> {
-            Icons.Filled.Star
+            Icons.Outlined.StarBorder
         }
         SearchSuggestionType.LOCATION -> {
-            Icons.Filled.LocationOn
+            Icons.Outlined.LocationOn
         }
         SearchSuggestionType.DATE -> {
             Icons.Filled.Today
         }
         SearchSuggestionType.VIDEOS_ALBUM -> {
-            Icons.Filled.PlayCircle
+            Icons.Outlined.PlayCircle
         }
         SearchSuggestionType.ALBUM -> {
-            Icons.Filled.PhotoAlbum
+            Icons.Outlined.PhotoAlbum
         }
         SearchSuggestionType.TEXT -> {
-            Icons.Filled.Search
+            Icons.Outlined.Search
+        }
+        SearchSuggestionType.SCREENSHOTS_ALBUM -> {
+            Icons.Outlined.Smartphone
         }
         else -> {
-            Icons.Filled.Search
+            Icons.Outlined.Search
         }
     }
 }

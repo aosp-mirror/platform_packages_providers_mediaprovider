@@ -206,8 +206,8 @@ public class SearchResultsSyncWorker extends Worker {
         final String suggestedMediaSetId;
         final String searchText;
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            suggestedMediaSetId = searchSuggestionRequest.getMediaSetId();
-            searchText = searchSuggestionRequest.getSearchText();
+            suggestedMediaSetId = searchSuggestionRequest.getSearchSuggestion().getMediaSetId();
+            searchText = searchSuggestionRequest.getSearchSuggestion().getSearchText();
         } else if (searchRequest instanceof SearchTextRequest searchTextRequest) {
             suggestedMediaSetId = null;
             searchText = searchTextRequest.getSearchText();
@@ -253,8 +253,10 @@ public class SearchResultsSyncWorker extends Worker {
                             + searchRequestId);
         }
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            if (searchSuggestionRequest.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
-                final boolean isLocal = isLocal(searchSuggestionRequest.getAuthority());
+            if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
+                    == SearchSuggestionType.ALBUM) {
+                final boolean isLocal =
+                        isLocal(searchSuggestionRequest.getSearchSuggestion().getAuthority());
 
                 if (isLocal && syncSource == SYNC_CLOUD_ONLY) {
                     throw new IllegalArgumentException(
@@ -290,12 +292,14 @@ public class SearchResultsSyncWorker extends Worker {
         // suggestion authority. For the rest of the suggestion types, we can query both
         // available providers - local and cloud.
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            if (searchSuggestionRequest.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
-                if (!authority.equals(searchSuggestionRequest.getAuthority())) {
+            if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
+                    == SearchSuggestionType.ALBUM) {
+                if (!authority.equals(
+                        searchSuggestionRequest.getSearchSuggestion().getAuthority())) {
                     throw new IllegalArgumentException(String.format(
                             "Mismatch in the suggestion source authority %s and the "
                                     + "current sync authority %s for album search results sync",
-                            searchSuggestionRequest.getAuthority(),
+                            searchSuggestionRequest.getSearchSuggestion().getAuthority(),
                             authority));
                 }
             }

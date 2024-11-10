@@ -29,7 +29,7 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 /**
- * This [FakeInMemoryMediaPagingSource] class is responsible to providing paginated media data from
+ * This [FakeInMemoryAlbumPagingSource] class is responsible to providing paginated album data from
  * Picker Database by serving requests from Paging library.
  *
  * It generates and returns its own fake data.
@@ -37,15 +37,15 @@ import java.time.temporal.ChronoUnit
 class FakeInMemoryAlbumPagingSource
 private constructor(
     val DATA_SIZE: Int = DEFAULT_SIZE,
-    private val DATA_LIST: List<Group.Album>? = null
+    private val DATA_LIST: List<Group.Album>? = null,
 ) : PagingSource<MediaPageKey, Group.Album>() {
 
     companion object {
         const val TEST_ALBUM_NAME_PREFIX = "AlbumNumber_"
-        const val DEFAULT_SIZE = 10_000
+        const val DEFAULT_SIZE = 1_000
     }
 
-    constructor(dataSize: Int = 10_000) : this(dataSize, null)
+    constructor(dataSize: Int = DEFAULT_SIZE) : this(dataSize, null)
 
     constructor(dataList: List<Group.Album>) : this(DEFAULT_SIZE, dataList)
 
@@ -75,7 +75,7 @@ private constructor(
                                     .minus(i.toLong(), ChronoUnit.DAYS)
                                     .toEpochSecond(ZoneOffset.UTC) * 1000,
                             coverMediaSource = MediaSource.LOCAL,
-                        ),
+                        )
                     )
                 }
             }
@@ -87,11 +87,7 @@ private constructor(
         // Handle a data size of 0 for the first page, and return an empty page with no further
         // keys.
         if (DATA.size == 0 && params.key == null) {
-            return LoadResult.Page(
-                data = emptyList(),
-                nextKey = null,
-                prevKey = null,
-            )
+            return LoadResult.Page(data = emptyList(), nextKey = null, prevKey = null)
         }
 
         // This is inefficient, but a reliable way to locate the record being requested by the
@@ -137,11 +133,7 @@ private constructor(
                 )
             }
 
-        return LoadResult.Page(
-            data = pageData,
-            nextKey = nextKey,
-            prevKey = prevKey,
-        )
+        return LoadResult.Page(data = pageData, nextKey = nextKey, prevKey = prevKey)
     }
 
     override fun getRefreshKey(state: PagingState<MediaPageKey, Group.Album>): MediaPageKey? {

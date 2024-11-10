@@ -50,11 +50,31 @@ class FakeSearchDataServiceImpl(private val dataService: DataService) : SearchDa
         }
         return listOf(
             SearchSuggestion("1", "authority", "France", SearchSuggestionType.LOCATION, null),
-            SearchSuggestion("2", "authority", "Favorites", SearchSuggestionType.ALBUM, null),
+            SearchSuggestion(
+                "2",
+                "authority",
+                "Favorites",
+                SearchSuggestionType.FAVORITES_ALBUM,
+                Uri.parse("xyz"),
+            ),
+            SearchSuggestion(
+                "8",
+                "authority",
+                "Album",
+                SearchSuggestionType.ALBUM,
+                Uri.parse("xyz"),
+            ),
             SearchSuggestion("2", "authority", "Videos", SearchSuggestionType.VIDEOS_ALBUM, null),
             SearchSuggestion(null, "authority", "france", SearchSuggestionType.HISTORY, null),
             SearchSuggestion(null, "authority", "paris", SearchSuggestionType.HISTORY, null),
             SearchSuggestion("3", "authority", "March", SearchSuggestionType.DATE, null),
+            SearchSuggestion(
+                "3",
+                "authority",
+                "Screenshot",
+                SearchSuggestionType.SCREENSHOTS_ALBUM,
+                null,
+            ),
             SearchSuggestion("4", "authority", "Emma", SearchSuggestionType.FACE, Uri.parse("xyz")),
             SearchSuggestion("5", "authority", "Bob", SearchSuggestionType.FACE, Uri.parse("xyz")),
             SearchSuggestion("6", "authority", "April", SearchSuggestionType.DATE, null),

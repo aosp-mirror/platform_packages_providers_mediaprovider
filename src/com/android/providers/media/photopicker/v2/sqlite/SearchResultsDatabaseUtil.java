@@ -43,6 +43,9 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Convenience class for running Picker Search Results related sql queries.
+ */
 public class SearchResultsDatabaseUtil {
     private static final String TAG = "SearchResultsDatabaseUtil";
 

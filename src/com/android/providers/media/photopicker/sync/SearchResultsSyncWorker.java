@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSearchResultsSyncAsComplete;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -81,23 +82,23 @@ public class SearchResultsSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
-        // Do not allow endless re-runs of this worker, if this isn't the original run,
-        // just succeed and wait until the next scheduled run.
-        if (getRunAttemptCount() > 0) {
-            Log.w(TAG, "Worker retry was detected, ending this run in failure.");
-            return ListenableWorker.Result.failure();
-        }
-
         final int syncSource = getInputData().getInt(SYNC_WORKER_INPUT_SYNC_SOURCE,
                 /* defaultValue */ INVALID_SYNC_SOURCE);
         final int searchRequestId = getInputData().getInt(SYNC_WORKER_INPUT_SEARCH_REQUEST_ID,
                 /* defaultValue */ INVALID_SEARCH_REQUEST_ID);
 
-        Log.i(TAG, String.format(
-                "Starting search results sync from sync source: %s search request id: %s",
-                syncSource, searchRequestId));
-
         try {
+            // Do not allow endless re-runs of this worker, if this isn't the original run,
+            // just succeed and wait until the next scheduled run.
+            if (getRunAttemptCount() > 0) {
+                Log.w(TAG, "Worker retry was detected, ending this run in failure.");
+                return ListenableWorker.Result.failure();
+            }
+
+            Log.i(TAG, String.format(
+                    "Starting search results sync from sync source: %s search request id: %s",
+                    syncSource, searchRequestId));
+
             throwIfWorkerStopped();
 
             final SearchRequest searchRequest = SearchRequestDatabaseUtil
@@ -115,6 +116,8 @@ public class SearchResultsSyncWorker extends Worker {
                             + "sync source: %s search request id: %s",
                     syncSource, searchRequestId), e);
             return ListenableWorker.Result.failure();
+        } finally {
+            markSearchResultsSyncAsComplete(syncSource, getId());
         }
     }
 
@@ -163,6 +166,10 @@ public class SearchResultsSyncWorker extends Worker {
                         // Stop syncing if there are no more pages to sync.
                         break;
                     }
+
+                    // Mark sync as completed after getting the first page to start returning
+                    // search results to the UI.
+                    markSearchResultsSyncAsComplete(syncSource, getId());
                 }
             }
         } finally {
@@ -199,8 +206,8 @@ public class SearchResultsSyncWorker extends Worker {
         final String suggestedMediaSetId;
         final String searchText;
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            suggestedMediaSetId = searchSuggestionRequest.getMediaSetId();
-            searchText = searchSuggestionRequest.getSearchText();
+            suggestedMediaSetId = searchSuggestionRequest.getSearchSuggestion().getMediaSetId();
+            searchText = searchSuggestionRequest.getSearchSuggestion().getSearchText();
         } else if (searchRequest instanceof SearchTextRequest searchTextRequest) {
             suggestedMediaSetId = null;
             searchText = searchTextRequest.getSearchText();
@@ -246,8 +253,10 @@ public class SearchResultsSyncWorker extends Worker {
                             + searchRequestId);
         }
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            if (searchSuggestionRequest.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
-                final boolean isLocal = isLocal(searchSuggestionRequest.getAuthority());
+            if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
+                    == SearchSuggestionType.ALBUM) {
+                final boolean isLocal =
+                        isLocal(searchSuggestionRequest.getSearchSuggestion().getAuthority());
 
                 if (isLocal && syncSource == SYNC_CLOUD_ONLY) {
                     throw new IllegalArgumentException(
@@ -283,12 +292,14 @@ public class SearchResultsSyncWorker extends Worker {
         // suggestion authority. For the rest of the suggestion types, we can query both
         // available providers - local and cloud.
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            if (searchSuggestionRequest.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
-                if (!authority.equals(searchSuggestionRequest.getAuthority())) {
+            if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
+                    == SearchSuggestionType.ALBUM) {
+                if (!authority.equals(
+                        searchSuggestionRequest.getSearchSuggestion().getAuthority())) {
                     throw new IllegalArgumentException(String.format(
                             "Mismatch in the suggestion source authority %s and the "
                                     + "current sync authority %s for album search results sync",
-                            searchSuggestionRequest.getAuthority(),
+                            searchSuggestionRequest.getSearchSuggestion().getAuthority(),
                             authority));
                 }
             }

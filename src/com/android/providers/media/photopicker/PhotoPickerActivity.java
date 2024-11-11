@@ -287,6 +287,11 @@ public class PhotoPickerActivity extends AppCompatActivity {
     @NonNull
     protected PickerViewModel getOrCreateViewModel() {
         PickerViewModel viewModel =  mViewModelProvider.get(PickerViewModel.class);
+
+        // init user managers.
+        final UserIdManager userIdManager = getUserIdManager();
+        viewModel.initUserManagers(userIdManager);
+
         // populate calling package UID in PickerViewModel instance.
         try {
             if (getCallingPackage() != null) {
@@ -297,6 +302,19 @@ public class PhotoPickerActivity extends AppCompatActivity {
             // no-op since the default value is -1.
         }
         return viewModel;
+    }
+
+    /**
+     * @return {@link UserIdManager} to be used for the {@link PickerViewModel} when calling
+     * {@link PickerViewModel#initUserManagers(UserIdManager)}.
+     *
+     * <p> This method is also needed for tests; Allowing ourselves to control UserIdManager
+     * creation helps us mock the UserIdManager for tests. </p>
+     */
+    @VisibleForTesting
+    @NonNull
+    protected UserIdManager getUserIdManager() {
+        return UserIdManager.create(getApplicationContext());
     }
 
     @Override

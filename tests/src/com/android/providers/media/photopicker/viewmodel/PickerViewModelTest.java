@@ -157,6 +157,9 @@ public class PickerViewModelTest {
             mConfigStore.disablePrivateSpaceInPhotoPicker();
         }
 
+        final UserIdManager userIdManager = mock(UserIdManager.class);
+        when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
+
         getInstrumentation().runOnMainSync(() -> {
             mPickerViewModel = new PickerViewModel(mApplication) {
                 @Override
@@ -164,6 +167,7 @@ public class PickerViewModelTest {
                     setConfigStore(mConfigStore);
                 }
             };
+            mPickerViewModel.initUserManagers(userIdManager);
         });
         mItemsProvider = new TestItemsProvider(sTargetContext);
         mPickerViewModel.setItemsProvider(mItemsProvider);
@@ -176,8 +180,6 @@ public class PickerViewModelTest {
             mBannerManager = BannerTestUtils.getTestCloudBannerManager(
                     sTargetContext, userManagerState, mConfigStore);
         } else {
-            final UserIdManager userIdManager = mock(UserIdManager.class);
-            when(userIdManager.getCurrentUserProfileId()).thenReturn(UserId.CURRENT_USER);
             mPickerViewModel.setUserIdManager(userIdManager);
             mBannerManager = BannerTestUtils.getTestCloudBannerManager(
                     sTargetContext, userIdManager, mConfigStore);

@@ -662,7 +662,7 @@ public class SearchResultsDatabaseUtilTest {
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
-                .isEqualTo(3);
+                .isEqualTo(4);
 
         final Bundle extras = new Bundle();
         extras.putInt("page_size", 100);

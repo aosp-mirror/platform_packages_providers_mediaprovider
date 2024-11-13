@@ -326,7 +326,7 @@ class ConfigurationManager(
                     /* defaultValue= */ FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
                 ),
             PICKER_SEARCH_ENABLED = Flags.enablePhotopickerSearch(),
-            PICKER_TRANSCODING_ENABLED = Flags.enablePhotopickerTranscoding(),
+            PICKER_TRANSCODING_ENABLED = true,
         )
     }
 

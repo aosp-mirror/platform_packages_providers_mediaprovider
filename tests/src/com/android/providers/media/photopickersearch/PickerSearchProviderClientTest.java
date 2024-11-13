@@ -68,7 +68,7 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchSearchSuggestionsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchSuggestionsFromCmp("test",
-                null);
+                10,  null);
         cursor.moveToFirst();
         assertEquals(TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, cursor.getString(cursor.getColumnIndex(
                 CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_SET_ID)));

@@ -22,9 +22,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
@@ -38,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SearchSuggestionsDatabaseUtilTest {
@@ -73,8 +76,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
-                        /* providers */ List.of(),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of(),
+                                /* limit */ 10));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
@@ -116,8 +120,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
-                        /* providers */ List.of("random.authority", authority),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("random.authority", authority),
+                                /* limit */ 10));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
@@ -159,8 +164,10 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
-                        /* providers */ List.of("random.authority", "another.random.authority"),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("random.authority",
+                                        "another.random.authority"),
+                                /* limit */ 10));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
@@ -196,8 +203,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
-                        /* providers */ List.of(authority2),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of(authority2),
+                                /* limit */ 10));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
@@ -261,8 +269,11 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
-                        /* providers */ List.of(authority2),
-                        /* limit */ 1);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of(authority2),
+                                /* limit */ 10,
+                                /* historyLimit */ 1,
+                                /* prefix */ ""));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
@@ -284,6 +295,48 @@ public class SearchSuggestionsDatabaseUtilTest {
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(result.getSearchSuggestionType())
                 .isEqualTo(SearchSuggestionType.HISTORY);
+    }
+
+    @Test
+    public void testHistoryPrefixFilter() {
+        final String searchText1 = "mountains";
+        final SearchTextRequest searchRequest1 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                searchText1
+        );
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest1);
+
+        final String searchText2 = "beaches";
+        SearchSuggestionRequest searchRequest2 = new SearchSuggestionRequest(
+                List.of("video/mp4", "image/*", "image/gif"),
+                searchText2,
+                "mediaSetId",
+                "authority",
+                SearchSuggestionType.LOCATION,
+                null
+        );
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
+
+        final List<SearchSuggestion> searchSuggestions =
+                SearchSuggestionsDatabaseUtils.getHistorySuggestions(
+                        mDatabase,
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("authority"),
+                                /* limit */ 10,
+                                /* historyLimit */ 3,
+                                /* prefix */ "Beach"));
+
+        assertWithMessage("Search history suggestions cannot be null")
+                .that(searchSuggestions)
+                .isNotNull();
+        assertWithMessage("Unexpected number of search history suggestions.")
+                .that(searchSuggestions.size())
+                .isEqualTo(1);
+
+        final SearchSuggestion result = searchSuggestions.get(0);
+        assertWithMessage("Search history search text is not as expected")
+                .that(result.getSearchText())
+                .isEqualTo(searchText2);
     }
 
     @Test
@@ -361,8 +414,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> resultSearchSuggestions1 =
                 SearchSuggestionsDatabaseUtils.getCachedSuggestions(
                         mDatabase,
-                        /* providers */ List.of("test", authority1),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                            /* providers */ List.of("test", authority1),
+                            /* limit */ 10));
 
         assertWithMessage("Search suggestions cannot be null")
                 .that(resultSearchSuggestions1)
@@ -388,8 +442,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> resultSearchSuggestions2 =
                 SearchSuggestionsDatabaseUtils.getCachedSuggestions(
                         mDatabase,
-                        /* providers */ List.of("test", authority2),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("test", authority2),
+                                /* limit */ 10));
 
         assertWithMessage("Search suggestions cannot be null")
                 .that(resultSearchSuggestions2)
@@ -414,6 +469,66 @@ public class SearchSuggestionsDatabaseUtilTest {
     }
 
     @Test
+    public void testSuggestionsCachePrefixFilter() {
+        final String searchText1 = "BUTTER";
+        final String mediaSetId1 = "MEDIA-SET-ID-1";
+        final String authority = "com.random.authority";
+        SearchSuggestion searchSuggestion1 = new SearchSuggestion(
+                searchText1,
+                mediaSetId1,
+                authority,
+                SearchSuggestionType.LOCATION,
+                /* coverMediaId */ null
+        );
+
+        final String searchText2 = "Butterfly";
+        final String mediaSetId2 = "MEDIA-SET-ID-2";
+        SearchSuggestion searchSuggestion2 = new SearchSuggestion(
+                searchText2,
+                mediaSetId2,
+                authority,
+                SearchSuggestionType.ALBUM,
+                /* coverMediaId */ null
+        );
+
+        final String searchText3 = "dragon";
+        final String mediaSetId3 = "MEDIA-SET-ID-3";
+        SearchSuggestion searchSuggestion3 = new SearchSuggestion(
+                searchText3,
+                mediaSetId3,
+                authority,
+                SearchSuggestionType.FACE,
+                /* coverMediaId */ null
+        );
+
+        SearchSuggestionsDatabaseUtils.cacheSearchSuggestions(mDatabase, authority,
+                List.of(searchSuggestion1, searchSuggestion2, searchSuggestion3));
+
+        final List<SearchSuggestion> resultSearchSuggestions =
+                SearchSuggestionsDatabaseUtils.getCachedSuggestions(
+                        mDatabase,
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("test", authority),
+                                /* limit */ 10,
+                                /* historyLimit */ 3,
+                                /* prefix */ "but"));
+
+        assertWithMessage("Search suggestions cannot be null")
+                .that(resultSearchSuggestions)
+                .isNotNull();
+        assertWithMessage("Unexpected number of search suggestions.")
+                .that(resultSearchSuggestions.size())
+                .isEqualTo(2);
+
+        assertWithMessage("Search search text is not as expected")
+                .that(resultSearchSuggestions.get(0).getSearchText())
+                .isEqualTo(searchSuggestion1.getSearchText());
+        assertWithMessage("Search search text is not as expected")
+                .that(resultSearchSuggestions.get(1).getSearchText())
+                .isEqualTo(searchSuggestion2.getSearchText());
+    }
+
+    @Test
     public void testSaveSuggestionWithNullMediaSetId() {
         final String authority = "com.random.authority";
         SearchSuggestion searchSuggestion = new SearchSuggestion(
@@ -430,8 +545,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> resultSearchSuggestions =
                 SearchSuggestionsDatabaseUtils.getCachedSuggestions(
                         mDatabase,
-                        /* providers */ List.of("random.authority", authority),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("random.authority", authority),
+                                /* limit */ 10));
 
         assertWithMessage("Search suggestions cannot be null")
                 .that(resultSearchSuggestions)
@@ -458,8 +574,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> resultSearchSuggestions1 =
                 SearchSuggestionsDatabaseUtils.getCachedSuggestions(
                         mDatabase,
-                        /* providers */ List.of("random.authority", authority),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("random.authority", authority),
+                                /* limit */ 10));
 
         assertWithMessage("Search suggestions cannot be null")
                 .that(resultSearchSuggestions1)
@@ -482,8 +599,9 @@ public class SearchSuggestionsDatabaseUtilTest {
         final List<SearchSuggestion> resultSearchSuggestions2 =
                 SearchSuggestionsDatabaseUtils.getCachedSuggestions(
                         mDatabase,
-                        /* providers */ List.of("random.authority", authority),
-                        /* limit */ 10);
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("random.authority", authority),
+                                /* limit */ 10));
 
         assertWithMessage("Search suggestions cannot be null")
                 .that(resultSearchSuggestions2)
@@ -507,5 +625,22 @@ public class SearchSuggestionsDatabaseUtilTest {
         }
 
         return cursor;
+    }
+
+    private SearchSuggestionsQuery getSearchSuggestionQuery(@Nullable List<String> providers,
+                                                            int limit) {
+        return getSearchSuggestionQuery(providers, limit, 10, "");
+    }
+
+    private SearchSuggestionsQuery getSearchSuggestionQuery(@Nullable List<String> providers,
+                                                            int limit,
+                                                            int historyLimit,
+                                                            @Nullable String prefix) {
+        final Bundle bundle = new Bundle();
+        bundle.putInt("limit", limit);
+        bundle.putStringArrayList("providers", new ArrayList<>(providers));
+        bundle.putInt("history_limit", historyLimit);
+        bundle.putString("prefix", prefix);
+        return new SearchSuggestionsQuery(bundle);
     }
 }

@@ -24,6 +24,7 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOC
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_2;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getSuggestionCursor;
 
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -61,6 +62,13 @@ public class SearchProvider extends CloudMediaProvider {
 
     private static Cursor sSearchResults = DEFAULT_CLOUD_SEARCH_RESULTS;
 
+    public static final MergeCursor DEFAULT_SUGGESTION_RESULTS = new MergeCursor(List.of(
+            getSuggestionCursor(CLOUD_ID_1),
+            getSuggestionCursor(CLOUD_ID_2)
+    ).toArray(new Cursor[0]));
+
+    private static Cursor sSearchSuggestions = DEFAULT_SUGGESTION_RESULTS;
+
     @Override
     public Cursor onSearchMedia(String mediaSetId, String fallbackSearchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
@@ -71,6 +79,12 @@ public class SearchProvider extends CloudMediaProvider {
     public Cursor onSearchMedia(String searchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
         return sSearchResults;
+    }
+
+    @Override
+    public Cursor onQuerySearchSuggestions(String prefixText, Bundle extras,
+                                           CancellationSignal cancellationSignal) {
+        return sSearchSuggestions;
     }
 
     @Override

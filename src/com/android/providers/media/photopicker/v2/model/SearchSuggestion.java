@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.v2.model;
 
 import static java.util.Objects.requireNonNull;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
@@ -30,7 +31,7 @@ public class SearchSuggestion {
     private final String mMediaSetId;
     @Nullable
     private final String mAuthority;
-    @Nullable
+    @NonNull
     private final SearchSuggestionType mSearchSuggestionType;
     @Nullable
     private final String mCoverMediaId;
@@ -39,7 +40,7 @@ public class SearchSuggestion {
             @Nullable String searchText,
             @Nullable String mediaSetId,
             @Nullable String authority,
-            @Nullable SearchSuggestionType searchSuggestionType,
+            @NonNull SearchSuggestionType searchSuggestionType,
             @Nullable String coverMediaId) {
         mSearchText = searchText;
         mMediaSetId = mediaSetId;
@@ -63,7 +64,7 @@ public class SearchSuggestion {
         return mAuthority;
     }
 
-    @Nullable
+    @NonNull
     public SearchSuggestionType getSearchSuggestionType() {
         return mSearchSuggestionType;
     }

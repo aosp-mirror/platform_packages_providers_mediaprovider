@@ -212,6 +212,9 @@ public class DatabaseBackupAndRecovery {
      * Returns true if migration and recovery code flow for stable uris is enabled for given volume.
      */
     protected boolean isStableUrisEnabled(String volumeName) {
+        if (true) {
+            return true;
+        }
         // Check if flags are enabled for test for internal volume
         if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
                 && mIsStableUriEnabledForInternal) {

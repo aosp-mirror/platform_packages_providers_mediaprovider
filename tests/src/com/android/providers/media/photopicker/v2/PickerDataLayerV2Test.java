@@ -49,12 +49,16 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.get
 import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.COLUMN_GRANTS_COUNT;
 import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
@@ -75,6 +79,10 @@ import android.test.mock.MockContentProvider;
 import android.test.mock.MockContentResolver;
 
 import androidx.test.InstrumentationRegistry;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.Operation;
+import androidx.work.WorkManager;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.cloudproviders.SearchProvider;
@@ -92,6 +100,8 @@ import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsQuery;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -104,6 +114,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 
+
 public class PickerDataLayerV2Test {
     @Mock
     private PickerSyncController mMockSyncController;
@@ -113,6 +124,12 @@ public class PickerDataLayerV2Test {
     private PackageManager mMockPackageManager;
     @Mock
     private SearchState mSearchState;
+    @Mock
+    private WorkManager mMockWorkManager;
+    @Mock
+    private Operation mMockOperation;
+    @Mock
+    private ListenableFuture<Operation.State.SUCCESS> mMockFuture;
     private PickerDbFacade mFacade;
     private Context mContext;
     private MockContentResolver mMockContentResolver;
@@ -2250,6 +2267,47 @@ public class PickerDataLayerV2Test {
                         && SearchProvider.DEFAULT_SUGGESTION_RESULTS.moveToNext());
             }
         }
+    }
+
+    @Test
+    public void testHandleNewSearchRequest() {
+        doReturn(true).when(mMockSyncController).shouldQueryLocalMediaForSearch(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMediaForSearch(any(), any());
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+        doReturn(mMockFuture).when(mMockOperation).getResult();
+
+        final String searchText = "volcano";
+        final Bundle extras = getCreateSearchRequestExtras(new SearchTextRequest(null, searchText));
+        final Executor currentThreadExecutor = Runnable::run;
+
+        final Bundle result = PickerDataLayerV2.handleNewSearchRequest(
+                mMockContext, extras, currentThreadExecutor, mMockWorkManager);
+
+        // Assert that a new search request was created
+        assertThat(result).isNotNull();
+        assertThat(result.getInt("search_request_id")).isEqualTo(1);
+
+        // Assert that both local and cloud syncs were scheduled
+        verify(mMockWorkManager, times(2))
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+
+        // Assert that search request was saved as search history in database
+        final List<SearchSuggestion> suggestions =
+                SearchSuggestionsDatabaseUtils.getHistorySuggestions(
+                        mFacade.getDatabase(),
+                        new SearchSuggestionsQuery("", new ArrayList<>()));
+        assertThat(suggestions.size()).isEqualTo(1);
+        assertThat(suggestions.get(0).getSearchText()).isEqualTo(searchText);
+    }
+
+    private static Bundle getCreateSearchRequestExtras(SearchTextRequest searchTextRequest) {
+        final Bundle bundle = new Bundle();
+        bundle.putString("search_text", searchTextRequest.getSearchText());
+        bundle.putStringArrayList("providers", new ArrayList<>(List.of(SearchProvider.AUTHORITY)));
+        return bundle;
     }
 
     private static void assertMediaCursor(Cursor cursor, String id, String authority,

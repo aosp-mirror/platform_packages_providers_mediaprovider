@@ -602,8 +602,10 @@ public class MediaProvider extends ContentProvider {
      * @param bytes number of bytes which need to be freed
      */
     public void freeCache(long bytes) {
-        mTranscodeHelper.freeCache(bytes);
-        mPhotoPickerTranscodeHelper.freeCache(bytes);
+        bytes -= mPhotoPickerTranscodeHelper.freeCache(bytes);
+        if (bytes > 0) {
+            mTranscodeHelper.freeCache(bytes);
+        }
     }
 
     public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
@@ -4364,8 +4366,9 @@ public class MediaProvider extends ContentProvider {
     @Override
     public String getType(Uri url) {
         if (isRedactedUri(url)) {
-            url = getUriForRedactedUri(url);
+            return queryForTypeAsCaller(url);
         }
+
         final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:

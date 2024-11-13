@@ -181,6 +181,7 @@ flag {
     namespace: "mediaprovider"
     description: "Enables mark media as favorite API"
     bug: "294364218"
+    is_fixed_read_only: true
 }
 
 flag {

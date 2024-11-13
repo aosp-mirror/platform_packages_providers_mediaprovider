@@ -84,19 +84,13 @@ public class SearchSuggestionsDatabaseUtils {
      * Fetch Search history as suggestions.
      *
      * @param database Instance of Picker Database.
-     * @param providerAuthorities Authorities available in the current photo picker session.
-     * @param limit the maximum number of suggestions.
+     * @param query SearchSuggestionsQuery that holds search suggestions query inputs.
      */
     public static List<SearchSuggestion> getHistorySuggestions(
             @NonNull SQLiteDatabase database,
-            @NonNull List<String> providerAuthorities,
-            int limit) {
+            @NonNull SearchSuggestionsQuery query) {
         requireNonNull(database);
-
-        if (limit <= 0) {
-            Log.e(TAG, "Invalid input limit, updating it.");
-            limit = Integer.MAX_VALUE;
-        }
+        requireNonNull(query);
 
         final SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(PickerSQLConstants.Table.SEARCH_HISTORY.name())
@@ -105,7 +99,7 @@ public class SearchSuggestionsDatabaseUtils {
                         PickerSQLConstants.SearchHistoryTableColumns.MEDIA_SET_ID.getColumnName(),
                         PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY.getColumnName(),
                         PickerSQLConstants.SearchHistoryTableColumns.COVER_MEDIA_ID.getColumnName()
-                )).setLimit(limit)
+                )).setLimit(query.getHistoryLimit())
                 .setSortOrder(String.format(
                         Locale.ROOT,
                         "%s DESC",
@@ -119,13 +113,13 @@ public class SearchSuggestionsDatabaseUtils {
                 PickerSQLConstants.SearchHistoryTableColumns.CREATION_TIME_MS,
                 creationThreshold));
 
-        if (providerAuthorities != null && !providerAuthorities.isEmpty()) {
+        if (query.getProviderAuthorities() != null && !query.getProviderAuthorities().isEmpty()) {
             queryBuilder.appendWhereStandalone(String.format(
                     Locale.ROOT,
                     "(%s IS NULL) OR (%s IN ('%s'))",
                     PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY,
                     PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY,
-                    String.join("','", providerAuthorities)));
+                    String.join("','", query.getProviderAuthorities())));
         } else {
             queryBuilder.appendWhereStandalone(String.format(
                     Locale.ROOT,
@@ -141,7 +135,11 @@ public class SearchSuggestionsDatabaseUtils {
                 do {
                     final SearchSuggestion historySuggestion = getHistorySuggestion(cursor);
                     if (historySuggestion != null) {
-                        historySuggestions.add(historySuggestion);
+                        if (query.isZeroState() || (historySuggestion.getSearchText() != null
+                                && historySuggestion.getSearchText().toLowerCase(Locale.ROOT)
+                                .startsWith(query.getPrefix().toLowerCase(Locale.ROOT)))) {
+                            historySuggestions.add(historySuggestion);
+                        }
                     }
                 } while (cursor.moveToNext());
             }
@@ -158,23 +156,17 @@ public class SearchSuggestionsDatabaseUtils {
      * Fetch cached suggestions received from cloud media providers.
      *
      * @param database Instance of Picker Database.
-     * @param providerAuthorities Authorities available in the current photo picker session.
-     * @param limit the maximum number of suggestions.
+     * @param query SearchSuggestionsQuery that holds search suggestions query inputs.
      */
     public static List<SearchSuggestion> getCachedSuggestions(
             @NonNull SQLiteDatabase database,
-            @NonNull List<String> providerAuthorities,
-            int limit) {
+            @NonNull SearchSuggestionsQuery query) {
         requireNonNull(database);
+        requireNonNull(query);
 
-        if (providerAuthorities == null || providerAuthorities.isEmpty()) {
+        if (query.getProviderAuthorities() == null || query.getProviderAuthorities().isEmpty()) {
             Log.e(TAG, "Available providers list is empty");
             return new ArrayList<>();
-        }
-
-        if (limit <= 0) {
-            Log.e(TAG, "Invalid input limit, updating it.");
-            limit = Integer.MAX_VALUE;
         }
 
         final SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
@@ -190,7 +182,7 @@ public class SearchSuggestionsDatabaseUtils {
                                 .COVER_MEDIA_ID.getColumnName(),
                         PickerSQLConstants.SearchSuggestionsTableColumns
                                 .SUGGESTION_TYPE.getColumnName()
-                )).setLimit(limit)
+                )).setLimit(query.getLimit())
                 .setSortOrder(String.format(
                         Locale.ROOT,
                         "%s ASC",
@@ -209,7 +201,7 @@ public class SearchSuggestionsDatabaseUtils {
                 Locale.ROOT,
                 "%s IN ('%s')",
                 PickerSQLConstants.SearchSuggestionsTableColumns.AUTHORITY,
-                String.join("','", providerAuthorities)));
+                String.join("','", query.getProviderAuthorities())));
 
         final List<SearchSuggestion> suggestions = new ArrayList<>();
         try (Cursor cursor = database.rawQuery(
@@ -218,7 +210,11 @@ public class SearchSuggestionsDatabaseUtils {
                 do {
                     final SearchSuggestion suggestion = getSuggestion(cursor);
                     if (suggestion != null) {
-                        suggestions.add(suggestion);
+                        if (query.isZeroState() || (suggestion.getSearchText() != null
+                                && suggestion.getSearchText().toLowerCase(Locale.ROOT)
+                                .startsWith(query.getPrefix().toLowerCase(Locale.ROOT)))) {
+                            suggestions.add(suggestion);
+                        }
                     }
                 } while (cursor.moveToNext());
             }

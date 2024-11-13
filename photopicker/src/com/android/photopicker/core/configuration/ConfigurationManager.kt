@@ -225,9 +225,13 @@ class ConfigurationManager(
         // get preSelection URIs from intent.
         val pickerPreSelectionUris = intent.getPickImagesPreSelectedUris()
 
-        // get application media capabilities from intent.
+        // Get application media capabilities from intent. While ApplicationMediaCapabilities
+        // requires S+, we limit it use for transcoding to T+ for two reasons:
+        // 1. Underlying Transformer doesn't support S and S v2 due to inaccessible audio services.
+        // 2. HDR video, introduced in Android T, is where the need for transcoding comes from.
+        // For details, see b/365988031.
         val applicationMediaCapabilities =
-            if (SdkLevel.isAtLeastS()) {
+            if (SdkLevel.isAtLeastT()) {
                 intent.getApplicationMediaCapabilities()
             } else {
                 null

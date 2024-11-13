@@ -40,6 +40,8 @@ import java.util.Objects;
  * Helper class that keeps track of Picker related Constants.
  */
 public class PickerSQLConstants {
+    public static final int DEFAULT_SEARCH_SUGGESTIONS_LIMIT = 50;
+    public static final int DEFAULT_SEARCH_HISTORY_SUGGESTIONS_LIMIT = 3;
     static final String COUNT_COLUMN = "Count";
 
     /**
@@ -293,6 +295,24 @@ public class PickerSQLConstants {
 
         public String getColumnName() {
             return mColumnName;
+        }
+    }
+
+    public enum SearchSuggestionsResponseColumns {
+        AUTHORITY("authority"),
+        MEDIA_SET_ID("media_set_id"),
+        SEARCH_TEXT("display_text"),
+        COVER_MEDIA_ID("cover_media_id"),
+        SUGGESTION_TYPE("suggestion_type");
+
+        private final String mProjection;
+
+        SearchSuggestionsResponseColumns(@NonNull String projection) {
+            mProjection = projection;
+        }
+
+        public String getProjection() {
+            return mProjection;
         }
     }
 }

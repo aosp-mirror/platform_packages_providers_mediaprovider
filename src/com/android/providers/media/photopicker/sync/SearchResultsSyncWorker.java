@@ -233,7 +233,7 @@ public class SearchResultsSyncWorker extends Worker {
 
 
     /**
-     * Validates input data received by the Worker for an immediate album sync.
+     * Validates input data received by the Worker for an immediate search results sync.
      */
     private void validateWorkInput(
             int syncSource,

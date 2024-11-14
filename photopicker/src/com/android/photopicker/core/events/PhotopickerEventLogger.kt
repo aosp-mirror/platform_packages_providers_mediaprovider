@@ -47,7 +47,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
             ALBUM_ID_SCREENSHOTS to Telemetry.SelectedAlbum.SCREENSHOTS,
             ALBUM_ID_FAVORITES to Telemetry.SelectedAlbum.FAVOURITES,
             ALBUM_ID_VIDEOS to Telemetry.SelectedAlbum.VIDEOS,
-            ALBUM_ID_DOWNLOADS to Telemetry.SelectedAlbum.DOWNLOADS
+            ALBUM_ID_DOWNLOADS to Telemetry.SelectedAlbum.DOWNLOADS,
         )
 
     /** Maps album id to the corresponding selected album enum values */
@@ -57,13 +57,13 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
             ALBUM_ID_SCREENSHOTS to Telemetry.UiEvent.ALBUM_SCREENSHOTS_OPEN,
             ALBUM_ID_FAVORITES to Telemetry.UiEvent.ALBUM_FAVOURITES_OPEN,
             ALBUM_ID_VIDEOS to Telemetry.UiEvent.ALBUM_VIDEOS_OPEM,
-            ALBUM_ID_DOWNLOADS to Telemetry.UiEvent.ALBUM_DOWNLOADS_OPEN
+            ALBUM_ID_DOWNLOADS to Telemetry.UiEvent.ALBUM_DOWNLOADS_OPEN,
         )
 
     fun start(
         scope: CoroutineScope,
         @Background backgroundDispatcher: CoroutineDispatcher,
-        events: Events
+        events: Events,
     ) {
         scope.launch(backgroundDispatcher) {
             events.flow.collect { event ->
@@ -81,7 +81,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.pickedItemsSize,
                             event.profileSwitchButtonVisible,
                             event.pickerMode.mode,
-                            event.pickerCloseMethod.method
+                            event.pickerCloseMethod.method,
                         )
                     }
                     is Event.ReportPhotopickerApiInfo -> {
@@ -97,7 +97,9 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.isOrderedSelectionSet,
                             event.isAccentColorSet,
                             event.isDefaultTabSet,
-                            event.isSearchEnabled
+                            /* is_search_enabled */ false,
+                            event.isCloudSearchEnabled,
+                            event.isLocalSearchEnabled,
                         )
                     }
                     is Event.LogPhotopickerUIEvent -> {
@@ -105,7 +107,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_UI_EVENT_LOGGED,
                             event.sessionId,
                             event.packageUid,
-                            event.uiEvent.event
+                            event.uiEvent.event,
                         )
                     }
                     is Event.LogPhotopickerAlbumOpenedUIEvent -> {
@@ -117,13 +119,13 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                                     MediaSource.REMOTE -> Telemetry.UiEvent.ALBUM_FROM_CLOUD_OPEN
                                     // TODO replace with LOCAL value once added
                                     MediaSource.LOCAL -> Telemetry.UiEvent.ALBUM_FROM_CLOUD_OPEN
-                                }
+                                },
                             )
                         MediaProviderStatsLog.write(
                             MediaProviderStatsLog.PHOTOPICKER_UI_EVENT_LOGGED,
                             event.sessionId,
                             event.packageUid,
-                            albumOpened.event
+                            albumOpened.event,
                         )
                     }
                     is Event.ReportPhotopickerMediaItemStatus -> {
@@ -139,7 +141,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                                         MediaSource.REMOTE ->
                                             Telemetry.SelectedAlbum.UNDEFINED_CLOUD
                                         MediaSource.LOCAL -> Telemetry.SelectedAlbum.UNDEFINED_LOCAL
-                                    }
+                                    },
                                 )
                             } else {
                                 Telemetry.SelectedAlbum.UNSET_SELECTED_ALBUM
@@ -154,7 +156,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             selectedAlbum.album,
                             event.mediaType.type,
                             event.cloudOnly,
-                            event.pickerSize.size
+                            event.pickerSize.size,
                         )
                     }
                     is Event.LogPhotopickerPreviewInfo -> {
@@ -164,7 +166,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.previewModeEntry.entry,
                             event.previewItemCount,
                             event.mediaType.type,
-                            event.videoInteraction.interaction
+                            event.videoInteraction.interaction,
                         )
                     }
                     is Event.LogPhotopickerMenuInteraction -> {
@@ -172,7 +174,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_MENU_INTERACTION_LOGGED,
                             event.sessionId,
                             event.packageUid,
-                            event.menuItem.item
+                            event.menuItem.item,
                         )
                     }
                     is Event.LogPhotopickerBannerInteraction -> {
@@ -180,7 +182,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_BANNER_INTERACTION_LOGGED,
                             event.sessionId,
                             event.bannerType.type,
-                            event.userInteraction.interaction
+                            event.userInteraction.interaction,
                         )
                     }
                     is Event.LogPhotopickerMediaLibraryInfo -> {
@@ -189,7 +191,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.sessionId,
                             event.cloudProviderUid,
                             event.librarySize,
-                            event.mediaCount
+                            event.mediaCount,
                         )
                     }
                     is Event.LogPhotopickerPageInfo -> {
@@ -197,7 +199,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_PAGE_INFO_LOGGED,
                             event.sessionId,
                             event.pageNumber,
-                            event.itemsLoadedInPage
+                            event.itemsLoadedInPage,
                         )
                     }
                     is Event.ReportPhotopickerMediaGridSyncInfo -> {
@@ -211,7 +213,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.incrementalMediaSyncStartTime,
                             event.incrementalMediaSyncEndTime,
                             event.incrementalDeletedMediaSyncStartTime,
-                            event.incrementalDeletedMediaSyncEndTime
+                            event.incrementalDeletedMediaSyncEndTime,
                         )
                     }
                     is Event.ReportPhotopickerAlbumSyncInfo -> {
@@ -221,7 +223,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.getAlbumsStartTime,
                             event.getAlbumsEndTime,
                             event.getAlbumMediaStartTime,
-                            event.getAlbumMediaEndTime
+                            event.getAlbumMediaEndTime,
                         )
                     }
                     is Event.ReportPhotopickerSearchInfo -> {
@@ -229,9 +231,9 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED,
                             event.sessionId,
                             event.searchMethod.method,
-                            event.pickedItems,
+                            /* picked_items */ -1,
                             event.startTime,
-                            event.endTime
+                            event.endTime,
                         )
                     }
                     is Event.ReportSearchDataExtractionDetails -> {
@@ -242,7 +244,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.processingStartTime,
                             event.processingEndTime,
                             event.isProcessingSuccessful,
-                            event.isResponseReceived
+                            event.isResponseReceived,
                         )
                     }
                     is Event.ReportEmbeddedPhotopickerInfo -> {
@@ -251,7 +253,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             event.sessionId,
                             event.isSurfacePackageCreationSuccessful,
                             event.surfacePackageDeliveryStartTime,
-                            event.surfacePackageDeliveryEndTime
+                            event.surfacePackageDeliveryEndTime,
                         )
                     }
                 }
@@ -276,7 +278,7 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                 album.displayName +
                 " with authority " +
                 album.authority +
-                " while fetching the album data source"
+                " while fetching the album data source",
         )
         return MediaSource.LOCAL
     }

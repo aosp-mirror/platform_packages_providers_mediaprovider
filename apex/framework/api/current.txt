@@ -177,7 +177,7 @@ package android.provider {
     method public static boolean isCurrentCloudMediaProviderAuthority(@NonNull android.content.ContentResolver, @NonNull String);
     method public static boolean isCurrentSystemGallery(@NonNull android.content.ContentResolver, int, @NonNull String);
     method public static boolean isSupportedCloudMediaProviderAuthority(@NonNull android.content.ContentResolver, @NonNull String);
-    method @FlaggedApi("com.android.providers.media.flags.enable_mark_media_as_favorite_api") public static void markIsFavoriteStatus(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);
+    method @FlaggedApi("com.android.providers.media.flags.enable_mark_is_favorite_status_api") public static void markIsFavoriteStatus(@NonNull android.content.ContentResolver, @NonNull java.util.Collection<android.net.Uri>, boolean);
     method public static void notifyCloudMediaChangedEvent(@NonNull android.content.ContentResolver, @NonNull String, @NonNull String) throws java.lang.SecurityException;
     method @FlaggedApi("com.android.providers.media.flags.media_store_open_file") @Nullable public static android.content.res.AssetFileDescriptor openAssetFileDescriptor(@NonNull android.content.ContentResolver, @NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;
     method @FlaggedApi("com.android.providers.media.flags.media_store_open_file") @Nullable public static android.os.ParcelFileDescriptor openFileDescriptor(@NonNull android.content.ContentResolver, @NonNull android.net.Uri, @NonNull String, @Nullable android.os.CancellationSignal) throws java.io.FileNotFoundException;

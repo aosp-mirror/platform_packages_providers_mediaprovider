@@ -38,6 +38,8 @@ import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -79,6 +81,10 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
 
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
+
     // Use the expanded layout any time the Width is Medium or larger.
     val isExpandedScreen: Boolean =
         when (LocalWindowSizeClass.current.widthSizeClass) {
@@ -106,7 +112,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
                                             FeatureToken.ALBUM_GRID.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.SWITCH_PICKER_TAB
+                                            Telemetry.UiEvent.SWITCH_PICKER_TAB,
                                         )
                                     )
                                 }
@@ -120,6 +126,11 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
         // the album content for the album that is selected by the user.
         mediaGrid(
             items = items,
+            userScrollEnabled =
+                when (isEmbedded) {
+                    true -> isExpanded
+                    false -> true
+                },
             onItemClick = { item ->
                 if (item is MediaGridItem.AlbumItem) {
                     // Dispatch events to log album related details
@@ -129,7 +140,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
                                 FeatureToken.ALBUM_GRID.token,
                                 configuration.sessionId,
                                 configuration.callingPackageUid ?: -1,
-                                item.album
+                                item.album,
                             )
                         )
                         events.dispatch(
@@ -137,7 +148,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
                                 FeatureToken.ALBUM_GRID.token,
                                 configuration.sessionId,
                                 configuration.callingPackageUid ?: -1,
-                                Telemetry.UiEvent.PICKER_ALBUMS_INTERACTION
+                                Telemetry.UiEvent.PICKER_ALBUMS_INTERACTION,
                             )
                         )
                     }
@@ -163,7 +174,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
                         FeatureToken.PHOTO_GRID.token,
                         configuration.sessionId,
                         configuration.callingPackageUid ?: -1,
-                        Telemetry.UiEvent.UI_LOADED_ALBUMS
+                        Telemetry.UiEvent.UI_LOADED_ALBUMS,
                     )
                 )
             }
@@ -193,7 +204,7 @@ fun AlbumGridNavButton(modifier: Modifier) {
                         FeatureToken.ALBUM_GRID.token,
                         sessionId,
                         packageUid,
-                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                     )
                 )
             }

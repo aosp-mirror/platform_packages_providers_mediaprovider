@@ -211,7 +211,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -232,7 +232,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsNotDisplayed()
@@ -317,7 +317,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -395,7 +395,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -437,7 +437,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()

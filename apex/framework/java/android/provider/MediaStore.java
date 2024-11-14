@@ -1647,7 +1647,7 @@ public final class MediaStore {
      *            sample uri - content://media/external_primary/images/media/24
      * @param areFavorites the {@link MediaColumns#IS_FAVORITE} value to apply.
      */
-    @FlaggedApi(Flags.FLAG_ENABLE_MARK_MEDIA_AS_FAVORITE_API)
+    @FlaggedApi(Flags.FLAG_ENABLE_MARK_IS_FAVORITE_STATUS_API)
     public static void markIsFavoriteStatus(@NonNull ContentResolver resolver,
             @NonNull Collection<Uri> uris, boolean areFavorites) {
         Objects.requireNonNull(resolver);

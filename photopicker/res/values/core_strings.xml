@@ -25,6 +25,15 @@
   <!-- Content description for the selected checkmark in the media grid -->
   <string name="photopicker_item_selected" translation_description="Accessibility text denoting an individual photo is selected in a grid of photos. [CHAR_LIMIT=NONE]">Selected</string>
 
+  <!-- Content description for the not selected empty circle in the media grid -->
+  <string name="photopicker_item_not_selected" translation_description="Accessibility text denoting an individual photo is not selected in a grid of photos. [CHAR_LIMIT=NONE]">Not selected</string>
+
+  <!-- Content description for action to select an item -->
+  <string name="photopicker_select_action_description" translation_description="Accessibility text for describing the action to select. [CHAR_LIMIT=NONE]">Select</string>
+
+  <!-- Content description for action to deselect an item -->
+  <string name="photopicker_deselect_action_description" translation_description="Accessibility text for describing the action to deselect. [CHAR_LIMIT=NONE]">Deselect</string>
+
   <!-- Button label for the "Done" button in the selection bar -->
   <string name="photopicker_done_button_label" translation_description="Button label that confirms the selected items and closes the photopicker.">Done</string>
 

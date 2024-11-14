@@ -75,7 +75,8 @@ fun dispatchReportPhotopickerApiInfoEvent(
     val isDefaultTabSet =
         photopickerConfiguration.startDestination != PhotopickerDestinations.DEFAULT
     // TODO(b/376822503): Update when search is added
-    val isSearchEnabled = false
+    val isCloudSearchEnabled = false
+    val isLocalSearchEnabled = false
     for (mediaFilter in mediaFilters) {
         coroutineScope.launch {
             lazyEvents
@@ -93,7 +94,8 @@ fun dispatchReportPhotopickerApiInfoEvent(
                         isOrderedSelectionSet = isOrderedSelectionSet,
                         isAccentColorSet = isAccentColorSet,
                         isDefaultTabSet = isDefaultTabSet,
-                        isSearchEnabled = isSearchEnabled,
+                        isCloudSearchEnabled = isCloudSearchEnabled,
+                        isLocalSearchEnabled = isLocalSearchEnabled,
                     )
                 )
         }

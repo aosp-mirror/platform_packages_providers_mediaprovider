@@ -411,7 +411,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsNotDisplayed()
@@ -447,7 +447,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()

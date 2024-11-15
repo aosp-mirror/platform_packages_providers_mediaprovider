@@ -54,7 +54,8 @@ public class PickerSQLConstants {
         SEARCH_RESULT_MEDIA,
         SEARCH_HISTORY,
         SEARCH_SUGGESTION,
-        MEDIA_SETS
+        MEDIA_SETS,
+        MEDIA_IN_MEDIA_SETS
     }
 
     /**
@@ -298,6 +299,7 @@ public class PickerSQLConstants {
         }
     }
 
+
     public enum SearchSuggestionsResponseColumns {
         AUTHORITY("authority"),
         MEDIA_SET_ID("media_set_id"),
@@ -313,6 +315,24 @@ public class PickerSQLConstants {
 
         public String getProjection() {
             return mProjection;
+        }
+    }
+
+    public enum MediaInMediaSetsTableColumns {
+        PICKER_ID("_id"),
+        LOCAL_ID("local_id"),
+        CLOUD_ID("cloud_id"),
+        MEDIA_SETS_PICKER_ID("media_set_picker_id");
+
+        private final String mColumnName;
+
+        MediaInMediaSetsTableColumns(@NonNull String columnName) {
+            Objects.requireNonNull(columnName);
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
         }
     }
 }

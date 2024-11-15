@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -72,6 +73,9 @@ private val MEASUREMENT_EDGE_PADDING = 4.dp
 private val MEASUREMENT_TOP_PADDING = 8.dp
 private val MEASUREMENT_BOT_PADDING = 24.dp
 
+/* Minimum height for the NavigationBar */
+private val MEASUREMENT_MIN_HEIGHT = 48.dp
+
 /**
  * Top of the NavigationBar feature.
  *
@@ -97,12 +101,14 @@ fun NavigationBar(modifier: Modifier = Modifier, params: LocationParams) {
 
     Row(
         modifier =
-            modifier.padding(
-                start = MEASUREMENT_EDGE_PADDING,
-                end = MEASUREMENT_EDGE_PADDING,
-                top = MEASUREMENT_TOP_PADDING,
-                bottom = MEASUREMENT_BOT_PADDING,
-            ),
+            modifier
+                .padding(
+                    start = MEASUREMENT_EDGE_PADDING,
+                    end = MEASUREMENT_EDGE_PADDING,
+                    top = MEASUREMENT_TOP_PADDING,
+                    bottom = MEASUREMENT_BOT_PADDING,
+                )
+                .heightIn(min = MEASUREMENT_MIN_HEIGHT),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {

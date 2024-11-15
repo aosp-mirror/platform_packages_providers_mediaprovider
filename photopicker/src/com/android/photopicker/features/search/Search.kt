@@ -51,16 +51,20 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,7 +76,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
@@ -90,12 +99,14 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import com.android.photopicker.util.rememberBitmapFromUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
 private val MEASUREMENT_SEARCH_BAR_HEIGHT = 56.dp
 private val MEASUREMENT_SEARCH_BAR_PADDING =
@@ -139,12 +150,32 @@ private val MEASUREMENT_OTHER_ICON = 40.dp
 
 /** A composable function that displays a SearchBar. */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun Search(
     modifier: Modifier = Modifier,
     params: LocationParams,
     viewModel: SearchViewModel = obtainViewModel(),
 ) {
+    val searchEnabled by viewModel.searchEnabled.collectAsStateWithLifecycle()
+    when {
+        searchEnabled == SearchEnabledState.ENABLED -> {
+            SearchBarEnabled(params, viewModel, modifier)
+        }
+        else -> {
+            SearchBarWithTooltip(modifier)
+        }
+    }
+}
+
+/**
+ * This composable displays an enabled search bar that allows users to enter search queries.
+ *
+ * @param params A [LocationParams] relevant to the search functionality.
+ * @param viewModel The `SearchViewModel` providing the search logic and state.
+ * @param modifier The modifier to be applied to the composable.
+ */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifier: Modifier) {
     val focused = rememberSaveable { mutableStateOf(false) }
     val searchTerm = rememberSaveable { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
@@ -204,6 +235,7 @@ fun Search(
                         }
                     ResultMediaGrid(searchResults)
                 }
+
                 SearchState.Inactive -> {
                     if (suggestionLists.totalSuggestions > 0) {
                         val focusManager = LocalFocusManager.current
@@ -231,6 +263,72 @@ fun Search(
 }
 
 /**
+ * This composable displays a disabled search bar with a tooltip that appears when the user clicks
+ * over it.
+ *
+ * @param modifier The modifier to be applied to the composable.
+ */
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun SearchBarWithTooltip(modifier: Modifier) {
+    val tooltipState = rememberTooltipState()
+    val scope = rememberCoroutineScope()
+    TooltipBox(
+        positionProvider =
+            remember {
+                object : PopupPositionProvider {
+                    override fun calculatePosition(
+                        anchorBounds: IntRect,
+                        windowSize: IntSize,
+                        layoutDirection: LayoutDirection,
+                        popupContentSize: IntSize,
+                    ): IntOffset {
+                        return IntOffset(
+                            x =
+                                anchorBounds.left +
+                                    (anchorBounds.width - popupContentSize.width) / 2,
+                            y = anchorBounds.bottom - popupContentSize.height,
+                        )
+                    }
+                }
+            },
+        tooltip = {
+            PlainTooltip { Text(text = stringResource(R.string.photopicker_search_disabled_hint)) }
+        },
+        state = tooltipState,
+    ) {
+        SearchBar(
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = "",
+                    enabled = false,
+                    placeholder = { SearchBarPlaceHolder(false) },
+                    colors = TextFieldDefaults.colors(MaterialTheme.colorScheme.surface),
+                    onQueryChange = {},
+                    onSearch = {},
+                    expanded = false,
+                    onExpandedChange = {},
+                    leadingIcon = { SearchBarIcon(false, {}, {}, searchDisabled = true) },
+                    modifier =
+                        modifier.height(MEASUREMENT_SEARCH_BAR_HEIGHT).clickable {
+                            scope.launch { tooltipState.show() }
+                        },
+                )
+            },
+            expanded = false,
+            onExpandedChange = {},
+            colors =
+                SearchBarDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    dividerColor = MaterialTheme.colorScheme.outlineVariant,
+                ),
+            modifier = modifier.padding(MEASUREMENT_SEARCH_BAR_PADDING),
+            content = {},
+        )
+    }
+}
+
+/**
  * Renders the appropriate search input field based on the current search state.
  *
  * This composable function determines which type of search input to display depending on whether
@@ -246,6 +344,7 @@ fun Search(
  * @param modifier A Modifier that can be applied to the SearchInputContent composable.
  */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun SearchInputContent(
     viewModel: SearchViewModel,
     focused: Boolean,
@@ -279,7 +378,7 @@ fun SearchInputContent(
                     }
                 },
                 onSearch = { viewModel.performSearch(query = searchTerm) },
-                modifier,
+                modifier = modifier,
             )
         }
     }
@@ -404,12 +503,15 @@ fun ShowSearchInputWithCustomIcon(
  * @param onSearchQueryChanged A callback function that is invoked when the search query text
  *   changes.
  *     * This function receives the updated search query as a parameter.
+ *
+ * @param searchDisabled A boolean value indicating whether the search bar is disabled.
  */
 @Composable
 private fun SearchBarIcon(
     focused: Boolean,
     onFocused: (Boolean) -> Unit,
     onSearchQueryChanged: (String) -> Unit,
+    searchDisabled: Boolean = false,
 ) {
     if (focused) {
         IconButton(
@@ -424,10 +526,16 @@ private fun SearchBarIcon(
             )
         }
     } else {
-        Icon(
-            imageVector = Icons.Outlined.Search,
-            contentDescription = stringResource(R.string.photopicker_search_placeholder_text),
-        )
+        val description =
+            when (searchDisabled) {
+                true -> {
+                    stringResource(R.string.photopicker_search_disabled_hint)
+                }
+                else -> {
+                    stringResource(R.string.photopicker_search_placeholder_text)
+                }
+            }
+        Icon(imageVector = Icons.Outlined.Search, contentDescription = description)
     }
 }
 

@@ -40,6 +40,9 @@
   <!-- Accessibility description for the X (deselect all) button in the selection bar -->
   <string name="photopicker_clear_selection_button_description" translation_description="Button Accessibility description that unselects all selected media items.">Deselect all</string>
 
+  <!-- Accessibility description for the count in the selection bar -->
+  <string name="photopicker_selection_size_description" translation_description="Accessibility description for selection count in the selection bar."><xliff:g id="count" example="5">%1$s</xliff:g> photos or videos selected</string>
+
   <!-- Snackbar message when new items can't be selected because the selection is full -->
   <string name="photopicker_selection_limit_exceeded_snackbar" translation_description="">Select up to <xliff:g id="count" example="42">%1$s</xliff:g> items</string>
 

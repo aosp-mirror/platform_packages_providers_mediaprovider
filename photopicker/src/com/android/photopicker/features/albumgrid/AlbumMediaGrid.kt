@@ -132,6 +132,8 @@ private fun AlbumMediaGrid(
     val state = rememberLazyGridState()
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
+
     val host = LocalEmbeddedState.current?.host
     // Container encapsulating the album title followed by the album content in the form of a
     // grid, the content also includes date and month separators.
@@ -167,6 +169,11 @@ private fun AlbumMediaGrid(
                 mediaGrid(
                     // Album content grid
                     items = items,
+                    userScrollEnabled =
+                        when (isEmbedded) {
+                            true -> isExpanded
+                            false -> true
+                        },
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
                     onItemClick = { item ->

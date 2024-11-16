@@ -51,7 +51,7 @@ public class MediaSetsDatabaseUtil {
      * @param categoryId Id of the category to which the media set belongs
      * @param authority Authority of the media set
      * @param mimeTypes Mime type filters for the provided query
-     * @return the rowId of the inserted row
+     * @return the number rows inserted
      */
     public static int cacheMediaSets(
             @NonNull SQLiteDatabase database, @NonNull Cursor mediaSetMetadataCursor,
@@ -286,7 +286,10 @@ public class MediaSetsDatabaseUtil {
         return contentValuesList;
     }
 
-    private static String getMimeTypesAsString(List<String> mimeTypes) {
+    private static String getMimeTypesAsString(@Nullable List<String> mimeTypes) {
+        if (mimeTypes == null || mimeTypes.isEmpty()) {
+            return "";
+        }
         mimeTypes.replaceAll(s -> s.toLowerCase(Locale.ROOT));
         mimeTypes.sort(Comparator.naturalOrder());
         return String.join(DELIMITER, mimeTypes);

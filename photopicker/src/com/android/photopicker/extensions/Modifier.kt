@@ -19,21 +19,25 @@ package com.android.photopicker.extensions
 import android.os.Build
 import android.view.SurfaceControlViewHost
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.isUnspecified
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import com.android.photopicker.util.TouchSlopDetector
 
 /**
  * Draws circle with a solid [color] behind the content.
@@ -144,78 +148,84 @@ private fun Modifier.transferTouchesToSurfaceControlViewHost(
     host: SurfaceControlViewHost,
 ): Modifier {
 
-    /**
-     * Initial y position when user touches the screen or when [PointerEventType.Press] is received
-     */
-    var initialY = 0F
-
-    /**
-     * Difference in Y position with respect to initialY as user starts scrolling on the screen, to
-     * know the direction of the movement
-     */
-    var dy = 0F
-
     val pointerInputModifier =
         pointerInput(Unit) {
-            awaitPointerEventScope {
-                while (true) {
-                    // Suspend until next pointer event
-                    val event: PointerEvent = awaitPointerEvent()
-                    event.changes.forEach { change ->
-                        when (event.type) {
-                            PointerEventType.Press -> {
-                                // Set initial Y position when user touches the screen
-                                initialY = change.position.y
+            awaitEachGesture {
+                val touchSlop = viewConfiguration.touchSlop
+                val touchSlopDetector = TouchSlopDetector(Orientation.Vertical)
+
+                // This needs to run in the [PointerEventPass.Initial] to ensure that the event
+                // can be handled in the parent, rather than the child.
+                //
+                // This touch handler is a parent of the touch handler the grid is using to monitor
+                // clicks & scroll, so these touches are processed in the first pass, and if they
+                // aren't transferred to the host they will be processed by the grid in the
+                // [PointerEventPass.Main]
+                val down =
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                val pointerId = down.id
+
+                // Now that a down exists set up a loop which processes the touch input and
+                // evaluates if it should be sent to the host.
+                do {
+                    val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                    val dragEvent = event.changes.firstOrNull { it.id == pointerId }
+
+                    // If the dragEvent cannot be found for the pointer, or is consumed elsewhere
+                    // cancel this gesture.
+                    val canceled = dragEvent?.isConsumed ?: true
+
+                    val postSlopOffset =
+                        if (dragEvent != null)
+                            touchSlopDetector.addPointerInputChange(dragEvent, touchSlop)
+                        else Offset.Unspecified
+
+                    // Once pastTouchSlop check to see if the touch meets the conditions to be
+                    // transferred to the host.
+                    if (postSlopOffset.isSpecified) {
+
+                        val isGridCollapsed =
+                            state != null && isExpanded != null && !isExpanded.value
+                        val isGridExpanded = state != null && isExpanded != null && isExpanded.value
+
+                        val shouldTransferToHost =
+                            when {
+
+                                // When this isn't attached to a grid, all vertical gestures should
+                                // be transferred.
+                                state == null -> true
+
+                                // If the grid is collapsed and vertical touchSlop has been passed,
+                                // touches should be transferred.
+                                isGridCollapsed -> true
+
+                                // If the grid isExpanded, scrolled to the first item and the
+                                // gesture
+                                // direction was up (to collapse the Photopicker)
+                                isGridExpanded &&
+                                    (state.firstVisibleItemIndex == 0 &&
+                                        state.firstVisibleItemScrollOffset == 0 &&
+                                        postSlopOffset.y > 0F) -> true
+
+                                // Otherwise don't transfer
+                                else -> false
                             }
-                            PointerEventType.Move -> {
-                                // Position difference with respect to initial position
-                                dy = change.position.y - initialY
-                            }
-                            PointerEventType.Release -> {
-                                // Resetting the position change for next touch event
-                                dy = 0F
-                            }
+
+                        if (shouldTransferToHost) {
+                            // TODO(b/356671436): Use V API when available
+                            @Suppress("DEPRECATION") host.transferTouchGestureToHost()
                         }
                     }
+                } while (
+                    // Continue monitoring this event if it hasn't been consumed elsewhere.
+                    !canceled &&
 
-                    // Todo(b/356790658) : Avoid recalculate these every time, just do it when
-                    // argument changes
-                    val isGridCollapsed = state != null && isExpanded != null && !isExpanded.value
-                    val isGridExpanded = state != null && isExpanded != null && isExpanded.value
-
-                    // Event is done being processed, make a decision about if this event should
-                    // be transferred
-                    val shouldTransferToHost =
-                        when {
-
-                            // Never transfer any horizontal (Left or right) moves. We consume
-                            // horizontal moves in the service to enable switching between
-                            // "Photos" and "Albums" tabs.
-                            dy == 0F -> false
-
-                            // Case for Not Grid attached modifiers
-                            state == null -> true
-
-                            // Case for grid attached when embedded is collapsed
-                            isGridCollapsed && dy != 0F -> true
-
-                            // Case for grid attached when embedded is expanded, and
-                            // the lazy grid is at the top of its scroll container
-                            isGridExpanded &&
-                                (state.firstVisibleItemIndex == 0 &&
-                                    state.firstVisibleItemScrollOffset == 0 &&
-                                    dy > 0) -> true
-
-                            // Otherwise don't transfer
-                            else -> false
-                        }
-
-                    if (shouldTransferToHost) {
-                        // TODO(b/356671436): Use V API when available
-                        @Suppress("DEPRECATION") host.transferTouchGestureToHost()
-                    }
-                }
+                        // Only monitor the event if it is a finger touching the screen or mouse
+                        // button is being pressed.
+                        event.changes.any { it.pressed }
+                )
             }
         }
+
     return this then pointerInputModifier
 }

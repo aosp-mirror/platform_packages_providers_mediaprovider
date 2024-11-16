@@ -22,8 +22,6 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addNextPageKey;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addPrevPageKey;
 
-import static java.util.Objects.requireNonNull;
-
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -41,143 +39,83 @@ import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Convenience class for running Picker Search Results related sql queries.
+ * Utility class for insertion or querying the media items in various media sets
  */
-public class SearchResultsDatabaseUtil {
-    private static final String TAG = "SearchResultsDatabaseUtil";
+public class MediaInMediaSetsDatabaseUtil {
+
+    private static final String TAG = "MediaInMediaSetsDatabaseUtil";
 
     /**
-     * Utility method that extracts ContentValues in a format that can be inserted in the
-     * search_result_table.
+     * Caches the metadata of a media item identified by the given mediaSet into the
+     * media_in_media_sets table.
      *
-     * @param searchRequestId Identifier for a search request.
-     * @param cursor Cursor received from a CloudMediaProvider with the projection
-     *               {@link CloudMediaProviderContract.MediaColumns}
-     * @param isLocal true if the received cursor came from the local provider, otherwise false.
-     * @return a list of ContentValues that can be inserted in the search_result_media table.
+     * @param database The database to insert into
+     * @param mediaListToInsert The ContentValues list of the items to insert
+     * @param authority Authority of the media set
+     * @return The number of items inserted into the table
      */
-    @NonNull
-    public static List<ContentValues> extractContentValuesList(
-            int searchRequestId, @NonNull Cursor cursor, boolean isLocal
-    ) {
-        final List<ContentValues> contentValuesList = new ArrayList<>(cursor.getCount());
-        if (cursor.moveToFirst()) {
-            do {
-                contentValuesList.add(extractContentValues(searchRequestId, cursor, isLocal));
-            } while (cursor.moveToNext());
-        }
-        return contentValuesList;
-    }
-
-    @NonNull
-    private static ContentValues extractContentValues(
-            int searchRequestId,
-            @NonNull Cursor cursor,
-            boolean isLocal) {
-        final ContentValues contentValues = new ContentValues();
-
-        final String id = cursor.getString(cursor.getColumnIndexOrThrow(
-                CloudMediaProviderContract.MediaColumns.ID));
-        final String rawMediaStoreUri = cursor.getString(cursor.getColumnIndexOrThrow(
-                CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI));
-        final Uri mediaStoreUri = rawMediaStoreUri == null ? null : Uri.parse(rawMediaStoreUri);
-        final String extractedLocalId = mediaStoreUri == null ? null
-                : String.valueOf(ContentUris.parseId(mediaStoreUri));
-
-        final String localId = isLocal ? id : extractedLocalId;
-        final String cloudId = isLocal ? null : id;
-
-        contentValues.put(
-                PickerSQLConstants.SearchResultMediaTableColumns.SEARCH_REQUEST_ID.getColumnName(),
-                searchRequestId
-        );
-        contentValues.put(
-                PickerSQLConstants.SearchResultMediaTableColumns.LOCAL_ID.getColumnName(),
-                localId
-        );
-        contentValues.put(
-                PickerSQLConstants.SearchResultMediaTableColumns.CLOUD_ID.getColumnName(),
-                cloudId
-        );
-
-        return contentValues;
-    }
-
-    /**
-     * Saved the search results media items received from CMP in the database as a temporary cache.
-     *
-     * @param database SQLite database object that holds DB connection(s) and provides a wrapper
-     *                 for executing DB queries.
-     * @param authority Authority of the CMP that is the source of search results media.
-     * @param contentValuesList List of ContentValues that contain the search results media.
-     *                          Each ContentValue in the list represents a media item.
-     * @return The number of items inserted in the DB.
-     * @throws RuntimeException if no items could be inserted in the database due to an unexpected
-     * exception.
-     */
-    public static int cacheSearchResults(
+    public static int cacheMediaOfMediaSet(
             @NonNull SQLiteDatabase database,
-            @NonNull String authority,
-            @Nullable List<ContentValues> contentValuesList) {
-        requireNonNull(database);
-        requireNonNull(authority);
+            @Nullable List<ContentValues> mediaListToInsert,
+            @NonNull String authority) {
 
-        if (contentValuesList == null || contentValuesList.isEmpty()) {
-            Log.e(TAG, "Cursor is either null or empty. Nothing to do.");
-            return 0;
-        }
+        Objects.requireNonNull(database);
+        Objects.requireNonNull(authority);
 
         final boolean isLocal = PickerSyncController.getInstanceOrThrow()
                 .getLocalProvider()
                 .equals(authority);
+
+        if (mediaListToInsert == null || mediaListToInsert.isEmpty()) {
+            Log.e(TAG, "Received cursor is either null or empty. Nothing to insert.");
+            return 0;
+        }
 
         try {
             // Start a transaction with EXCLUSIVE lock.
             database.beginTransaction();
 
             // Number of rows inserted or replaced
-            int numberOfRowsInserted = 0;
-            for (ContentValues contentValues : contentValuesList) {
+            int numberOfMediaRowsInserted = 0;
+            for (ContentValues mediaValues : mediaListToInsert) {
                 try {
                     // Prefer media received from local provider over cloud provider to avoid
                     // joining with media table on cloud_id when not required.
                     final int conflictResolutionStrategy = isLocal
                             ? CONFLICT_REPLACE
                             : CONFLICT_IGNORE;
-                    final long rowID = database.insertWithOnConflict(
-                            PickerSQLConstants.Table.SEARCH_RESULT_MEDIA.name(),
+                    final long rowId = database.insertWithOnConflict(
+                            PickerSQLConstants.Table.MEDIA_IN_MEDIA_SETS.name(),
                             null,
-                            contentValues,
+                            mediaValues,
                             conflictResolutionStrategy
                     );
 
-                    if (rowID == -1) {
-                        Log.d(TAG, "Did not insert row in the search results media table"
-                                + " due to IGNORE conflict resolution strategy " + contentValues);
+                    if (rowId == -1) {
+                        Log.d(TAG, "Did not insert row in the media_in_media_sets_table"
+                                + " due to IGNORE conflict resolution strategy " + mediaValues);
                     } else {
-                        numberOfRowsInserted++;
+                        numberOfMediaRowsInserted++;
                     }
                 } catch (SQLException e) {
-                    // Skip the row that could not be inserted.
-                    Log.e(TAG, "Could not insert row in the search results media table "
-                            + contentValues, e);
+                    Log.e(TAG, "Could not insert row in the media_in_media_sets_table "
+                            + mediaValues + " due to ", e);
                 }
             }
-
             // Mark transaction as successful so that it gets committed after it ends.
             if (database.inTransaction()) {
                 database.setTransactionSuccessful();
             }
-
-            return numberOfRowsInserted;
+            return numberOfMediaRowsInserted;
         } catch (RuntimeException e) {
-            // Do not mark transaction as successful so that it gets roll-backed. after it ends.
-            throw new RuntimeException("Could not insert items in the DB", e);
+            // Do not mark transaction as successful so that it gets rolled back after it ends.
+            throw new RuntimeException("Could not insert items in the database", e);
         } finally {
             // Mark transaction as ended. The inserted items will either be committed if the
-            // transaction has been set as successful, or roll-backed otherwise.
+            // transaction has been set as successful, or rolled back otherwise.
             if (database.inTransaction()) {
                 database.endTransaction();
             }
@@ -185,54 +123,41 @@ public class SearchResultsDatabaseUtil {
     }
 
     /**
-     * Query media from the database and prepare a cursor in response.
+     * Fetches the media items of a particular mediaSet. The mediaItems belonging to a particular
+     * mediaSet are fetched from the media_in_media_sets table. The metadata of these items is
+     * fetched from the media table by joining the two together.
      *
-     * To get search media, we'll fetch media IDs for a corresponding search request ID from the
-     * search_result_media table and then enrich it with media metadata from the media table using
-     * sql joins.
-     *
-     * We need to make multiple queries to prepare a response for the media query.
-     * {@link android.database.sqlite.SQLiteQueryBuilder} currently does not support the creation of
-     * a transaction in {@code DEFERRED} mode. This is why we'll perform the read queries in
-     * {@code IMMEDIATE} mode instead.
-     *
-     * @param syncController Instance of the PickerSyncController singleton.
-     * @param query The MediaQuery object instance that tells us about the media query args.
-     * @param localAuthority The effective local authority that we need to consider for this
-     *                       transaction. If the local items should not be queries but the local
-     *                       authority has some value, the effective local authority would be null.
-     * @param cloudAuthority The effective cloud authority that we need to consider for this
-     *                       transaction. If the local items should not be queries but the local
-     *                       authority has some value, the effective local authority would
-     *                       be null.
-     * @return The cursor with the album media query results.
+     * @param syncController       Instance of the PickerSyncController singleton.
+     * @param mediaInMediaSetQuery The MediaInMediaSetsQuery object that tells us about the
+     * @param localAuthority       The effective local authority to consider for this transaction
+     * @param cloudAuthority       The effective cloud authority to consider for this transaction
+     * @return A cursor with all the media items for that mediaSet and their metadata
      */
-    @NonNull
-    public static Cursor querySearchMedia(
-            @NonNull PickerSyncController syncController,
-            @NonNull SearchMediaQuery query,
-            @Nullable String localAuthority,
-            @Nullable String cloudAuthority
-    ) {
+    public static Cursor queryMediaInMediaSet(@NonNull PickerSyncController syncController,
+            @NonNull MediaInMediaSetsQuery mediaInMediaSetQuery,
+            @Nullable String localAuthority, @Nullable String cloudAuthority) {
+
         final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
 
         try {
             database.beginTransactionNonExclusive();
             Cursor pageData = database.rawQuery(
-                    getSearchMediaPageQuery(
-                            query,
+                    getSearchMediaInMediaSetsPageQuery(
+                            mediaInMediaSetQuery,
                             database,
-                            query.getTableWithRequiredJoins(
+                            mediaInMediaSetQuery.getTableWithRequiredJoins(
                                     database, localAuthority, cloudAuthority)
                     ),
                     /* selectionArgs */ null
             );
+
             Bundle extraArgs = new Bundle();
+
             Cursor nextPageKeyCursor = database.rawQuery(
-                    getSearchMediaNextPageKeyQuery(
-                            query,
+                    getMediaInMediaSetsNextPageKeyQuery(
+                            mediaInMediaSetQuery,
                             database,
-                            query.getTableWithRequiredJoins(
+                            mediaInMediaSetQuery.getTableWithRequiredJoins(
                                     database, localAuthority, cloudAuthority)
                     ),
                     /* selectionArgs */ null
@@ -240,10 +165,10 @@ public class SearchResultsDatabaseUtil {
             addNextPageKey(extraArgs, nextPageKeyCursor);
 
             Cursor prevPageKeyCursor = database.rawQuery(
-                    getSearchMediaPreviousPageQuery(
-                            query,
+                    getMediaInMediaSetsPreviousPageQuery(
+                            mediaInMediaSetQuery,
                             database,
-                            query.getTableWithRequiredJoins(
+                            mediaInMediaSetQuery.getTableWithRequiredJoins(
                                     database, localAuthority, cloudAuthority)
                     ),
                     /* selectionArgs */ null
@@ -255,19 +180,21 @@ public class SearchResultsDatabaseUtil {
             Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
             return pageData;
         } catch (Exception e) {
-            throw new RuntimeException("Could not fetch media", e);
+            throw new RuntimeException("Could not fetch media from the media set", e);
         } finally {
             database.endTransaction();
         }
     }
 
     /**
-     * Builds and returns the SQL query to get the page contents for the search results from
-     * Picker DB. To get the media items, we need to query the search_result_media table
-     * and join with media table.
+     * Returns the database query to fetch the media for the given media set. The media table is
+     * joined with the media_in_media_sets table to get the items of that mediaSet and their
+     * metadata from the media table. The join is made on local_id and cloud_id separately for
+     * the given mediaSet. These are then further combined to give all the results filtered by
+     * other arguments provided.
      */
-    public static String getSearchMediaPageQuery(
-            @NonNull SearchMediaQuery query,
+    private static String getSearchMediaInMediaSetsPageQuery(
+            @NonNull MediaInMediaSetsQuery query,
             @NonNull SQLiteDatabase database,
             @NonNull String table) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
@@ -301,12 +228,11 @@ public class SearchResultsDatabaseUtil {
     }
 
     /**
-     * Builds and returns the SQL query to get the next page's first row for the search results
-     * query.
+     * Builds and returns the sql query to fetch the first item of the next page.
      */
     @Nullable
-    public static String getSearchMediaNextPageKeyQuery(
-            @NonNull SearchMediaQuery query,
+    private static String getMediaInMediaSetsNextPageKeyQuery(
+            @NonNull MediaInMediaSetsQuery query,
             @NonNull SQLiteDatabase database,
             @NonNull String table) {
         if (query.getPageSize() == Integer.MAX_VALUE) {
@@ -333,15 +259,10 @@ public class SearchResultsDatabaseUtil {
     }
 
     /**
-     * Builds and returns the SQL query to get the previous page contents for the search results
-     * from the previous page.
-     *
-     * We fetch the whole page and not just one key because it is possible that the previous page
-     * is smaller than the page size. So, we get the whole page and only use the last row item to
-     * get the previous page key.
+     * Builds and returns the sql query to fetch all the media items of the previous page.
      */
-    public static String getSearchMediaPreviousPageQuery(
-            @NonNull SearchMediaQuery query,
+    private static String getMediaInMediaSetsPreviousPageQuery(
+            @NonNull MediaInMediaSetsQuery query,
             @NonNull SQLiteDatabase database,
             @NonNull String table) {
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
@@ -358,5 +279,51 @@ public class SearchResultsDatabaseUtil {
                 ).setLimit(query.getPageSize());
 
         return queryBuilder.buildQuery();
+    }
+
+    /**
+     * Extracts the metadata from the provided cursor and creates a list of content values to
+     * insert into the media_in_media_sets_table
+     */
+    public static List<ContentValues> getMediaContentValuesFromCursor(
+            @NonNull Cursor mediaCursor, @NonNull String mediaSetPickerId, boolean isLocal) {
+        Objects.requireNonNull(mediaSetPickerId);
+        Objects.requireNonNull(mediaCursor);
+
+        List<ContentValues> contentValuesList = new ArrayList<>(mediaCursor.getCount());
+        if (mediaCursor.moveToFirst()) {
+            do {
+                // Extract metadata of each media item
+                String mediaId = mediaCursor.getString(
+                        mediaCursor.getColumnIndexOrThrow(
+                                CloudMediaProviderContract.MediaColumns.ID));
+                String mediaStoreUri = mediaCursor.getString(
+                        mediaCursor.getColumnIndexOrThrow(
+                                CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI));
+                Uri mediaUri = mediaStoreUri == null ? null : Uri.parse(mediaStoreUri);
+                String extractedLocalId = mediaStoreUri == null ? null
+                        : String.valueOf(ContentUris.parseId(mediaUri));
+
+                String localId = isLocal ? mediaId : extractedLocalId;
+                String cloudId = isLocal ? null : mediaId;
+
+                ContentValues insertValue = new ContentValues();
+                insertValue.put(
+                        PickerSQLConstants.MediaInMediaSetsTableColumns.LOCAL_ID.getColumnName(),
+                        localId
+                );
+                insertValue.put(
+                        PickerSQLConstants.MediaInMediaSetsTableColumns.CLOUD_ID.getColumnName(),
+                        cloudId
+                );
+                insertValue.put(
+                        PickerSQLConstants.MediaInMediaSetsTableColumns.MEDIA_SETS_PICKER_ID
+                                .getColumnName(),
+                        mediaSetPickerId
+                );
+                contentValuesList.add(insertValue);
+            } while (mediaCursor.moveToNext());
+        }
+        return contentValuesList;
     }
 }

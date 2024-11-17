@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
+
 import static androidx.media3.transformer.Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_MEDIACODEC;
 import static androidx.media3.transformer.Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL;
 
@@ -48,6 +50,7 @@ import com.android.providers.media.util.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -168,26 +171,32 @@ public class PhotoPickerTranscodeHelper {
      * Frees up cache space for the given number of bytes.
      *
      * @param bytes The number of bytes to free.
+     * @return The number of bytes freed.
      */
-    public void freeCache(long bytes) {
+    public long freeCache(long bytes) {
         final File[] files = mTranscodeDirectory.listFiles();
 
         if (files == null) {
-            return;
+            return 0;
         }
 
+        long bytesFreed = 0;
         for (File file : files) {
-            if (bytes <= 0) {
-                return;
+            if (bytes - bytesFreed <= 0) {
+                break;
             }
+
+            if (Objects.equals(file.getName(), MEDIA_IGNORE_FILENAME)) continue;
+
             if (file.exists() && file.isFile()) {
-                long size = file.length();
-                boolean deleted = file.delete();
-                if (deleted) {
-                    bytes -= size;
+                final long size = file.length();
+                if (file.delete()) {
+                    bytesFreed += size;
                 }
             }
         }
+
+        return bytesFreed;
     }
 
     /**
@@ -207,6 +216,8 @@ public class PhotoPickerTranscodeHelper {
                 Log.i(TAG, "Received a cancellation signal during cleaning cache.");
                 break;
             }
+
+            if (Objects.equals(file.getName(), MEDIA_IGNORE_FILENAME)) continue;
 
             if (file.exists() && file.isFile()) {
                 file.delete();

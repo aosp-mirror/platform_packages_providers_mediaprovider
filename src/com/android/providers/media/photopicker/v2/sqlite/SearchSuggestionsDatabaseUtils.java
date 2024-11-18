@@ -54,8 +54,9 @@ public class SearchSuggestionsDatabaseUtils {
      *
      * @param database Instance of Picker Database.
      * @param searchRequest Search Request issued by the user.
+     * @return true if the search history was saved successfully, else returns false.
      */
-    public static void saveSearchHistory(
+    public static boolean saveSearchHistory(
             @NonNull SQLiteDatabase database,
             @NonNull SearchRequest searchRequest) {
         requireNonNull(database);
@@ -75,8 +76,11 @@ public class SearchSuggestionsDatabaseUtils {
                 throw new RuntimeException(
                         "Search history was not saved due to a constraint conflict.");
             }
+
+            return true;
         } catch (RuntimeException e) {
-            throw new RuntimeException("Could not save search history ", e);
+            Log.e(TAG, "Could not save search history ", e);
+            return false;
         }
     }
 

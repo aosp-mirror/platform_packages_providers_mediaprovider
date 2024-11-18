@@ -42,6 +42,18 @@ public class SearchSuggestionsQuery {
     private final boolean mIsZeroState;
 
     public SearchSuggestionsQuery(
+            @NonNull String prefix,
+            @NonNull List<String> providers) {
+        mLimit = DEFAULT_SEARCH_SUGGESTIONS_LIMIT;
+        mHistoryLimit = DEFAULT_SEARCH_HISTORY_SUGGESTIONS_LIMIT;
+        mPrefix = prefix.trim();
+        mProviderAuthorities = providers;
+        mIsZeroState = mPrefix.isEmpty();
+    }
+
+
+
+    public SearchSuggestionsQuery(
             @NonNull Bundle queryArgs) {
         mLimit = queryArgs.getInt("limit", DEFAULT_SEARCH_SUGGESTIONS_LIMIT);
         mHistoryLimit = queryArgs.getInt(

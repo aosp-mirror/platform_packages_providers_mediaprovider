@@ -57,12 +57,14 @@ public class SearchMediaQuery {
      *                       otherwise null.
      * @param cloudAuthority authority of the cloud provider if it should be queried,
      *                       otherwise null.
+     * @param reverseOrder true when the sort order needs to be reversed.
      * @return A string that contains the table clause of the sql query after joining the
      * media table and search_result_media.
      */
     public String getTableWithRequiredJoins(@NonNull SQLiteDatabase database,
                                             @Nullable String localAuthority,
-                                            @Nullable String cloudAuthority) {
+                                            @Nullable String cloudAuthority,
+                                            boolean reverseOrder) {
 
         final MediaProjection mediaProjection = new MediaProjection(
                 localAuthority,
@@ -76,14 +78,16 @@ public class SearchMediaQuery {
                 mLocalMediaSubQuery,
                 localAuthority,
                 cloudAuthority,
-                mediaProjection
+                mediaProjection,
+                reverseOrder
         );
         final String cloudMediaRawQuery = getSubQuery(
                 database,
                 mCloudMediaSubquery,
                 localAuthority,
                 cloudAuthority,
-                mediaProjection
+                mediaProjection,
+                reverseOrder
         );
         return String.format(
                 Locale.ROOT,
@@ -97,7 +101,8 @@ public class SearchMediaQuery {
             @NonNull SearchMediaSubQuery searchMediaSubquery,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
-            @NonNull MediaProjection mediaProjection) {
+            @NonNull MediaProjection mediaProjection,
+            boolean reverseOrder) {
         final SelectSQLiteQueryBuilder subQueryBuilder =
                 new SelectSQLiteQueryBuilder(database);
         subQueryBuilder
@@ -108,7 +113,7 @@ public class SearchMediaQuery {
                 PickerSQLConstants.Table.MEDIA,
                 localAuthority,
                 cloudAuthority,
-                /* reverseOrder */ false
+                reverseOrder
         );
         return subQueryBuilder.buildQuery();
     }

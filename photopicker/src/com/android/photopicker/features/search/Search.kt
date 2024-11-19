@@ -249,8 +249,6 @@ fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifie
                             },
                             modifier = modifier,
                         )
-                    } else {
-                        EmptySearchResult()
                     }
                 }
             }

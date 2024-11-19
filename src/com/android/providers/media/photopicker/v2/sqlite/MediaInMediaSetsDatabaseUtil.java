@@ -146,7 +146,8 @@ public class MediaInMediaSetsDatabaseUtil {
                             mediaInMediaSetQuery,
                             database,
                             mediaInMediaSetQuery.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
                     ),
                     /* selectionArgs */ null
             );
@@ -158,7 +159,8 @@ public class MediaInMediaSetsDatabaseUtil {
                             mediaInMediaSetQuery,
                             database,
                             mediaInMediaSetQuery.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
                     ),
                     /* selectionArgs */ null
             );
@@ -169,7 +171,8 @@ public class MediaInMediaSetsDatabaseUtil {
                             mediaInMediaSetQuery,
                             database,
                             mediaInMediaSetQuery.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ true)
                     ),
                     /* selectionArgs */ null
             );

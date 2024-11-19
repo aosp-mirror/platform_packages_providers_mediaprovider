@@ -189,6 +189,27 @@ public class SyncTrackerRegistry {
     }
 
     /**
+     * Create the required completable futures for new search result sync requests that need to be
+     * tracked.
+     */
+    public static void trackNewSearchResultsSyncRequests(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        switch (syncSource) {
+            case SYNC_LOCAL_ONLY:
+                getLocalSearchSyncTracker().createSyncFuture(syncRequestId);
+                break;
+            case SYNC_CLOUD_ONLY:
+                getCloudSearchSyncTracker().createSyncFuture(syncRequestId);
+                break;
+            default:
+                getLocalSearchSyncTracker().createSyncFuture(syncRequestId);
+                getCloudSearchSyncTracker().createSyncFuture(syncRequestId);
+                break;
+        }
+    }
+
+    /**
      * Mark the required futures as complete for existing media sync requests.
      */
     public static void markSyncAsComplete(

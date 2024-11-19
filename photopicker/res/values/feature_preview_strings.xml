@@ -17,13 +17,13 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
   <!-- Button label for the "Select" button in the preview screen bottom bar -->
-  <string name="photopicker_select_button_label" translation_description="Button label to select the previewed photo.">Select all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+  <string name="photopicker_select_button_label" translation_description="Button label to select the previewed photo.">Select all (<xliff:g id="count" example="42">%1$s</xliff:g>)</string>
 
   <!-- Button label for the "Select" button in the selection bar -->
   <string name="photopicker_select_current_button_label" translation_description="Button label that selects the current item.">Select</string>
 
   <!-- Button label for the "Deselect" button in the preview screen bottom bar -->
-  <string name="photopicker_deselect_button_label" translation_description="Button label to deselect the previewed photo.">Unselect all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+  <string name="photopicker_deselect_button_label" translation_description="Button label to deselect the previewed photo.">Unselect all (<xliff:g id="count" example="42">%1$s</xliff:g>)</string>
 
   <!-- Button label for the "Preview" button in the selection bar -->
   <string name="photopicker_preview_button_label" translation_description="Button label to navigate to a screen and preview the selected media.">Preview</string>

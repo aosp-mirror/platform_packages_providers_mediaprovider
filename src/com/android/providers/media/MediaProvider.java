@@ -7097,6 +7097,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
                 return getResultForPickerMediaInit(extras);
             }
+            case MediaStore.PICKER_INTERNAL_SEARCH_MEDIA_INIT_CALL: {
+                return getResultForPickerSearchMediaInit(extras);
+            }
             case MediaStore.PICKER_TRANSCODE_CALL: {
                 return getResultForPickerTranscode(extras);
             }
@@ -7631,6 +7634,21 @@ public class MediaProvider extends ContentProvider {
         }
         mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
         return null;
+    }
+
+    /**
+     * Checks if the caller has the permission to handle picker search media init. If not,
+     * this method throws a security exception.
+     */
+    @NonNull
+    private Bundle getResultForPickerSearchMediaInit(@NonNull Bundle extras) {
+        Log.i(TAG, "Received search media init query for extras: " + extras);
+        if (!checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
+            throw new SecurityException(
+                    getSecurityExceptionMessage("Picker search media init"));
+        }
+        return PickerDataLayerV2.handleNewSearchRequest(getContext(), extras);
     }
 
     @NotNull

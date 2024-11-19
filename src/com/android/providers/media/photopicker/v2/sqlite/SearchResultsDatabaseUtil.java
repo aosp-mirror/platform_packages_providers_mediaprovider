@@ -223,17 +223,20 @@ public class SearchResultsDatabaseUtil {
                             query,
                             database,
                             query.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
                     ),
                     /* selectionArgs */ null
             );
+
             Bundle extraArgs = new Bundle();
             Cursor nextPageKeyCursor = database.rawQuery(
                     getSearchMediaNextPageKeyQuery(
                             query,
                             database,
                             query.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
                     ),
                     /* selectionArgs */ null
             );
@@ -244,7 +247,8 @@ public class SearchResultsDatabaseUtil {
                             query,
                             database,
                             query.getTableWithRequiredJoins(
-                                    database, localAuthority, cloudAuthority)
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ true)
                     ),
                     /* selectionArgs */ null
             );

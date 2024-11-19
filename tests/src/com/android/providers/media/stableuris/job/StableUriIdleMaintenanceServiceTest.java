@@ -282,6 +282,7 @@ public class StableUriIdleMaintenanceServiceTest {
                 .adoptShellPermissionIdentity(
                         Manifest.permission.READ_DEVICE_CONFIG,
                         Manifest.permission.WRITE_DEVICE_CONFIG,
+                        Manifest.permission.WRITE_ALLOWLISTED_DEVICE_CONFIG,
                         Manifest.permission.WRITE_MEDIA_STORAGE,
                         android.Manifest.permission.LOG_COMPAT_CHANGE,
                         android.Manifest.permission.READ_COMPAT_CHANGE_CONFIG,

@@ -55,7 +55,7 @@ import java.util.List;
  */
 public class SearchResultsSyncWorker extends Worker {
     private static final String TAG = "SearchSyncWorker";
-    private static final int SYNC_PAGE_COUNT = 3;
+    private static final int SYNC_PAGE_COUNT = Integer.MAX_VALUE;
     private static final int PAGE_SIZE = 500;
     private static final int INVALID_SYNC_SOURCE = -1;
     private static final int INVALID_SEARCH_REQUEST_ID = -1;
@@ -233,7 +233,7 @@ public class SearchResultsSyncWorker extends Worker {
 
 
     /**
-     * Validates input data received by the Worker for an immediate album sync.
+     * Validates input data received by the Worker for an immediate search results sync.
      */
     private void validateWorkInput(
             int syncSource,

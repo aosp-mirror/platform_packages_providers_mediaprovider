@@ -64,12 +64,14 @@ public class MediaInMediaSetsQuery {
      *                       otherwise null.
      * @param cloudAuthority authority of the cloud provider if it should be queried,
      *                       otherwise null.
+     * @param reverseOrder true when the sort order needs to be reversed.
      * @return A string that contains the table clause of the sql query after joining the
      * media table and media_in_media_sets table.
      */
     public String getTableWithRequiredJoins(@NonNull SQLiteDatabase database,
             @Nullable String localAuthority,
-            @Nullable String cloudAuthority) {
+            @Nullable String cloudAuthority,
+            boolean reverseOrder) {
 
         final MediaProjection mediaProjection = new MediaProjection(
                 localAuthority,
@@ -83,14 +85,16 @@ public class MediaInMediaSetsQuery {
                 mLocalMediaSubQuery,
                 localAuthority,
                 cloudAuthority,
-                mediaProjection
+                mediaProjection,
+                reverseOrder
         );
         final String cloudMediaRawQuery = getSubQuery(
                 database,
                 mCloudMediaSubquery,
                 localAuthority,
                 cloudAuthority,
-                mediaProjection
+                mediaProjection,
+                reverseOrder
         );
         return String.format(
                 Locale.ROOT,
@@ -104,7 +108,8 @@ public class MediaInMediaSetsQuery {
             @NonNull MediaInMediaSetsSubQuery mediaInMediaSetSubQuery,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
-            @NonNull MediaProjection mediaProjection) {
+            @NonNull MediaProjection mediaProjection,
+            boolean reverseOrder) {
         final SelectSQLiteQueryBuilder subQueryBuilder =
                 new SelectSQLiteQueryBuilder(database);
         subQueryBuilder
@@ -115,7 +120,7 @@ public class MediaInMediaSetsQuery {
                 PickerSQLConstants.Table.MEDIA,
                 localAuthority,
                 cloudAuthority,
-                /* reverseOrder */ false
+                reverseOrder
         );
         return subQueryBuilder.buildQuery();
     }

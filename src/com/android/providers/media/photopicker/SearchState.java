@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker;
 
+import static java.util.Objects.requireNonNull;
+
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -46,6 +48,21 @@ public class SearchState {
 
     public SearchState(@NonNull ConfigStore configStore) {
         mConfigStore = configStore;
+    }
+
+    /**
+     * Returns true if cloud search is enabled for the given cloud provider.
+     */
+    public boolean isCloudSearchEnabled(
+            @NonNull Context context,
+            @NonNull String cloudAuthority) {
+        requireNonNull(cloudAuthority);
+
+        isCloudSearchEnabled(context);
+
+        synchronized (SearchState.class) {
+            return mIsCloudSearchEnabled && cloudAuthority.equals(mCloudAuthority);
+        }
     }
 
     /**

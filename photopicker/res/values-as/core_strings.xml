@@ -20,6 +20,9 @@
     <string name="photopicker_application_label" msgid="7272391964836190376">"ফট’ আৰু ভিডিঅ’"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"মিডিয়া"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"বাছনি কৰা হৈছে"</string>
+    <string name="photopicker_item_not_selected" msgid="4036054099514100702">"বাছনি কৰা হোৱা নাই"</string>
+    <string name="photopicker_select_action_description" msgid="5369819457862091225">"বাছনি কৰক"</string>
+    <string name="photopicker_deselect_action_description" msgid="4986504797441859297">"বাছনিৰ পৰা আঁতৰাওক"</string>
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"হ’ল"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"বাছনিৰ পৰা আটাইবোৰ আঁতৰাওক"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> টা পৰ্যন্ত বস্তু বাছনি কৰক"</string>

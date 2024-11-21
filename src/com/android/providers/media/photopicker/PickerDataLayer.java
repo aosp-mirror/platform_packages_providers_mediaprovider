@@ -124,8 +124,8 @@ public class PickerDataLayer {
      */
     public static PickerDataLayer create(@NonNull Context context, @NonNull PickerDbFacade dbFacade,
             @NonNull PickerSyncController syncController, @NonNull ConfigStore configStore) {
-        PickerSyncManager syncManager = new PickerSyncManager(
-                getWorkManager(context), context, configStore, /* schedulePeriodicSyncs */ true);
+        PickerSyncManager syncManager = new PickerSyncManager(getWorkManager(context), context);
+        syncManager.schedulePeriodicSync(configStore);
         return new PickerDataLayer(context, dbFacade, syncController, configStore, syncManager);
     }
 
@@ -436,7 +436,7 @@ public class PickerDataLayer {
                     + " Should sync with local provider only: "
                     + syncRequestExtras.shouldSyncLocalOnlyData());
 
-            mSyncManager.syncMediaImmediately(syncRequestExtras);
+            mSyncManager.syncMediaImmediately(syncRequestExtras, mConfigStore);
         } else {
             // Sync album media data
             Log.i(TAG, String.format("Init data request for album content of: %s"

@@ -25,33 +25,46 @@ import org.junit.Test;
 public class PickerUriResolverV2Test {
     @Test
     public void testMediaQuery() {
-        assertEquals(PickerUriResolverV2.sUriMatcher.match(
-                Uri.parse("content://media/picker_internal/v2/media")),
-                PickerUriResolverV2.PICKER_INTERNAL_MEDIA
+        assertEquals(
+                PickerUriResolverV2.PICKER_INTERNAL_MEDIA,
+                PickerUriResolverV2.sUriMatcher.match(
+                        Uri.parse("content://media/picker_internal/v2/media"))
         );
     }
 
     @Test
     public void testAlbumQuery() {
-        assertEquals(PickerUriResolverV2.sUriMatcher.match(
-                Uri.parse("content://media/picker_internal/v2/album")),
-                PickerUriResolverV2.PICKER_INTERNAL_ALBUM
+        assertEquals(
+                PickerUriResolverV2.PICKER_INTERNAL_ALBUM,
+                PickerUriResolverV2.sUriMatcher.match(
+                        Uri.parse("content://media/picker_internal/v2/album"))
         );
     }
 
     @Test
     public void testAlbumContentQuery() {
-        assertEquals(PickerUriResolverV2.sUriMatcher.match(
-                Uri.parse("content://media/picker_internal/v2/album/album_id")),
-                PickerUriResolverV2.PICKER_INTERNAL_ALBUM_CONTENT
+        assertEquals(
+                PickerUriResolverV2.PICKER_INTERNAL_ALBUM_CONTENT,
+                PickerUriResolverV2.sUriMatcher.match(
+                        Uri.parse("content://media/picker_internal/v2/album/album_id"))
         );
     }
 
     @Test
     public void testAvailableProvidersQuery() {
-        assertEquals(PickerUriResolverV2.sUriMatcher.match(
-                Uri.parse("content://media/picker_internal/v2/available_providers")),
-                PickerUriResolverV2.PICKER_INTERNAL_AVAILABLE_PROVIDERS
+        assertEquals(
+                PickerUriResolverV2.PICKER_INTERNAL_AVAILABLE_PROVIDERS,
+                PickerUriResolverV2.sUriMatcher.match(
+                        Uri.parse("content://media/picker_internal/v2/available_providers"))
+        );
+    }
+
+    @Test
+    public void testSearchResultsQuery() {
+        assertEquals(
+                PickerUriResolverV2.PICKER_INTERNAL_SEARCH_MEDIA,
+                PickerUriResolverV2.sUriMatcher.match(
+                        Uri.parse("content://media/picker_internal/v2/search_media/132"))
         );
     }
 }

@@ -2085,6 +2085,44 @@ public class PickerSyncController {
     }
 
     /**
+     * Returns true when all the following conditions are true:
+     * 1. Input cloud provider is not null.
+     * 2. Input cloud provider is present in the given providers list.
+     * 3. Input cloud provider is also the current cloud provider.
+     * 4. Search feature is enabled for the given cloud provider.
+     * Otherwise returns false.
+     */
+    public boolean shouldQueryCloudMediaForSearch(
+            @NonNull Set<String> providers,
+            @Nullable String cloudProvider) {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            return cloudProvider != null
+                    && providers.contains(cloudProvider)
+                    && cloudProvider.equals(getCloudProviderWithTimeout())
+                    && getSearchState().isCloudSearchEnabled(mContext, cloudProvider);
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not check if cloud media should be queried", e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current local provider is not null.
+     * 2. Current local provider is present in the given providers list.
+     * 3. Search feature is enabled for the current local provider.
+     * Otherwise returns false.
+     */
+    public boolean shouldQueryLocalMediaForSearch(
+            @NonNull Set<String> providers) {
+        final String localProvider = getLocalProvider();
+        return localProvider != null
+                && providers.contains(localProvider)
+                && getSearchState().isLocalSearchEnabled();
+    }
+
+    /**
      * Disable cloud queries if the new collection id received from the cloud provider in the media
      * event notification is different than the cached value.
      */

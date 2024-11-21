@@ -33,7 +33,7 @@ public class WorkManagerInitializer {
     // {@link PickerSyncManager} to ensure that any request type is not blocked on other request
     // types. It is advisable to use unique work requests because in case the number of queued
     // requests grows, they should not block other work requests.
-    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 7;
+    private static final int WORK_MANAGER_THREAD_POOL_SIZE = 9;
     @Nullable
     private static volatile Executor sWorkManagerExecutor;
 

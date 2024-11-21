@@ -23,4 +23,5 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Ոչինչ չի գտնվել"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Փորձեք որոնել նմանատիպ բառեր"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Առաջարկներ"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"Որոնումն անջատված է։"</string>
 </resources>

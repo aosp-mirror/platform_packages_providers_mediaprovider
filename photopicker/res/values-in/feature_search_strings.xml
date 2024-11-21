@@ -23,4 +23,6 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Tidak ditemukan hasil"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Coba telusuri kata yang serupa"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Saran"</string>
+    <!-- no translation found for photopicker_search_disabled_hint (4049451515025551462) -->
+    <skip />
 </resources>

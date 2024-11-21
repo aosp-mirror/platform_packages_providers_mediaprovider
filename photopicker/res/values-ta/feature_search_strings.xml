@@ -23,4 +23,5 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"முடிவுகள் இல்லை"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"ஒரே மாதிரியான வார்த்தைகளைத் தேடுங்கள்"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"பரிந்துரைகள்"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"தேடல் அம்சம் முடக்கப்பட்டுள்ளது."</string>
 </resources>

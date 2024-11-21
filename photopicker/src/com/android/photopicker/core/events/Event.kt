@@ -555,6 +555,13 @@ interface Telemetry {
             MediaProviderStatsLog
                 .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__UNSET_MEDIA_LOCATION
         ),
+        CATEGORY(
+            MediaProviderStatsLog.PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__CATEGORY
+        ),
+        SEARCH_GRID(
+            MediaProviderStatsLog
+                .PHOTOPICKER_MEDIA_ITEM_STATUS_REPORTED__MEDIA_LOCATION__SEARCH_GRID
+        ),
     }
 
     /*
@@ -689,6 +696,9 @@ interface Telemetry {
         UNSET_SEARCH_METHOD(
             MediaProviderStatsLog
                 .PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__UNSET_SEARCH_METHOD
+        ),
+        CATEGORY_SEARCH(
+            MediaProviderStatsLog.PHOTOPICKER_SEARCH_INFO_REPORTED__SEARCH_METHOD__CATEGORY_SEARCH
         ),
     }
 }

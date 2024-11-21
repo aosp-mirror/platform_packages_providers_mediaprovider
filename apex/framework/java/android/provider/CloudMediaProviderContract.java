@@ -21,6 +21,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
+import android.annotation.StringDef;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -1306,19 +1307,21 @@ public final class CloudMediaProviderContract {
     /**
      * Represents media category related to faces of people and pets.
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = 1;
+    public static final String MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS =
+            "com.android.providers.media.MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS";
 
     /**
      * Represents media category related to a user's custom albums.
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
-     * Type: INTEGER
+     * Type: STRING
      *
      * @hide
      */
-    public static final int MEDIA_CATEGORY_TYPE_USER_ALBUMS = 2;
+    public static final String MEDIA_CATEGORY_TYPE_USER_ALBUMS =
+            "com.android.providers.media.MEDIA_CATEGORY_TYPE_USER_ALBUMS";
 
     /**
      * Defines the types of media categories available and supported in photo picker.
@@ -1327,9 +1330,12 @@ public final class CloudMediaProviderContract {
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
      * @hide
      */
-    @IntDef(value = {MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS, MEDIA_CATEGORY_TYPE_USER_ALBUMS})
+    @StringDef(value = {
+            MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS,
+            MEDIA_CATEGORY_TYPE_USER_ALBUMS
+    })
     @Retention(SOURCE)
-    public @interface MediaCategoryTypes {}
+    public @interface MediaCategoryType {}
 
     /**
      * Represents a search suggestion provided by the {@link CloudMediaProvider}.
@@ -1411,43 +1417,48 @@ public final class CloudMediaProviderContract {
      * Represents a generic text search suggestion. This can be treated as a default when the type
      * of search suggestions is unknown.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_TEXT = 0;
+    public static final String SEARCH_SUGGESTION_TEXT =
+            "com.android.providers.media.SEARCH_SUGGESTION_TEXT";
 
     /**
      * Suggestion based on faces detected in photos.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_FACE = 1;
+    public static final String SEARCH_SUGGESTION_FACE =
+            "com.android.providers.media.SEARCH_SUGGESTION_FACE";
 
     /**
      * Suggestion based on location data associated with photos.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_LOCATION = 2;
+    public static final String SEARCH_SUGGESTION_LOCATION =
+            "com.android.providers.media.SEARCH_SUGGESTION_LOCATION";
 
     /**
      * Suggestion based on the date photos were taken.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_DATE = 3;
+    public static final String SEARCH_SUGGESTION_DATE =
+            "com.android.providers.media.SEARCH_SUGGESTION_DATE";
 
 
     /**
      * Suggestion based on user albums.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_ALBUM = 4;
+    public static final String SEARCH_SUGGESTION_ALBUM =
+            "com.android.providers.media.SEARCH_SUGGESTION_ALBUM";
 
     /**
      * Defines the different types of search suggestions available and supported in photo picker.
@@ -1455,7 +1466,7 @@ public final class CloudMediaProviderContract {
      * @see SearchSuggestionColumns#TYPE
      * @hide
      */
-    @IntDef(value = {
+    @StringDef(value = {
             SEARCH_SUGGESTION_TEXT,
             SEARCH_SUGGESTION_FACE,
             SEARCH_SUGGESTION_LOCATION,
@@ -1463,5 +1474,5 @@ public final class CloudMediaProviderContract {
             SEARCH_SUGGESTION_ALBUM
     })
     @Retention(SOURCE)
-    public @interface SEARCH_SUGGESTION_ALBUM {}
+    public @interface SearchSuggestionType {}
 }

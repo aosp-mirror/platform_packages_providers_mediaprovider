@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.util;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -29,7 +31,6 @@ import android.provider.MediaStore;
 import com.android.providers.media.MediaGrants;
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 
 public class PickerDbTestUtils {
     public static final long SIZE_BYTES = 7000;
@@ -324,7 +325,7 @@ public class PickerDbTestUtils {
         String[] projectionValue = new String[]{
                 mediaSetId,
                 "display_text",
-                SearchSuggestionType.ALBUM.name(),
+                SEARCH_SUGGESTION_ALBUM,
                 CLOUD_ID_1,
         };
 

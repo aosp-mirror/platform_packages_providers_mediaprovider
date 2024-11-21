@@ -16,6 +16,11 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_HISTORY;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_FACE;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_LOCATION;
+
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.content.Context;
@@ -32,7 +37,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import org.junit.After;
@@ -99,7 +103,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isNull();
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(result.getSearchSuggestionType())
-                .isEqualTo(SearchSuggestionType.HISTORY);
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
     }
 
     @Test
@@ -111,7 +115,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetID,
                 authority,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 null
         );
 
@@ -143,7 +147,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isEqualTo(authority);
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(result.getSearchSuggestionType())
-                .isEqualTo(SearchSuggestionType.HISTORY);
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
     }
 
     @Test
@@ -155,7 +159,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetID,
                 authority,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 null
         );
 
@@ -194,7 +198,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetId2,
                 authority2,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 null
         );
 
@@ -226,7 +230,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isEqualTo(authority2);
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(firstSuggestion.getSearchSuggestionType())
-                .isEqualTo(SearchSuggestionType.HISTORY);
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
 
         final SearchSuggestion secondSuggestion = searchSuggestions.get(1);
         assertWithMessage("Search history search text is not as expected")
@@ -240,7 +244,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isNull();
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(secondSuggestion.getSearchSuggestionType())
-                .isEqualTo(SearchSuggestionType.HISTORY);
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
     }
 
     @Test
@@ -260,7 +264,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetId2,
                 authority2,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 null
         );
 
@@ -294,7 +298,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isEqualTo(authority2);
         assertWithMessage("Search history suggestion type is not as expected")
                 .that(result.getSearchSuggestionType())
-                .isEqualTo(SearchSuggestionType.HISTORY);
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
     }
 
     @Test
@@ -312,7 +316,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 searchText2,
                 "mediaSetId",
                 "authority",
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 null
         );
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
@@ -346,7 +350,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ "mountains",
                 /* mediaSetId */ "media-set-id",
                 authority,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 /* coverMediaId */ "media-id"
         );
 
@@ -383,7 +387,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 mediaSetId1,
                 authority1,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 /* coverMediaId */ null
         );
 
@@ -393,7 +397,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 mediaSetId2,
                 authority2,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 /* coverMediaId */ null
         );
 
@@ -402,7 +406,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 mediaSetId3,
                 authority2,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 /* coverMediaId */ null
         );
 
@@ -477,7 +481,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 searchText1,
                 mediaSetId1,
                 authority,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 /* coverMediaId */ null
         );
 
@@ -487,7 +491,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 searchText2,
                 mediaSetId2,
                 authority,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 /* coverMediaId */ null
         );
 
@@ -497,7 +501,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 searchText3,
                 mediaSetId3,
                 authority,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 /* coverMediaId */ null
         );
 
@@ -535,7 +539,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 /* mediaSetId */ null,
                 authority,
-                SearchSuggestionType.LOCATION,
+                SEARCH_SUGGESTION_LOCATION,
                 /* coverMediaId */ null
         );
 
@@ -564,7 +568,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 "media-set-id",
                 authority,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 /* coverMediaId */ null
         );
 
@@ -589,7 +593,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 /* searchText */ null,
                 "media-set-id",
                 authority,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 /* coverMediaId */ null
         );
 
@@ -619,7 +623,7 @@ public class SearchSuggestionsDatabaseUtilTest {
             cursor.addRow(List.of(
                     searchSuggestion.getMediaSetId(),
                     searchSuggestion.getSearchText(),
-                    searchSuggestion.getSearchSuggestionType().name(),
+                    searchSuggestion.getSearchSuggestionType(),
                     searchSuggestion.getCoverMediaId()
             ).toArray(new Object[4]));
         }

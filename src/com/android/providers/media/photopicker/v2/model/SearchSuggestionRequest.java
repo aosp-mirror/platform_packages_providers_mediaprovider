@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import android.provider.CloudMediaProviderContract.SearchSuggestionType;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -33,7 +35,7 @@ public class SearchSuggestionRequest extends SearchRequest {
             @Nullable String searchText,
             @NonNull String mediaSetId,
             @NonNull String authority,
-            @NonNull SearchSuggestionType searchSuggestionType,
+            @SearchSuggestionType String searchSuggestionType,
             @Nullable String resumeKey) {
         this(mimeTypes, searchText, mediaSetId, authority, searchSuggestionType, resumeKey,
                 /* coverMediaSetId */ null);
@@ -44,7 +46,7 @@ public class SearchSuggestionRequest extends SearchRequest {
             @Nullable String searchText,
             @NonNull String mediaSetId,
             @NonNull String authority,
-            @NonNull SearchSuggestionType searchSuggestionType,
+            @SearchSuggestionType String searchSuggestionType,
             @Nullable String resumeKey,
             @Nullable String coverMediaId) {
         super(mimeTypes, resumeKey);

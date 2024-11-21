@@ -307,22 +307,25 @@ private fun NavigationBarWithSearch(modifier: Modifier, params: LocationParams) 
                 maxSlots = 1,
                 modifier = Modifier.padding(start = 8.dp),
             )
-            Row(modifier = Modifier, horizontalArrangement = Arrangement.End) {
-                val overFlowMenuEnabled =
-                    remember(featureManager) {
-                        featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
-                    }
-                if (overFlowMenuEnabled) {
+            val overFlowMenuEnabled =
+                remember(featureManager) {
+                    featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+                }
+            if (
+                overFlowMenuEnabled &&
+                    LocalFeatureManager.current.getSizeOfLocationInRegistry(
+                        Location.OVERFLOW_MENU_ITEMS
+                    ) > 0
+            ) {
+                Row(modifier = Modifier, horizontalArrangement = Arrangement.End) {
                     featureManager.composeLocation(
                         Location.OVERFLOW_MENU,
                         modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
                     )
-                } else {
-                    Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
                 }
             }
         }
-        NavigationBarButtons(Modifier)
+        NavigationBarButtons(Modifier.padding(start = 8.dp, end = 8.dp))
     }
 }
 

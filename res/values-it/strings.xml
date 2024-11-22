@@ -164,7 +164,7 @@
     <string name="transcode_progress_channel" msgid="6122609645085712101">"Avanzamento transcodifica"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Riprova più tardi. Le tue foto saranno disponibili dopo aver risolto il problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Impossibile caricare alcune foto"</string>
-    <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Ok"</string>
     <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Accedi al nome del pacchetto del proprietario dei media"</string>
     <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Consente all\'app di accedere ai nomi di tutti i file multimediali accessibili dei pacchetti del proprietario."</string>
 </resources>

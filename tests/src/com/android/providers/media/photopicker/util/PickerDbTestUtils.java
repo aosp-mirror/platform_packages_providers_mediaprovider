@@ -334,6 +334,32 @@ public class PickerDbTestUtils {
         return c;
     }
 
+    public static Cursor getMediaCategoriesCursor(String categoryId) {
+        String[] projectionKey = new String[]{
+                CloudMediaProviderContract.MediaCategoryColumns.ID,
+                CloudMediaProviderContract.MediaCategoryColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_CATEGORY_TYPE,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID1,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID2,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID3,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID4,
+        };
+
+        String[] projectionValue = new String[]{
+                categoryId,
+                "display_text",
+                CloudMediaProviderContract.MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS,
+                CLOUD_ID_1,
+                CLOUD_ID_2,
+                /* MEDIA_COVER_ID3 */ null,
+                /* MEDIA_COVER_ID4 */ null
+        };
+
+        MatrixCursor c = new MatrixCursor(
+                CloudMediaProviderContract.MediaCategoryColumns.ALL_PROJECTION);
+        c.addRow(projectionValue);
+        return c;
+    }
     public static String toMediaStoreUri(String localId) {
         if (localId == null) {
             return null;

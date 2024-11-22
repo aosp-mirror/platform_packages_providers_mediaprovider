@@ -218,12 +218,10 @@ constructor(
      * PhotoGrid composable.
      */
     fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
-        // TODO Replace UNSET_MEDIA_LOCATION with the correct enum after it is added.
-        // Update the selectable values in the received media object.
         val updatedMediaItem =
             Media.withSelectable(
                 item,
-                /* selectionSource */ Telemetry.MediaLocation.UNSET_MEDIA_LOCATION,
+                /* selectionSource */ Telemetry.MediaLocation.SEARCH_GRID,
                 /* album */ null,
             )
         scope.launch {

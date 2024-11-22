@@ -20,12 +20,15 @@ import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_LINEA
 import static android.graphics.pdf.PdfLinearizationTypes.PDF_DOCUMENT_TYPE_NON_LINEARIZED;
 
 import android.annotation.FlaggedApi;
+import android.annotation.IntRange;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.pdf.component.PdfAnnotation;
+import android.graphics.pdf.component.PdfAnnotationType;
 import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
@@ -562,6 +565,82 @@ public class PdfProcessor {
             saveAs(destination);
         }
     }
+
+    /**
+     * Return list of supported {@link PdfAnnotation} present on the
+     * page. See {@link PdfAnnotationType} for the supported types
+     * <p>
+     * The list will be empty if there are no supported
+     * annotations present on the page, even if the page
+     * contains other annotation types.
+     *
+     * @param pageNum page number whose annotations' list to be retrieved
+     * @return list of supported annotations present on the page
+     */
+    @NonNull
+    public List<PdfAnnotation> getPageAnnotations(@IntRange(from = 0) int pageNum) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageAnnotations(pageNum);
+        }
+    }
+    /**
+     * Adds the given annotation to the page. The annotation should be of
+     * supported type. See {@link PdfAnnotationType} for the supported types
+     *
+     * @param annotation the {@link PdfAnnotation} object to
+     *        add
+     * @param pageNum the page number where the annotation to be added
+     * @return the index of the added annotation,
+     *         or -1 if the annotation cannot be added. The
+     *         index is guaranteed to be non-negative if
+     *         the annotation is added successfully.
+     */
+    public int addPageAnnotation(@IntRange(from = 0) int pageNum,
+            PdfAnnotation annotation) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.addPageAnnotation(pageNum, annotation);
+        }
+    }
+
+    /**
+     * Removes the annotation with the specified index.
+     *
+     * @param annotationIndex the index of the annotation to remove
+     * from the page
+     * @param pageNum page number from which annotation is to be removed
+     * @return the removed annotation
+     *
+     */
+    public PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
+            int annotationIndex) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.removePageAnnotation(pageNum, annotationIndex);
+        }
+    }
+
+    /**
+     * Update the given {@link PdfAnnotation} to the page.
+     *
+     * @param annotation the annotation to update
+     *
+     * @return true if annotation is updated, false otherwise
+     *
+     * @throws IllegalArgumentException f the provided annotation is null or of
+     *         unsupported type i.e. {@link PdfAnnotationType#UNKNOWN}
+     *
+     **/
+    @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+    public boolean updatePageAnnotation(int pageNum,
+            @NonNull PdfAnnotation annotation) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.updatePageAnnotation(pageNum, annotation);
+        }
+    }
+
 
     /**
      * Creates a copy of the current document without security, if it is password protected. This

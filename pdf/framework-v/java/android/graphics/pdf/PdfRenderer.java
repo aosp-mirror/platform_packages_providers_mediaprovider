@@ -32,6 +32,8 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.pdf.component.PdfAnnotation;
+import android.graphics.pdf.component.PdfAnnotationType;
 import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
@@ -775,6 +777,108 @@ public final class PdfRenderer implements AutoCloseable {
         public List<Rect> applyEdit(@NonNull FormEditRecord editRecord) {
             throwIfDocumentOrPageClosed();
             return mPdfProcessor.applyEdit(mIndex, editRecord);
+        }
+
+        /**
+         * Return a list of supported {@link PdfAnnotation} present on the
+         * page. See {@link PdfAnnotationType} for the supported types
+         * <p>
+         * The list will be empty if there are no supported
+         * annotations present on the page, even if the page
+         * contains other annotation types.
+         *
+         * @return list of supported annotations present on the page
+         * @throws IllegalStateException if {@link PdfRenderer} or {@link PdfRenderer.Page}
+         *         is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_ANNOTATIONS)
+        @NonNull
+        public List<PdfAnnotation> getPageAnnotations() {
+            throwIfDocumentOrPageClosed();
+            return mPdfProcessor.getPageAnnotations(mIndex);
+
+        }
+
+        /**
+         * Adds the given annotation to the page. The annotation should be of
+         * supported type. See {@link PdfAnnotationType} for the supported types
+         *
+         * @param annotation the {@link PdfAnnotation} object to
+         *        add
+         * @return id of the added annotation,
+         *         or -1 if the annotation cannot be added. The
+         *         id is guaranteed to be non-negative if
+         *         the annotation is added successfully.
+         * @throws IllegalArgumentException if the provided
+         *         annotation is null or of unsupported type i.e.-
+         *         {@link PdfAnnotationType#UNKNOWN} or if the annotation is already
+         *         added in this page or some other page of the document.
+         * @throws IllegalStateException if {@link PdfRenderer} or {@link PdfRenderer.Page}
+         *         is closed before invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_ANNOTATIONS)
+        public int addPageAnnotation(@androidx.annotation.NonNull PdfAnnotation annotation) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkNotNull(annotation, "Annotation should not be null");
+            Preconditions.checkArgument(
+                    annotation.getPdfAnnotationType() != PdfAnnotationType.UNKNOWN,
+                    "Annotation should be of valid type");
+            Preconditions.checkArgument(annotation.getId() != -1,
+                    "Annotation already added");
+            return mPdfProcessor.addPageAnnotation(mIndex, annotation);
+        }
+
+        /**
+         * Removes the annotation with the specified id.
+         *
+         * @param annotationId id of the annotation to remove from the page
+         * @return the removed annotation
+         *
+         * @throws IllegalArgumentException if annotationId ie negative
+         *
+         * @throws IllegalStateException if {@link PdfRendererPreV} or
+         *        {@link PdfRendererPreV.Page} is closed before invocation or if
+         *        annotation is failed to get removed from the page.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_ANNOTATIONS)
+        @androidx.annotation.NonNull
+        public PdfAnnotation removePageAnnotation(int annotationId) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkArgument(annotationId >= 0,
+                    "Annotation id should be non-negative");
+            PdfAnnotation removedAnnotation = mPdfProcessor.removePageAnnotation(mIndex,
+                    annotationId);
+            if (removedAnnotation == null) {
+                throw new IllegalStateException(
+                        "Failed to remove annotation with id " + annotationId);
+            }
+            return removedAnnotation;
+        }
+
+        /**
+         * Update the given {@link PdfAnnotation} to the page.
+         *
+         * @param annotation the annotation to update
+         *
+         * @return true if annotation is updated, false otherwise
+         *
+         * @throws IllegalArgumentException if the provided annotation is null or of
+         *         unsupported type i.e. {@link PdfAnnotationType#UNKNOWN}
+         *
+         * @throws IllegalStateException if {@link PdfRendererPreV} or
+         *         {@link PdfRendererPreV.Page}  is closed before invocation
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_ANNOTATIONS)
+        public boolean updatePageAnnotation(@androidx.annotation.NonNull PdfAnnotation annotation) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkNotNull(annotation, "PdfAnnotation should not be null");
+            Preconditions.checkArgument(
+                    annotation.getPdfAnnotationType() != PdfAnnotationType.UNKNOWN,
+                    "Annotation should be of valid type");
+
+            Preconditions.checkArgument(annotation.getId() >= 0,
+                    "Annotation id should be greater than equal to 0");
+            return mPdfProcessor.updatePageAnnotation(mIndex, annotation);
         }
 
         /**

@@ -16,8 +16,11 @@
 
 package android.graphics.pdf;
 
+import android.annotation.IntRange;
+import android.annotation.NonNull;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.pdf.component.PdfAnnotation;
 import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.jni.LinkRects;
@@ -253,4 +256,41 @@ public class PdfDocumentProxy {
      */
     public native List<Rect> setFormFieldSelectedIndices(
             int pageNum, int annotIndex, int[] selectedIndices);
+
+    /**
+     * Gets the list of annotations of supported types (freetext, image, stamp) present
+     * on the page
+     *
+     * @param pageNum - page number of the page whose annotations list is to be returned
+     */
+    public native @NonNull List<PdfAnnotation> getPageAnnotations(
+            @IntRange(from = 0) int pageNum);
+
+    /**
+     * Adds an annotation to the given page
+     *
+     * @param pageNum    - page number of the page to which annotation is to be added
+     * @param annotation - annotation to be added to the given page
+     * @return index of the annotation added and -1 in case of failure
+     */
+    public native int addPageAnnotation(@IntRange(from = 0) int pageNum,
+            @NonNull PdfAnnotation annotation);
+
+    /**
+     * Removes an annotation from the given page
+     *
+     * @param pageNum         - page number of the page from which annotation is to be removed
+     * @param annotationId - id of the annotation to be removed
+     */
+    public native PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
+            @IntRange(from = 0) int annotationId);
+
+    /**
+     * Updates an annotation on the given page
+     *
+     * @param pageNum     page number of the page on which annotation is to be updated
+     * @param annotation  annotation to be updated
+     */
+    public native boolean updatePageAnnotation(@IntRange(from = 0) int pageNum,
+            PdfAnnotation annotation);
 }

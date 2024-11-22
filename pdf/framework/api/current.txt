@@ -29,6 +29,7 @@ package android.graphics.pdf {
   }
 
   public final class PdfRendererPreV.Page implements java.lang.AutoCloseable {
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public int addPageAnnotation(@NonNull android.graphics.pdf.component.PdfAnnotation);
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public java.util.List<android.graphics.Rect> applyEdit(@NonNull android.graphics.pdf.models.FormEditRecord);
     method public void close();
     method @FlaggedApi("android.graphics.pdf.flags.enable_form_filling") @NonNull public android.graphics.pdf.models.FormWidgetInfo getFormWidgetInfoAtIndex(@IntRange(from=0) int);
@@ -40,11 +41,14 @@ package android.graphics.pdf {
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageImageContent> getImageContents();
     method @IntRange(from=0) public int getIndex();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageLinkContent> getLinkContents();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") @NonNull public java.util.List<android.graphics.pdf.component.PdfAnnotation> getPageAnnotations();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
     method @IntRange(from=0) public int getWidth();
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") @NonNull public android.graphics.pdf.component.PdfAnnotation removePageAnnotation(int);
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
     method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public boolean updatePageAnnotation(@NonNull android.graphics.pdf.component.PdfAnnotation);
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public final class RenderParams {
@@ -61,6 +65,40 @@ package android.graphics.pdf {
     method @NonNull public android.graphics.pdf.RenderParams build();
     method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int);
     method @NonNull public android.graphics.pdf.RenderParams.Builder setRenderFlags(int, int);
+  }
+
+}
+
+package android.graphics.pdf.component {
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_text_annotations") public final class FreeTextAnnotation extends android.graphics.pdf.component.PdfAnnotation {
+    ctor public FreeTextAnnotation(@NonNull android.graphics.RectF, @NonNull String);
+    method @ColorInt public int getBackgroundColor();
+    method @ColorInt public int getTextColor();
+    method @NonNull public String getTextContent();
+    method public void setBackgroundColor(@ColorInt int);
+    method public void setTextColor(@ColorInt int);
+    method public void setTextContent(@NonNull String);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public final class HighlightAnnotation extends android.graphics.pdf.component.PdfAnnotation {
+    ctor public HighlightAnnotation(@NonNull android.graphics.RectF);
+    method @ColorInt public int getColor();
+    method public void setColor(@ColorInt int);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public abstract class PdfAnnotation {
+    method @NonNull public android.graphics.RectF getBounds();
+    method public int getId();
+    method public int getPdfAnnotationType();
+    method public void setBounds(@NonNull android.graphics.RectF);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public final class PdfAnnotationType {
+    field @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_text_annotations") public static final int FREETEXT = 1; // 0x1
+    field public static final int HIGHLIGHT = 2; // 0x2
+    field public static final int STAMP = 3; // 0x3
+    field public static final int UNKNOWN = 0; // 0x0
   }
 
 }

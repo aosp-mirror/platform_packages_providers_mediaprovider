@@ -21,6 +21,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
+import android.annotation.StringDef;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -75,12 +76,12 @@ public final class CloudMediaProviderContract {
     public static final class Capabilities implements Parcelable {
 
         private boolean mSearchEnabled;
-        private boolean mMediaCollectionsEnabled;
+        private boolean mMediaCategoriesEnabled;
         private boolean mAlbumsAsCategory;
 
         Capabilities(@NonNull Builder builder) {
             this.mSearchEnabled = builder.mSearchEnabled;
-            this.mMediaCollectionsEnabled = builder.mMediaCollectionsEnabled;
+            this.mMediaCategoriesEnabled = builder.mMediaCategoriesEnabled;
             this.mAlbumsAsCategory = builder.mAlbumsAsCategoryEnabled;
         }
 
@@ -104,9 +105,9 @@ public final class CloudMediaProviderContract {
         }
 
         /**
-         * If the CloudMediaProvider supports MediaCollections.
+         * If the CloudMediaProvider supports MediaCategories.
          *
-         * In order for MediaCollections to be enabled the CloudMediaProvider needs to
+         * In order for MediaCategories to be enabled the CloudMediaProvider needs to
          * implement the following APIs:
          *
          * @see CloudMediaProvider#onQueryMediaCategories
@@ -114,11 +115,11 @@ public final class CloudMediaProviderContract {
          *
          * This capability is disabled by default.
          *
-         * @return true if media collections are enabled for this CloudMediaProvider.
+         * @return true if media categories are enabled for this CloudMediaProvider.
          */
         @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-        public boolean isMediaCollectionsEnabled() {
-            return mMediaCollectionsEnabled;
+        public boolean isMediaCategoriesEnabled() {
+            return mMediaCategoriesEnabled;
         }
 
         /**
@@ -132,7 +133,7 @@ public final class CloudMediaProviderContract {
         * then there will be no data for user custom albums.
         *
         * NOTE: This capability requires the
-        * {@link Capabilities#isMediaCollectionsEnabled} capability to also be enabled
+        * {@link Capabilities#isMediaCategoriesEnabled} capability to also be enabled
         * for the CloudMediaProvider. If it is not, this Capability has no effect and
         * will be ignored.
         *
@@ -163,7 +164,7 @@ public final class CloudMediaProviderContract {
         @Override
         public void writeToParcel(@NonNull Parcel dest, int flags) {
             dest.writeBoolean(mSearchEnabled);
-            dest.writeBoolean(mMediaCollectionsEnabled);
+            dest.writeBoolean(mMediaCategoriesEnabled);
             dest.writeBoolean(mAlbumsAsCategory);
         }
 
@@ -178,7 +179,7 @@ public final class CloudMediaProviderContract {
                     @Override
                     public Capabilities createFromParcel(Parcel source) {
                         boolean searchEnabled = source.readBoolean();
-                        boolean mediaCollectionsEnabled = source.readBoolean();
+                        boolean mediaCategoriesEnabled = source.readBoolean();
                         boolean mAlbumsAsCategoryEnabled = source.readBoolean();
 
                         Capabilities.Builder builder = new Capabilities.Builder();
@@ -186,7 +187,7 @@ public final class CloudMediaProviderContract {
                         if (Flags.cloudMediaProviderSearch()) {
                             builder
                                     .setSearchEnabled(searchEnabled)
-                                    .setMediaCollectionsEnabled(mediaCollectionsEnabled)
+                                    .setMediaCategoriesEnabled(mediaCategoriesEnabled)
                                     .setAlbumsAsCategoryEnabled(mAlbumsAsCategoryEnabled);
                         }
 
@@ -210,7 +211,7 @@ public final class CloudMediaProviderContract {
 
             // Default values for each capability. These are used if not explicitly changed.
             private boolean mSearchEnabled = false;
-            private boolean mMediaCollectionsEnabled = false;
+            private boolean mMediaCategoriesEnabled = false;
             private boolean mAlbumsAsCategoryEnabled = false;
 
             public Builder() {
@@ -234,7 +235,7 @@ public final class CloudMediaProviderContract {
             }
 
             /**
-             * The MediaCollections capability informs that collection related APIs are
+             * The MediaCategories capability informs that category related APIs are
              * supported and can be invoked on this provider.
              *
              * @see CloudMediaProvider#onQueryMediaCategories
@@ -244,8 +245,8 @@ public final class CloudMediaProviderContract {
              */
             @NonNull
             @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-            public Builder setMediaCollectionsEnabled(boolean enabled) {
-                mMediaCollectionsEnabled = enabled;
+            public Builder setMediaCategoriesEnabled(boolean enabled) {
+                mMediaCategoriesEnabled = enabled;
                 return this;
             }
 
@@ -260,7 +261,7 @@ public final class CloudMediaProviderContract {
              * then there will be no data for user custom albums.
              *
              * NOTE: This capability requires the
-             * {@link Capabilities#isMediaCollectionsEnabled} capability to also be enabled
+             * {@link Capabilities#isMediaCategoriesEnabled} capability to also be enabled
              * for the CloudMediaProvider. If it is not, this Capability has no effect and
              * will be ignored.
              *
@@ -1306,19 +1307,21 @@ public final class CloudMediaProviderContract {
     /**
      * Represents media category related to faces of people and pets.
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = 1;
+    public static final String MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS =
+            "com.android.providers.media.MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS";
 
     /**
      * Represents media category related to a user's custom albums.
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
-     * Type: INTEGER
+     * Type: STRING
      *
      * @hide
      */
-    public static final int MEDIA_CATEGORY_TYPE_USER_ALBUMS = 2;
+    public static final String MEDIA_CATEGORY_TYPE_USER_ALBUMS =
+            "com.android.providers.media.MEDIA_CATEGORY_TYPE_USER_ALBUMS";
 
     /**
      * Defines the types of media categories available and supported in photo picker.
@@ -1327,9 +1330,12 @@ public final class CloudMediaProviderContract {
      * @see MediaCategoryColumns#MEDIA_CATEGORY_TYPE
      * @hide
      */
-    @IntDef(value = {MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS, MEDIA_CATEGORY_TYPE_USER_ALBUMS})
+    @StringDef(value = {
+            MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS,
+            MEDIA_CATEGORY_TYPE_USER_ALBUMS
+    })
     @Retention(SOURCE)
-    public @interface MediaCategoryTypes {}
+    public @interface MediaCategoryType {}
 
     /**
      * Represents a search suggestion provided by the {@link CloudMediaProvider}.
@@ -1411,43 +1417,58 @@ public final class CloudMediaProviderContract {
      * Represents a generic text search suggestion. This can be treated as a default when the type
      * of search suggestions is unknown.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_TEXT = 0;
+    public static final String SEARCH_SUGGESTION_TEXT =
+            "com.android.providers.media.SEARCH_SUGGESTION_TEXT";
 
     /**
      * Suggestion based on faces detected in photos.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_FACE = 1;
+    public static final String SEARCH_SUGGESTION_FACE =
+            "com.android.providers.media.SEARCH_SUGGESTION_FACE";
 
     /**
      * Suggestion based on location data associated with photos.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_LOCATION = 2;
+    public static final String SEARCH_SUGGESTION_LOCATION =
+            "com.android.providers.media.SEARCH_SUGGESTION_LOCATION";
 
     /**
      * Suggestion based on the date photos were taken.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_DATE = 3;
+    public static final String SEARCH_SUGGESTION_DATE =
+            "com.android.providers.media.SEARCH_SUGGESTION_DATE";
 
 
     /**
      * Suggestion based on user albums.
      * @see SearchSuggestionColumns#TYPE
-     * Type: INTEGER
+     * Type: STRING
      */
     @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-    public static final int SEARCH_SUGGESTION_ALBUM = 4;
+    public static final String SEARCH_SUGGESTION_ALBUM =
+            "com.android.providers.media.SEARCH_SUGGESTION_ALBUM";
+
+    /**
+     * Suggestion based on user's search history.
+     * @see SearchSuggestionColumns#TYPE
+     * Type: STRING
+     *
+     * @hide
+     */
+    public static final String SEARCH_SUGGESTION_HISTORY =
+            "com.android.providers.media.SEARCH_SUGGESTION_HISTORY";
 
     /**
      * Defines the different types of search suggestions available and supported in photo picker.
@@ -1455,13 +1476,14 @@ public final class CloudMediaProviderContract {
      * @see SearchSuggestionColumns#TYPE
      * @hide
      */
-    @IntDef(value = {
+    @StringDef(value = {
             SEARCH_SUGGESTION_TEXT,
             SEARCH_SUGGESTION_FACE,
             SEARCH_SUGGESTION_LOCATION,
             SEARCH_SUGGESTION_DATE,
-            SEARCH_SUGGESTION_ALBUM
+            SEARCH_SUGGESTION_ALBUM,
+            SEARCH_SUGGESTION_HISTORY
     })
     @Retention(SOURCE)
-    public @interface SEARCH_SUGGESTION_ALBUM {}
+    public @interface SearchSuggestionType {}
 }

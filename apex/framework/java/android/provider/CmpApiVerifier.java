@@ -170,7 +170,7 @@ final class CmpApiVerifier {
                 // Verify CMP search capabilities if the search flag is on.
                 if (Flags.cloudMediaProviderSearch()) {
                     if (capabilities.isAlbumsAsCategoryEnabled()
-                            && !capabilities.isMediaCollectionsEnabled()) {
+                            && !capabilities.isMediaCategoriesEnabled()) {
                         errors.add(createIsNotValidLog("Declared capabilities are invalid. "
                                 + "AlbumsAsCategory capability can only be enabled when "
                                 + "MediaCollections is enabled."));

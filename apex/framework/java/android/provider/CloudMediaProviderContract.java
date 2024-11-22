@@ -75,12 +75,12 @@ public final class CloudMediaProviderContract {
     public static final class Capabilities implements Parcelable {
 
         private boolean mSearchEnabled;
-        private boolean mMediaCollectionsEnabled;
+        private boolean mMediaCategoriesEnabled;
         private boolean mAlbumsAsCategory;
 
         Capabilities(@NonNull Builder builder) {
             this.mSearchEnabled = builder.mSearchEnabled;
-            this.mMediaCollectionsEnabled = builder.mMediaCollectionsEnabled;
+            this.mMediaCategoriesEnabled = builder.mMediaCategoriesEnabled;
             this.mAlbumsAsCategory = builder.mAlbumsAsCategoryEnabled;
         }
 
@@ -104,9 +104,9 @@ public final class CloudMediaProviderContract {
         }
 
         /**
-         * If the CloudMediaProvider supports MediaCollections.
+         * If the CloudMediaProvider supports MediaCategories.
          *
-         * In order for MediaCollections to be enabled the CloudMediaProvider needs to
+         * In order for MediaCategories to be enabled the CloudMediaProvider needs to
          * implement the following APIs:
          *
          * @see CloudMediaProvider#onQueryMediaCategories
@@ -114,11 +114,11 @@ public final class CloudMediaProviderContract {
          *
          * This capability is disabled by default.
          *
-         * @return true if media collections are enabled for this CloudMediaProvider.
+         * @return true if media categories are enabled for this CloudMediaProvider.
          */
         @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-        public boolean isMediaCollectionsEnabled() {
-            return mMediaCollectionsEnabled;
+        public boolean isMediaCategoriesEnabled() {
+            return mMediaCategoriesEnabled;
         }
 
         /**
@@ -132,7 +132,7 @@ public final class CloudMediaProviderContract {
         * then there will be no data for user custom albums.
         *
         * NOTE: This capability requires the
-        * {@link Capabilities#isMediaCollectionsEnabled} capability to also be enabled
+        * {@link Capabilities#isMediaCategoriesEnabled} capability to also be enabled
         * for the CloudMediaProvider. If it is not, this Capability has no effect and
         * will be ignored.
         *
@@ -163,7 +163,7 @@ public final class CloudMediaProviderContract {
         @Override
         public void writeToParcel(@NonNull Parcel dest, int flags) {
             dest.writeBoolean(mSearchEnabled);
-            dest.writeBoolean(mMediaCollectionsEnabled);
+            dest.writeBoolean(mMediaCategoriesEnabled);
             dest.writeBoolean(mAlbumsAsCategory);
         }
 
@@ -178,7 +178,7 @@ public final class CloudMediaProviderContract {
                     @Override
                     public Capabilities createFromParcel(Parcel source) {
                         boolean searchEnabled = source.readBoolean();
-                        boolean mediaCollectionsEnabled = source.readBoolean();
+                        boolean mediaCategoriesEnabled = source.readBoolean();
                         boolean mAlbumsAsCategoryEnabled = source.readBoolean();
 
                         Capabilities.Builder builder = new Capabilities.Builder();
@@ -186,7 +186,7 @@ public final class CloudMediaProviderContract {
                         if (Flags.cloudMediaProviderSearch()) {
                             builder
                                     .setSearchEnabled(searchEnabled)
-                                    .setMediaCollectionsEnabled(mediaCollectionsEnabled)
+                                    .setMediaCategoriesEnabled(mediaCategoriesEnabled)
                                     .setAlbumsAsCategoryEnabled(mAlbumsAsCategoryEnabled);
                         }
 
@@ -210,7 +210,7 @@ public final class CloudMediaProviderContract {
 
             // Default values for each capability. These are used if not explicitly changed.
             private boolean mSearchEnabled = false;
-            private boolean mMediaCollectionsEnabled = false;
+            private boolean mMediaCategoriesEnabled = false;
             private boolean mAlbumsAsCategoryEnabled = false;
 
             public Builder() {
@@ -234,7 +234,7 @@ public final class CloudMediaProviderContract {
             }
 
             /**
-             * The MediaCollections capability informs that collection related APIs are
+             * The MediaCategories capability informs that category related APIs are
              * supported and can be invoked on this provider.
              *
              * @see CloudMediaProvider#onQueryMediaCategories
@@ -244,8 +244,8 @@ public final class CloudMediaProviderContract {
              */
             @NonNull
             @FlaggedApi(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
-            public Builder setMediaCollectionsEnabled(boolean enabled) {
-                mMediaCollectionsEnabled = enabled;
+            public Builder setMediaCategoriesEnabled(boolean enabled) {
+                mMediaCategoriesEnabled = enabled;
                 return this;
             }
 
@@ -260,7 +260,7 @@ public final class CloudMediaProviderContract {
              * then there will be no data for user custom albums.
              *
              * NOTE: This capability requires the
-             * {@link Capabilities#isMediaCollectionsEnabled} capability to also be enabled
+             * {@link Capabilities#isMediaCategoriesEnabled} capability to also be enabled
              * for the CloudMediaProvider. If it is not, this Capability has no effect and
              * will be ignored.
              *

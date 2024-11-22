@@ -124,7 +124,7 @@ public class SearchSuggestionsProvider {
             row.add(suggestion.getAuthority());
             row.add(suggestion.getMediaSetId());
             row.add(suggestion.getSearchText());
-            row.add(suggestion.getSearchSuggestionType().name());
+            row.add(suggestion.getSearchSuggestionType());
             row.add(coverMediaUri);
             cursor.addRow(row.toArray(new Object[5]));
         }

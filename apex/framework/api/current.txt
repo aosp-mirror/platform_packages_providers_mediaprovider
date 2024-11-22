@@ -90,7 +90,7 @@ package android.provider {
 
   @FlaggedApi("com.android.providers.media.flags.enable_cloud_media_provider_capabilities") public static final class CloudMediaProviderContract.Capabilities implements android.os.Parcelable {
     method public int describeContents();
-    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isMediaCollectionsEnabled();
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isMediaCategoriesEnabled();
     method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isSearchEnabled();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.provider.CloudMediaProviderContract.Capabilities> CREATOR;
@@ -99,7 +99,7 @@ package android.provider {
   @FlaggedApi("com.android.providers.media.flags.enable_cloud_media_provider_capabilities") public static final class CloudMediaProviderContract.Capabilities.Builder {
     ctor public CloudMediaProviderContract.Capabilities.Builder();
     method @NonNull public android.provider.CloudMediaProviderContract.Capabilities build();
-    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setMediaCollectionsEnabled(boolean);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setMediaCategoriesEnabled(boolean);
     method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setSearchEnabled(boolean);
   }
 

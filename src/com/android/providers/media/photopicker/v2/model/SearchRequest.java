@@ -60,7 +60,7 @@ public abstract class SearchRequest {
                 searchText,
                 mediaSetId,
                 suggestionAuthority,
-                SearchSuggestionType.valueOf(searchSuggestionType),
+                searchSuggestionType,
                 /* resumeKey */ null
             );
         } else {

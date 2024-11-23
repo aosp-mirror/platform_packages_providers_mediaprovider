@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.MediaGrants.MEDIA_GRANTS_TABLE;
 import static com.android.providers.media.MediaGrants.OWNER_PACKAGE_NAME_COLUMN;
 import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
@@ -73,7 +75,6 @@ import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchMediaQuery;
@@ -1086,7 +1087,7 @@ public class PickerDataLayerV2 {
         if (searchRequest instanceof SearchSuggestionRequest) {
             final SearchSuggestion suggestion =
                     ((SearchSuggestionRequest) searchRequest).getSearchSuggestion();
-            if (suggestion.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
+            if (suggestion.getSearchSuggestionType() == SEARCH_SUGGESTION_ALBUM) {
                 if (!syncController.getLocalProvider().equals(suggestion.getAuthority())) {
                     Log.d(TAG, "Album search suggestion does not belong to local provider. "
                             + "Not syncing search results with local provider for request id "
@@ -1131,7 +1132,7 @@ public class PickerDataLayerV2 {
         if (searchRequest instanceof SearchSuggestionRequest) {
             final SearchSuggestion suggestion =
                     ((SearchSuggestionRequest) searchRequest).getSearchSuggestion();
-            if (suggestion.getSearchSuggestionType() == SearchSuggestionType.ALBUM) {
+            if (suggestion.getSearchSuggestionType() == SEARCH_SUGGESTION_ALBUM) {
                 if (!cloudAuthority.equals(suggestion.getAuthority())) {
                     Log.d(TAG, "Album search suggestion does not belong to cloud provider. "
                             + "Not syncing search results with cloud provider for request id "

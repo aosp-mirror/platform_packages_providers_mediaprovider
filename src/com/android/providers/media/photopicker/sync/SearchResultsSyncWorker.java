@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
@@ -42,7 +44,6 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 import com.android.providers.media.photopicker.v2.sqlite.SearchRequestDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.SearchResultsDatabaseUtil;
@@ -254,7 +255,7 @@ public class SearchResultsSyncWorker extends Worker {
         }
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
             if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
-                    == SearchSuggestionType.ALBUM) {
+                    == SEARCH_SUGGESTION_ALBUM) {
                 final boolean isLocal =
                         isLocal(searchSuggestionRequest.getSearchSuggestion().getAuthority());
 
@@ -293,7 +294,7 @@ public class SearchResultsSyncWorker extends Worker {
         // available providers - local and cloud.
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
             if (searchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType()
-                    == SearchSuggestionType.ALBUM) {
+                    == SEARCH_SUGGESTION_ALBUM) {
                 if (!authority.equals(
                         searchSuggestionRequest.getSearchSuggestion().getAuthority())) {
                     throw new IllegalArgumentException(String.format(

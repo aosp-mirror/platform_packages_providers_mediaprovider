@@ -17,6 +17,8 @@
 package com.android.providers.media.photopicker.v2.sqlite;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_HISTORY;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_FACE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -33,7 +35,6 @@ import androidx.annotation.Nullable;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import java.util.ArrayList;
@@ -368,7 +369,7 @@ public class SearchSuggestionsDatabaseUtils {
         );
         contentValues.put(
                 PickerSQLConstants.SearchSuggestionsTableColumns.SUGGESTION_TYPE.getColumnName(),
-                suggestion.getSearchSuggestionType().name()
+                suggestion.getSearchSuggestionType()
         );
         contentValues.put(
                 PickerSQLConstants.SearchSuggestionsTableColumns.CREATION_TIME_MS.getColumnName(),
@@ -397,7 +398,7 @@ public class SearchSuggestionsDatabaseUtils {
                 CloudMediaProviderContract.SearchSuggestionColumns.DISPLAY_TEXT));
         final String mediaSetId = cursor.getString(cursor.getColumnIndexOrThrow(
                 CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_SET_ID));
-        final String rawSuggestionType = cursor.getString(cursor.getColumnIndexOrThrow(
+        final String suggestionType = cursor.getString(cursor.getColumnIndexOrThrow(
                 CloudMediaProviderContract.SearchSuggestionColumns.TYPE));
         final String coverMediaId = cursor.getString(cursor.getColumnIndexOrThrow(
                 CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_COVER_ID));
@@ -408,12 +409,11 @@ public class SearchSuggestionsDatabaseUtils {
         if (searchText.trim().isEmpty()) {
             searchText = null;
         }
-        if (rawSuggestionType == null) {
+        if (suggestionType == null) {
             throw new IllegalArgumentException("Suggestion type cannot be null");
         }
 
-        final SearchSuggestionType type = SearchSuggestionType.valueOf(rawSuggestionType);
-        if (searchText == null && (type != SearchSuggestionType.FACE)) {
+        if (searchText == null && (suggestionType != SEARCH_SUGGESTION_FACE)) {
             throw new IllegalArgumentException(
                     "Only FACE type suggestions can have null search text");
         }
@@ -422,7 +422,7 @@ public class SearchSuggestionsDatabaseUtils {
                 searchText,
                 mediaSetId,
                 authority,
-                SearchSuggestionType.valueOf(rawSuggestionType),
+                suggestionType,
                 coverMediaId
         );
     }
@@ -451,7 +451,7 @@ public class SearchSuggestionsDatabaseUtils {
                     searchText,
                     mediaSetId,
                     authority,
-                    SearchSuggestionType.HISTORY,
+                    SEARCH_SUGGESTION_HISTORY,
                     coverMediaId
             );
         } catch (RuntimeException e) {
@@ -491,7 +491,7 @@ public class SearchSuggestionsDatabaseUtils {
                     searchText,
                     mediaSetId,
                     authority,
-                    SearchSuggestionType.valueOf(type),
+                    type,
                     coverMediaId
             );
         } catch (RuntimeException e) {

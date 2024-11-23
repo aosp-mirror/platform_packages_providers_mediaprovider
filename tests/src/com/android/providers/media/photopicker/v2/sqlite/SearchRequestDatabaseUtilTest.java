@@ -16,6 +16,9 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_LOCATION;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_TEXT;
+
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.content.Context;
@@ -26,7 +29,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import org.junit.After;
@@ -83,7 +85,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
@@ -122,7 +124,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
@@ -152,7 +154,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "different-media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
@@ -280,7 +282,7 @@ public class SearchRequestDatabaseUtilTest {
         final String resumeKey = "RANDOM_RESUME_KEY";
         final String mediaSetID = "MEDIA-SET-ID";
         final String authority = "com.random.authority";
-        final SearchSuggestionType suggestionType = SearchSuggestionType.LOCATION;
+        final String suggestionType = SEARCH_SUGGESTION_LOCATION;
         SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
                 mimeTypes,
                 null,
@@ -341,7 +343,7 @@ public class SearchRequestDatabaseUtilTest {
         final List<String> mimeTypes = List.of("video/mp4", "image/*", "image/gif");
         final String mediaSetID = "MEDIA-SET-ID";
         final String authority = "com.random.authority";
-        final SearchSuggestionType suggestionType = SearchSuggestionType.LOCATION;
+        final String suggestionType = SEARCH_SUGGESTION_LOCATION;
         SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
                 mimeTypes,
                 null,

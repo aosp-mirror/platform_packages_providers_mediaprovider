@@ -70,13 +70,13 @@ package android.provider {
     field public static final String EXTRA_SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED = "android.provider.extra.SURFACE_CONTROLLER_AUDIO_MUTE_ENABLED";
     field public static final String EXTRA_SYNC_GENERATION = "android.provider.extra.SYNC_GENERATION";
     field public static final String MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION = "com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS";
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = 1; // 0x1
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS = "com.android.providers.media.MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS";
     field public static final String PROVIDER_INTERFACE = "android.content.action.CLOUD_MEDIA_PROVIDER";
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_ALBUM = 4; // 0x4
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_DATE = 3; // 0x3
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_FACE = 1; // 0x1
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_LOCATION = 2; // 0x2
-    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SEARCH_SUGGESTION_TEXT = 0; // 0x0
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String SEARCH_SUGGESTION_ALBUM = "com.android.providers.media.SEARCH_SUGGESTION_ALBUM";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String SEARCH_SUGGESTION_DATE = "com.android.providers.media.SEARCH_SUGGESTION_DATE";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String SEARCH_SUGGESTION_FACE = "com.android.providers.media.SEARCH_SUGGESTION_FACE";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String SEARCH_SUGGESTION_LOCATION = "com.android.providers.media.SEARCH_SUGGESTION_LOCATION";
+    field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final String SEARCH_SUGGESTION_TEXT = "com.android.providers.media.SEARCH_SUGGESTION_TEXT";
     field @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public static final int SORT_ORDER_DESC_DATE_TAKEN = 1; // 0x1
   }
 
@@ -90,7 +90,7 @@ package android.provider {
 
   @FlaggedApi("com.android.providers.media.flags.enable_cloud_media_provider_capabilities") public static final class CloudMediaProviderContract.Capabilities implements android.os.Parcelable {
     method public int describeContents();
-    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isMediaCollectionsEnabled();
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isMediaCategoriesEnabled();
     method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") public boolean isSearchEnabled();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.provider.CloudMediaProviderContract.Capabilities> CREATOR;
@@ -99,7 +99,7 @@ package android.provider {
   @FlaggedApi("com.android.providers.media.flags.enable_cloud_media_provider_capabilities") public static final class CloudMediaProviderContract.Capabilities.Builder {
     ctor public CloudMediaProviderContract.Capabilities.Builder();
     method @NonNull public android.provider.CloudMediaProviderContract.Capabilities build();
-    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setMediaCollectionsEnabled(boolean);
+    method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setMediaCategoriesEnabled(boolean);
     method @FlaggedApi("com.android.providers.media.flags.cloud_media_provider_search") @NonNull public android.provider.CloudMediaProviderContract.Capabilities.Builder setSearchEnabled(boolean);
   }
 

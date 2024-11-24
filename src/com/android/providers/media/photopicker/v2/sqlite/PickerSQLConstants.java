@@ -335,4 +335,41 @@ public class PickerSQLConstants {
             return mColumnName;
         }
     }
+
+    public enum MediaGroupResponseColumns {
+        /** Type of media group - Album, Category or MediaSet. This cannot be null. */
+        MEDIA_GROUP("media_group"),
+        /** Identifier received from CMP. This cannot be null. */
+        GROUP_ID("group_id"),
+        /** Identifier used in Picker Backend, if any. */
+        PICKER_ID("picker_id"),
+        /** Display name for the group, if any. */
+        DISPLAY_NAME("display_name"),
+        /** Source provider's authority. */
+        AUTHORITY("authority"),
+        /** Cover image Uri for the group. */
+        UNWRAPPED_COVER_URI("cover_uri_1"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_1("cover_uri_2"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_2("cover_uri_3"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_3("cover_uri_4"),
+        /** If the media group is category, this will be populated with the category type. */
+        CATEGORY_TYPE("category_type"),
+        /** True, if the media category is leaf category which contains media sets,
+         * otherwise false. */
+        IS_LEAF_CATEGORY("is_leaf_category");
+
+        private final String mColumnName;
+
+        MediaGroupResponseColumns(@NonNull String columnName) {
+            Objects.requireNonNull(columnName);
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
 }

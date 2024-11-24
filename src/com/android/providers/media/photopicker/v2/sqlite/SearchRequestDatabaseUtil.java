@@ -30,7 +30,6 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import java.util.List;
@@ -231,7 +230,7 @@ public class SearchRequestDatabaseUtil {
                                             .MEDIA_SET_ID.getColumnName()
                             )
                     );
-                    final SearchSuggestionType suggestionType = SearchSuggestionType.valueOf(
+                    final String suggestionType = requireNonNull(
                             getColumnValueOrNull(
                                     cursor,
                                     PickerSQLConstants.SearchRequestTableColumns
@@ -314,7 +313,7 @@ public class SearchRequestDatabaseUtil {
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_TYPE.getColumnName(),
                     getValueOrPlaceholder(searchSuggestionRequest.getSearchSuggestion()
-                            .getSearchSuggestionType().name()));
+                            .getSearchSuggestionType()));
         } else {
             throw new IllegalStateException(
                     "Could not identify search request type " + searchRequest);
@@ -344,7 +343,7 @@ public class SearchRequestDatabaseUtil {
             authority = getValueOrPlaceholder(searchSuggestionRequest
                     .getSearchSuggestion().getAuthority());
             suggestionType = getValueOrPlaceholder(searchSuggestionRequest
-                            .getSearchSuggestion().getSearchSuggestionType().name());
+                            .getSearchSuggestion().getSearchSuggestionType());
         } else {
             throw new IllegalStateException(
                     "Could not identify search request type " + searchRequest);

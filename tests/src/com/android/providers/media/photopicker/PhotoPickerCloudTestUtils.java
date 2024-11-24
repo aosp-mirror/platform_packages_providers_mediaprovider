@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker;
 
 import static android.Manifest.permission.READ_DEVICE_CONFIG;
+import static android.Manifest.permission.WRITE_ALLOWLISTED_DEVICE_CONFIG;
 import static android.Manifest.permission.WRITE_DEVICE_CONFIG;
 
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
@@ -108,7 +109,8 @@ public class PhotoPickerCloudTestUtils {
 
     private static void writeDeviceConfigProp(
             @NonNull String namespace, @NonNull String name, @NonNull String value) {
-        getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(WRITE_DEVICE_CONFIG);
+        getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(WRITE_DEVICE_CONFIG,
+                WRITE_ALLOWLISTED_DEVICE_CONFIG);
 
         try {
             DeviceConfig.setProperty(namespace, name, value, /* makeDefault= */ false);
@@ -118,7 +120,8 @@ public class PhotoPickerCloudTestUtils {
     }
 
     private static void deleteDeviceConfigProp(@NonNull String namespace, @NonNull String name) {
-        getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(WRITE_DEVICE_CONFIG);
+        getInstrumentation().getUiAutomation().adoptShellPermissionIdentity(WRITE_DEVICE_CONFIG,
+                WRITE_ALLOWLISTED_DEVICE_CONFIG);
         try {
             if (SdkLevel.isAtLeastU()) {
                 DeviceConfig.deleteProperty(namespace, name);

@@ -23,4 +23,5 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"کوئی نتیجہ نہیں ملا"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"ملتے جلتے الفاظ تلاش کرنے کی کوشش کریں"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"تجاویز"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"تلاش غیر فعال ہے۔"</string>
 </resources>

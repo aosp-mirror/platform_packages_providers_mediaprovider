@@ -309,7 +309,6 @@ open class Session(
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
             _host.release()
-            _host.surfacePackage?.release()
             _embeddedViewLifecycle.onDestroy()
         }
     }

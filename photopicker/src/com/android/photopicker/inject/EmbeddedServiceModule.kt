@@ -45,6 +45,7 @@ import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
 import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
 import dagger.Module
 import dagger.Provides
@@ -115,6 +116,7 @@ class EmbeddedServiceModule {
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
+        searchDataService: Lazy<SearchDataService>,
         events: Lazy<Events>,
     ): EmbeddedViewModelFactory {
         if (::embeddedViewModelFactory.isInitialized) {
@@ -127,6 +129,7 @@ class EmbeddedServiceModule {
                     configurationManager,
                     bannerManager,
                     dataService,
+                    searchDataService,
                     events,
                     featureManager,
                     selection,

@@ -17,8 +17,10 @@
 package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSearchResultsSyncAsComplete;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSearchResultsSyncRequests;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
 
 import static java.util.Objects.requireNonNull;
@@ -98,6 +100,8 @@ public class PickerSyncManager {
     public static final String IMMEDIATE_LOCAL_SYNC_WORK_NAME;
     private static final String IMMEDIATE_CLOUD_SYNC_WORK_NAME;
     public static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME;
     public static final String PERIODIC_ALBUM_RESET_WORK_NAME;
     private static final String ENDLESS_WORK_NAME;
     public static final String IMMEDIATE_GRANTS_SYNC_WORK_NAME;
@@ -108,6 +112,7 @@ public class PickerSyncManager {
         final String syncPeriodicPrefix = "SYNC_MEDIA_PERIODIC_";
         final String syncProactivePrefix = "SYNC_MEDIA_PROACTIVE_";
         final String syncImmediatePrefix = "SYNC_MEDIA_IMMEDIATE_";
+        final String syncSearchResultsImmediatePrefix = "SYNC_SEARCH_RESULTS_IMMEDIATE_";
         final String syncAllSuffix = "ALL";
         final String syncLocalSuffix = "LOCAL";
         final String syncCloudSuffix = "CLOUD";
@@ -121,40 +126,47 @@ public class PickerSyncManager {
         IMMEDIATE_LOCAL_SYNC_WORK_NAME = syncImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
         IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
+        IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncLocalSuffix;
+        IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncCloudSuffix;
         ENDLESS_WORK_NAME = "ENDLESS_WORK";
         SHOULD_SYNC_GRANTS = "SHOULD_SYNC_GRANTS";
         EXTRA_MIME_TYPES = "mime_types";
     }
 
     private final WorkManager mWorkManager;
-    private final ConfigStore mConfigStore;
     private final Context mContext;
 
-    public PickerSyncManager(@NonNull WorkManager workManager,
-            @NonNull Context context,
-            @NonNull ConfigStore configStore,
-            boolean shouldSchedulePeriodicSyncs) {
-        this(workManager, context, configStore, shouldSchedulePeriodicSyncs,
-                /* periodicSyncInitialDelay */10000L);
+    public PickerSyncManager(@NonNull WorkManager workManager, @NonNull Context context) {
+        mWorkManager = requireNonNull(workManager);
+        mContext = requireNonNull(context);
     }
 
-    public PickerSyncManager(@NonNull WorkManager workManager,
-            @NonNull Context context,
+    /**
+     * Schedule proactive periodic media syncs.
+     *
+     * @param configStore And instance of {@link ConfigStore} that holds all config info.
+     */
+    public void schedulePeriodicSync(@NonNull ConfigStore configStore) {
+        schedulePeriodicSync(configStore, /* periodicSyncInitialDelay */10000L);
+    }
+
+    /**
+     * Schedule proactive periodic media syncs.
+     *
+     * @param configStore And instance of {@link ConfigStore} that holds all the config info.
+     * @param periodicSyncInitialDelay Initial delay of periodic sync in milliseconds.
+     */
+    public void schedulePeriodicSync(
             @NonNull ConfigStore configStore,
-            boolean shouldSchedulePeriodicSyncs,
             long periodicSyncInitialDelay) {
-        mWorkManager = requireNonNull(workManager);
-        mConfigStore = requireNonNull(configStore);
-        mContext = requireNonNull(context);
+        requireNonNull(configStore);
 
         // Move to a background thread to remove from MediaProvider boot path.
         BackgroundThread.getHandler().postDelayed(
                 () -> {
                     try {
                         setUpEndlessWork();
-                        if (shouldSchedulePeriodicSyncs) {
-                            setUpPeriodicWork();
-                        }
+                        setUpPeriodicWork(configStore);
                     } catch (RuntimeException e) {
                         Log.e(TAG, "Could not schedule workers", e);
                     }
@@ -164,16 +176,19 @@ public class PickerSyncManager {
 
         // Subscribe to device config changes so we can enable periodic workers if Cloud
         // Photopicker is enabled.
-        mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::setUpPeriodicWork);
+        configStore.addOnChangeListener(
+                BackgroundThread.getExecutor(),
+                () -> setUpPeriodicWork(configStore));
     }
 
     /**
      * Will register new unique {@link Worker} for periodic sync and picker database maintenance if
      * the cloud photopicker experiment is currently enabled.
      */
-    private void setUpPeriodicWork() {
+    private void setUpPeriodicWork(@NonNull ConfigStore configStore) {
+        requireNonNull(configStore);
 
-        if (mConfigStore.isCloudMediaInPhotoPickerEnabled()) {
+        if (configStore.isCloudMediaInPhotoPickerEnabled()) {
             PickerSyncNotificationHelper.createNotificationChannel(mContext);
 
             schedulePeriodicSyncs();
@@ -284,9 +299,13 @@ public class PickerSyncManager {
      *
      * @param pickerSyncRequestExtras extras used to figure out which all syncs to trigger.
      */
-    public void syncMediaImmediately(PickerSyncRequestExtras pickerSyncRequestExtras) {
+    public void syncMediaImmediately(
+            @NonNull PickerSyncRequestExtras pickerSyncRequestExtras,
+            @NonNull ConfigStore configStore) {
+        requireNonNull(pickerSyncRequestExtras);
+        requireNonNull(configStore);
 
-        if (mConfigStore.isModernPickerEnabled()) {
+        if (configStore.isModernPickerEnabled()) {
             // sync for grants is only required for the modern picker, the java picker uses
             // MediaStore to directly fetch the grants for all purposes of selection.
             syncGrantsImmediately(
@@ -413,6 +432,46 @@ public class PickerSyncManager {
             Log.e(TAG, "Could not enqueue expedited picker sync request", e);
             markAlbumMediaSyncAsComplete(syncSource, resetRequest.getId());
             markAlbumMediaSyncAsComplete(syncSource, syncRequest.getId());
+        }
+    }
+
+    /**
+     * Use this method for reactive search results sync which are user action triggered.
+     *
+     * @param searchRequestId Identifier for the search request.
+     * @param syncSource indicates if the sync is required with local provider or cloud provider.
+     *                   Sync source cannot be both in this case.
+     * @param authority Authority of the provider.
+     */
+    public void syncSearchResultsForProvider(
+            int searchRequestId, @SyncSource int syncSource, String authority) {
+        final Data inputData =
+                new Data(
+                        Map.of(
+                                SYNC_WORKER_INPUT_AUTHORITY, authority,
+                                SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
+                                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+        final OneTimeWorkRequest syncRequest =
+                buildOneTimeWorkerRequest(SearchResultsSyncWorker.class, inputData);
+
+        // Track the new sync request
+        trackNewSearchResultsSyncRequests(syncSource, syncRequest.getId());
+
+        final String workName = syncSource == SYNC_LOCAL_ONLY
+                ? IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME
+                : IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME;
+        // Enqueue local or cloud sync request
+        try {
+            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
+                    workName,
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    syncRequest);
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue expedited search results sync request", e);
+            markSearchResultsSyncAsComplete(syncSource, syncRequest.getId());
         }
     }
 

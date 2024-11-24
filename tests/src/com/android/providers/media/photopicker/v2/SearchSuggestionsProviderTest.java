@@ -16,6 +16,10 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_HISTORY;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_FACE;
+
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -43,7 +47,6 @@ import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsQuery;
@@ -97,7 +100,7 @@ public class SearchSuggestionsProviderTest {
                 "search-text",
                 "media-set-id",
                 "authority",
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 null);
 
         final boolean result = SearchSuggestionsProvider
@@ -124,7 +127,7 @@ public class SearchSuggestionsProviderTest {
                 "search-text",
                 mediaSetId,
                 SearchProvider.AUTHORITY,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 null);
 
         final boolean result = SearchSuggestionsProvider
@@ -155,19 +158,19 @@ public class SearchSuggestionsProviderTest {
                 "album",
                 "album-set-id",
                 authority,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 null);
         final SearchSuggestion faceSuggestion = new SearchSuggestion(
                 null,
                 "face-set-id",
                 authority,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 "id");
         final SearchSuggestion historySuggestion = new SearchSuggestion(
                 "history",
                 null,
                 null,
-                SearchSuggestionType.HISTORY,
+                SEARCH_SUGGESTION_HISTORY,
                 null);
 
         try (Cursor cursor = SearchSuggestionsProvider

@@ -496,7 +496,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             verify(mockContentProvider, times(10)).openTypedAssetFile(any(), any(), any())
         }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     @RequiresFlagsEnabled(Flags.FLAG_ENABLE_PHOTOPICKER_TRANSCODING)
     @Test
     fun testMediaPreparerTranscodeMedia() =
@@ -533,7 +533,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             verify(mockContentProvider, times(10)).call(any(), any(), any(), any())
         }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     @RequiresFlagsEnabled(Flags.FLAG_ENABLE_PHOTOPICKER_TRANSCODING)
     @Test
     fun testMediaPreparerTranscodeMedia_notTranscodeOverDurationLimitVideos() =

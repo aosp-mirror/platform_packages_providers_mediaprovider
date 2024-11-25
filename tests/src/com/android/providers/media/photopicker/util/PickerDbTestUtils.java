@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.util;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -310,6 +312,26 @@ public class PickerDbTestUtils {
             long dateTakenMs, String mimeType, boolean isFavorite) {
         return getMediaCursor(cloudId, dateTakenMs, GENERATION_MODIFIED, toMediaStoreUri(localId),
                 SIZE_BYTES, mimeType, STANDARD_MIME_TYPE_EXTENSION, isFavorite);
+    }
+
+    public static Cursor getSuggestionCursor(String mediaSetId) {
+        String[] projectionKey = new String[]{
+                CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_SET_ID,
+                CloudMediaProviderContract.SearchSuggestionColumns.DISPLAY_TEXT,
+                CloudMediaProviderContract.SearchSuggestionColumns.TYPE,
+                CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_COVER_ID,
+        };
+
+        String[] projectionValue = new String[]{
+                mediaSetId,
+                "display_text",
+                SEARCH_SUGGESTION_ALBUM,
+                CLOUD_ID_1,
+        };
+
+        MatrixCursor c = new MatrixCursor(projectionKey);
+        c.addRow(projectionValue);
+        return c;
     }
 
     public static String toMediaStoreUri(String localId) {

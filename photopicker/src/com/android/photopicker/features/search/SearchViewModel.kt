@@ -34,6 +34,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.features.search.data.SearchDataService
+import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -100,6 +101,13 @@ constructor(
      */
     private val _suggestionLists = MutableStateFlow(SuggestionLists())
     val suggestionLists: StateFlow<SuggestionLists> = _suggestionLists
+
+    /**
+     * Holds the value of the current profile's search enabled state
+     *
+     * This `StateFlow` emits updates whenever the search enabled state of a profile changes.
+     */
+    val searchEnabled: StateFlow<SearchEnabledState> = searchDataService.isSearchEnabled
 
     private val suggestionCache = SearchSuggestionCache()
 
@@ -210,12 +218,10 @@ constructor(
      * PhotoGrid composable.
      */
     fun handleGridItemSelection(item: Media, selectionLimitExceededMessage: String) {
-        // TODO Replace UNSET_MEDIA_LOCATION with the correct enum after it is added.
-        // Update the selectable values in the received media object.
         val updatedMediaItem =
             Media.withSelectable(
                 item,
-                /* selectionSource */ Telemetry.MediaLocation.UNSET_MEDIA_LOCATION,
+                /* selectionSource */ Telemetry.MediaLocation.SEARCH_GRID,
                 /* album */ null,
             )
         scope.launch {

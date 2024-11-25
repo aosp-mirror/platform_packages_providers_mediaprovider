@@ -19,6 +19,10 @@ package com.android.photopicker.util
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_ANIMATED_WEBP
+import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF
+import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO
+import android.text.format.DateUtils
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.android.photopicker.R
+import com.android.photopicker.data.model.Media
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
@@ -90,4 +99,36 @@ fun rememberBitmapFromUri(uri: Uri, dispatcher: CoroutineDispatcher): ImageBitma
     val context = LocalContext.current
     LaunchedEffect(uri) { withContext(dispatcher) { bitmap = getBitmapFromUri(context, uri) } }
     return bitmap
+}
+
+/**
+ * Generates a content description for a given media item (photo, video, GIF, etc.). This
+ * description is intended to be used for accessibility purposes, providing information about the
+ * media to users with visual impairments.
+ *
+ * @param media The media item for which to generate a content description.
+ * @param dateFormat The `DateFormat` object to use for formatting the date the media was taken.
+ * @return A string containing the content description for the media.
+ */
+@Composable
+fun getMediaContentDescription(media: Media, dateFormat: DateFormat): String {
+    val dateTaken = dateFormat.format(Date(media.dateTakenMillisLong))
+    if (media is Media.Video) {
+        val duration = DateUtils.formatElapsedTime(media.duration / 1000L)
+        return stringResource(R.string.photopicker_video_item_content_desc, dateTaken, duration)
+    }
+    val itemType: String =
+        when (media.standardMimeTypeExtension) {
+            _SPECIAL_FORMAT_GIF,
+            _SPECIAL_FORMAT_ANIMATED_WEBP -> {
+                stringResource(R.string.photopicker_gif)
+            }
+            _SPECIAL_FORMAT_MOTION_PHOTO -> {
+                stringResource(R.string.photopicker_motion_photo)
+            }
+            else -> {
+                stringResource(R.string.photopicker_photo)
+            }
+        }
+    return stringResource(R.string.photopicker_item_content_desc, itemType, dateTaken)
 }

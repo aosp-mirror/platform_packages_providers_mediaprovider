@@ -73,7 +73,7 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Nu se permite accesarea datelor despre <xliff:g id="PROFILE1">%1$s</xliff:g> dintr-o aplicație <xliff:g id="PROFILE2">%2$s</xliff:g>"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Comută la <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplicațiile pentru lucru sunt întrerupte"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplicațiile <xliff:g id="PROFILE">%s</xliff:g> sunt întrerupte"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplicațiile din profilul <xliff:g id="PROFILE">%s</xliff:g> sunt întrerupte"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Ca să deschizi fotografiile de lucru, pornește aplicațiile pentru lucru și încearcă din nou"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Ca să deschizi fotografiile de la <xliff:g id="PROFILE1">%1$s</xliff:g>, activează aplicațiile <xliff:g id="PROFILE2">%2$s</xliff:g> și încearcă din nou"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Aplicația poate accesa doar fotografiile pe care le selectezi"</string>

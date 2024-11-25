@@ -17,11 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for photopicker_select_button_label (8663207309796656185) -->
-    <skip />
+    <string name="photopicker_select_button_label" msgid="8663207309796656185">"Összes (<xliff:g id="COUNT">%1$s</xliff:g>) kijelölése"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"Kiválasztás"</string>
-    <!-- no translation found for photopicker_deselect_button_label (4730476375060939835) -->
-    <skip />
+    <string name="photopicker_deselect_button_label" msgid="4730476375060939835">"Összes (<xliff:g id="COUNT">%1$s</xliff:g>) kijelölésének megszüntetése"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Előnézet"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Probléma merült fel a videó lejátszásakor"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Ellenőrizze az internetkapcsolatot, és próbálja újra"</string>

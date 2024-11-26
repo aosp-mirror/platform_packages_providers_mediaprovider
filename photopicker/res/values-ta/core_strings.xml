@@ -23,7 +23,7 @@
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"முடிந்தது"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"அனைத்தையும் தேர்வு நீக்கும்"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ஆவணங்கள் வரை தேர்ந்தெடுங்கள்"</string>
-    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Photos"</string>
+    <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"படங்கள்"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ஆல்பங்கள்"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"படங்கள் இதுவரை எதுவுமில்லை"</string>
     <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"படங்களையும் வீடியோக்களையும் படமெடுக்கத் தொடங்குங்கள்"</string>

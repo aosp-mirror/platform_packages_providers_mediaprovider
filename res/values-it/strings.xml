@@ -43,7 +43,7 @@
     <string name="picker_settings_title" msgid="5647700706470673258">"App multimediale cloud"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accedi ai tuoi contenuti multimediali sul cloud quando un\'app o un sito web ti chiede di selezionare foto o video"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accedi ai contenuti multimediali sul cloud da"</string>
-    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna"</string>
+    <string name="picker_settings_no_provider" msgid="2582311853680058223">"Nessuna app"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Ora è impossibile cambiare app multimediale cloud."</string>
     <string name="picker_sync_notification_channel" msgid="1867105708912627993">"Selettore media"</string>
     <string name="picker_sync_notification_title" msgid="1122713382122055246">"Selettore media"</string>
@@ -164,7 +164,7 @@
     <string name="transcode_progress_channel" msgid="6122609645085712101">"Avanzamento transcodifica"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Riprova più tardi. Le tue foto saranno disponibili dopo aver risolto il problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Impossibile caricare alcune foto"</string>
-    <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"Ok"</string>
     <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"Accedi al nome del pacchetto del proprietario dei media"</string>
     <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"Consente all\'app di accedere ai nomi di tutti i file multimediali accessibili dei pacchetti del proprietario."</string>
 </resources>

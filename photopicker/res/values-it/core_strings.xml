@@ -26,7 +26,7 @@
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Foto"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Album"</string>
     <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Ancora nessuna foto"</string>
-    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Inizia ad acquisire foto e video"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Inizia a scattare foto e registrare video"</string>
     <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Le foto e i video acquisiti dall\'app Fotocamera verranno visualizzati qui"</string>
     <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Ancora nessun preferito"</string>
     <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Le foto e i video aggiunti ai preferiti o contrassegnati come speciali verranno visualizzati qui"</string>

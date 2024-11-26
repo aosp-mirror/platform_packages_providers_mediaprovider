@@ -32,7 +32,7 @@
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{i još <xliff:g id="COUNT_0">^1</xliff:g>}one{i još <xliff:g id="COUNT_1">^1</xliff:g>}few{i još <xliff:g id="COUNT_1">^1</xliff:g>}other{i još <xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{Još <xliff:g id="COUNT_0">^1</xliff:g> dodatna stavka}one{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatna stavka}few{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatne stavke}other{Još <xliff:g id="COUNT_1">^1</xliff:g> dodatnih stavki}}"</string>
     <string name="cache_clearing_dialog_title" msgid="8907893815183913664">"Brisanje privremenih fajlova aplikacija"</string>
-    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacija <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi obrisati neke privremene fajlove. Ovo može dovesti do povećanog korištenja baterije ili prijenosa podataka na mobilnoj mreži."</string>
+    <string name="cache_clearing_dialog_text" msgid="7057784635111940957">"Aplikacija <xliff:g id="APP_SEEKING_PERMISSION">%s</xliff:g> želi obrisati neke privremene fajlove. Ovo može dovesti do povećanog korištenja baterije ili prenosa podataka na mobilnoj mreži."</string>
     <string name="cache_clearing_in_progress_title" msgid="6902220064511664209">"Brisanje privremenih fajlova aplikacije…"</string>
     <string name="clear" msgid="5524638938415865915">"Obriši"</string>
     <string name="allow" msgid="8885707816848569619">"Dozvoli"</string>

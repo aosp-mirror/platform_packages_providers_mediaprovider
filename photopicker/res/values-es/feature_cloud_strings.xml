@@ -27,6 +27,6 @@
     <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Para incluir fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> aquí, elige una cuenta en la aplicación"</string>
     <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Elegir cuenta"</string>
     <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Elige una aplicación de almacenamiento de contenido en la nube"</string>
-    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Para incluir aquí la copia de seguridad de las fotos, elige una aplicación multimedia en la nube desde Ajustes"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Para incluir aquí las fotos de las que tienes copia de seguridad, elige una aplicación de fotos en la nube desde Ajustes"</string>
     <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Elegir aplicación"</string>
 </resources>

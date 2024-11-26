@@ -112,4 +112,25 @@ public class SearchStateTest {
 
         assertThat(isCloudSearchEnabled).isTrue();
     }
+
+    @EnableFlags(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @Test
+    public void testProvidedCloudSearchIsEnabled() {
+        doReturn(SearchProvider.AUTHORITY)
+                .when(mMockSyncController).getCloudProviderOrDefault(any());
+
+        final TestConfigStore configStore = new TestConfigStore();
+        configStore.setIsSearchFeatureEnabled(false);
+
+        final SearchState searchState = new SearchState(configStore);
+
+        assertThat(searchState.isCloudSearchEnabled(mContext)).isFalse();
+        assertThat(searchState.isCloudSearchEnabled(mContext, SearchProvider.AUTHORITY)).isFalse();
+
+        searchState.clearCache();
+        configStore.setIsSearchFeatureEnabled(true);
+        assertThat(searchState.isCloudSearchEnabled(mContext)).isTrue();
+        assertThat(searchState.isCloudSearchEnabled(mContext, SearchProvider.AUTHORITY)).isTrue();
+        assertThat(searchState.isCloudSearchEnabled(mContext, "random")).isFalse();
+    }
 }

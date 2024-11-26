@@ -181,6 +181,7 @@ flag {
     namespace: "mediaprovider"
     description: "Enables mark media as favorite API"
     bug: "294364218"
+    is_fixed_read_only: true
 }
 
 flag {
@@ -225,4 +226,13 @@ flag {
     is_fixed_read_only: true
     description: "This flag will enable the motion photo capture intents."
     bug: "362580165"
+}
+
+flag {
+    name: "enable_mark_is_favorite_status_api"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Enables mark media as favorite API"
+    is_fixed_read_only: true
+    bug: "294364218"
 }

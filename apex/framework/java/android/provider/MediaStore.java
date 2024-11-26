@@ -334,6 +334,9 @@ public final class MediaStore {
     /** {@hide} */
     public static final String PICKER_MEDIA_INIT_CALL = "picker_media_init";
     /** {@hide} */
+    public static final String PICKER_INTERNAL_SEARCH_MEDIA_INIT_CALL =
+            "picker_internal_search_media_init";
+    /** {@hide} */
     public static final String PICKER_TRANSCODE_CALL = "picker_transcode";
     /** {@hide} */
     public static final String PICKER_TRANSCODE_RESULT = "picker_transcode_result";
@@ -1647,7 +1650,7 @@ public final class MediaStore {
      *            sample uri - content://media/external_primary/images/media/24
      * @param areFavorites the {@link MediaColumns#IS_FAVORITE} value to apply.
      */
-    @FlaggedApi(Flags.FLAG_ENABLE_MARK_MEDIA_AS_FAVORITE_API)
+    @FlaggedApi(Flags.FLAG_ENABLE_MARK_IS_FAVORITE_STATUS_API)
     public static void markIsFavoriteStatus(@NonNull ContentResolver resolver,
             @NonNull Collection<Uri> uris, boolean areFavorites) {
         Objects.requireNonNull(resolver);

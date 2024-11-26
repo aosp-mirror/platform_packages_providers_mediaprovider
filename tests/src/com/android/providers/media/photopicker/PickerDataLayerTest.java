@@ -144,8 +144,7 @@ public class PickerDataLayerTest {
 
         initializeTestWorkManager(mContext);
         final WorkManager workManager = WorkManager.getInstance(mContext);
-        final PickerSyncManager syncManager = new PickerSyncManager(
-                workManager, mContext, mConfigStore, /* schedulePeriodicSyncs */ false);
+        final PickerSyncManager syncManager = new PickerSyncManager(workManager, mContext);
         mDataLayer = new PickerDataLayer(mContext, mFacade, mController, mConfigStore, syncManager);
 
         // Set cloud provider to null to discard

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -72,6 +75,9 @@ private val MEASUREMENT_EDGE_PADDING = 4.dp
 private val MEASUREMENT_TOP_PADDING = 8.dp
 private val MEASUREMENT_BOT_PADDING = 24.dp
 
+/* Minimum height for the NavigationBar */
+private val MEASUREMENT_MIN_HEIGHT = 48.dp
+
 /**
  * Top of the NavigationBar feature.
  *
@@ -97,12 +103,14 @@ fun NavigationBar(modifier: Modifier = Modifier, params: LocationParams) {
 
     Row(
         modifier =
-            modifier.padding(
-                start = MEASUREMENT_EDGE_PADDING,
-                end = MEASUREMENT_EDGE_PADDING,
-                top = MEASUREMENT_TOP_PADDING,
-                bottom = MEASUREMENT_BOT_PADDING,
-            ),
+            modifier
+                .padding(
+                    start = MEASUREMENT_EDGE_PADDING,
+                    end = MEASUREMENT_EDGE_PADDING,
+                    top = MEASUREMENT_TOP_PADDING,
+                    bottom = MEASUREMENT_BOT_PADDING,
+                )
+                .heightIn(min = MEASUREMENT_MIN_HEIGHT),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -251,6 +259,8 @@ private fun NavigationBarForAlbum(modifier: Modifier) {
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                         style = MaterialTheme.typography.titleLarge,
+                        // Traversal index -1 forces TalkBack to focus on the album title first.
+                        modifier = Modifier.semantics { traversalIndex = -1f },
                     )
                 }
             }
@@ -301,22 +311,25 @@ private fun NavigationBarWithSearch(modifier: Modifier, params: LocationParams) 
                 maxSlots = 1,
                 modifier = Modifier.padding(start = 8.dp),
             )
-            Row(modifier = Modifier, horizontalArrangement = Arrangement.End) {
-                val overFlowMenuEnabled =
-                    remember(featureManager) {
-                        featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
-                    }
-                if (overFlowMenuEnabled) {
+            val overFlowMenuEnabled =
+                remember(featureManager) {
+                    featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+                }
+            if (
+                overFlowMenuEnabled &&
+                    LocalFeatureManager.current.getSizeOfLocationInRegistry(
+                        Location.OVERFLOW_MENU_ITEMS
+                    ) > 0
+            ) {
+                Row(modifier = Modifier, horizontalArrangement = Arrangement.End) {
                     featureManager.composeLocation(
                         Location.OVERFLOW_MENU,
                         modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
                     )
-                } else {
-                    Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
                 }
             }
         }
-        NavigationBarButtons(Modifier)
+        NavigationBarButtons(Modifier.padding(start = 8.dp, end = 8.dp))
     }
 }
 

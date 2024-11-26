@@ -20,6 +20,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SHO
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
 
@@ -95,7 +96,7 @@ public class PickerSyncManagerTest {
 
     @Test
     public void testScheduleEndlessWorker() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ true);
 
         // The third call here comes from the EndlessWorker
         verify(mMockWorkManager, times(1))
@@ -264,7 +265,8 @@ public class PickerSyncManagerTest {
         reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null),
+                mConfigStore);
         verify(mMockWorkManager, times(2))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -296,7 +298,8 @@ public class PickerSyncManagerTest {
         reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null),
+                mConfigStore);
         verify(mMockWorkManager, times(2))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -326,7 +329,8 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ false,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null),
+                mConfigStore);
         verify(mMockWorkManager, times(3))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -456,9 +460,75 @@ public class PickerSyncManagerTest {
         doReturn(mMockOperation).when(mMockWorkContinuation).enqueue();
         doReturn(mMockFuture).when(mMockOperation).getResult();
 
-        mPickerSyncManager =
-                new PickerSyncManager(mMockWorkManager, mMockContext,
-                        mConfigStore, schedulePeriodicSyncs, /* periodicSyncInitialDelay */ 0L);
+        mPickerSyncManager = new PickerSyncManager(mMockWorkManager, mMockContext);
+        if (schedulePeriodicSyncs) {
+            mPickerSyncManager.schedulePeriodicSync(
+                    mConfigStore, /* periodicSyncInitialDelay */ 0L);
+        }
         waitForIdle();
+    }
+
+    @Test
+    public void testSearchResultsLocalSync() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
+        mPickerSyncManager.syncSearchResultsForProvider(
+                /* searchRequestId */ 10,
+                SYNC_LOCAL_ONLY,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+        );
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResultsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, -1))
+                .isEqualTo(10);
+    }
+
+    @Test
+    public void testSearchResultsCloudSync() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
+        mPickerSyncManager.syncSearchResultsForProvider(
+                /* searchRequestId */ 10,
+                SYNC_CLOUD_ONLY,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+        );
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResultsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, -1))
+                .isEqualTo(10);
     }
 }

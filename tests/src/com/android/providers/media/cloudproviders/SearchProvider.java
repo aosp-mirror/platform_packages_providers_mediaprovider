@@ -24,9 +24,11 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOC
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_2;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getSuggestionCursor;
 
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -61,6 +63,13 @@ public class SearchProvider extends CloudMediaProvider {
 
     private static Cursor sSearchResults = DEFAULT_CLOUD_SEARCH_RESULTS;
 
+    public static final MergeCursor DEFAULT_SUGGESTION_RESULTS = new MergeCursor(List.of(
+            getSuggestionCursor(CLOUD_ID_1),
+            getSuggestionCursor(CLOUD_ID_2)
+    ).toArray(new Cursor[0]));
+
+    private static Cursor sSearchSuggestions = DEFAULT_SUGGESTION_RESULTS;
+
     @Override
     public Cursor onSearchMedia(String mediaSetId, String fallbackSearchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
@@ -71,6 +80,18 @@ public class SearchProvider extends CloudMediaProvider {
     public Cursor onSearchMedia(String searchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
         return sSearchResults;
+    }
+
+    @Override
+    public Cursor onQuerySearchSuggestions(String prefixText, Bundle extras,
+                                           CancellationSignal cancellationSignal) {
+        return sSearchSuggestions;
+    }
+
+    @Override
+    public Cursor onQueryMediaSets(String mediaCategoryId,
+            Bundle extras, CancellationSignal cancellationSignal) {
+        return getCursorForMediaSetSyncTest();
     }
 
     @Override
@@ -121,5 +142,21 @@ public class SearchProvider extends CloudMediaProvider {
 
     public static Cursor getSearchResults() {
         return sSearchResults;
+    }
+
+    /*
+     Returns a media set data cursor for tests
+     */
+    public static Cursor getCursorForMediaSetSyncTest() {
+        String[] columns = new String[]{
+                CloudMediaProviderContract.MediaSetColumns.ID,
+                CloudMediaProviderContract.MediaSetColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.MediaSetColumns.MEDIA_COVER_ID
+        };
+
+        MatrixCursor cursor = new MatrixCursor(columns);
+        cursor.addRow(new Object[] { "mediaSetId", "name", "id" });
+
+        return cursor;
     }
 }

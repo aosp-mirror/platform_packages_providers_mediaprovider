@@ -210,12 +210,22 @@ public class PickerViewModel extends AndroidViewModel {
         mIsLocalOnly = false;
 
         initConfigStore();
+    }
 
+    /**
+     * Init the User Managers ({@link UserIdManager} and {@link UserManagerState}) and other
+     * {@link PickerViewModel} dependencies depending upon the user managers.
+     *
+     * <p> Note: This must be called immediately after the constructor by all callers. </p>
+     *
+     * @param userIdManager the {@link UserIdManager} to be used for initializations.
+     */
+    public void initUserManagers(UserIdManager userIdManager) {
         if (mConfigStore.isPrivateSpaceInPhotoPickerEnabled() && SdkLevel.isAtLeastS()) {
             mUserManagerState = UserManagerState.create(mAppContext);
             mUserIdManager = null;
         } else {
-            mUserIdManager = UserIdManager.create(mAppContext);
+            mUserIdManager = userIdManager;
             mUserManagerState = null;
         }
 

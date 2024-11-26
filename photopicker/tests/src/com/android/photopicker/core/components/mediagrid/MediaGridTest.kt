@@ -193,6 +193,8 @@ class MediaGridTest {
     private val FIRST_SEPARATOR_LABEL = "First"
     private val SECOND_SEPARATOR_LABEL = "Second"
 
+    private val MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING = "taken on"
+
     /* A small MediaGridItem list that includes two Separators with three MediaItems in between */
     private val dataWithSeparators =
         buildList<MediaGridItem>() {
@@ -511,9 +513,6 @@ class MediaGridTest {
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
     fun testMediaGridClickItemSingleSelect() {
-        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         runTest {
             val selection =
                 SelectionImpl<Media>(
@@ -563,7 +562,12 @@ class MediaGridTest {
                 .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
                 .onChildren()
                 // Remove the separators
-                .filter(hasContentDescription(mediaItemString))
+                .filter(
+                    hasContentDescription(
+                        MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performClick()
 
@@ -581,7 +585,6 @@ class MediaGridTest {
     @Test
     fun testMediaGridClickItemMultiSelect() {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val selectedString = resources.getString(R.string.photopicker_item_selected)
 
         runTest {
@@ -633,7 +636,12 @@ class MediaGridTest {
                 .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
                 .onChildren()
                 // Remove the separators
-                .filter(hasContentDescription(mediaItemString))
+                .filter(
+                    hasContentDescription(
+                        MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performClick()
 
@@ -653,8 +661,6 @@ class MediaGridTest {
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
     fun testMediaGridClickItemOrderedSelection() {
-        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
         val photopickerConfiguration: PhotopickerConfiguration =
             TestPhotopickerConfiguration.build {
                 action(MediaStore.ACTION_PICK_IMAGES)
@@ -697,7 +703,12 @@ class MediaGridTest {
                 .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
                 .onChildren()
                 // Remove the separators
-                .filter(hasContentDescription(mediaItemString))
+                .filter(
+                    hasContentDescription(
+                        MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performClick()
 
@@ -717,9 +728,6 @@ class MediaGridTest {
     /** Ensures that items have the correct semantic information before and after selection */
     @Test
     fun testMediaGridLongPressItem() {
-        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         runTest {
             val selection =
                 SelectionImpl<Media>(
@@ -762,7 +770,12 @@ class MediaGridTest {
                 .onNode(hasTestTag(MEDIA_GRID_TEST_TAG))
                 .onChildren()
                 // Remove the separators
-                .filter(hasContentDescription(mediaItemString))
+                .filter(
+                    hasContentDescription(
+                        MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performTouchInput { longClick() }
 
@@ -779,9 +792,6 @@ class MediaGridTest {
     /** Ensures that Separators are correctly inserted into the MediaGrid. */
     @Test
     fun testMediaGridSeparator() {
-        val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         // Provide a custom PagingData that puts Separators in specific positions to reduce
         // test flakiness of having to scroll to find a separator.
         val customData = PagingData.from(dataWithSeparators)
@@ -818,7 +828,14 @@ class MediaGridTest {
                 }
             }
 
-            composeTestRule.onAllNodes(hasContentDescription(mediaItemString)).assertCountEquals(3)
+            composeTestRule
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
+                .assertCountEquals(3)
             composeTestRule.onNode(hasText(FIRST_SEPARATOR_LABEL)).assertIsDisplayed()
             composeTestRule.onNode(hasText(SECOND_SEPARATOR_LABEL)).assertIsDisplayed()
         }
@@ -850,7 +867,7 @@ class MediaGridTest {
                         selection = selected,
                         onItemClick = {},
                         onItemLongPress = {},
-                        contentItemFactory = { item, _, onClick, _ ->
+                        contentItemFactory = { item, _, onClick, _, _ ->
                             customContentItemFactory(item, onClick)
                         },
                     )

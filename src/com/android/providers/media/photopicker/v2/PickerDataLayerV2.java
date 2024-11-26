@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.MediaGrants.MEDIA_GRANTS_TABLE;
 import static com.android.providers.media.MediaGrants.OWNER_PACKAGE_NAME_COLUMN;
 import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
@@ -25,6 +27,11 @@ import static com.android.providers.media.photopicker.PickerSyncController.uidTo
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_GRANTS_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
+import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.getDefaultSuggestions;
+import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.getSuggestionsFromCloudProvider;
+import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.getSuggestionsFromLocalProvider;
+import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.maybeCacheSearchSuggestions;
+import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.suggestionsToCursor;
 import static com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper.EMPTY_MEDIA_ID;
 
 import static java.util.Objects.requireNonNull;
@@ -41,6 +48,7 @@ import android.database.MergeCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.Process;
 import android.provider.CloudMediaProviderContract.AlbumColumns;
 import android.provider.MediaStore;
@@ -48,9 +56,11 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.work.WorkManager;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
+import com.android.providers.media.photopicker.sync.PickerSyncManager;
 import com.android.providers.media.photopicker.sync.SyncCompletionWaiter;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
@@ -62,19 +72,32 @@ import com.android.providers.media.photopicker.v2.model.MediaQueryForPreSelectio
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 import com.android.providers.media.photopicker.v2.model.PreviewMediaQuery;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
+import com.android.providers.media.photopicker.v2.model.SearchRequest;
+import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
+import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
 import com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchMediaQuery;
+import com.android.providers.media.photopicker.v2.sqlite.SearchRequestDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.SearchResultsDatabaseUtil;
+import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils;
+import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * This class handles Photo Picker content queries.\
@@ -343,7 +366,7 @@ public class PickerDataLayerV2 {
     public static Cursor querySearchMedia(
             @NonNull Context appContext,
             @NonNull Bundle queryArgs,
-            @NonNull int searchRequestID) {
+            int searchRequestID) {
         final SearchMediaQuery query = new SearchMediaQuery(queryArgs, searchRequestID);
 
         // Validate query input
@@ -373,6 +396,123 @@ public class PickerDataLayerV2 {
                 effectiveLocalAuthority,
                 effectiveCloudAuthority
         );
+    }
+
+    /**
+     * Get search suggestions for a given prefix from the cloud media provider and search history.
+     * In case cloud media provider is taking time in returning the suggestion results, we'll try to
+     * fallback on previously cached search results.
+     *
+     * @param appContext Application context.
+     * @param queryArgs The arguments help us filter on the media query to get the desired results.
+     * @param cancellationSignal CancellationSignal that indicates that the client has cancelled
+     *                           the suggestions request and the results are not needed anymore.
+     * @return A cursor with search suggestion data.
+     * See {@link PickerSQLConstants.SearchSuggestionsResponseColumns}.
+     */
+    static Cursor querySearchSuggestions(
+            @NonNull Context appContext,
+            @NonNull Bundle queryArgs,
+            @Nullable CancellationSignal cancellationSignal) {
+        // By default use ForkJoinPool.commonPool() to reduce resource usage instead of creating a
+        // custom pool. Its threads are slowly reclaimed during periods of non-use, and reinstated
+        // upon subsequent use.
+        return querySearchSuggestions(appContext, queryArgs, ForkJoinPool.commonPool(),
+                cancellationSignal);
+    }
+
+    /**
+     * Get search suggestions for a given prefix from the cloud media provider and search history.
+     * In case cloud media provider is taking time in returning the suggestion results, we'll try to
+     * fallback on previously cached search results.
+     *
+     * @param appContext Application context.
+     * @param queryArgs The arguments help us filter on the media query to get the desired results.
+     * @param executor The executor used to run async tasks.
+     * @param cancellationSignal CancellationSignal that indicates that the client has cancelled
+     *                           the suggestions request and the results are not needed anymore.
+     * @return A cursor with search suggestion data.
+     * See {@link PickerSQLConstants.SearchSuggestionsResponseColumns}.
+     */
+    static Cursor querySearchSuggestions(
+            @NonNull Context appContext,
+            @NonNull Bundle queryArgs,
+            @NonNull Executor executor,
+            @Nullable CancellationSignal cancellationSignal) {
+        final SearchSuggestionsQuery query = new SearchSuggestionsQuery(queryArgs);
+
+        // Attempt to fetch search suggestions from CMPs within the given timeout.
+        List<SearchSuggestion> cloudSearchSuggestions = new ArrayList<>();
+        CompletableFuture<List<SearchSuggestion>> cloudSuggestionsFuture =
+                CompletableFuture.supplyAsync(() ->
+                        getSuggestionsFromCloudProvider(appContext, query, cancellationSignal),
+                        executor);
+
+        List<SearchSuggestion> localSearchSuggestions = new ArrayList<>();
+        CompletableFuture<List<SearchSuggestion>> localSuggestionsFuture =
+                CompletableFuture.supplyAsync(() ->
+                        getSuggestionsFromLocalProvider(appContext, query, cancellationSignal),
+                        executor);
+        try {
+            localSearchSuggestions = localSuggestionsFuture.get(
+                    /* timeout */ 200, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            Log.e(TAG, "Could not get search suggestions from local provider on time");
+            localSuggestionsFuture.cancel(/* mayInterruptIfRunning */ false);
+        } catch (RuntimeException | ExecutionException | InterruptedException e) {
+            Log.e(TAG, ("Something went wrong, "
+                    + "could not fetch search results from the local provider"), e);
+        }
+
+        try {
+            cloudSearchSuggestions = cloudSuggestionsFuture.get(
+                    /* timeout */ 300, TimeUnit.MILLISECONDS);
+            cloudSuggestionsFuture.thenApplyAsync(
+                    (suggestions) -> maybeCacheSearchSuggestions(query, suggestions),
+                    executor);
+        } catch (TimeoutException e) {
+            Log.e(TAG, "Could not get search suggestions from cloud provider on time");
+
+            // Only cancel suggestion request if the results don't need to be cached.
+            if (!query.isZeroState()) {
+                cloudSuggestionsFuture.cancel(/* mayInterruptIfRunning */ false);
+            }
+        } catch (RuntimeException | ExecutionException | InterruptedException e) {
+            Log.e(TAG, ("Something went wrong, "
+                    + "could not fetch search results from the cloud provider"), e);
+        }
+
+        // Fallback to cached suggestions if required.
+        if (cloudSearchSuggestions.isEmpty()) {
+            Log.d(TAG, "Attempting to fallback on cached search suggestions");
+            cloudSearchSuggestions = SearchSuggestionsDatabaseUtils.getCachedSuggestions(
+                    PickerSyncController.getInstanceOrThrow().getDbFacade().getDatabase(),
+                    query
+            );
+        }
+
+        // Get History Suggestions
+        final List<SearchSuggestion> historySuggestions =
+                SearchSuggestionsDatabaseUtils.getHistorySuggestions(
+                        PickerSyncController.getInstanceOrThrow().getDbFacade().getDatabase(),
+                        query);
+
+        // Get Default Suggestions
+        final List<SearchSuggestion> defaultSuggestions = getDefaultSuggestions();
+
+        // Merge suggestions in the order of priority
+        final List<SearchSuggestion> result = new ArrayList<>();
+        result.addAll(historySuggestions);
+        result.addAll(cloudSearchSuggestions);
+        result.addAll(localSearchSuggestions);
+        result.addAll(defaultSuggestions);
+
+        // Remove extra suggestions if the result exceeds the limit.
+        if (result.size() > query.getLimit()) {
+            result.subList(result.size() - query.getLimit(), result.size()).clear();
+        }
+
+        return suggestionsToCursor(result);
     }
 
     /**
@@ -830,5 +970,192 @@ public class PickerDataLayerV2 {
                 effectiveLocalAuthority,
                 effectiveCloudAuthority
         );
+    }
+
+    /**
+     * Handle Picker application's request to create a new search request and return a Bundle with
+     * the search request Id.
+     * Also trigger search results sync with the providers and saves the incoming search request in
+     * the search history table.
+     *
+     * @param appContext Application context.
+     * @param extras Bundle with input parameters.
+     * @return a response Bundle.
+     */
+    @NonNull
+    public static Bundle handleNewSearchRequest(
+            @NonNull Context appContext,
+            @NonNull Bundle extras) {
+        // By default use ForkJoinPool.commonPool() to reduce resource usage instead of creating a
+        // custom pool. Its threads are slowly reclaimed during periods of non-use, and reinstated
+        // upon subsequent use.
+        return handleNewSearchRequest(appContext, extras, ForkJoinPool.commonPool(),
+                getWorkManager(appContext));
+    }
+
+    /**
+     * Handle Picker application's request to create a new search request and return a Bundle with
+     * the search request Id.
+     * Also trigger search results sync with the providers and saves the incoming search request in
+     * the search history table.
+     *
+     * @param appContext Application context.
+     * @param extras Bundle with input parameters.
+     * @param executor Executor to asynchronously save the request as search history in database.
+     * @param workManager An instance of {@link WorkManager}
+     * @return a response Bundle.
+     */
+    @NonNull
+    public static Bundle handleNewSearchRequest(@NonNull Context appContext,
+                                                @NonNull Bundle extras,
+                                                @NonNull Executor executor,
+                                                @NonNull WorkManager workManager) {
+        requireNonNull(extras);
+
+        final SearchRequest searchRequest = SearchRequest.create(extras);
+        final SQLiteDatabase database = PickerSyncController.getInstanceOrThrow().getDbFacade()
+                .getDatabase();
+
+        SearchRequestDatabaseUtil.saveSearchRequest(database, searchRequest);
+        final int searchRequestId =
+                SearchRequestDatabaseUtil.getSearchRequestID(database, searchRequest);
+
+        if (searchRequestId == -1) {
+            throw new RuntimeException("Could not create search request!");
+        } else {
+            // Asynchronously save data in search history table.
+            CompletableFuture<Boolean> ignored = CompletableFuture.supplyAsync(
+                    () -> SearchSuggestionsDatabaseUtils.saveSearchHistory(database, searchRequest),
+                    executor);
+
+            // Schedule search results sync
+            scheduleSearchResultsSync(appContext, searchRequest, searchRequestId, extras,
+                    workManager);
+
+            return getSearchRequestInitResponse(searchRequestId);
+        }
+    }
+
+    /**
+     * Schedules search results sync for the incoming search request with local or cloud providers,
+     * or both.
+     *
+     * @param appContext      Application context.
+     * @param searchRequest   Search request for which search results need to be synced.
+     * @param searchRequestId Identifier of the search request.
+     * @param extras          Bundle with input parameters.
+     * @param workManager     An instance of {@link WorkManager}
+     */
+    private static void scheduleSearchResultsSync(
+            @NonNull Context appContext,
+            @NonNull SearchRequest searchRequest,
+            int searchRequestId,
+            @NonNull Bundle extras,
+            WorkManager workManager) {
+        final PickerSyncManager syncManager = new PickerSyncManager(workManager, appContext);
+        final Set<String> providers = new HashSet<>(
+                Objects.requireNonNull(extras.getStringArrayList("providers")));
+
+        scheduleSyncWithLocalProvider(searchRequest, searchRequestId, syncManager, providers);
+        scheduleSyncWithCloudProvider(searchRequest, searchRequestId, syncManager, providers);
+    }
+
+    /**
+     * Schedules search results sync for the incoming search request with local provider if local
+     * search is enabled.
+     *
+     * @param searchRequest Search request for which search results need to be synced.
+     * @param searchRequestId Identifier of the search request.
+     * @param syncManager An instance of PickerSyncManager that helps us schedule work manager
+     *                    sync requests.
+     * @param providers Set of valid providers we can sync search results from.
+     */
+    private static void scheduleSyncWithLocalProvider(
+            @NonNull SearchRequest searchRequest,
+            int searchRequestId,
+            @NonNull PickerSyncManager syncManager,
+            @NonNull Set<String> providers) {
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+
+        if (!syncController.shouldQueryLocalMediaForSearch(providers)) {
+            Log.d(TAG, "Search is not enabled for the current local authority. "
+                    + "Not syncing search results with local provider for request id "
+                    + searchRequestId);
+            return;
+        }
+
+        if (searchRequest instanceof SearchSuggestionRequest) {
+            final SearchSuggestion suggestion =
+                    ((SearchSuggestionRequest) searchRequest).getSearchSuggestion();
+            if (suggestion.getSearchSuggestionType() == SEARCH_SUGGESTION_ALBUM) {
+                if (!syncController.getLocalProvider().equals(suggestion.getAuthority())) {
+                    Log.d(TAG, "Album search suggestion does not belong to local provider. "
+                            + "Not syncing search results with local provider for request id "
+                            + searchRequestId);
+                    return;
+                }
+            }
+        }
+
+        syncManager.syncSearchResultsForProvider(
+                searchRequestId,
+                PickerSyncManager.SYNC_LOCAL_ONLY,
+                syncController.getLocalProvider());
+    }
+
+    /**
+     * Schedules search results sync for the incoming search request with cloud provider if cloud
+     * search is enabled.
+     *
+     * @param searchRequest Search request for which search results need to be synced.
+     * @param searchRequestId Identifier of the search request.
+     * @param syncManager An instance of PickerSyncManager that helps us schedule work manager
+     *                    sync requests.
+     * @param providers Set of valid providers we can sync search results from.
+     */
+    private static void scheduleSyncWithCloudProvider(
+            @NonNull SearchRequest searchRequest,
+            int searchRequestId,
+            @NonNull PickerSyncManager syncManager,
+            @NonNull Set<String> providers) {
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final String cloudAuthority =
+                syncController.getCloudProviderOrDefault(/* defaultValue */ null);
+
+        if (!syncController.shouldQueryCloudMediaForSearch(providers, cloudAuthority)) {
+            Log.d(TAG, "Search is not enabled for the current cloud authority. "
+                    + "Not syncing search results with cloud provider for request id "
+                    + searchRequestId);
+            return;
+        }
+
+        if (searchRequest instanceof SearchSuggestionRequest) {
+            final SearchSuggestion suggestion =
+                    ((SearchSuggestionRequest) searchRequest).getSearchSuggestion();
+            if (suggestion.getSearchSuggestionType() == SEARCH_SUGGESTION_ALBUM) {
+                if (!cloudAuthority.equals(suggestion.getAuthority())) {
+                    Log.d(TAG, "Album search suggestion does not belong to cloud provider. "
+                            + "Not syncing search results with cloud provider for request id "
+                            + searchRequestId);
+                    return;
+                }
+            }
+        }
+
+        syncManager.syncSearchResultsForProvider(
+                searchRequestId,
+                PickerSyncManager.SYNC_CLOUD_ONLY,
+                cloudAuthority);
+    }
+
+    /**
+     * @param searchRequestId Identifier of a search request.
+     * @return A response bundle containing the search request id.
+     */
+    @NonNull
+    private static Bundle getSearchRequestInitResponse(int searchRequestId) {
+        final Bundle response = new Bundle();
+        response.putInt("search_request_id", searchRequestId);
+        return response;
     }
 }

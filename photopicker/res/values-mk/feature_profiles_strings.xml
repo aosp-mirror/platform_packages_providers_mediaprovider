@@ -17,10 +17,11 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_profile_primary_label" msgid="4757455689901820680">"Лично"</string>
+    <string name="photopicker_profile_primary_label" msgid="4757455689901820680">"Личен"</string>
     <string name="photopicker_profile_managed_label" msgid="8223788467673917191">"Работен"</string>
     <string name="photopicker_profile_unknown_label" msgid="4794151597112747338">"Друго"</string>
     <string name="photopicker_profile_switch_button_description" msgid="136797665427675773">"Променете го корисничкиот профил"</string>
+    <string name="photopicker_selected_profile_description" msgid="4038233039178326677">"Избрано: <xliff:g id="PROFILE_NAME">%1$s</xliff:g>"</string>
     <string name="photopicker_profile_unavailable_dialog_title" msgid="1198925313401075806">"Апликациите од профилот „<xliff:g id="PROFILE_NAME">%1$s</xliff:g>“ се паузирани"</string>
     <string name="photopicker_profile_blocked_by_admin_dialog_title" msgid="3210828020946868217">"Блокирано од администраторот"</string>
     <string name="photopicker_profile_unavailable_dialog_message" msgid="7075601941628320907">"За да ги отворите фотографиите од профилот „<xliff:g id="PROFILE_NAME_0">%1$s</xliff:g>“, вклучете ги апликациите на профилот „<xliff:g id="PROFILE_NAME_1">%1$s</xliff:g>“, па обидете се повторно"</string>

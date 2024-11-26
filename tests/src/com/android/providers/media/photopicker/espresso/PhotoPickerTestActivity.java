@@ -28,6 +28,7 @@ import com.android.internal.logging.UiEventLogger;
 import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PhotoPickerActivity;
 import com.android.providers.media.photopicker.data.ItemsProvider;
+import com.android.providers.media.photopicker.data.UserIdManager;
 import com.android.providers.media.photopicker.metrics.PhotoPickerUiEventLogger;
 import com.android.providers.media.photopicker.viewmodel.PickerViewModel;
 
@@ -51,6 +52,12 @@ public class PhotoPickerTestActivity extends PhotoPickerActivity {
         pickerViewModel.setLogger(new PhotoPickerUiEventLogger(mLogger));
         mInstanceId = pickerViewModel.getInstanceId();
         return pickerViewModel;
+    }
+
+    @Override
+    @NonNull
+    protected UserIdManager getUserIdManager() {
+        return PhotoPickerBaseTest.getMockUserIdManager();
     }
 
     TestConfigStore getConfigStore() {

@@ -19,7 +19,6 @@ package com.android.providers.media.photopicker.v2.sqlite;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 
-import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addNextPageKey;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addPrevPageKey;
 
@@ -43,6 +42,9 @@ import com.android.providers.media.photopicker.PickerSyncController;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Convenience class for running Picker Search Results related sql queries.
+ */
 public class SearchResultsDatabaseUtil {
     private static final String TAG = "SearchResultsDatabaseUtil";
 
@@ -127,12 +129,15 @@ public class SearchResultsDatabaseUtil {
             return 0;
         }
 
-        final boolean isLocal = LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority);
+        final boolean isLocal = PickerSyncController.getInstanceOrThrow()
+                .getLocalProvider()
+                .equals(authority);
 
         try {
             // Start a transaction with EXCLUSIVE lock.
             database.beginTransaction();
 
+            // Number of rows inserted or replaced
             int numberOfRowsInserted = 0;
             for (ContentValues contentValues : contentValuesList) {
                 try {
@@ -209,52 +214,54 @@ public class SearchResultsDatabaseUtil {
             @Nullable String localAuthority,
             @Nullable String cloudAuthority
     ) {
+        final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+
         try {
-            final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+            database.beginTransactionNonExclusive();
+            Cursor pageData = database.rawQuery(
+                    getSearchMediaPageQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
+                    ),
+                    /* selectionArgs */ null
+            );
 
-            try {
-                database.beginTransactionNonExclusive();
-                Cursor pageData = database.rawQuery(
-                        getSearchMediaPageQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                Bundle extraArgs = new Bundle();
-                Cursor nextPageKeyCursor = database.rawQuery(
-                        getSearchMediaNextPageKeyQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                addNextPageKey(extraArgs, nextPageKeyCursor);
+            Bundle extraArgs = new Bundle();
+            Cursor nextPageKeyCursor = database.rawQuery(
+                    getSearchMediaNextPageKeyQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
+                    ),
+                    /* selectionArgs */ null
+            );
+            addNextPageKey(extraArgs, nextPageKeyCursor);
 
-                Cursor prevPageKeyCursor = database.rawQuery(
-                        getSearchMediaPreviousPageQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                addPrevPageKey(extraArgs, prevPageKeyCursor);
+            Cursor prevPageKeyCursor = database.rawQuery(
+                    getSearchMediaPreviousPageQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ true)
+                    ),
+                    /* selectionArgs */ null
+            );
+            addPrevPageKey(extraArgs, prevPageKeyCursor);
 
-                database.setTransactionSuccessful();
-                pageData.setExtras(extraArgs);
-                Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
-                return pageData;
-            } finally {
-                database.endTransaction();
-            }
+            database.setTransactionSuccessful();
+            pageData.setExtras(extraArgs);
+            Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
+            return pageData;
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
+        } finally {
+            database.endTransaction();
         }
     }
 

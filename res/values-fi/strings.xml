@@ -75,7 +75,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Työsovellukset on keskeytetty"</string>
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"Sovellukset on keskeytetty: <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Jos haluat avata työkuvasi, laita työsovellukset päälle ja yritä uudelleen"</string>
-    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Jos haluat avata kuvia (<xliff:g id="PROFILE1">%1$s</xliff:g>), laita sovellukset (<xliff:g id="PROFILE2">%2$s</xliff:g>) päälle ja yritä uudelleen"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g>-kuvien avaamiseksi valitse ensin <xliff:g id="PROFILE2">%2$s</xliff:g>-sovellukset ja yritä sitten uudelleen"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Sovelluksella on pääsy vain valitsemiisi kuviin"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Valitse kuvat ja videot, joihin sovellus saa pääsyn"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> kohde}other{<xliff:g id="COUNT_1">^1</xliff:g> kohdetta}}"</string>

@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"雲端媒體應用程式"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"雲端媒體應用程式"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"雲端媒體應用程式"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"當應用程式或網站要求你選取相片或影片時，就可使用自己的雲端媒體"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"當應用程式或網站要求你選取相片或影片時存取自己的雲端媒體"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"從以下位置存取雲端媒體："</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"無"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"目前無法變更雲端媒體應用程式。"</string>

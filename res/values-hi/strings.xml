@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"क्लाउड मीडिया ऐप्लिकेशन"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"क्लाउड मीडिया ऐप्लिकेशन"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"क्लाउड मीडिया ऐप्लिकेशन"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"जब कोई ऐप्लिकेशन या वेबसाइट आपको फ़ोटो या वीडियो चुनने के लिए कहे, तब क्लाउड पर मौजूद मीडिया ऐक्सेस करें"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"किसी ऐप या वेबसाइट पर अपनी फ़ोटो और वीडियो शेयर करने के लिए, क्लाउड पर मौजूद मीडिया का इस्तेमाल करें"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"क्लाउड पर मौजूद मीडिया को यहां से ऐक्सेस करें:"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"कोई नहीं"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"इस समय क्लाउड मीडिया ऐप्लिकेशन नहीं बदला जा सका."</string>
@@ -63,7 +63,7 @@
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
     <string name="picker_albums" msgid="4822511902115299142">"एल्बम"</string>
-    <string name="picker_preview" msgid="6257414886055861039">"झलक"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"झलक देखें"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"वर्क प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"निजी प्रोफ़ाइल पर जाएं"</string>
     <string name="picker_personal_profile_label" msgid="6189198163209597344">"निजी"</string>
@@ -73,7 +73,7 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE1">%1$s</xliff:g> के डेटा को, <xliff:g id="PROFILE2">%2$s</xliff:g> से जुड़े ऐप्लिकेशन से ऐक्सेस करने की अनुमति नहीं है"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> पर स्विच करें"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"वर्क ऐप्लिकेशन रोक दिए गए हैं"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> से जुड़े ऐप्लिकेशन पर रोक लगा दी गई है"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> ऐप्लिकेशन रोके गए हैं"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"वर्क फ़ोटो देखने के लिए, ऑफ़िस के काम से जुड़े ऐप्लिकेशन चालू करें और दोबारा कोशिश करें"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> की फ़ोटो खोलने के लिए, <xliff:g id="PROFILE2">%2$s</xliff:g> से जुड़े ऐप्लिकेशन को खोलें. इसके बाद, फिर से कोशिश करें"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"यह ऐप्लिकेशन सिर्फ़ आपकी चुनी हुई फ़ोटो को ऐक्सेस कर सकता है"</string>

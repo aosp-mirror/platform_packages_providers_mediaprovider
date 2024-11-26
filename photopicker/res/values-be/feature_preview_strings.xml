@@ -17,11 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for photopicker_select_button_label (8663207309796656185) -->
-    <skip />
+    <string name="photopicker_select_button_label" msgid="8663207309796656185">"Выбраць усе (<xliff:g id="COUNT">%1$s</xliff:g>)"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"Выбраць"</string>
-    <!-- no translation found for photopicker_deselect_button_label (4730476375060939835) -->
-    <skip />
+    <string name="photopicker_deselect_button_label" msgid="4730476375060939835">"Скасаваць выбар для ўсіх (<xliff:g id="COUNT">%1$s</xliff:g>)"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Перадпрагляд"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Праблемы з прайграваннем відэа"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Праверце падключэнне да інтэрнэту і паўтарыце спробу"</string>

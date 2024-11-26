@@ -23,6 +23,5 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"Nije pronađen nijedan rezultat"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"Potražite slične reči"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"Predlozi"</string>
-    <!-- no translation found for photopicker_search_disabled_hint (4049451515025551462) -->
-    <skip />
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"Pretraga je onemogućena."</string>
 </resources>

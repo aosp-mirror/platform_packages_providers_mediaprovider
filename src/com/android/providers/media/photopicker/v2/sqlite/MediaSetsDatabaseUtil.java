@@ -286,6 +286,7 @@ public class MediaSetsDatabaseUtil {
         return contentValuesList;
     }
 
+
     private static String getMimeTypesAsString(@Nullable List<String> mimeTypes) {
         if (mimeTypes == null || mimeTypes.isEmpty()) {
             return "";

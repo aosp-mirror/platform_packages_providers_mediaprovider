@@ -22,6 +22,21 @@
   <!-- Content description for an individual piece of media in the photopicker's media grid -->
   <string name="photopicker_media_item" translation_description="Accessibility text denoting an element that represents an individual photo or video in a grid of selectable media. [CHAR_LIMIT=NONE]">Media</string>
 
+  <!-- Content description of when a photo was taken on [CHAR LIMIT=NONE] -->
+  <string name="photopicker_item_content_desc"><xliff:g id="item_name" example="Photo">%1$s</xliff:g> taken on <xliff:g id="time" example="Jul 7, 2020, 12:00:00 AM">%2$s</xliff:g></string>
+
+  <!-- Content description of a video item [CHAR LIMIT=NONE] -->
+  <string name="photopicker_video_item_content_desc">Video taken on <xliff:g id="time" example="Jul 7, 2020, 12:00:00 AM">%1$s</xliff:g> with duration <xliff:g id="duration" example="00:03">%2$s</xliff:g></string>
+
+  <!-- Title of the picker photo item [CHAR LIMIT=40] -->
+  <string name="photopicker_photo">Photo</string>
+
+  <!-- Title of the picker GIF item [CHAR LIMIT=40] -->
+  <string name="photopicker_gif">GIF</string>
+
+  <!-- Title of the picker motion photo item [CHAR LIMIT=60] -->
+  <string name="photopicker_motion_photo">Motion Photo</string>
+
   <!-- Content description for the selected checkmark in the media grid -->
   <string name="photopicker_item_selected" translation_description="Accessibility text denoting an individual photo is selected in a grid of photos. [CHAR_LIMIT=NONE]">Selected</string>
 
@@ -39,6 +54,9 @@
 
   <!-- Accessibility description for the X (deselect all) button in the selection bar -->
   <string name="photopicker_clear_selection_button_description" translation_description="Button Accessibility description that unselects all selected media items.">Deselect all</string>
+
+  <!-- Accessibility description for the count in the selection bar -->
+  <string name="photopicker_selection_size_description" translation_description="Accessibility description for selection count in the selection bar."><xliff:g id="count" example="5">%1$s</xliff:g> photos or videos selected</string>
 
   <!-- Snackbar message when new items can't be selected because the selection is full -->
   <string name="photopicker_selection_limit_exceeded_snackbar" translation_description="">Select up to <xliff:g id="count" example="42">%1$s</xliff:g> items</string>

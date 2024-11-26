@@ -28,6 +28,7 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.get
 
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -88,6 +89,12 @@ public class SearchProvider extends CloudMediaProvider {
     }
 
     @Override
+    public Cursor onQueryMediaSets(String mediaCategoryId,
+            Bundle extras, CancellationSignal cancellationSignal) {
+        return getCursorForMediaSetSyncTest();
+    }
+
+    @Override
     public CloudMediaProviderContract.Capabilities onGetCapabilities() {
         return new CloudMediaProviderContract.Capabilities.Builder().setSearchEnabled(true).build();
     }
@@ -135,5 +142,21 @@ public class SearchProvider extends CloudMediaProvider {
 
     public static Cursor getSearchResults() {
         return sSearchResults;
+    }
+
+    /*
+     Returns a media set data cursor for tests
+     */
+    public static Cursor getCursorForMediaSetSyncTest() {
+        String[] columns = new String[]{
+                CloudMediaProviderContract.MediaSetColumns.ID,
+                CloudMediaProviderContract.MediaSetColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.MediaSetColumns.MEDIA_COVER_ID
+        };
+
+        MatrixCursor cursor = new MatrixCursor(columns);
+        cursor.addRow(new Object[] { "mediaSetId", "name", "id" });
+
+        return cursor;
     }
 }

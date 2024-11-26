@@ -37,6 +37,8 @@ public class SyncTrackerRegistry {
     private static SyncTracker sGrantsSyncTracker = new SyncTracker();
     private static SyncTracker sLocalSearchTracker = new SyncTracker();
     private static SyncTracker sCloudSearchTracker = new SyncTracker();
+    private static SyncTracker sCloudMediaSetsSyncTracker = new SyncTracker();
+    private static SyncTracker sLocalMediaSetsSyncTracker = new SyncTracker();
 
     public static SyncTracker getLocalSyncTracker() {
         return sLocalSyncTracker;
@@ -126,6 +128,31 @@ public class SyncTrackerRegistry {
     public static void setCloudSearchSyncTracker(
             SyncTracker cloudSearchSyncTracker) {
         sCloudSearchTracker = cloudSearchSyncTracker;
+    }
+
+    public static SyncTracker getCloudMediaSetsSyncTracker() {
+        return sCloudMediaSetsSyncTracker;
+    }
+
+    public static SyncTracker getLocalMediaSetsSyncTracker() {
+        return sLocalMediaSetsSyncTracker;
+    }
+
+
+    /*
+    Required for testing. Not to be used anywhere else
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setCloudMediaSetsSyncTracker(SyncTracker cloudMediaSetsSyncTracker) {
+        sCloudMediaSetsSyncTracker = cloudMediaSetsSyncTracker;
+    }
+
+    /*
+    Required for testing. Not to be used anywhere else
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setLocalMediaSetsSyncTracker(SyncTracker localMediaSetsSyncTracker) {
+        sLocalMediaSetsSyncTracker = localMediaSetsSyncTracker;
     }
 
     /**
@@ -251,6 +278,20 @@ public class SyncTrackerRegistry {
         }
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudSearchSyncTracker().markSyncCompleted(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark the required futures as complete for existing media set sync requests.
+     */
+    public static void markMediaInMediaSetSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalMediaSetsSyncTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudMediaSetsSyncTracker().markSyncCompleted(syncRequestId);
         }
     }
 }

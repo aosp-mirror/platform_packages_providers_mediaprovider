@@ -217,7 +217,6 @@ flag {
     description: "This flag controls the Capabilities APIs in CloudMediaProvider and the contract."
     bug: "370445733"
     is_fixed_read_only: true
-    is_exported: true
 }
 
 flag {

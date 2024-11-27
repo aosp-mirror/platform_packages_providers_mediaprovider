@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Ամպային մուլտիմեդիա հավելված"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Ամպային մուլտիմեդիա հավելված"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Ամպային մուլտիմեդիա հավելված"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Ընտրեք ամպային տարածքում պահվող ձեր լուսանկարներն ու տեսանյութերը հավելվածներում կամ կայքերում"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Երբ որևէ հավելված կամ կայք խնդրում է լուսանկարներ կամ տեսանյութեր ընտրել, դուք կարող եք դրանք վերցնել ամպից։"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Ամպում գտնվող մեդիա ֆայլերն օգտագործել այս հավելվածի միջոցով"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Չկա"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Չհաջողվեց փոխել ամպային մուլտիմեդիա հավելվածը։"</string>

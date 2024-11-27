@@ -32,10 +32,12 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.data.model.Media
+import kotlinx.coroutines.Deferred
 
 /**
  * Feature class for the Photopicker's media preview.
@@ -47,8 +49,10 @@ class PreviewFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPreviewFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) =
-            config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
 
         override fun build(featureManager: FeatureManager) = PreviewFeature()
 

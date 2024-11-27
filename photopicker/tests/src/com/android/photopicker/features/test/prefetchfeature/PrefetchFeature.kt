@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.alwaysdisabledfeature
+package src.com.android.photopicker.features.test.prefetchfeature
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -29,50 +26,48 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.PrefetchResultKey
-import com.android.photopicker.core.features.Priority
+import com.android.photopicker.data.PrefetchDataService
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
 
-/**
- * Test [PhotopickerUiFeature] that is always disabled, no matter what it tries, but always tries to
- * render it's message to [Location.COMPOSE_TOP], to no avail.
- */
-class AlwaysDisabledFeature : PhotopickerUiFeature {
+class PrefetchFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "AlwaysDisabledFeature"
+        // Use any valid key
+        private val prefetchResultKey: PrefetchResultKey = PrefetchResultKey.SEARCH_STATE
+
+        override val TAG: String = "PrefetchFeature"
+
+        override fun getPrefetchRequest(
+            prefetchDataService: PrefetchDataService,
+            config: PhotopickerConfiguration,
+        ): Map<PrefetchResultKey, suspend () -> Any?>? = mapOf(prefetchResultKey to { true })
 
         override fun isEnabled(
             config: PhotopickerConfiguration,
             deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
-        ) = false
-
-        override fun build(featureManager: FeatureManager) = AlwaysDisabledFeature()
-
-        val UI_STRING = "Can anyone hear me? :("
-    }
-
-    override val token = TAG
-
-    /** Events consumed by the Photo grid */
-    override val eventsConsumed = emptySet<RegisteredEventClass>()
-
-    /** Events produced by the Photo grid */
-    override val eventsProduced = emptySet<RegisteredEventClass>()
-
-    override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.COMPOSE_TOP, Priority.REGISTRATION_ORDER.priority))
-    }
-
-    @Composable
-    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
-        when (location) {
-            Location.COMPOSE_TOP -> composeTop()
-            else -> {}
+        ): Boolean {
+            return runBlocking {
+                val featureStatus: Any? = deferredPrefetchResultsMap[prefetchResultKey]?.await()
+                when (featureStatus) {
+                    null -> false
+                    is Boolean -> featureStatus
+                    else -> false
+                }
+            }
         }
+
+        override fun build(featureManager: FeatureManager) = PrefetchFeature()
     }
 
+    override fun registerLocations(): List<Pair<Location, Int>> = listOf()
+
     @Composable
-    private fun composeTop() {
-        Text(UI_STRING)
-    }
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {}
+
+    override val token: String = TAG
+
+    override val eventsConsumed: Set<RegisteredEventClass> = emptySet()
+
+    override val eventsProduced: Set<RegisteredEventClass> = emptySet()
 }

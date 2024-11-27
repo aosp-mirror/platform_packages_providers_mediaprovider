@@ -25,6 +25,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.TestSearchDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.search.model.SearchSuggestion
@@ -186,6 +187,7 @@ class SearchViewModelTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = scope),
                 scope = scope,
+                prefetchDataService = TestPrefetchDataService(),
             )
 
         events =

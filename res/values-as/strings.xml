@@ -73,7 +73,7 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"কোনো <xliff:g id="PROFILE2">%2$s</xliff:g> এপৰ পৰা <xliff:g id="PROFILE1">%1$s</xliff:g>ৰ ডেটা এক্সেছ কৰাৰ অনুমতি নাই"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g>লৈ সলনি কৰক"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"কাম সম্পর্কীয় এপ্‌সমূহ পজ কৰা আছে"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> এপ্‌ পজ কৰা আছে"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g>ৰ এপ্‌সমূহ পজ কৰা আছে"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"কৰ্মস্থানৰ ফট’ খুলিবলৈ আপোনাৰ কাম সম্পর্কীয় এপ্‌সমূহ অন কৰক তাৰ পাছত পুনৰ চেষ্টা কৰক"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> ফট\' খুলিবলৈ, আপোনাৰ <xliff:g id="PROFILE2">%2$s</xliff:g> এপ্ অন কৰি পুনৰ চেষ্টা কৰক"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"এই এপ্‌টোৱে কেৱল আপুনি বাছনি কৰা ফট\'সমূহ এক্সেছ কৰিব পাৰে"</string>

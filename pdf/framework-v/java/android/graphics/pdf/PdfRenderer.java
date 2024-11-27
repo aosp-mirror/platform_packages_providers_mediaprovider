@@ -34,6 +34,8 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.pdf.component.PdfAnnotation;
 import android.graphics.pdf.component.PdfAnnotationType;
+import android.graphics.pdf.component.PdfPageObject;
+import android.graphics.pdf.component.PdfPageObjectType;
 import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
@@ -879,6 +881,95 @@ public final class PdfRenderer implements AutoCloseable {
             Preconditions.checkArgument(annotation.getId() >= 0,
                     "Annotation id should be greater than equal to 0");
             return mPdfProcessor.updatePageAnnotation(mIndex, annotation);
+        }
+
+        /**
+         * Returns list of supported {@link PdfPageObject} present on
+         * the page.
+         * The list will be empty if there are no supported page
+         * objects present on the page, even if the page contains
+         * other page object types.
+         *
+         * @return list of page objects present on the page
+         *
+         * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before
+         *                                  invocation.
+         */
+        @NonNull
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+        public List<PdfPageObject> getPageObjects() {
+            throwIfDocumentOrPageClosed();
+            return mPdfProcessor.getPageObjects(mIndex);
+        }
+
+        /**
+         * Adds the given {@link PdfPageObject} to the page.
+         *
+         * @param pageObject the {@code PdfPageObject} object to
+         *                   add, existing page object cannot be used (i.e. it should not have
+         *                   objectId)
+         * @return object id of added page object, -1 otherwise
+         * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown, null
+         *                                  or if the object is already added to this page.
+         * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before
+         *                                  invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+        public int addPageObject(@NonNull PdfPageObject pageObject) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkNotNull(pageObject, "PdfPageObject should not be null");
+            Preconditions.checkArgument(
+                    PdfPageObjectType.isValidType(pageObject.getPdfObjectType()),
+                    "PageObject should be of valid type");
+            Preconditions.checkArgument(pageObject.getObjectId() == -1,
+                    "PageObject should not have an object id");
+            return mPdfProcessor.addPageObject(mIndex, pageObject);
+        }
+
+        /**
+         * Update the given {@link PdfPageObject} to the page.
+         *
+         * @param pageObject the {@code PdfPageObject} object to
+         *                   add
+         * @return true if page object is updated, false otherwise
+         * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or
+         *                                  null.
+         * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before
+         *                                  invocation.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+        public boolean updatePageObject(@NonNull PdfPageObject pageObject) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkNotNull(pageObject, "PdfPageObject should not be null");
+            Preconditions.checkArgument(
+                    PdfPageObjectType.isValidType(pageObject.getPdfObjectType()),
+                    "PageObject should be of valid type");
+            Preconditions.checkArgument(pageObject.getObjectId() >= 0,
+                    "Page object id should be greater than equal to 0");
+            return mPdfProcessor.updatePageObject(mIndex, pageObject);
+        }
+
+        /**
+         * Removes the {@link PdfPageObject} with the specified ID.
+         *
+         * @param objectId the id of the page object to remove
+         *                 from the page.
+         * @return {@link PdfPageObject} that is removed.
+         * @throws IllegalArgumentException if the provided
+         *                                  objectId doesn't exist.
+         * @throws IllegalStateException    if the page object cannot be removed.
+         */
+        @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+        @NonNull
+        public PdfPageObject removePageObject(int objectId) {
+            throwIfDocumentOrPageClosed();
+            Preconditions.checkArgument(objectId >= 0,
+                    "Page object id should be greater than equal to 0");
+            PdfPageObject pageObject = mPdfProcessor.removePageObject(mIndex, objectId);
+            if (pageObject == null) {
+                throw new IllegalStateException("Page object cannot be removed.");
+            }
+            return pageObject;
         }
 
         /**

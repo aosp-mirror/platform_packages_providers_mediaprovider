@@ -16,6 +16,7 @@
 
 package com.android.photopicker.features.search
 
+import android.provider.MediaStore
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -35,8 +36,12 @@ class SearchFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "SearchFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) =
-            config.flags.PICKER_SEARCH_ENABLED
+        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+            // Search feature is not enabled in permission mode.
+            if (config.action == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) return false
+
+            return config.flags.PICKER_SEARCH_ENABLED
+        }
 
         override fun build(featureManager: FeatureManager) = SearchFeature()
     }

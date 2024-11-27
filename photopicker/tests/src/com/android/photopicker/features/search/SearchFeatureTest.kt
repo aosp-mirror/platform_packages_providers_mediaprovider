@@ -193,18 +193,6 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testGetContentConfiguration))
             .isEqualTo(true)
-
-        val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
-            TestPhotopickerConfiguration.build {
-                action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
-                intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                callingPackage("com.example.test")
-                callingPackageUid(1234)
-                callingPackageLabel("test_app")
-            }
-        assertWithMessage("Search Feature is not always enabled when search flag enabled")
-            .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
-            .isEqualTo(true)
     }
 
     /* Verify Search feature is enabled when Search flag and Embedded picker is enabled.*/
@@ -230,7 +218,27 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
             .that(SearchFeature.Registration.isEnabled(testGetContentConfiguration))
             .isEqualTo(true)
+    }
 
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSearchFeature_inPermissionMode_isDisabled() {
+        val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
+            TestPhotopickerConfiguration.build {
+                action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                callingPackage("com.example.test")
+                callingPackageUid(1234)
+                callingPackageLabel("test_app")
+            }
+        assertWithMessage("Search Feature is always enabled in Permission mode")
+            .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .isEqualTo(false)
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH, Flags.FLAG_ENABLE_EMBEDDED_PHOTOPICKER)
+    fun testSearchFeature_whenEmbeddedPickerEnabledInPermissionMode_isDisabled() {
         val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
             TestPhotopickerConfiguration.build {
                 runtimeEnv(PhotopickerRuntimeEnv.EMBEDDED)
@@ -240,9 +248,9 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 callingPackageUid(1234)
                 callingPackageLabel("test_app")
             }
-        assertWithMessage("Search Feature is not always enabled when search flag enabled")
+        assertWithMessage("Search Feature in embedded picker is always enabled in Perission mode")
             .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
-            .isEqualTo(true)
+            .isEqualTo(false)
     }
 
     @Test

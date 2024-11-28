@@ -244,6 +244,16 @@
             ]
         }
     ],
+    "presubmit-large": [
+        {
+          "name": "CtsScopedStoragePublicVolumeHostTest",
+          "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+          ]
+        }
+    ],
     "postsubmit": [
         {
             "name": "MediaProviderClientTests"
@@ -271,14 +281,6 @@
                     "include-annotation": "com.android.providers.media.library.RunOnlyOnPostsubmit"
                 }
             ]
-        },
-        {
-          "name": "CtsScopedStoragePublicVolumeHostTest",
-          "options": [
-                {
-                  "exclude-annotation": "androidx.test.filters.FlakyTest"
-                }
-            ]
         }
     ],
     "mainline-postsubmit": [
@@ -298,9 +300,6 @@
                     "exclude-annotation": "androidx.test.filters.LargeTest"
                 }
             ]
-        },
-        {
-          "name": "CtsScopedStoragePublicVolumeHostTest[com.google.android.mediaprovider.apex]"
         }
     ]
 }

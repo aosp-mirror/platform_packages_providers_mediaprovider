@@ -97,6 +97,12 @@
           </intent-filter>
         </provider>
 
+        <provider android:name="com.android.providers.media.cloudproviders.SearchProvider"
+            android:authorities="com.android.providers.media.photopicker.tests.cloud_search_provider"
+            android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
+            android:exported="true">
+        </provider>
+
         <provider android:name="com.android.providers.media.cloudproviders.CloudProviderPrimary"
                   android:authorities="com.android.providers.media.photopicker.tests.cloud_primary"
                   android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
@@ -131,7 +137,7 @@
 
         <provider android:name="com.android.providers.media.photopickersearch.CloudMediaProviderSearch"
             android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"
-            android:authorities="com.android.providers.media.photopickersearch.tests.cloud_provider_search"
+            android:authorities="com.android.providers.media.photopicker.tests.cloud_provider_for_search_client"
             android:exported="true">
         </provider>
 

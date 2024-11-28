@@ -39,6 +39,7 @@ public class TestConfigStore implements ConfigStore {
     private boolean mPrivateSpaceEnabled = false;
 
     private boolean mIsModernPickerEnabled = false;
+    private boolean mIsSearchFeatureEnabled = false;
     private boolean mPickerChoiceManagedSelectionEnabled = false;
     private List<String> mAllowedCloudProviderPackages = Collections.emptyList();
     private @Nullable String mDefaultCloudProviderPackage = null;
@@ -52,6 +53,10 @@ public class TestConfigStore implements ConfigStore {
 
     public void setIsModernPickerEnabled(boolean isModernPickerEnabled) {
         mIsModernPickerEnabled = isModernPickerEnabled;
+    }
+
+    public void setIsSearchFeatureEnabled(boolean isSearchFeatureEnabled) {
+        mIsSearchFeatureEnabled = isSearchFeatureEnabled;
     }
 
     /**
@@ -77,6 +82,10 @@ public class TestConfigStore implements ConfigStore {
     @Override
     public boolean isModernPickerEnabled() {
         return mIsModernPickerEnabled;
+    }
+
+    public boolean isSearchFeatureEnabled() {
+        return mIsSearchFeatureEnabled;
     }
 
     public void enableCloudMediaFeature() {

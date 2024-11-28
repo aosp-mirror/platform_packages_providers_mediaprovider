@@ -539,8 +539,7 @@ public class MediaProvider extends ContentProvider {
      * Updates the MediaStore versioning schema and format to reduce identifying properties.
      */
     @ChangeId
-    // TODO(b/370999570): Set target SDK to Baklava once available for dev
-    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.CUR_DEVELOPMENT)
+    @EnabledSince(targetSdkVersion = Build.VERSION_CODES.BAKLAVA)
     static final long LOCKDOWN_MEDIASTORE_VERSION = 343977174L;
 
     @GuardedBy("mPendingOpenInfo")
@@ -603,8 +602,10 @@ public class MediaProvider extends ContentProvider {
      * @param bytes number of bytes which need to be freed
      */
     public void freeCache(long bytes) {
-        mTranscodeHelper.freeCache(bytes);
-        mPhotoPickerTranscodeHelper.freeCache(bytes);
+        bytes -= mPhotoPickerTranscodeHelper.freeCache(bytes);
+        if (bytes > 0) {
+            mTranscodeHelper.freeCache(bytes);
+        }
     }
 
     public void onAnrDelayStarted(@NonNull String packageName, int uid, int tid, int reason) {
@@ -4365,8 +4366,9 @@ public class MediaProvider extends ContentProvider {
     @Override
     public String getType(Uri url) {
         if (isRedactedUri(url)) {
-            url = getUriForRedactedUri(url);
+            return queryForTypeAsCaller(url);
         }
+
         final int match = matchUri(url, true);
         switch (match) {
             case IMAGES_MEDIA_ID:
@@ -7078,6 +7080,9 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.CREATE_DELETE_REQUEST_CALL: {
                 return getResultForCreateOperationsRequest(method, extras);
             }
+            case MediaStore.MARK_MEDIA_AS_FAVORITE: {
+                return markMediaAsFavorite(extras);
+            }
             case MediaStore.CREATE_CANCELLATION_SIGNAL_CALL: {
                 return getResultForCreateCancellationSignal();
             }
@@ -7091,6 +7096,9 @@ public class MediaProvider extends ContentProvider {
                 return getResultForIsSystemGallery(arg, extras);
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
                 return getResultForPickerMediaInit(extras);
+            }
+            case MediaStore.PICKER_INTERNAL_SEARCH_MEDIA_INIT_CALL: {
+                return getResultForPickerSearchMediaInit(extras);
             }
             case MediaStore.PICKER_TRANSCODE_CALL: {
                 return getResultForPickerTranscode(extras);
@@ -7350,7 +7358,7 @@ public class MediaProvider extends ContentProvider {
                             final HashCode uuidHashCode =
                                     Hashing.farmHashFingerprint64()
                                        .hashString(input, StandardCharsets.UTF_8);
-                            return db.getVersion() + ":" + uuidHashCode;
+                            return uuidHashCode.toString();
                         } else {
                             return db.getVersion() + ":" + dbUuid;
                         }
@@ -7543,6 +7551,32 @@ public class MediaProvider extends ContentProvider {
         return res;
     }
 
+    private Bundle markMediaAsFavorite(Bundle extras) {
+        final ContentValues values = extras.getParcelable(MediaStore.EXTRA_CONTENT_VALUES);
+        final ClipData clipData = extras.getParcelable(MediaStore.EXTRA_CLIP_DATA);
+        final List<Uri> uris = collectUris(clipData);
+
+        if (!isCallingPackageManager()) {
+            for (Uri uri : uris) {
+                if (!AccessChecker.hasAccessToCollection(mCallingIdentity.get(),
+                        matchUri(uri, isCallingPackageAllowedHidden()), /* forWrite= */false)) {
+                    throw new UnsupportedOperationException("Uri " + uri
+                            + " does not have required permission to mark media as favorite");
+                }
+            }
+        }
+
+        final LocalCallingIdentity token = clearLocalCallingIdentity();
+        try {
+            for (Uri uri : uris) {
+                update(uri, values, null);
+            }
+        } finally {
+            restoreLocalCallingIdentity(token);
+        }
+        return null;
+    }
+
     @NotNull
     private Bundle getResultForCreateCancellationSignal() {
         final Bundle res = new Bundle();
@@ -7600,6 +7634,21 @@ public class MediaProvider extends ContentProvider {
         }
         mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
         return null;
+    }
+
+    /**
+     * Checks if the caller has the permission to handle picker search media init. If not,
+     * this method throws a security exception.
+     */
+    @NonNull
+    private Bundle getResultForPickerSearchMediaInit(@NonNull Bundle extras) {
+        Log.i(TAG, "Received search media init query for extras: " + extras);
+        if (!checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
+            throw new SecurityException(
+                    getSecurityExceptionMessage("Picker search media init"));
+        }
+        return PickerDataLayerV2.handleNewSearchRequest(getContext(), extras);
     }
 
     @NotNull

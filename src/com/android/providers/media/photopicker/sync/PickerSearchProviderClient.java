@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.providers.media.photopicker.v2;
+package com.android.providers.media.photopicker.sync;
+
+import static android.provider.CloudMediaProviderContract.EXTRA_PROVIDER_CAPABILITIES;
+import static android.provider.CloudMediaProviderContract.METHOD_GET_CAPABILITIES;
 
 import static java.util.Objects.requireNonNull;
 
@@ -25,6 +28,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.provider.CloudMediaProviderContract;
 import android.provider.CloudMediaProviderContract.SortOrder;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,6 +38,7 @@ import androidx.annotation.Nullable;
  * cloud media provider and local search provider.
  */
 public class PickerSearchProviderClient {
+    private static final String TAG = "PickerSearchProviderClient";
 
     @NonNull
     private final Context mContext;
@@ -60,8 +65,12 @@ public class PickerSearchProviderClient {
      * Note: This functions does not expect pagination args.
      */
     @Nullable
-    public Cursor fetchSearchResultsFromCmp(@Nullable String suggestedMediaSetId,
-            @Nullable String searchText, @NonNull @SortOrder int sortOrder,
+    public Cursor fetchSearchResultsFromCmp(
+            @Nullable String suggestedMediaSetId,
+            @Nullable String searchText,
+            @SortOrder int sortOrder,
+            int pageSize,
+            @Nullable String resumePageToken,
             @Nullable CancellationSignal cancellationSignal) {
         if (suggestedMediaSetId == null && searchText == null) {
             throw new IllegalArgumentException(
@@ -70,6 +79,8 @@ public class PickerSearchProviderClient {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_SEARCH_TEXT, searchText);
         queryArgs.putString(CloudMediaProviderContract.KEY_MEDIA_SET_ID, suggestedMediaSetId);
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, pageSize);
+        queryArgs.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, resumePageToken);
         queryArgs.putInt(CloudMediaProviderContract.EXTRA_SORT_ORDER, sortOrder);
 
         return mContext.getContentResolver().query(
@@ -82,9 +93,11 @@ public class PickerSearchProviderClient {
      */
     @Nullable
     public Cursor fetchSearchSuggestionsFromCmp(@NonNull String prefixText,
+            int limit,
             @Nullable CancellationSignal cancellationSignal) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_PREFIX_TEXT, requireNonNull(prefixText));
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, limit);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_SEARCH_SUGGESTION),
                 null, queryArgs,  cancellationSignal);
@@ -107,11 +120,14 @@ public class PickerSearchProviderClient {
      * Method for querying CloudMediaProvider for MediaSets
      */
     @Nullable
-    public Cursor fetchMediaSetsFromCmp(@NonNull String mediaCategoryId,
+    public Cursor fetchMediaSetsFromCmp(
+            @NonNull String mediaCategoryId, @Nullable String nextPageToken, int pageSize,
             @Nullable CancellationSignal cancellationSignal) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_MEDIA_CATEGORY_ID,
                 requireNonNull(mediaCategoryId));
+        queryArgs.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, nextPageToken);
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, pageSize);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_SET),
                 null, queryArgs,  cancellationSignal);
@@ -135,4 +151,31 @@ public class PickerSearchProviderClient {
         return Uri.parse("content://" + mCloudProviderAuthority + "/" + uriPath);
     }
 
+    /**
+     * Fetches the {@link android.provider.CloudMediaProviderContract.Capabilities} from the
+     * cloud media provider and returns them. In case there is an issue in fetching the
+     * capabilities, this method returns the default capabilities.
+     */
+    @NonNull
+    public CloudMediaProviderContract.Capabilities fetchCapabilities() {
+        try {
+            final Bundle response = mContext.getContentResolver().call(
+                    mCloudProviderAuthority,
+                    METHOD_GET_CAPABILITIES,
+                    /* arg */ null,
+                    /* extras */ null);
+            requireNonNull(response);
+
+            final CloudMediaProviderContract.Capabilities capabilities =
+                    response.getParcelable(EXTRA_PROVIDER_CAPABILITIES);
+            requireNonNull(capabilities);
+
+            return capabilities;
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not fetch capabilities from " + mCloudProviderAuthority);
+
+            // Return default capabilities.
+            return new CloudMediaProviderContract.Capabilities.Builder().build();
+        }
+    }
 }

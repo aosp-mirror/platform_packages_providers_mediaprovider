@@ -19,17 +19,19 @@ package com.android.providers.media.photopicker.v2.sqlite;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 
-import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addNextPageKey;
 import static com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil.addPrevPageKey;
 
 import static java.util.Objects.requireNonNull;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -37,10 +39,71 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Convenience class for running Picker Search Results related sql queries.
+ */
 public class SearchResultsDatabaseUtil {
     private static final String TAG = "SearchResultsDatabaseUtil";
+
+    /**
+     * Utility method that extracts ContentValues in a format that can be inserted in the
+     * search_result_table.
+     *
+     * @param searchRequestId Identifier for a search request.
+     * @param cursor Cursor received from a CloudMediaProvider with the projection
+     *               {@link CloudMediaProviderContract.MediaColumns}
+     * @param isLocal true if the received cursor came from the local provider, otherwise false.
+     * @return a list of ContentValues that can be inserted in the search_result_media table.
+     */
+    @NonNull
+    public static List<ContentValues> extractContentValuesList(
+            int searchRequestId, @NonNull Cursor cursor, boolean isLocal
+    ) {
+        final List<ContentValues> contentValuesList = new ArrayList<>(cursor.getCount());
+        if (cursor.moveToFirst()) {
+            do {
+                contentValuesList.add(extractContentValues(searchRequestId, cursor, isLocal));
+            } while (cursor.moveToNext());
+        }
+        return contentValuesList;
+    }
+
+    @NonNull
+    private static ContentValues extractContentValues(
+            int searchRequestId,
+            @NonNull Cursor cursor,
+            boolean isLocal) {
+        final ContentValues contentValues = new ContentValues();
+
+        final String id = cursor.getString(cursor.getColumnIndexOrThrow(
+                CloudMediaProviderContract.MediaColumns.ID));
+        final String rawMediaStoreUri = cursor.getString(cursor.getColumnIndexOrThrow(
+                CloudMediaProviderContract.MediaColumns.MEDIA_STORE_URI));
+        final Uri mediaStoreUri = rawMediaStoreUri == null ? null : Uri.parse(rawMediaStoreUri);
+        final String extractedLocalId = mediaStoreUri == null ? null
+                : String.valueOf(ContentUris.parseId(mediaStoreUri));
+
+        final String localId = isLocal ? id : extractedLocalId;
+        final String cloudId = isLocal ? null : id;
+
+        contentValues.put(
+                PickerSQLConstants.SearchResultMediaTableColumns.SEARCH_REQUEST_ID.getColumnName(),
+                searchRequestId
+        );
+        contentValues.put(
+                PickerSQLConstants.SearchResultMediaTableColumns.LOCAL_ID.getColumnName(),
+                localId
+        );
+        contentValues.put(
+                PickerSQLConstants.SearchResultMediaTableColumns.CLOUD_ID.getColumnName(),
+                cloudId
+        );
+
+        return contentValues;
+    }
 
     /**
      * Saved the search results media items received from CMP in the database as a temporary cache.
@@ -66,12 +129,15 @@ public class SearchResultsDatabaseUtil {
             return 0;
         }
 
-        final boolean isLocal = LOCAL_PICKER_PROVIDER_AUTHORITY.equals(authority);
+        final boolean isLocal = PickerSyncController.getInstanceOrThrow()
+                .getLocalProvider()
+                .equals(authority);
 
         try {
             // Start a transaction with EXCLUSIVE lock.
             database.beginTransaction();
 
+            // Number of rows inserted or replaced
             int numberOfRowsInserted = 0;
             for (ContentValues contentValues : contentValuesList) {
                 try {
@@ -148,52 +214,54 @@ public class SearchResultsDatabaseUtil {
             @Nullable String localAuthority,
             @Nullable String cloudAuthority
     ) {
+        final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+
         try {
-            final SQLiteDatabase database = syncController.getDbFacade().getDatabase();
+            database.beginTransactionNonExclusive();
+            Cursor pageData = database.rawQuery(
+                    getSearchMediaPageQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
+                    ),
+                    /* selectionArgs */ null
+            );
 
-            try {
-                database.beginTransactionNonExclusive();
-                Cursor pageData = database.rawQuery(
-                        getSearchMediaPageQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                Bundle extraArgs = new Bundle();
-                Cursor nextPageKeyCursor = database.rawQuery(
-                        getSearchMediaNextPageKeyQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                addNextPageKey(extraArgs, nextPageKeyCursor);
+            Bundle extraArgs = new Bundle();
+            Cursor nextPageKeyCursor = database.rawQuery(
+                    getSearchMediaNextPageKeyQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ false)
+                    ),
+                    /* selectionArgs */ null
+            );
+            addNextPageKey(extraArgs, nextPageKeyCursor);
 
-                Cursor prevPageKeyCursor = database.rawQuery(
-                        getSearchMediaPreviousPageQuery(
-                                query,
-                                database,
-                                query.getTableWithRequiredJoins(
-                                        database, localAuthority, cloudAuthority)
-                        ),
-                        /* selectionArgs */ null
-                );
-                addPrevPageKey(extraArgs, prevPageKeyCursor);
+            Cursor prevPageKeyCursor = database.rawQuery(
+                    getSearchMediaPreviousPageQuery(
+                            query,
+                            database,
+                            query.getTableWithRequiredJoins(
+                                    database, localAuthority, cloudAuthority,
+                                    /* reverseOrder */ true)
+                    ),
+                    /* selectionArgs */ null
+            );
+            addPrevPageKey(extraArgs, prevPageKeyCursor);
 
-                database.setTransactionSuccessful();
-                pageData.setExtras(extraArgs);
-                Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
-                return pageData;
-            } finally {
-                database.endTransaction();
-            }
+            database.setTransactionSuccessful();
+            pageData.setExtras(extraArgs);
+            Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
+            return pageData;
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
+        } finally {
+            database.endTransaction();
         }
     }
 

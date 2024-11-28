@@ -16,6 +16,9 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_LOCATION;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_TEXT;
+
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.content.Context;
@@ -26,7 +29,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import org.junit.After;
@@ -64,13 +66,13 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -83,18 +85,18 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, suggestionRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, suggestionRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, suggestionRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, suggestionRequest);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -110,7 +112,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest1);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest1);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -122,12 +124,12 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest2);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest2);
         assertWithMessage("Insert search request failed")
                 .that(secondInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -140,7 +142,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long thirdInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest3);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest3);
         assertWithMessage("Insert search request failed")
                 .that(thirdInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -152,12 +154,12 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "different-media-set-id",
                 "authority",
-                SearchSuggestionType.TEXT,
+                SEARCH_SUGGESTION_TEXT,
                 null
         );
 
         final long fourthInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest4);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest4);
         assertWithMessage("Insert search request failed")
                 .that(fourthInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -171,7 +173,7 @@ public class SearchRequestDatabaseUtilTest {
         );
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -181,7 +183,7 @@ public class SearchRequestDatabaseUtilTest {
                 /* searchText */ "volcano"
         );
         final long secondInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Second insert for same search request should fail silently")
                 .that(secondInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -191,7 +193,7 @@ public class SearchRequestDatabaseUtilTest {
                 /* searchText */ "volcano"
         );
         final long thirdInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, request);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, request);
         assertWithMessage("Third insert for same search request should fail silently")
                 .that(thirdInsertResult)
                 .isEqualTo(/* failed to insert row on constraint conflict */ -1);
@@ -209,7 +211,7 @@ public class SearchRequestDatabaseUtilTest {
 
 
         final long firstInsertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(firstInsertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -240,7 +242,7 @@ public class SearchRequestDatabaseUtilTest {
 
         // Insert a search request
         final long insertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(insertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -280,7 +282,7 @@ public class SearchRequestDatabaseUtilTest {
         final String resumeKey = "RANDOM_RESUME_KEY";
         final String mediaSetID = "MEDIA-SET-ID";
         final String authority = "com.random.authority";
-        final SearchSuggestionType suggestionType = SearchSuggestionType.LOCATION;
+        final String suggestionType = SEARCH_SUGGESTION_LOCATION;
         SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
                 mimeTypes,
                 null,
@@ -292,7 +294,7 @@ public class SearchRequestDatabaseUtilTest {
 
         // Insert a search request
         final long insertResult =
-                SearchRequestDatabaseUtil.saveSearchRequestIfRequired(mDatabase, searchRequest);
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
         assertWithMessage("Insert search request failed")
                 .that(insertResult)
                 .isAtLeast(/* minimum row id */ 0);
@@ -323,16 +325,65 @@ public class SearchRequestDatabaseUtilTest {
         final SearchSuggestionRequest resultSearchSuggestionRequest =
                 (SearchSuggestionRequest) resultSearchRequest;
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getSearchText())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getSearchText())
                 .isNull();
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getMediaSetId())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getMediaSetId())
                 .isEqualTo(mediaSetID);
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getAuthority())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getAuthority())
                 .isEqualTo(authority);
         assertWithMessage("Search request search text is not as expected")
-                .that(resultSearchSuggestionRequest.getSearchSuggestionType())
+                .that(resultSearchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType())
                 .isEqualTo(suggestionType);
+    }
+
+    @Test
+    public void testResumeKeyUpdate() {
+        final List<String> mimeTypes = List.of("video/mp4", "image/*", "image/gif");
+        final String mediaSetID = "MEDIA-SET-ID";
+        final String authority = "com.random.authority";
+        final String suggestionType = SEARCH_SUGGESTION_LOCATION;
+        SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
+                mimeTypes,
+                null,
+                mediaSetID,
+                authority,
+                suggestionType,
+                null
+        );
+
+        // Insert a search request
+        final long insertResult =
+                SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest);
+        assertWithMessage("Insert search request failed")
+                .that(insertResult)
+                .isAtLeast(/* minimum row id */ 0);
+
+        // Get search request ID
+        final int searchRequestID =
+                SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest);
+        assertWithMessage("Search request ID should exist in DB")
+                .that(searchRequestID)
+                .isAtLeast(0);
+
+        // Fetch search details from search request ID
+        final SearchRequest savedSearchRequest =
+                SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
+        assertWithMessage("Initial search request resume key is not null")
+                .that(savedSearchRequest.getResumeKey())
+                .isNull();
+
+        // Update resume key and save
+        final String randomResumeKey = "RAMDOM_RESUME_KEY";
+        savedSearchRequest.setResumeKey(randomResumeKey);
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID, randomResumeKey);
+
+        // Fetch updated search details from search request ID
+        final SearchRequest updatedSearchRequest =
+                SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
+        assertWithMessage("Initial search request resume key is not null")
+                .that(updatedSearchRequest.getResumeKey())
+                .isEqualTo(randomResumeKey);
     }
 }

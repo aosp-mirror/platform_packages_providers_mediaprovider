@@ -34,11 +34,14 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Helper class that keeps track of Picker related Constants.
  */
 public class PickerSQLConstants {
+    public static final int DEFAULT_SEARCH_SUGGESTIONS_LIMIT = 50;
+    public static final int DEFAULT_SEARCH_HISTORY_SUGGESTIONS_LIMIT = 3;
     static final String COUNT_COLUMN = "Count";
 
     /**
@@ -48,7 +51,11 @@ public class PickerSQLConstants {
         MEDIA,
         ALBUM_MEDIA,
         SEARCH_REQUEST,
-        SEARCH_RESULT_MEDIA
+        SEARCH_RESULT_MEDIA,
+        SEARCH_HISTORY,
+        SEARCH_SUGGESTION,
+        MEDIA_SETS,
+        MEDIA_IN_MEDIA_SETS
     }
 
     /**
@@ -220,6 +227,144 @@ public class PickerSQLConstants {
         private final String mColumnName;
 
         SearchResultMediaTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+
+    @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+    public enum SearchHistoryTableColumns {
+        PICKER_ID("_id"),
+        AUTHORITY("authority"),
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        COVER_MEDIA_ID("cover_media_id"),
+        CREATION_TIME_MS("creation_time_ms");
+
+        private final String mColumnName;
+
+        SearchHistoryTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    @VisibleForTesting(otherwise = PACKAGE_PRIVATE)
+    public enum SearchSuggestionsTableColumns {
+        PICKER_ID("_id"),
+        AUTHORITY("authority"),
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        COVER_MEDIA_ID("cover_media_id"),
+        SUGGESTION_TYPE("suggestion_type"),
+        CREATION_TIME_MS("creation_time_ms");
+
+        private final String mColumnName;
+
+        SearchSuggestionsTableColumns(@NonNull String columnName) {
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    public enum MediaSetsTableColumns {
+        PICKER_ID("_id"),
+        CATEGORY_ID("category_id"),
+        MEDIA_SET_ID("media_set_id"),
+        DISPLAY_NAME("display_name"),
+        COVER_ID("cover_id"),
+        MEDIA_SET_AUTHORITY("media_set_authority"),
+        MIME_TYPE_FILTER("mime_type_filter"),
+        MEDIA_IN_MEDIA_SET_SYNC_RESUME_KEY("media_in_media_set_sync_resume_key");
+
+        private final String mColumnName;
+
+        MediaSetsTableColumns(@NonNull String columnName) {
+            Objects.requireNonNull(columnName);
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+
+    public enum SearchSuggestionsResponseColumns {
+        AUTHORITY("authority"),
+        MEDIA_SET_ID("media_set_id"),
+        SEARCH_TEXT("display_text"),
+        COVER_MEDIA_ID("cover_media_id"),
+        SUGGESTION_TYPE("suggestion_type");
+
+        private final String mProjection;
+
+        SearchSuggestionsResponseColumns(@NonNull String projection) {
+            mProjection = projection;
+        }
+
+        public String getProjection() {
+            return mProjection;
+        }
+    }
+
+    public enum MediaInMediaSetsTableColumns {
+        PICKER_ID("_id"),
+        LOCAL_ID("local_id"),
+        CLOUD_ID("cloud_id"),
+        MEDIA_SETS_PICKER_ID("media_set_picker_id");
+
+        private final String mColumnName;
+
+        MediaInMediaSetsTableColumns(@NonNull String columnName) {
+            Objects.requireNonNull(columnName);
+            mColumnName = columnName;
+        }
+
+        public String getColumnName() {
+            return mColumnName;
+        }
+    }
+
+    public enum MediaGroupResponseColumns {
+        /** Type of media group - Album, Category or MediaSet. This cannot be null. */
+        MEDIA_GROUP("media_group"),
+        /** Identifier received from CMP. This cannot be null. */
+        GROUP_ID("group_id"),
+        /** Identifier used in Picker Backend, if any. */
+        PICKER_ID("picker_id"),
+        /** Display name for the group, if any. */
+        DISPLAY_NAME("display_name"),
+        /** Source provider's authority. */
+        AUTHORITY("authority"),
+        /** Cover image Uri for the group. */
+        UNWRAPPED_COVER_URI("cover_uri_1"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_1("cover_uri_2"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_2("cover_uri_3"),
+        /** Additional cover image Uri for the category. */
+        ADDITIONAL_UNWRAPPED_COVER_URI_3("cover_uri_4"),
+        /** If the media group is category, this will be populated with the category type. */
+        CATEGORY_TYPE("category_type"),
+        /** True, if the media category is leaf category which contains media sets,
+         * otherwise false. */
+        IS_LEAF_CATEGORY("is_leaf_category");
+
+        private final String mColumnName;
+
+        MediaGroupResponseColumns(@NonNull String columnName) {
+            Objects.requireNonNull(columnName);
             mColumnName = columnName;
         }
 

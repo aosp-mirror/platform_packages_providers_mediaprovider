@@ -29,6 +29,7 @@ import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -88,6 +89,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
         userMonitor: UserMonitor,
     ): Int {
 
+        val isEmbedded = config.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
         // If any of the banners owned by [CloudMediaFeature] have been previously dismissed, then
         // return a disabled priority.
         if (bannerState?.dismissed == true) {
@@ -106,26 +108,36 @@ class CloudMediaFeature : PhotopickerUiFeature {
 
         return when (banner) {
             BannerDefinitions.CLOUD_CHOOSE_PROVIDER -> {
-                if (
+                return when {
+                    // Don't show in Embedded, as the banner starts an activity which can cause a
+                    // crash.
+                    isEmbedded -> Priority.DISABLED.priority
+
+                    // If there is no current provider, but a list of allowed providers exists
                     currentCloudProvider == null &&
-                        dataService.getAllAllowedProviders().isNotEmpty()
-                ) {
-                    return Priority.MEDIUM.priority
-                } else {
-                    return Priority.DISABLED.priority
+                        dataService.getAllAllowedProviders().isNotEmpty() ->
+                        Priority.MEDIUM.priority
+
+                    // There's a cloud provider set, so don't show
+                    else -> Priority.DISABLED.priority
                 }
             }
             BannerDefinitions.CLOUD_CHOOSE_ACCOUNT -> {
                 collectionInfo?.let {
-                    if (it.accountName == null) {
-                        Priority.MEDIUM.priority
-                    } else {
-                        Priority.DISABLED.priority
+                    when {
+                        // Don't show in Embedded, as the banner starts an activity which can cause
+                        // a crash.
+                        isEmbedded -> Priority.DISABLED.priority
+
+                        // If there is no current cloud provider account
+                        it.accountName == null -> Priority.MEDIUM.priority
+
+                        // There's a cloud provider account set, so don't show
+                        else -> Priority.DISABLED.priority
                     }
                 } ?: Priority.DISABLED.priority
             }
             BannerDefinitions.CLOUD_MEDIA_AVAILABLE -> {
-
                 collectionInfo?.let {
                     if (it.accountName != null && it.collectionId != null) {
                         Priority.MEDIUM.priority
@@ -162,7 +174,7 @@ class CloudMediaFeature : PhotopickerUiFeature {
                     collectionInfo =
                         checkNotNull(collectionInfo) {
                             "collectionInfo was null during buildBanner"
-                        }
+                        },
                 )
             BannerDefinitions.CLOUD_MEDIA_AVAILABLE ->
                 buildCloudMediaAvailableBanner(
@@ -185,15 +197,14 @@ class CloudMediaFeature : PhotopickerUiFeature {
     override val eventsProduced =
         setOf<RegisteredEventClass>(
             Event.LogPhotopickerMenuInteraction::class.java,
-            Event.LogPhotopickerUIEvent::class.java
+            Event.LogPhotopickerUIEvent::class.java,
         )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
         return listOf(
-            Pair(Location.MEDIA_PRELOADER, Priority.HIGH.priority),
             // Medium priority for OVERFLOW_MENU_ITEMS so that [BrowseFeature] can
             // have the top spot if it's enabled.
-            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority),
+            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.MEDIUM.priority)
         )
     }
 
@@ -202,16 +213,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         val events = LocalEvents.current
         val scope = rememberCoroutineScope()
         val configuration = LocalPhotopickerConfiguration.current
         when (location) {
-            Location.MEDIA_PRELOADER -> MediaPreloader(modifier, params)
             Location.OVERFLOW_MENU_ITEMS -> {
                 val context = LocalContext.current
                 val clickAction = params as? LocationParams.WithClickAction
@@ -228,11 +234,11 @@ class CloudMediaFeature : PhotopickerUiFeature {
                                     token,
                                     configuration.sessionId,
                                     configuration.callingPackageUid ?: -1,
-                                    Telemetry.MenuItemSelected.CLOUD_SETTINGS
+                                    Telemetry.MenuItemSelected.CLOUD_SETTINGS,
                                 )
                             )
                         }
-                    }
+                    },
                 )
             }
             else -> {}

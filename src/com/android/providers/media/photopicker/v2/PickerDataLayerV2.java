@@ -26,6 +26,8 @@ import static com.android.providers.media.photopicker.PickerSyncController.getPa
 import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_GRANTS_SYNC_WORK_NAME;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.IMMEDIATE_LOCAL_SYNC_WORK_NAME;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.WorkManagerInitializer.getWorkManager;
 import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.getDefaultSuggestions;
 import static com.android.providers.media.photopicker.v2.SearchSuggestionsProvider.getSuggestionsFromCloudProvider;
@@ -75,6 +77,7 @@ import com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper;
 import com.android.providers.media.photopicker.v2.model.MediaGroup;
 import com.android.providers.media.photopicker.v2.model.MediaQuery;
 import com.android.providers.media.photopicker.v2.model.MediaQueryForPreSelection;
+import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 import com.android.providers.media.photopicker.v2.model.PreviewMediaQuery;
 import com.android.providers.media.photopicker.v2.model.ProviderCollectionInfo;
@@ -361,7 +364,7 @@ public class PickerDataLayerV2 {
 
         // Get cloud categories from cloud provider.
         final Cursor categories = getCloudCategories(
-                appContext, query, effectiveCloudAuthority, cancellationSignal);
+                appContext, query, effectiveCloudAuthority, syncController, cancellationSignal);
 
         // Add Pinned album and categories to the list of cursors in the order in which they
         // should be displayed. Note that pinned albums can only be local and merged albums.
@@ -953,16 +956,17 @@ public class PickerDataLayerV2 {
             @NonNull Context appContext,
             @NonNull MediaQuery query,
             @Nullable String cloudAuthority,
+            @NonNull PickerSyncController syncController,
             @Nullable CancellationSignal cancellationSignal) {
         try {
             if (cloudAuthority == null) {
                 Log.d(TAG, "Cannot fetch cloud categories when cloud authority is null.");
                 return null;
             }
-
             final PickerSearchProviderClient searchClient = PickerSearchProviderClient.create(
                     appContext, cloudAuthority);
-            if (searchClient.fetchCapabilities().isMediaCategoriesEnabled()) {
+            if (syncController.getCategoriesState().areCategoriesEnabled(
+                    appContext, cloudAuthority)) {
                 Log.d(TAG, "Media categories feature is enabled. Fetching cloud categories.");
                 return searchClient.fetchMediaCategoriesFromCmp(
                         /* parentCategoryId */ null,
@@ -1198,6 +1202,68 @@ public class PickerDataLayerV2 {
                     workManager);
 
             return getSearchRequestInitResponse(searchRequestId);
+        }
+    }
+
+    /**
+     * Handles Photopicker's request to trigger a sync for media sets for the given category
+     * based on whether the providers implement search categories.
+     * @param extras Bundle with all input parameters
+     * @param appContext The application context
+     */
+    public static void triggerMediaSetsSync(
+            @NonNull Bundle extras, @NonNull Context appContext) {
+        requireNonNull(extras);
+        requireNonNull(appContext);
+        triggerMediaSetsSync(extras, appContext, getWorkManager(appContext));
+    }
+
+    /**
+     * Handles Photopicker's request to trigger a sync for media sets for the given category
+     * based on whether the providers implement search categories.
+     * @param extras Bundle with all input parameters
+     * @param appContext The application context
+     * @param workManager An instance of {@link WorkManager}
+     */
+    public static void triggerMediaSetsSync(
+            @NonNull Bundle extras, @NonNull Context appContext, @NonNull WorkManager workManager) {
+
+        requireNonNull(workManager);
+
+        MediaSetsSyncRequestParams mediaSetsSyncRequestParams =
+                new MediaSetsSyncRequestParams(extras);
+        final Set<String> providers = new HashSet<>(
+                Objects.requireNonNull(extras.getStringArrayList("providers")));
+
+        scheduleMediaSetsSync(appContext, mediaSetsSyncRequestParams, providers, workManager);
+    }
+
+    /**
+     * Schedules MediaSets sync for both local and cloud provider if the corresponding
+     * providers implement Categories.
+     * @param appContext  The application context
+     * @param requestParams Wrapper object to hold all media set sync parameters
+     * @param providers List of available providers
+     * @param workManager An instance of {@link WorkManager}
+     */
+    private static void scheduleMediaSetsSync(
+            @NonNull Context appContext, @NonNull MediaSetsSyncRequestParams requestParams,
+            @NonNull Set<String> providers, @NonNull WorkManager workManager) {
+
+        final PickerSyncManager syncManager = new PickerSyncManager(workManager, appContext);
+        final PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        int syncSource = syncController.getLocalProvider().equals(requestParams.getAuthority())
+                ? SYNC_LOCAL_ONLY : SYNC_CLOUD_ONLY;
+
+        // Schedule local sync only if the provider holds local authority
+        if (syncSource == SYNC_LOCAL_ONLY && syncController.shouldQueryLocalMediaSets(providers)) {
+            syncManager.syncMediaSetsForProvider(requestParams, SYNC_LOCAL_ONLY);
+        } else if (syncController.shouldQueryCloudMediaSets(
+                providers, requestParams.getAuthority())) {
+            // Schedule cloud sync otherwise
+            syncManager.syncMediaSetsForProvider(requestParams, SYNC_CLOUD_ONLY);
+        } else {
+            Log.e(TAG, "Unrecognised provider authority received for MediaSetSync, skipping");
         }
     }
 

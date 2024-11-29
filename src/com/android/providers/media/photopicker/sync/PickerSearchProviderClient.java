@@ -107,9 +107,13 @@ public class PickerSearchProviderClient {
      * Method for querying CloudMediaProvider for MediaCategories
      */
     @Nullable
-    public Cursor fetchMediaCategoriesFromCmp(@Nullable String parentCategoryId,
+    public Cursor fetchMediaCategoriesFromCmp(
+            @Nullable String parentCategoryId,
+            @Nullable Bundle queryArgs,
             @Nullable CancellationSignal cancellationSignal) {
-        final Bundle queryArgs = new Bundle();
+        if (queryArgs == null) {
+            queryArgs = new Bundle();
+        }
         queryArgs.putString(CloudMediaProviderContract.KEY_PARENT_CATEGORY_ID, parentCategoryId);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_CATEGORY),

@@ -111,8 +111,7 @@ public class PickerSearchProviderClientTest {
 
     @Test
     public void testFetchMediaCategoriesFromCmp() {
-        Cursor cursor = mPickerSearchProviderClient.fetchMediaCategoriesFromCmp(null,
-                null);
+        Cursor cursor = mPickerSearchProviderClient.fetchMediaCategoriesFromCmp(null, null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_CATEGORY_ID, cursor.getString(
                 cursor.getColumnIndex(CloudMediaProviderContract.MediaCategoryColumns.ID)));

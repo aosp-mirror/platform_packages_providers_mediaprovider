@@ -37,8 +37,8 @@ import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
 import com.android.photopicker.util.mapOfDeferredWithTimeout
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -217,15 +217,18 @@ class FeatureManager(
     private fun getDeferredPrefetchResults(): Map<PrefetchResultKey, Deferred<Any?>> {
         Log.d(TAG, "Beginning prefetching results in the background.")
 
-        val prefetchRequestMap: MutableMap<PrefetchResultKey, suspend () -> Any?> = mutableMapOf()
-        registeredFeatures.mapNotNull {
-            it.getPrefetchRequest(prefetchDataService, configuration.value)
-        }.forEach { prefetchRequestMap.putAll(it) }
+        val prefetchRequestMap:
+            MutableMap<PrefetchResultKey, suspend (PrefetchDataService) -> Any?> =
+            mutableMapOf()
+        registeredFeatures
+            .mapNotNull { it.getPrefetchRequest(configuration.value) }
+            .forEach { prefetchRequestMap.putAll(it) }
 
         val prefetchDeferredResultsMap =
             runBlocking(dispatcher) {
-                mapOfDeferredWithTimeout<PrefetchResultKey>(
+                mapOfDeferredWithTimeout<PrefetchResultKey, PrefetchDataService>(
                     inputMap = prefetchRequestMap,
+                    input = prefetchDataService,
                     timeoutMillis = 200L,
                 )
             }

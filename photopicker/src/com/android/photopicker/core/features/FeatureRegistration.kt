@@ -52,15 +52,13 @@ interface FeatureRegistration {
      *
      * Typically a prefetch request would fetch some information required from a different process.
      *
-     * @param prefetchDataService An instance of [PrefetchDataService] which abstracts I/O
-     *   operations from features.
+     * @param config An instance of [PhotopickerConfiguration].
      * @return A map of prefetch requests with a key from [PrefetchResultKey] and prefetch lambda as
      *   the value.
      */
     fun getPrefetchRequest(
-        prefetchDataService: PrefetchDataService,
-        config: PhotopickerConfiguration,
-    ): Map<PrefetchResultKey, suspend () -> Any?>? = null
+        config: PhotopickerConfiguration
+    ): Map<PrefetchResultKey, suspend (PrefetchDataService) -> Any?>? = null
 
     /**
      * Called everytime the [PhotopickerConfiguration] of the activity is changed. This will be

@@ -42,14 +42,18 @@ class SearchFeature : PhotopickerUiFeature {
         override val TAG: String = "SearchFeature"
 
         override fun getPrefetchRequest(
-            prefetchDataService: PrefetchDataService,
-            config: PhotopickerConfiguration,
-        ): Map<PrefetchResultKey, suspend () -> Any?>? {
+            config: PhotopickerConfiguration
+        ): Map<PrefetchResultKey, suspend (PrefetchDataService) -> Any?>? {
             return if (
                 config.flags.PICKER_SEARCH_ENABLED &&
                     config.action != MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP
             ) {
-                mapOf(PrefetchResultKey.SEARCH_STATE to { prefetchDataService.getSearchState() })
+                mapOf(
+                    PrefetchResultKey.SEARCH_STATE to
+                        { prefetchDataService ->
+                            prefetchDataService.getSearchState()
+                        }
+                )
             } else {
                 null
             }

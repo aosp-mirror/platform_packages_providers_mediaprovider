@@ -39,9 +39,9 @@ class PrefetchFeature : PhotopickerUiFeature {
         override val TAG: String = "PrefetchFeature"
 
         override fun getPrefetchRequest(
-            prefetchDataService: PrefetchDataService,
-            config: PhotopickerConfiguration,
-        ): Map<PrefetchResultKey, suspend () -> Any?>? = mapOf(prefetchResultKey to { true })
+            config: PhotopickerConfiguration
+        ): Map<PrefetchResultKey, suspend (PrefetchDataService) -> Any?>? =
+            mapOf(prefetchResultKey to { true })
 
         override fun isEnabled(
             config: PhotopickerConfiguration,

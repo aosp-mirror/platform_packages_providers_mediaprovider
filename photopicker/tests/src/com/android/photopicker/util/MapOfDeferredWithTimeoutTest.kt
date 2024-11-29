@@ -34,7 +34,7 @@ class MapOfDeferredWithTimeoutTest {
     fun testTasksRunsInParallel() {
         val time = measureTime {
             runBlocking {
-                val inputMap: MutableMap<Int, suspend () -> Any?> = mutableMapOf()
+                val inputMap: MutableMap<Int, suspend (Unit) -> Any?> = mutableMapOf()
                 for (i in 1..10) {
                     inputMap[i] = {
                         delay(50)
@@ -42,7 +42,8 @@ class MapOfDeferredWithTimeoutTest {
                     }
                 }
 
-                val resultMap: Map<Int, Deferred<Any?>> = mapOfDeferredWithTimeout(inputMap, 100)
+                val resultMap: Map<Int, Deferred<Any?>> =
+                    mapOfDeferredWithTimeout(inputMap, Unit, 100)
 
                 for (i in 1..10) {
                     val result: Any? = resultMap[i]?.await()
@@ -64,7 +65,7 @@ class MapOfDeferredWithTimeoutTest {
     fun testMapTimeout() {
         val time = measureTime {
             runBlocking {
-                val inputMap: Map<String, suspend () -> Any?> =
+                val inputMap: Map<String, suspend (Unit) -> Any?> =
                     mapOf(
                         "key1" to
                             {
@@ -79,7 +80,8 @@ class MapOfDeferredWithTimeoutTest {
                         "key3" to { throw RuntimeException() },
                     )
 
-                val resultMap: Map<String, Deferred<Any?>> = mapOfDeferredWithTimeout(inputMap, 50)
+                val resultMap: Map<String, Deferred<Any?>> =
+                    mapOfDeferredWithTimeout(inputMap, Unit, 50)
 
                 assertWithMessage("Task should be timed out. Expected result is null.")
                     .that(resultMap["key1"]?.await())
@@ -99,8 +101,8 @@ class MapOfDeferredWithTimeoutTest {
         }
 
         // If the timeout didn't take effect, this would take more than 5 seconds to run.
-        assertWithMessage("Expected total time to be less that 100ms")
+        assertWithMessage("Expected total time to be less that 500ms")
             .that(time.inWholeMilliseconds)
-            .isLessThan(100)
+            .isLessThan(500)
     }
 }

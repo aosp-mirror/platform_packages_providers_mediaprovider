@@ -35,18 +35,19 @@ private const val TAG = "MapOfDeferredWithTimeout"
  *
  * If any async task throws an error, it will be swallowed and the result will be set to null.
  */
-suspend fun <A> mapOfDeferredWithTimeout(
-    inputMap: Map<A, suspend () -> Any?>,
+suspend fun <A, B> mapOfDeferredWithTimeout(
+    inputMap: Map<A, suspend (B) -> Any?>,
+    input: B,
     timeoutMillis: Long,
 ): Map<A, Deferred<Any?>> = coroutineScope {
     inputMap
-        .map<A, suspend () -> Any?, Pair<A, Deferred<Any?>>> { (key, block) ->
+        .map<A, suspend (B) -> Any?, Pair<A, Deferred<Any?>>> { (key, block) ->
             key to
                 async {
                     try {
                         withTimeout(timeoutMillis) {
                             Log.d(TAG, "Fetching result for : $key")
-                            val result = block()
+                            val result = block(input)
                             Log.d(TAG, "Finished fetching result for : $key val: $result")
                             result
                         }

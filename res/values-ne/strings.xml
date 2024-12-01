@@ -73,7 +73,7 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> एपबाट <xliff:g id="PROFILE1">%1$s</xliff:g> डेटा एक्सेस गर्ने अनुमति दिइएको छैन"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> प्रयोग गर्नुहोस्"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामसम्बन्धी एपहरू पज गरिएका छन्"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> एपहरू पज गरिएका छन्"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> प्रोफाइलका एपहरू पज गरिएका छन्"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामसम्बन्धी फोटोहरू खोल्न आफ्ना कामसम्बन्धी एपहरू अन गर्नुहोस् अनि फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> फोटोहरू खोल्न आफ्ना <xliff:g id="PROFILE2">%2$s</xliff:g> एपहरू अन गर्नुहोस् र फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"यो एपले तपाईंले चयन गरेका फोटो मात्र प्रयोग गर्न सक्छ"</string>

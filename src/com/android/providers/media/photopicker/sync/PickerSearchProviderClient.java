@@ -107,9 +107,13 @@ public class PickerSearchProviderClient {
      * Method for querying CloudMediaProvider for MediaCategories
      */
     @Nullable
-    public Cursor fetchMediaCategoriesFromCmp(@Nullable String parentCategoryId,
+    public Cursor fetchMediaCategoriesFromCmp(
+            @Nullable String parentCategoryId,
+            @Nullable Bundle queryArgs,
             @Nullable CancellationSignal cancellationSignal) {
-        final Bundle queryArgs = new Bundle();
+        if (queryArgs == null) {
+            queryArgs = new Bundle();
+        }
         queryArgs.putString(CloudMediaProviderContract.KEY_PARENT_CATEGORY_ID, parentCategoryId);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_CATEGORY),
@@ -120,11 +124,14 @@ public class PickerSearchProviderClient {
      * Method for querying CloudMediaProvider for MediaSets
      */
     @Nullable
-    public Cursor fetchMediaSetsFromCmp(@NonNull String mediaCategoryId,
+    public Cursor fetchMediaSetsFromCmp(
+            @NonNull String mediaCategoryId, @Nullable String nextPageToken, int pageSize,
             @Nullable CancellationSignal cancellationSignal) {
         final Bundle queryArgs = new Bundle();
         queryArgs.putString(CloudMediaProviderContract.KEY_MEDIA_CATEGORY_ID,
                 requireNonNull(mediaCategoryId));
+        queryArgs.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, nextPageToken);
+        queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, pageSize);
         return mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_SET),
                 null, queryArgs,  cancellationSignal);

@@ -78,7 +78,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -111,11 +110,10 @@ import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
+import com.android.photopicker.util.LocalLocalizationHelper
 import com.android.photopicker.util.getMediaContentDescription
 import java.text.DateFormat
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 /** The number of grid cells per row for Phone / narrow layouts */
 private val CELLS_PER_ROW: Int = 3
@@ -248,11 +246,11 @@ fun mediaGrid(
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val host = LocalEmbeddedState.current?.host
-    val currentLocale = LocalConfiguration.current.locales.get(0) ?: Locale.getDefault()
     val dateFormat =
-        remember(currentLocale) {
-            SimpleDateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT, currentLocale)
-        }
+        LocalLocalizationHelper.current.getLocalizedDateTimeFormatter(
+            dateStyle = DateFormat.MEDIUM,
+            timeStyle = DateFormat.SHORT,
+        )
 
     /**
      * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to

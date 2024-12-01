@@ -19,12 +19,24 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_application_label" msgid="7272391964836190376">"Фотографии и видеа"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"Аудиовизуелни содржини"</string>
+    <!-- no translation found for photopicker_item_content_desc (8606023869442295434) -->
+    <skip />
+    <!-- no translation found for photopicker_video_item_content_desc (7771015154523467435) -->
+    <skip />
+    <!-- no translation found for photopicker_photo (3161869302699043679) -->
+    <skip />
+    <!-- no translation found for photopicker_gif (8915160998232097958) -->
+    <skip />
+    <!-- no translation found for photopicker_motion_photo (5932343665148103014) -->
+    <skip />
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Избрано"</string>
     <string name="photopicker_item_not_selected" msgid="4036054099514100702">"Не е избрано"</string>
     <string name="photopicker_select_action_description" msgid="5369819457862091225">"Избери"</string>
     <string name="photopicker_deselect_action_description" msgid="4986504797441859297">"Поништи го изборот"</string>
     <string name="photopicker_done_button_label" msgid="2641444126618862287">"Готово"</string>
     <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Поништи го изборот на сите"</string>
+    <!-- no translation found for photopicker_selection_size_description (1142474949774463967) -->
+    <skip />
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Изберете до <xliff:g id="COUNT">%1$s</xliff:g> ставки"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Фотографии"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Албуми"</string>

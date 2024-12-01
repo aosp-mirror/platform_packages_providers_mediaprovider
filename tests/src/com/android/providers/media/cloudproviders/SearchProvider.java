@@ -22,12 +22,15 @@ import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLO
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.CLOUD_ID_4;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_1;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.LOCAL_ID_2;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getAlbumCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getCloudMediaCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getLocalMediaCursor;
+import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getMediaCategoriesCursor;
 import static com.android.providers.media.photopicker.util.PickerDbTestUtils.getSuggestionCursor;
 
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -69,6 +72,18 @@ public class SearchProvider extends CloudMediaProvider {
 
     private static Cursor sSearchSuggestions = DEFAULT_SUGGESTION_RESULTS;
 
+    public static final MergeCursor DEFAULT_CATEGORY_RESULTS = new MergeCursor(List.of(
+            getMediaCategoriesCursor("people_and_pets")
+    ).toArray(new Cursor[0]));
+
+    private static Cursor sMediaCategories = DEFAULT_CATEGORY_RESULTS;
+
+    public static final MergeCursor DEFAULT_ALBUM_RESULTS = new MergeCursor(List.of(
+            getAlbumCursor("cloud_album", 0L, /* coverId */ CLOUD_ID_1, AUTHORITY)
+    ).toArray(new Cursor[0]));
+
+    private static Cursor sAlbums = DEFAULT_ALBUM_RESULTS;
+
     @Override
     public Cursor onSearchMedia(String mediaSetId, String fallbackSearchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
@@ -88,8 +103,28 @@ public class SearchProvider extends CloudMediaProvider {
     }
 
     @Override
+    public Cursor onQueryMediaSets(String mediaCategoryId,
+            Bundle extras, CancellationSignal cancellationSignal) {
+        return getCursorForMediaSetSyncTest();
+    }
+
+    @Override
+    public Cursor onQueryMediaCategories(String parentCategoryId, Bundle extras,
+                                         CancellationSignal cancellationSignal) {
+        return sMediaCategories;
+    }
+
+    @Override
+    public Cursor onQueryAlbums(Bundle extras) {
+        return sAlbums;
+    }
+
+    @Override
     public CloudMediaProviderContract.Capabilities onGetCapabilities() {
-        return new CloudMediaProviderContract.Capabilities.Builder().setSearchEnabled(true).build();
+        return new CloudMediaProviderContract.Capabilities.Builder()
+                .setSearchEnabled(true)
+                .setMediaCategoriesEnabled(true)
+                .build();
     }
 
     @Override
@@ -135,5 +170,21 @@ public class SearchProvider extends CloudMediaProvider {
 
     public static Cursor getSearchResults() {
         return sSearchResults;
+    }
+
+    /*
+     Returns a media set data cursor for tests
+     */
+    public static Cursor getCursorForMediaSetSyncTest() {
+        String[] columns = new String[]{
+                CloudMediaProviderContract.MediaSetColumns.ID,
+                CloudMediaProviderContract.MediaSetColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.MediaSetColumns.MEDIA_COVER_ID
+        };
+
+        MatrixCursor cursor = new MatrixCursor(columns);
+        cursor.addRow(new Object[] { "mediaSetId", "name", "id" });
+
+        return cursor;
     }
 }

@@ -44,8 +44,8 @@ import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -192,6 +192,8 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
     val featureInfo = EmbeddedPhotoPickerFeatureInfo.Builder().build()
 
+    private val MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING: String = "taken on"
+
     // Session has a surfacePackage which outlives the test if not closed, so it always needs to be
     // closed at the end of each test to prevent any existing UI activity from leaking into the next
     // test. Hold a reference to it in the test class and try to call close in the @After block.
@@ -311,14 +313,14 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            val resources = getTestableContext().getResources()
-
-            // This is the accessibility label for a Photo in the grid.
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
             // Verify that data in PhotoGrid is displayed
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .assert(hasClickAction())
                 .assertIsDisplayed()
@@ -485,13 +487,14 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             clearInvocations(mockTextContextWrapper, mockClient)
 
-            val resources = getTestableContext().getResources()
-
-            // This is the accessibility label for a Photo in the grid.
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
             // Get all image nodes
-            val allImageNodes = composeTestRule.onAllNodesWithContentDescription(mediaItemString)
+            val allImageNodes =
+                composeTestRule.onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
 
             // Make list of indices to select
             var indicesToSelect = setOf(2, 0, 4) // Select images at indices 2, 0, and 4
@@ -605,15 +608,14 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.waitForIdle()
 
-            clearInvocations(mockTextContextWrapper, mockClient)
-
-            val resources = getTestableContext().getResources()
-
-            // This is the accessibility label for a Photo in the grid.
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
             // Get all image nodes
-            val allImageNodes = composeTestRule.onAllNodesWithContentDescription(mediaItemString)
+            val allImageNodes =
+                composeTestRule.onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
 
             // Make list of indices to select
             var indicesToSelect = setOf(2, 0, 4) // Select images at indices 2, 0, and 4
@@ -732,12 +734,14 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.waitForIdle()
 
-            val resources = getTestableContext().getResources()
-            // This is the accessibility label for a Photo in the grid.
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
             // Get all image nodes
-            val allImageNodes = composeTestRule.onAllNodesWithContentDescription(mediaItemString)
+            val allImageNodes =
+                composeTestRule.onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
 
             // Make list of indices to select
             var indicesToSelect = setOf(2, 0, 4) // Select images at indices 2, 0, and 4

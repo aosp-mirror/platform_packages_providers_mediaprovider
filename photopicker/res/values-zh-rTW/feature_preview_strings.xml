@@ -17,11 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for photopicker_select_button_label (8663207309796656185) -->
-    <skip />
+    <string name="photopicker_select_button_label" msgid="8663207309796656185">"選取全部 <xliff:g id="COUNT">%1$s</xliff:g> 個項目"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"選取"</string>
-    <!-- no translation found for photopicker_deselect_button_label (4730476375060939835) -->
-    <skip />
+    <string name="photopicker_deselect_button_label" msgid="4730476375060939835">"取消選取全部 <xliff:g id="COUNT">%1$s</xliff:g> 個項目"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"預覽"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"播放影片時發生問題"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"請檢查網路連線，然後再試一次"</string>

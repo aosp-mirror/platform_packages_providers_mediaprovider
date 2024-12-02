@@ -1293,10 +1293,6 @@ public class PickerSyncController {
             // We need this to trigger a sync from the UI
             PickerNotificationSender.notifyAvailableProvidersChange(mContext);
             updateLatestKnownCollectionInfoLocked(false, null);
-
-            if (mSearchState != null) {
-                mSearchState.clearCache();
-            }
         }
     }
 

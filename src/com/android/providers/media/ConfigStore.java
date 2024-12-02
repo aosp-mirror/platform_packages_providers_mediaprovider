@@ -64,7 +64,6 @@ public interface ConfigStore {
     int DEFAULT_TRANSCODE_MAX_DURATION = 60 * 1000; // 1 minute
 
     boolean DEFAULT_MODERN_PICKER_ENABLED = false;
-    boolean DEFAULT_SEARCH_FEATURE_ENABLED = false;
 
     boolean DEFAULT_PICKER_GET_CONTENT_PRELOAD = true;
     boolean DEFAULT_PICKER_PICK_IMAGES_PRELOAD = true;
@@ -80,13 +79,6 @@ public interface ConfigStore {
      */
     default boolean isModernPickerEnabled() {
         return DEFAULT_MODERN_PICKER_ENABLED;
-    }
-
-    /**
-     * @return if the search feature is enabled.
-     */
-    default boolean isSearchFeatureEnabled() {
-        return DEFAULT_SEARCH_FEATURE_ENABLED;
     }
 
     /**
@@ -336,7 +328,6 @@ public interface ConfigStore {
         private static final int TRANSCODE_MAX_DURATION_INVALID = 0;
 
         private static final String KEY_MODERN_PICKER_ENABLED = "enable_modern_picker";
-        private static final String KEY_SEARCH_FEATURE_ENABLED = "enable_search_feature";
 
         private static final String KEY_PICKER_GET_CONTENT_PRELOAD =
                 "picker_get_content_preload_selected";
@@ -378,15 +369,6 @@ public interface ConfigStore {
             } else {
                 return false;
             }
-        }
-
-        @Override
-        public boolean isSearchFeatureEnabled() {
-            return isModernPickerEnabled()
-                    && getBooleanDeviceConfig(
-                            NAMESPACE_MEDIAPROVIDER,
-                            KEY_SEARCH_FEATURE_ENABLED,
-                            DEFAULT_SEARCH_FEATURE_ENABLED);
         }
 
         @Override

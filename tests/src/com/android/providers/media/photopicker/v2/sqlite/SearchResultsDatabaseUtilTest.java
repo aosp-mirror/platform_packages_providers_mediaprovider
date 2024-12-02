@@ -53,7 +53,6 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
@@ -74,6 +73,8 @@ import java.util.List;
 public class SearchResultsDatabaseUtilTest {
     @Mock
     private PickerSyncController mMockSyncController;
+    @Mock
+    private SearchState mSearchState;
     private SQLiteDatabase mDatabase;
     private Context mContext;
     private PickerDbFacade mFacade;
@@ -90,15 +91,13 @@ public class SearchResultsDatabaseUtilTest {
         mFacade = new PickerDbFacade(mContext, new PickerSyncLockManager(), LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.setIsSearchFeatureEnabled(true);
-        final SearchState searchState = new SearchState(configStore);
-
         doReturn(LOCAL_PROVIDER).when(mMockSyncController).getLocalProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
-        doReturn(searchState).when(mMockSyncController).getSearchState();
+        doReturn(mSearchState).when(mMockSyncController).getSearchState();
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any());
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any(), any());
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
     }
 

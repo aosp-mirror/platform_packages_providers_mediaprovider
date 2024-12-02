@@ -21,6 +21,10 @@
 
 namespace mediaprovider {
 namespace fuse {
+static constexpr char STORAGE_PREFIX[] = "/storage";
+static constexpr char VOLUME_INTERNAL[] = "internal";
+static constexpr char VOLUME_EXTERNAL_PRIMARY[] = "external_primary";
+static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
 
 /**
  * Returns true if the given path (ignoring case) is mounted for any
@@ -30,6 +34,11 @@ namespace fuse {
  * "/storage/emulated/<userid>/Android/obb" *
  */
 bool containsMount(const std::string& path);
+
+/**
+ * Returns the volume name extracted from a given path.
+ */
+std::string getVolumeNameFromPath(const std::string& path);
 
 }  // namespace fuse
 }  // namespace mediaprovider

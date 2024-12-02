@@ -39,7 +39,9 @@ import com.android.photopicker.core.selection.SelectionStrategy
 import com.android.photopicker.core.selection.SelectionStrategy.Companion.determineSelectionStrategy
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
+import com.android.photopicker.data.PrefetchDataService
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
@@ -49,6 +51,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.mockito.Mockito.mock
 
@@ -217,12 +220,21 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
     fun createFeatureManager(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        prefetchDataService: PrefetchDataService,
     ): FeatureManager {
         return FeatureManager(
             configuration = configurationManager.configuration,
             scope = scope,
+            prefetchDataService = prefetchDataService,
             registeredFeatures = options.registeredFeatures,
+            dispatcher = Dispatchers.Main.immediate,
         )
+    }
+
+    @Singleton
+    @Provides
+    fun createPrefetchDataService(): PrefetchDataService {
+        return TestPrefetchDataService()
     }
 
     @Singleton

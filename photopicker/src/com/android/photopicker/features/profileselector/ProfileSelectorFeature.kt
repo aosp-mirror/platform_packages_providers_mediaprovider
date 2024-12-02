@@ -35,10 +35,12 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.data.DataService
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.runBlocking
 
 /** Feature class for the Photopicker's Profile Selector button. */
@@ -47,7 +49,10 @@ class ProfileSelectorFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerProfileSelectorFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ): Boolean {
 
             // Profile switching is not permitted in permission mode.
             if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(config.action)) {
@@ -66,10 +71,7 @@ class ProfileSelectorFeature : PhotopickerUiFeature {
 
     override val token = FeatureToken.PROFILE_SELECTOR.token
 
-    override val ownedBanners: Set<BannerDefinitions> =
-        setOf(
-            BannerDefinitions.SWITCH_PROFILE,
-        )
+    override val ownedBanners: Set<BannerDefinitions> = setOf(BannerDefinitions.SWITCH_PROFILE)
 
     override suspend fun getBannerPriority(
         banner: BannerDefinitions,
@@ -162,11 +164,7 @@ class ProfileSelectorFeature : PhotopickerUiFeature {
         setOf<RegisteredEventClass>(Event.LogPhotopickerUIEvent::class.java)
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.PROFILE_SELECTOR -> ProfileSelector(modifier)
             else -> {}

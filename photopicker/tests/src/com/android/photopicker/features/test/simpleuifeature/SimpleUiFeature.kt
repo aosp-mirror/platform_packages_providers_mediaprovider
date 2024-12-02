@@ -35,11 +35,13 @@ import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
+import kotlinx.coroutines.Deferred
 
 /** Test [PhotopickerUiFeature] that renders a simple string to [Location.COMPOSE_TOP] */
 open class SimpleUiFeature : PhotopickerUiFeature {
@@ -47,7 +49,10 @@ open class SimpleUiFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "SimpleUiFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = SimpleUiFeature()
 
@@ -123,17 +128,13 @@ open class SimpleUiFeature : PhotopickerUiFeature {
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     simpleRoute()
                 }
-            },
+            }
         )
     }
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop(params)
             Location.SELECTION_BAR_SECONDARY_ACTION -> selectionBarAction()

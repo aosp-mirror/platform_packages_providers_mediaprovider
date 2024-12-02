@@ -40,6 +40,7 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.core.user.UserMonitor
@@ -48,6 +49,7 @@ import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
 
 /**
@@ -60,7 +62,10 @@ class CloudMediaFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerCloudMediaFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ): Boolean {
 
             // Cloud media is not available in permission mode.
             if (config.action == MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP) return false

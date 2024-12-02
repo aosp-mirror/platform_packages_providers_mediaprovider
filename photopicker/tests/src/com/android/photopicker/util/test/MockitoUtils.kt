@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.tests.utils.mockito
+package com.android.photopicker.util.test
 
 import android.content.Context
 import org.mockito.ArgumentCaptor
@@ -55,7 +55,7 @@ fun <Type> capture(argumentCaptor: ArgumentCaptor<Type>): Type = argumentCaptor.
 fun <Type> mockSystemService(
     context: Context,
     classToMock: Class<Type>,
-    block: InvocationOnMock.() -> Type
+    block: InvocationOnMock.() -> Type,
 ) {
     whenever(context.getSystemServiceName(classToMock)) { classToMock.simpleName }
     whenever(context.getSystemService(classToMock.simpleName)) { block() }

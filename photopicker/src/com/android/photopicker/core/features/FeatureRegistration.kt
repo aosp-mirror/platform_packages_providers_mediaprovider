@@ -17,6 +17,8 @@
 package com.android.photopicker.core.features
 
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.data.PrefetchDataService
+import kotlinx.coroutines.Deferred
 
 /**
  * This registration interface represents the registration contract between [FeatureManager] and
@@ -38,6 +40,27 @@ interface FeatureRegistration {
     val TAG: String
 
     /**
+     * Called once when [FeatureManager] is initialized for a Photopicker session.
+     *
+     * If a feature needs to run relatively expensive operation before determining whether the
+     * feature should be enabled in the current session or not, they should override this method and
+     * return a map of prefetch data requests. A prefetch data request contains a key and a lambda
+     * that fetches the required result.
+     *
+     * Please note that all prefetch requests will be timed out after a few hundred milliseconds so
+     * please ensure that the prefetch operation does not take a long time to execute.
+     *
+     * Typically a prefetch request would fetch some information required from a different process.
+     *
+     * @param config An instance of [PhotopickerConfiguration].
+     * @return A map of prefetch requests with a key from [PrefetchResultKey] and prefetch lambda as
+     *   the value.
+     */
+    fun getPrefetchRequest(
+        config: PhotopickerConfiguration
+    ): Map<PrefetchResultKey, suspend (PrefetchDataService) -> Any?>? = null
+
+    /**
      * Called everytime the [PhotopickerConfiguration] of the activity is changed. This will be
      * called infrequently, (usually just once) as is used by the [FeatureManager] to determine if
      * the base feature class should be instantiated in the current session, with the provided
@@ -46,10 +69,15 @@ interface FeatureRegistration {
      * In the event of a configuration change, this will be called again with the new configuration,
      * and will help determine if the feature should be kept in activity scope, or dereferenced.
      *
+     * @param config An instance of [PhotopickerConfiguration].
+     * @param deferredPrefetchResultsMap A map with the deferred results of prefetch results.
      * @return Whether the Feature that this FeatureRegistration represents should be enabled with
      *   the given configuration.
      */
-    fun isEnabled(config: PhotopickerConfiguration): Boolean = false
+    fun isEnabled(
+        config: PhotopickerConfiguration,
+        deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>> = mapOf(),
+    ): Boolean = false
 
     /**
      * An exposed factory method for instantiating the registered feature. This is eventually called

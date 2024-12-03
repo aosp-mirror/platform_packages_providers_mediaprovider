@@ -165,4 +165,31 @@ TEST(Test, ConsumeInvalidRectResetsRectTest) {
     ASSERT_EQ(expected, page->ConsumeInvalidRect());
 }
 
+TEST(Test, InvalidPageNumberTest) {
+    Document doc(LoadTestDocument(kSekretNoPassword), false);
+    // The document has only one page but we fetch the second one.
+    std::shared_ptr<Page> page = doc.GetPage(1);
+
+    // The above call succeeds and returns a non-null ptr.
+    ASSERT_NE(nullptr, page);
+    // Even though the underlying pointer is null.
+    ASSERT_EQ(nullptr, page->page());
+
+    // Rest of the calls should give some default values.
+    EXPECT_EQ(-1, page->NumChars());
+    std::string str_with_null = "\0";
+    EXPECT_EQ(1, page->GetTextUtf8().size());  // Returns "\0"
+    EXPECT_EQ('\0', page->GetUnicode(0));
+    EXPECT_EQ(0, page->Width());
+    EXPECT_EQ(0, page->Height());
+
+    Rectangle_i expected = Rectangle_i{0, 0, 0, 0};
+    EXPECT_EQ(expected, page->Dimensions());
+    EXPECT_EQ(false, page->HasInvalidRect());
+    EXPECT_EQ(0, page->GetGotoLinks().size());
+    // The following should not crash, we do not expect anything in return.
+    page->InitializeFormFilling();
+    page->TerminateFormFilling();
+}
+
 }  // namespace

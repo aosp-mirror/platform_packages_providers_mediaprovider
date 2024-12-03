@@ -97,6 +97,12 @@ public class SearchProvider extends CloudMediaProvider {
     }
 
     @Override
+    public Cursor onQueryMediaInMediaSet(String mediaSetId,
+            Bundle extras, CancellationSignal cancellationSignal) {
+        return sSearchResults;
+    }
+
+    @Override
     public Cursor onQuerySearchSuggestions(String prefixText, Bundle extras,
                                            CancellationSignal cancellationSignal) {
         return sSearchSuggestions;

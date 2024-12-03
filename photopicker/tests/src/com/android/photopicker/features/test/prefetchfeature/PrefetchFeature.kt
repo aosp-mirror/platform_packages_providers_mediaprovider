@@ -14,56 +14,60 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.overflowmenu
+package src.com.android.photopicker.features.test.prefetchfeature
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
-import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
-import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.PrefetchResultKey
-import com.android.photopicker.core.features.Priority
+import com.android.photopicker.data.PrefetchDataService
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.runBlocking
 
-/** Feature class for the Photopicker's overflow menu. */
-class OverflowMenuFeature : PhotopickerUiFeature {
+class PrefetchFeature : PhotopickerUiFeature {
 
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerOverflowMenuFeature"
+        // Use any valid key
+        private val prefetchResultKey: PrefetchResultKey = PrefetchResultKey.SEARCH_STATE
+
+        override val TAG: String = "PrefetchFeature"
+
+        override fun getPrefetchRequest(
+            config: PhotopickerConfiguration
+        ): Map<PrefetchResultKey, suspend (PrefetchDataService) -> Any?>? =
+            mapOf(prefetchResultKey to { true })
 
         override fun isEnabled(
             config: PhotopickerConfiguration,
             deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
-        ) = config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
+        ): Boolean {
+            return runBlocking {
+                val featureStatus: Any? = deferredPrefetchResultsMap[prefetchResultKey]?.await()
+                when (featureStatus) {
+                    null -> false
+                    is Boolean -> featureStatus
+                    else -> false
+                }
+            }
+        }
 
-        override fun build(featureManager: FeatureManager) = OverflowMenuFeature()
+        override fun build(featureManager: FeatureManager) = PrefetchFeature()
     }
 
-    override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.OVERFLOW_MENU, Priority.HIGH.priority))
-    }
-
-    override val token = FeatureToken.OVERFLOW_MENU.token
-
-    /** Events consumed by the OverflowMenu */
-    override val eventsConsumed = setOf<RegisteredEventClass>()
-
-    /** Events produced by the OverflowMenu */
-    override val eventsProduced =
-        setOf<RegisteredEventClass>(Event.LogPhotopickerUIEvent::class.java)
+    override fun registerLocations(): List<Pair<Location, Int>> = listOf()
 
     @Composable
-    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
-        when (location) {
-            Location.OVERFLOW_MENU -> OverflowMenu(modifier)
-            else -> {}
-        }
-    }
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {}
+
+    override val token: String = TAG
+
+    override val eventsConsumed: Set<RegisteredEventClass> = emptySet()
+
+    override val eventsProduced: Set<RegisteredEventClass> = emptySet()
 }

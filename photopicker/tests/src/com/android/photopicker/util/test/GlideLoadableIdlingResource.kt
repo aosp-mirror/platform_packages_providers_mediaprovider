@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.test.utils
+package com.android.photopicker.util.test
 
 import androidx.compose.ui.test.IdlingResource
 import java.util.concurrent.atomic.AtomicInteger

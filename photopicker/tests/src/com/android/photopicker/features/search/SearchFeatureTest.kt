@@ -55,9 +55,11 @@ import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
+import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.android.providers.media.flags.Flags
@@ -73,7 +75,10 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -129,6 +134,16 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
+    val deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>> =
+        mapOf(
+            PrefetchResultKey.SEARCH_STATE to
+                runBlocking {
+                    async {
+                        return@async SearchEnabledState.ENABLED
+                    }
+                }
+        )
+
     @Before
     fun setup() {
 
@@ -147,7 +162,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(MediaStore.ACTION_PICK_IMAGES))
             }
         assertWithMessage("SearchBar is always enabled when search flag is disabled")
-            .that(SearchFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testActionPickImagesConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(false)
 
         val testGetContentConfiguration: PhotopickerConfiguration =
@@ -156,7 +176,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(Intent.ACTION_GET_CONTENT))
             }
         assertWithMessage("Search Feature is always enabled when search flag is disabled")
-            .that(SearchFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testGetContentConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(false)
 
         val testUserSelectImagesForAppConfiguration: PhotopickerConfiguration =
@@ -168,7 +193,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is always enabled when search flag is disabled")
-            .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(false)
     }
 
@@ -182,7 +212,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(MediaStore.ACTION_PICK_IMAGES))
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
-            .that(SearchFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testActionPickImagesConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(true)
 
         val testGetContentConfiguration: PhotopickerConfiguration =
@@ -191,7 +226,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(Intent.ACTION_GET_CONTENT))
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
-            .that(SearchFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testGetContentConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(true)
     }
 
@@ -206,7 +246,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(MediaStore.ACTION_PICK_IMAGES))
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
-            .that(SearchFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testActionPickImagesConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(true)
 
         val testGetContentConfiguration: PhotopickerConfiguration =
@@ -216,7 +261,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 intent(Intent(Intent.ACTION_GET_CONTENT))
             }
         assertWithMessage("Search Feature is not always enabled when search flag enabled")
-            .that(SearchFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testGetContentConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(true)
     }
 
@@ -232,7 +282,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature is always enabled in Permission mode")
-            .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(false)
     }
 
@@ -249,7 +304,12 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 callingPackageLabel("test_app")
             }
         assertWithMessage("Search Feature in embedded picker is always enabled in Perission mode")
-            .that(SearchFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration))
+            .that(
+                SearchFeature.Registration.isEnabled(
+                    testUserSelectImagesForAppConfiguration,
+                    deferredPrefetchResultsMap,
+                )
+            )
             .isEqualTo(false)
     }
 

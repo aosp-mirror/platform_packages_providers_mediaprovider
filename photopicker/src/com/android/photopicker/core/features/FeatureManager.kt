@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.data.PrefetchDataService
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.browse.BrowseFeature
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
@@ -35,10 +36,15 @@ import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
+import com.android.photopicker.util.mapOfDeferredWithTimeout
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * The core class in the feature framework, the FeatureManager manages the registration,
@@ -56,12 +62,14 @@ import kotlinx.coroutines.launch
 class FeatureManager(
     private val configuration: StateFlow<PhotopickerConfiguration>,
     private val scope: CoroutineScope,
+    private val prefetchDataService: PrefetchDataService,
     // This is in the constructor to allow tests to swap in test features.
     private val registeredFeatures: Set<FeatureRegistration> =
         FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
     // These are in the constructor to allow tests to swap in core event overrides.
     private val coreEventsConsumed: Set<RegisteredEventClass> = FeatureManager.CORE_EVENTS_CONSUMED,
     private val coreEventsProduced: Set<RegisteredEventClass> = FeatureManager.CORE_EVENTS_PRODUCED,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     companion object {
         val TAG: String = "PhotopickerFeatureManager"
@@ -118,6 +126,13 @@ class FeatureManager(
 
     // The internal map of claimed [FeatureToken] to the claiming [PhotopickerFeature]
     private val _tokenMap: HashMap<String, PhotopickerFeature> = HashMap()
+
+    // A map containing the deferred results of all prefetched data.
+    // Prefetched data is the data that features can request FeatureManager to fetch for them
+    // (typically from a different process), before the features have to decide if they are enabled
+    // or not.
+    private val _deferredPrefetchResults: Map<PrefetchResultKey, Deferred<Any?>> =
+        getDeferredPrefetchResults()
 
     /* Returns an immutable copy rather than the actual set. */
     val enabledFeatures: Set<PhotopickerFeature>
@@ -191,6 +206,43 @@ class FeatureManager(
     }
 
     /**
+     * 1. Collects all prefetch data requests from features.
+     * 2. Tries to fetch all prefetched results asynchronously (in parallel on background threads).
+     *    Each prefetch result should be received within a timeout of 200ms, otherwise the task will
+     *    be cancelled and the result will be null. If an error occurs, it will be swallowed and the
+     *    result will be null.
+     *
+     * @return A Map of prefetch result key to a Deferred prefetch result value.
+     */
+    private fun getDeferredPrefetchResults(): Map<PrefetchResultKey, Deferred<Any?>> {
+        Log.d(TAG, "Beginning prefetching results in the background.")
+
+        val prefetchRequestMap:
+            MutableMap<PrefetchResultKey, suspend (PrefetchDataService) -> Any?> =
+            mutableMapOf()
+        registeredFeatures
+            .mapNotNull { it.getPrefetchRequest(configuration.value) }
+            .forEach { prefetchRequestMap.putAll(it) }
+
+        val prefetchDeferredResultsMap =
+            runBlocking(dispatcher) {
+                mapOfDeferredWithTimeout<PrefetchResultKey, PrefetchDataService>(
+                    inputMap = prefetchRequestMap,
+                    input = prefetchDataService,
+                    timeoutMillis = 200L,
+                )
+            }
+
+        Log.d(
+            TAG,
+            "Creation of deferred prefetch results map is complete for keys: " +
+                "${prefetchRequestMap.keys}",
+        )
+
+        return prefetchDeferredResultsMap
+    }
+
+    /**
      * For the provided set of [FeatureRegistration]s, attempt to initialize the runtime Feature set
      * with the current [PhotopickerConfiguration].
      *
@@ -203,7 +255,7 @@ class FeatureManager(
         Log.d(TAG, "Beginning feature initialization with config: ${configuration.value}")
 
         for (featureCompanion in registeredFeatures) {
-            if (featureCompanion.isEnabled(config)) {
+            if (featureCompanion.isEnabled(config, _deferredPrefetchResults)) {
                 val feature = featureCompanion.build(this)
                 _enabledFeatures.add(feature)
                 if (_tokenMap.contains(feature.token))

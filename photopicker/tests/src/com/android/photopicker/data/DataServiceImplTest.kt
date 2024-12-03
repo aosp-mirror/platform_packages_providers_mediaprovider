@@ -46,9 +46,9 @@ import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
-import com.android.photopicker.tests.utils.mockito.nonNullableAny
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.nonNullableAny
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -133,6 +133,7 @@ class DataServiceImplTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -199,6 +200,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -295,6 +297,7 @@ class DataServiceImplTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 setOf(), // Don't register CloudMediaFeature
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -364,6 +367,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -1057,6 +1061,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),

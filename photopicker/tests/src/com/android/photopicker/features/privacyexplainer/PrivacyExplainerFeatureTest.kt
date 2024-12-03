@@ -49,10 +49,10 @@ import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -196,13 +196,13 @@ class PrivacyExplainerFeatureTest : PhotopickerFeatureBaseTest() {
             whenever(
                 bannerStateDao.getBannerState(
                     nonNullableEq(BannerDefinitions.PRIVACY_EXPLAINER.id),
-                    anyInt()
+                    anyInt(),
                 )
             ) {
                 BannerState(
                     bannerId = BannerDefinitions.PRIVACY_EXPLAINER.id,
                     dismissed = true,
-                    uid = 12345
+                    uid = 12345,
                 )
             }
             // Mock out database state with previously dismissed state.

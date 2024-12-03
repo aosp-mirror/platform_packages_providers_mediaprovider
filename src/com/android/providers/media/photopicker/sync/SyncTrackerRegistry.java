@@ -39,6 +39,8 @@ public class SyncTrackerRegistry {
     private static SyncTracker sCloudSearchTracker = new SyncTracker();
     private static SyncTracker sCloudMediaSetsSyncTracker = new SyncTracker();
     private static SyncTracker sLocalMediaSetsSyncTracker = new SyncTracker();
+    private static SyncTracker sCloudMediaInMediaSetTracker = new SyncTracker();
+    private static SyncTracker sLocalMediaInMediaSetTracker = new SyncTracker();
 
     public static SyncTracker getLocalSyncTracker() {
         return sLocalSyncTracker;
@@ -130,6 +132,7 @@ public class SyncTrackerRegistry {
         sCloudSearchTracker = cloudSearchSyncTracker;
     }
 
+
     public static SyncTracker getCloudMediaSetsSyncTracker() {
         return sCloudMediaSetsSyncTracker;
     }
@@ -153,6 +156,32 @@ public class SyncTrackerRegistry {
     @VisibleForTesting(otherwise = VisibleForTesting.NONE)
     public static void setLocalMediaSetsSyncTracker(SyncTracker localMediaSetsSyncTracker) {
         sLocalMediaSetsSyncTracker = localMediaSetsSyncTracker;
+    }
+
+    public static SyncTracker getCloudMediaInMediaSetTracker() {
+        return sCloudMediaInMediaSetTracker;
+    }
+
+    public static SyncTracker getLocalMediaInMediaSetTracker() {
+        return sLocalMediaInMediaSetTracker;
+    }
+
+    /*
+     Only to be used for tests and nowhere else
+     */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setCloudMediaInMediaSetTracker(
+            SyncTracker cloudMediaInMediaSetTracker) {
+        sCloudMediaInMediaSetTracker = cloudMediaInMediaSetTracker;
+    }
+
+    /*
+    Only to be used for tests and nowhere else
+    */
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static void setLocalMediaInMediaSetTracker(
+            SyncTracker localMediaInMediaSetTracker) {
+        sLocalMediaInMediaSetTracker = localMediaInMediaSetTracker;
     }
 
     /**
@@ -284,7 +313,7 @@ public class SyncTrackerRegistry {
     /**
      * Mark the required futures as complete for existing media set sync requests.
      */
-    public static void markMediaInMediaSetSyncAsComplete(
+    public static void markMediaSetsSyncAsComplete(
             @PickerSyncManager.SyncSource int syncSource,
             @NonNull UUID syncRequestId) {
         if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
@@ -292,6 +321,20 @@ public class SyncTrackerRegistry {
         }
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudMediaSetsSyncTracker().markSyncCompleted(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark the required futures as complete for existing media in media set sync requests.
+     */
+    public static void markMediaInMediaSetSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalMediaInMediaSetTracker().markSyncCompleted(syncRequestId);
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudMediaInMediaSetTracker().markSyncCompleted(syncRequestId);
         }
     }
 }

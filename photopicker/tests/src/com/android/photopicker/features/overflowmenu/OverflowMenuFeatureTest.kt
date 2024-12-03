@@ -53,6 +53,7 @@ import com.android.photopicker.core.features.FeatureToken.OVERFLOW_MENU
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.glide.GlideTestRule
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -172,6 +173,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -216,6 +218,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -254,6 +257,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -107,6 +108,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val MEASUREMENT_SEARCH_BAR_HEIGHT = 56.dp
 private val MEASUREMENT_SEARCH_BAR_PADDING =
@@ -832,11 +834,41 @@ private fun ResultMediaGrid(
             items.loadState.source.append is LoadState.NotLoading &&
             items.loadState.source.append.endOfPaginationReached
 
-    when {
-        isEmptyAndNoMorePages -> {
+    // State to track the loading and empty states
+    var resultsState by remember { mutableStateOf(ResultsState.LOADING_WITHOUT_INDICATOR) }
+    if (isEmptyAndNoMorePages) {
+        resultsState = ResultsState.EMPTY
+    }
+
+    LaunchedEffect(items.loadState.refresh) {
+        if (
+            items.itemCount == 0 &&
+                items.loadState.refresh is LoadState.Loading &&
+                resultsState == ResultsState.LOADING_WITHOUT_INDICATOR
+        ) {
+            withContext(viewModel.backgroundDispatcher) {
+                delay(1000)
+                if (items.itemCount == 0) {
+                    resultsState = ResultsState.LOADING_WITH_INDICATOR
+                    delay(4000)
+                    if (resultsState == ResultsState.LOADING_WITH_INDICATOR)
+                        resultsState = ResultsState.EMPTY
+                }
+            }
+        } else if (resultsState != ResultsState.EMPTY) {
+            resultsState = ResultsState.RESULTS_GRID
+        }
+    }
+    when (resultsState) {
+        ResultsState.EMPTY -> {
             EmptySearchResult()
         }
-        else -> {
+        ResultsState.LOADING_WITH_INDICATOR -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+        ResultsState.RESULTS_GRID -> {
             Box(modifier = Modifier.fillMaxSize()) {
                 mediaGrid(
                     items = items,
@@ -863,6 +895,7 @@ private fun ResultMediaGrid(
                 )
             }
         }
+        else -> {}
     }
 }
 
@@ -965,4 +998,12 @@ private fun getRoundedCornerShape(index: Int, size: Int): Shape {
         index == size - 1 -> BOTTOM_SUGGESTION_CARD_SHAPE
         else -> MIDDLE_SUGGESTION_CARD_SHAPE
     }
+}
+
+/** Represents the different UI states for the search results data. */
+enum class ResultsState {
+    LOADING_WITHOUT_INDICATOR,
+    LOADING_WITH_INDICATOR,
+    EMPTY,
+    RESULTS_GRID,
 }

@@ -33,9 +33,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.features.overflowmenu.OverflowMenuItem
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.launch
 
 /**
@@ -48,7 +50,10 @@ class BrowseFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerBrowseFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ): Boolean {
             // Browse is only available for ACTION_GET_CONTENT when in the activity runtime env
             return config.action == Intent.ACTION_GET_CONTENT && config.runtimeEnv == ACTIVITY
         }
@@ -63,9 +68,7 @@ class BrowseFeature : PhotopickerUiFeature {
     override val eventsProduced = setOf<RegisteredEventClass>(Event.BrowseToDocumentsUi::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(
-            Pair(Location.OVERFLOW_MENU_ITEMS, Priority.HIGH.priority),
-        )
+        return listOf(Pair(Location.OVERFLOW_MENU_ITEMS, Priority.HIGH.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
@@ -73,11 +76,7 @@ class BrowseFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.OVERFLOW_MENU_ITEMS -> {
                 val clickAction = params as? LocationParams.WithClickAction
@@ -90,7 +89,7 @@ class BrowseFeature : PhotopickerUiFeature {
                             events.dispatch(Event.BrowseToDocumentsUi(dispatcherToken = token))
                         }
                         clickAction?.onClick()
-                    }
+                    },
                 )
             }
             else -> {}

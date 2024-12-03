@@ -323,6 +323,9 @@ class Page {
     // Rectangles are invalidated due to form filling operations.
     // Rectangle is in Device Coordinates.
     Rectangle_i invalid_rect_;
+
+    // Page number that is opened.
+    int page_num_;
 };
 
 }  // namespace pdfClient

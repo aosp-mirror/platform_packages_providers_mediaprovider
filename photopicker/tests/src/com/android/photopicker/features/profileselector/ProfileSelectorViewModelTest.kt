@@ -45,11 +45,12 @@ import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
-import com.android.photopicker.test.utils.MockContentProviderWrapper
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -193,6 +194,7 @@ class ProfileSelectorViewModelTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     emptySet<FeatureRegistration>(),
                 )
             val events =
@@ -265,7 +267,11 @@ class ProfileSelectorViewModelTest {
                     generatePickerSessionId(),
                 )
             val featureManager =
-                FeatureManager(configurationManager.configuration, this.backgroundScope)
+                FeatureManager(
+                    configurationManager.configuration,
+                    this.backgroundScope,
+                    TestPrefetchDataService(),
+                )
             val events =
                 Events(
                     scope = this.backgroundScope,

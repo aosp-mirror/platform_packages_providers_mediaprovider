@@ -86,6 +86,7 @@ import androidx.work.WorkManager;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.cloudproviders.SearchProvider;
+import com.android.providers.media.photopicker.CategoriesState;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.ItemsProvider;
@@ -130,6 +131,8 @@ public class PickerDataLayerV2Test {
     private Operation mMockOperation;
     @Mock
     private ListenableFuture<Operation.State.SUCCESS> mMockFuture;
+    @Mock
+    CategoriesState mCategoriesState;
     private PickerDbFacade mFacade;
     private Context mContext;
     private MockContentResolver mMockContentResolver;
@@ -177,6 +180,7 @@ public class PickerDataLayerV2Test {
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
         doReturn(mSearchState).when(mMockSyncController).getSearchState();
+        doReturn(mCategoriesState).when(mMockSyncController).getCategoriesState();
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
         doReturn(mMockContentResolver).when(mMockContext).getContentResolver();
     }
@@ -2304,12 +2308,36 @@ public class PickerDataLayerV2Test {
     }
 
     @Test
+    public void testTriggerMediaSetsSyncRequest() {
+        doReturn(true).when(mMockSyncController).shouldQueryLocalMediaSets(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMediaSets(any(), any());
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+        doReturn(mMockFuture).when(mMockOperation).getResult();
+
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putStringArray("mime_types", new String[] { "image/*" });
+        extras.putString("category_id", "id");
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(SearchProvider.AUTHORITY)));
+
+        PickerDataLayerV2.triggerMediaSetsSync(extras, mContext, mMockWorkManager);
+
+        // Assert that both local and cloud syncs were scheduled
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+    }
+
+    @Test
     public void testQueryCategoriesAndAlbums() {
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController).getCloudProvider();
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController)
                 .getCloudProviderOrDefault(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
         doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+        doReturn(true).when(mCategoriesState).areCategoriesEnabled(any(), any());
 
         final Cursor cursor1 = getLocalMediaCursor(LOCAL_ID_1, 0);
         assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);

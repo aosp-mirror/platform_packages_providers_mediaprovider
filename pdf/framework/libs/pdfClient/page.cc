@@ -59,7 +59,8 @@ Page::Page(FPDF_DOCUMENT doc, int page_num, FormFiller* form_filler)
     : document_(doc),
       page_(FPDF_LoadPage(doc, page_num)),
       form_filler_(form_filler),
-      invalid_rect_(kEmptyIntRectangle) {}
+      invalid_rect_(kEmptyIntRectangle),
+      page_num_(page_num) {}
 
 Page::Page(Page&& p) = default;
 
@@ -445,7 +446,17 @@ void Page::EnsureTextPageInitialized() {
     if (text_page_) {
         return;
     }
+    if (!page_.get()) {
+        // Page should never be null but a partner has an unexplained bug b/376796346
+        LOGE("Null page (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+    }
+
     text_page_.reset(FPDFText_LoadPage(page_.get()));
+    if (!text_page_) {
+        // This will get into infinite recursion if not returned - b/376796346
+        LOGE("Failed to load text (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+        return;
+    }
 
     int num_chars = NumChars();
 

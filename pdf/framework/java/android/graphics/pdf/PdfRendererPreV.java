@@ -743,7 +743,8 @@ public final class PdfRendererPreV implements AutoCloseable {
          *                   objectId).
          * @return object id of added page object, -1 otherwise
          * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown, null
-         *                                  or if the object is already added to this page.
+         *                                  or if the object is already added to a page or an
+         *                                  annotation.
          * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before
          *                                  invocation.
          */
@@ -756,6 +757,8 @@ public final class PdfRendererPreV implements AutoCloseable {
                     "PageObject should be of valid type.");
             Preconditions.checkArgument(pageObject.getObjectId() == -1,
                     "PageObject should not have an object id.");
+            Preconditions.checkArgument(!pageObject.isAddedInAnnotation(),
+                    "PageObject already added to an annotation");
             return mPdfProcessor.addPageObject(mIndex, pageObject);
         }
 

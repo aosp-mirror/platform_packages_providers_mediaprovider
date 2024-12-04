@@ -88,6 +88,8 @@ public class TestConfigStore implements ConfigStore {
         return mIsSearchFeatureEnabled;
     }
 
+
+
     public void enableCloudMediaFeature() {
         mCloudMediaInPhotoPickerEnabled = true;
         notifyObservers();

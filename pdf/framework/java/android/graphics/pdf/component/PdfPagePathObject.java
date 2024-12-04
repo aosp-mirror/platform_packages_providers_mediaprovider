@@ -50,16 +50,10 @@ public final class PdfPagePathObject extends PdfPageObject {
      * to {@link PdfPageObjectType#PATH}.
      */
     public PdfPagePathObject() {
-        this(new Builder());
-    }
-
-    private PdfPagePathObject(Builder builder) {
         super(PdfPageObjectType.PATH);
-        this.mPath = builder.mPath;
-        this.mStrokeColor = builder.mStrokeColor;
-        this.mStrokeWidth = builder.mStrokeWidth;
-        this.mFillColor = builder.mFillColor;
-        this.mLineStyle = builder.mLineStyle;
+        this.mPath = new Path();
+        this.mStrokeColor = new Color(); // Default is opaque black in the sRGB color space.
+        this.mStrokeWidth = 1.0f;
     }
 
     /**
@@ -204,94 +198,5 @@ public final class PdfPagePathObject extends PdfPageObject {
         int DASHED = 1;
         /** Dotted line. */
         int DOTTED = 2;
-    }
-
-    /**
-     * Builder class for {@link PdfPagePathObject}.
-     */
-    public static final class Builder {
-        private Path mPath = new Path();
-        private PathEffect mLineStyle = null;
-        private Color mStrokeColor =
-                new Color(); // Default is opaque black in the sRGB color space.
-        private float mStrokeWidth = 1.0f;
-        private Color mFillColor = null;
-
-        /**
-         * Creates a new {@link Builder} instance.
-         */
-        public Builder() {
-        }
-
-        /**
-         * Sets the path for the {@link PdfPagePathObject}.
-         *
-         * @param path The path to set.
-         * @return This builder.
-         */
-        @NonNull
-        public Builder setPath(@NonNull Path path) {
-            this.mPath = path;
-            return this;
-        }
-
-        /**
-         * Sets the line style for the {@link PdfPagePathObject}.
-         *
-         * @param lineStyle The {@link PathEffect} representing the line style to set.
-         * @return This builder.
-         */
-        @NonNull
-        public Builder setLineStyle(@Nullable PathEffect lineStyle) {
-            this.mLineStyle = lineStyle;
-            return this;
-        }
-
-        /**
-         * Sets the stroke color for the {@link PdfPagePathObject}.
-         *
-         * @param strokeColor The stroke color to set.
-         * @return This builder.
-         */
-        @NonNull
-        public Builder setStrokeColor(@NonNull Color strokeColor) {
-            this.mStrokeColor = strokeColor;
-            return this;
-        }
-
-        /**
-         * Sets the stroke width for the {@link PdfPagePathObject}.
-         *
-         * @param strokeWidth The stroke width to set.
-         * @return This builder.
-         */
-        @NonNull
-        public Builder setStrokeWidth(float strokeWidth) {
-            this.mStrokeWidth = strokeWidth;
-            return this;
-        }
-
-        /**
-         * Sets the fill color for the {@link PdfPagePathObject}.
-         *
-         * @param fillColor The fill color to set.
-         * @return This builder.
-         */
-        @NonNull
-        public Builder setFillColor(@Nullable Color fillColor) {
-            this.mFillColor = fillColor;
-            return this;
-        }
-
-        /**
-         * Builds and returns a new {@link PdfPagePathObject} instance with the
-         * properties set in this builder.
-         *
-         * @return A new {@link PdfPagePathObject} instance.
-         */
-        @NonNull
-        public PdfPagePathObject build() {
-            return new PdfPagePathObject(this);
-        }
     }
 }

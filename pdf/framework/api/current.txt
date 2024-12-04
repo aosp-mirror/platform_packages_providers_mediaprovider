@@ -143,16 +143,6 @@ package android.graphics.pdf.component {
     method public void setStrokeWidth(float);
   }
 
-  public static final class PdfPagePathObject.Builder {
-    ctor public PdfPagePathObject.Builder();
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject build();
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject.Builder setFillColor(@Nullable android.graphics.Color);
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject.Builder setLineStyle(@Nullable android.graphics.PathEffect);
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject.Builder setPath(@NonNull android.graphics.Path);
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject.Builder setStrokeColor(@NonNull android.graphics.Color);
-    method @NonNull public android.graphics.pdf.component.PdfPagePathObject.Builder setStrokeWidth(float);
-  }
-
   @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public final class PdfPageTextObject extends android.graphics.pdf.component.PdfPageObject {
     ctor @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_text_objects") public PdfPageTextObject(@NonNull String, @NonNull android.graphics.Typeface, float);
     method @Nullable public android.graphics.Color getFillColor();

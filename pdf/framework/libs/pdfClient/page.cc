@@ -449,6 +449,8 @@ void Page::EnsureTextPageInitialized() {
     if (!page_.get()) {
         // Page should never be null but a partner has an unexplained bug b/376796346
         LOGE("Null page (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+        // since the text_page_ would not have a page to load from
+        return;
     }
 
     text_page_.reset(FPDFText_LoadPage(page_.get()));

@@ -51,12 +51,13 @@ import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
 import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
@@ -215,6 +216,7 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
             FeatureManager(
                 registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
                 scope = testBackgroundScope,
+                prefetchDataService = TestPrefetchDataService(),
                 configuration = provideTestConfigurationFlow(scope = testBackgroundScope),
             )
 

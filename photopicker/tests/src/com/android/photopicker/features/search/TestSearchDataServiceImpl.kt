@@ -21,6 +21,7 @@ import android.os.CancellationSignal
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.features.search.data.SearchDataService
 import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.features.search.model.SearchSuggestion
@@ -32,6 +33,9 @@ import kotlinx.coroutines.flow.StateFlow
  * A test implementation of [SearchDataService] that provides fake search suggestions and results.
  */
 class TestSearchDataServiceImpl() : SearchDataService {
+
+    var mediaSetSize: Int = FakeInMemoryMediaPagingSource.DEFAULT_SIZE
+    var mediaList: List<Media>? = null
 
     override val isSearchEnabled: StateFlow<SearchEnabledState> =
         MutableStateFlow(SearchEnabledState.ENABLED)
@@ -50,10 +54,12 @@ class TestSearchDataServiceImpl() : SearchDataService {
     }
 
     override fun getSearchResults(suggestion: SearchSuggestion): PagingSource<MediaPageKey, Media> {
-        TODO("Not yet implemented")
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
     }
 
     override fun getSearchResults(searchText: String): PagingSource<MediaPageKey, Media> {
-        TODO("Not yet implemented")
+        return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetSize)
     }
 }

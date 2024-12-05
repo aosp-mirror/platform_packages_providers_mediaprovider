@@ -44,6 +44,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
@@ -101,15 +103,8 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
         modifier = modifier,
         visible = visible,
         enter =
-            slideInVertically(
-                animationSpec = emphasizedDecelerate,
-                initialOffsetY = { it * 2 },
-            ),
-        exit =
-            slideOutVertically(
-                animationSpec = emphasizedAccelerate,
-                targetOffsetY = { it * 2 },
-            ),
+            slideInVertically(animationSpec = emphasizedDecelerate, initialOffsetY = { it * 2 }),
+        exit = slideOutVertically(animationSpec = emphasizedAccelerate, targetOffsetY = { it * 2 }),
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -124,9 +119,7 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
             ) {
 
                 // Deselect all button [Left side]
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { scope.launch { selection.clear() } }) {
                         Icon(
                             Icons.Filled.Close,
@@ -138,17 +131,25 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
                         )
                     }
                     Spacer(Modifier.size(MEASUREMENT_DESELECT_SPACER_SIZE))
-                    Text("${currentSelection.size}", style = MaterialTheme.typography.headlineSmall)
+                    val selectionSizeDescription =
+                        stringResource(
+                            R.string.photopicker_selection_size_description,
+                            currentSelection.size,
+                        )
+                    Text(
+                        "${currentSelection.size}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier =
+                            Modifier.semantics { contentDescription = selectionSizeDescription },
+                    )
                 }
 
                 // Primary and Secondary actions [Right side]
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     LocalFeatureManager.current.composeLocation(
                         Location.SELECTION_BAR_SECONDARY_ACTION,
                         maxSlots = 1, // Only accept one additional action.
-                        modifier = Modifier
+                        modifier = Modifier,
                     )
                     Spacer(Modifier.size(MEASUREMENT_BUTTONS_SPACER_SIZE))
                     FilledTonalButton(
@@ -160,7 +161,7 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
                                         FeatureToken.SELECTION_BAR.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.PICKER_CLICK_ADD_BUTTON
+                                        Telemetry.UiEvent.PICKER_CLICK_ADD_BUTTON,
                                     )
                                 )
                             }
@@ -180,7 +181,7 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
                                         .getTextColorForAccentComponentsIfDefinedOrElse(
                                             /* fallback */ MaterialTheme.colorScheme.onPrimary
                                         ),
-                            )
+                            ),
                     ) {
                         Text(stringResource(R.string.photopicker_done_button_label))
                     }

@@ -23,9 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.android.photopicker.R
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
@@ -50,15 +48,16 @@ fun loadMedia(
     media: GlideLoadable,
     resolution: Resolution,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
     requestBuilderTransformation:
         ((
-            media: GlideLoadable, resolution: Resolution, builder: RequestBuilder<Drawable>
+            media: GlideLoadable, resolution: Resolution, builder: RequestBuilder<Drawable>,
         ) -> RequestBuilder<Drawable>)? =
-        null
+        null,
 ) {
     GlideImage(
         model = media,
-        contentDescription = stringResource(R.string.photopicker_media_item),
+        contentDescription = contentDescription,
         // Always explicitly provide a default width and height to avoid cannot measure errors in
         // headless tests. These default minimums are only overridden when the incoming
         // corresponding constraint is 0, if a smaller size is specified, that will be used.
@@ -68,9 +67,10 @@ fun loadMedia(
         failure = placeholder(ColorPainter(Color.Black)),
     ) {
         requestBuilderTransformation?.invoke(media, resolution, it)
-        // If no RequestBuilder function was provided, then apply the loadables signature to ensure
-        // the cache is populated.
-        ?: it.set(RESOLUTION_REQUESTED, resolution)
+            // If no RequestBuilder function was provided, then apply the loadables signature to
+            // ensure
+            // the cache is populated.
+            ?: it.set(RESOLUTION_REQUESTED, resolution)
                 .centerCrop()
                 .signature(media.getSignature(resolution))
     }

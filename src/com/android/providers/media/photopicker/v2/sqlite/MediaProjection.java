@@ -34,6 +34,7 @@ import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Utility class to generate and return sql projection for {@link PickerSQLConstants.MediaResponse}.
@@ -93,31 +94,37 @@ public class MediaProjection {
         switch (mediaResponseColumn) {
             case MEDIA_ID:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getMediaId(),
                         mediaResponseColumn.getProjectedName());
             case MEDIA_SOURCE:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getMediaSource(),
                         mediaResponseColumn.getProjectedName());
             case WRAPPED_URI:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getWrappedUri(mLocalAuthority, mCloudAuthority, mIntentAction),
                         mediaResponseColumn.getProjectedName());
             case AUTHORITY:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getAuthority(mLocalAuthority, mCloudAuthority),
                         mediaResponseColumn.getProjectedName());
             case UNWRAPPED_URI:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getUnwrappedUri(mLocalAuthority, mCloudAuthority),
                         mediaResponseColumn.getProjectedName());
             case IS_PRE_GRANTED:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getIsPregranted(mIntentAction),
                         mediaResponseColumn.getProjectedName());
@@ -128,6 +135,7 @@ public class MediaProjection {
                     );
                 }
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         prependTableName(mTableName, mediaResponseColumn.getColumnName()),
                         mediaResponseColumn.getProjectedName());
@@ -137,6 +145,7 @@ public class MediaProjection {
 
     private String getMediaId() {
         return String.format(
+                Locale.ROOT,
                 "IFNULL(%s, %s)",
                 getCloudIdColumn(),
                 getLocalIdColumn()
@@ -145,6 +154,7 @@ public class MediaProjection {
 
     private String getMediaSource() {
         return String.format(
+                Locale.ROOT,
                 "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 getCloudIdColumn(),
                 MediaSource.LOCAL,
@@ -157,6 +167,7 @@ public class MediaProjection {
             @Nullable String cloudAuthority
     ) {
         return String.format(
+                Locale.ROOT,
                 "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 getCloudIdColumn(),
                 localAuthority,
@@ -172,6 +183,7 @@ public class MediaProjection {
         // The format is:
         // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>
         return String.format(
+                Locale.ROOT,
                 "'content://%s/%s/%s/' || %s || '/media/' || %s",
                 MediaStore.AUTHORITY,
                 getPickerSegmentFromIntentAction(intentAction),
@@ -188,6 +200,7 @@ public class MediaProjection {
         // The format is:
         // content://<cloud-provider-authority>/media/<media-id>
         return String.format(
+                Locale.ROOT,
                 "'content://%s@' || %s || '/media/' || %s",
                 MediaStore.MY_USER_ID,
                 getAuthority(localAuthority, cloudAuthority),
@@ -197,7 +210,8 @@ public class MediaProjection {
 
     private String getIsPregranted(String intentAction) {
         if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
-            return String.format("CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
+            return String.format(
+                    Locale.ROOT, "CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
                     PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN);
         } else {
             return "0"; // default case for other intent actions
@@ -222,7 +236,7 @@ public class MediaProjection {
         if (table == null) {
             return columnName;
         } else {
-            return String.format("%s.%s", table.name(), columnName);
+            return String.format(Locale.ROOT, "%s.%s", table.name(), columnName);
         }
     }
 }

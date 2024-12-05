@@ -376,7 +376,7 @@ public class SearchRequestDatabaseUtil {
             @NonNull int searchRequestID
     ) {
         queryBuilder.appendWhereStandalone(
-                String.format(" %s = '%s' ",
+                String.format(Locale.ROOT, " %s = '%s' ",
                         PickerSQLConstants.SearchRequestTableColumns
                                 .SEARCH_REQUEST_ID.getColumnName(),
                         searchRequestID));
@@ -394,7 +394,8 @@ public class SearchRequestDatabaseUtil {
             @NonNull String columnName,
             @Nullable String value) {
         value = getValueOrPlaceholder(value);
-        queryBuilder.appendWhereStandalone(String.format(" %s = '%s' ", columnName, value));
+        queryBuilder.appendWhereStandalone(String.format(Locale.ROOT,
+                " %s = '%s' ", columnName, value));
     }
 
     /**

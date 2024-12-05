@@ -516,8 +516,7 @@ public class PickerDataLayerV2 {
                         ? cloudAuthority
                         : null;
 
-        waitForOngoingSearchResultSync(appContext, effectiveLocalAuthority,
-                effectiveCloudAuthority);
+        waitForOngoingSearchResultSync(effectiveLocalAuthority, effectiveCloudAuthority);
         // TODO(b/361042632) resume sync if required
 
         return SearchResultsDatabaseUtil.querySearchMedia(
@@ -761,17 +760,16 @@ public class PickerDataLayerV2 {
      *                       authority has some value, the effective cloud authority would be null.
      */
     private static void waitForOngoingSearchResultSync(
-            @NonNull Context appContext,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         final SearchState searchState = PickerSyncController.getInstanceOrThrow().getSearchState();
 
-        if (localAuthority != null && searchState.isLocalSearchEnabled()) {
+        if (localAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getLocalSearchSyncTracker(), /* timeoutInMillis */ 500);
         }
 
-        if (cloudAuthority != null && searchState.isCloudSearchEnabled(appContext)) {
+        if (cloudAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getCloudSearchSyncTracker(), /* timeoutInMillis */ 3000);
         }

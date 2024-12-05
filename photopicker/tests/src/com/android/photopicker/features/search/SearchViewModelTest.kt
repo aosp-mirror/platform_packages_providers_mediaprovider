@@ -19,8 +19,12 @@ package com.android.photopicker.features.search
 import android.platform.test.annotations.EnableFlags
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionImpl
@@ -47,13 +51,21 @@ class SearchViewModelTest {
 
     lateinit var selection: Selection<Media>
     lateinit var events: Events
+    private val deviceConfigProxy = TestDeviceConfigProxyImpl()
 
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testfetchSuggestions_initialState_hasFaceSuggestionAsSeparateList() {
         runTest {
             provideSelectionEvents(this.backgroundScope)
-
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId(),
+                )
             val viewModel =
                 SearchViewModel(
                     this.backgroundScope,
@@ -61,6 +73,7 @@ class SearchViewModelTest {
                     TestSearchDataServiceImpl(),
                     selection,
                     events,
+                    configurationManager,
                 )
             viewModel.fetchSuggestions("")
             advanceTimeBy(1000)
@@ -85,6 +98,14 @@ class SearchViewModelTest {
     fun testfetchSuggestions_textQueryState_hasFaceSuggestionIntegratedList() {
         runTest {
             provideSelectionEvents(this.backgroundScope)
+            val configurationManager =
+                ConfigurationManager(
+                    runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                    scope = this.backgroundScope,
+                    dispatcher = StandardTestDispatcher(this.testScheduler),
+                    deviceConfigProxy,
+                    generatePickerSessionId(),
+                )
             val viewModel =
                 SearchViewModel(
                     this.backgroundScope,
@@ -92,6 +113,7 @@ class SearchViewModelTest {
                     TestSearchDataServiceImpl(),
                     selection,
                     events,
+                    configurationManager,
                 )
             viewModel.fetchSuggestions("abc")
             advanceTimeBy(1000)
@@ -115,6 +137,14 @@ class SearchViewModelTest {
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun clearSearch_searchState_isInactive() = runTest {
         provideSelectionEvents(this.backgroundScope)
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                generatePickerSessionId(),
+            )
         val viewModel =
             SearchViewModel(
                 this.backgroundScope,
@@ -122,6 +152,7 @@ class SearchViewModelTest {
                 TestSearchDataServiceImpl(),
                 selection,
                 events,
+                configurationManager,
             )
         viewModel.performSearch("test") // Set a search state
         viewModel.clearSearch()
@@ -134,6 +165,14 @@ class SearchViewModelTest {
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun performSearch_withSuggestion_searchStateIsActiveSuggestion() = runTest {
         provideSelectionEvents(this.backgroundScope)
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                generatePickerSessionId(),
+            )
         val viewModel =
             SearchViewModel(
                 this.backgroundScope,
@@ -141,6 +180,7 @@ class SearchViewModelTest {
                 TestSearchDataServiceImpl(),
                 selection,
                 events,
+                configurationManager,
             )
         val suggestion =
             SearchSuggestion(
@@ -160,6 +200,14 @@ class SearchViewModelTest {
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun performSearch_withQuery_searchStateIsActiveQuery() = runTest {
         provideSelectionEvents(this.backgroundScope)
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                generatePickerSessionId(),
+            )
         val viewModel =
             SearchViewModel(
                 this.backgroundScope,
@@ -167,6 +215,7 @@ class SearchViewModelTest {
                 TestSearchDataServiceImpl(),
                 selection,
                 events,
+                configurationManager,
             )
         val query = "test query"
         viewModel.performSearch(query)

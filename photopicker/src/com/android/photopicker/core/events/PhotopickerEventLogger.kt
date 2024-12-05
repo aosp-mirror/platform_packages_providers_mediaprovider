@@ -231,9 +231,9 @@ class PhotopickerEventLogger(val dataService: Lazy<DataService>) {
                             MediaProviderStatsLog.PHOTOPICKER_SESSION_INFO_REPORTED,
                             event.sessionId,
                             event.searchMethod.method,
-                            /* picked_items */ -1,
-                            event.startTime,
-                            event.endTime,
+                            /* picked_items */ 0,
+                            /* startTime */ 0,
+                            /* endTime */ 0,
                         )
                     }
                     is Event.ReportSearchDataExtractionDetails -> {

@@ -97,6 +97,11 @@ class SearchFeature : PhotopickerUiFeature {
 
     override val eventsConsumed = setOf<RegisteredEventClass>()
 
-    /** Events produced by the Photo grid */
-    override val eventsProduced = setOf(Event.ShowSnackbarMessage::class.java)
+    /** Events produced by the search feature */
+    override val eventsProduced =
+        setOf(
+            Event.ShowSnackbarMessage::class.java,
+            Event.LogPhotopickerUIEvent::class.java,
+            Event.ReportPhotopickerSearchInfo::class.java,
+        )
 }

@@ -116,6 +116,7 @@ package android.graphics.pdf.component {
     method @NonNull public float[] getMatrix();
     method public int getObjectId();
     method public int getPdfObjectType();
+    method public boolean isAddedInAnnotation();
     method public void setBounds(@NonNull android.graphics.RectF);
     method public void setMatrix(@NonNull android.graphics.Matrix);
     method public void transform(float, float, float, float, float, float);
@@ -157,6 +158,13 @@ package android.graphics.pdf.component {
     method public void setStrokeWidth(float);
     method public void setText(@NonNull String);
     method public void setTypeface(@NonNull android.graphics.Typeface);
+  }
+
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_stamp_annotations") public final class StampAnnotation extends android.graphics.pdf.component.PdfAnnotation {
+    ctor public StampAnnotation(@NonNull android.graphics.RectF);
+    method public void addObject(@NonNull android.graphics.pdf.component.PdfPageObject);
+    method @NonNull public java.util.List<android.graphics.pdf.component.PdfPageObject> getObjects();
+    method public void removeObject(int);
   }
 
 }

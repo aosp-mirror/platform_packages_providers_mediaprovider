@@ -100,7 +100,9 @@ public class PreviewMediaQuery extends MediaQuery {
         }
 
         idSelectionPlaceholder.append(
-                String.format("(%s.%s IS NOT NULL AND %s.%s IS NULL)",
+                String.format(
+                        Locale.ROOT,
+                        "(%s.%s IS NOT NULL AND %s.%s IS NULL)",
                         // current_media_grants.file_id IS NOT NULL
                         CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN,
                         // current_de_selections.file_id IS NULL
@@ -165,6 +167,7 @@ public class PreviewMediaQuery extends MediaQuery {
                 CURRENT_DE_SELECTIONS_TABLE);
 
         return String.format(
+                Locale.ROOT,
                 "%s LEFT JOIN %s"
                         + " ON %s.%s = %s.%s "
                         + "LEFT JOIN %s"

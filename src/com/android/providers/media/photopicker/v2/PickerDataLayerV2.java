@@ -149,7 +149,8 @@ public class PickerDataLayerV2 {
 
     public static final String COLUMN_GRANTS_COUNT = "grants_count";
 
-    private static final String PROJECTION_GRANTS_COUNT = String.format("COUNT(*) AS %s",
+    private static final String PROJECTION_GRANTS_COUNT = String.format(
+            Locale.ROOT, "COUNT(*) AS %s",
             COLUMN_GRANTS_COUNT);
 
     /**
@@ -653,7 +654,8 @@ public class PickerDataLayerV2 {
     public static @NonNull StringBuilder getPackageSelectionWhereClause(String[] packageNames,
             String table) {
         StringBuilder packageSelection = new StringBuilder();
-        String packageColumn = String.format("%s.%s", table, OWNER_PACKAGE_NAME_COLUMN);
+        String packageColumn = String.format(
+                Locale.ROOT, "%s.%s", table, OWNER_PACKAGE_NAME_COLUMN);
         packageSelection.append(packageColumn).append(" IN (\'");
 
         String joinedPackageNames = String.join("\',\'", packageNames);

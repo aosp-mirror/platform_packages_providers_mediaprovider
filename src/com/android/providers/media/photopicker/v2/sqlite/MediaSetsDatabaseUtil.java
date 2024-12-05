@@ -145,16 +145,16 @@ public class MediaSetsDatabaseUtil {
                 ));
         queryBuilder
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.CATEGORY_ID
                                         .getColumnName(), categoryId))
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_AUTHORITY
                                         .getColumnName(), authority)
                 )
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.MIME_TYPE_FILTER
                                         .getColumnName(), getMimeTypesAsString(mimeTypes)));
 
@@ -182,7 +182,7 @@ public class MediaSetsDatabaseUtil {
                 .setTables(PickerSQLConstants.Table.MEDIA_SETS.name())
                 .setProjection(projection);
         queryBuilder.appendWhereStandalone(
-                String.format(" %s = '%s' ",
+                String.format(Locale.ROOT, " %s = '%s' ",
                         PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName(),
                         mediaPickerId)
         );
@@ -225,6 +225,7 @@ public class MediaSetsDatabaseUtil {
                 table,
                 updateValues,
                 String.format(
+                        Locale.ROOT,
                         "%s = '%s'",
                         PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName(),
                         mediaSetPickerId

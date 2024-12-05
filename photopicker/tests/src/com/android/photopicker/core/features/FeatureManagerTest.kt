@@ -38,17 +38,18 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.advanceTimeBy
@@ -60,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import src.com.android.photopicker.features.test.prefetchfeature.PrefetchFeature
 
 /** Unit tests for the [FeatureManager] */
 @SmallTest
@@ -77,6 +79,7 @@ class FeatureManagerTest {
             SimpleUiFeature.Registration,
             HighPriorityUiFeature.Registration,
             AlwaysDisabledFeature.Registration,
+            PrefetchFeature.Registration,
         )
 
     val sessionId = generatePickerSessionId()
@@ -101,15 +104,18 @@ class FeatureManagerTest {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testRegistrations,
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
 
-            // Expect only the [SimpleUiFeature] and [HighPriorityUiFeature] to be enabled.
-            assertThat(featureManager.enabledFeatures.size).isEqualTo(2)
-            assertThat(featureManager.enabledFeatures.first() is SimpleUiFeature).isTrue()
-            assertThat(featureManager.enabledFeatures.last() is HighPriorityUiFeature).isTrue()
+            // Expect only the [SimpleUiFeature], [HighPriorityUiFeature] and [PrefetchFeature]
+            // to be enabled.
+            assertThat(featureManager.enabledFeatures.size).isEqualTo(3)
+            assertThat(featureManager.enabledFeatures.any { it is SimpleUiFeature }).isTrue()
+            assertThat(featureManager.enabledFeatures.any { it is HighPriorityUiFeature }).isTrue()
+            assertThat(featureManager.enabledFeatures.any { it is PrefetchFeature }).isTrue()
         }
     }
 
@@ -120,6 +126,7 @@ class FeatureManagerTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = this.backgroundScope),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 testRegistrations,
                 /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                 /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -133,6 +140,7 @@ class FeatureManagerTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = this.backgroundScope),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 /*registeredFeatures=*/ emptySet(),
                 /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                 /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -149,6 +157,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testRegistrations,
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -186,6 +195,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testRegistrations,
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -219,7 +229,10 @@ class FeatureManagerTest {
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
 
-                override fun isEnabled(config: PhotopickerConfiguration) = true
+                override fun isEnabled(
+                    config: PhotopickerConfiguration,
+                    deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+                ) = true
 
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
@@ -237,6 +250,7 @@ class FeatureManagerTest {
             FeatureManager(
                 configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                 backgroundScope,
+                TestPrefetchDataService(),
                 setOf(mockRegistration),
                 /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                 /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -267,7 +281,10 @@ class FeatureManagerTest {
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
 
-                override fun isEnabled(config: PhotopickerConfiguration) = true
+                override fun isEnabled(
+                    config: PhotopickerConfiguration,
+                    deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+                ) = true
 
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
@@ -289,6 +306,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                     backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(mockRegistration),
                 )
             }
@@ -305,7 +323,10 @@ class FeatureManagerTest {
             object : FeatureRegistration {
                 override val TAG = "MockedFeature"
 
-                override fun isEnabled(config: PhotopickerConfiguration) = true
+                override fun isEnabled(
+                    config: PhotopickerConfiguration,
+                    deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+                ) = true
 
                 override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
             }
@@ -327,6 +348,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     configFlow.stateIn(backgroundScope, SharingStarted.Eagerly, configFlow.value),
                     backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(mockRegistration),
                 )
             } catch (e: IllegalStateException) {
@@ -342,6 +364,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testRegistrations,
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -378,6 +401,7 @@ class FeatureManagerTest {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testRegistrations,
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),

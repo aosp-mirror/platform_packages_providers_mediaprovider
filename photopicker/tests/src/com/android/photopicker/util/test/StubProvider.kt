@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.tests.utils
+package com.android.photopicker.util.test
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -81,6 +81,7 @@ class StubProvider : ContentProvider() {
             }
         }
     }
+
     /*
      * Always return true, indicating that the
      * provider loaded correctly.
@@ -101,7 +102,7 @@ class StubProvider : ContentProvider() {
         projection: Array<String>?,
         selection: String?,
         selectionArgs: Array<String>?,
-        sortOrder: String?
+        sortOrder: String?,
     ): Cursor? = null
 
     /*
@@ -121,6 +122,6 @@ class StubProvider : ContentProvider() {
         uri: Uri,
         values: ContentValues?,
         selection: String?,
-        selectionArgs: Array<String>?
+        selectionArgs: Array<String>?,
     ): Int = 0
 }

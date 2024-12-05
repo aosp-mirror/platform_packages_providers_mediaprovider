@@ -48,7 +48,7 @@
 
     <!-- A test provider to allow the test application to issue uri grants for selected media-->
     <provider
-      android:name="com.android.photopicker.tests.utils.StubProvider"
+      android:name="com.android.photopicker.util.test.StubProvider"
       android:authorities="photopickertest"
       android:exported="false"
       android:grantUriPermissions="true"

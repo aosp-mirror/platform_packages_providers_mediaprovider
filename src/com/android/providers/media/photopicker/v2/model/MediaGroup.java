@@ -17,23 +17,10 @@
 package com.android.providers.media.photopicker.v2.model;
 
 /**
- * This enum holds all valid values of a search suggestion type. Search suggestion types could be
- * decided by the cloud media provider or by the photo picker backend.
+ * Represents types of media group objects.
  */
-public enum SearchSuggestionType {
-    TEXT,
-    FACE,
-    LOCATION,
-    DATE,
-    /* Suggestion saved in history. History suggestions could be based on searches that are
-     * triggered by selecting a CMP suggestion or by entering search text. */
-    HISTORY,
-    /* Suggestion for the Screenshots album */
-    SCREENSHOTS_ALBUM,
-    /* Suggestion for the Favorites album */
-    FAVORITES_ALBUM,
-    /* Suggestion for the Videos album */
-    VIDEOS_ALBUM,
-    /* All other albums */
-    ALBUM,
+public enum MediaGroup {
+    CATEGORY,
+    MEDIA_SET,
+    ALBUM
 }

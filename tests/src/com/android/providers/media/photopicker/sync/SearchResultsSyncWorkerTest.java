@@ -16,6 +16,9 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_FACE;
+
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
@@ -30,6 +33,8 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.ContentUris;
@@ -48,13 +53,14 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.cloudproviders.SearchProvider;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchRequestDatabaseUtil;
@@ -72,6 +78,10 @@ import java.util.concurrent.ExecutionException;
 public class SearchResultsSyncWorkerTest {
     @Mock
     private PickerSyncController mMockSyncController;
+    @Mock
+    private SyncTracker mMockLocalSearchSyncTracker;
+    @Mock
+    private SyncTracker mMockCloudSearchSyncTracker;
     private Context mContext;
     private SQLiteDatabase mDatabase;
     private PickerDbFacade mFacade;
@@ -80,23 +90,31 @@ public class SearchResultsSyncWorkerTest {
     public void setup() {
         initMocks(this);
 
-        PickerSyncController.setInstance(mMockSyncController);
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         initializeTestWorkManager(mContext);
 
-        File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
+        SyncTrackerRegistry.setLocalSearchSyncTracker(mMockLocalSearchSyncTracker);
+        SyncTrackerRegistry.setCloudSearchSyncTracker(mMockCloudSearchSyncTracker);
+        PickerSyncController.setInstance(mMockSyncController);
+
+        final File dbPath = mContext.getDatabasePath(PickerDatabaseHelper.PICKER_DATABASE_NAME);
         dbPath.delete();
-        PickerDatabaseHelper helper = new PickerDatabaseHelper(mContext);
+        final PickerDatabaseHelper helper = new PickerDatabaseHelper(mContext);
         mDatabase = helper.getWritableDatabase();
         mFacade = new PickerDbFacade(
                 mContext, new PickerSyncLockManager(), LOCAL_PICKER_PROVIDER_AUTHORITY);
         mFacade.setCloudProvider(SearchProvider.AUTHORITY);
+
+        final TestConfigStore configStore = new TestConfigStore();
+        configStore.setIsSearchFeatureEnabled(true);
+        final SearchState searchState = new SearchState(configStore);
 
         doReturn(LOCAL_PICKER_PROVIDER_AUTHORITY).when(mMockSyncController).getLocalProvider();
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController).getCloudProvider();
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController)
                 .getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
+        doReturn(searchState).when(mMockSyncController).getSearchState();
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
     }
 
@@ -117,6 +135,16 @@ public class SearchResultsSyncWorkerTest {
         // Verify
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -136,6 +164,16 @@ public class SearchResultsSyncWorkerTest {
         // Verify
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -154,6 +192,16 @@ public class SearchResultsSyncWorkerTest {
         // Verify
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.FAILED);
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -165,7 +213,7 @@ public class SearchResultsSyncWorkerTest {
                 "search text",
                 "media-set-id",
                 SearchProvider.AUTHORITY,
-                SearchSuggestionType.ALBUM,
+                SEARCH_SUGGESTION_ALBUM,
                 null
         );
 
@@ -277,6 +325,16 @@ public class SearchResultsSyncWorkerTest {
                 } while (cursor.moveToNext() && inputCursor.moveToNext());
             }
         }
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -354,6 +412,16 @@ public class SearchResultsSyncWorkerTest {
                 } while (cursor.moveToNext() && inputCursor.moveToNext());
             }
         }
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -365,7 +433,7 @@ public class SearchResultsSyncWorkerTest {
                 "search text",
                 "media-set-id",
                 LOCAL_PICKER_PROVIDER_AUTHORITY,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 null
         );
 
@@ -445,6 +513,16 @@ public class SearchResultsSyncWorkerTest {
                 } while (cursor.moveToNext() && inputCursor.moveToNext());
             }
         }
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -456,7 +534,7 @@ public class SearchResultsSyncWorkerTest {
                 "search text",
                 "media-set-id",
                 SearchProvider.AUTHORITY,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 "Random-resume-key"
         );
 
@@ -525,6 +603,16 @@ public class SearchResultsSyncWorkerTest {
                 } while (cursor.moveToNext() && inputCursor.moveToNext());
             }
         }
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
     }
 
     @Test
@@ -536,7 +624,7 @@ public class SearchResultsSyncWorkerTest {
                 "search text",
                 "media-set-id",
                 LOCAL_PICKER_PROVIDER_AUTHORITY,
-                SearchSuggestionType.FACE,
+                SEARCH_SUGGESTION_FACE,
                 SYNC_COMPLETE_RESUME_KEY
         );
 
@@ -579,5 +667,15 @@ public class SearchResultsSyncWorkerTest {
                     .that(cursor.getCount())
                     .isEqualTo(0);
         }
+
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockLocalSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
+
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mMockCloudSearchSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 }

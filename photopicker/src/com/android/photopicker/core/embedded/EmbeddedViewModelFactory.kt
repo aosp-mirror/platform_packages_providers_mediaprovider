@@ -31,6 +31,8 @@ import com.android.photopicker.features.photogrid.PhotoGridViewModel
 import com.android.photopicker.features.preparemedia.MediaPreparerViewModel
 import com.android.photopicker.features.preview.PreviewViewModel
 import com.android.photopicker.features.profileselector.ProfileSelectorViewModel
+import com.android.photopicker.features.search.SearchViewModel
+import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineDispatcher
 
@@ -66,6 +68,7 @@ class EmbeddedViewModelFactory(
     val configurationManager: Lazy<ConfigurationManager>,
     val bannerManager: Lazy<BannerManager>,
     val dataService: Lazy<DataService>,
+    val searchDataService: Lazy<SearchDataService>,
     val events: Lazy<Events>,
     val featureManager: Lazy<FeatureManager>,
     val selection: Lazy<Selection<Media>>,
@@ -112,6 +115,15 @@ class EmbeddedViewModelFactory(
                         userMonitor.get(),
                         events.get(),
                         configurationManager.get(),
+                    )
+                        as T
+                isAssignableFrom(SearchViewModel::class.java) ->
+                    SearchViewModel(
+                        null,
+                        backgroundDispatcher,
+                        searchDataService.get(),
+                        selection.get(),
+                        events.get(),
                     )
                         as T
                 else ->

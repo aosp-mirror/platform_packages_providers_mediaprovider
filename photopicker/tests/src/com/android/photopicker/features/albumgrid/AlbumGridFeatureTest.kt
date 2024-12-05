@@ -28,7 +28,6 @@ import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORIT
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore
 import android.test.mock.MockContentResolver
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -63,9 +62,9 @@ import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource.Compani
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module

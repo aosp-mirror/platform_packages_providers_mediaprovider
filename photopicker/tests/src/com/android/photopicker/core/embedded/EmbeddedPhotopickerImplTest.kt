@@ -30,7 +30,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.extensions.requireSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.whenever
 import com.android.providers.media.flags.Flags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

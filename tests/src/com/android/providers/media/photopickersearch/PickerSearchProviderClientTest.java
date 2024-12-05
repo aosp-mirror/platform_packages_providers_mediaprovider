@@ -68,7 +68,7 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchSearchSuggestionsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchSuggestionsFromCmp("test",
-                null);
+                10,  null);
         cursor.moveToFirst();
         assertEquals(TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, cursor.getString(cursor.getColumnIndex(
                 CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_SET_ID)));
@@ -101,7 +101,8 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchMediasInMediaSetFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchMediasInMediaSetFromCmp(TEST_MEDIA_SET_ID,
-                null);
+                null, 100, CloudMediaProviderContract.SORT_ORDER_DESC_DATE_TAKEN,
+                null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_ID_IN_MEDIA_SET, cursor.getString(cursor.getColumnIndex(
                 CloudMediaProviderContract.MediaColumns.ID)));
@@ -111,8 +112,7 @@ public class PickerSearchProviderClientTest {
 
     @Test
     public void testFetchMediaCategoriesFromCmp() {
-        Cursor cursor = mPickerSearchProviderClient.fetchMediaCategoriesFromCmp(null,
-                null);
+        Cursor cursor = mPickerSearchProviderClient.fetchMediaCategoriesFromCmp(null, null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_CATEGORY_ID, cursor.getString(
                 cursor.getColumnIndex(CloudMediaProviderContract.MediaCategoryColumns.ID)));
@@ -122,7 +122,7 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchMediaSetsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchMediaSetsFromCmp(TEST_MEDIA_CATEGORY_ID,
-                null);
+                null, 10, null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_SET_ID, cursor.getString(
                 cursor.getColumnIndex(CloudMediaProviderContract.MediaSetColumns.ID)));

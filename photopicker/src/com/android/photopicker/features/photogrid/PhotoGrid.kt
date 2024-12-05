@@ -206,6 +206,11 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 mediaGrid(
                     items = items,
                     isExpandedScreen = isExpandedScreen,
+                    userScrollEnabled =
+                        when (isEmbedded) {
+                            true -> isExpanded
+                            false -> true
+                        },
                     selection = selection,
                     bannerContent = {
                         hideWhenState(

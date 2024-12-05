@@ -30,14 +30,13 @@ import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
-import com.android.providers.media.photopicker.v2.model.SearchSuggestionType;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Convenience class for running Picker Search related sql queries.
+ * Convenience class for running Picker Search Request related sql queries.
  */
 public class SearchRequestDatabaseUtil {
     private static final String TAG = "SearchDatabaseUtil";
@@ -231,7 +230,7 @@ public class SearchRequestDatabaseUtil {
                                             .MEDIA_SET_ID.getColumnName()
                             )
                     );
-                    final SearchSuggestionType suggestionType = SearchSuggestionType.valueOf(
+                    final String suggestionType = requireNonNull(
                             getColumnValueOrNull(
                                     cursor,
                                     PickerSQLConstants.SearchRequestTableColumns
@@ -301,17 +300,20 @@ public class SearchRequestDatabaseUtil {
             // Insert value or placeholder for null for unique column.
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.SEARCH_TEXT.getColumnName(),
-                    getValueOrPlaceholder(searchSuggestionRequest.getSearchText()));
+                    getValueOrPlaceholder(
+                            searchSuggestionRequest.getSearchSuggestion().getSearchText()));
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.MEDIA_SET_ID.getColumnName(),
-                    getValueOrPlaceholder(searchSuggestionRequest.getMediaSetId()));
+                    getValueOrPlaceholder(
+                            searchSuggestionRequest.getSearchSuggestion().getMediaSetId()));
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName(),
-                    getValueOrPlaceholder(searchSuggestionRequest.getAuthority()));
+                    getValueOrPlaceholder(searchSuggestionRequest
+                            .getSearchSuggestion().getAuthority()));
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_TYPE.getColumnName(),
-                    getValueOrPlaceholder(
-                            searchSuggestionRequest.getSearchSuggestionType().name()));
+                    getValueOrPlaceholder(searchSuggestionRequest.getSearchSuggestion()
+                            .getSearchSuggestionType()));
         } else {
             throw new IllegalStateException(
                     "Could not identify search request type " + searchRequest);
@@ -334,11 +336,14 @@ public class SearchRequestDatabaseUtil {
         if (searchRequest instanceof SearchTextRequest searchTextRequest) {
             searchText = getValueOrPlaceholder(searchTextRequest.getSearchText());
         } else if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            searchText = getValueOrPlaceholder(searchSuggestionRequest.getSearchText());
-            mediaSetId = getValueOrPlaceholder(searchSuggestionRequest.getMediaSetId());
-            authority = getValueOrPlaceholder(searchSuggestionRequest.getAuthority());
-            suggestionType = getValueOrPlaceholder(
-                    searchSuggestionRequest.getSearchSuggestionType().name());
+            searchText = getValueOrPlaceholder(
+                    searchSuggestionRequest.getSearchSuggestion().getSearchText());
+            mediaSetId = getValueOrPlaceholder(searchSuggestionRequest
+                    .getSearchSuggestion().getMediaSetId());
+            authority = getValueOrPlaceholder(searchSuggestionRequest
+                    .getSearchSuggestion().getAuthority());
+            suggestionType = getValueOrPlaceholder(searchSuggestionRequest
+                            .getSearchSuggestion().getSearchSuggestionType());
         } else {
             throw new IllegalStateException(
                     "Could not identify search request type " + searchRequest);

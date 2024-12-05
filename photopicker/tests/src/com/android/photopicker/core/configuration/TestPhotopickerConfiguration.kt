@@ -68,6 +68,7 @@ class TestPhotopickerConfiguration {
         private var runtimeEnv: PhotopickerRuntimeEnv = PhotopickerRuntimeEnv.ACTIVITY
         private var sessionId: Int = generatePickerSessionId()
         private var flags: PhotopickerFlags = PhotopickerFlags()
+        private var mimeTypes: ArrayList<String> = arrayListOf("image/*", "video/*")
 
         fun action(value: String) = apply { this.action = value }
 
@@ -89,6 +90,8 @@ class TestPhotopickerConfiguration {
 
         fun flags(value: PhotopickerFlags) = apply { this.flags = value }
 
+        fun mimeTypes(value: ArrayList<String>) = apply { this.mimeTypes = value }
+
         fun build(): PhotopickerConfiguration {
             return PhotopickerConfiguration(
                 action = action,
@@ -101,6 +104,7 @@ class TestPhotopickerConfiguration {
                 runtimeEnv = runtimeEnv,
                 sessionId = sessionId,
                 flags = flags,
+                mimeTypes = mimeTypes,
             )
         }
     }

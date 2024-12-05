@@ -39,6 +39,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -220,6 +221,7 @@ public class MediaInMediaSetsDatabaseUtil {
                 ))
                 .setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s DESC, %s DESC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()
@@ -250,6 +252,7 @@ public class MediaInMediaSetsDatabaseUtil {
                 ))
                 .setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s DESC, %s DESC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()
@@ -275,6 +278,7 @@ public class MediaInMediaSetsDatabaseUtil {
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName()
                 )).setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s ASC, %s ASC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()

@@ -24,6 +24,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_ALBUM_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 
 import android.content.Context;
@@ -106,6 +107,21 @@ public class SyncWorkerTestUtils {
         Objects.requireNonNull(albumId);
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD,
                 SYNC_WORKER_INPUT_ALBUM_ID, albumId));
+    }
+
+    public static Data getLocalSearchResultsSyncInputData(int searchRequestId) {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+    }
+
+    public static Data getCloudSearchResultsSyncInputData(int searchRequestId) {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+    }
+
+    public static Data getInvalidSearchResultsSyncInputData(int searchRequestId) {
+        return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD,
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
     }
 
     static <W extends Worker> W buildTestWorker(@NonNull Context context,

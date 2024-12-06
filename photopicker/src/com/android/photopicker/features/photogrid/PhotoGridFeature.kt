@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
+import com.android.photopicker.core.animations.springDefaultEffectOffset
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -35,9 +36,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.Route
+import kotlinx.coroutines.Deferred
 
 /**
  * Feature class for the Photopicker's primary photo grid.
@@ -48,7 +51,10 @@ class PhotoGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPhotoGridFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = PhotoGridFeature()
     }
@@ -63,9 +69,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
         setOf(Event.ShowSnackbarMessage::class.java, Event.LogPhotopickerUIEvent::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(
-            Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority),
-        )
+        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
@@ -91,41 +95,37 @@ class PhotoGridFeature : PhotopickerUiFeature {
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // Positive value to slide left-to-right
-                        slideInHorizontally { -it }
+                        slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
                     }
                 override val exitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // Negative value to slide right-to-left
-                        slideOutHorizontally { -it }
+                        slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                     }
                 override val popEnterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
                         // When returning from the backstack slide right-to-left
-                        slideInHorizontally { -it }
+                        slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                     }
                 override val popExitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
                         // When navigating to the backstack slide left-to-right
-                        slideOutHorizontally { -it }
+                        slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                     }
 
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     PhotoGrid()
                 }
-            },
+            }
         )
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.NAVIGATION_BAR_NAV_BUTTON -> PhotoGridNavButton(modifier)
             else -> {}

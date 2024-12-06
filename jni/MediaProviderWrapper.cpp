@@ -184,6 +184,15 @@ int renameInternal(JNIEnv* env, jobject media_provider_object, jmethodID mid_ren
     return res;
 }
 
+int validatePathIfUnicodeCheckEnabled(JNIEnv* env, jobject media_provider_object,
+                                      jmethodID mid_unicode_check_enabled_, const string& path) {
+    bool flagEnabled = env->CallBooleanMethod(media_provider_object, mid_unicode_check_enabled_);
+    if (flagEnabled && path != env->GetStringUTFChars(env->NewStringUTF(path.c_str()), nullptr)) {
+        return EPERM;
+    }
+    return 0;
+}
+
 void onFileCreatedInternal(JNIEnv* env, jobject media_provider_object,
                            jmethodID mid_on_file_created, const string& path) {
     ScopedLocalRef<jstring> j_path(env, env->NewStringUTF(path.c_str()));
@@ -224,6 +233,7 @@ MediaProviderWrapper::MediaProviderWrapper(JNIEnv* env, jobject media_provider) 
     // Cache methods - Before calling a method, make sure you cache it here
     mid_insert_file_ = CacheMethod(env, "insertFileIfNecessary", "(Ljava/lang/String;I)I");
     mid_delete_file_ = CacheMethod(env, "deleteFile", "(Ljava/lang/String;I)I");
+    mid_unicode_check_enabled_ = CacheMethod(env, "isUnicodeCheckEnabled", "()Z");
     mid_on_file_open_ = CacheMethod(env, "onFileOpen",
                                     "(Ljava/lang/String;Ljava/lang/String;IIIZZZ)Lcom/android/"
                                     "providers/media/FileOpenResult;");
@@ -280,21 +290,37 @@ MediaProviderWrapper::~MediaProviderWrapper() {
 }
 
 int MediaProviderWrapper::InsertFile(const string& path, uid_t uid) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    int errCode = validatePathIfUnicodeCheckEnabled(env, media_provider_object_,
+                                                    mid_unicode_check_enabled_, path);
+    if (errCode != 0) {
+        LOG(ERROR) << "Invalid chars used in file name for creating new file";
+        return errCode;
+    }
+
     if (uid == ROOT_UID) {
         return 0;
     }
 
-    JNIEnv* env = MaybeAttachCurrentThread();
     return insertFileInternal(env, media_provider_object_, mid_insert_file_, path, uid);
 }
 
 int MediaProviderWrapper::DeleteFile(const string& path, uid_t uid) {
+    JNIEnv* env = MaybeAttachCurrentThread();
+
+    int errCode = validatePathIfUnicodeCheckEnabled(env, media_provider_object_,
+                                                    mid_unicode_check_enabled_, path);
+    if (errCode != 0) {
+        LOG(ERROR) << "Invalid chars used in file name while deleting file";
+        return errCode;
+    }
+
     if (uid == ROOT_UID) {
         int res = unlink(path.c_str());
         return res;
     }
 
-    JNIEnv* env = MaybeAttachCurrentThread();
     return deleteFileInternal(env, media_provider_object_, mid_delete_file_, path, uid);
 }
 
@@ -418,13 +444,27 @@ bool MediaProviderWrapper::isUidAllowedAccessToDataOrObbPath(uid_t uid, const st
 int MediaProviderWrapper::Rename(const string& old_path, const string& new_path, uid_t uid) {
     // Rename from SHELL_UID should go through MediaProvider to update database rows, so only bypass
     // MediaProvider for ROOT_UID.
+    JNIEnv* env = MaybeAttachCurrentThread();
+    int errCodeForOldPath = validatePathIfUnicodeCheckEnabled(env, media_provider_object_,
+                                                              mid_unicode_check_enabled_, old_path);
+    if (errCodeForOldPath != 0) {
+        LOG(ERROR) << "Invalid chars used in old file name";
+        return errCodeForOldPath;
+    }
+
+    int errCodeForNewPath = validatePathIfUnicodeCheckEnabled(env, media_provider_object_,
+                                                              mid_unicode_check_enabled_, new_path);
+    if (errCodeForNewPath != 0) {
+        LOG(ERROR) << "Invalid chars used in new file name";
+        return errCodeForNewPath;
+    }
+
     if (uid == ROOT_UID) {
         int res = rename(old_path.c_str(), new_path.c_str());
         if (res != 0) res = -errno;
         return res;
     }
 
-    JNIEnv* env = MaybeAttachCurrentThread();
     return renameInternal(env, media_provider_object_, mid_rename_, old_path, new_path, uid);
 }
 

@@ -26,6 +26,7 @@ import android.net.Uri
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
+import android.provider.MediaStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -35,11 +36,10 @@ import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.banners.BannerState
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
 import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
@@ -51,10 +51,11 @@ import com.android.photopicker.core.features.FeatureToken.PHOTO_GRID
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -173,13 +174,14 @@ class PhotoGridViewModelTest {
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             val featureManager =
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    prefetchDataService = TestPrefetchDataService(),
                 )
 
             val events =
@@ -203,11 +205,15 @@ class PhotoGridViewModelTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val bannerManager =
@@ -219,7 +225,7 @@ class PhotoGridViewModelTest {
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
                     userMonitor = userMonitor,
-                    processOwnerHandle = USER_HANDLE_PRIMARY
+                    processOwnerHandle = USER_HANDLE_PRIMARY,
                 )
 
             val viewModel =
@@ -268,20 +274,20 @@ class PhotoGridViewModelTest {
                         provideTestConfigurationFlow(
                             scope = this.backgroundScope,
                             defaultConfiguration =
-                                PhotopickerConfiguration(
-                                    action = "TEST_ACTION",
-                                    intent = null,
-                                    selectionLimit = 0,
-                                    sessionId = generatePickerSessionId()
-                                )
+                                TestPhotopickerConfiguration.build {
+                                    action("TEST_ACTION")
+                                    intent(null)
+                                    selectionLimit(0)
+                                },
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             val featureManager =
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    prefetchDataService = TestPrefetchDataService(),
                     coreEventsConsumed = setOf<RegisteredEventClass>(),
                     coreEventsProduced = setOf<RegisteredEventClass>(),
                 )
@@ -310,11 +316,15 @@ class PhotoGridViewModelTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val bannerManager =
@@ -326,7 +336,7 @@ class PhotoGridViewModelTest {
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
                     userMonitor = userMonitor,
-                    processOwnerHandle = USER_HANDLE_PRIMARY
+                    processOwnerHandle = USER_HANDLE_PRIMARY,
                 )
 
             val viewModel =
@@ -362,13 +372,14 @@ class PhotoGridViewModelTest {
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             val featureManager =
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    prefetchDataService = TestPrefetchDataService(),
                 )
 
             val events =
@@ -392,11 +403,15 @@ class PhotoGridViewModelTest {
                     mockContext,
                     provideTestConfigurationFlow(
                         scope = this.backgroundScope,
-                        defaultConfiguration = testActionPickImagesConfiguration,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
                     ),
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
-                    USER_HANDLE_PRIMARY
+                    USER_HANDLE_PRIMARY,
                 )
 
             val databaseManager = DatabaseManagerTestImpl()
@@ -410,7 +425,7 @@ class PhotoGridViewModelTest {
                     featureManager = featureManager,
                     dataService = TestDataServiceImpl(),
                     userMonitor = userMonitor,
-                    processOwnerHandle = USER_HANDLE_PRIMARY
+                    processOwnerHandle = USER_HANDLE_PRIMARY,
                 )
 
             val viewModel =

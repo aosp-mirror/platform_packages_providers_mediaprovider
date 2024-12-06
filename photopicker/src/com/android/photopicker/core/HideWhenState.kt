@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.Composable
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -36,13 +37,26 @@ fun hideWhenState(selector: StateSelector, content: @Composable () -> Unit) {
     // For a composable to be hidden in a given state, call the composable when the photopicker is
     // not in the selected state.
     when (selector) {
-        StateSelector.Embedded -> {
+        is StateSelector.Embedded -> {
             if (!isEmbedded) content()
         }
-        StateSelector.EmbeddedAndCollapsed -> {
+        is StateSelector.EmbeddedAndCollapsed -> {
             // Content is displayed when the runtime environment is not embedded
             // or when it's embedded and the picker is expanded.
             if (!isEmbedded || isExpanded) content()
+        }
+        is StateSelector.AnimatedVisibilityInEmbedded -> {
+            if (isEmbedded) {
+                AnimatedVisibility(
+                    visible = selector.visible,
+                    enter = selector.enter,
+                    exit = selector.exit,
+                ) {
+                    content()
+                }
+            } else {
+                content()
+            }
         }
     }
 }

@@ -134,12 +134,13 @@ public final class LevelDBInstance {
      * Deletes entry for given key in leveldb.
      *
      */
-    public void deleteInstance() {
+    void deleteInstance() {
         synchronized (this) {
             if (mNativePtr == 0) {
                 throw new IllegalStateException("Leveldb connection is missing");
             }
 
+            nativeDeleteLevelDb(mNativePtr);
             mNativePtr = 0;
             File levelDbDir = new File(getLevelDBPath());
             for (File file: levelDbDir.listFiles()) {
@@ -158,4 +159,6 @@ public final class LevelDBInstance {
     private native LevelDBResult nativeBulkInsert(long nativePtr, List<LevelDBEntry> entryList);
 
     private native LevelDBResult nativeDelete(long nativePtr, String key);
+
+    private native void nativeDeleteLevelDb(long nativePtr);
 }

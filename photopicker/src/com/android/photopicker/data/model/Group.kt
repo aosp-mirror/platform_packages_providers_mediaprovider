@@ -24,9 +24,7 @@ import com.android.photopicker.core.glide.Resolution
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.signature.ObjectKey
 
-/**
- * Holds metadata for a group of media items.
- */
+/** Holds metadata for a group of media items. */
 sealed interface Group : GlideLoadable, Parcelable {
     /** Unique identifier for this group */
     val id: String
@@ -46,8 +44,7 @@ sealed interface Group : GlideLoadable, Parcelable {
         val displayName: String,
         val coverUri: Uri,
         val coverMediaSource: MediaSource,
-
-        ) : Group {
+    ) : Group {
         override fun getSignature(resolution: Resolution): ObjectKey {
             return ObjectKey("${coverUri}_$resolution")
         }
@@ -88,20 +85,15 @@ sealed interface Group : GlideLoadable, Parcelable {
                 val album =
                     Album(
                         /* id =*/ parcel.readString() ?: "",
-                        /* pickerId=*/
-                        parcel.readLong(),
-                        /* authority=*/
-                        parcel.readString() ?: "",
-                        /* dateTakenMillisLong=*/
-                        parcel.readLong(),
-                        /* displayName =*/
-                        parcel.readString() ?: "",
-                        /* uri= */
-                        Uri.parse(parcel.readString() ?: ""),
-                        /* coverUriMediaSource =*/
-                        MediaSource.valueOf(parcel.readString() ?: "LOCAL")
+                        /* pickerId=*/ parcel.readLong(),
+                        /* authority=*/ parcel.readString() ?: "",
+                        /* dateTakenMillisLong=*/ parcel.readLong(),
+                        /* displayName =*/ parcel.readString() ?: "",
+                        /* uri= */ Uri.parse(parcel.readString() ?: ""),
+                        /* coverUriMediaSource =*/ MediaSource.valueOf(
+                            parcel.readString() ?: "LOCAL"
+                        ),
                     )
-                parcel.recycle()
                 return album
             }
 

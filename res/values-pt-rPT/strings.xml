@@ -73,9 +73,9 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"O acesso aos dados de <xliff:g id="PROFILE1">%1$s</xliff:g> a partir de uma app <xliff:g id="PROFILE2">%2$s</xliff:g> não é permitido"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Mudar para <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"As apps de trabalho estão em pausa"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"As apps de <xliff:g id="PROFILE">%s</xliff:g> estão pausadas"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"As apps do perfil <xliff:g id="PROFILE">%s</xliff:g> estão pausadas"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Para abrir fotos do trabalho, ative as apps de trabalho e tente novamente"</string>
-    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Para abrir as fotos de <xliff:g id="PROFILE1">%1$s</xliff:g>, ative as suas apps de <xliff:g id="PROFILE2">%2$s</xliff:g> e tente novamente"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Para abrir as fotos do perfil <xliff:g id="PROFILE1">%1$s</xliff:g>, ative as suas apps do perfil <xliff:g id="PROFILE2">%2$s</xliff:g> e tente novamente"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Esta app só pode aceder às fotos que selecionar"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Selecione os vídeos e as fotos aos quais permite que esta app tenha acesso"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> item}many{<xliff:g id="COUNT_1">^1</xliff:g> itens}other{<xliff:g id="COUNT_1">^1</xliff:g> itens}}"</string>

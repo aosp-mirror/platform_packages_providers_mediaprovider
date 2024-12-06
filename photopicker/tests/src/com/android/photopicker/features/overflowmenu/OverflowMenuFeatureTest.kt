@@ -18,8 +18,10 @@ package com.android.photopicker.features.overflowmenu
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -41,11 +43,8 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -54,6 +53,7 @@ import com.android.photopicker.core.features.FeatureToken.OVERFLOW_MENU
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.glide.GlideTestRule
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
@@ -130,16 +130,38 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
     fun testOverflowMenuEnabledInConfigurations() {
 
         assertWithMessage("OverflowMenuFeature is not always enabled (ACTION_PICK_IMAGES)")
-            .that(OverflowMenuFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("OverflowMenuFeature is not always enabled (ACTION_GET_CONTENT)")
-            .that(OverflowMenuFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("OverflowMenuFeature is not always enabled (USER_SELECT_FOR_APP)")
             .that(
-                OverflowMenuFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration)
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
             )
             .isEqualTo(true)
     }
@@ -151,10 +173,8 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        SimpleUiFeature.Registration,
-                        OverflowMenuFeature.Registration,
-                    ),
+                    TestPrefetchDataService(),
+                    setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -170,7 +190,11 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }
@@ -194,9 +218,8 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        OverflowMenuFeature.Registration,
-                    ),
+                    TestPrefetchDataService(),
+                    setOf(OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -234,10 +257,8 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        SimpleUiFeature.Registration,
-                        OverflowMenuFeature.Registration,
-                    ),
+                    TestPrefetchDataService(),
+                    setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -252,7 +273,11 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
-                    LocalPhotopickerConfiguration provides testPhotopickerConfiguration
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }

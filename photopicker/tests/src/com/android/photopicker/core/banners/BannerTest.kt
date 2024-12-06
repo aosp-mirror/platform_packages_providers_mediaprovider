@@ -17,6 +17,7 @@
 package com.android.photopicker.core.banners
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.runtime.Composable
@@ -36,8 +37,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Event.LogPhotopickerBannerInteraction
 import com.android.photopicker.core.events.Events
@@ -45,6 +46,7 @@ import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry.BannerType
 import com.android.photopicker.core.events.Telemetry.UserBannerInteraction
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.data.TestPrefetchDataService
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -128,6 +130,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -141,7 +144,14 @@ class BannerTest {
         backgroundScope.launch { events.flow.toList(emissions) }
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
 
         advanceTimeBy(100)
@@ -169,6 +179,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -182,7 +193,14 @@ class BannerTest {
         backgroundScope.launch { events.flow.toList(emissions) }
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule
             .onNodeWithText(TEST_BANNER_1_ACTION_LABEL)
@@ -212,6 +230,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -222,7 +241,14 @@ class BannerTest {
             )
 
         composeTestRule.setContent {
-            showBanner(banner = TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                banner = TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule
             .onNode(hasContentDescription(TEST_BANNER_1_ICON_DESCRIPTION))
@@ -235,6 +261,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -250,7 +277,14 @@ class BannerTest {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val dismissString = resources.getString(R.string.photopicker_dismiss_banner_button_label)
         composeTestRule.setContent {
-            showBanner(TEST_BANNER_1, testPhotopickerConfiguration, events)
+            showBanner(
+                TEST_BANNER_1,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
 
         composeTestRule
@@ -281,6 +315,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -293,7 +328,14 @@ class BannerTest {
         val resources = InstrumentationRegistry.getInstrumentation().getContext().getResources()
         val dismissString = resources.getString(R.string.photopicker_dismiss_banner_button_label)
         composeTestRule.setContent {
-            showBanner(TEST_BANNER_2, testPhotopickerConfiguration, events)
+            showBanner(
+                TEST_BANNER_2,
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                },
+                events,
+            )
         }
         composeTestRule.onNodeWithText(dismissString).assertIsNotDisplayed()
     }

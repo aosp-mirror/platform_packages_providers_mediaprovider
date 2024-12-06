@@ -80,6 +80,7 @@ class LocalUriMatcher {
     static final int PICKER_INTERNAL_ALBUMS_ALL = 904;
     static final int PICKER_INTERNAL_ALBUMS_LOCAL = 905;
     public static final int PICKER_GET_CONTENT_ID = 906;
+    public static final int PICKER_TRANSCODED_ID = 907;
 
     /**
      * Picker V2 base URI. {@see PickerUriResolverV2}.
@@ -147,6 +148,9 @@ class LocalUriMatcher {
         mPublic.addURI(auth, "picker_get_content/#/#", PICKER_GET_CONTENT_ID);
         // content://media/picker_get_content/<user-id>/<authority>/media/<media-id>
         mPublic.addURI(auth, "picker_get_content/#/*/media/*", PICKER_GET_CONTENT_ID);
+
+        // content://media/picker_transcoded/<user-id>/<authority>/media/<media-id>
+        mPublic.addURI(auth, "picker_transcoded/#/*/media/*", PICKER_TRANSCODED_ID);
 
         mPublic.addURI(auth, "cli", CLI);
 

@@ -124,6 +124,7 @@ class EmbeddedViewModelFactory(
                         searchDataService.get(),
                         selection.get(),
                         events.get(),
+                        configurationManager.get(),
                     )
                         as T
                 else ->

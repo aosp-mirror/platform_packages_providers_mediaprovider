@@ -171,7 +171,8 @@ public class PickerDataLayerV2 {
 
     public static final String COLUMN_GRANTS_COUNT = "grants_count";
 
-    private static final String PROJECTION_GRANTS_COUNT = String.format("COUNT(*) AS %s",
+    private static final String PROJECTION_GRANTS_COUNT = String.format(
+            Locale.ROOT, "COUNT(*) AS %s",
             COLUMN_GRANTS_COUNT);
 
     /**
@@ -516,8 +517,7 @@ public class PickerDataLayerV2 {
                         ? cloudAuthority
                         : null;
 
-        waitForOngoingSearchResultSync(appContext, effectiveLocalAuthority,
-                effectiveCloudAuthority);
+        waitForOngoingSearchResultSync(effectiveLocalAuthority, effectiveCloudAuthority);
         // TODO(b/361042632) resume sync if required
 
         return SearchResultsDatabaseUtil.querySearchMedia(
@@ -761,17 +761,16 @@ public class PickerDataLayerV2 {
      *                       authority has some value, the effective cloud authority would be null.
      */
     private static void waitForOngoingSearchResultSync(
-            @NonNull Context appContext,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
         final SearchState searchState = PickerSyncController.getInstanceOrThrow().getSearchState();
 
-        if (localAuthority != null && searchState.isLocalSearchEnabled()) {
+        if (localAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getLocalSearchSyncTracker(), /* timeoutInMillis */ 500);
         }
 
-        if (cloudAuthority != null && searchState.isCloudSearchEnabled(appContext)) {
+        if (cloudAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getCloudSearchSyncTracker(), /* timeoutInMillis */ 3000);
         }
@@ -784,7 +783,8 @@ public class PickerDataLayerV2 {
     public static @NonNull StringBuilder getPackageSelectionWhereClause(String[] packageNames,
             String table) {
         StringBuilder packageSelection = new StringBuilder();
-        String packageColumn = String.format("%s.%s", table, OWNER_PACKAGE_NAME_COLUMN);
+        String packageColumn = String.format(
+                Locale.ROOT, "%s.%s", table, OWNER_PACKAGE_NAME_COLUMN);
         packageSelection.append(packageColumn).append(" IN (\'");
 
         String joinedPackageNames = String.join("\',\'", packageNames);

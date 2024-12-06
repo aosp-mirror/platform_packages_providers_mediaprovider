@@ -25,7 +25,7 @@ flag {
     name: "enable_edit_pdf_annotations"
     is_exported: true
     namespace: "pdf_viewer"
-    description: "This flag controls whether to enable highlight and stamp annotations editing support"
+    description: "This flag controls whether to enable highlight and stamp annotations editing support."
     bug: "379008090"
     is_fixed_read_only: true
 }
@@ -34,7 +34,7 @@ flag {
     name: "enable_edit_pdf_page_objects"
     is_exported: true
     namespace: "pdf_viewer"
-    description: "This flag controls whether to enable path and image page object editing support"
+    description: "This flag controls whether to enable path and image page object editing support."
     bug: "379008090"
     is_fixed_read_only: true
 }
@@ -43,7 +43,7 @@ flag {
     name: "enable_edit_pdf_text_objects"
     is_exported: true
     namespace: "pdf_viewer"
-    description: "This flag controls whether to enable page text object editing support"
+    description: "This flag controls whether to enable page text object editing support."
     bug: "379008090"
     is_fixed_read_only: true
 }
@@ -52,7 +52,17 @@ flag {
     name: "enable_edit_pdf_text_annotations"
     is_exported: true
     namespace: "pdf_viewer"
-    description: "This flag controls whether to enable text annotations editing support"
+    description: "This flag controls whether to enable text annotations editing support."
+    bug: "379008090"
+    is_fixed_read_only: true
+}
+
+
+flag {
+    name: "enable_edit_pdf_stamp_annotations"
+    is_exported: true
+    namespace: "pdf_viewer"
+    description: "This flag controls whether to enable stamp annotations editing support."
     bug: "379008090"
     is_fixed_read_only: true
 }

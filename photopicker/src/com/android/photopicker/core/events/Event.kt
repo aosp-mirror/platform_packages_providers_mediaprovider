@@ -204,8 +204,6 @@ interface Event {
         override val dispatcherToken: String,
         val sessionId: Int,
         val searchMethod: Telemetry.SearchMethod,
-        val startTime: Int,
-        val endTime: Int,
     ) : Event
 
     /** Logs details about the requests made for extracting search data */

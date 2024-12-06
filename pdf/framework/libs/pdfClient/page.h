@@ -39,12 +39,18 @@ namespace pdfClient {
 // LINT.IfChange
 static const int FLAG_RENDER_TEXT_ANNOTATIONS = 1 << 1;
 static const int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 1 << 2;
+static const int FLAG_RENDER_STAMP_ANNOTATIONS = 1 << 3;
+static const int FLAG_RENDER_FREETEXT_ANNOTATIONS = 1 << 4;
 // LINT.ThenChange(packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/RenderParams.java)
 
 static const std::unordered_map<int, std::vector<int>> renderFlagsAnnotsMap = {
-        {FLAG_RENDER_TEXT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_TEXT, FPDF_ANNOT_FREETEXT}},
-        {FLAG_RENDER_HIGHLIGHT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_HIGHLIGHT}}};
-
+        {FLAG_RENDER_TEXT_ANNOTATIONS,
+         std::vector<int>{
+                 FPDF_ANNOT_TEXT,
+                 FPDF_ANNOT_FREETEXT}},  // TODO Remove FreeText from FLAG_RENDER_TEXT_ANNOTATIONS
+        {FLAG_RENDER_HIGHLIGHT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_HIGHLIGHT}},
+        {FLAG_RENDER_STAMP_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_STAMP}},
+        {FLAG_RENDER_FREETEXT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_FREETEXT}}};
 // A start index (inclusive) and a stop index (exclusive) into the string of
 // codepoints that make up a range of text.
 typedef std::pair<int, int> TextRange;

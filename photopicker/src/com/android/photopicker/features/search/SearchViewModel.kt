@@ -24,6 +24,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.components.MediaGridItem
+import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.Telemetry
@@ -67,6 +68,7 @@ constructor(
     private val searchDataService: SearchDataService,
     private val selection: Selection<Media>,
     private val events: Events,
+    private val configurationManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
@@ -166,11 +168,29 @@ constructor(
             ) {
                 when (currentSearchState) {
                     is SearchState.Active.SuggestionSearch -> {
+                        scope.launch {
+                            events.dispatch(
+                                Event.ReportPhotopickerSearchInfo(
+                                    FeatureToken.SEARCH.token,
+                                    configurationManager.configuration.value.sessionId,
+                                    Telemetry.SearchMethod.SUGGESTED_SEARCHES,
+                                )
+                            )
+                        }
                         searchDataService.getSearchResults(
                             suggestion = currentSearchState.suggestion
                         )
                     }
                     is SearchState.Active.QuerySearch -> {
+                        scope.launch {
+                            events.dispatch(
+                                Event.ReportPhotopickerSearchInfo(
+                                    FeatureToken.SEARCH.token,
+                                    configurationManager.configuration.value.sessionId,
+                                    Telemetry.SearchMethod.SEARCH_QUERY,
+                                )
+                            )
+                        }
                         searchDataService.getSearchResults(searchText = currentSearchState.query)
                     }
                     is SearchState.Inactive -> {

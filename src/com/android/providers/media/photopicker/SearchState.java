@@ -20,34 +20,24 @@ import static java.util.Objects.requireNonNull;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.flags.Flags;
 import com.android.providers.media.photopicker.sync.PickerSearchProviderClient;
 
-import java.util.Objects;
-
 /**
- * Provides with the search feature enabled state by checking different flags in Picker backend and
- * the current cloud media provider. Also caches the state to avoid IPC calls to the cloud media
- * provider.
+ * Contains the logic to decide if search feature is enabled.
  */
 public class SearchState {
     private static final String TAG = "PickerSearchState";
-    @NonNull
     private final ConfigStore mConfigStore;
-    private boolean mIsCloudSearchEnabled = false;
-    @Nullable
-    private String mCloudAuthority = null;
 
     public SearchState(@NonNull ConfigStore configStore) {
-        mConfigStore = configStore;
+        mConfigStore = requireNonNull(configStore);
     }
 
     /**
@@ -56,95 +46,57 @@ public class SearchState {
     public boolean isCloudSearchEnabled(
             @NonNull Context context,
             @NonNull String cloudAuthority) {
+        requireNonNull(context);
         requireNonNull(cloudAuthority);
 
-        isCloudSearchEnabled(context);
-
-        synchronized (SearchState.class) {
-            return mIsCloudSearchEnabled && cloudAuthority.equals(mCloudAuthority);
-        }
-    }
-
-    /**
-     * Either returns the previously cached value of whether cloud search is enabled or
-     * checks with the cloud media provider has search enabled, caches the result and returns it.
-     */
-    public boolean isCloudSearchEnabled(
-            @NonNull Context context) {
-        if (!isSearchEnabled(context)) {
-            Log.d(TAG, "Search is disabled on the device.");
+        if (!isSearchFeatureEnabled(context)) {
+            Log.d(TAG, "Search feature is disabled on the device.");
             return false;
         }
 
+        final PickerSearchProviderClient client =
+                PickerSearchProviderClient.create(context, cloudAuthority);
+        final boolean cloudPickerSearchState =  client.fetchCapabilities().isSearchEnabled();
+        Log.d(TAG, String.format(
+                "Current cloud media provider: %s, Is search capability available: %s",
+                cloudAuthority,
+                cloudPickerSearchState));
+
+        return cloudPickerSearchState;
+    }
+
+    /**
+     * Returns true if cloud search is enabled for the current cloud provider.
+     */
+    public boolean isCloudSearchEnabled(@NonNull Context context) {
         final String currentCloudAuthority = PickerSyncController
                 .getInstanceOrThrow()
                 .getCloudProviderOrDefault(null);
 
-        synchronized (SearchState.class) {
-            // Check if cache is up to date.
-            if (Objects.equals(mCloudAuthority, currentCloudAuthority)) {
-                return mIsCloudSearchEnabled;
-            }
-
-            // Refresh cache
-            if (currentCloudAuthority == null) {
-                mIsCloudSearchEnabled = false;
-                mCloudAuthority = null;
-                Log.d(TAG, "Current cloud authority is null");
-            } else {
-                final PickerSearchProviderClient client =
-                        PickerSearchProviderClient.create(context, currentCloudAuthority);
-
-                if (Flags.enableCloudMediaProviderCapabilities()) {
-                    mIsCloudSearchEnabled = client.fetchCapabilities().isSearchEnabled();
-                    mCloudAuthority = currentCloudAuthority;
-                    Log.d(TAG, String.format(
-                            "Current cloud media provider: %s, Are search capabilities enabled: %s",
-                            currentCloudAuthority,
-                            mIsCloudSearchEnabled));
-                } else {
-                    try (Cursor ignored = client.fetchSearchResultsFromCmp(
-                            /* suggestedMediaSetId */ null,
-                            /* searchText */ "",
-                            CloudMediaProviderContract.SORT_ORDER_DESC_DATE_TAKEN,
-                            /* pageSize */ 0,
-                            /* resumePageToken */ null,
-                            /* cancellationSignal */ null)) {
-                        Log.d(TAG, "Search APIs are implemented by the cloud provider "
-                                + currentCloudAuthority);
-                        mIsCloudSearchEnabled = true;
-                        mCloudAuthority = currentCloudAuthority;
-                    } catch (UnsupportedOperationException e) {
-                        Log.d(TAG, "Search APIs are NOT implemented by the cloud provider "
-                                + currentCloudAuthority);
-                        mIsCloudSearchEnabled = false;
-                        mCloudAuthority = currentCloudAuthority;
-                    }
-                }
-            }
-
-            return mIsCloudSearchEnabled;
-        }
+        return isCloudSearchEnabled(context, currentCloudAuthority);
     }
 
     public boolean isLocalSearchEnabled() {
-        // TODO implement this later for local search.
+        // Local search is not implemented yet.
         return false;
     }
 
     /**
-     * Clears the cached values.
+     * Checks if the search feature is enabled on the device.
      */
-    public void clearCache() {
-        synchronized (SearchState.class) {
-            mIsCloudSearchEnabled = false;
-            mCloudAuthority = null;
+    private boolean isSearchFeatureEnabled(Context context) {
+        if (!SdkLevel.isAtLeastT()) {
+            Log.d(TAG, "SDK level is less than T.");
+            return false;
         }
-    }
 
-    private boolean isSearchEnabled(@NonNull Context context) {
         if (!isHardwareSupported(context)) {
             Log.d(TAG, "Hardware is not supported.");
+            return false;
+        }
+
+        if (!mConfigStore.isModernPickerEnabled()) {
+            Log.d(TAG, "Modern picker is disabled.");
             return false;
         }
 
@@ -153,7 +105,12 @@ public class SearchState {
             return false;
         }
 
-        if (!mConfigStore.isSearchFeatureEnabled()) {
+        if (!Flags.enableCloudMediaProviderCapabilities()) {
+            Log.d(TAG, "Capability API is disabled.");
+            return false;
+        }
+
+        if (!Flags.enablePhotopickerSearch()) {
             Log.d(TAG, "Search feature is disabled.");
             return false;
         }

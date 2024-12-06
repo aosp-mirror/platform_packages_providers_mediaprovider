@@ -22,7 +22,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_CATEGORY_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
-import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markMediaInMediaSetSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markMediaSetsSyncAsComplete;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -50,7 +50,6 @@ public class MediaSetsSyncWorker extends Worker {
 
     private final String TAG = "MediaSetsSyncWorker";
     private final int INVALID_SYNC_SOURCE = -1;
-    private final String INVALID_CATEGORY_ID = "";
     private final int SYNC_PAGE_COUNT = Integer.MAX_VALUE;
     private final String SYNC_COMPLETE_KEY = "SYNCED";
     private final int PAGE_SIZE = 500;
@@ -84,9 +83,7 @@ public class MediaSetsSyncWorker extends Worker {
                 throw new RequestObsoleteException("Work is stopped" + getId());
             }
 
-            List<String> mimeTypesList = mimeTypes == null || mimeTypes.length == 0 ? null
-                    : Arrays.stream(mimeTypes).toList();
-            syncMediaSets(syncSource, categoryId, categoryAuthority, mimeTypesList);
+            syncMediaSets(syncSource, categoryId, categoryAuthority, mimeTypes);
 
             Log.i(TAG, "Completed media sets sync from sync source" + syncSource
                     + " for categoryId " + categoryId);
@@ -103,7 +100,7 @@ public class MediaSetsSyncWorker extends Worker {
             String categoryId, int syncSource, String categoryAuth)
             throws RequestObsoleteException {
         Objects.requireNonNull(categoryId);
-        if (categoryId.equals(INVALID_CATEGORY_ID)) {
+        if (categoryId.isEmpty()) {
             Log.e(TAG, "Received empty category id to fetch media set data");
             throw new IllegalArgumentException("CategoryId was an empty string");
         }
@@ -120,9 +117,11 @@ public class MediaSetsSyncWorker extends Worker {
 
     private void syncMediaSets(
             int syncSource, @NonNull String categoryId,
-            @NonNull String categoryAuthority, @Nullable List<String> mimeTypes)
+            @NonNull String categoryAuthority, @Nullable String[] mimeTypes)
             throws RequestObsoleteException, IllegalArgumentException {
 
+        List<String> mimeTypesList = mimeTypes == null || mimeTypes.length == 0 ? null
+                : Arrays.asList(mimeTypes);
         final PickerSearchProviderClient searchClient =
                 PickerSearchProviderClient.create(mContext, categoryAuthority);
         String nextPageToken = null;
@@ -133,11 +132,11 @@ public class MediaSetsSyncWorker extends Worker {
                 checkIfCurrentCloudProviderAuthorityHasChanged(categoryAuthority);
 
                 try (Cursor mediaSetsCursor = fetchMediaSetsFromCmp(
-                        searchClient, categoryId, nextPageToken, mCancellationSignal)) {
+                        searchClient, categoryId, nextPageToken, mimeTypes, mCancellationSignal)) {
                     // Cache the retrieved media sets
                     int numberOfRowsInserted = MediaSetsDatabaseUtil.cacheMediaSets(
                             getDatabase(), mediaSetsCursor, categoryId,
-                            categoryAuthority, mimeTypes);
+                            categoryAuthority, mimeTypesList);
                     Log.i(TAG, "Cached " + numberOfRowsInserted + " media sets");
                     // Update the next page token
                     nextPageToken = getNextPageToken(mediaSetsCursor.getExtras());
@@ -147,7 +146,7 @@ public class MediaSetsSyncWorker extends Worker {
                 }
             }
         } finally {
-            markMediaInMediaSetSyncAsComplete(syncSource, getId());
+            markMediaSetsSyncAsComplete(syncSource, getId());
         }
     }
 
@@ -155,9 +154,10 @@ public class MediaSetsSyncWorker extends Worker {
             PickerSearchProviderClient client,
             String categoryId,
             String nextPageToken,
+            String[] mimeTypes,
             CancellationSignal cancellationSignal) {
         final Cursor cursor = client.fetchMediaSetsFromCmp(
-                categoryId, nextPageToken, PAGE_SIZE, cancellationSignal);
+                categoryId, nextPageToken, PAGE_SIZE, mimeTypes, cancellationSignal);
 
         if (cursor == null) {
             throw new IllegalStateException("Cursor returned from provider is null.");

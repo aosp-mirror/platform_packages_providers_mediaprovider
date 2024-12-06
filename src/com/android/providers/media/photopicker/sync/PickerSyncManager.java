@@ -17,9 +17,11 @@
 package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markAlbumMediaSyncAsComplete;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markMediaSetsSyncAsComplete;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSearchResultsSyncAsComplete;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.markSyncAsComplete;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewAlbumMediaSyncRequests;
+import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewMediaSetsSyncRequest;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSearchResultsSyncRequests;
 import static com.android.providers.media.photopicker.sync.SyncTrackerRegistry.trackNewSyncRequests;
 
@@ -45,6 +47,7 @@ import androidx.work.Worker;
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -90,6 +93,8 @@ public class PickerSyncManager {
     static final String SYNC_WORKER_INPUT_ALBUM_ID = "INPUT_ALBUM_ID";
     static final String SYNC_WORKER_INPUT_SEARCH_REQUEST_ID = "INPUT_SEARCH_REQUEST_ID";
     static final String SYNC_WORKER_INPUT_CATEGORY_ID = "INPUT_CATEGORY_ID";
+    static final String SYNC_WORKER_INPUT_MEDIA_SET_ID = "INPUT_MEDIA_SET_ID";
+    static final String SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID = "INPUT_MEDIA_SET_PICKER_ID";
     static final String SYNC_WORKER_TAG_IS_PERIODIC = "PERIODIC";
     static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
@@ -103,6 +108,8 @@ public class PickerSyncManager {
     public static final String IMMEDIATE_ALBUM_SYNC_WORK_NAME;
     public static final String IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME;
     public static final String IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_LOCAL_MEDIA_SETS_SYNC_WORK_NAME;
+    public static final String IMMEDIATE_CLOUD_MEDIA_SETS_SYNC_WORK_NAME;
     public static final String PERIODIC_ALBUM_RESET_WORK_NAME;
     private static final String ENDLESS_WORK_NAME;
     public static final String IMMEDIATE_GRANTS_SYNC_WORK_NAME;
@@ -114,6 +121,7 @@ public class PickerSyncManager {
         final String syncProactivePrefix = "SYNC_MEDIA_PROACTIVE_";
         final String syncImmediatePrefix = "SYNC_MEDIA_IMMEDIATE_";
         final String syncSearchResultsImmediatePrefix = "SYNC_SEARCH_RESULTS_IMMEDIATE_";
+        final String syncMediaSetsImmediatePrefix = "SYNC_MEDIA_SETS_IMMEDIATE_";
         final String syncAllSuffix = "ALL";
         final String syncLocalSuffix = "LOCAL";
         final String syncCloudSuffix = "CLOUD";
@@ -129,6 +137,8 @@ public class PickerSyncManager {
         IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
         IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncCloudSuffix;
+        IMMEDIATE_LOCAL_MEDIA_SETS_SYNC_WORK_NAME = syncMediaSetsImmediatePrefix + syncLocalSuffix;
+        IMMEDIATE_CLOUD_MEDIA_SETS_SYNC_WORK_NAME = syncMediaSetsImmediatePrefix + syncCloudSuffix;
         ENDLESS_WORK_NAME = "ENDLESS_WORK";
         SHOULD_SYNC_GRANTS = "SHOULD_SYNC_GRANTS";
         EXTRA_MIME_TYPES = "mime_types";
@@ -473,6 +483,46 @@ public class PickerSyncManager {
         } catch (Exception e) {
             Log.e(TAG, "Could not enqueue expedited search results sync request", e);
             markSearchResultsSyncAsComplete(syncSource, syncRequest.getId());
+        }
+    }
+
+    /**
+     * Creates OneTimeWork request for syncing media sets with the given provider
+     * @param requestParams The MediaSetsSyncRequestsParams object containing all input parameters
+     *                      for creating a sync request
+     * @param syncSource Indicates whether the sync is required with the local provider or
+     *                   the cloud provider.
+     */
+    public void syncMediaSetsForProvider(
+            MediaSetsSyncRequestParams requestParams, @SyncSource int syncSource) {
+        final Data inputData =
+                new Data(
+                        Map.of(
+                                SYNC_WORKER_INPUT_AUTHORITY, requestParams.getAuthority(),
+                                SYNC_WORKER_INPUT_SYNC_SOURCE, syncSource,
+                                SYNC_WORKER_INPUT_CATEGORY_ID, requestParams.getCategoryId(),
+                                EXTRA_MIME_TYPES, requestParams.getMimeTypes()));
+        final OneTimeWorkRequest syncRequest =
+                buildOneTimeWorkerRequest(MediaSetsSyncWorker.class, inputData);
+
+        // track the new request
+        trackNewMediaSetsSyncRequest(syncSource, syncRequest.getId());
+
+        final String workName = syncSource == SYNC_LOCAL_ONLY
+                ? IMMEDIATE_LOCAL_MEDIA_SETS_SYNC_WORK_NAME
+                : IMMEDIATE_CLOUD_MEDIA_SETS_SYNC_WORK_NAME;
+        // Enqueue local or cloud sync request
+        try {
+            final Operation enqueueOperation = mWorkManager.enqueueUniqueWork(
+                    workName,
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    syncRequest);
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue expedited media sets sync request", e);
+            markMediaSetsSyncAsComplete(syncSource, syncRequest.getId());
         }
     }
 

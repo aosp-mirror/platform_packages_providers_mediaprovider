@@ -17,6 +17,7 @@
 package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXTRA_MIME_TYPES;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
@@ -77,6 +78,7 @@ public class MediaSetsSyncWorkerTest {
     @Mock
     private SyncTracker mCloudMediaSetsSyncTracker;
     private final String mCategoryId = "categoryId";
+    private final String[] mMimeTypes = new String[] { "image/*" };
 
     @Before
     public void setup() {
@@ -113,7 +115,8 @@ public class MediaSetsSyncWorkerTest {
                 new OneTimeWorkRequest.Builder(MediaSetsSyncWorker.class)
                         .setInputData(
                                 new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, 56,
-                                        SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId)))
+                                        SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -133,7 +136,8 @@ public class MediaSetsSyncWorkerTest {
                         .setInputData(
                                 new Data(Map.of(
                                         SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
-                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY)))
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -154,7 +158,8 @@ public class MediaSetsSyncWorkerTest {
                                 new Data(Map.of(
                                         SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
                                         SYNC_WORKER_INPUT_CATEGORY_ID, "",
-                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY)))
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -174,7 +179,8 @@ public class MediaSetsSyncWorkerTest {
                         .setInputData(
                                 new Data(Map.of(
                                         SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
-                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY)))
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -194,7 +200,8 @@ public class MediaSetsSyncWorkerTest {
                         .setInputData(
                                 new Data(Map.of(
                                         SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
-                                        SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId)))
+                                        SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -214,7 +221,8 @@ public class MediaSetsSyncWorkerTest {
                         .setInputData(
                                 new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
                                         SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
-                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY)))
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);
@@ -261,7 +269,8 @@ public class MediaSetsSyncWorkerTest {
                                 new Data(Map.of(
                                         SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
                                         SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
-                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY)))
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
                         .build();
 
         final WorkManager workManager = WorkManager.getInstance(mContext);

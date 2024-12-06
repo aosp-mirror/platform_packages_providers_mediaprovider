@@ -86,6 +86,7 @@ import androidx.work.WorkManager;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.cloudproviders.SearchProvider;
+import com.android.providers.media.photopicker.CategoriesState;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.ItemsProvider;
@@ -93,6 +94,7 @@ import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.model.UserId;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
+import com.android.providers.media.photopicker.v2.model.MediaGroup;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
@@ -114,7 +116,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executor;
 
-
 public class PickerDataLayerV2Test {
     @Mock
     private PickerSyncController mMockSyncController;
@@ -130,6 +131,8 @@ public class PickerDataLayerV2Test {
     private Operation mMockOperation;
     @Mock
     private ListenableFuture<Operation.State.SUCCESS> mMockFuture;
+    @Mock
+    CategoriesState mCategoriesState;
     private PickerDbFacade mFacade;
     private Context mContext;
     private MockContentResolver mMockContentResolver;
@@ -177,6 +180,7 @@ public class PickerDataLayerV2Test {
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
         doReturn(mSearchState).when(mMockSyncController).getSearchState();
+        doReturn(mCategoriesState).when(mMockSyncController).getCategoriesState();
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
         doReturn(mMockContentResolver).when(mMockContext).getContentResolver();
     }
@@ -2301,6 +2305,118 @@ public class PickerDataLayerV2Test {
                         new SearchSuggestionsQuery("", new ArrayList<>()));
         assertThat(suggestions.size()).isEqualTo(1);
         assertThat(suggestions.get(0).getSearchText()).isEqualTo(searchText);
+    }
+
+    @Test
+    public void testTriggerMediaSetsSyncRequest() {
+        doReturn(true).when(mMockSyncController).shouldQueryLocalMediaSets(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMediaSets(any(), any());
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+        doReturn(mMockFuture).when(mMockOperation).getResult();
+
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putStringArray("mime_types", new String[] { "image/*" });
+        extras.putString("category_id", "id");
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(SearchProvider.AUTHORITY)));
+
+        PickerDataLayerV2.triggerMediaSetsSync(extras, mContext, mMockWorkManager);
+
+        // Assert that both local and cloud syncs were scheduled
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+    }
+
+    @Test
+    public void testQueryCategoriesAndAlbums() {
+        doReturn(SearchProvider.AUTHORITY).when(mMockSyncController).getCloudProvider();
+        doReturn(SearchProvider.AUTHORITY).when(mMockSyncController)
+                .getCloudProviderOrDefault(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+        doReturn(true).when(mCategoriesState).areCategoriesEnabled(any(), any());
+
+        final Cursor cursor1 = getLocalMediaCursor(LOCAL_ID_1, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        final Cursor cursor2 = getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor2, 1);
+
+        try (Cursor cursor = PickerDataLayerV2.queryCategoriesAndAlbums(
+                mContext,
+                getMediaQueryExtras(Long.MAX_VALUE, Long.MAX_VALUE, 100,
+                        new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, SearchProvider.AUTHORITY))),
+                /* cancellationSignal */ null)) {
+            assertWithMessage("Count of albums and categories")
+                    .that(cursor.getCount())
+                    .isEqualTo(5);
+
+            cursor.moveToFirst();
+            assertWithMessage("Unexpected media group")
+                    .that(MediaGroup.valueOf(
+                            cursor.getString(cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.MediaGroupResponseColumns
+                                            .MEDIA_GROUP.getColumnName()))))
+                    .isEqualTo(MediaGroup.ALBUM);
+            assertWithMessage("Unexpected album id")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaGroupResponseColumns.GROUP_ID.getColumnName())))
+                    .isEqualTo(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES);
+
+            cursor.moveToNext();
+            assertWithMessage("Unexpected media group")
+                    .that(MediaGroup.valueOf(
+                            cursor.getString(cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.MediaGroupResponseColumns
+                                            .MEDIA_GROUP.getColumnName()))))
+                    .isEqualTo(MediaGroup.ALBUM);
+
+            assertWithMessage("Unexpected album id")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaGroupResponseColumns.GROUP_ID.getColumnName())))
+                    .isEqualTo(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA);
+
+            cursor.moveToNext();
+            // Assert that the next media groupd is people and pets category
+            assertWithMessage("Unexpected media group")
+                    .that(MediaGroup.valueOf(
+                            cursor.getString(cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.MediaGroupResponseColumns
+                                            .MEDIA_GROUP.getColumnName()))))
+                    .isEqualTo(MediaGroup.CATEGORY);
+
+            cursor.moveToNext();
+            assertWithMessage("Unexpected media group")
+                    .that(MediaGroup.valueOf(
+                            cursor.getString(cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.MediaGroupResponseColumns
+                                            .MEDIA_GROUP.getColumnName()))))
+                    .isEqualTo(MediaGroup.ALBUM);
+
+            assertWithMessage("Unexpected album id")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaGroupResponseColumns.GROUP_ID.getColumnName())))
+                    .isEqualTo(CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS);
+
+            cursor.moveToNext();
+            // Assert that the next media groupd is a cloud album
+            assertWithMessage("Unexpected media group")
+                    .that(MediaGroup.valueOf(
+                            cursor.getString(cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.MediaGroupResponseColumns
+                                            .MEDIA_GROUP.getColumnName()))))
+                    .isEqualTo(MediaGroup.ALBUM);
+
+            final Uri coverUri = Uri.parse(
+                    cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaGroupResponseColumns
+                                    .UNWRAPPED_COVER_URI.getColumnName())));
+            assertWithMessage("Unexpected media group")
+                    .that(coverUri.getLastPathSegment())
+                    .isEqualTo(LOCAL_ID_1);
+        }
     }
 
     private static Bundle getCreateSearchRequestExtras(SearchTextRequest searchTextRequest) {

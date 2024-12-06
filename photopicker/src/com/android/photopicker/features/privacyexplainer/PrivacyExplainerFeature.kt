@@ -35,9 +35,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
+import kotlinx.coroutines.Deferred
 
 /** Feature class for the Photopicker's Privacy explainer. */
 class PrivacyExplainerFeature : PhotopickerUiFeature {
@@ -45,7 +47,10 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPrivacyExplainerFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = PrivacyExplainerFeature()
     }

@@ -124,11 +124,6 @@ const std::regex PATTERN_BPF_BACKING_PATH("^/storage/[^/]+/[0-9]+/Android/(data|
 
 static constexpr char TRANSFORM_SYNTHETIC_DIR[] = "synthetic";
 static constexpr char TRANSFORM_TRANSCODE_DIR[] = "transcode";
-static constexpr char PRIMARY_VOLUME_PREFIX[] = "/storage/emulated";
-static constexpr char STORAGE_PREFIX[] = "/storage";
-
-static constexpr char VOLUME_INTERNAL[] = "internal";
-static constexpr char VOLUME_EXTERNAL_PRIMARY[] = "external_primary";
 
 static constexpr char OWNERSHIP_RELATION[] = "ownership";
 
@@ -283,7 +278,7 @@ struct fuse {
     inline bool IsRoot(const node* node) const { return node == root; }
 
     inline string GetEffectiveRootPath() {
-        if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
+        if (android::base::StartsWith(path, mediaprovider::fuse::PRIMARY_VOLUME_PREFIX)) {
             return path + "/" + MY_USER_ID_STRING;
         }
         return path;
@@ -357,7 +352,7 @@ struct fuse {
             return false;
         }
 
-        if (!android::base::StartsWithIgnoreCase(path, PRIMARY_VOLUME_PREFIX)) {
+        if (!android::base::StartsWithIgnoreCase(path, mediaprovider::fuse::PRIMARY_VOLUME_PREFIX)) {
             // Uncached path config applies only to primary volumes.
             return false;
         }
@@ -2667,7 +2662,7 @@ void FuseDaemon::SetupLevelDbInstances() {
         // Setup leveldb instance for both external primary and internal volume.
         fuse->level_db_mutex.lock();
         // Create level db instance for internal volume
-        SetupLevelDbConnection(VOLUME_INTERNAL);
+        SetupLevelDbConnection(mediaprovider::fuse::VOLUME_INTERNAL);
         // Create level db instance for external primary volume
         SetupLevelDbConnection(VOLUME_EXTERNAL_PRIMARY);
         // Create level db instance to store owner id to owner package name and vice versa relation
@@ -2685,16 +2680,11 @@ void FuseDaemon::SetupPublicVolumeLevelDbInstance(const std::string& volume_name
 }
 
 std::string deriveVolumeName(const std::string& path) {
-    std::string volume_name;
-    if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
-        volume_name = VOLUME_INTERNAL;
-    } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX)) {
-        volume_name = VOLUME_EXTERNAL_PRIMARY;
+    std::string volume_name = mediaprovider::fuse::getVolumeNameFromPath(path);
+    if (volume_name.empty()) {
+        LOG(ERROR) << "Invalid input URI for extracting volume name." << path;
     } else {
-        // Return "C58E-1702" from the path like "/storage/C58E-1702/Download/1935694997673.png"
-        volume_name = path.substr(9, 9);
-        // Convert to lowercase
-        std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
+        LOG(DEBUG) << "Volume name from input path: " << path << " ,  volName: " + volume_name;
     }
     return volume_name;
 }

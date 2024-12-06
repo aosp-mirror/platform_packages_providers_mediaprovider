@@ -24,10 +24,13 @@ import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.PrefetchResultKey
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -51,7 +54,10 @@ class EventsTest {
         object : FeatureRegistration {
             override val TAG = "MockedFeature"
 
-            override fun isEnabled(config: PhotopickerConfiguration) = true
+            override fun isEnabled(
+                config: PhotopickerConfiguration,
+                deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+            ) = true
 
             override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
 
@@ -290,6 +296,7 @@ class EventsTest {
             configuration =
                 provideTestConfigurationFlow(scope = scope, defaultConfiguration = config),
             scope = scope,
+            prefetchDataService = TestPrefetchDataService(),
             registeredFeatures = features,
             /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
             /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),

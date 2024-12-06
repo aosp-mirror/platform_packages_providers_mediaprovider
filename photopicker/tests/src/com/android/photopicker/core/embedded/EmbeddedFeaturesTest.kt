@@ -39,7 +39,6 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
@@ -96,10 +95,10 @@ import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.inject.TestOptions
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -197,6 +196,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Inject lateinit var deviceConfig: DeviceConfigProxy
     private val USER_HANDLE_MANAGED: UserHandle
     private val USER_ID_MANAGED: Int = 10
+    private val MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING = "taken on"
 
     init {
         // Create a UserHandle for a managed profile.
@@ -335,8 +335,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Test
     fun testSwipeLeftToNavigateDisabledInEmbeddedWhenCollapsed() =
         testScope.runTest {
-            val resources = getTestableContext().getResources()
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
             composeTestRule.setContent {
                 CompositionLocalProvider(LocalEmbeddedState provides testEmbeddedStateCollapsed) {
                     callEmbeddedPhotopickerMain(
@@ -351,7 +349,12 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()
@@ -364,8 +367,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Test
     fun testSwipeLeftToAlbumWorksInEmbeddedWhenExpanded() =
         testScope.runTest {
-            val resources = getTestableContext().getResources()
-            val mediaItemString = resources.getString(R.string.photopicker_media_item)
             composeTestRule.setContent {
                 CompositionLocalProvider(LocalEmbeddedState provides testEmbeddedStateExpanded) {
                     callEmbeddedPhotopickerMain(
@@ -380,7 +381,12 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()
@@ -600,7 +606,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
         // Initialize [EmbeddedState] instances
         @Suppress("DEPRECATION")
-        whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+        (whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true })
         testEmbeddedStateWithHostInCollapsedState =
             EmbeddedState(isExpanded = false, host = mockSurfaceControlViewHost)
 
@@ -645,7 +651,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
         // Initialize [EmbeddedState] instances
         @Suppress("DEPRECATION")
-        whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+        (whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true })
         testEmbeddedStateWithHostInExpandedState =
             EmbeddedState(isExpanded = true, host = mockSurfaceControlViewHost)
 
@@ -690,7 +696,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
         // Initialize [EmbeddedState] instances
         @Suppress("DEPRECATION")
-        whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+        (whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true })
         testEmbeddedStateWithHostInExpandedState =
             EmbeddedState(isExpanded = true, host = mockSurfaceControlViewHost)
 
@@ -735,7 +741,7 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
         // Initialize [EmbeddedState] instances
         @Suppress("DEPRECATION")
-        whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+        (whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true })
         testEmbeddedStateWithHostInExpandedState =
             EmbeddedState(isExpanded = true, host = mockSurfaceControlViewHost)
 
@@ -775,9 +781,6 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
 
     @Test
     fun testPreviewDisabled_onLongPressMediaItem_photosGrid() = runTest {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         composeTestRule.setContent {
             CompositionLocalProvider(LocalEmbeddedState provides testEmbeddedStateExpanded) {
                 callEmbeddedPhotopickerMain(
@@ -793,7 +796,12 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
         composeTestRule.waitForIdle()
 
         composeTestRule
-            .onAllNodesWithContentDescription(mediaItemString)
+            .onAllNodes(
+                hasContentDescription(
+                    value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                    substring = true,
+                )
+            )
             .onFirst()
             .performTouchInput { longClick() }
 

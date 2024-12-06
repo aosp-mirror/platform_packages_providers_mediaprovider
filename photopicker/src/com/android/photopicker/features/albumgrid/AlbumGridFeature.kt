@@ -36,11 +36,13 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_MEDIA_GRID
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.data.model.Group
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -52,7 +54,10 @@ class AlbumGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerAlbumGridFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = AlbumGridFeature()
 

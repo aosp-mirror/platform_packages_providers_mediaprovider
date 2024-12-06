@@ -92,6 +92,10 @@ import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
@@ -182,6 +186,9 @@ fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifie
     val searchTerm = rememberSaveable { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
     val suggestionLists by viewModel.suggestionLists.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
     SearchBar(
         inputField = {
             SearchInputContent(
@@ -192,6 +199,16 @@ fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifie
                     if (it) {
                         val clickAction = params as? LocationParams.WithClickAction
                         clickAction?.onClick()
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.SEARCH.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.ENTER_PICKER_SEARCH,
+                                )
+                            )
+                        }
                     }
                     focused.value = it
                 },
@@ -816,6 +833,9 @@ private fun ResultMediaGrid(
     val selectionLimitExceededMessage =
         stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
     val items = resultItems.collectAsLazyPagingItems()
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
 
     // Collect the selection to notify the mediaGrid of selection changes.
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
@@ -880,13 +900,33 @@ private fun ResultMediaGrid(
                                 item = item.media,
                                 selectionLimitExceededMessage = selectionLimitExceededMessage,
                             )
+                            // TODO: (b/381876944) Log Ui Event after adding search enum
                         }
                     },
                     onItemLongPress = { item ->
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
-                            // TODO Log entry into the photopicker preview mode for search
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.SEARCH.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             if (item is MediaGridItem.MediaItem) {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerUIEvent(
+                                            FeatureToken.SEARCH.token,
+                                            configuration.sessionId,
+                                            configuration.callingPackageUid ?: -1,
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
+                                        )
+                                    )
+                                }
                                 navController.navigateToPreviewMedia(item.media)
                             }
                         }

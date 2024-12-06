@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
@@ -37,6 +39,37 @@ public abstract class SearchRequest {
     protected final List<String> mMimeTypes;
     @Nullable
     protected String mResumeKey;
+
+    /**
+     * Creates an instance of {@link SearchRequest}.
+     *
+     * @param extras Bundle with input parameters.
+     * @return A new instance of {@link SearchRequest}.
+     */
+    public static SearchRequest create(Bundle extras) {
+        final List<String> mimeTypes = extras.getStringArrayList("mime_types") != null
+                ? new ArrayList<>(extras.getStringArrayList("mime_types")) : null;
+        final String searchText = extras.getString("search_text");
+        final String mediaSetId = extras.getString("media_set_id");
+        final String suggestionAuthority = extras.getString("authority");
+        final String searchSuggestionType = extras.getString("search_suggestion_type");
+
+        if (searchSuggestionType != null) {
+            return new SearchSuggestionRequest(
+                mimeTypes,
+                searchText,
+                mediaSetId,
+                suggestionAuthority,
+                searchSuggestionType,
+                /* resumeKey */ null
+            );
+        } else {
+            return new SearchTextRequest(
+                    mimeTypes,
+                    searchText
+            );
+        }
+    }
 
     protected SearchRequest(@Nullable List<String> rawMimeTypes) {
         this (

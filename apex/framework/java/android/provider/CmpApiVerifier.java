@@ -170,7 +170,7 @@ final class CmpApiVerifier {
                 // Verify CMP search capabilities if the search flag is on.
                 if (Flags.cloudMediaProviderSearch()) {
                     if (capabilities.isAlbumsAsCategoryEnabled()
-                            && !capabilities.isMediaCollectionsEnabled()) {
+                            && !capabilities.isMediaCategoriesEnabled()) {
                         errors.add(createIsNotValidLog("Declared capabilities are invalid. "
                                 + "AlbumsAsCategory capability can only be enabled when "
                                 + "MediaCollections is enabled."));
@@ -601,8 +601,8 @@ final class CmpApiVerifier {
             Map.entry(CloudMediaProviderApis.OnOpenMedia, 1000L),
             Map.entry(CloudMediaProviderApis.OnQueryMediaCategories, 500L),
             Map.entry(CloudMediaProviderApis.OnQueryMediaSets, 500L),
-            Map.entry(CloudMediaProviderApis.OnQuerySearchSuggestions, 500L),
-            Map.entry(CloudMediaProviderApis.OnSearchMedia, 1500L),
+            Map.entry(CloudMediaProviderApis.OnQuerySearchSuggestions, 300L),
+            Map.entry(CloudMediaProviderApis.OnSearchMedia, 3000L),
             Map.entry(CloudMediaProviderApis.OnQueryMediaInMediaSet, 500L)
     ));
 

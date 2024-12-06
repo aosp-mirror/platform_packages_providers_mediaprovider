@@ -74,10 +74,10 @@ import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.preparemedia.MediaPreparerViewModel.Companion.PICKER_TRANSCODE_RESULT
 import com.android.photopicker.features.preparemedia.TranscoderImpl.Companion.DURATION_LIMIT_MS
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.nonNullableAny
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.nonNullableAny
+import com.android.photopicker.util.test.whenever
 import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
@@ -496,7 +496,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             verify(mockContentProvider, times(10)).openTypedAssetFile(any(), any(), any())
         }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     @RequiresFlagsEnabled(Flags.FLAG_ENABLE_PHOTOPICKER_TRANSCODING)
     @Test
     fun testMediaPreparerTranscodeMedia() =
@@ -533,7 +533,7 @@ class MediaPreparerTest : PhotopickerFeatureBaseTest() {
             verify(mockContentProvider, times(10)).call(any(), any(), any(), any())
         }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     @RequiresFlagsEnabled(Flags.FLAG_ENABLE_PHOTOPICKER_TRANSCODING)
     @Test
     fun testMediaPreparerTranscodeMedia_notTranscodeOverDurationLimitVideos() =

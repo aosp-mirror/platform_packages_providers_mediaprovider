@@ -32,4 +32,7 @@
 
     <!-- Suggestions title in the search view suggestions list -->
     <string name="photopicker_search_suggestions_text" translation_description="Title in the search suggestions list">Suggestions</string>
+
+    <!-- Search disabled hint message -->
+    <string name="photopicker_search_disabled_hint" translation_description="Hint message shown on search bar click when search state is not enabled">Search disabled.</string>
 </resources>

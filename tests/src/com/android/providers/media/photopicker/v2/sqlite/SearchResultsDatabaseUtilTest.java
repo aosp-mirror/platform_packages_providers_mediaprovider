@@ -54,6 +54,7 @@ import android.provider.MediaStore;
 import androidx.test.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
 import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
@@ -72,6 +73,8 @@ import java.util.List;
 public class SearchResultsDatabaseUtilTest {
     @Mock
     private PickerSyncController mMockSyncController;
+    @Mock
+    private SearchState mSearchState;
     private SQLiteDatabase mDatabase;
     private Context mContext;
     private PickerDbFacade mFacade;
@@ -92,6 +95,9 @@ public class SearchResultsDatabaseUtilTest {
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
+        doReturn(mSearchState).when(mMockSyncController).getSearchState();
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any());
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any(), any());
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
     }
 
@@ -138,7 +144,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -193,7 +200,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -256,7 +264,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId2)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId2)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -318,7 +327,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -400,7 +410,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -475,7 +486,8 @@ public class SearchResultsDatabaseUtilTest {
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
         extras.putStringArrayList("mime_types", new ArrayList<>(List.of("video/mp4", "image/gif")));
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -541,7 +553,8 @@ public class SearchResultsDatabaseUtilTest {
                 new ArrayList<>(List.of(LOCAL_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -593,7 +606,8 @@ public class SearchResultsDatabaseUtilTest {
         extras.putStringArrayList("providers", new ArrayList<>(List.of(CLOUD_PROVIDER)));
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -647,7 +661,7 @@ public class SearchResultsDatabaseUtilTest {
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
-                .isEqualTo(3);
+                .isEqualTo(4);
 
         final Bundle extras = new Bundle();
         extras.putInt("page_size", 100);
@@ -656,7 +670,8 @@ public class SearchResultsDatabaseUtilTest {
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
         // Query items for searchRequestId1
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -673,7 +688,8 @@ public class SearchResultsDatabaseUtilTest {
         }
 
         // Query items for searchRequestId2
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId2)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId2)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -731,7 +747,8 @@ public class SearchResultsDatabaseUtilTest {
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
         // Query items for searchRequestId1
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -754,7 +771,8 @@ public class SearchResultsDatabaseUtilTest {
         }
 
         // Query items for searchRequestId2
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId2)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId2)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();
@@ -804,7 +822,8 @@ public class SearchResultsDatabaseUtilTest {
         extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
 
         // Query items for searchRequestId
-        try (Cursor cursor = PickerDataLayerV2.querySearchMedia(extras, searchRequestId1)) {
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
             assertWithMessage("Cursor should not be null")
                     .that(cursor)
                     .isNotNull();

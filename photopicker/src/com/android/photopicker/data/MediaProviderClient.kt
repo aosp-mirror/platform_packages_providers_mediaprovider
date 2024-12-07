@@ -21,8 +21,10 @@ import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.util.Log
 import androidx.core.os.bundleOf
+import androidx.core.util.Preconditions.checkNotNull
 import androidx.paging.PagingSource.LoadResult
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -32,7 +34,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
-import java.lang.IllegalArgumentException
+import com.android.photopicker.features.search.model.SearchRequest
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -43,13 +45,16 @@ open class MediaProviderClient {
     companion object {
         private const val TAG = "MediaProviderClient"
         private const val MEDIA_INIT_CALL_METHOD: String = "picker_media_init"
+        private const val SEARCH_REQUEST_INIT_CALL_METHOD = "picker_internal_search_media_init"
         private const val EXTRA_MIME_TYPES = "mime_types"
         private const val EXTRA_INTENT_ACTION = "intent_action"
+        private const val EXTRA_PROVIDERS = "providers"
         private const val EXTRA_LOCAL_ONLY = "is_local_only"
         private const val EXTRA_ALBUM_ID = "album_id"
         private const val EXTRA_ALBUM_AUTHORITY = "album_authority"
         private const val COLUMN_GRANTS_COUNT = "grants_count"
         private const val PRE_SELECTION_URIS = "pre_selection_uris"
+        const val SEARCH_REQUEST_ID = "search_request_id"
     }
 
     /** Contains all optional and mandatory keys required to make a Media query */
@@ -65,7 +70,14 @@ open class MediaProviderClient {
      * [MediaQuery] already.
      */
     private enum class AlbumMediaQuery(val key: String) {
-        ALBUM_AUTHORITY("album_authority"),
+        ALBUM_AUTHORITY("album_authority")
+    }
+
+    private enum class SearchRequestInitRequest(val key: String) {
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        AUTHORITY("authority"),
+        TYPE("search_suggestion_type"),
     }
 
     /**
@@ -75,7 +87,7 @@ open class MediaProviderClient {
         AUTHORITY("authority"),
         MEDIA_SOURCE("media_source"),
         UID("uid"),
-        DISPLAY_NAME("display_name")
+        DISPLAY_NAME("display_name"),
     }
 
     enum class CollectionInfoResponse(val key: String) {
@@ -117,27 +129,25 @@ open class MediaProviderClient {
         DATE_TAKEN("date_taken_millis"),
         ALBUM_NAME("display_name"),
         UNWRAPPED_COVER_URI("unwrapped_cover_uri"),
-        COVER_MEDIA_SOURCE("media_source")
+        COVER_MEDIA_SOURCE("media_source"),
     }
 
     /** Contains all optional and mandatory keys for the Preview Media Query. */
     enum class PreviewMediaQuery(val key: String) {
         CURRENT_SELECTION("current_selection"),
         CURRENT_DE_SELECTION("current_de_selection"),
-        IS_FIRST_PAGE("is_first_page")
+        IS_FIRST_PAGE("is_first_page"),
     }
 
     /** Fetch available [Provider]-s from the Media Provider process. */
-    fun fetchAvailableProviders(
-        contentResolver: ContentResolver,
-    ): List<Provider> {
+    fun fetchAvailableProviders(contentResolver: ContentResolver): List<Provider> {
         try {
             contentResolver
                 .query(
                     AVAILABLE_PROVIDERS_URI,
                     /* projection */ null,
                     /* queryArgs */ null,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 .use { cursor ->
                     return getListOfProviders(cursor!!)
@@ -192,7 +202,7 @@ open class MediaProviderClient {
                     MEDIA_URI,
                     /* projection */ null,
                     input,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 .use { cursor ->
                     cursor?.let {
@@ -210,6 +220,57 @@ open class MediaProviderClient {
                 }
         } catch (e: RuntimeException) {
             throw RuntimeException("Could not fetch media", e)
+        }
+    }
+
+    /** Fetch search results as a list of [Media] from MediaProvider for the given page key. */
+    fun fetchSearchResults(
+        searchRequestId: Int,
+        pageKey: MediaPageKey,
+        pageSize: Int,
+        contentResolver: ContentResolver,
+        availableProviders: List<Provider>,
+        config: PhotopickerConfiguration,
+        cancellationSignal: CancellationSignal?,
+    ): LoadResult<MediaPageKey, Media> {
+        val input: Bundle =
+            bundleOf(
+                MediaQuery.PICKER_ID.key to pageKey.pickerId,
+                MediaQuery.DATE_TAKEN.key to pageKey.dateTakenMillis,
+                MediaQuery.PAGE_SIZE.key to pageSize,
+                MediaQuery.PROVIDERS.key to
+                    ArrayList<String>().apply {
+                        availableProviders.forEach { provider -> add(provider.authority) }
+                    },
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action,
+                Intent.EXTRA_UID to config.callingPackageUid,
+            )
+
+        try {
+            return contentResolver
+                .query(
+                    getSearchResultsMediaUri(searchRequestId),
+                    /* projection */ null,
+                    input,
+                    cancellationSignal,
+                )
+                .use { cursor ->
+                    cursor?.let {
+                        LoadResult.Page(
+                            data = cursor.getListOfMedia(),
+                            prevKey = cursor.getPrevPageKey(),
+                            nextKey = cursor.getNextPageKey(),
+                            itemsBefore =
+                                cursor.getItemsBeforeCount() ?: LoadResult.Page.COUNT_UNDEFINED,
+                        )
+                    }
+                        ?: throw IllegalStateException(
+                            "Received a null response from Media Provider for search results"
+                        )
+                }
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch search results media", e)
         }
     }
 
@@ -247,14 +308,14 @@ open class MediaProviderClient {
                     MEDIA_PREVIEW_URI,
                     /* projection */ null,
                     input,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 .use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfMedia(),
                             prevKey = cursor.getPrevPageKey(),
-                            nextKey = cursor.getNextPageKey()
+                            nextKey = cursor.getNextPageKey(),
                         )
                     }
                         ?: throw IllegalStateException(
@@ -272,7 +333,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ): LoadResult<MediaPageKey, Group.Album> {
         val input: Bundle =
             bundleOf(
@@ -293,14 +354,14 @@ open class MediaProviderClient {
                     ALBUM_URI,
                     /* projection */ null,
                     input,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 .use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfAlbums(),
                             prevKey = cursor.getPrevPageKey(),
-                            nextKey = cursor.getNextPageKey()
+                            nextKey = cursor.getNextPageKey(),
                         )
                     }
                         ?: throw IllegalStateException(
@@ -320,7 +381,7 @@ open class MediaProviderClient {
         pageSize: Int,
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ): LoadResult<MediaPageKey, Media> {
         val input: Bundle =
             bundleOf(
@@ -343,14 +404,14 @@ open class MediaProviderClient {
                     getAlbumMediaUri(albumId),
                     /* projection */ null,
                     input,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 .use { cursor ->
                     cursor?.let {
                         LoadResult.Page(
                             data = cursor.getListOfMedia(),
                             prevKey = cursor.getPrevPageKey(),
-                            nextKey = cursor.getNextPageKey()
+                            nextKey = cursor.getNextPageKey(),
                         )
                     }
                         ?: throw IllegalStateException(
@@ -376,7 +437,7 @@ open class MediaProviderClient {
                     COLLECTION_INFO_URI,
                     /* projection */ null,
                     /* queryArgs */ null,
-                    /* cancellationSignal */ null
+                    /* cancellationSignal */ null,
                 )
                 .use { cursor ->
                     return getListOfCollectionInfo(cursor!!)
@@ -432,7 +493,7 @@ open class MediaProviderClient {
         contentResolver: ContentResolver,
         availableProviders: List<Provider>,
         config: PhotopickerConfiguration,
-        uris: List<Uri>
+        uris: List<Uri>,
     ): List<Media> {
         val input: Bundle =
             bundleOf(
@@ -456,7 +517,7 @@ open class MediaProviderClient {
                     MEDIA_PRE_SELECTION_URI,
                     /* projection */ null,
                     input,
-                    /* cancellationSignal */ null // TODO
+                    /* cancellationSignal */ null, // TODO
                 )
                 ?.getListOfMedia() ?: ArrayList()
         } catch (e: RuntimeException) {
@@ -471,7 +532,7 @@ open class MediaProviderClient {
     fun refreshMedia(
         @Suppress("UNUSED_PARAMETER") providers: List<Provider>,
         resolver: ContentResolver,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ) {
         val extras = Bundle()
 
@@ -497,7 +558,7 @@ open class MediaProviderClient {
         albumAuthority: String,
         providers: List<Provider>,
         resolver: ContentResolver,
-        config: PhotopickerConfiguration
+        config: PhotopickerConfiguration,
     ) {
         val extras = Bundle()
         val initLocalOnlyMedia: Boolean =
@@ -508,6 +569,66 @@ open class MediaProviderClient {
         extras.putString(EXTRA_ALBUM_ID, albumId)
         extras.putString(EXTRA_ALBUM_AUTHORITY, albumAuthority)
         refreshMedia(extras, resolver)
+    }
+
+    /**
+     * Creates a search request with the data source.
+     *
+     * The data source is expected to return a search request id associated with the request.
+     * [MediaProviderClient] can use this search request id to query search results throughout the
+     * photopicker session.
+     *
+     * This call lets [MediaProvider] know that the Photopicker session has made a new search
+     * request and the backend should prepare to handle search results queries for the given search
+     * request.
+     */
+    fun createSearchRequest(
+        searchRequest: SearchRequest,
+        providers: List<Provider>,
+        resolver: ContentResolver,
+        config: PhotopickerConfiguration,
+    ): Int {
+        val extras =
+            bundleOf(
+                EXTRA_MIME_TYPES to config.mimeTypes,
+                EXTRA_INTENT_ACTION to config.action,
+                EXTRA_PROVIDERS to
+                    ArrayList<String>().apply {
+                        providers.forEach { provider -> add(provider.authority) }
+                    },
+            )
+
+        when (searchRequest) {
+            is SearchRequest.SearchTextRequest ->
+                extras.putString(SearchRequestInitRequest.SEARCH_TEXT.key, searchRequest.searchText)
+            is SearchRequest.SearchSuggestionRequest -> {
+                extras.putString(
+                    SearchRequestInitRequest.SEARCH_TEXT.key,
+                    searchRequest.suggestion.displayText,
+                )
+                extras.putString(
+                    SearchRequestInitRequest.AUTHORITY.key,
+                    searchRequest.suggestion.authority,
+                )
+                extras.putString(
+                    SearchRequestInitRequest.MEDIA_SET_ID.key,
+                    searchRequest.suggestion.mediaSetId,
+                )
+                extras.putString(
+                    SearchRequestInitRequest.TYPE.key,
+                    searchRequest.suggestion.type.name,
+                )
+            }
+        }
+
+        val result: Bundle? =
+            resolver.call(
+                MEDIA_PROVIDER_AUTHORITY,
+                SEARCH_REQUEST_INIT_CALL_METHOD,
+                /* arg */ null,
+                extras,
+            )
+        return checkNotNull(result?.getInt(SEARCH_REQUEST_ID), "Search request ID cannot be null")
     }
 
     /** Creates a list of [Provider] from the given [Cursor]. */
@@ -540,7 +661,7 @@ open class MediaProviderClient {
                                 cursor.getColumnIndexOrThrow(
                                     AvailableProviderResponse.DISPLAY_NAME.key
                                 )
-                            )
+                            ),
                     )
                 )
             } while (cursor.moveToNext())
@@ -581,7 +702,7 @@ open class MediaProviderClient {
                                     CollectionInfoResponse.ACCOUNT_NAME.key
                                 )
                             ),
-                        accountConfigurationIntent = accountConfigurationIntent
+                        accountConfigurationIntent = accountConfigurationIntent,
                     )
                 )
             } while (cursor.moveToNext())
@@ -636,7 +757,7 @@ open class MediaProviderClient {
                             sizeInBytes = sizeInBytes,
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
-                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
+                            isPreGranted = (isPregranted == 1), // here 1 denotes true else false
                         )
                     )
                 } else if (mimeType.startsWith("video/")) {
@@ -654,7 +775,7 @@ open class MediaProviderClient {
                             mimeType = mimeType,
                             standardMimeTypeExtension = standardMimeTypeExtension,
                             duration = getInt(getColumnIndexOrThrow(MediaResponse.DURATION.key)),
-                            isPreGranted = (isPregranted == 1) // here 1 denotes true else false
+                            isPreGranted = (isPregranted == 1), // here 1 denotes true else false
                         )
                     )
                 } else {
@@ -735,7 +856,7 @@ open class MediaProviderClient {
                                 getString(
                                     getColumnIndexOrThrow(AlbumResponse.COVER_MEDIA_SOURCE.key)
                                 )
-                            )
+                            ),
                     )
                 )
             } while (moveToNext())
@@ -754,7 +875,7 @@ open class MediaProviderClient {
                 MEDIA_PROVIDER_AUTHORITY,
                 MEDIA_INIT_CALL_METHOD,
                 /* arg */ null,
-                extras
+                extras,
             )
         } catch (e: RuntimeException) {
             Log.e(TAG, "Could not send refresh media call to Media Provider $extras", e)

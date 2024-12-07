@@ -87,6 +87,7 @@ java_aconfig_library {
         "com.android.mediaprovider",
     ],
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
+    mode: "exported",
 }
 
 // To generate the Stats log classes for the Android Pdf.

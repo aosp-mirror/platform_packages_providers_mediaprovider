@@ -26,6 +26,7 @@ import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.data.DEFAULT_SEARCH_REQUEST_ID
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.Group
@@ -33,6 +34,7 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.features.search.model.SearchRequest
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -403,5 +405,61 @@ class MediaProviderClientTest {
         for (index in albumMedia.indices) {
             assertThat(albumMedia[index]).isEqualTo(expectedAlbumMedia[index])
         }
+    }
+
+    @Test
+    fun testFetchSearchResultsPage() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+
+        val mediaLoadResult: LoadResult<MediaPageKey, Media> =
+            mediaProviderClient.fetchSearchResults(
+                searchRequestId = 1,
+                pageKey = MediaPageKey(),
+                pageSize = 5,
+                contentResolver = testContentResolver,
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId,
+                    ),
+                cancellationSignal = null,
+            )
+
+        assertThat(mediaLoadResult is LoadResult.Page).isTrue()
+
+        val media: List<Media> = (mediaLoadResult as LoadResult.Page).data
+
+        assertThat(media.count()).isEqualTo(testContentProvider.media.count())
+        for (index in media.indices) {
+            assertThat(media[index]).isEqualTo(testContentProvider.media[index])
+        }
+    }
+
+    @Test
+    fun testCreateSearchRequest() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+        val providers: List<Provider> =
+            mutableListOf(
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = "",
+                )
+            )
+        val config =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, sessionId = sessionId)
+        val searchRequest = SearchRequest.SearchTextRequest("search_text")
+
+        val searchRequestId =
+            mediaProviderClient.createSearchRequest(
+                searchRequest = searchRequest,
+                providers = providers,
+                resolver = testContentResolver,
+                config = config,
+            )
+
+        assertThat(searchRequestId).isEqualTo(DEFAULT_SEARCH_REQUEST_ID)
     }
 }

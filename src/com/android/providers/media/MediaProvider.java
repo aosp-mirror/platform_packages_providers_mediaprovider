@@ -8720,6 +8720,11 @@ public class MediaProvider extends ContentProvider {
             final String beforeVolume = extractVolumeName(beforePath);
             final String beforeOwner = extractPathOwnerPackageName(beforePath);
 
+            if (beforeVolume != null && MediaStore.VOLUME_EXTERNAL.equals(volumeName)) {
+                // Replace "external" with the volumeName
+                uri = replaceExternalUriWithVolumeName(uri, beforeVolume);
+            }
+
             initialValues.remove(MediaColumns.DATA);
             ensureNonUniqueFileColumns(match, uri, extras, initialValues, beforePath);
 
@@ -12079,6 +12084,25 @@ public class MediaProvider extends ContentProvider {
                 mCachedCallingIdentityForFuse.valueAt(i).dump(writer);
             }
         }
+    }
+
+    /**
+     * Replaces "external" in the URI path with the specified volumeName.
+     * Example:
+     * Input: content://media/external/images/media/1232
+     * Output: content://media/{volumeName}/images/media/1232
+     */
+    private Uri replaceExternalUriWithVolumeName(Uri uri, String volumeName) {
+        List<String> pathSegments = uri.getPathSegments();
+        if (!pathSegments.isEmpty() && pathSegments.get(0).equalsIgnoreCase(
+                MediaStore.VOLUME_EXTERNAL)) {
+            List<String> updatedSegments = new ArrayList<>(pathSegments);
+            updatedSegments.set(0, volumeName);
+            return uri.buildUpon()
+                    .path(TextUtils.join("/", updatedSegments))
+                    .build();
+        }
+        return uri;
     }
 
     /**

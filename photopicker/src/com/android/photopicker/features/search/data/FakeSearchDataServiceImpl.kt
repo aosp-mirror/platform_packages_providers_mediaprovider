@@ -83,10 +83,14 @@ class FakeSearchDataServiceImpl(private val dataService: DataService) : SearchDa
     }
 
     /** Returns all media to unblock UI development. */
-    override fun getSearchResults(suggestion: SearchSuggestion): PagingSource<MediaPageKey, Media> =
-        dataService.mediaPagingSource()
+    override fun getSearchResults(
+        suggestion: SearchSuggestion,
+        cancellationSignal: CancellationSignal?,
+    ): PagingSource<MediaPageKey, Media> = dataService.mediaPagingSource()
 
     /** Returns all media to unblock UI development. */
-    override fun getSearchResults(searchText: String): PagingSource<MediaPageKey, Media> =
-        dataService.mediaPagingSource()
+    override fun getSearchResults(
+        searchText: String,
+        cancellationSignal: CancellationSignal?,
+    ): PagingSource<MediaPageKey, Media> = dataService.mediaPagingSource()
 }

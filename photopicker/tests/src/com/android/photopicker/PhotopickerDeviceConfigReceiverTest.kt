@@ -28,8 +28,8 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.android.photopicker.core.configuration.NAMESPACE_MEDIAPROVIDER
 import com.android.photopicker.core.configuration.TestDeviceConfigProxyImpl
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith

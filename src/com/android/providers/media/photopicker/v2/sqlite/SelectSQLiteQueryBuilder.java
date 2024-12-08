@@ -16,13 +16,13 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
-import android.annotation.SuppressLint;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Helper SQLite Query Builder class that uses the Builder pattern to make writing Select SQL
@@ -162,14 +162,13 @@ public class SelectSQLiteQueryBuilder extends SQLiteQueryBuilder<SelectSQLiteQue
     /**
      * @return the limit clause built from the limit and offset class variables.
      */
-    @SuppressLint("DefaultLocale")
     private String buildLimitClause() {
         if (mLimit == null) {
             return null;
         } else if (mOffset == null) {
             return mLimit.toString();
         } else {
-            return String.format("%d OFFSET %d", mLimit, mOffset);
+            return String.format(Locale.ROOT, "%d OFFSET %d", mLimit, mOffset);
         }
     }
 }

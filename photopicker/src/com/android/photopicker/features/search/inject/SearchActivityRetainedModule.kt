@@ -17,22 +17,14 @@
 package com.android.photopicker.features.search.inject
 
 import android.util.Log
-import com.android.photopicker.core.Background
-import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
-import com.android.photopicker.data.MediaProviderClient
-import com.android.photopicker.data.NotificationService
+import com.android.photopicker.features.search.data.FakeSearchDataServiceImpl
 import com.android.photopicker.features.search.data.SearchDataService
-import com.android.photopicker.features.search.data.SearchDataServiceImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.scopes.ActivityRetainedScoped
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Injection Module for search feature specific dependencies, that provides access to objects bound
@@ -59,15 +51,7 @@ class SearchActivityRetainedModule {
     /** Provider for an implementation of [SearchDataService]. */
     @Provides
     @ActivityRetainedScoped
-    fun provideSearchDataService(
-        dataService: DataService,
-        userMonitor: UserMonitor,
-        configurationManager: ConfigurationManager,
-        @Background scope: CoroutineScope,
-        @Background dispatcher: CoroutineDispatcher,
-        notificationService: NotificationService,
-        events: Events,
-    ): SearchDataService {
+    fun provideSearchDataService(dataService: DataService): SearchDataService {
         if (::searchDataService.isInitialized) {
             return searchDataService
         } else {
@@ -77,17 +61,8 @@ class SearchActivityRetainedModule {
                     " Initializing SearchDataService.",
             )
 
-            searchDataService =
-                SearchDataServiceImpl(
-                    dataService,
-                    userMonitor.userStatus,
-                    configurationManager.configuration,
-                    scope,
-                    dispatcher,
-                    notificationService,
-                    MediaProviderClient(),
-                    events,
-                )
+            // TODO(b/361043596): Switch with actual implementation when ready.
+            searchDataService = FakeSearchDataServiceImpl(dataService)
             return searchDataService
         }
     }

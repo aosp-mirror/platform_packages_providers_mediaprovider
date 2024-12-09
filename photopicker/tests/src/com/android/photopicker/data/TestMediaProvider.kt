@@ -22,7 +22,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.test.mock.MockContentProvider
-import androidx.core.os.bundleOf
 import com.android.photopicker.data.model.CollectionInfo
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
@@ -45,7 +44,7 @@ val DEFAULT_PROVIDERS: List<Provider> =
             authority = "test_authority",
             mediaSource = MediaSource.LOCAL,
             uid = 0,
-            displayName = "Test app",
+            displayName = "Test app"
         )
     )
 
@@ -54,7 +53,7 @@ val DEFAULT_COLLECTION_INFO: List<CollectionInfo> =
         CollectionInfo(
             authority = "test_authority",
             collectionId = "1",
-            accountName = "default@test.com",
+            accountName = "default@test.com"
         )
     )
 
@@ -68,13 +67,15 @@ val DEFAULT_MEDIA: List<Media> =
     )
 
 val DEFAULT_ALBUMS: List<Group.Album> =
-    listOf(createAlbum("Favorites"), createAlbum("Downloads"), createAlbum("CloudAlbum"))
+    listOf(
+        createAlbum("Favorites"),
+        createAlbum("Downloads"),
+        createAlbum("CloudAlbum"),
+    )
 
 val DEFAULT_ALBUM_NAME = "album_id"
 
 val DEFAULT_ALBUM_MEDIA: Map<String, List<Media>> = mapOf(DEFAULT_ALBUM_NAME to DEFAULT_MEDIA)
-
-val DEFAULT_SEARCH_REQUEST_ID: Int = 100
 
 fun createMediaImage(pickerId: Long): Media {
     return Media.Image(
@@ -87,7 +88,7 @@ fun createMediaImage(pickerId: Long): Media {
         dateTakenMillisLong = Long.MAX_VALUE,
         sizeInBytes = 10,
         mimeType = "image/*",
-        standardMimeTypeExtension = 0,
+        standardMimeTypeExtension = 0
     )
 }
 
@@ -99,7 +100,7 @@ fun createAlbum(albumId: String): Group.Album {
         dateTakenMillisLong = Long.MAX_VALUE,
         displayName = albumId,
         coverUri = Uri.parse("content://media/picker/authority/media/$albumId"),
-        coverMediaSource = MediaSource.LOCAL,
+        coverMediaSource = MediaSource.LOCAL
     )
 }
 
@@ -108,8 +109,7 @@ class TestMediaProvider(
     var collectionInfos: List<CollectionInfo> = DEFAULT_COLLECTION_INFO,
     var media: List<Media> = DEFAULT_MEDIA,
     var albums: List<Group.Album> = DEFAULT_ALBUMS,
-    var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA,
-    var searchRequestId: Int = DEFAULT_SEARCH_REQUEST_ID,
+    var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
     var TEST_GRANTS_COUNT = 2
@@ -118,7 +118,7 @@ class TestMediaProvider(
         uri: Uri,
         projection: Array<String>?,
         queryArgs: Bundle?,
-        cancellationSignal: CancellationSignal?,
+        cancellationSignal: CancellationSignal?
     ): Cursor? {
         return when (uri.lastPathSegment) {
             "available_providers" -> getAvailableProviders()
@@ -132,9 +132,6 @@ class TestMediaProvider(
                 if (pathSegments.size == 4 && pathSegments[2].equals("album")) {
                     // Album media query
                     return getAlbumMedia(pathSegments[3])
-                } else if (pathSegments.size == 4 && pathSegments[2].equals("search_media")) {
-                    // Search results media query
-                    return getMedia()
                 } else {
                     throw UnsupportedOperationException("Could not recognize uri $uri")
                 }
@@ -148,9 +145,6 @@ class TestMediaProvider(
                 initMedia(extras)
                 null
             }
-            "picker_internal_search_media_init" -> {
-                bundleOf(MediaProviderClient.SEARCH_REQUEST_ID to searchRequestId)
-            }
             else -> throw UnsupportedOperationException("Could not recognize method $method")
         }
     }
@@ -163,7 +157,7 @@ class TestMediaProvider(
                     MediaProviderClient.AvailableProviderResponse.AUTHORITY.key,
                     MediaProviderClient.AvailableProviderResponse.MEDIA_SOURCE.key,
                     MediaProviderClient.AvailableProviderResponse.UID.key,
-                    MediaProviderClient.AvailableProviderResponse.DISPLAY_NAME.key,
+                    MediaProviderClient.AvailableProviderResponse.DISPLAY_NAME.key
                 )
             )
         providers.forEach { provider ->
@@ -172,7 +166,7 @@ class TestMediaProvider(
                     provider.authority,
                     provider.mediaSource.name,
                     provider.uid.toString(),
-                    provider.displayName,
+                    provider.displayName
                 )
             )
         }
@@ -185,7 +179,7 @@ class TestMediaProvider(
                 arrayOf(
                     MediaProviderClient.CollectionInfoResponse.AUTHORITY.key,
                     MediaProviderClient.CollectionInfoResponse.COLLECTION_ID.key,
-                    MediaProviderClient.CollectionInfoResponse.ACCOUNT_NAME.key,
+                    MediaProviderClient.CollectionInfoResponse.ACCOUNT_NAME.key
                 )
             )
         cursor.setExtras(Bundle())
@@ -194,7 +188,7 @@ class TestMediaProvider(
                 arrayOf(
                     collectionInfo.authority,
                     collectionInfo.collectionId,
-                    collectionInfo.accountName,
+                    collectionInfo.accountName
                 )
             )
             cursor

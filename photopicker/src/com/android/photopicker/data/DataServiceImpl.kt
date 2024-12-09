@@ -89,8 +89,11 @@ class DataServiceImpl(
     private val featureManager: FeatureManager,
     private val appContext: Context,
     private val events: Events,
-    private val processOwnerHandle: UserHandle,
+    private val processOwnerHandle: UserHandle
 ) : DataService {
+    private val _activeContentResolver =
+        MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
+
     // Here default value being null signifies that the look up for the grants has not happened yet.
     // Use [refreshPreGrantedItemsCount] to populate this with the latest value.
     private var _preGrantedMediaCount: MutableStateFlow<Int?> = MutableStateFlow(null)
@@ -140,19 +143,19 @@ class DataServiceImpl(
 
     /**
      * Saves the current job that collects the [availableProviderCallbackFlow]. Cancel this job when
-     * there is a change in the [activeContentResolver]
+     * there is a change in the [_activeContentResolver]
      */
     private var availableProviderCollectJob: Job? = null
 
     /**
      * Saves the current job that collects the [mediaUpdateCallbackFlow]. Cancel this job when there
-     * is a change in the [activeContentResolver]
+     * is a change in the [_activeContentResolver]
      */
     private var mediaUpdateCollectJob: Job? = null
 
     /**
      * Saves the current job that collects the [albumMediaUpdateCallbackFlow]. Cancel this job when
-     * there is a change in the [activeContentResolver]
+     * there is a change in the [_activeContentResolver]
      */
     private var albumMediaUpdateCollectJob: Job? = null
 
@@ -169,9 +172,6 @@ class DataServiceImpl(
         MutableStateFlow(fetchAvailableProviders())
     }
 
-    override val activeContentResolver =
-        MutableStateFlow<ContentResolver>(userStatus.value.activeContentResolver)
-
     /**
      * Create an immutable state flow from the callback flow [_availableProviders]. The state flow
      * helps retain and provide immediate access to the last emitted value.
@@ -186,12 +186,12 @@ class DataServiceImpl(
         _availableProviders.stateIn(
             scope,
             SharingStarted.WhileSubscribed(FLOW_TIMEOUT_MILLI_SECONDS),
-            _availableProviders.value,
+            _availableProviders.value
         )
 
     // Contains collection info cache
     private val collectionInfoState =
-        CollectionInfoState(mediaProviderClient, activeContentResolver, availableProviders)
+        CollectionInfoState(mediaProviderClient, _activeContentResolver, availableProviders)
 
     override val disruptiveDataUpdateChannel = Channel<Unit>(CONFLATED)
 
@@ -241,7 +241,7 @@ class DataServiceImpl(
 
         scope.launch(dispatcher) {
             // Only observe the changes in the active content resolver
-            activeContentResolver.collect { activeContentResolver: ContentResolver ->
+            _activeContentResolver.collect { activeContentResolver: ContentResolver ->
                 Log.d(DataService.TAG, "Active content resolver has changed.")
 
                 // Stop collecting available providers from previously initialized callback flow.
@@ -253,7 +253,7 @@ class DataServiceImpl(
                         availableProviderCallbackFlow?.collect { providers: List<Provider> ->
                             Log.d(
                                 DataService.TAG,
-                                "Available providers update notification received $providers",
+                                "Available providers update notification received $providers"
                             )
 
                             updateAvailableProviders(providers)
@@ -288,7 +288,7 @@ class DataServiceImpl(
                                 DataService.TAG,
                                 "Album media update notification " +
                                     "received for album authority $albumAuthority " +
-                                    "and album id $albumId",
+                                    "and album id $albumId"
                             )
                             albumMediaPagingSourceMutex.withLock {
                                 albumMediaPagingSources
@@ -303,7 +303,7 @@ class DataServiceImpl(
 
         scope.launch(dispatcher) {
             userStatus.collect { userStatusValue: UserStatus ->
-                activeContentResolver.update { userStatusValue.activeContentResolver }
+                _activeContentResolver.update { userStatusValue.activeContentResolver }
             }
         }
     }
@@ -327,7 +327,7 @@ class DataServiceImpl(
                     resolver,
                     AVAILABLE_PROVIDERS_CHANGE_NOTIFICATION_URI,
                     /* notifyForDescendants */ true,
-                    observer,
+                    observer
                 )
 
                 // Trigger the first fetch of available providers.
@@ -361,7 +361,7 @@ class DataServiceImpl(
                 resolver,
                 MEDIA_CHANGE_NOTIFICATION_URI,
                 /* notifyForDescendants */ true,
-                observer,
+                observer
             )
 
             // Unregister when the flow is closed.
@@ -394,7 +394,7 @@ class DataServiceImpl(
                 resolver,
                 ALBUM_CHANGE_NOTIFICATION_URI,
                 /* notifyForDescendants */ true,
-                observer,
+                observer
             )
 
             // Unregister when the flow is closed.
@@ -411,7 +411,7 @@ class DataServiceImpl(
 
                 if (!albumMap.containsKey(album.id) || albumMap[album.id]!!.invalid) {
                     val availableProviders: List<Provider> = availableProviders.value
-                    val contentResolver: ContentResolver = activeContentResolver.value
+                    val contentResolver: ContentResolver = _activeContentResolver.value
                     val albumMediaPagingSource =
                         AlbumMediaPagingSource(
                             album.id,
@@ -426,7 +426,7 @@ class DataServiceImpl(
 
                     Log.v(
                         DataService.TAG,
-                        "Created an album media paging source that queries " + "$availableProviders",
+                        "Created an album media paging source that queries " + "$availableProviders"
                     )
 
                     albumMap[album.id] = albumMediaPagingSource
@@ -441,7 +441,7 @@ class DataServiceImpl(
     override fun albumPagingSource(): PagingSource<MediaPageKey, Album> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
-            val contentResolver: ContentResolver = activeContentResolver.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
             val albumPagingSource =
                 AlbumPagingSource(
                     contentResolver,
@@ -454,7 +454,7 @@ class DataServiceImpl(
 
             Log.v(
                 DataService.TAG,
-                "Created an album paging source that queries " + "$availableProviders",
+                "Created an album paging source that queries " + "$availableProviders"
             )
 
             albumPagingSources.add(albumPagingSource)
@@ -471,7 +471,7 @@ class DataServiceImpl(
     override fun mediaPagingSource(): PagingSource<MediaPageKey, Media> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
-            val contentResolver: ContentResolver = activeContentResolver.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
             val mediaPagingSource =
                 MediaPagingSource(
                     contentResolver,
@@ -492,11 +492,11 @@ class DataServiceImpl(
     @GuardedBy("mediaPagingSourceMutex")
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
-        currentDeselection: Set<Media>,
+        currentDeselection: Set<Media>
     ): PagingSource<MediaPageKey, Media> = runBlocking {
         mediaPagingSourceMutex.withLock {
             val availableProviders: List<Provider> = availableProviders.value
-            val contentResolver: ContentResolver = activeContentResolver.value
+            val contentResolver: ContentResolver = _activeContentResolver.value
             val mediaPagingSource =
                 MediaPagingSource(
                     contentResolver,
@@ -507,12 +507,16 @@ class DataServiceImpl(
                     events,
                     /* is_preview_request */ true,
                     currentSelection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
-                    currentDeselection.mapNotNull { it.mediaId }.toCollection(ArrayList()),
+                    currentDeselection
+                        .mapNotNull { it.mediaId }
+                        .toCollection(
+                            ArrayList(),
+                        ),
                 )
 
             Log.v(
                 DataService.TAG,
-                "Created a media paging source that queries database for" + "preview items.",
+                "Created a media paging source that queries database for" + "preview items."
             )
             mediaPagingSources.add(mediaPagingSource)
             mediaPagingSource
@@ -536,7 +540,7 @@ class DataServiceImpl(
                 Log.i(
                     DataService.TAG,
                     "A media paging source is available for " +
-                        "album ${album.id}. Not sending a refresh album media request.",
+                        "album ${album.id}. Not sending a refresh album media request."
                 )
                 return
             }
@@ -551,15 +555,15 @@ class DataServiceImpl(
                 album.id,
                 album.authority,
                 providers,
-                activeContentResolver.value,
-                config.value,
+                _activeContentResolver.value,
+                config.value
             )
         } else {
             Log.e(
                 DataService.TAG,
                 "Available providers $providers " +
                     "does not contain album authority ${album.authority}. " +
-                    "Skip sending refresh album media request.",
+                    "Skip sending refresh album media request."
             )
         }
     }
@@ -569,7 +573,7 @@ class DataServiceImpl(
     }
 
     override suspend fun ensureProviders() {
-        mediaProviderClient.ensureProviders(activeContentResolver.value)
+        mediaProviderClient.ensureProviders(_activeContentResolver.value)
         updateAvailableProviders(fetchAvailableProviders())
     }
 
@@ -599,9 +603,9 @@ class DataServiceImpl(
                         uid =
                             packageManager.getPackageUid(
                                 it.providerInfo.packageName,
-                                /* flags */ 0,
+                                /* flags */ 0
                             ),
-                        displayName = it.loadLabel(packageManager) as? String ?: "",
+                        displayName = it.loadLabel(packageManager) as? String ?: ""
                     )
                 }
 
@@ -658,8 +662,8 @@ class DataServiceImpl(
         ) {
             _preGrantedMediaCount.update {
                 mediaProviderClient.fetchMediaGrantsCount(
-                    activeContentResolver.value,
-                    config.value.callingPackageUid ?: -1,
+                    _activeContentResolver.value,
+                    config.value.callingPackageUid ?: -1
                 )
             }
         }
@@ -680,10 +684,10 @@ class DataServiceImpl(
                     mediaProviderClient.fetchFilteredMedia(
                         MediaPageKey(),
                         MediaStore.getPickImagesMaxLimit(),
-                        activeContentResolver.value,
+                        _activeContentResolver.value,
                         _availableProviders.value,
                         config.value,
-                        uris,
+                        uris
                     )
                 }
             }
@@ -700,7 +704,7 @@ class DataServiceImpl(
         if (availableProviders.isNotEmpty()) {
             mediaProviderClient.refreshMedia(
                 availableProviders,
-                activeContentResolver.value,
+                _activeContentResolver.value,
                 config.value,
             )
         } else {
@@ -715,13 +719,13 @@ class DataServiceImpl(
      */
     private fun fetchAvailableProviders(): List<Provider> {
         var availableProviders =
-            mediaProviderClient.fetchAvailableProviders(activeContentResolver.value)
+            mediaProviderClient.fetchAvailableProviders(_activeContentResolver.value)
         if (!featureManager.isFeatureEnabled(CloudMediaFeature::class.java)) {
             availableProviders = availableProviders.filter { it.mediaSource != MediaSource.REMOTE }
             Log.i(
                 DataService.TAG,
                 "Cloud media feature is not enabled, available providers are " +
-                    "updated to  $availableProviders",
+                    "updated to  $availableProviders"
             )
         }
         return availableProviders

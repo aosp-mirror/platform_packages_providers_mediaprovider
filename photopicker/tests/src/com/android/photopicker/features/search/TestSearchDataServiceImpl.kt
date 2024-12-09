@@ -53,18 +53,12 @@ class TestSearchDataServiceImpl() : SearchDataService {
         )
     }
 
-    override fun getSearchResults(
-        suggestion: SearchSuggestion,
-        cancellationSignal: CancellationSignal?,
-    ): PagingSource<MediaPageKey, Media> {
+    override fun getSearchResults(suggestion: SearchSuggestion): PagingSource<MediaPageKey, Media> {
         return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
             ?: FakeInMemoryMediaPagingSource(mediaSetSize)
     }
 
-    override fun getSearchResults(
-        searchText: String,
-        cancellationSignal: CancellationSignal?,
-    ): PagingSource<MediaPageKey, Media> {
+    override fun getSearchResults(searchText: String): PagingSource<MediaPageKey, Media> {
         return mediaList?.let { FakeInMemoryMediaPagingSource(it) }
             ?: FakeInMemoryMediaPagingSource(mediaSetSize)
     }

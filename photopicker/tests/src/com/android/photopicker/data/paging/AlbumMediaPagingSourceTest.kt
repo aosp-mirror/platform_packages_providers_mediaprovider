@@ -30,6 +30,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
@@ -78,6 +79,7 @@ class AlbumMediaPagingSourceTest {
             FeatureManager(
                 provideTestConfigurationFlow(this.backgroundScope, testPhotopickerConfiguration),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 emptySet<FeatureRegistration>(),
             )
         val events =

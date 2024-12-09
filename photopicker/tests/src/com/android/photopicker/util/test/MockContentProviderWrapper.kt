@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.test.utils
+package com.android.photopicker.util.test
 
 import android.content.ContentProvider
 import android.content.res.AssetFileDescriptor
@@ -43,7 +43,7 @@ class MockContentProviderWrapper(val provider: ContentProvider) : MockContentPro
         uri: Uri,
         mimetype: String,
         opts: Bundle?,
-        cancellationSignal: CancellationSignal?
+        cancellationSignal: CancellationSignal?,
     ): AssetFileDescriptor? {
         return provider.openTypedAssetFile(uri, mimetype, opts, cancellationSignal)
     }

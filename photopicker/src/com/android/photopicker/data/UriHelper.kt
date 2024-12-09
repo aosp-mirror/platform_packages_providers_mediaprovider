@@ -30,6 +30,8 @@ private const val ALBUM_PATH_SEGMENT = "album"
 private const val MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count"
 private const val PREVIEW_PATH_SEGMENT = "preview"
 private const val PRE_SELECTION_URI_PATH_SEGMENT = "pre_selection"
+private const val SEARCH_MEDIA_PATH_SEGMENT = "search_media"
+
 const val PICKER_SEGMENT = "picker"
 const val PICKER_TRANSCODED_SEGMENT = "picker_transcoded"
 
@@ -101,4 +103,14 @@ val ALBUM_CHANGE_NOTIFICATION_URI: Uri =
 
 fun getAlbumMediaUri(albumId: String): Uri {
     return ALBUM_URI.buildUpon().apply { appendPath(albumId) }.build()
+}
+
+fun getSearchResultsMediaUri(searchRequestId: Int): Uri {
+    return pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(SEARCH_MEDIA_PATH_SEGMENT)
+            appendPath(searchRequestId.toString())
+        }
+        .build()
 }

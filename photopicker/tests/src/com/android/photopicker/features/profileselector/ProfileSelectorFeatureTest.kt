@@ -56,8 +56,8 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module

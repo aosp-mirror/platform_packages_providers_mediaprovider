@@ -62,6 +62,7 @@ import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.CustomAccentColorScheme
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.launch
 
 /* The size of spacers between elements on the bar */
@@ -85,6 +86,7 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
     // Collect selection to ensure this is recomposed when the selection is updated.
     val selection = LocalSelection.current
     val currentSelection by LocalSelection.current.flow.collectAsStateWithLifecycle()
+
     // For ACTION_USER_SELECT_IMAGES_FOR_APP selection bar should always be visible to allow users
     // the option to exit with zero selection i.e. revoking all grants.
     val visible =
@@ -95,7 +97,8 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
     val configuration = LocalPhotopickerConfiguration.current
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
-
+    val localizedCurrentSelectionSize =
+        LocalLocalizationHelper.current.getLocalizedCount(currentSelection.size)
     // The entire selection bar is hidden if the selection is empty, and
     // animates between visible states.
     AnimatedVisibility(
@@ -134,10 +137,10 @@ fun SelectionBar(modifier: Modifier = Modifier, params: LocationParams) {
                     val selectionSizeDescription =
                         stringResource(
                             R.string.photopicker_selection_size_description,
-                            currentSelection.size,
+                            localizedCurrentSelectionSize,
                         )
                     Text(
-                        "${currentSelection.size}",
+                        "$localizedCurrentSelectionSize",
                         style = MaterialTheme.typography.headlineSmall,
                         modifier =
                             Modifier.semantics { contentDescription = selectionSizeDescription },

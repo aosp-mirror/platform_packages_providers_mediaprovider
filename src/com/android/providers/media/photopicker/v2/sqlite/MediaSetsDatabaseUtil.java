@@ -24,6 +24,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.CloudMediaProviderContract;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,7 +41,7 @@ import java.util.Objects;
 public class MediaSetsDatabaseUtil {
 
     private static final String TAG = "MediaSetsDatabaseUtil";
-    private static final String DELIMITER = ";";
+    public static final String DELIMITER = ";";
 
     /**
      * Inserts metadata about a media set into the media sets table. Insertions that violate the
@@ -114,6 +115,48 @@ public class MediaSetsDatabaseUtil {
         }
     }
 
+    /**
+     * Returns mediaSetId corresponding to the given mediaSetPickerId
+     * @param database Database to read from
+     * @param mediaSetPickerId Unique pickerDB id
+     * @return mediaSetId and mimeTypes for the given mediaSetPickerId wrapped in a Pair object
+     */
+    public static Pair<String, String[]> getMediaSetIdAndMimeType(
+            @NonNull SQLiteDatabase database,
+            @NonNull String mediaSetPickerId) {
+        Objects.requireNonNull(database);
+        Objects.requireNonNull(mediaSetPickerId);
+
+        SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
+                .setTables(PickerSQLConstants.Table.MEDIA_SETS.name())
+                .setProjection(List.of(
+                        PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_ID.getColumnName(),
+                        PickerSQLConstants.MediaSetsTableColumns.MIME_TYPE_FILTER.getColumnName()
+                ));
+        queryBuilder.appendWhereStandalone(String.format(
+                Locale.ROOT,
+                "%s = '%s'",
+                PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName(),
+                mediaSetPickerId
+        ));
+        try (Cursor cursor = database.rawQuery(queryBuilder.buildQuery(), /*selectionArgs*/null)) {
+            String mediaSetId = "";
+            String mimeTypes = "";
+            if (cursor.moveToFirst()) {
+                mediaSetId = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_ID.getColumnName()));
+                mimeTypes = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.MIME_TYPE_FILTER.getColumnName()));
+                return new Pair<>(mediaSetId, mimeTypes.split(MediaSetsDatabaseUtil.DELIMITER));
+            } else {
+                throw new IllegalArgumentException(
+                        "No entry found in the database corresponding to "
+                                + " the given mediaSetPickerId " + mediaSetPickerId
+                                + ". Cannot fetch mediaSetId and mimeTypes.");
+            }
+        }
+    }
+
 
     /**
      * Fetches the metadata of all the media sets under the given category
@@ -145,16 +188,16 @@ public class MediaSetsDatabaseUtil {
                 ));
         queryBuilder
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.CATEGORY_ID
                                         .getColumnName(), categoryId))
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_AUTHORITY
                                         .getColumnName(), authority)
                 )
                 .appendWhereStandalone(
-                        String.format(" %s = '%s' ",
+                        String.format(Locale.ROOT, " %s = '%s' ",
                                 PickerSQLConstants.MediaSetsTableColumns.MIME_TYPE_FILTER
                                         .getColumnName(), getMimeTypesAsString(mimeTypes)));
 
@@ -176,13 +219,12 @@ public class MediaSetsDatabaseUtil {
 
         final List<String> projection = List.of(
                 PickerSQLConstants.MediaSetsTableColumns.MEDIA_IN_MEDIA_SET_SYNC_RESUME_KEY
-                        .getColumnName()
-        );
+                        .getColumnName());
         final SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)
                 .setTables(PickerSQLConstants.Table.MEDIA_SETS.name())
                 .setProjection(projection);
         queryBuilder.appendWhereStandalone(
-                String.format(" %s = '%s' ",
+                String.format(Locale.ROOT, " %s = '%s' ",
                         PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName(),
                         mediaPickerId)
         );
@@ -225,6 +267,7 @@ public class MediaSetsDatabaseUtil {
                 table,
                 updateValues,
                 String.format(
+                        Locale.ROOT,
                         "%s = '%s'",
                         PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName(),
                         mediaSetPickerId
@@ -291,8 +334,9 @@ public class MediaSetsDatabaseUtil {
         if (mimeTypes == null || mimeTypes.isEmpty()) {
             return "";
         }
-        mimeTypes.replaceAll(s -> s.toLowerCase(Locale.ROOT));
-        mimeTypes.sort(Comparator.naturalOrder());
-        return String.join(DELIMITER, mimeTypes);
+        List<String> modifiableList = new ArrayList<>(mimeTypes);
+        modifiableList.replaceAll(s -> s.toLowerCase(Locale.ROOT));
+        modifiableList.sort(Comparator.naturalOrder());
+        return String.join(DELIMITER, modifiableList);
     }
 }

@@ -70,6 +70,8 @@ import com.android.photopicker.features.preparemedia.PrepareMediaFeature
 import com.android.photopicker.features.preparemedia.PrepareMediaResult
 import com.android.photopicker.features.preparemedia.PrepareMediaResult.PrepareMediaFailed
 import com.android.photopicker.features.preparemedia.PrepareMediaResult.PreparedMedia
+import com.android.photopicker.util.LocalLocalizationHelper
+import com.android.photopicker.util.rememberLocalizationHelper
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.scopes.ActivityRetainedScoped
@@ -221,6 +223,7 @@ class MainActivity : Hilt_MainActivity() {
                 LocalPhotopickerConfiguration provides photopickerConfiguration,
                 LocalSelection provides selection.get(),
                 LocalEvents provides events.get(),
+                LocalLocalizationHelper provides rememberLocalizationHelper(),
             ) {
                 PhotopickerTheme(config = photopickerConfiguration) {
                     PhotopickerAppWithBottomSheet(

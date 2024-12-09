@@ -65,6 +65,8 @@ import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
+import com.android.photopicker.util.LocalLocalizationHelper
+import com.android.photopicker.util.rememberLocalizationHelper
 import dagger.Lazy
 import dagger.hilt.EntryPoint
 import dagger.hilt.EntryPoints
@@ -390,6 +392,7 @@ open class Session(
                             LocalViewModelStoreOwner provides _embeddedViewLifecycle,
                             LocalOnBackPressedDispatcherOwner provides _embeddedViewLifecycle,
                             LocalEmbeddedState provides embeddedState,
+                            LocalLocalizationHelper provides rememberLocalizationHelper(),
                         ) {
                             val currentEmbeddedState =
                                 checkNotNull(LocalEmbeddedState.current) {

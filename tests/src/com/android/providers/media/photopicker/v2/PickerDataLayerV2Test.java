@@ -61,6 +61,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -98,6 +99,7 @@ import com.android.providers.media.photopicker.v2.model.MediaGroup;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
+import com.android.providers.media.photopicker.v2.sqlite.MediaInMediaSetsDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils;
 import com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsQuery;
@@ -178,6 +180,8 @@ public class PickerDataLayerV2Test {
         doReturn(LOCAL_PROVIDER).when(mMockSyncController).getLocalProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMediaSets(any(), any());
+        doReturn(true).when(mMockSyncController).shouldQueryLocalMediaSets(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
         doReturn(mSearchState).when(mMockSyncController).getSearchState();
         doReturn(mCategoriesState).when(mMockSyncController).getCategoriesState();
@@ -713,6 +717,70 @@ public class PickerDataLayerV2Test {
             assertMediaCursor(cr, LOCAL_ID_1, LOCAL_PROVIDER, DATE_TAKEN_MS, MP4_VIDEO_MIME_TYPE);
         }
     }
+
+    @Test
+    public void testQueryMediaInMediaSet() {
+        final Cursor cursor1 = getLocalMediaCursor(LOCAL_ID_1, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor1, 1);
+        final Cursor cursor2 = getLocalMediaCursor(LOCAL_ID_2, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        final Cursor cursor3 = getCloudMediaCursor(CLOUD_ID_2, LOCAL_ID_2, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+
+        String mediaSetPickerId = "mediaSetPickerId";
+
+        int cloudRowsInserted = MediaInMediaSetsDatabaseUtil.cacheMediaOfMediaSet(
+                mFacade.getDatabase(), List.of(
+                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, mediaSetPickerId)
+                ), CLOUD_PROVIDER
+        );
+        assertEquals(
+                "Number of rows inserted should be equal to the number of items in the cursor,",
+                /*expected*/cloudRowsInserted,
+                /*actual*/1);
+
+        int localRowsInserted = MediaInMediaSetsDatabaseUtil.cacheMediaOfMediaSet(
+                mFacade.getDatabase(), List.of(
+                        getContentValues(LOCAL_ID_1, null, mediaSetPickerId)
+                ), LOCAL_PROVIDER
+        );
+        assertEquals(
+                "Number of rows inserted is incorrect",
+                localRowsInserted,
+                1);
+
+        Bundle extras = new Bundle();
+        extras.putInt("page_size", 100);
+        extras.putStringArrayList("providers",
+                new ArrayList<>(Arrays.asList(LOCAL_PROVIDER, CLOUD_PROVIDER)));
+        extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
+        extras.putString("media_set_picker_id", mediaSetPickerId);
+        extras.putString("authority", LOCAL_PROVIDER);
+
+        try (Cursor cursor =
+                     PickerDataLayerV2.queryMediaInMediaSet(mContext, extras)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(2);
+
+            cursor.moveToFirst();
+            assertWithMessage("Media ID is not as expected in the search results")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
+                    .isEqualTo(LOCAL_ID_2);
+
+            cursor.moveToNext();
+            assertWithMessage("Media ID is not as expected in the search results")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
+                    .isEqualTo(LOCAL_ID_1);
+        }
+    }
+
 
     @Test
     public void testFetchMediaGrantsCount() {
@@ -2331,6 +2399,28 @@ public class PickerDataLayerV2Test {
     }
 
     @Test
+    public void testTriggerMediaInMediaSetSyncRequest() {
+        doReturn(true).when(mMockSyncController).shouldQueryLocalMediaSets(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMediaSets(any(), any());
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+        doReturn(mMockFuture).when(mMockOperation).getResult();
+
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putString("media_set_picker_id", "id");
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(SearchProvider.AUTHORITY)));
+
+        PickerDataLayerV2.triggerMediaSyncForMediaSet(extras, mContext, mMockWorkManager);
+
+        // Assert that both local and cloud syncs were scheduled
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+    }
+
+    @Test
     public void testQueryCategoriesAndAlbums() {
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController).getCloudProvider();
         doReturn(SearchProvider.AUTHORITY).when(mMockSyncController)
@@ -2575,5 +2665,19 @@ public class PickerDataLayerV2Test {
         );
         extras.putString("album_authority", albumAuthority);
         return extras;
+    }
+
+    private ContentValues getContentValues(
+            String localId, String cloudId, String mediaSetPickerId) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(
+                PickerSQLConstants.MediaInMediaSetsTableColumns.CLOUD_ID.getColumnName(), cloudId);
+        contentValues.put(
+                PickerSQLConstants.MediaInMediaSetsTableColumns.LOCAL_ID.getColumnName(), localId);
+        contentValues.put(
+                PickerSQLConstants.MediaInMediaSetsTableColumns.MEDIA_SETS_PICKER_ID
+                        .getColumnName(),
+                mediaSetPickerId);
+        return contentValues;
     }
 }

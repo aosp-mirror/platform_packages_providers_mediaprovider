@@ -91,6 +91,7 @@ import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.theme.LocalFixedAccentColors
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -319,7 +320,6 @@ private fun SelectionButton(
     currentSelection: Set<Media>,
     viewModel: PreviewViewModel = obtainViewModel(),
 ) {
-
     TextButton(
         onClick = {
             if (currentSelection.size > 0 && viewModel.selectionSnapshot.value.size > 0) {
@@ -340,17 +340,23 @@ private fun SelectionButton(
                     else LocalFixedAccentColors.current.primaryFixedDim
             ),
     ) {
+        val localizationHelper = LocalLocalizationHelper.current
         if (currentSelection.size > 0) {
             Icon(ImageVector.vectorResource(R.drawable.tab_close), contentDescription = null)
             Spacer(Modifier.size(8.dp))
-            Text(stringResource(R.string.photopicker_deselect_button_label, currentSelection.size))
+            Text(
+                stringResource(
+                    R.string.photopicker_deselect_button_label,
+                    localizationHelper.getLocalizedCount(currentSelection.size),
+                )
+            )
         } else {
             Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
             Spacer(Modifier.size(8.dp))
             Text(
                 stringResource(
                     R.string.photopicker_select_button_label,
-                    viewModel.selectionSnapshot.value.size,
+                    localizationHelper.getLocalizedCount(viewModel.selectionSnapshot.value.size),
                 )
             )
         }

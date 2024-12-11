@@ -286,6 +286,26 @@ public class SyncTrackerRegistry {
     }
 
     /**
+     * Create the required completable futures to track a new media in media set sync request
+     */
+    public static void trackNewMediaInMediaSetSyncRequest(
+            @PickerSyncManager.SyncSource int syncSource,
+            @NonNull UUID syncRequestId) {
+        switch (syncSource) {
+            case SYNC_LOCAL_ONLY:
+                getLocalMediaInMediaSetTracker().createSyncFuture(syncRequestId);
+                break;
+            case SYNC_CLOUD_ONLY:
+                getCloudMediaInMediaSetTracker().createSyncFuture(syncRequestId);
+                break;
+            default:
+                getLocalMediaInMediaSetTracker().createSyncFuture(syncRequestId);
+                getCloudMediaInMediaSetTracker().createSyncFuture(syncRequestId);
+                break;
+        }
+    }
+
+    /**
      * Mark the required futures as complete for existing media sync requests.
      */
     public static void markSyncAsComplete(

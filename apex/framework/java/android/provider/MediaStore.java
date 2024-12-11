@@ -340,6 +340,9 @@ public final class MediaStore {
     public static final String PICKER_MEDIA_SETS_INIT_CALL =
             "picker_media_sets_init_call";
     /** {@hide} */
+    public static final String PICKER_MEDIA_IN_MEDIA_SET_INIT_CALL =
+            "picker_media_in_media_set_init";
+    /** {@hide} */
     public static final String PICKER_TRANSCODE_CALL = "picker_transcode";
     /** {@hide} */
     public static final String PICKER_TRANSCODE_RESULT = "picker_transcode_result";

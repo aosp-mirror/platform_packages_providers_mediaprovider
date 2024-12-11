@@ -23,6 +23,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_CATEGORY_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
@@ -56,6 +57,7 @@ import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.cloudproviders.SearchProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.v2.model.MediaInMediaSetSyncRequestParams;
 import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -629,5 +631,89 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getStringArray(EXTRA_MIME_TYPES))
                 .isEqualTo(mimeTypes);
+    }
+
+    @Test
+    public void testMediaInMediaSetSyncLocalProvider() {
+        setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
+
+        reset(mMockWorkManager);
+
+        String mediaSetPickerId = "id";
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putString("media_set_picker_id", mediaSetPickerId);
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)));
+
+        MediaInMediaSetSyncRequestParams requestParams = new MediaInMediaSetSyncRequestParams(
+                extras);
+
+        mPickerSyncManager.syncMediaInMediaSetForProvider(requestParams, SYNC_LOCAL_ONLY);
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(MediaInMediaSetsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID))
+                .isEqualTo(mediaSetPickerId);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_AUTHORITY))
+                .isEqualTo(SearchProvider.AUTHORITY);
+    }
+
+    @Test
+    public void testMediaInMediaSetSyncCloudProvider() {
+        setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
+
+        reset(mMockWorkManager);
+
+        String mediaSetPickerId = "id";
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putString("media_set_picker_id", mediaSetPickerId);
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)));
+
+        MediaInMediaSetSyncRequestParams requestParams = new MediaInMediaSetSyncRequestParams(
+                extras);
+
+        mPickerSyncManager.syncMediaInMediaSetForProvider(requestParams, SYNC_CLOUD_ONLY);
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(MediaInMediaSetsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID))
+                .isEqualTo(mediaSetPickerId);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_AUTHORITY))
+                .isEqualTo(SearchProvider.AUTHORITY);
     }
 }

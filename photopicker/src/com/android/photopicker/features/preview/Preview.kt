@@ -17,6 +17,7 @@
 package com.android.photopicker.features.preview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,13 +59,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -91,7 +93,11 @@ import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.theme.LocalFixedAccentColors
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToPreviewSelection
+import com.android.photopicker.util.HierarchicalFocusCoordinator
 import com.android.photopicker.util.LocalLocalizationHelper
+import com.android.photopicker.util.getMediaContentDescription
+import com.android.photopicker.util.rememberActiveFocusRequester
+import java.text.DateFormat
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -146,6 +152,11 @@ fun PreviewSelection(
         }
 
     if (selection != null) {
+        val dateFormat =
+            LocalLocalizationHelper.current.getLocalizedDateTimeFormatter(
+                DateFormat.MEDIUM,
+                DateFormat.SHORT,
+            )
         // Only snapshot the selection once when the composable is created.
         LaunchedEffect(Unit) { viewModel.takeNewSelectionSnapshot() }
         val navController = LocalNavController.current
@@ -189,6 +200,7 @@ fun PreviewSelection(
                             state,
                             snackbarHostState,
                             /* singleItemPreview */ previewSingleItem,
+                            dateFormat,
                         )
 
                         // Only show the selection button if not in single select.
@@ -378,23 +390,41 @@ private fun PreviewPager(
     state: PagerState,
     snackbarHostState: SnackbarHostState,
     singleItemPreview: Boolean,
+    dateFormat: DateFormat,
 ) {
     // Preview session state to keep track if the video player's audio is muted.
     var audioIsMuted by remember { mutableStateOf(true) }
 
-    HorizontalPager(state = state, modifier = modifier) { page ->
-        val media = selection.get(page)
-        if (media != null) {
-            when (media) {
-                is Media.Image -> ImageUi(media, singleItemPreview)
-                is Media.Video ->
-                    VideoUi(
-                        media,
-                        audioIsMuted,
-                        { audioIsMuted = it },
-                        snackbarHostState,
-                        singleItemPreview,
-                    )
+    HorizontalPager(
+        state = state,
+        modifier = modifier.semantics(mergeDescendants = true) { traversalIndex = -1f },
+    ) { page ->
+        HierarchicalFocusCoordinator(requiresFocus = { state.currentPage == page }) {
+            val focusRequester = rememberActiveFocusRequester()
+            val media = selection.get(page)
+            if (media != null) {
+                Box(modifier = Modifier.focusRequester(focusRequester).focusable(true)) {
+                    val pageDescription =
+                        stringResource(
+                            R.string.pohtopicker_horizontal_pager_description,
+                            state.currentPage + 1,
+                            state.pageCount,
+                        )
+                    val mediaDescription = getMediaContentDescription(media, dateFormat)
+                    val contentDescription = mediaDescription + pageDescription
+                    when (media) {
+                        is Media.Image -> ImageUi(media, singleItemPreview, contentDescription)
+                        is Media.Video ->
+                            VideoUi(
+                                media,
+                                audioIsMuted,
+                                { audioIsMuted = it },
+                                snackbarHostState,
+                                singleItemPreview,
+                                contentDescription,
+                            )
+                    }
+                }
             }
         }
     }
@@ -406,7 +436,7 @@ private fun PreviewPager(
  * @param image
  */
 @Composable
-private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
+private fun ImageUi(image: Media.Image, singleItemPreview: Boolean, contentDescription: String) {
     if (singleItemPreview) {
         val events = LocalEvents.current
         val scope = rememberCoroutineScope()
@@ -436,6 +466,7 @@ private fun ImageUi(image: Media.Image, singleItemPreview: Boolean) {
         media = image,
         resolution = Resolution.FULL,
         modifier = Modifier.fillMaxSize(),
+        contentDescription = contentDescription,
         // by default loadMedia center crops, so use a custom request builder
         requestBuilderTransformation = { media, resolution, builder ->
             builder.set(RESOLUTION_REQUESTED, resolution).signature(media.getSignature(resolution))

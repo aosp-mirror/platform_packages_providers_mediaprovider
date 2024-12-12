@@ -24,7 +24,6 @@ import android.os.Bundle
 import android.os.CancellationSignal
 import android.util.Log
 import androidx.core.os.bundleOf
-import androidx.core.util.Preconditions.checkNotNull
 import androidx.paging.PagingSource.LoadResult
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -34,7 +33,10 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.features.search.model.KeyToSearchSuggestionType
 import com.android.photopicker.features.search.model.SearchRequest
+import com.android.photopicker.features.search.model.SearchSuggestion
+import com.android.photopicker.features.search.model.SearchSuggestionType
 
 /**
  * A client class that is reponsible for holding logic required to interact with [MediaProvider].
@@ -71,13 +73,6 @@ open class MediaProviderClient {
      */
     private enum class AlbumMediaQuery(val key: String) {
         ALBUM_AUTHORITY("album_authority")
-    }
-
-    private enum class SearchRequestInitRequest(val key: String) {
-        SEARCH_TEXT("search_text"),
-        MEDIA_SET_ID("media_set_id"),
-        AUTHORITY("authority"),
-        TYPE("search_suggestion_type"),
     }
 
     /**
@@ -139,6 +134,28 @@ open class MediaProviderClient {
         IS_FIRST_PAGE("is_first_page"),
     }
 
+    enum class SearchRequestInitRequest(val key: String) {
+        SEARCH_TEXT("search_text"),
+        MEDIA_SET_ID("media_set_id"),
+        AUTHORITY("authority"),
+        TYPE("search_suggestion_type"),
+    }
+
+    enum class SearchSuggestionsQuery(val key: String) {
+        LIMIT("limit"),
+        HISTORY_LIMIT("history_limit"),
+        PREFIX("prefix"),
+        PROVIDERS("providers"),
+    }
+
+    enum class SearchSuggestionsResponse(val key: String) {
+        AUTHORITY("authority"),
+        MEDIA_SET_ID("media_set_id"),
+        SEARCH_TEXT("display_text"),
+        COVER_MEDIA_URI("cover_media_uri"),
+        SUGGESTION_TYPE("suggestion_type"),
+    }
+
     /** Fetch available [Provider]-s from the Media Provider process. */
     fun fetchAvailableProviders(contentResolver: ContentResolver): List<Provider> {
         try {
@@ -161,7 +178,7 @@ open class MediaProviderClient {
     }
 
     /** Ensure that available providers are up to date. */
-    fun ensureProviders(contentResolver: ContentResolver) {
+    suspend fun ensureProviders(contentResolver: ContentResolver) {
         try {
             contentResolver.call(
                 MEDIA_PROVIDER_AUTHORITY,
@@ -175,7 +192,7 @@ open class MediaProviderClient {
     }
 
     /** Fetch a list of [Media] from MediaProvider for the given page key. */
-    fun fetchMedia(
+    suspend fun fetchMedia(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,
@@ -224,7 +241,7 @@ open class MediaProviderClient {
     }
 
     /** Fetch search results as a list of [Media] from MediaProvider for the given page key. */
-    fun fetchSearchResults(
+    suspend fun fetchSearchResults(
         searchRequestId: Int,
         pageKey: MediaPageKey,
         pageSize: Int,
@@ -275,7 +292,7 @@ open class MediaProviderClient {
     }
 
     /** Fetch a list of [Media] from MediaProvider for the given page key. */
-    fun fetchPreviewMedia(
+    suspend fun fetchPreviewMedia(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,
@@ -328,7 +345,7 @@ open class MediaProviderClient {
     }
 
     /** Fetch a list of [Group.Album] from MediaProvider for the given page key. */
-    fun fetchAlbums(
+    suspend fun fetchAlbums(
         pageKey: MediaPageKey,
         pageSize: Int,
         contentResolver: ContentResolver,
@@ -374,7 +391,7 @@ open class MediaProviderClient {
     }
 
     /** Fetch a list of [Media] from MediaProvider for the given page key. */
-    fun fetchAlbumMedia(
+    suspend fun fetchAlbumMedia(
         albumId: String,
         albumAuthority: String,
         pageKey: MediaPageKey,
@@ -525,6 +542,34 @@ open class MediaProviderClient {
         }
     }
 
+    suspend fun fetchSearchSuggestions(
+        resolver: ContentResolver,
+        prefix: String,
+        limit: Int,
+        historyLimit: Int,
+        availableProviders: List<Provider>,
+        cancellationSignal: CancellationSignal?,
+    ): List<SearchSuggestion> {
+        try {
+            val input: Bundle =
+                bundleOf(
+                    SearchSuggestionsQuery.PREFIX.key to prefix,
+                    SearchSuggestionsQuery.LIMIT.key to limit,
+                    SearchSuggestionsQuery.HISTORY_LIMIT.key to historyLimit,
+                    MediaQuery.PROVIDERS.key to
+                        ArrayList<String>().apply {
+                            availableProviders.forEach { provider -> add(provider.authority) }
+                        },
+                )
+
+            return resolver
+                .query(SEARCH_SUGGESTIONS_URI, /* projection */ null, input, cancellationSignal)
+                ?.getListOfSearchSuggestions() ?: ArrayList()
+        } catch (e: RuntimeException) {
+            throw RuntimeException("Could not fetch search suggestions", e)
+        }
+    }
+
     /**
      * Send a refresh media request to MediaProvider. This is a signal for MediaProvider to refresh
      * its cache, if required.
@@ -553,7 +598,7 @@ open class MediaProviderClient {
      * Send a refresh album media request to MediaProvider. This is a signal for MediaProvider to
      * refresh its cache for the given album media, if required.
      */
-    fun refreshAlbumMedia(
+    suspend fun refreshAlbumMedia(
         albumId: String,
         albumAuthority: String,
         providers: List<Provider>,
@@ -582,7 +627,7 @@ open class MediaProviderClient {
      * request and the backend should prepare to handle search results queries for the given search
      * request.
      */
-    fun createSearchRequest(
+    suspend fun createSearchRequest(
         searchRequest: SearchRequest,
         providers: List<Provider>,
         resolver: ContentResolver,
@@ -628,7 +673,9 @@ open class MediaProviderClient {
                 /* arg */ null,
                 extras,
             )
-        return checkNotNull(result?.getInt(SEARCH_REQUEST_ID), "Search request ID cannot be null")
+        return checkNotNull(result?.getInt(SEARCH_REQUEST_ID)) {
+            "Search request ID cannot be null"
+        }
     }
 
     /** Creates a list of [Provider] from the given [Cursor]. */
@@ -863,6 +910,63 @@ open class MediaProviderClient {
         }
 
         return result
+    }
+
+    /** Creates a list of [SearchSuggestion]-s from the given [Cursor]. */
+    private fun Cursor.getListOfSearchSuggestions(): List<SearchSuggestion> {
+        val result: MutableList<SearchSuggestion> = mutableListOf<SearchSuggestion>()
+
+        if (this.moveToFirst()) {
+            do {
+                try {
+                    val uriString: String? =
+                        getString(
+                            getColumnIndexOrThrow(SearchSuggestionsResponse.COVER_MEDIA_URI.key)
+                        )
+                    result.add(
+                        SearchSuggestion(
+                            mediaSetId =
+                                getString(
+                                    getColumnIndexOrThrow(
+                                        SearchSuggestionsResponse.MEDIA_SET_ID.key
+                                    )
+                                ),
+                            authority =
+                                getString(
+                                    getColumnIndexOrThrow(SearchSuggestionsResponse.AUTHORITY.key)
+                                ),
+                            displayText =
+                                getString(
+                                    getColumnIndexOrThrow(SearchSuggestionsResponse.SEARCH_TEXT.key)
+                                ),
+                            type =
+                                getSearchSuggestionType(
+                                    getString(
+                                        getColumnIndexOrThrow(
+                                            SearchSuggestionsResponse.SUGGESTION_TYPE.key
+                                        )
+                                    )
+                                ),
+                            iconUri = if (uriString != null) Uri.parse(uriString) else null,
+                        )
+                    )
+                } catch (e: RuntimeException) {
+                    Log.e(TAG, "Received an invalid search suggestion. Skipping it.", e)
+                }
+            } while (moveToNext())
+        }
+
+        return result
+    }
+
+    /** Convert the input search suggestion type string to enum */
+    private fun getSearchSuggestionType(stringSuggestionType: String?): SearchSuggestionType {
+        requireNotNull(stringSuggestionType) { "Suggestion type is null" }
+
+        return KeyToSearchSuggestionType[stringSuggestionType]
+            ?: throw IllegalArgumentException(
+                "Unrecognized search suggestion type $stringSuggestionType"
+            )
     }
 
     /**

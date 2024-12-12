@@ -68,7 +68,7 @@
     <string name="picker_personal_profile" msgid="639484258397758406">"Skakel oor na persoonlik"</string>
     <string name="picker_personal_profile_label" msgid="6189198163209597344">"Persoonlik"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Deur jou admin geblokkeer"</string>
-    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Toegang tot werkdata van \'n persoonlike program af word nie toegelaat nie"</string>
+    <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Toegang tot werkdata van \'n persoonlike app af word nie toegelaat nie"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Toegang tot persoonlike data van \'n werkprogram af word nie toegelaat nie"</string>
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Toegang tot <xliff:g id="PROFILE1">%1$s</xliff:g>-data van ’n <xliff:g id="PROFILE2">%2$s</xliff:g>-app af word nie toegelaat nie"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Skakel oor na <xliff:g id="PROFILE">%s</xliff:g>"</string>

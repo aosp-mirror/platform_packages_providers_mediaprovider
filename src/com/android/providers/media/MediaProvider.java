@@ -7097,6 +7097,10 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
                 return getResultForPickerMediaInit(extras);
             }
+            case MediaStore.PICKER_MEDIA_IN_MEDIA_SET_INIT_CALL: {
+                initMediaInMediaSet(extras);
+                return new Bundle();
+            }
             case MediaStore.PICKER_INTERNAL_SEARCH_MEDIA_INIT_CALL: {
                 return getResultForPickerSearchMediaInit(extras);
             }
@@ -7638,6 +7642,16 @@ public class MediaProvider extends ContentProvider {
         }
         mPickerDataLayer.initMediaData(PickerSyncRequestExtras.fromBundle(extras));
         return null;
+    }
+
+    private void initMediaInMediaSet(@NonNull Bundle extras) {
+        Objects.requireNonNull(extras);
+        Log.i(TAG, "Extras received for media in media set init: " + extras);
+        if (!checkPermissionSelf(Binder.getCallingUid()) && !isCallerPhotoPicker()) {
+            throw new SecurityException(
+                    getSecurityExceptionMessage("Picker media in media set init"));
+        }
+        PickerDataLayerV2.triggerMediaSyncForMediaSet(extras, getContext());
     }
 
     /**
@@ -8719,6 +8733,11 @@ public class MediaProvider extends ContentProvider {
             final String beforePath = initialValues.getAsString(MediaColumns.DATA);
             final String beforeVolume = extractVolumeName(beforePath);
             final String beforeOwner = extractPathOwnerPackageName(beforePath);
+
+            if (beforeVolume != null && MediaStore.VOLUME_EXTERNAL.equals(volumeName)) {
+                // Replace "external" with the volumeName
+                uri = replaceExternalUriWithVolumeName(uri, beforeVolume);
+            }
 
             initialValues.remove(MediaColumns.DATA);
             ensureNonUniqueFileColumns(match, uri, extras, initialValues, beforePath);
@@ -9871,7 +9890,10 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
-    private void invalidateFuseDentry(@NonNull File file) {
+    /**
+     * Invalidate fuse dentry cache for filepath
+     */
+    public void invalidateFuseDentry(@NonNull File file) {
         invalidateFuseDentry(file.getAbsolutePath());
     }
 
@@ -10253,6 +10275,7 @@ public class MediaProvider extends ContentProvider {
                         mNonHiddenPaths.put(key, 0);
                     } else {
                         mMediaScanner.onDirectoryDirty(topNoMediaDir);
+                        invalidateFuseDentry(topNoMediaDir);
                     }
                 }
             }
@@ -12079,6 +12102,25 @@ public class MediaProvider extends ContentProvider {
                 mCachedCallingIdentityForFuse.valueAt(i).dump(writer);
             }
         }
+    }
+
+    /**
+     * Replaces "external" in the URI path with the specified volumeName.
+     * Example:
+     * Input: content://media/external/images/media/1232
+     * Output: content://media/{volumeName}/images/media/1232
+     */
+    private Uri replaceExternalUriWithVolumeName(Uri uri, String volumeName) {
+        List<String> pathSegments = uri.getPathSegments();
+        if (!pathSegments.isEmpty() && pathSegments.get(0).equalsIgnoreCase(
+                MediaStore.VOLUME_EXTERNAL)) {
+            List<String> updatedSegments = new ArrayList<>(pathSegments);
+            updatedSegments.set(0, volumeName);
+            return uri.buildUpon()
+                    .path(TextUtils.join("/", updatedSegments))
+                    .build();
+        }
+        return uri;
     }
 
     /**

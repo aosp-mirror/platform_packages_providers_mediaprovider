@@ -172,6 +172,7 @@ public class SearchResultsDatabaseUtil {
                 database.setTransactionSuccessful();
             }
 
+            Log.d(TAG, "Number of search results cached: " + numberOfRowsInserted);
             return numberOfRowsInserted;
         } catch (RuntimeException e) {
             // Do not mark transaction as successful so that it gets roll-backed. after it ends.

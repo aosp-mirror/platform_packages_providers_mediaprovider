@@ -106,7 +106,7 @@ public class SearchSuggestionsProvider {
                 PickerSQLConstants.SearchSuggestionsResponseColumns.MEDIA_SET_ID.getProjection(),
                 PickerSQLConstants.SearchSuggestionsResponseColumns.SEARCH_TEXT.getProjection(),
                 PickerSQLConstants.SearchSuggestionsResponseColumns.SUGGESTION_TYPE.getProjection(),
-                PickerSQLConstants.SearchSuggestionsResponseColumns.COVER_MEDIA_ID.getProjection()
+                PickerSQLConstants.SearchSuggestionsResponseColumns.COVER_MEDIA_URI.getProjection()
         ).toArray(new String[5]));
 
         for (SearchSuggestion suggestion : suggestions) {

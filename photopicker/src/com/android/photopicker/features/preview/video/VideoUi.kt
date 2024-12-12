@@ -37,7 +37,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -67,6 +66,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
@@ -80,7 +81,6 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
@@ -123,6 +123,7 @@ fun VideoUi(
     onRequestAudioMuteChange: (Boolean) -> Unit,
     snackbarHostState: SnackbarHostState,
     singleItemPreview: Boolean,
+    contentDescriptionString: String,
     viewModel: PreviewViewModel = obtainViewModel(),
 ) {
 
@@ -219,7 +220,7 @@ fun VideoUi(
     // Finally! Now the actual VideoPlayer can be created! \0/
     // This is the top level box of the player, and all of its children are drawn on-top
     // of each other.
-    Box {
+    Box(Modifier.semantics { contentDescription = contentDescriptionString }) {
         VideoPlayer(
             aspectRatio = aspectRatio,
             playbackInfo = playbackInfo,

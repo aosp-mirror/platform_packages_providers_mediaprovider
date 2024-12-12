@@ -29,7 +29,10 @@ import android.util.Pair;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -165,9 +168,12 @@ public class MediaSetsDatabaseUtil {
      * @return Cursor containing metadata of all the media sets under the given category
      */
     public static Cursor getMediaSetsForCategory(
-            @NonNull SQLiteDatabase database, @NonNull String categoryId,
-            @NonNull String authority, @Nullable List<String> mimeTypes) {
+            @NonNull SQLiteDatabase database, @NonNull MediaSetsSyncRequestParams requestParams) {
         Objects.requireNonNull(database);
+        Objects.requireNonNull(requestParams);
+        String categoryId = requestParams.getCategoryId();
+        String authority = requestParams.getAuthority();
+        List<String> mimeTypes = Arrays.asList(requestParams.getMimeTypes());
         Objects.requireNonNull(categoryId);
         Objects.requireNonNull(authority);
 

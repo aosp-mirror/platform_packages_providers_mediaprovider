@@ -66,6 +66,7 @@ import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -115,8 +116,12 @@ private fun AlbumMediaGrid(
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val localizedSelectionLimit = LocalLocalizationHelper.current.getLocalizedCount(selectionLimit)
     val selectionLimitExceededMessage =
-        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+        stringResource(
+            R.string.photopicker_selection_limit_exceeded_snackbar,
+            localizedSelectionLimit,
+        )
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current

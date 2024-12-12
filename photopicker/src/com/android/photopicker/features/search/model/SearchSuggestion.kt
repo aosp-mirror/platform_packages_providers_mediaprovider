@@ -17,6 +17,7 @@
 package com.android.photopicker.features.search.model
 
 import android.net.Uri
+import com.android.photopicker.util.hashCodeOf
 
 /**
  * A data class that holds a Search Suggestion. Search suggestions could be suggestions shown to the
@@ -29,7 +30,7 @@ data class SearchSuggestion(
      * suggestions that don't have a media set ID. */
     val mediaSetId: String?,
     /* The authority of the source ContentProvider that provided this Search Suggestion. */
-    val authority: String,
+    val authority: String?,
     /* Display text could be null sometimes for instance, if the suggestion type is a face */
     val displayText: String?,
     val type: SearchSuggestionType,
@@ -44,5 +45,15 @@ data class SearchSuggestion(
         require(type == SearchSuggestionType.FACE || displayText != null) {
             "Display text cannot be null except for FACE type search suggestion"
         }
+    }
+
+    override fun hashCode(): Int = hashCodeOf(mediaSetId, authority, displayText, type)
+
+    override fun equals(other: Any?): Boolean {
+        return other is SearchSuggestion &&
+            other.mediaSetId == mediaSetId &&
+            other.authority == authority &&
+            other.displayText == displayText &&
+            other.type == type
     }
 }

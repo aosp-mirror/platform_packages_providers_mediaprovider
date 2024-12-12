@@ -1471,6 +1471,36 @@ public final class CloudMediaProviderContract {
             "com.android.providers.media.SEARCH_SUGGESTION_HISTORY";
 
     /**
+     * Favorite's album suggestion
+     * @see SearchSuggestionColumns#TYPE
+     * Type: STRING
+     *
+     * @hide
+     */
+    public static final String SEARCH_SUGGESTION_FAVORITES_ALBUM =
+            "com.android.providers.media.SEARCH_SUGGESTION_FAVORITES_ALBUM";
+
+    /**
+     * Screenshot's album suggestion
+     * @see SearchSuggestionColumns#TYPE
+     * Type: STRING
+     *
+     * @hide
+     */
+    public static final String SEARCH_SUGGESTION_SCREENSHOTS_ALBUM =
+            "com.android.providers.media.SEARCH_SUGGESTION_SCREENSHOTS_ALBUM";
+
+    /**
+     * Videos's album suggestion
+     * @see SearchSuggestionColumns#TYPE
+     * Type: STRING
+     *
+     * @hide
+     */
+    public static final String SEARCH_SUGGESTION_VIDEOS_ALBUM =
+            "com.android.providers.media.SEARCH_SUGGESTION_VIDEOS_ALBUM";
+
+    /**
      * Defines the different types of search suggestions available and supported in photo picker.
      *
      * @see SearchSuggestionColumns#TYPE

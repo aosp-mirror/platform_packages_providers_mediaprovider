@@ -62,6 +62,7 @@ public class SearchSuggestionsDatabaseUtils {
             @NonNull SearchRequest searchRequest) {
         requireNonNull(database);
         requireNonNull(searchRequest);
+        Log.d(TAG, "Saving search history: " + searchRequest);
 
         try {
             // Note that CONFLICT_REPLACE create a new row in case of a conflict so the
@@ -104,7 +105,7 @@ public class SearchSuggestionsDatabaseUtils {
                         PickerSQLConstants.SearchHistoryTableColumns.MEDIA_SET_ID.getColumnName(),
                         PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY.getColumnName(),
                         PickerSQLConstants.SearchHistoryTableColumns.COVER_MEDIA_ID.getColumnName()
-                )).setLimit(query.getHistoryLimit())
+                ))
                 .setSortOrder(String.format(
                         Locale.ROOT,
                         "%s DESC",
@@ -146,7 +147,8 @@ public class SearchSuggestionsDatabaseUtils {
                             historySuggestions.add(historySuggestion);
                         }
                     }
-                } while (cursor.moveToNext());
+                } while (cursor.moveToNext()
+                        && historySuggestions.size() < query.getHistoryLimit());
             }
 
             Log.d(TAG, "Number of history suggestions: " + historySuggestions.size());
@@ -187,7 +189,7 @@ public class SearchSuggestionsDatabaseUtils {
                                 .COVER_MEDIA_ID.getColumnName(),
                         PickerSQLConstants.SearchSuggestionsTableColumns
                                 .SUGGESTION_TYPE.getColumnName()
-                )).setLimit(query.getLimit())
+                ))
                 .setSortOrder(String.format(
                         Locale.ROOT,
                         "%s ASC",
@@ -221,7 +223,7 @@ public class SearchSuggestionsDatabaseUtils {
                             suggestions.add(suggestion);
                         }
                     }
-                } while (cursor.moveToNext());
+                } while (cursor.moveToNext() && suggestions.size() < query.getLimit());
             }
 
             Log.d(TAG, "Number of fetched cached suggestions: " + suggestions.size());
@@ -260,6 +262,7 @@ public class SearchSuggestionsDatabaseUtils {
             } while (cursor.moveToNext());
         }
 
+        Log.d(TAG, "Extracted suggestions from cursor: " + searchSuggestions);
         return searchSuggestions;
     }
 

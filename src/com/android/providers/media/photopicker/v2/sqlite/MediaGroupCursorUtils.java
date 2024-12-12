@@ -67,6 +67,78 @@ public class MediaGroupCursorUtils {
             PickerSQLConstants.MediaGroupResponseColumns.IS_LEAF_CATEGORY.getColumnName(),
     };
 
+    private static final String[] MEDIA_SET_RESPONSE_PROJECTION = new String[] {
+            PickerSQLConstants.MediaGroupResponseColumns.GROUP_ID.getColumnName(),
+            PickerSQLConstants.MediaGroupResponseColumns.PICKER_ID.getColumnName(),
+            PickerSQLConstants.MediaGroupResponseColumns.DISPLAY_NAME.getColumnName(),
+            PickerSQLConstants.MediaGroupResponseColumns.AUTHORITY.getColumnName(),
+            PickerSQLConstants.MediaGroupResponseColumns.UNWRAPPED_COVER_URI.getColumnName()
+    };
+
+    /**
+     * @param cursor Input
+     * {@link CloudMediaProviderContract.MediaSetColumns} cursor.
+     * @return Cursor with the columns {@link PickerSQLConstants.MediaGroupResponseColumns}.
+     */
+    public static Cursor getMediaGroupCursorForMediaSets(Cursor cursor) {
+        if (cursor == null) {
+            return null;
+        }
+
+        MatrixCursor mediaSetsResponse = new MatrixCursor(MEDIA_SET_RESPONSE_PROJECTION);
+
+        // Get the list of Uris from the cursor.
+        final List<String> uris = new ArrayList<>();
+        if (cursor.moveToFirst()) {
+            do {
+                String authority = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_AUTHORITY.getColumnName()
+                ));
+                String coverId = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.COVER_ID.getColumnName()
+                ));
+                String coverUri = getUri(coverId, authority).toString();
+                if (coverUri != null) {
+                    uris.add(coverUri);
+                }
+            } while (cursor.moveToNext());
+        }
+
+        // Get list of local ids if local copy exists for corresponding cloud ids.
+        final Map<String, String> cloudToLocalIdMap = getLocalIds(uris);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String mediaSetId = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_ID.getColumnName()
+                ));
+                String mediaSetPickerId = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName()
+                ));
+                String displayName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.DISPLAY_NAME.getColumnName()
+                ));
+                String authority = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.MEDIA_SET_AUTHORITY.getColumnName()
+                ));
+                String coverId = cursor.getString(cursor.getColumnIndexOrThrow(
+                        PickerSQLConstants.MediaSetsTableColumns.COVER_ID.getColumnName()
+                ));
+                String coverUri = getUri(coverId, authority).toString();
+                String unwrappedCoverUri = maybeGetLocalUri(coverUri, cloudToLocalIdMap);
+
+                mediaSetsResponse.addRow(new Object[] {
+                        mediaSetId,
+                        mediaSetPickerId,
+                        displayName,
+                        authority,
+                        unwrappedCoverUri
+                });
+            } while (cursor.moveToNext());
+        }
+        return mediaSetsResponse;
+    }
+
     /**
      * @param cursor Input
      * {@link com.android.providers.media.photopicker.v2.model.AlbumsCursorWrapper}

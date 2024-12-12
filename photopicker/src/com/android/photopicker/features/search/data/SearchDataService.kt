@@ -68,7 +68,10 @@ interface SearchDataService {
      * @return The [PagingSource] that fetches a page using [MediaPageKey]. A page in the paging
      *   source contains a [List] of [Media] items.
      */
-    fun getSearchResults(suggestion: SearchSuggestion): PagingSource<MediaPageKey, Media>
+    fun getSearchResults(
+        suggestion: SearchSuggestion,
+        cancellationSignal: CancellationSignal? = null,
+    ): PagingSource<MediaPageKey, Media>
 
     /**
      * Get search results for a search text query. This method should be used when the user searches
@@ -78,5 +81,8 @@ interface SearchDataService {
      * @return The [PagingSource] that fetches a page using [MediaPageKey]. A page in the paging
      *   source contains a [List] of [Media] items.
      */
-    fun getSearchResults(searchText: String): PagingSource<MediaPageKey, Media>
+    fun getSearchResults(
+        searchText: String,
+        cancellationSignal: CancellationSignal? = null,
+    ): PagingSource<MediaPageKey, Media>
 }

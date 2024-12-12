@@ -16,8 +16,22 @@
 
 package com.android.photopicker.features.search.model
 
-sealed interface SearchRequest {
-    data class SearchTextRequest(val searchText: String) : SearchRequest
+import com.android.photopicker.util.hashCodeOf
 
-    data class SearchSuggestionRequest(val suggestion: SearchSuggestion) : SearchRequest
+sealed interface SearchRequest {
+    data class SearchTextRequest(val searchText: String) : SearchRequest {
+        override fun hashCode(): Int = hashCodeOf(searchText)
+
+        override fun equals(other: Any?): Boolean {
+            return other is SearchTextRequest && other.searchText == searchText
+        }
+    }
+
+    data class SearchSuggestionRequest(val suggestion: SearchSuggestion) : SearchRequest {
+        override fun hashCode(): Int = hashCodeOf(suggestion)
+
+        override fun equals(other: Any?): Boolean {
+            return other is SearchSuggestionRequest && other.suggestion == suggestion
+        }
+    }
 }

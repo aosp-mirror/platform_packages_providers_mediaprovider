@@ -270,35 +270,39 @@ public class SearchSuggestionsDatabaseUtilTest {
 
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
 
+        final String searchText3 = "Mormot";
+        final SearchTextRequest searchRequest3 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                searchText3
+        );
+
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest3);
+
         final List<SearchSuggestion> searchSuggestions =
                 SearchSuggestionsDatabaseUtils.getHistorySuggestions(
                         mDatabase,
                         getSearchSuggestionQuery(
                                 /* providers */ List.of(authority2),
                                 /* limit */ 10,
-                                /* historyLimit */ 1,
-                                /* prefix */ ""));
+                                /* historyLimit */ 2,
+                                /* prefix */ "mo"));
 
         assertWithMessage("Search history suggestions cannot be null")
                 .that(searchSuggestions)
                 .isNotNull();
         assertWithMessage("Unexpected number of search history suggestions.")
                 .that(searchSuggestions.size())
-                .isEqualTo(1);
+                .isEqualTo(2);
 
-        final SearchSuggestion result = searchSuggestions.get(0);
+        final SearchSuggestion suggestion1 = searchSuggestions.get(0);
         assertWithMessage("Search history search text is not as expected")
-                .that(result.getSearchText())
-                .isNull();
-        assertWithMessage("Search history media set id is not as expected")
-                .that(result.getMediaSetId())
-                .isEqualTo(mediaSetId2);
-        assertWithMessage("Search history authority is not as expected")
-                .that(result.getAuthority())
-                .isEqualTo(authority2);
-        assertWithMessage("Search history suggestion type is not as expected")
-                .that(result.getSearchSuggestionType())
-                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
+                .that(suggestion1.getSearchText())
+                .isEqualTo(searchText3);
+
+        final SearchSuggestion suggestion2 = searchSuggestions.get(1);
+        assertWithMessage("Search history search text is not as expected")
+                .that(suggestion2.getSearchText())
+                .isEqualTo(searchText1);
     }
 
     @Test
@@ -530,6 +534,66 @@ public class SearchSuggestionsDatabaseUtilTest {
         assertWithMessage("Search search text is not as expected")
                 .that(resultSearchSuggestions.get(1).getSearchText())
                 .isEqualTo(searchSuggestion2.getSearchText());
+    }
+
+    @Test
+    public void testSuggestionsCacheQueryLimit() {
+        final String searchText1 = "BUTTER";
+        final String mediaSetId1 = "MEDIA-SET-ID-1";
+        final String authority = "com.random.authority";
+        SearchSuggestion searchSuggestion1 = new SearchSuggestion(
+                searchText1,
+                mediaSetId1,
+                authority,
+                SEARCH_SUGGESTION_LOCATION,
+                /* coverMediaId */ null
+        );
+
+        final String searchText2 = "dragon";
+        final String mediaSetId2 = "MEDIA-SET-ID-2";
+        SearchSuggestion searchSuggestion2 = new SearchSuggestion(
+                searchText2,
+                mediaSetId2,
+                authority,
+                SEARCH_SUGGESTION_ALBUM,
+                /* coverMediaId */ null
+        );
+
+        final String searchText3 = "Butterfly";
+        final String mediaSetId3 = "MEDIA-SET-ID-3";
+        SearchSuggestion searchSuggestion3 = new SearchSuggestion(
+                searchText3,
+                mediaSetId3,
+                authority,
+                SEARCH_SUGGESTION_FACE,
+                /* coverMediaId */ null
+        );
+
+        SearchSuggestionsDatabaseUtils.cacheSearchSuggestions(mDatabase, authority,
+                List.of(searchSuggestion1, searchSuggestion2, searchSuggestion3));
+
+        final List<SearchSuggestion> resultSearchSuggestions =
+                SearchSuggestionsDatabaseUtils.getCachedSuggestions(
+                        mDatabase,
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of("test", authority),
+                                /* limit */ 2,
+                                /* historyLimit */ 3,
+                                /* prefix */ "but"));
+
+        assertWithMessage("Search suggestions cannot be null")
+                .that(resultSearchSuggestions)
+                .isNotNull();
+        assertWithMessage("Unexpected number of search suggestions.")
+                .that(resultSearchSuggestions.size())
+                .isEqualTo(2);
+
+        assertWithMessage("Search search text is not as expected")
+                .that(resultSearchSuggestions.get(1).getSearchText())
+                .isEqualTo(searchSuggestion3.getSearchText());
+        assertWithMessage("Search search text is not as expected")
+                .that(resultSearchSuggestions.get(0).getSearchText())
+                .isEqualTo(searchSuggestion1.getSearchText());
     }
 
     @Test

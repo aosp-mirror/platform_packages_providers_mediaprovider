@@ -304,7 +304,7 @@ public class PickerSQLConstants {
         AUTHORITY("authority"),
         MEDIA_SET_ID("media_set_id"),
         SEARCH_TEXT("display_text"),
-        COVER_MEDIA_ID("cover_media_id"),
+        COVER_MEDIA_URI("cover_media_uri"),
         SUGGESTION_TYPE("suggestion_type");
 
         private final String mProjection;

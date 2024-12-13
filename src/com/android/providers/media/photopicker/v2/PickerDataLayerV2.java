@@ -64,7 +64,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.work.WorkManager;
 
-import com.android.providers.media.photopicker.CategoriesState;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.sync.PickerSearchProviderClient;
@@ -89,6 +88,7 @@ import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
 import com.android.providers.media.photopicker.v2.sqlite.MediaGroupCursorUtils;
 import com.android.providers.media.photopicker.v2.sqlite.MediaInMediaSetsDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.MediaInMediaSetsQuery;
+import com.android.providers.media.photopicker.v2.sqlite.MediaSetsDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerMediaDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
 import com.android.providers.media.photopicker.v2.sqlite.SearchMediaQuery;
@@ -262,6 +262,36 @@ public class PickerDataLayerV2 {
                 effectiveLocalAuthority,
                 effectiveCloudAuthority
         );
+    }
+
+    /**
+     * Returns a cursor with cached media sets in response
+     * @param queryArgs The arguments to filter and fetch media sets
+     */
+    @NonNull
+    public static Cursor queryMediaSets(@NonNull Bundle queryArgs) {
+        requireNonNull(queryArgs);
+
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(queryArgs);
+        PickerSyncController syncController = PickerSyncController.getInstanceOrThrow();
+        final Set<String> providers = new HashSet<>(
+                Objects.requireNonNull(queryArgs.getStringArrayList("providers")));
+        final String effectiveLocalAuthority = providers.contains(
+                syncController.getLocalProvider()) ? syncController.getLocalProvider() : null;
+        final String currentCloudAuthority = syncController
+                .getCloudProviderOrDefault(/*defaultValue*/ null);
+        final String effectiveCloudAuthority = syncController
+                .shouldQueryCloudMediaSets(providers, currentCloudAuthority)
+                ? currentCloudAuthority : null;
+
+        waitForOngoingMediaSetsSync(effectiveLocalAuthority, effectiveCloudAuthority);
+
+        Cursor mediaSetsCursor = MediaSetsDatabaseUtil.getMediaSetsForCategory(
+                syncController.getDbFacade().getDatabase(),
+                requestParams
+               );
+
+        return MediaGroupCursorUtils.getMediaGroupCursorForMediaSets(mediaSetsCursor);
     }
 
     /**
@@ -534,14 +564,10 @@ public class PickerDataLayerV2 {
 
     /**
      * Returns a cursor with the cached content of a media set in response
-     * @param context The application context
      * @param queryArgs The arguments to filter and fetch media set content
      */
-    public static Cursor queryMediaInMediaSet(
-            @NonNull Context context,
-            @NonNull Bundle queryArgs) {
+    public static Cursor queryMediaInMediaSet(@NonNull Bundle queryArgs) {
 
-        requireNonNull(context);
         requireNonNull(queryArgs);
 
         MediaInMediaSetSyncRequestParams requestParams =
@@ -566,9 +592,7 @@ public class PickerDataLayerV2 {
                 .shouldQueryCloudMediaSets(providers, currentCloudAuthority)
                 ? currentCloudAuthority : null;
 
-        waitForOngoingMediaInMediaSetSync(
-                context, effectiveLocalAuthority, effectiveCloudAuthority
-        );
+        waitForOngoingMediaInMediaSetSync(effectiveLocalAuthority, effectiveCloudAuthority);
 
         return MediaInMediaSetsDatabaseUtil.queryMediaInMediaSet(
                 syncController, query, effectiveLocalAuthority, effectiveCloudAuthority);
@@ -826,7 +850,6 @@ public class PickerDataLayerV2 {
     }
 
     /**
-     * @param context The application context.
      * @param localAuthority The effective local authority that we need to consider for this
      *                       transaction. If the local items should not be queried but the local
      *                       authority has some value, the effective local authority would be null.
@@ -835,20 +858,34 @@ public class PickerDataLayerV2 {
      *                       authority has some value, the effective cloud authority would be null.
      */
     private static void waitForOngoingMediaInMediaSetSync(
-            @NonNull Context context,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
-        CategoriesState categoriesState =
-                PickerSyncController.getInstanceOrThrow().getCategoriesState();
-
-        if (localAuthority != null
-                && categoriesState.areCategoriesEnabled(context, localAuthority)) {
+        if (localAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getLocalMediaInMediaSetTracker(), /*timeoutInMillis*/ 500);
-        } else if (cloudAuthority != null
-                && categoriesState.areCategoriesEnabled(context, cloudAuthority)) {
+        } else if (cloudAuthority != null) {
             SyncCompletionWaiter.waitForSyncWithTimeout(
                     SyncTrackerRegistry.getCloudMediaInMediaSetTracker(), /*timeoutInMillis*/ 500);
+        }
+    }
+
+    /**
+     * @param localAuthority The effective local authority that we need to consider for this
+     *                       transaction. If the local items should not be queried but the local
+     *                       authority has some value, the effective local authority would be null.
+     * @param cloudAuthority The effective cloud authority that we need to consider for this
+     *                       transaction. If the cloud items should not be queried but the cloud
+     *                       authority has some value, the effective cloud authority would be null.
+     */
+    private static void waitForOngoingMediaSetsSync(
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority) {
+        if (localAuthority != null) {
+            SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getLocalMediaSetsSyncTracker(), /*timeoutInMillis*/ 500);
+        } else if (cloudAuthority != null) {
+            SyncCompletionWaiter.waitForSyncWithTimeout(
+                    SyncTrackerRegistry.getCloudMediaSetsSyncTracker(), /*timeoutInMillis*/ 500);
         }
     }
 

@@ -372,8 +372,8 @@ public class PickerDbTestUtils {
     }
 
     public static String getData(String authority, String displayName, String pickerSegmentType) {
-        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/0/" + authority + "/media/"
-                + displayName;
+        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/" + UserHandle.myUserId()
+                + "/" + authority + "/media/" + displayName;
     }
 
     public static void assertCloudAlbumCursor(Cursor cursor, String albumId, String displayName,

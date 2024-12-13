@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> af <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> er klar"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Nogle billeder kan ikke indlæses"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Prøv igen senere. Dine billeder bliver tilgængelige, så snart problemet er løst."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Sikkerhedskopierede billeder er nu inkluderet"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Du kan vælge billeder fra <xliff:g id="APP_NAME">%1$s</xliff:g>-kontoen <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Vælg <xliff:g id="APP_NAME">%1$s</xliff:g>-konto"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Du kan inkludere billeder fra <xliff:g id="APP_NAME">%1$s</xliff:g> her ved at vælge en konto i appen"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Vælg konto"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Vælg skymedieapp"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Du kan inkludere sikkerhedskopierede billeder her ved at vælge en skymedieapp i Indstillinger"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Vælg app"</string>
 </resources>

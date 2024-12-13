@@ -23,7 +23,10 @@ apex {
     name: "com.android.mediaprovider",
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
-    apps: ["MediaProvider"],
+    apps: [
+        "MediaProvider",
+        "Photopicker",
+    ],
     compat_configs: [
         "media-provider-platform-compat-config",
         "framework-pdf-v-platform-compat-config",
@@ -124,6 +127,7 @@ bootclasspath_fragment {
             "android.graphics.pdf.models.selection",
             "android.graphics.pdf.logging",
             "android.widget.photopicker",
+            "com.android.providers.media.flags",
         ],
     },
 }

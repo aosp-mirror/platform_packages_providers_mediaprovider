@@ -22,6 +22,12 @@ import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadParams
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.provideTestConfigurationFlow
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.MediaPageKey
@@ -44,9 +50,16 @@ import org.mockito.MockitoAnnotations
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class MediaPagingSourceTest {
+    private val testSessionId = generatePickerSessionId()
     private val testContentProvider: TestMediaProvider = TestMediaProvider()
     private val contentResolver: ContentResolver = ContentResolver.wrap(testContentProvider)
     private val availableProviders: List<Provider> = emptyList()
+    private val testPhotopickerConfiguration: PhotopickerConfiguration =
+        PhotopickerConfiguration(
+            action = MediaStore.ACTION_PICK_IMAGES,
+            intent = Intent(MediaStore.ACTION_PICK_IMAGES),
+            sessionId = testSessionId,
+        )
 
     @Mock private lateinit var mockMediaProviderClient: MediaProviderClient
 
@@ -57,14 +70,27 @@ class MediaPagingSourceTest {
 
     @Test
     fun testLoad() = runTest {
-        val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+        val featureManager =
+            FeatureManager(
+                provideTestConfigurationFlow(this.backgroundScope, testPhotopickerConfiguration),
+                this.backgroundScope,
+                emptySet<FeatureRegistration>(),
+            )
+        val events =
+            Events(
+                scope = this.backgroundScope,
+                provideTestConfigurationFlow(this.backgroundScope, testPhotopickerConfiguration),
+                featureManager,
+            )
+
         val mediaPagingSource =
             MediaPagingSource(
                 contentResolver = contentResolver,
                 availableProviders = availableProviders,
                 mediaProviderClient = mockMediaProviderClient,
                 dispatcher = StandardTestDispatcher(this.testScheduler),
-                intent = intent
+                testPhotopickerConfiguration,
+                events,
             )
 
         val pageKey: MediaPageKey = MediaPageKey()
@@ -73,13 +99,19 @@ class MediaPagingSourceTest {
             LoadParams.Append<MediaPageKey>(
                 key = pageKey,
                 loadSize = pageSize,
-                placeholdersEnabled = false
+                placeholdersEnabled = false,
             )
 
         backgroundScope.launch { mediaPagingSource.load(params) }
         advanceTimeBy(100)
 
         verify(mockMediaProviderClient, times(1))
-            .fetchMedia(pageKey, pageSize, contentResolver, emptyList(), intent)
+            .fetchMedia(
+                pageKey,
+                pageSize,
+                contentResolver,
+                emptyList(),
+                testPhotopickerConfiguration,
+            )
     }
 }

@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Prêt(s) : <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> sur <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Impossible de charger certaines photos"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Réessayez plus tard. Vos photos seront disponibles une fois le problème résolu."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Les photos sauvegardées sont désormais incluses"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Vous pouvez sélectionner des photos issues du compte <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> dans l\'appli <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Sélectionner un compte <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Pour inclure les photos de l\'appli <xliff:g id="APP_NAME">%1$s</xliff:g> ici, sélectionnez un compte dans l\'appli"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Sélectionner un compte"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Sélectionner une appli multimédia cloud"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Pour inclure les photos sauvegardées ici, sélectionnez une appli multimédia cloud dans \"Paramètres\""</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Sélectionner une appli"</string>
 </resources>

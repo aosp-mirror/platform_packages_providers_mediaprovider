@@ -216,6 +216,7 @@ fun ProfileSelector(
                             text = {
                                 Text(
                                     text = profileLabel,
+                                    color = surfaceContentColor,
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier =
                                         Modifier.semantics {

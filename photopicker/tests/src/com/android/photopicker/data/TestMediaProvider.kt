@@ -28,6 +28,8 @@ import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.features.search.model.SearchSuggestion
+import com.android.photopicker.features.search.model.SearchSuggestionType
 import java.util.UUID
 import java.util.stream.Collectors
 
@@ -76,6 +78,31 @@ val DEFAULT_ALBUM_MEDIA: Map<String, List<Media>> = mapOf(DEFAULT_ALBUM_NAME to 
 
 val DEFAULT_SEARCH_REQUEST_ID: Int = 100
 
+val DEFAULT_SEARCH_SUGGESTIONS: List<SearchSuggestion> =
+    listOf(
+        SearchSuggestion(
+            mediaSetId = null,
+            authority = null,
+            type = SearchSuggestionType.HISTORY,
+            displayText = "Text",
+            iconUri = null,
+        ),
+        SearchSuggestion(
+            mediaSetId = "media-set-id-1",
+            authority = "cloud.provider",
+            type = SearchSuggestionType.FACE,
+            displayText = null,
+            iconUri = Uri.parse("content://cloud.provider/1234"),
+        ),
+        SearchSuggestion(
+            mediaSetId = "media-set-id-1",
+            authority = "local-provider",
+            type = SearchSuggestionType.TEXT,
+            displayText = "Text",
+            iconUri = null,
+        ),
+    )
+
 fun createMediaImage(pickerId: Long): Media {
     return Media.Image(
         mediaId = UUID.randomUUID().toString(),
@@ -110,6 +137,7 @@ class TestMediaProvider(
     var albums: List<Group.Album> = DEFAULT_ALBUMS,
     var albumMedia: Map<String, List<Media>> = DEFAULT_ALBUM_MEDIA,
     var searchRequestId: Int = DEFAULT_SEARCH_REQUEST_ID,
+    var searchSuggestions: List<SearchSuggestion> = DEFAULT_SEARCH_SUGGESTIONS,
 ) : MockContentProvider() {
     var lastRefreshMediaRequest: Bundle? = null
     var TEST_GRANTS_COUNT = 2
@@ -127,6 +155,7 @@ class TestMediaProvider(
             "album" -> getAlbums()
             "media_grants_count" -> fetchMediaGrantsCount()
             "pre_selection" -> fetchFilteredMedia(queryArgs)
+            "search_suggestions" -> getSearchSuggestions()
             else -> {
                 val pathSegments: MutableList<String> = uri.getPathSegments()
                 if (pathSegments.size == 4 && pathSegments[2].equals("album")) {
@@ -333,5 +362,31 @@ class TestMediaProvider(
 
     private fun initMedia(extras: Bundle?) {
         lastRefreshMediaRequest = extras
+    }
+
+    private fun getSearchSuggestions(): Cursor {
+        val cursor =
+            MatrixCursor(
+                arrayOf(
+                    MediaProviderClient.SearchSuggestionsResponse.AUTHORITY.key,
+                    MediaProviderClient.SearchSuggestionsResponse.MEDIA_SET_ID.key,
+                    MediaProviderClient.SearchSuggestionsResponse.SEARCH_TEXT.key,
+                    MediaProviderClient.SearchSuggestionsResponse.COVER_MEDIA_URI.key,
+                    MediaProviderClient.SearchSuggestionsResponse.SUGGESTION_TYPE.key,
+                )
+            )
+
+        searchSuggestions.forEach { suggestion ->
+            cursor.addRow(
+                arrayOf(
+                    suggestion.authority,
+                    suggestion.mediaSetId,
+                    suggestion.displayText,
+                    suggestion.iconUri.toString(),
+                    suggestion.type.key,
+                )
+            )
+        }
+        return cursor
     }
 }

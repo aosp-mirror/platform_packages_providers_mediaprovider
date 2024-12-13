@@ -32,6 +32,7 @@ import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.features.search.model.SearchRequest
 import com.android.photopicker.features.search.model.SearchSuggestion
+import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 /**
  * Provides search feature data to the Photo Picker UI. The data comes from a [ContentProvider]
@@ -70,6 +73,11 @@ class SearchDataServiceImpl(
     private val mediaProviderClient: MediaProviderClient,
     private val events: Events,
 ) : SearchDataService {
+    companion object {
+        // Timeout for receiving suggestions from the data source in milli seconds.
+        private const val SUGGESTIONS_TIMEOUT: Long = 500
+    }
+
     // An internal lock to allow thread-safe updates to the search request and results cache.
     private val searchResultsPagingSourceMutex = Mutex()
 
@@ -106,12 +114,46 @@ class SearchDataServiceImpl(
     override val isSearchEnabled: StateFlow<SearchEnabledState> =
         MutableStateFlow(SearchEnabledState.ENABLED)
 
-    // TODO(b/381820020)
+    /**
+     * Try to get a list fo search suggestions from Media Provider in the background thread with a
+     * time limit.
+     */
     override suspend fun getSearchSuggestions(
         prefix: String,
         limit: Int,
         cancellationSignal: CancellationSignal?,
-    ): List<SearchSuggestion> = emptyList()
+    ): List<SearchSuggestion> {
+        // Switch to a background thread.
+        return withContext(dispatcher) {
+            try {
+                // Apply a timeout on getSearchSuggestions API
+                withTimeout(SUGGESTIONS_TIMEOUT) {
+                    mediaProviderClient.fetchSearchSuggestions(
+                        resolver = dataService.activeContentResolver.value,
+                        prefix = prefix,
+                        limit = limit,
+                        historyLimit = 3,
+                        availableProviders = dataService.availableProviders.value,
+                        cancellationSignal = cancellationSignal,
+                    )
+                }
+            } catch (e: TimeoutException) {
+                Log.w(SearchDataService.TAG, "Search suggestions timed out for prefix $prefix", e)
+
+                cancellationSignal?.cancel()
+                emptyList<SearchSuggestion>()
+            } catch (e: RuntimeException) {
+                Log.w(
+                    SearchDataService.TAG,
+                    "An error occurred while fetching " + "search suggestions for prefix $prefix",
+                    e,
+                )
+
+                cancellationSignal?.cancel()
+                emptyList<SearchSuggestion>()
+            }
+        }
+    }
 
     /**
      * Returns an instance of [SearchResultsPagingSource] that can source search results for the

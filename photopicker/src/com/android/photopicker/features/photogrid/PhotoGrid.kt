@@ -80,6 +80,7 @@ import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.launch
 
 private val MEASUREMENT_BANNER_PADDING =
@@ -121,8 +122,14 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
             .collectAsLazyPagingItems()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val localizedSelectionLimit = LocalLocalizationHelper.current.getLocalizedCount(selectionLimit)
+
     val selectionLimitExceededMessage =
-        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+        stringResource(
+            R.string.photopicker_selection_limit_exceeded_snackbar,
+            localizedSelectionLimit,
+        )
+
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
     val configuration = LocalPhotopickerConfiguration.current

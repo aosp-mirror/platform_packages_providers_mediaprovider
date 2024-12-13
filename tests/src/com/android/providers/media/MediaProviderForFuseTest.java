@@ -31,6 +31,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.system.OsConstants;
 import android.util.Log;
@@ -52,6 +53,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
  * Unit tests for {@link MediaProvider} forFuse methods. {@code CtsScopedStorageHostTest} (and
@@ -237,8 +239,14 @@ public class MediaProviderForFuseTest {
             // the process that is, mContext.checkUriPermission and should throw a security
             // exception.
             sMediaProvider.onFileLookupForFuse(
-                    "/storage/emulated/0/.transforms/synthetic/picker/0/com.android.providers"
-                            + ".media.photopicker/media/1000000.jpg", sTestUid /* uid */,
+                    String.format(
+                            Locale.ROOT,
+                    "/storage/emulated/%d/.transforms/synthetic/picker/%d/com.android.providers"
+                            + ".media.photopicker/media/1000000.jpg",
+                            UserHandle.myUserId(),
+                            UserHandle.myUserId()
+                    ),
+                    sTestUid /* uid */,
                     0 /* tid */);
             fail("This test should throw a security exception");
         } catch (SecurityException se) {

@@ -17,12 +17,21 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_application_label" msgid="3482718304682270084">"மீடியா தேர்வுக் கருவி"</string>
+    <string name="photopicker_application_label" msgid="7272391964836190376">"படங்கள் &amp; வீடியோக்கள்"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"மீடியா"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"தேர்ந்தெடுக்கப்பட்டது"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"<xliff:g id="COUNT">(%1$s)</xliff:g>ஐச் சேர்"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"முடிந்தது"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"அனைத்தையும் தேர்வு நீக்கும்"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"<xliff:g id="COUNT">%1$s</xliff:g> ஆவணங்கள் வரை தேர்ந்தெடுங்கள்"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"படங்கள்"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"ஆல்பங்கள்"</string>
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"படங்கள் இதுவரை எதுவுமில்லை"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"படங்களையும் வீடியோக்களையும் படமெடுக்கத் தொடங்குங்கள்"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"உங்கள் கேமரா ஆப்ஸ் மூலம் எடுக்கப்பட்ட படங்களும் வீடியோக்களும் இங்கே தோன்றும்"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"பிடித்தவையில் இதுவரை எதுவுமில்லை"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"பிடித்தவை எனக் குறிக்கப்பட்ட அல்லது நட்சத்திரமிட்ட படங்களும் வீடியோக்களும் இங்கே தோன்றும்"</string>
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"வீடியோக்கள் இதுவரை எதுவுமில்லை"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"உங்கள் கேமரா ஆப்ஸ் மூலம் எடுக்கப்பட்டு, சேமிக்கப்பட்ட அல்லது பகிரப்பட்ட வீடியோக்கள் இங்கே தோன்றும்"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"பின்செல்லும்"</string>
+    <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"மூடு"</string>
 </resources>

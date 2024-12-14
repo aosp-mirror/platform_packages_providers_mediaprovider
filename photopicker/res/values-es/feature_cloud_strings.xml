@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> de <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> listos"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"No se pueden cargar algunas fotos"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Inténtalo de nuevo más tarde. Tus fotos estarán disponibles cuando se resuelva el problema."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Ahora se incluye la copia de seguridad de las fotos"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Puedes seleccionar fotos de la cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g> de <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Elige una cuenta de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Para incluir fotos de <xliff:g id="APP_NAME">%1$s</xliff:g> aquí, elige una cuenta en la aplicación"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Elegir cuenta"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Elige una aplicación de almacenamiento de contenido en la nube"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Para incluir aquí las fotos de las que tienes copia de seguridad, elige una aplicación de fotos en la nube desde Ajustes"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Elegir aplicación"</string>
 </resources>

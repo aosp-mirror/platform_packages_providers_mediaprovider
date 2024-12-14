@@ -16,14 +16,16 @@
 package com.android.photopicker.core
 
 import dagger.hilt.DefineComponent
-import dagger.hilt.android.components.ServiceComponent
+import dagger.hilt.components.SingletonComponent
 
 /**
- * A custom child component of the [ServiceComponent] that will be owned by the [EmbeddedService].
+ * A custom child component of the [SingletonComponent] that will be owned by the [EmbeddedService].
  *
  * @see [EmbeddedSessionModule] which is a dependency container installed in this component.
  */
-@DefineComponent(parent = ServiceComponent::class) public interface EmbeddedServiceComponent
+@SessionScoped
+@DefineComponent(parent = SingletonComponent::class)
+public interface EmbeddedServiceComponent
 
 /**
  * A component builder that can be used to obtain a new instance of the [EmbeddedServiceComponent].

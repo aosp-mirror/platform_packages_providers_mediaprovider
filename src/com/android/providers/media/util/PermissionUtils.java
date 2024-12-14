@@ -347,6 +347,16 @@ public class PermissionUtils {
                 pid, uid, packageName, attributionTag, null);
     }
 
+    /**
+     * Check if the given package has been granted the
+     * android.provider.MediaStore#ACCESS_OEM_METADATA_PERMISSION permission.
+     */
+    public static boolean checkPermissionAccessOemMetadata(@NonNull Context context,
+            int pid, int uid, @NonNull String packageName, @Nullable String attributionTag) {
+        return checkPermissionForDataDelivery(context, MediaStore.ACCESS_OEM_METADATA_PERMISSION,
+                pid, uid, packageName, attributionTag, null);
+    }
+
     public static boolean checkPermissionInstallPackages(@NonNull Context context, int pid, int uid,
         @NonNull String packageName, @Nullable String attributionTag) {
         return checkPermissionForDataDelivery(context, INSTALL_PACKAGES, pid,

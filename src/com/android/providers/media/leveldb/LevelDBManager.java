@@ -48,4 +48,34 @@ public final class LevelDBManager {
             return instance;
         }
     }
+
+    /**
+     * Deletes existing leveldb instance on given path and creates a new one.
+     *
+     * @param path on which instance needs to be re-created
+     */
+    public static LevelDBInstance recreate(String path) {
+        delete(path);
+        synchronized (sLockObject) {
+            LevelDBInstance instance = LevelDBInstance.createLevelDBInstance(path);
+            INSTANCES.put(path, instance);
+            return instance;
+        }
+    }
+
+    /**
+     * Deletes existing leveldb instance on given path.
+     *
+     * @param path on which instance needs to be deleted
+     */
+    public static void delete(String path) {
+        synchronized (sLockObject) {
+            path = Ascii.toLowerCase(path.trim());
+            if (INSTANCES.containsKey(path)) {
+                INSTANCES.get(path).deleteInstance();
+                INSTANCES.remove(path);
+            }
+        }
+    }
+
 }

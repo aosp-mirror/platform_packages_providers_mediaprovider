@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.android.photopicker.core.Background
+import com.android.photopicker.core.banners.BannerManager
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
@@ -60,9 +61,11 @@ import kotlinx.coroutines.CoroutineDispatcher
  * @property selection
  * @property userMonitor
  */
+@Suppress("UNCHECKED_CAST")
 class EmbeddedViewModelFactory(
     @Background val backgroundDispatcher: CoroutineDispatcher,
     val configurationManager: Lazy<ConfigurationManager>,
+    val bannerManager: Lazy<BannerManager>,
     val dataService: Lazy<DataService>,
     val events: Lazy<Events>,
     val featureManager: Lazy<FeatureManager>,
@@ -73,26 +76,45 @@ class EmbeddedViewModelFactory(
         with(modelClass) {
             return when {
                 isAssignableFrom(AlbumGridViewModel::class.java) ->
-                    @Suppress("UNCHECKED_CAST")
                     AlbumGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
                 isAssignableFrom(MediaPreloaderViewModel::class.java) ->
-                    @Suppress("UNCHECKED_CAST")
                     MediaPreloaderViewModel(
                         null,
                         backgroundDispatcher,
                         selection.get(),
-                        userMonitor.get()
+                        userMonitor.get(),
+                        configurationManager.get(),
+                        events.get(),
                     )
                         as T
                 isAssignableFrom(PhotoGridViewModel::class.java) ->
-                    @Suppress("UNCHECKED_CAST")
-                    PhotoGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
+                    PhotoGridViewModel(
+                        null,
+                        selection.get(),
+                        dataService.get(),
+                        events.get(),
+                        bannerManager.get(),
+                    )
+                        as T
                 isAssignableFrom(PreviewViewModel::class.java) ->
-                    @Suppress("UNCHECKED_CAST")
-                    PreviewViewModel(null, selection.get(), userMonitor.get()) as T
+                    PreviewViewModel(
+                        null,
+                        selection.get(),
+                        userMonitor.get(),
+                        dataService.get(),
+                        events.get(),
+                        configurationManager.get(),
+                    )
+                        as T
                 isAssignableFrom(ProfileSelectorViewModel::class.java) ->
-                    @Suppress("UNCHECKED_CAST")
-                    ProfileSelectorViewModel(null, selection.get(), userMonitor.get()) as T
+                    ProfileSelectorViewModel(
+                        null,
+                        selection.get(),
+                        userMonitor.get(),
+                        events.get(),
+                        configurationManager.get()
+                    )
+                        as T
                 else ->
                     throw IllegalArgumentException(
                         "Unknown ViewModel class: ${modelClass.simpleName}"

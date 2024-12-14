@@ -6,7 +6,10 @@ package {
 android_library {
     name: "PhotopickerLib",
     manifest: "AndroidManifest.xml",
-    srcs: ["src/**/*.kt"],
+    srcs: [
+        "src/**/*.kt",
+        ":statslog-mediaprovider-java-gen",
+    ],
     resource_dirs: ["res"],
     sdk_version: "module_current",
     min_sdk_version: "30",
@@ -14,9 +17,19 @@ android_library {
         "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
         "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
+        "framework-statsd.stubs.module_lib",
+    ],
+    javacflags: [
+        "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
+    ],
+    kotlincflags: [
+        "-Werror",
+        "-Xjvm-default=all",
     ],
     static_libs: [
         "androidx.activity_activity-compose",
+        "androidx.appcompat_appcompat",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
         "androidx.compose.material3_material3-window-size-class",
@@ -33,6 +46,8 @@ android_library {
         "androidx.paging_paging-common-ktx",
         "androidx.paging_paging-compose",
         "androidx.paging_paging-runtime",
+        "androidx.room_room-runtime",
+        "androidx.room_room-ktx",
         // glide and dependencies
         "androidx.exifinterface_exifinterface",
         "androidx.vectordrawable_vectordrawable-animated",
@@ -48,6 +63,7 @@ android_library {
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_coroutines",
+        "mediaprovider_flags_java_lib",
         "modules-utils-build",
     ],
     apex_available: [
@@ -56,7 +72,11 @@ android_library {
     ],
     plugins: [
         "glide-annotation-processor",
+        "androidx.room_room-compiler-plugin",
     ],
+    lint: {
+        extra_check_modules: ["PhotopickerLintChecker"],
+    },
 }
 
 android_app {
@@ -66,6 +86,8 @@ android_app {
         "PhotopickerLib",
     ],
     optimize: {
+        // Optimize bytecode
+        optimize: true,
         // Needed for removing unused icons from material-icons-extended
         shrink_resources: true,
     },

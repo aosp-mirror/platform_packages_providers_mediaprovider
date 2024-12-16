@@ -20,16 +20,20 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.provider.CloudMediaProviderContract;
+import android.util.Pair;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
+import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +41,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MediaSetsDatabaseUtilsTest {
@@ -135,9 +140,14 @@ public class MediaSetsDatabaseUtilsTest {
         assertWithMessage("MediaSet metadata insertion failed")
                 .that(insertResult)
                 .isAtLeast(/* expected min row id */ 0);
+        Bundle extras = new Bundle();
+        extras.putString("authority", mAuthority);
+        extras.putString("category_id", mCategoryId);
+        extras.putStringArray("mime_types", mimeTypes.toArray(new String[mimeTypes.size()]));
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(extras);
 
         Cursor mediaSetCursor = MediaSetsDatabaseUtil.getMediaSetsForCategory(
-                mDatabase, mCategoryId, mAuthority, mimeTypes);
+                mDatabase, requestParams);
         assertNotNull(mediaSetCursor);
         assertWithMessage("Cursor size should be greater than 0. Expected size: 1")
                 .that(mediaSetCursor.getCount())
@@ -161,8 +171,13 @@ public class MediaSetsDatabaseUtilsTest {
         // Assert successful insertion
         assertEquals("Count of inserted media sets should be equal to the cursor size",
                 /*expected*/ c.getCount(), /*actual*/ mediaSetsInserted);
+        Bundle extras = new Bundle();
+        extras.putString("authority", mAuthority);
+        extras.putString("category_id", mCategoryId);
+        extras.putStringArray("mime_types", mimeTypes.toArray(new String[mimeTypes.size()]));
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(extras);
         Cursor fetchMediaSetCursor = MediaSetsDatabaseUtil.getMediaSetsForCategory(
-                mDatabase, mCategoryId, mAuthority, mimeTypes);
+                mDatabase, requestParams);
         String mediaSetPickerId = "";
         if (fetchMediaSetCursor.moveToFirst()) {
             mediaSetPickerId = fetchMediaSetCursor.getString(
@@ -179,6 +194,37 @@ public class MediaSetsDatabaseUtilsTest {
         assertWithMessage("Retrieved mediaSetResumeKey did not match")
                 .that(retrievedMediaSetResumeKey)
                 .isEqualTo(resumeKey);
+    }
+
+    @Test
+    public void testGetMediaSetIdAndMimeTypesUsingMediaSetPickerId() {
+        Cursor c = getCursorForMediaSetInsertionTest();
+        List<String> mimeTypes = new ArrayList<>();
+        mimeTypes.add(mMimeType);
+
+        long mediaSetsInserted = MediaSetsDatabaseUtil.cacheMediaSets(
+                mDatabase, c, mCategoryId, mAuthority, mimeTypes);
+        // Assert successful insertion
+        assertEquals("Count of inserted media sets should be equal to the cursor size",
+                /*expected*/ c.getCount(), /*actual*/ mediaSetsInserted);
+        Bundle extras = new Bundle();
+        extras.putString("authority", mAuthority);
+        extras.putString("category_id", mCategoryId);
+        extras.putStringArray("mime_types", mimeTypes.toArray(new String[mimeTypes.size()]));
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(extras);
+        Cursor fetchMediaSetCursor = MediaSetsDatabaseUtil.getMediaSetsForCategory(
+                mDatabase, requestParams);
+        String mediaSetPickerId = "";
+        if (fetchMediaSetCursor.moveToFirst()) {
+            mediaSetPickerId = fetchMediaSetCursor.getString(
+                    fetchMediaSetCursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaSetsTableColumns.PICKER_ID.getColumnName()));
+        }
+
+        Pair<String, String[]> retrievedData = MediaSetsDatabaseUtil
+                .getMediaSetIdAndMimeType(mDatabase, mediaSetPickerId);
+        assertEquals(/*expected*/retrievedData.first, /*actual*/mMediaSetId);
+        assertTrue(Arrays.toString(retrievedData.second).contains(mMimeType));
     }
 
     private Cursor getCursorForMediaSetInsertionTest() {

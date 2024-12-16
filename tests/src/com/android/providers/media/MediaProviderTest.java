@@ -657,13 +657,19 @@ public class MediaProviderTest {
                 values);
 
         final ContentValues newValues = new ContentValues();
-        newValues.put(MediaStore.MediaColumns.DATA, "/storage/emulated/0/../../../data/media/");
+        newValues.put(
+                MediaStore.MediaColumns.DATA,
+                String.format(Locale.ROOT,
+                        "/storage/emulated/%d/../../../data/media/",
+                        UserHandle.myUserId()));
         IllegalArgumentException illegalArgumentException = Assert.assertThrows(
                 IllegalArgumentException.class,
                 () -> sIsolatedResolver.update(uri, newValues, null));
 
         assertThat(illegalArgumentException).hasMessageThat().contains(
-                "Requested path /data/media doesn't appear under [/storage/emulated/0]");
+                String.format(Locale.ROOT,
+                        "Requested path /data/media doesn't appear under [/storage/emulated/%d]",
+                        UserHandle.myUserId()));
     }
 
     /**
@@ -1036,7 +1042,10 @@ public class MediaProviderTest {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues reverse = new ContentValues();
         reverse.put(MediaColumns.DATA,
-                "/storage/emulated/0/DCIM/My Vacation/.pending-1577836800-IMG1024.JPG");
+                String.format(
+                        Locale.ROOT,
+                        "/storage/emulated/%d/DCIM/My Vacation/.pending-1577836800-IMG1024.JPG",
+                        UserHandle.myUserId()));
         ensureFileColumns(uri, reverse);
 
         assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));
@@ -1084,7 +1093,10 @@ public class MediaProviderTest {
         final Uri uri = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         final ContentValues reverse = new ContentValues();
         reverse.put(MediaColumns.DATA,
-                "/storage/emulated/0/DCIM/My Vacation/.trashed-1577836800-IMG1024.JPG");
+                String.format(
+                        Locale.ROOT,
+                        "/storage/emulated/%d/DCIM/My Vacation/.trashed-1577836800-IMG1024.JPG",
+                        UserHandle.myUserId()));
         ensureFileColumns(uri, reverse);
 
         assertEquals("DCIM/My Vacation/", reverse.getAsString(MediaColumns.RELATIVE_PATH));

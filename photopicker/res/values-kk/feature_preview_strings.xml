@@ -29,4 +29,6 @@
     <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Кідірту"</string>
     <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Дыбысын өшіру"</string>
     <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Дыбысын қосу"</string>
+    <!-- no translation found for pohtopicker_horizontal_pager_description (7701816075322699545) -->
+    <skip />
 </resources>

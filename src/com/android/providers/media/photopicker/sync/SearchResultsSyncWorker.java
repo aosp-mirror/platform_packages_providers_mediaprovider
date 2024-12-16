@@ -164,6 +164,7 @@ public class SearchResultsSyncWorker extends Worker {
 
                     resumePageToken = getResumePageToken(cursor.getExtras());
                     if (SYNC_COMPLETE_RESUME_KEY.equals(resumePageToken)) {
+                        Log.d(TAG, "Number of search results pages synced: " + (iteration + 1));
                         // Stop syncing if there are no more pages to sync.
                         break;
                     }

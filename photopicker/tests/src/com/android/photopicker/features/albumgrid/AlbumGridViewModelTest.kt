@@ -31,6 +31,7 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
@@ -107,13 +108,14 @@ class AlbumGridViewModelTest {
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             val featureManager =
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    prefetchDataService = TestPrefetchDataService(),
                     coreEventsConsumed = setOf<RegisteredEventClass>(),
                     coreEventsProduced = setOf<RegisteredEventClass>(),
                 )
@@ -126,12 +128,7 @@ class AlbumGridViewModelTest {
                 )
 
             val viewModel =
-                AlbumGridViewModel(
-                    this.backgroundScope,
-                    selection,
-                    TestDataServiceImpl(),
-                    events,
-                )
+                AlbumGridViewModel(this.backgroundScope, selection, TestDataServiceImpl(), events)
 
             assertWithMessage("Unexpected selection start size")
                 .that(selection.snapshot().size)
@@ -174,16 +171,17 @@ class AlbumGridViewModelTest {
                                     action = "TEST_ACTION",
                                     intent = null,
                                     selectionLimit = 0,
-                                    sessionId = generatePickerSessionId()
-                                )
+                                    sessionId = generatePickerSessionId(),
+                                ),
                         ),
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
 
             val featureManager =
                 FeatureManager(
                     configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                     scope = this.backgroundScope,
+                    prefetchDataService = TestPrefetchDataService(),
                     coreEventsConsumed = setOf<RegisteredEventClass>(),
                     coreEventsProduced = setOf<RegisteredEventClass>(),
                 )
@@ -199,12 +197,7 @@ class AlbumGridViewModelTest {
             backgroundScope.launch { events.flow.toList(eventsDispatched) }
 
             val viewModel =
-                AlbumGridViewModel(
-                    this.backgroundScope,
-                    selection,
-                    TestDataServiceImpl(),
-                    events,
-                )
+                AlbumGridViewModel(this.backgroundScope, selection, TestDataServiceImpl(), events)
 
             assertWithMessage("Unexpected selection start size")
                 .that(selection.snapshot().size)

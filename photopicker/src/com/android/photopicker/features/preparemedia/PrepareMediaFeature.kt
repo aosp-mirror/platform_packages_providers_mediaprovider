@@ -29,9 +29,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
+import kotlinx.coroutines.Deferred
 
 /**
  * Feature class for the Photopicker's media preparation implementation.
@@ -42,7 +44,10 @@ class PrepareMediaFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PrepareMediaFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ): Boolean {
             with(config) {
                 if (runtimeEnv != PhotopickerRuntimeEnv.ACTIVITY) {
                     return false

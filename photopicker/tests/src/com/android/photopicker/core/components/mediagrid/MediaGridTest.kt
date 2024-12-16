@@ -86,8 +86,8 @@ import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -272,7 +272,7 @@ class MediaGridTest {
     private fun initEmbeddedStates() {
         if (SdkLevel.isAtLeastU()) {
             @Suppress("DEPRECATION")
-            whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true }
+            (whenever(mockSurfaceControlViewHost.transferTouchGestureToHost()) { true })
             testEmbeddedStateWithHostInCollapsedState =
                 EmbeddedState(isExpanded = false, host = mockSurfaceControlViewHost)
             testEmbeddedStateWithHostInExpandedState =

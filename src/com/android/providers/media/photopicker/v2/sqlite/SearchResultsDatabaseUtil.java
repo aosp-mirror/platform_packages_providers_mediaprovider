@@ -41,6 +41,7 @@ import com.android.providers.media.photopicker.PickerSyncController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Convenience class for running Picker Search Results related sql queries.
@@ -171,6 +172,7 @@ public class SearchResultsDatabaseUtil {
                 database.setTransactionSuccessful();
             }
 
+            Log.d(TAG, "Number of search results cached: " + numberOfRowsInserted);
             return numberOfRowsInserted;
         } catch (RuntimeException e) {
             // Do not mark transaction as successful so that it gets roll-backed. after it ends.
@@ -294,6 +296,7 @@ public class SearchResultsDatabaseUtil {
                 ))
                 .setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s DESC, %s DESC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()
@@ -325,6 +328,7 @@ public class SearchResultsDatabaseUtil {
                 ))
                 .setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s DESC, %s DESC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()
@@ -355,6 +359,7 @@ public class SearchResultsDatabaseUtil {
                         PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName()
                 )).setSortOrder(
                         String.format(
+                                Locale.ROOT,
                                 "%s ASC, %s ASC",
                                 PickerSQLConstants.MediaResponse.DATE_TAKEN_MS.getProjectedName(),
                                 PickerSQLConstants.MediaResponse.PICKER_ID.getProjectedName()

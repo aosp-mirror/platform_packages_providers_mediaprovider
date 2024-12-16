@@ -217,6 +217,7 @@ flag {
     description: "This flag controls the Capabilities APIs in CloudMediaProvider and the contract."
     bug: "370445733"
     is_fixed_read_only: true
+    is_exported: true
 }
 
 flag {
@@ -235,4 +236,13 @@ flag {
     description: "Enables mark media as favorite API"
     is_fixed_read_only: true
     bug: "294364218"
+}
+
+flag {
+    name: "revoke_access_owned_photos"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable allowing users to revoke access to app created photos."
+    is_fixed_read_only: true
+    bug: "323322157"
 }

@@ -44,6 +44,8 @@ import com.android.photopicker.data.DataServiceImpl
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.NotificationService
 import com.android.photopicker.data.NotificationServiceImpl
+import com.android.photopicker.data.PrefetchDataService
+import com.android.photopicker.data.PrefetchDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
@@ -86,6 +88,7 @@ class EmbeddedServiceModule {
     private lateinit var featureManager: FeatureManager
     private lateinit var mainScope: CoroutineScope
     private lateinit var notificationService: NotificationService
+    private lateinit var prefetchDataService: PrefetchDataService
     private lateinit var selection: Selection<Media>
     private lateinit var userMonitor: UserMonitor
 
@@ -312,6 +315,8 @@ class EmbeddedServiceModule {
     fun provideFeatureManager(
         @SessionScoped @Background scope: CoroutineScope,
         @SessionScoped configurationManager: ConfigurationManager,
+        prefetchDataService: PrefetchDataService,
+        @Background backgroundDispatcher: CoroutineDispatcher,
     ): FeatureManager {
 
         if (::featureManager.isInitialized) {
@@ -324,7 +329,12 @@ class EmbeddedServiceModule {
             featureManager =
                 // Do not pass a set of FeatureRegistrations here to use the standard set of
                 // enabled features.
-                FeatureManager(configurationManager.configuration, scope)
+                FeatureManager(
+                    configuration = configurationManager.configuration,
+                    scope = scope,
+                    prefetchDataService = prefetchDataService,
+                    dispatcher = backgroundDispatcher,
+                )
             return featureManager
         }
     }
@@ -375,6 +385,21 @@ class EmbeddedServiceModule {
             notificationService = NotificationServiceImpl()
         }
         return notificationService
+    }
+
+    @Provides
+    @SessionScoped
+    fun providePrefetchDataService(): PrefetchDataService {
+
+        if (!::prefetchDataService.isInitialized) {
+            Log.d(
+                PrefetchDataService.TAG,
+                "PrefetchDataService requested but not yet initialized. " +
+                    "Initializing PrefetchDataService.",
+            )
+            prefetchDataService = PrefetchDataServiceImpl()
+        }
+        return prefetchDataService
     }
 
     @Provides

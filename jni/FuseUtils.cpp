@@ -16,6 +16,7 @@
 
 #include "include/libfuse_jni/FuseUtils.h"
 
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,25 @@ bool containsMount(const string& path) {
     return android::base::EqualsIgnoreCase(path_suffix, android_suffix) ||
            android::base::EqualsIgnoreCase(path_suffix, data_suffix) ||
            android::base::EqualsIgnoreCase(path_suffix, obb_suffix);
+}
+
+string getVolumeNameFromPath(const std::string& path) {
+    std::string volume_name = "";
+    if (!android::base::StartsWith(path, STORAGE_PREFIX)) {
+        volume_name = VOLUME_INTERNAL;
+    } else if (android::base::StartsWith(path, PRIMARY_VOLUME_PREFIX) || path == STORAGE_PREFIX) {
+        volume_name = VOLUME_EXTERNAL_PRIMARY;
+    } else {
+        // Use regex to extract volume name
+        std::regex volumeRegex(R"(/storage/([a-zA-Z0-9-]+)/)");
+        std::smatch match;
+        if (std::regex_search(path, match, volumeRegex)) {
+            volume_name = match[1].str();
+            // Convert to lowercase
+            std::transform(volume_name.begin(), volume_name.end(), volume_name.begin(), ::tolower);
+        }
+    }
+    return volume_name;
 }
 
 }  // namespace fuse

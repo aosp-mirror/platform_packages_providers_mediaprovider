@@ -40,6 +40,7 @@ import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
@@ -48,6 +49,7 @@ import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
+import kotlinx.coroutines.Deferred
 
 /**
  * Test [PhotopickerUiFeature] that renders a simple string to [Location.COMPOSE_TOP] with the
@@ -58,7 +60,10 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "HighPriorityUiFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = HighPriorityUiFeature()
 
@@ -188,11 +193,7 @@ class HighPriorityUiFeature : PhotopickerUiFeature {
 
     /* Feature framework compose-at-location callback */
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
             else -> {}

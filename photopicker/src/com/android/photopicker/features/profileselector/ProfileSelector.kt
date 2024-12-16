@@ -167,12 +167,12 @@ fun ProfileSelector(
                             else -> MaterialTheme.colorScheme.surfaceContainerHigh
                         }
                     val surfaceContentColor = contentColorFor(surfaceColor)
+                    val profileLabel = profile.label ?: getLabelForProfile(profile)
                     val selectedProfileDescription =
                         stringResource(
                             R.string.photopicker_selected_profile_description,
-                            currentProfileLabel,
+                            profileLabel,
                         )
-                    val profileLabel = profile.label ?: getLabelForProfile(profile)
 
                     // The background color behind the text
                     Surface(
@@ -216,6 +216,7 @@ fun ProfileSelector(
                             text = {
                                 Text(
                                     text = profileLabel,
+                                    color = surfaceContentColor,
                                     style = MaterialTheme.typography.bodyLarge,
                                     modifier =
                                         Modifier.semantics {

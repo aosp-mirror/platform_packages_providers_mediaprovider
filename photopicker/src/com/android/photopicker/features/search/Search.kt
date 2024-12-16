@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,6 +92,10 @@ import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.LocalEvents
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.navigation.LocalNavController
@@ -107,6 +112,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val MEASUREMENT_SEARCH_BAR_HEIGHT = 56.dp
 private val MEASUREMENT_SEARCH_BAR_PADDING =
@@ -180,6 +186,9 @@ fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifie
     val searchTerm = rememberSaveable { mutableStateOf("") }
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
     val suggestionLists by viewModel.suggestionLists.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
     SearchBar(
         inputField = {
             SearchInputContent(
@@ -190,6 +199,16 @@ fun SearchBarEnabled(params: LocationParams, viewModel: SearchViewModel, modifie
                     if (it) {
                         val clickAction = params as? LocationParams.WithClickAction
                         clickAction?.onClick()
+                        scope.launch {
+                            events.dispatch(
+                                Event.LogPhotopickerUIEvent(
+                                    FeatureToken.SEARCH.token,
+                                    configuration.sessionId,
+                                    configuration.callingPackageUid ?: -1,
+                                    Telemetry.UiEvent.ENTER_PICKER_SEARCH,
+                                )
+                            )
+                        }
                     }
                     focused.value = it
                 },
@@ -814,6 +833,9 @@ private fun ResultMediaGrid(
     val selectionLimitExceededMessage =
         stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
     val items = resultItems.collectAsLazyPagingItems()
+    val scope = rememberCoroutineScope()
+    val events = LocalEvents.current
+    val configuration = LocalPhotopickerConfiguration.current
 
     // Collect the selection to notify the mediaGrid of selection changes.
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
@@ -832,11 +854,41 @@ private fun ResultMediaGrid(
             items.loadState.source.append is LoadState.NotLoading &&
             items.loadState.source.append.endOfPaginationReached
 
-    when {
-        isEmptyAndNoMorePages -> {
+    // State to track the loading and empty states
+    var resultsState by remember { mutableStateOf(ResultsState.LOADING_WITHOUT_INDICATOR) }
+    if (isEmptyAndNoMorePages) {
+        resultsState = ResultsState.EMPTY
+    }
+
+    LaunchedEffect(items.loadState.refresh) {
+        if (
+            items.itemCount == 0 &&
+                items.loadState.refresh is LoadState.Loading &&
+                resultsState == ResultsState.LOADING_WITHOUT_INDICATOR
+        ) {
+            withContext(viewModel.backgroundDispatcher) {
+                delay(1000)
+                if (items.itemCount == 0) {
+                    resultsState = ResultsState.LOADING_WITH_INDICATOR
+                    delay(4000)
+                    if (resultsState == ResultsState.LOADING_WITH_INDICATOR)
+                        resultsState = ResultsState.EMPTY
+                }
+            }
+        } else if (resultsState != ResultsState.EMPTY) {
+            resultsState = ResultsState.RESULTS_GRID
+        }
+    }
+    when (resultsState) {
+        ResultsState.EMPTY -> {
             EmptySearchResult()
         }
-        else -> {
+        ResultsState.LOADING_WITH_INDICATOR -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+        ResultsState.RESULTS_GRID -> {
             Box(modifier = Modifier.fillMaxSize()) {
                 mediaGrid(
                     items = items,
@@ -848,13 +900,33 @@ private fun ResultMediaGrid(
                                 item = item.media,
                                 selectionLimitExceededMessage = selectionLimitExceededMessage,
                             )
+                            // TODO: (b/381876944) Log Ui Event after adding search enum
                         }
                     },
                     onItemLongPress = { item ->
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
-                            // TODO Log entry into the photopicker preview mode for search
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.SEARCH.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             if (item is MediaGridItem.MediaItem) {
+                                scope.launch {
+                                    events.dispatch(
+                                        Event.LogPhotopickerUIEvent(
+                                            FeatureToken.SEARCH.token,
+                                            configuration.sessionId,
+                                            configuration.callingPackageUid ?: -1,
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
+                                        )
+                                    )
+                                }
                                 navController.navigateToPreviewMedia(item.media)
                             }
                         }
@@ -863,6 +935,7 @@ private fun ResultMediaGrid(
                 )
             }
         }
+        else -> {}
     }
 }
 
@@ -965,4 +1038,12 @@ private fun getRoundedCornerShape(index: Int, size: Int): Shape {
         index == size - 1 -> BOTTOM_SUGGESTION_CARD_SHAPE
         else -> MIDDLE_SUGGESTION_CARD_SHAPE
     }
+}
+
+/** Represents the different UI states for the search results data. */
+enum class ResultsState {
+    LOADING_WITHOUT_INDICATOR,
+    LOADING_WITH_INDICATOR,
+    EMPTY,
+    RESULTS_GRID,
 }

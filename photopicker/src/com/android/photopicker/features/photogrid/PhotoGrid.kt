@@ -23,13 +23,18 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoAlbum
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -37,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -74,10 +80,12 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToCategoryGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.categorygrid.CategoryGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
 import com.android.photopicker.util.LocalLocalizationHelper
@@ -159,6 +167,10 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                 )
                             }
                             navController.navigateToAlbumGrid()
+                        } else if (
+                            featureManager.isFeatureEnabled(CategoryGridFeature::class.java)
+                        ) {
+                            navController.navigateToCategoryGrid()
                         }
                     }
                 }
@@ -343,6 +355,8 @@ fun PhotoGridNavButton(modifier: Modifier) {
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
     val contentDescriptionString = stringResource(R.string.photopicker_photos_nav_button_label)
+    val featureManager = LocalFeatureManager.current
+    val categoryFeatureEnabled = featureManager.isFeatureEnabled(CategoryGridFeature::class.java)
 
     NavigationBarButton(
         onClick = {
@@ -362,6 +376,19 @@ fun PhotoGridNavButton(modifier: Modifier) {
         modifier = modifier.semantics { contentDescription = contentDescriptionString },
         isCurrentRoute = { route -> route == PHOTO_GRID.route },
     ) {
-        Text(stringResource(R.string.photopicker_photos_nav_button_label))
+        when (categoryFeatureEnabled) {
+            true -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhotoAlbum,
+                        contentDescription =
+                            stringResource(R.string.photopicker_photos_nav_button_label),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.photopicker_photos_nav_button_label))
+                }
+            }
+            false -> Text(stringResource(R.string.photopicker_photos_nav_button_label))
+        }
     }
 }

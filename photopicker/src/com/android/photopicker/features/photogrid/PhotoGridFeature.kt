@@ -69,7 +69,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
         setOf(Event.ShowSnackbarMessage::class.java, Event.LogPhotopickerUIEvent::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority))
+        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGHEST.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {

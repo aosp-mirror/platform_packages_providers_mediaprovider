@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.albumgrid
+package com.android.photopicker.features.categorygrid
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -38,38 +38,39 @@ import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
-import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_GRID
 import com.android.photopicker.core.navigation.PhotopickerDestinations.ALBUM_MEDIA_GRID
+import com.android.photopicker.core.navigation.PhotopickerDestinations.CATEGORY_GRID
+import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
 import com.android.photopicker.core.navigation.Route
 import com.android.photopicker.data.model.Group
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Feature class for the Photopicker's primary album grid.
+ * Feature class for the Photopicker's main category grid.
  *
- * This feature adds the [ALBUM_GRID] route and [ALBUM_MEDIA_GRID] route.
+ * This feature adds the [CategoryGrid] route and [MediaSet] route.
  */
-class AlbumGridFeature : PhotopickerUiFeature {
+class CategoryGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
-        override val TAG: String = "PhotopickerAlbumGridFeature"
+        override val TAG: String = "PhotoPickerCategoryGridFeature"
 
         override fun isEnabled(
             config: PhotopickerConfiguration,
             deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
-        ) = !config.flags.PICKER_SEARCH_ENABLED
+        ) = config.flags.PICKER_SEARCH_ENABLED
 
-        override fun build(featureManager: FeatureManager) = AlbumGridFeature()
+        override fun build(featureManager: FeatureManager) = CategoryGridFeature()
 
-        const val ALBUM_KEY = "selected_album"
+        const val GROUP_KEY = "selected_group"
     }
 
-    override val token = FeatureToken.ALBUM_GRID.token
+    override val token = FeatureToken.CATEGORY_GRID.token
 
-    /** Events consumed by the Album grid */
+    /** Events consumed by the Category grid */
     override val eventsConsumed = emptySet<RegisteredEventClass>()
 
-    /** Events produced by the Album grid */
+    /** Events produced by the Category grid */
     override val eventsProduced =
         setOf(
             Event.ShowSnackbarMessage::class.java,
@@ -78,22 +79,22 @@ class AlbumGridFeature : PhotopickerUiFeature {
         )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority))
+        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGHEST.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
         return setOf(
-            // The main grid of the user's albums.
+            // The main grid of the user's category.
             object : Route {
-                override val route = ALBUM_GRID.route
-                override val initialRoutePriority = Priority.MEDIUM.priority
+                override val route = CATEGORY_GRID.route
+                override val initialRoutePriority = Priority.HIGH.priority
                 override val arguments = emptyList<NamedNavArgument>()
                 override val deepLinks = emptyList<NavDeepLink>()
                 override val isDialog = false
                 override val dialogProperties = null
 
                 /*
-                Animations for ALBUM_GRID
+                Animations for CATEGORY_GRID
                 - When navigating directly, content will slide IN from the left edge.
                 - When navigating away, content will slide OUT towards the left edge.
                 - When returning from the backstack, content will slide IN from the right edge.
@@ -103,55 +104,55 @@ class AlbumGridFeature : PhotopickerUiFeature {
                 override val enterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // Negative value to slide right-to-left
-                            // if previous route was from ALBUM_MEDIA_GRID.
-                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
-                        } else {
+                        if (initialState.destination.route == PHOTO_GRID.route) {
                             // Positive value to slide left-to-right
                             slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
+                        } else {
+                            // Negative value to slide right-to-left
+                            // if previous route was not from PHOTO_GRID.
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         }
                     }
                 override val exitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // Negative value to slide right-to-left
-                            // if target route is ALBUM_MEDIA_GRID
-                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
-                        } else {
+                        if (targetState.destination.route == PHOTO_GRID.route) {
                             // Positive value to slide left-to-right
                             slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
+                        } else {
+                            // Negative value to slide right-to-left
+                            // if target route is not PHOTO_GRID
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         }
                     }
                 override val popEnterTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? =
                     {
-                        if (initialState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // Negative value to slide right-to-left
-                            // if previous route was from ALBUM_MEDIA_GRID.
-                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
-                        } else {
+                        if (initialState.destination.route == PHOTO_GRID.route) {
                             // Positive value to slide left-to-right
                             slideInHorizontally(animationSpec = springDefaultEffectOffset) { it }
+                        } else {
+                            // Negative value to slide right-to-left
+                            // if previous route was not from PHOTO_GRID.
+                            slideInHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         }
                     }
                 override val popExitTransition:
                     (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? =
                     {
-                        if (targetState.destination.route == ALBUM_MEDIA_GRID.route) {
-                            // Negative value to slide right-to-left
-                            // if target route is ALBUM_MEDIA_GRID
-                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
-                        } else {
+                        if (targetState.destination.route == PHOTO_GRID.route) {
                             // Positive value to slide left-to-right
                             slideOutHorizontally(animationSpec = springDefaultEffectOffset) { it }
+                        } else {
+                            // Negative value to slide right-to-left
+                            // if target route is not PHOTO_GRID
+                            slideOutHorizontally(animationSpec = springDefaultEffectOffset) { -it }
                         }
                     }
 
                 @Composable
                 override fun composable(navBackStackEntry: NavBackStackEntry?) {
-                    AlbumGrid()
+                    CategoryGrid()
                 }
             },
             // Grid to show the album content for the album selected by the user.
@@ -164,7 +165,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
                 override val dialogProperties = null
 
                 /**
-                 * Animations for ALBUM_CONTENT_GRID are by default [EnterTransition.None] for
+                 * Animations for CATEGORY_CONTENT_GRID are by default [EnterTransition.None] for
                  * entering into view and [ExitTransition.None] while exiting.
                  */
                 override val enterTransition:
@@ -195,7 +196,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
                         checkNotNull(
                             navBackStackEntry
                                 ?.savedStateHandle
-                                ?.getStateFlow<Group.Album?>(ALBUM_KEY, null)
+                                ?.getStateFlow<Group.Album?>(GROUP_KEY, null)
                         ) {
                             "Unable to get a savedStateHandle for album content grid"
                         }
@@ -208,7 +209,7 @@ class AlbumGridFeature : PhotopickerUiFeature {
     @Composable
     override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
-            Location.NAVIGATION_BAR_NAV_BUTTON -> AlbumGridNavButton(modifier)
+            Location.NAVIGATION_BAR_NAV_BUTTON -> CategoryButton(modifier)
             else -> {}
         }
     }

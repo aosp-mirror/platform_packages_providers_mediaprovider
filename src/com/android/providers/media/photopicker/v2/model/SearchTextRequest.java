@@ -34,16 +34,21 @@ public class SearchTextRequest extends SearchRequest {
     public SearchTextRequest(
             @Nullable List<String> mimeTypes,
             @NonNull String searchText) {
-        super(mimeTypes);
-
-        mSearchText = requireNonNull(searchText);
+        this(mimeTypes, searchText,
+                /* localSyncResumeKey */ null,
+                /* localAuthority */ null,
+                /* cloudSyncResumeKey */ null,
+                /* cloudAuthority */ null);
     }
 
     public SearchTextRequest(
             @Nullable List<String> mimeTypes,
             @NonNull String searchText,
-            @Nullable String resumeKey) {
-        super(mimeTypes, resumeKey);
+            @Nullable String localSyncResumeKey,
+            @Nullable String localAuthority,
+            @Nullable String cloudSyncResumeKey,
+            @Nullable String cloudAuthority) {
+        super(mimeTypes, localSyncResumeKey, localAuthority, cloudSyncResumeKey, cloudAuthority);
 
         mSearchText = requireNonNull(searchText);
     }

@@ -32,4 +32,5 @@ enum class Priority(val priority: Int) {
     LOW(25),
     MEDIUM(50),
     HIGH(90),
+    HIGHEST(100),
 }

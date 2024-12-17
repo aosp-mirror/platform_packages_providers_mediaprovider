@@ -115,8 +115,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetID,
                 authority,
-                SEARCH_SUGGESTION_LOCATION,
-                null
+                SEARCH_SUGGESTION_LOCATION
         );
 
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest);
@@ -159,8 +158,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetID,
                 authority,
-                SEARCH_SUGGESTION_LOCATION,
-                null
+                SEARCH_SUGGESTION_LOCATION
         );
 
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest);
@@ -198,8 +196,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetId2,
                 authority2,
-                SEARCH_SUGGESTION_LOCATION,
-                null
+                SEARCH_SUGGESTION_LOCATION
         );
 
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
@@ -264,8 +261,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 null,
                 mediaSetId2,
                 authority2,
-                SEARCH_SUGGESTION_LOCATION,
-                null
+                SEARCH_SUGGESTION_LOCATION
         );
 
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
@@ -320,8 +316,7 @@ public class SearchSuggestionsDatabaseUtilTest {
                 searchText2,
                 "mediaSetId",
                 "authority",
-                SEARCH_SUGGESTION_LOCATION,
-                null
+                SEARCH_SUGGESTION_LOCATION
         );
         SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
 

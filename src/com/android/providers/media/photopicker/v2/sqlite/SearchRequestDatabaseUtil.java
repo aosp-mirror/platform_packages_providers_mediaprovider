@@ -34,6 +34,7 @@ import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Convenience class for running Picker Search Request related sql queries.
@@ -88,18 +89,38 @@ public class SearchRequestDatabaseUtil {
      * @param searchRequestId Identifier for a search request.
      * @param resumeKey The resume key that can be used to fetch the next page of results,
      *                  or indicate that the sync is complete.
+     * @param isLocal True if the sync resume key of local sync should be updated, else false if the
+     *               sync resume key of cloud sync should be updated.
      * @throws RuntimeException if an error occurs in running the sql command.
      */
     public static void updateResumeKey(
             @NonNull SQLiteDatabase database,
             int searchRequestId,
-            @Nullable String resumeKey) {
+            @Nullable String resumeKey,
+            @NonNull String authority,
+            boolean isLocal) {
         final String table = PickerSQLConstants.Table.SEARCH_REQUEST.name();
 
         ContentValues contentValues = new ContentValues();
-        contentValues.put(
-                PickerSQLConstants.SearchRequestTableColumns.SYNC_RESUME_KEY.getColumnName(),
-                resumeKey);
+        if (isLocal) {
+            contentValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .LOCAL_SYNC_RESUME_KEY.getColumnName(),
+                    resumeKey);
+            contentValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .LOCAL_AUTHORITY.getColumnName(),
+                    authority);
+        } else {
+            contentValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .CLOUD_SYNC_RESUME_KEY.getColumnName(),
+                    resumeKey);
+            contentValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .CLOUD_AUTHORITY.getColumnName(),
+                    authority);
+        }
 
         database.update(
                 table,
@@ -112,7 +133,7 @@ public class SearchRequestDatabaseUtil {
                                 .SEARCH_REQUEST_ID.getColumnName(),
                         searchRequestId
                 ),
-                null
+                /* whereArgs */ null
         );
     }
 
@@ -175,10 +196,13 @@ public class SearchRequestDatabaseUtil {
             @NonNull int searchRequestID
     ) {
         final List<String> projection = List.of(
-                PickerSQLConstants.SearchRequestTableColumns.SYNC_RESUME_KEY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.LOCAL_SYNC_RESUME_KEY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.LOCAL_AUTHORITY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.CLOUD_SYNC_RESUME_KEY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.CLOUD_AUTHORITY.getColumnName(),
                 PickerSQLConstants.SearchRequestTableColumns.SEARCH_TEXT.getColumnName(),
                 PickerSQLConstants.SearchRequestTableColumns.MEDIA_SET_ID.getColumnName(),
-                PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_AUTHORITY.getColumnName(),
                 PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_TYPE.getColumnName(),
                 PickerSQLConstants.SearchRequestTableColumns.MIME_TYPES.getColumnName()
         );
@@ -196,30 +220,52 @@ public class SearchRequestDatabaseUtil {
                             + "- returning the first match");
                 }
 
-                final String authority = getColumnValueOrNull(
+                final String suggestionAuthority = getColumnValueOrNull(
                         cursor,
-                        PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName()
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .SUGGESTION_AUTHORITY.getColumnName()
                 );
                 final String mimeTypes = getColumnValueOrNull(
                         cursor,
-                        PickerSQLConstants.SearchRequestTableColumns.MIME_TYPES.getColumnName()
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .MIME_TYPES.getColumnName()
                 );
                 final String searchText = getColumnValueOrNull(
                             cursor,
-                            PickerSQLConstants.SearchRequestTableColumns.SEARCH_TEXT.getColumnName()
+                            PickerSQLConstants.SearchRequestTableColumns
+                                    .SEARCH_TEXT.getColumnName()
                 );
-                final String resumeKey = getColumnValueOrNull(
+                final String localSyncResumeKey = getColumnValueOrNull(
                         cursor,
-                        PickerSQLConstants.SearchRequestTableColumns.SYNC_RESUME_KEY.getColumnName()
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .LOCAL_SYNC_RESUME_KEY.getColumnName()
+                );
+                final String localAuthority = getColumnValueOrNull(
+                        cursor,
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .LOCAL_AUTHORITY.getColumnName()
+                );
+                final String cloudSyncResumeKey = getColumnValueOrNull(
+                        cursor,
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .CLOUD_SYNC_RESUME_KEY.getColumnName()
+                );
+                final String cloudAuthority = getColumnValueOrNull(
+                        cursor,
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .CLOUD_AUTHORITY.getColumnName()
                 );
 
                 final SearchRequest searchRequest;
-                if (authority == null) {
+                if (suggestionAuthority == null) {
                     // This is a search text request
                     searchRequest = new SearchTextRequest(
                             SearchRequest.getMimeTypesAsList(mimeTypes),
-                            requireNonNull(searchText),
-                            resumeKey
+                            searchText,
+                            localSyncResumeKey,
+                            localAuthority,
+                            cloudSyncResumeKey,
+                            cloudAuthority
                     );
                 } else {
                     // This is a search suggestion request
@@ -242,9 +288,12 @@ public class SearchRequestDatabaseUtil {
                             SearchRequest.getMimeTypesAsList(mimeTypes),
                             searchText,
                             mediaSetID,
-                            authority,
+                            suggestionAuthority,
                             suggestionType,
-                            resumeKey
+                            localSyncResumeKey,
+                            localAuthority,
+                            cloudSyncResumeKey,
+                            cloudAuthority
                     );
                 }
                 return searchRequest;
@@ -257,6 +306,68 @@ public class SearchRequestDatabaseUtil {
             Log.e(TAG, "Could not fetch search request details.", e);
             return null;
         }
+    }
+
+    /**
+     * Clear sync resume info from the database.
+     *
+     * @param database SQLiteDatabase object that contains the database connection.
+     * @param searchRequestIds List of search request ids that identify the rows that need to be
+     *                         updated.
+     * @param isLocal This is true when the local sync resume info needs to clear,
+     *                otherwise it is false.
+     * @return The number of items that were updated.
+     */
+    public static int clearSyncResumeInfo(
+            @NonNull SQLiteDatabase database,
+            @NonNull List<Integer> searchRequestIds,
+            boolean isLocal) {
+        requireNonNull(database);
+        requireNonNull(searchRequestIds);
+        if (searchRequestIds.isEmpty()) {
+            Log.d(TAG, "No search request ids received for clearing resume info");
+            return 0;
+        }
+
+        final String whereClause = String.format(
+                Locale.ROOT,
+                "%s IN ('%s')",
+                PickerSQLConstants.SearchRequestTableColumns.SEARCH_REQUEST_ID.getColumnName(),
+                searchRequestIds
+                        .stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining("','")));
+
+        final ContentValues updatedValues = new ContentValues();
+        if (isLocal) {
+            updatedValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .LOCAL_SYNC_RESUME_KEY.getColumnName(),
+                    (String) null
+            );
+            updatedValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns.LOCAL_AUTHORITY.getColumnName(),
+                    (String) null
+            );
+        } else {
+            updatedValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .CLOUD_SYNC_RESUME_KEY.getColumnName(),
+                    (String) null
+            );
+            updatedValues.put(
+                    PickerSQLConstants.SearchRequestTableColumns.CLOUD_AUTHORITY.getColumnName(),
+                    (String) null
+            );
+        }
+
+        final int updatedSearchRequestsCount = database.update(
+                PickerSQLConstants.Table.SEARCH_REQUEST.name(),
+                updatedValues,
+                whereClause,
+                /* whereArgs */ null);
+        Log.d(TAG, "Updated number of search results: " + updatedSearchRequestsCount);
+        return updatedSearchRequestsCount;
     }
 
 
@@ -277,10 +388,22 @@ public class SearchRequestDatabaseUtil {
                 getValueOrPlaceholder(
                         SearchRequest.getMimeTypesAsString(searchRequest.getMimeTypes())));
 
-        // Insert value as it is for a non-unique column.
+        // Insert value as it is for non-unique columns.
         values.put(
-                PickerSQLConstants.SearchRequestTableColumns.SYNC_RESUME_KEY.getColumnName(),
-                searchRequest.getResumeKey());
+                PickerSQLConstants.SearchRequestTableColumns.LOCAL_SYNC_RESUME_KEY.getColumnName(),
+                searchRequest.getLocalSyncResumeKey());
+
+        values.put(
+                PickerSQLConstants.SearchRequestTableColumns.LOCAL_AUTHORITY.getColumnName(),
+                searchRequest.getLocalAuthority());
+
+        values.put(
+                PickerSQLConstants.SearchRequestTableColumns.CLOUD_SYNC_RESUME_KEY.getColumnName(),
+                searchRequest.getCloudSyncResumeKey());
+
+        values.put(
+                PickerSQLConstants.SearchRequestTableColumns.CLOUD_AUTHORITY.getColumnName(),
+                searchRequest.getCloudAuthority());
 
         if (searchRequest instanceof SearchTextRequest searchTextRequest) {
             // Insert placeholder for null for unique column.
@@ -291,7 +414,8 @@ public class SearchRequestDatabaseUtil {
                     PickerSQLConstants.SearchRequestTableColumns.MEDIA_SET_ID.getColumnName(),
                     PLACEHOLDER_FOR_NULL);
             values.put(
-                    PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName(),
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .SUGGESTION_AUTHORITY.getColumnName(),
                     PLACEHOLDER_FOR_NULL);
             values.put(
                     PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_TYPE.getColumnName(),
@@ -307,7 +431,8 @@ public class SearchRequestDatabaseUtil {
                     getValueOrPlaceholder(
                             searchSuggestionRequest.getSearchSuggestion().getMediaSetId()));
             values.put(
-                    PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName(),
+                    PickerSQLConstants.SearchRequestTableColumns
+                            .SUGGESTION_AUTHORITY.getColumnName(),
                     getValueOrPlaceholder(searchSuggestionRequest
                             .getSearchSuggestion().getAuthority()));
             values.put(
@@ -363,7 +488,7 @@ public class SearchRequestDatabaseUtil {
                 mediaSetId);
         addWhereClause(
                 queryBuilder,
-                PickerSQLConstants.SearchRequestTableColumns.AUTHORITY.getColumnName(),
+                PickerSQLConstants.SearchRequestTableColumns.SUGGESTION_AUTHORITY.getColumnName(),
                 authority);
         addWhereClause(
                 queryBuilder,
@@ -376,7 +501,8 @@ public class SearchRequestDatabaseUtil {
             @NonNull int searchRequestID
     ) {
         queryBuilder.appendWhereStandalone(
-                String.format(Locale.ROOT, " %s = '%s' ",
+                String.format(Locale.ROOT,
+                        " %s = '%s' ",
                         PickerSQLConstants.SearchRequestTableColumns
                                 .SEARCH_REQUEST_ID.getColumnName(),
                         searchRequestID));

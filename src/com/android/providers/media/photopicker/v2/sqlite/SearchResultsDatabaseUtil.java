@@ -31,6 +31,7 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
@@ -38,10 +39,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.photopicker.PickerSyncController;
+import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Convenience class for running Picker Search Results related sql queries.
@@ -121,7 +124,8 @@ public class SearchResultsDatabaseUtil {
     public static int cacheSearchResults(
             @NonNull SQLiteDatabase database,
             @NonNull String authority,
-            @Nullable List<ContentValues> contentValuesList) {
+            @Nullable List<ContentValues> contentValuesList,
+            @Nullable CancellationSignal cancellationSignal) {
         requireNonNull(database);
         requireNonNull(authority);
 
@@ -167,6 +171,11 @@ public class SearchResultsDatabaseUtil {
                 }
             }
 
+            if (cancellationSignal != null && cancellationSignal.isCanceled()) {
+                throw new RequestObsoleteException(
+                        "cacheSearchResults operation has been cancelled.");
+            }
+
             // Mark transaction as successful so that it gets committed after it ends.
             if (database.inTransaction()) {
                 database.setTransactionSuccessful();
@@ -174,6 +183,10 @@ public class SearchResultsDatabaseUtil {
 
             Log.d(TAG, "Number of search results cached: " + numberOfRowsInserted);
             return numberOfRowsInserted;
+        } catch (RequestObsoleteException e) {
+            // Do not mark transaction as successful so that it gets roll-backed. after it ends.
+            throw new RuntimeException("Could not insert items in the DB because "
+                    + "the operation has been cancelled.", e);
         } catch (RuntimeException e) {
             // Do not mark transaction as successful so that it gets roll-backed. after it ends.
             throw new RuntimeException("Could not insert items in the DB", e);
@@ -367,5 +380,56 @@ public class SearchResultsDatabaseUtil {
                 ).setLimit(query.getPageSize());
 
         return queryBuilder.buildQuery();
+    }
+
+    /**
+     * Deletes all the obsolete search results from the database.
+     *
+     * @param database SQLiteDatabase object that contains the database connection.
+     * @param searchRequestIds List of search request ids that identify the rows that need to be
+     *                         deleted.
+     * @param isLocal This is true when the local sync results info needs to clear,
+     *                otherwise it is false.
+     * @return The number of items that were deleted.
+     */
+    public static int clearObsoleteSearchResults(
+            @NonNull SQLiteDatabase database,
+            @NonNull List<Integer> searchRequestIds,
+            boolean isLocal) {
+        requireNonNull(database);
+        requireNonNull(searchRequestIds);
+        if (searchRequestIds.isEmpty()) {
+            Log.d(TAG, "No search request ids received for clearing search results");
+            return 0;
+        }
+
+        final String whereClause;
+
+        if (isLocal) {
+            whereClause = String.format(
+                    Locale.ROOT,
+                    "%s IN ('%s') AND %s IS NULL",
+                    PickerSQLConstants.SearchResultMediaTableColumns
+                            .SEARCH_REQUEST_ID.getColumnName(),
+                    searchRequestIds.stream().map(Object::toString)
+                            .collect(Collectors.joining("','")),
+                    PickerSQLConstants.SearchResultMediaTableColumns.CLOUD_ID.getColumnName());
+        } else {
+            whereClause = String.format(
+                    Locale.ROOT,
+                    "%s IN ('%s') AND %s IS NOT NULL",
+                    PickerSQLConstants.SearchResultMediaTableColumns
+                            .SEARCH_REQUEST_ID.getColumnName(),
+                    searchRequestIds.stream().map(Object::toString)
+                            .collect(Collectors.joining("','")),
+                    PickerSQLConstants.SearchResultMediaTableColumns.CLOUD_ID.getColumnName());
+        }
+
+        final int deletedSearchResultsCount = database.delete(
+                PickerSQLConstants.Table.SEARCH_RESULT_MEDIA.name(),
+                whereClause,
+                /* whereArgs */ null);
+        Log.d(TAG, "Deleted number of search results: " + deletedSearchResultsCount);
+        return deletedSearchResultsCount;
     }
 }

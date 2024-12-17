@@ -33,25 +33,47 @@ public class SearchSuggestionRequest extends SearchRequest {
     public SearchSuggestionRequest(
             @Nullable List<String> mimeTypes,
             @Nullable String searchText,
-            @NonNull String mediaSetId,
-            @NonNull String authority,
+            @Nullable String mediaSetId,
+            @Nullable String suggestionAuthority,
+            @SearchSuggestionType String searchSuggestionType
+    ) {
+        this(mimeTypes, searchText, mediaSetId, suggestionAuthority, searchSuggestionType,
+                /* localSyncResumeKey */ null,
+                /* localAuthority */ null,
+                /* cloudSyncResumeKey */ null,
+                /* cloudAuthority */ null);
+    }
+
+    public SearchSuggestionRequest(
+            @Nullable List<String> mimeTypes,
+            @Nullable String searchText,
+            @Nullable String mediaSetId,
+            @Nullable String suggestionAuthority,
             @SearchSuggestionType String searchSuggestionType,
-            @Nullable String resumeKey) {
-        this(mimeTypes, searchText, mediaSetId, authority, searchSuggestionType, resumeKey,
+            @Nullable String localSyncResumeKey,
+            @Nullable String localAuthority,
+            @Nullable String cloudSyncResumeKey,
+            @Nullable String cloudAuthority
+    ) {
+        this(mimeTypes, searchText, mediaSetId, suggestionAuthority, searchSuggestionType,
+                localSyncResumeKey, localAuthority, cloudSyncResumeKey, cloudAuthority,
                 /* coverMediaSetId */ null);
     }
 
     public SearchSuggestionRequest(
             @Nullable List<String> mimeTypes,
             @Nullable String searchText,
-            @NonNull String mediaSetId,
-            @NonNull String authority,
+            @Nullable String mediaSetId,
+            @Nullable String suggestionAuthority,
             @SearchSuggestionType String searchSuggestionType,
-            @Nullable String resumeKey,
+            @Nullable String localSyncResumeKey,
+            @Nullable String localAuthority,
+            @Nullable String cloudSyncResumeKey,
+            @Nullable String cloudAuthority,
             @Nullable String coverMediaId) {
-        super(mimeTypes, resumeKey);
+        super(mimeTypes, localSyncResumeKey, localAuthority, cloudSyncResumeKey, cloudAuthority);
 
-        mSearchSuggestion = new SearchSuggestion(searchText, mediaSetId, authority,
+        mSearchSuggestion = new SearchSuggestion(searchText, mediaSetId, suggestionAuthority,
                 searchSuggestionType, coverMediaId);
     }
 

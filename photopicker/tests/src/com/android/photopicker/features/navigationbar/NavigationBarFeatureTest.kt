@@ -291,19 +291,19 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
         }
     }
 
-    /* Verify Navigation Bar when search flag enabled contains tabs for both photos and albums grid.*/
+    /* Verify Navigation Bar when search flag enabled contains tabs for both photos and category grid.*/
     @Test
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testNavigationBar_withSearchFlagEnabled_IsVisibleWithFeatureTabs() {
         val photosGridNavButtonLabel =
             getTestableContext()
                 .getResources()
                 .getString(R.string.photopicker_photos_nav_button_label)
-        val albumsGridNavButtonLabel =
+        val categoryGridNavButtonLabel =
             getTestableContext()
                 .getResources()
-                .getString(R.string.photopicker_albums_nav_button_label)
+                .getString(R.string.photopicker_categories_nav_button_label)
 
         testScope.runTest {
             composeTestRule.setContent {
@@ -323,7 +323,7 @@ class NavigationBarFeatureTest : PhotopickerFeatureBaseTest() {
                 .assert(hasClickAction())
 
             composeTestRule
-                .onNode(hasText(albumsGridNavButtonLabel))
+                .onNode(hasText(categoryGridNavButtonLabel))
                 .assertIsDisplayed()
                 .assert(hasClickAction())
         }

@@ -32,7 +32,6 @@ public class SearchSuggestion {
     private final String mMediaSetId;
     @Nullable
     private final String mAuthority;
-    @SearchSuggestionType
     private final String mSearchSuggestionType;
     @Nullable
     private final String mCoverMediaId;

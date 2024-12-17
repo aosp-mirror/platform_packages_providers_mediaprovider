@@ -949,8 +949,8 @@ public class ModernMediaScannerTest {
             assertThat(cursor.getCount()).isEqualTo(1);
         }
 
-        // Delete the pending file to make the row is stale
-        executeShellCommand("rm " + audio.getAbsolutePath());
+        // Delete the pending file to make the row is stale.
+        audio.delete();
         assertThat(audio.exists()).isFalse();
 
         // the row still exists
@@ -992,7 +992,7 @@ public class ModernMediaScannerTest {
         }
 
         // Delete the pending file to make the row is stale
-        executeShellCommand("rm " + audio.getAbsolutePath());
+        audio.delete();
         assertThat(audio.exists()).isFalse();
 
         // the row still exists
@@ -1034,7 +1034,7 @@ public class ModernMediaScannerTest {
         }
 
         // Delete the trashed file to make the row is stale
-        executeShellCommand("rm " + audio.getAbsolutePath());
+        audio.delete();
         assertThat(audio.exists()).isFalse();
 
         // the row still exists
@@ -1076,7 +1076,7 @@ public class ModernMediaScannerTest {
         }
 
         // Delete the trashed file to make the row is stale
-        executeShellCommand("rm " + audio.getAbsolutePath());
+        audio.delete();
         assertThat(audio.exists()).isFalse();
 
         // the row still exists
@@ -1113,7 +1113,7 @@ public class ModernMediaScannerTest {
         }
 
         // Delete the file to make the row is stale
-        executeShellCommand("rm " + audio.getAbsolutePath());
+        audio.delete();
         assertThat(audio.exists()).isFalse();
 
         // the row still exists

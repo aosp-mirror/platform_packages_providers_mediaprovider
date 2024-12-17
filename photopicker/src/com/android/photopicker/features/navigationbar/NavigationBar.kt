@@ -58,7 +58,9 @@ import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToCategoryGrid
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.categorygrid.CategoryGridFeature
 import com.android.photopicker.features.overflowmenu.OverflowMenuFeature
 import com.android.photopicker.features.profileselector.ProfileSelectorFeature
 import com.android.photopicker.features.search.SearchFeature
@@ -118,8 +120,13 @@ fun NavigationBar(modifier: Modifier = Modifier, params: LocationParams) {
 
             // When inside an album display the album title and a back button,
             // instead of the normal navigation bar contents.
-            currentRoute == PhotopickerDestinations.ALBUM_MEDIA_GRID.route ->
-                NavigationBarForAlbum(modifier)
+            currentRoute == PhotopickerDestinations.ALBUM_MEDIA_GRID.route -> {
+                if (featureManager.isFeatureEnabled(AlbumGridFeature::class.java)) {
+                    NavigationBarForAlbum(modifier)
+                } else {
+                    NavigationBarForGroup(modifier)
+                }
+            }
 
             // When search feature is enabled then display search bar along with profile selector,
             // overflow menu and the navigation buttons below it.
@@ -256,6 +263,70 @@ private fun NavigationBarForAlbum(modifier: Modifier) {
                     // Album name
                     Text(
                         text = album.displayName,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleLarge,
+                        // Traversal index -1 forces TalkBack to focus on the album title first.
+                        modifier = Modifier.semantics { traversalIndex = -1f },
+                    )
+                }
+            }
+        }
+        val featureManager = LocalFeatureManager.current
+        val overFlowMenuEnabled =
+            remember(featureManager) {
+                featureManager.isFeatureEnabled(OverflowMenuFeature::class.java)
+            }
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+            if (overFlowMenuEnabled) {
+                featureManager.composeLocation(
+                    Location.OVERFLOW_MENU,
+                    modifier = Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH),
+                )
+            } else {
+                Spacer(Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH))
+            }
+        }
+    }
+}
+
+/**
+ * Composable that provides Navigation Bar when inside an album that displays the album title and a
+ * back button
+ *
+ * @param modifier Modifier used to configure the layout of the navigation bar.
+ */
+@Composable
+private fun NavigationBarForGroup(modifier: Modifier) {
+    val navController = LocalNavController.current
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    Row(modifier = modifier.fillMaxWidth()) {
+        val flow =
+            navBackStackEntry
+                ?.savedStateHandle
+                ?.getStateFlow<Group?>(CategoryGridFeature.GROUP_KEY, null)
+        val group = flow?.value
+        when (group) {
+            null -> {}
+            is Group.Album -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // back button
+                    IconButton(
+                        modifier =
+                            Modifier.width(MEASUREMENT_ICON_BUTTON_WIDTH)
+                                .padding(horizontal = MEASUREMENT_ICON_BUTTON_OUTSIDE_PADDING),
+                        onClick = { navController.navigateToCategoryGrid() },
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            // For accessibility
+                            contentDescription = stringResource(R.string.photopicker_back_option),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    // Album name
+                    Text(
+                        text = group.displayName,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
                         style = MaterialTheme.typography.titleLarge,

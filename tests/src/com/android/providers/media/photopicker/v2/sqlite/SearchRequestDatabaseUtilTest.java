@@ -85,8 +85,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SEARCH_SUGGESTION_TEXT,
-                null
+                SEARCH_SUGGESTION_TEXT
         );
 
         final long firstInsertResult =
@@ -124,8 +123,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "media-set-id",
                 "authority",
-                SEARCH_SUGGESTION_TEXT,
-                null
+                SEARCH_SUGGESTION_TEXT
         );
 
         final long secondInsertResult =
@@ -154,8 +152,7 @@ public class SearchRequestDatabaseUtilTest {
                 "mountains",
                 "different-media-set-id",
                 "authority",
-                SEARCH_SUGGESTION_TEXT,
-                null
+                SEARCH_SUGGESTION_TEXT
         );
 
         final long fourthInsertResult =
@@ -233,11 +230,17 @@ public class SearchRequestDatabaseUtilTest {
     public void testGetSearchTextRequestDetails() {
         final List<String> mimeTypes = List.of("video/mp4", "image/*", "image/gif");
         final String searchText = "mountains";
-        final String resumeKey = "RANDOM_RESUME_KEY";
+        final String cloudResumeKey = "RANDOM_RESUME_KEY_CLOUD";
+        final String localResumeKey = "RANDOM_RESUME_KEY_LOCAL";
+        final String cloudAuthority = "com.random.cloud.authority";
+        final String localAuthority = "com.random.local.authority";
         SearchTextRequest searchRequest = new SearchTextRequest(
                 mimeTypes,
                 searchText,
-                resumeKey
+                localResumeKey,
+                localAuthority,
+                cloudResumeKey,
+                cloudAuthority
         );
 
         // Insert a search request
@@ -266,9 +269,18 @@ public class SearchRequestDatabaseUtilTest {
         assertWithMessage("Search request mime types are not as expected")
                 .that(resultSearchRequest.getMimeTypes())
                 .containsExactlyElementsIn(mimeTypes);
-        assertWithMessage("Search request resume key is not as expected")
-                .that(resultSearchRequest.getResumeKey())
-                .isEqualTo(resumeKey);
+        assertWithMessage("Search request cloud resume key is not as expected")
+                .that(resultSearchRequest.getCloudSyncResumeKey())
+                .isEqualTo(cloudResumeKey);
+        assertWithMessage("Search request cloud authority is not as expected")
+                .that(resultSearchRequest.getCloudAuthority())
+                .isEqualTo(cloudAuthority);
+        assertWithMessage("Search request local resume key is not as expected")
+                .that(resultSearchRequest.getLocalSyncResumeKey())
+                .isEqualTo(localResumeKey);
+        assertWithMessage("Search request local authority is not as expected")
+                .that(resultSearchRequest.getLocalAuthority())
+                .isEqualTo(localAuthority);
 
         final SearchTextRequest resultSearchTextRequest = (SearchTextRequest) resultSearchRequest;
         assertWithMessage("Search request search text is not as expected")
@@ -279,17 +291,22 @@ public class SearchRequestDatabaseUtilTest {
     @Test
     public void testGetSearchSuggestionRequestDetails() {
         final List<String> mimeTypes = List.of("video/mp4", "image/*", "image/gif");
-        final String resumeKey = "RANDOM_RESUME_KEY";
+        final String cloudResumeKey = "RANDOM_RESUME_KEY_CLOUD";
+        final String localResumeKey = "RANDOM_RESUME_KEY_LOCAL";
         final String mediaSetID = "MEDIA-SET-ID";
-        final String authority = "com.random.authority";
+        final String cloudAuthority = "com.random.cloud.authority";
+        final String localAuthority = "com.random.local.authority";
         final String suggestionType = SEARCH_SUGGESTION_LOCATION;
         SearchSuggestionRequest searchRequest = new SearchSuggestionRequest(
                 mimeTypes,
                 null,
                 mediaSetID,
-                authority,
+                cloudAuthority,
                 suggestionType,
-                resumeKey
+                localResumeKey,
+                localAuthority,
+                cloudResumeKey,
+                cloudAuthority
         );
 
         // Insert a search request
@@ -318,9 +335,18 @@ public class SearchRequestDatabaseUtilTest {
         assertWithMessage("Search request mime types are not as expected")
                 .that(resultSearchRequest.getMimeTypes())
                 .containsExactlyElementsIn(mimeTypes);
-        assertWithMessage("Search request resume key is not as expected")
-                .that(resultSearchRequest.getResumeKey())
-                .isEqualTo(resumeKey);
+        assertWithMessage("Search request cloud resume key is not as expected")
+                .that(resultSearchRequest.getCloudSyncResumeKey())
+                .isEqualTo(cloudResumeKey);
+        assertWithMessage("Search request cloud authority is not as expected")
+                .that(resultSearchRequest.getCloudAuthority())
+                .isEqualTo(cloudAuthority);
+        assertWithMessage("Search request local resume key is not as expected")
+                .that(resultSearchRequest.getLocalSyncResumeKey())
+                .isEqualTo(localResumeKey);
+        assertWithMessage("Search request local authority is not as expected")
+                .that(resultSearchRequest.getLocalAuthority())
+                .isEqualTo(localAuthority);
 
         final SearchSuggestionRequest resultSearchSuggestionRequest =
                 (SearchSuggestionRequest) resultSearchRequest;
@@ -332,7 +358,7 @@ public class SearchRequestDatabaseUtilTest {
                 .isEqualTo(mediaSetID);
         assertWithMessage("Search request search text is not as expected")
                 .that(resultSearchSuggestionRequest.getSearchSuggestion().getAuthority())
-                .isEqualTo(authority);
+                .isEqualTo(cloudAuthority);
         assertWithMessage("Search request search text is not as expected")
                 .that(resultSearchSuggestionRequest.getSearchSuggestion().getSearchSuggestionType())
                 .isEqualTo(suggestionType);
@@ -349,8 +375,7 @@ public class SearchRequestDatabaseUtilTest {
                 null,
                 mediaSetID,
                 authority,
-                suggestionType,
-                null
+                suggestionType
         );
 
         // Insert a search request
@@ -370,20 +395,74 @@ public class SearchRequestDatabaseUtilTest {
         // Fetch search details from search request ID
         final SearchRequest savedSearchRequest =
                 SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
-        assertWithMessage("Initial search request resume key is not null")
-                .that(savedSearchRequest.getResumeKey())
+        assertWithMessage("Search request is null")
+                .that(savedSearchRequest)
+                .isNotNull();
+        assertWithMessage("Initial search request cloud resume key is not null")
+                .that(savedSearchRequest.getCloudSyncResumeKey())
+                .isNull();
+        assertWithMessage("Initial search request cloud authority is not null")
+                .that(savedSearchRequest.getCloudAuthority())
+                .isNull();
+        assertWithMessage("Initial search request local sync resume key is not null")
+                .that(savedSearchRequest.getLocalSyncResumeKey())
+                .isNull();
+        assertWithMessage("Initial search request local authority is not null")
+                .that(savedSearchRequest.getLocalAuthority())
                 .isNull();
 
-        // Update resume key and save
-        final String randomResumeKey = "RAMDOM_RESUME_KEY";
-        savedSearchRequest.setResumeKey(randomResumeKey);
-        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID, randomResumeKey);
+        // Update cloud resume key and save
+        final String cloudResumeKey = "CLOUD_RESUME_KEY";
+        final String cloudAuthority = "CLOUD_AUTHORITY";
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID, cloudResumeKey,
+                cloudAuthority, /* isLocal */ false);
 
         // Fetch updated search details from search request ID
-        final SearchRequest updatedSearchRequest =
+        final SearchRequest updatedSearchRequest1 =
                 SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
-        assertWithMessage("Initial search request resume key is not null")
-                .that(updatedSearchRequest.getResumeKey())
-                .isEqualTo(randomResumeKey);
+        assertWithMessage("Search request is null")
+                .that(updatedSearchRequest1)
+                .isNotNull();
+        assertWithMessage("Search request cloud resume key is not as expected")
+                .that(updatedSearchRequest1.getCloudSyncResumeKey())
+                .isEqualTo(cloudResumeKey);
+        assertWithMessage("Search request cloud authority is not as expected")
+                .that(updatedSearchRequest1.getCloudAuthority())
+                .isEqualTo(cloudAuthority);
+        assertWithMessage("Search request local sync resume key is not null")
+                .that(updatedSearchRequest1.getLocalSyncResumeKey())
+                .isNull();
+        assertWithMessage("Initial search request local authority is not null")
+                .that(updatedSearchRequest1.getLocalAuthority())
+                .isNull();
+
+        // Update local resume key and save
+        final String localResumeKey = "LOCAL_RESUME_KEY";
+        final String localAuthority = "LOCAL_AUTHORITY";
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID, localResumeKey,
+                localAuthority, /* isLocal */ true);
+
+        // Clear cloud resume key
+        SearchRequestDatabaseUtil.clearSyncResumeInfo(mDatabase, List.of(searchRequestID),
+                /* isLocal */ false);
+
+        // Fetch updated search details from search request ID
+        final SearchRequest updatedSearchRequest2 =
+                SearchRequestDatabaseUtil.getSearchRequestDetails(mDatabase, searchRequestID);
+        assertWithMessage("Search request is null")
+                .that(updatedSearchRequest2)
+                .isNotNull();
+        assertWithMessage("Search request local resume key is not as expected")
+                .that(updatedSearchRequest2.getLocalSyncResumeKey())
+                .isEqualTo(localResumeKey);
+        assertWithMessage("Search request local authority is not as expected")
+                .that(updatedSearchRequest2.getLocalAuthority())
+                .isEqualTo(localAuthority);
+        assertWithMessage("Search request cloud sync resume key is not null")
+                .that(updatedSearchRequest2.getCloudSyncResumeKey())
+                .isNull();
+        assertWithMessage("Initial search request cloud authority is not null")
+                .that(updatedSearchRequest2.getCloudAuthority())
+                .isNull();
     }
 }

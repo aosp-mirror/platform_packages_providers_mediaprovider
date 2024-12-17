@@ -199,11 +199,14 @@ public class PickerSQLConstants {
 
     public enum SearchRequestTableColumns {
         SEARCH_REQUEST_ID("_id"),
-        SYNC_RESUME_KEY("sync_resume_key"),
+        LOCAL_SYNC_RESUME_KEY("local_sync_resume_key"),
+        LOCAL_AUTHORITY("local_authority"),
+        CLOUD_SYNC_RESUME_KEY("cloud_sync_resume_key"),
+        CLOUD_AUTHORITY("cloud_authority"),
         SEARCH_TEXT("search_text"),
         MEDIA_SET_ID("media_set_id"),
         SUGGESTION_TYPE("suggestion_type"),
-        AUTHORITY("authority"),
+        SUGGESTION_AUTHORITY("suggestion_authority"),
         MIME_TYPES("mime_types");
 
         private final String mColumnName;

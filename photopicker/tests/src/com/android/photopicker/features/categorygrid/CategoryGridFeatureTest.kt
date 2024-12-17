@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.photopicker.features.albumgrid
+package com.android.photopicker.features.categorygrid
 
 import android.content.ContentProvider
 import android.content.ContentResolver
@@ -64,7 +64,7 @@ import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource.Companion.TEST_ALBUM_NAME_PREFIX
-import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToCategoryGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
@@ -105,7 +105,7 @@ import org.mockito.MockitoAnnotations
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
-class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
+class CategoryGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
@@ -173,11 +173,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
-    fun testAlbumGridIsEnabledWhenSearchFlagOff() {
-        assertWithMessage("AlbumGridFeature is not always enabled for TEST_ACTION")
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testCategoryGridIsEnabledWhenSearchFlagOn() {
+        assertWithMessage("CategoryGridFeature is not enabled for TEST_ACTION")
             .that(
-                AlbumGridFeature.Registration.isEnabled(
+                CategoryGridFeature.Registration.isEnabled(
                     TestPhotopickerConfiguration.build {
                         action("TEST_ACTION")
                         intent(Intent("TEST_ACTION"))
@@ -186,9 +186,9 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             )
             .isEqualTo(true)
 
-        assertWithMessage("AlbumGridFeature is not always enabled")
+        assertWithMessage("CategoryGridFeature is not enabled")
             .that(
-                AlbumGridFeature.Registration.isEnabled(
+                CategoryGridFeature.Registration.isEnabled(
                     TestPhotopickerConfiguration.build {
                         action(MediaStore.ACTION_PICK_IMAGES)
                         intent(Intent(MediaStore.ACTION_PICK_IMAGES))
@@ -197,9 +197,9 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             )
             .isEqualTo(true)
 
-        assertWithMessage("AlbumGridFeature is not always enabled")
+        assertWithMessage("CategoryGridFeature is not enabled")
             .that(
-                AlbumGridFeature.Registration.isEnabled(
+                CategoryGridFeature.Registration.isEnabled(
                     TestPhotopickerConfiguration.build {
                         action(Intent.ACTION_GET_CONTENT)
                         intent(Intent(Intent.ACTION_GET_CONTENT))
@@ -208,9 +208,9 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             )
             .isEqualTo(true)
 
-        assertWithMessage("AlbumGridFeature is not always enabled")
+        assertWithMessage("AlbumGridFeature is not enabled")
             .that(
-                AlbumGridFeature.Registration.isEnabled(
+                CategoryGridFeature.Registration.isEnabled(
                     TestPhotopickerConfiguration.build {
                         action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
                         intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
@@ -221,62 +221,62 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                 )
             )
             .isEqualTo(true)
+    }
+
+    @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testCategoryGridIsDisabledWhenSearchFlagOff() {
+        assertWithMessage("CategoryGridFeature is enabled for TEST_ACTION")
+            .that(
+                CategoryGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("CategoryGridFeature is enabled")
+            .that(
+                CategoryGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("CategoryGridFeature is enabled")
+            .that(
+                CategoryGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("AlbumGridFeature is enabled")
+            .that(
+                CategoryGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
+            .isEqualTo(false)
     }
 
     @Test
     @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
-    fun testAlbumGridIsDisabledWhenSearchFlagOn() {
-        assertWithMessage("AlbumGridFeature is enabled for TEST_ACTION")
-            .that(
-                AlbumGridFeature.Registration.isEnabled(
-                    TestPhotopickerConfiguration.build {
-                        action("TEST_ACTION")
-                        intent(Intent("TEST_ACTION"))
-                    }
-                )
-            )
-            .isEqualTo(false)
-
-        assertWithMessage("AlbumGridFeature is always enabled")
-            .that(
-                AlbumGridFeature.Registration.isEnabled(
-                    TestPhotopickerConfiguration.build {
-                        action(MediaStore.ACTION_PICK_IMAGES)
-                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
-                    }
-                )
-            )
-            .isEqualTo(false)
-
-        assertWithMessage("AlbumGridFeature is always enabled")
-            .that(
-                AlbumGridFeature.Registration.isEnabled(
-                    TestPhotopickerConfiguration.build {
-                        action(Intent.ACTION_GET_CONTENT)
-                        intent(Intent(Intent.ACTION_GET_CONTENT))
-                    }
-                )
-            )
-            .isEqualTo(false)
-
-        assertWithMessage("AlbumGridFeature is always enabled")
-            .that(
-                AlbumGridFeature.Registration.isEnabled(
-                    TestPhotopickerConfiguration.build {
-                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
-                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
-                        callingPackage("com.example.test")
-                        callingPackageUid(1234)
-                        callingPackageLabel("test_app")
-                    }
-                )
-            )
-            .isEqualTo(false)
-    }
-
-    @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
-    fun testNavigateAlbumGridAndAlbumsAreVisible() =
+    fun testNavigateCategoryGridAndAlbumsAreVisible() =
         testScope.runTest {
             composeTestRule.setContent {
                 // Set an explicit size to prevent errors in glide being unable to measure
@@ -290,11 +290,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
-            assertWithMessage("Expected route to be albumgrid")
+            assertWithMessage("Expected route to be categorygrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -310,7 +310,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testAlbumsCanBeSelected() =
         testScope.runTest {
             composeTestRule.setContent {
@@ -325,11 +325,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
-            assertWithMessage("Expected route to be albumgrid")
+            assertWithMessage("Expected route to be categorygrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -349,13 +349,13 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
 
-            assertWithMessage("Expected route to be albummediagrid")
+            assertWithMessage("Expected route to be mediasetcontentgrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
                 .isEqualTo(PhotopickerDestinations.ALBUM_MEDIA_GRID.route)
         }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testSwipeLeftToNavigateToPhotoGrid() =
         testScope.runTest {
             composeTestRule.setContent {
@@ -369,11 +369,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
-            assertWithMessage("Expected route to be albumgrid")
+            assertWithMessage("Expected route to be categorygrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -385,13 +385,13 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             val route = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Expected swipe to navigate to AlbumGrid")
+            assertWithMessage("Expected swipe to navigate to Photogrid")
                 .that(route)
                 .isEqualTo(PhotopickerDestinations.PHOTO_GRID.route)
         }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testAlbumMediaShowsEmptyStateWhenEmpty() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -415,11 +415,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
             assertWithMessage("Expected route to be albumgrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -452,7 +452,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForFavorites() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -495,11 +495,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
             assertWithMessage("Expected route to be albumgrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -534,7 +534,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForVideos() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -577,11 +577,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
-            assertWithMessage("Expected route to be albumgrid")
+            assertWithMessage("Expected route to be categorygrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()
@@ -611,7 +611,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForCamera() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -654,11 +654,11 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
             advanceTimeBy(100)
 
             // Navigate on the UI thread (similar to a click handler)
-            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+            composeTestRule.runOnUiThread({ navController.navigateToCategoryGrid() })
 
-            assertWithMessage("Expected route to be albumgrid")
+            assertWithMessage("Expected route to be categorygrid")
                 .that(navController.currentBackStackEntry?.destination?.route)
-                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             advanceTimeBy(100)
             composeTestRule.waitForIdle()

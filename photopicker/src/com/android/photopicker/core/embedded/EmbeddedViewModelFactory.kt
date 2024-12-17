@@ -27,6 +27,7 @@ import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.albumgrid.AlbumGridViewModel
+import com.android.photopicker.features.categorygrid.CategoryGridViewModel
 import com.android.photopicker.features.photogrid.PhotoGridViewModel
 import com.android.photopicker.features.preparemedia.MediaPreparerViewModel
 import com.android.photopicker.features.preview.PreviewViewModel
@@ -79,6 +80,9 @@ class EmbeddedViewModelFactory(
             return when {
                 isAssignableFrom(AlbumGridViewModel::class.java) ->
                     AlbumGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
+                isAssignableFrom(CategoryGridViewModel::class.java) ->
+                    CategoryGridViewModel(null, selection.get(), dataService.get(), events.get())
+                        as T
                 isAssignableFrom(MediaPreparerViewModel::class.java) ->
                     MediaPreparerViewModel(
                         null,

@@ -22,7 +22,7 @@
     <string name="artist_label" msgid="8105600993099120273">"Извођач"</string>
     <string name="unknown" msgid="2059049215682829375">"Непознато"</string>
     <string name="root_images" msgid="5861633549189045666">"Слике"</string>
-    <string name="root_videos" msgid="8792703517064649453">"Видео снимци"</string>
+    <string name="root_videos" msgid="8792703517064649453">"Видеи"</string>
     <string name="root_audio" msgid="3505830755201326018">"Звук"</string>
     <string name="root_documents" msgid="3829103301363849237">"Документи"</string>
     <string name="permission_required" msgid="1460820436132943754">"Потребна је дозвола за измену или брисање ове ставке."</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Откажи"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Сачекај"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Сигурносна заштита"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Обавештења о основном транскодирању"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Ток основног транскодирања"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Обавештења о транскодирању"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Напредак транскодирања"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Пробајте поново касније. Слике ће бити доступне када се проблем реши."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Учитавање неких слика није успело"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Важи"</string>

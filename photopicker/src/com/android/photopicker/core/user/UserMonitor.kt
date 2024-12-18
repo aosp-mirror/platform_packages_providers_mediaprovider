@@ -17,14 +17,21 @@
 package com.android.photopicker.core.user
 
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.pm.UserProperties
+import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
+import android.content.res.Resources
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.drawable.toBitmap
 import com.android.modules.utils.build.SdkLevel
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -54,24 +61,27 @@ import kotlinx.coroutines.launch
  * depending on how busy the device currently is (and if Photopicker is currently in the
  * foreground).
  *
- * @property context The context of the Activity this UserMonitor is provided in.
+ * @param context The context of the Application this UserMonitor is provided in.
+ * @param configuration a [PhotopickerConfiguration] flow from the [ConfigurationManager]
  * @property scope The [CoroutineScope] that the BroadcastReceiver will listen in.
  * @property dispatcher [CoroutineDispatcher] scope that the BroadcastReceiver will listen in.
- * @property intent The activity's intent for determining CrossProfile support.
+ * @property processOwnerUserHandle the user handle of the process that owns the Photopicker
+ *   session.
  */
 class UserMonitor(
     context: Context,
+    private val configuration: StateFlow<PhotopickerConfiguration>,
     private val scope: CoroutineScope,
     private val dispatcher: CoroutineDispatcher,
     private val processOwnerUserHandle: UserHandle,
 ) {
 
     companion object {
-        val TAG: String = "PhotopickerUserMonitor"
+        const val TAG: String = "PhotopickerUserMonitor"
     }
 
     private val userManager: UserManager = context.requireSystemService()
-    private val packageManager: PackageManager = context.getPackageManager()
+    private val packageManager: PackageManager = context.packageManager
 
     /**
      * Internal state flow that the external flow is derived from. When making state changes, this
@@ -80,8 +90,21 @@ class UserMonitor(
     private val _userStatus: MutableStateFlow<UserStatus> =
         MutableStateFlow(
             UserStatus(
-                activeUserProfile = getUserProfileFromHandle(processOwnerUserHandle),
-                allProfiles = userManager.getUserProfiles().map(::getUserProfileFromHandle)
+                activeUserProfile = getUserProfileFromHandle(processOwnerUserHandle, context),
+                allProfiles =
+                    userManager.userProfiles
+                        .filter {
+                            // Filter out any profiles that should not be shown in sharing surfaces.
+                            if (SdkLevel.isAtLeastV()) {
+                                val properties = userManager.getUserProperties(it)
+                                properties.getShowInSharingSurfaces() ==
+                                    UserProperties.SHOW_IN_SHARING_SURFACES_SEPARATE
+                            } else {
+                                true
+                            }
+                        }
+                        .map { getUserProfileFromHandle(it, context) },
+                activeContentResolver = getContentResolver(context, processOwnerUserHandle)
             )
         )
 
@@ -98,12 +121,12 @@ class UserMonitor(
 
     /** Setup a BroadcastReceiver to receive broadcasts for profile availability changes */
     private val profileChanges =
-        callbackFlow<Intent> {
+        callbackFlow<Pair<Intent, Context>> {
             val receiver =
                 object : BroadcastReceiver() {
-                    override fun onReceive(unused: Context, intent: Intent) {
+                    override fun onReceive(context: Context, intent: Intent) {
                         Log.d(TAG, "Received profile changed: $intent")
-                        trySend(intent)
+                        trySend(Pair(intent, context))
                     }
                 }
             val intentFilter = IntentFilter()
@@ -132,7 +155,7 @@ class UserMonitor(
             } else {
                 // manually set the flags since [Context.RECEIVER_NOT_EXPORTED] doesn't exist pre
                 // Sdk33
-                context.registerReceiver(receiver, intentFilter, /* flags=*/ 0x4)
+                context.registerReceiver(receiver, intentFilter, /* flags= */ 0x4)
             }
 
             awaitClose {
@@ -145,8 +168,15 @@ class UserMonitor(
         // Begin to collect emissions from the BroadcastReceiver. Started in the init block
         // to ensure only one collection is ever started. This collection is launched in the
         // injected scope with the injected dispatcher.
-        scope.launch(dispatcher) { profileChanges.collect { handleProfileChangeBroadcast(it) } }
+        scope.launch(dispatcher) {
+            profileChanges.collect { (intent, context) ->
+                handleProfileChangeBroadcast(intent, context)
+            }
+        }
     }
+
+    /** The profile that the current Photopicker session is running under */
+    val launchingProfile: UserProfile = getUserProfileFromHandle(processOwnerUserHandle, context)
 
     /**
      * Attempt to switch the Active [UserProfile] to a known profile that matches the passed
@@ -158,7 +188,10 @@ class UserMonitor(
      *
      * @return The [SwitchProfileResult] of the requested change.
      */
-    suspend fun requestSwitchActiveUserProfile(requested: UserProfile): SwitchUserProfileResult {
+    suspend fun requestSwitchActiveUserProfile(
+        requested: UserProfile,
+        context: Context
+    ): SwitchUserProfileResult {
 
         // Attempt to find the requested profile amongst the profiles known.
         val profile: UserProfile? =
@@ -168,7 +201,13 @@ class UserMonitor(
 
             // Only allow the switch if a profile is currently enabled.
             if (profile.enabled) {
-                _userStatus.update { it.copy(activeUserProfile = profile) }
+                _userStatus.update {
+                    it.copy(
+                        activeUserProfile = profile,
+                        activeContentResolver =
+                            getContentResolver(context, UserHandle.of(profile.identifier))
+                    )
+                }
                 return SwitchUserProfileResult.SUCCESS
             }
 
@@ -184,7 +223,7 @@ class UserMonitor(
      * This handler will check the currently known profiles in the current user state and emit an
      * updated user status value.
      */
-    private suspend fun handleProfileChangeBroadcast(intent: Intent) {
+    private suspend fun handleProfileChangeBroadcast(intent: Intent, context: Context) {
 
         val handle: UserHandle? = getUserHandleFromIntent(intent)
 
@@ -195,7 +234,7 @@ class UserMonitor(
             )
 
             // Assemble a new UserProfile from the updated UserHandle.
-            val profile = getUserProfileFromHandle(handle)
+            val profile = getUserProfileFromHandle(handle, context)
 
             // Generate a new list of profiles to in preparation for an update.
             val newProfilesList: List<UserProfile> =
@@ -221,8 +260,7 @@ class UserMonitor(
                 )
 
                 // The current profile is disabled, we need to transition back to the process
-                // owner's
-                // profile.
+                // owner's profile.
                 val processOwnerProfile =
                     newProfilesList.find { it.identifier == processOwnerUserHandle.getIdentifier() }
 
@@ -236,9 +274,9 @@ class UserMonitor(
                     }
                 }
 
-                // This is potentially a problematic state, the current profile is disabled,
-                // and attempting to find the process owner's profile was unsuccessful.
-                ?: run {
+                    // This is potentially a problematic state, the current profile is disabled,
+                    // and attempting to find the process owner's profile was unsuccessful.
+                    ?: run {
                         Log.w(
                             TAG,
                             "Could not find the process owner's profile to switch to when the" +
@@ -254,9 +292,9 @@ class UserMonitor(
                 _userStatus.update { it.copy(allProfiles = newProfilesList) }
             }
         }
-        // If the incoming Intent does not include a UserHandle, there is nothing to update,
-        // but Log a warning to help with debugging.
-        ?: run {
+            // If the incoming Intent does not include a UserHandle, there is nothing to update,
+            // but Log a warning to help with debugging.
+            ?: run {
                 Log.w(
                     TAG,
                     "Received intent: $intent but could not find matching UserHandle. Ignoring."
@@ -270,10 +308,29 @@ class UserMonitor(
      * @return Whether CrossProfile content sharing is supported in this handle.
      */
     private fun getIsCrossProfileAllowedForHandle(
-        @Suppress("UNUSED_PARAMETER") handle: UserHandle
+        handle: UserHandle,
     ): Boolean {
-        // TODO(b/303779617): Implement cross profile handling logic.
-        return true
+
+        // First, check if cross profile is delegated to parent profile
+        if (SdkLevel.isAtLeastV()) {
+            val properties: UserProperties = userManager.getUserProperties(handle)
+            if (
+                /*
+                 * All user profiles with user property
+                 * [UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT]
+                 * can access each other including its parent.
+                 */
+                properties.getCrossProfileContentSharingStrategy() ==
+                    UserProperties.CROSS_PROFILE_CONTENT_SHARING_DELEGATE_FROM_PARENT
+            ) {
+                return true
+            }
+        }
+
+        // As a last resort, no applicable cross profile information found, so inspect the current
+        // configuration and if there is an intent set, try to see
+        // if there is a matching CrossProfileIntentForwarder
+        return configuration.value.doesCrossProfileIntentForwarderExists(packageManager)
     }
 
     /**
@@ -281,25 +338,75 @@ class UserMonitor(
      *
      * @return A UserProfile that corresponds to the UserHandle.
      */
-    private fun getUserProfileFromHandle(handle: UserHandle): UserProfile {
+    private fun getUserProfileFromHandle(handle: UserHandle, context: Context): UserProfile {
 
         val isParentProfile = userManager.getProfileParent(handle) == null
         val isManaged = userManager.isManagedProfile(handle.getIdentifier())
         val isQuietModeEnabled = userManager.isQuietModeEnabled(handle)
         var isCrossProfileSupported = getIsCrossProfileAllowedForHandle(handle)
 
-        return UserProfile(
-            identifier = handle.getIdentifier(),
-            profileType =
-                // Profiles that do not have a parent are considered the primary profile
-                if (isParentProfile) UserProfile.ProfileType.PRIMARY
-                else if (isManaged) UserProfile.ProfileType.MANAGED
-                // TODO(b/303779617): Correctly identify private space.
-                else UserProfile.ProfileType.UNKNOWN,
+        val userContext = context.createContextAsUser(handle, /* flags= */ 0)
+        val localUserManager: UserManager = userContext.requireSystemService()
 
-            // A profile is only enabled if it's not in quiet mode AND the content be can shared
-            // with the process owner's profile.
-            enabled = !isQuietModeEnabled && isCrossProfileSupported,
+        val (icon, label) =
+            with(localUserManager) {
+                if (SdkLevel.isAtLeastV()) {
+                    try {
+                        // Since these require an external call to generate, create them once
+                        // and cache them in the profile that is getting passed to the UI to
+                        // speed things up!
+                        Pair(getUserBadge().toBitmap().asImageBitmap(), getProfileLabel())
+                    } catch (exception: Resources.NotFoundException) {
+                        // If either resource is not defined by the system, fall back to the
+                        // pre-compiled options to ensure that the UI doesn't end up in a weird
+                        // state.
+                        Pair(null, null)
+                    }
+                } else {
+                    // For Pre-V the UI will use pre-compiled resources and mappings to generate the
+                    // icon.
+                    Pair(null, null)
+                }
+            }
+
+        return UserProfile(
+            handle = handle,
+            icon = icon,
+            label = label,
+            profileType =
+                when {
+                    // Profiles that do not have a parent are considered the primary profile
+                    isParentProfile -> UserProfile.ProfileType.PRIMARY
+                    isManaged -> UserProfile.ProfileType.MANAGED
+                    else -> UserProfile.ProfileType.UNKNOWN
+                },
+            disabledReasons =
+                when (handle) {
+                    // The profile is never disabled if it is the current process' profile
+                    processOwnerUserHandle -> emptySet()
+                    else ->
+                        buildSet {
+                            if (isParentProfile)
+                                return@buildSet // Parent profile can always be accessed by children
+                            if (isQuietModeEnabled) {
+                                add(UserProfile.DisabledReason.QUIET_MODE)
+
+                                // For V plus devices another check is required to see if the
+                                // profile would like to be hidden when in quiet mode.
+                                if (SdkLevel.isAtLeastV()) {
+                                    val userProperties = userManager.getUserProperties(handle)
+                                    if (
+                                        userProperties.getShowInQuietMode() ==
+                                            SHOW_IN_QUIET_MODE_HIDDEN
+                                    ) {
+                                        add(UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW)
+                                    }
+                                }
+                            }
+                            if (!isCrossProfileSupported)
+                                add(UserProfile.DisabledReason.CROSS_PROFILE_NOT_ALLOWED)
+                        }
+                }
         )
     }
 
@@ -319,4 +426,10 @@ class UserMonitor(
             @Suppress("DEPRECATION")
             return intent.getParcelableExtra(Intent.EXTRA_USER) as? UserHandle
     }
+
+    /** @return the content resolver for given profile. */
+    private fun getContentResolver(context: Context, userHandle: UserHandle): ContentResolver =
+        context
+            .createPackageContextAsUser(context.packageName, /* flags */ 0, userHandle)
+            .contentResolver
 }

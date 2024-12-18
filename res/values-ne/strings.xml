@@ -27,7 +27,7 @@
     <string name="root_documents" msgid="3829103301363849237">"कागजातहरू"</string>
     <string name="permission_required" msgid="1460820436132943754">"यो वस्तु परिमार्जन गर्न वा मेटाउन अनुमति आवश्यक पर्छ।"</string>
     <string name="permission_required_action" msgid="706370952366113539">"जारी राख्नुहोस्"</string>
-    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"अनुमति दिइयोस्"</string>
+    <string name="grant_dialog_button_allow" msgid="1644287024501033471">"अनुमति दिनुहोस्"</string>
     <string name="grant_dialog_button_deny" msgid="6190589471415815741">"अनुमति नदिनुहोस्"</string>
     <string name="permission_more_thumb" msgid="1938863829470531577">"{count,plural, =1{+<xliff:g id="COUNT_0">^1</xliff:g>}other{+<xliff:g id="COUNT_1">^1</xliff:g>}}"</string>
     <string name="permission_more_text" msgid="2471785045095597753">"{count,plural, =1{थप <xliff:g id="COUNT_0">^1</xliff:g> वटा अतिरिक्त वस्तु}other{थप <xliff:g id="COUNT_1">^1</xliff:g> वटा अतिरिक्त वस्तु}}"</string>
@@ -73,7 +73,7 @@
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"<xliff:g id="PROFILE2">%2$s</xliff:g> एपबाट <xliff:g id="PROFILE1">%1$s</xliff:g> डेटा एक्सेस गर्ने अनुमति दिइएको छैन"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"<xliff:g id="PROFILE">%s</xliff:g> प्रयोग गर्नुहोस्"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"कामसम्बन्धी एपहरू पज गरिएका छन्"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> एपहरू पज गरिएका छन्"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"<xliff:g id="PROFILE">%s</xliff:g> प्रोफाइलका एपहरू पज गरिएका छन्"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"कामसम्बन्धी फोटोहरू खोल्न आफ्ना कामसम्बन्धी एपहरू अन गर्नुहोस् अनि फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_profile_paused_msg" msgid="1215076898583993782">"<xliff:g id="PROFILE1">%1$s</xliff:g> फोटोहरू खोल्न आफ्ना <xliff:g id="PROFILE2">%2$s</xliff:g> एपहरू अन गर्नुहोस् र फेरि प्रयास गर्नुहोस्"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"यो एपले तपाईंले चयन गरेका फोटो मात्र प्रयोग गर्न सक्छ"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"रद्द गर्नुहोस्"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"पर्खनुहोस्"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"सेफ्टी प्रोटेक्सन"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"नेटिभ ट्रान्स्कोड अलर्ट"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"नेटिभ ट्रान्स्कोड प्रोग्रेस"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ट्रान्सकोडिङसम्बन्धी नोटिफिकेसनहरू"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ट्रान्सकोडिङको प्रोग्रेस"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"पछि फेरि प्रयास गर्नुहोस्। समस्या समाधान हुनेबित्तिकै तपाईंका फोटो उपलब्ध हुने छन्।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"केही फोटोहरू लोड गर्न सकिँदैन"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"बुझेँ"</string>

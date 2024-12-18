@@ -34,7 +34,10 @@ import static com.android.providers.media.photopicker.espresso.RecyclerViewTestU
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.not;
 
+import android.os.Build;
+
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner;
 
 import com.android.providers.media.R;
@@ -48,6 +51,7 @@ import org.junit.runner.RunWith;
 
 @RunOnlyOnPostsubmit
 @RunWith(AndroidJUnit4ClassRunner.class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 public class ActiveProfileButtonTest extends PhotoPickerBaseTest {
     private static final int PROFILE_BUTTON = R.id.profile_button;
 

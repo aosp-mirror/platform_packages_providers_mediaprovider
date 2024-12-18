@@ -23,8 +23,14 @@ apex {
     name: "com.android.mediaprovider",
     defaults: ["com.android.mediaprovider-defaults"],
     manifest: "apex_manifest.json",
-    apps: ["MediaProvider"],
-    compat_configs: ["media-provider-platform-compat-config"],
+    apps: [
+        "MediaProvider",
+        "Photopicker",
+    ],
+    compat_configs: [
+        "media-provider-platform-compat-config",
+        "framework-pdf-v-platform-compat-config",
+    ],
     jni_libs: [
         "libpdfclient",
     ],
@@ -76,6 +82,7 @@ bootclasspath_fragment {
         "framework-mediaprovider",
         "framework-pdf",
         "framework-pdf-v",
+        "framework-photopicker",
     ],
     apex_available: ["com.android.mediaprovider"],
     // The bootclasspath_fragments that provide APIs on which this depends.
@@ -105,6 +112,8 @@ bootclasspath_fragment {
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
             "android.provider",
+            "android.provider.mediacognitionutils",
+            "android.provider.media.internal.flags",
             "android.graphics.pdf.common",
             "android.graphics.pdf.concurrency",
             "android.graphics.pdf.converters",
@@ -116,6 +125,9 @@ bootclasspath_fragment {
             "android.graphics.pdf.content",
             "android.graphics.pdf.models.jni",
             "android.graphics.pdf.models.selection",
+            "android.graphics.pdf.logging",
+            "android.widget.photopicker",
+            "com.android.providers.media.flags",
         ],
     },
 }

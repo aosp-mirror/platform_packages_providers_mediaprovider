@@ -72,7 +72,6 @@ import androidx.core.content.MimeTypeFilter;
 import com.android.providers.media.util.FileUtils;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -109,7 +108,7 @@ public class MediaDocumentsProvider extends DocumentsProvider {
 
     private static final String IMAGE_MIME_TYPES = joinNewline("image/*");
 
-    private static final String VIDEO_MIME_TYPES = joinNewline("video/*");
+    private static final String VIDEO_MIME_TYPES = joinNewline("video/*", "application/vnd.ms-asf");
 
     private static final String AUDIO_MIME_TYPES = joinNewline(
             "audio/*", "application/ogg", "application/x-flac");
@@ -203,6 +202,9 @@ public class MediaDocumentsProvider extends DocumentsProvider {
      * changed so they can be refreshed.
      */
     static void onMediaStoreReady(Context context) {
+        if (sMediaStoreReady) {
+            return;
+        }
         sMediaStoreReady = true;
         notifyRootsChanged(context);
     }

@@ -1,17 +1,27 @@
 android_test {
 
     name: "PhotopickerTests",
-    test_suites: ["general-tests"],
+    test_suites: [
+        "general-tests",
+        "mts-mediaprovider",
+    ],
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.kt"],
     compile_multilib: "both",
     certificate: "media",
-    sdk_version: "module_current",
+    sdk_version: "core_current",
     min_sdk_version: "30",
     libs: [
-        "framework-configinfrastructure",
+        "android.test.mock.stubs",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
+        "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
+        // Include stubs for @TestApi methods
+        "android_test_stubs_current",
+        "framework-res",
     ],
+    resource_dirs: ["res"],
     static_libs: [
         // sources
         "PhotopickerLib", // test dependencies
@@ -21,6 +31,10 @@ android_test {
         "androidx.navigation_navigation-testing",
         "androidx.test.core",
         "androidx.test.rules",
+        "flag-junit",
+        "glide-mocks",
+        "hilt_android",
+        "hilt_android_testing",
         "mockito-target",
         "modules-utils-build",
         "truth",

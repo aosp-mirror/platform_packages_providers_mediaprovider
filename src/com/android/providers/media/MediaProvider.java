@@ -29,10 +29,14 @@ import static android.content.ContentResolver.QUERY_ARG_SQL_SORT_ORDER;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.Cursor.FIELD_TYPE_BLOB;
 import static android.provider.CloudMediaProviderContract.EXTRA_ASYNC_CONTENT_PROVIDER;
+import static android.provider.CloudMediaProviderContract.MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION;
 import static android.provider.CloudMediaProviderContract.METHOD_GET_ASYNC_CONTENT_PROVIDER;
 import static android.provider.MediaStore.EXTRA_IS_STABLE_URIS_ENABLED;
+import static android.provider.MediaStore.EXTRA_OPEN_ASSET_FILE_REQUEST;
+import static android.provider.MediaStore.EXTRA_OPEN_FILE_REQUEST;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE;
 import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE;
+import static android.provider.MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT;
 import static android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_NONE;
 import static android.provider.MediaStore.GET_BACKUP_FILES;
@@ -43,22 +47,26 @@ import static android.provider.MediaStore.MATCH_INCLUDE;
 import static android.provider.MediaStore.MATCH_ONLY;
 import static android.provider.MediaStore.MEDIA_IGNORE_FILENAME;
 import static android.provider.MediaStore.MY_UID;
+import static android.provider.MediaStore.MediaColumns.OEM_METADATA;
 import static android.provider.MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
 import static android.provider.MediaStore.PER_USER_RANGE;
 import static android.provider.MediaStore.QUERY_ARG_DEFER_SCAN;
+import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_FAVORITE;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_PENDING;
 import static android.provider.MediaStore.QUERY_ARG_MATCH_TRASHED;
-import static android.provider.MediaStore.QUERY_ARG_LATEST_SELECTION_ONLY;
+import static android.provider.MediaStore.QUERY_ARG_MEDIA_STANDARD_SORT_ORDER;
 import static android.provider.MediaStore.QUERY_ARG_REDACTED_URI;
 import static android.provider.MediaStore.QUERY_ARG_RELATED_URI;
 import static android.provider.MediaStore.READ_BACKUP;
+import static android.provider.MediaStore.REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL;
+import static android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY;
 import static android.provider.MediaStore.getVolumeName;
 import static android.system.OsConstants.F_GETFL;
 
 import static com.android.providers.media.AccessChecker.getWhereForConstrainedAccess;
-import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForLatestSelection;
+import static com.android.providers.media.AccessChecker.getWhereForOwnerPackageMatch;
 import static com.android.providers.media.AccessChecker.getWhereForUserSelectedAccess;
 import static com.android.providers.media.AccessChecker.hasAccessToCollection;
 import static com.android.providers.media.AccessChecker.hasUserSelectedAccess;
@@ -113,10 +121,7 @@ import static com.android.providers.media.LocalUriMatcher.MEDIA_GRANTS;
 import static com.android.providers.media.LocalUriMatcher.MEDIA_SCANNER;
 import static com.android.providers.media.LocalUriMatcher.PICKER_GET_CONTENT_ID;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_ALBUMS_LOCAL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_ALL;
-import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_MEDIA_LOCAL;
+import static com.android.providers.media.LocalUriMatcher.PICKER_INTERNAL_V2;
 import static com.android.providers.media.LocalUriMatcher.VERSION;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
@@ -128,6 +133,8 @@ import static com.android.providers.media.LocalUriMatcher.VOLUMES_ID;
 import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
+import static com.android.providers.media.flags.Flags.versionLockdown;
+import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
 import static com.android.providers.media.scan.MediaScanner.REASON_DEMAND;
 import static com.android.providers.media.scan.MediaScanner.REASON_IDLE;
@@ -216,7 +223,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.icu.util.ULocale;
-import android.media.ExifInterface;
 import android.media.ThumbnailUtils;
 import android.mtp.MtpConstants;
 import android.net.Uri;
@@ -257,6 +263,8 @@ import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
+import android.provider.OpenAssetFileRequest;
+import android.provider.OpenFileRequest;
 import android.provider.Settings;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -286,7 +294,9 @@ import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.DatabaseHelper.OnFilesChangeListener;
 import com.android.providers.media.DatabaseHelper.OnLegacyMigrationListener;
+import com.android.providers.media.backupandrestore.BackupExecutor;
 import com.android.providers.media.dao.FileRow;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.fuse.ExternalStorageServiceImpl;
 import com.android.providers.media.fuse.FuseDaemon;
 import com.android.providers.media.metrics.PulledMetrics;
@@ -298,6 +308,8 @@ import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
+import com.android.providers.media.photopicker.v2.PickerUriResolverV2;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.scan.MediaScanner;
 import com.android.providers.media.scan.MediaScanner.ScanReason;
@@ -307,20 +319,20 @@ import com.android.providers.media.util.CachedSupplier;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.ForegroundThread;
-import com.android.providers.media.util.IsoInterface;
 import com.android.providers.media.util.Logging;
 import com.android.providers.media.util.LongArray;
 import com.android.providers.media.util.Metrics;
 import com.android.providers.media.util.MimeUtils;
 import com.android.providers.media.util.PermissionUtils;
 import com.android.providers.media.util.Preconditions;
+import com.android.providers.media.util.RedactionUtils;
 import com.android.providers.media.util.SQLiteQueryBuilder;
 import com.android.providers.media.util.SpecialFormatDetector;
 import com.android.providers.media.util.StringUtils;
 import com.android.providers.media.util.UserCache;
 import com.android.providers.media.util.XAttrUtils;
-import com.android.providers.media.util.XmpInterface;
 
+import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 
 import org.jetbrains.annotations.NotNull;
@@ -365,9 +377,9 @@ import java.util.stream.Collectors;
 
 /**
  * Media content provider. See {@link android.provider.MediaStore} for details.
- * Separate databases are kept for each external storage card we see (using the
- * card's ID as an index).  The content visible at content://media/external/...
- * changes with the card.
+ * A single database keep track of media files on external storage
+ * The content visible at content://media/external/... is a combined view of all media files on all
+ * available external storage devices
  */
 public class MediaProvider extends ContentProvider {
     /**
@@ -591,6 +603,7 @@ public class MediaProvider extends ContentProvider {
     private PackageManager mPackageManager;
     private UserManager mUserManager;
     private PickerUriResolver mPickerUriResolver;
+    private AsyncPickerFileOpener mAsyncPickerFileOpener;
 
     private UserCache mUserCache;
     private VolumeCache mVolumeCache;
@@ -796,15 +809,32 @@ public class MediaProvider extends ContentProvider {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case Intent.ACTION_PACKAGE_REMOVED:
+                case Intent.ACTION_PACKAGE_CHANGED:
                 case Intent.ACTION_PACKAGE_ADDED:
                     Uri uri = intent.getData();
                     String pkg = uri != null ? uri.getSchemeSpecificPart() : null;
+                    int uid = intent.getIntExtra(Intent.EXTRA_UID, 0);
                     if (pkg != null) {
-                        invalidateLocalCallingIdentityCache(pkg, "package " + intent.getAction());
+                        invalidateLocalCallingIdentityCache(uid, "package " + intent.getAction());
                         if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
                             mUserCache.invalidateWorkProfileOwnerApps(pkg);
                             mPickerSyncController.notifyPackageRemoval(pkg);
                             invalidateDentryForExternalStorage(pkg);
+                        } else if (Intent.ACTION_PACKAGE_CHANGED.equals(intent.getAction())) {
+                            try {
+                                // If package has been modified e.g. has been enabled or disabled,
+                                // it should be checked against current set of providers.
+                                // Hence if a modified package is disable, attempt to remove it from
+                                // pickerSyncController.
+                                if (!getContext().getPackageManager().getApplicationInfo(pkg,
+                                        /* flags */ 0).enabled) {
+                                    Log.d(TAG, "Removing disabled package: " + pkg
+                                            + " from providers list if required.");
+                                    mPickerSyncController.notifyPackageRemoval(pkg);
+                                }
+                            } catch (NameNotFoundException ignored) {
+                                // no-op
+                            }
                         }
                     } else {
                         Log.w(TAG, "Failed to retrieve package from intent: " + intent.getAction());
@@ -894,14 +924,19 @@ public class MediaProvider extends ContentProvider {
     };
 
     private void invalidateLocalCallingIdentityCache(String packageName, String reason) {
+        try {
+            int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
+            invalidateLocalCallingIdentityCache(packageUid, reason);
+        } catch (NameNotFoundException e) {
+            Log.d(TAG, "Couldn't get uid for package: " + packageName);
+        }
+    }
+
+    private void invalidateLocalCallingIdentityCache(int packageUid, String reason) {
         synchronized (mCachedCallingIdentityForFuse) {
-            try {
-                int packageUid = getContext().getPackageManager().getPackageUid(packageName, 0);
-                if (mCachedCallingIdentityForFuse.contains(packageUid)) {
-                    mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
-                    mCachedCallingIdentityForFuse.remove(packageUid);
-                }
-            } catch (NameNotFoundException ignored) {
+            if (mCachedCallingIdentityForFuse.contains(packageUid)) {
+                mCachedCallingIdentityForFuse.get(packageUid).dump(reason);
+                mCachedCallingIdentityForFuse.remove(packageUid);
             }
         }
     }
@@ -1013,7 +1048,8 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileInserted(insertedRow.getMediaType(),
                         insertedRow.isPending())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.backupVolumeDbData(helper, insertedRow);
@@ -1052,7 +1088,8 @@ public class MediaProvider extends ContentProvider {
                         oldRow.isPending(), newRow.isPending(),
                         oldRow.isFavorite(), newRow.isFavorite(),
                         oldRow.getSpecialFormat(), newRow.getSpecialFormat())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.updateBackup(helper, oldRow, newRow);
@@ -1112,10 +1149,16 @@ public class MediaProvider extends ContentProvider {
 
                 if (mExternalDbFacade.onFileDeleted(deletedRow.getId(),
                         deletedRow.getMediaType())) {
-                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true);
+                    mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ true,
+                            PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY, null);
                 }
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
+                if (deletedRow.getVolumeName() != null
+                        && deletedRow.getVolumeName().equalsIgnoreCase(VOLUME_EXTERNAL_PRIMARY)
+                        && enableBackupAndRestore()) {
+                    mExternalPrimaryBackupExecutor.deleteBackupForPath(deletedRow.getPath());
+                }
             });
         }
     };
@@ -1351,7 +1394,7 @@ public class MediaProvider extends ContentProvider {
         mConfigStore = createConfigStore();
         mDatabaseBackupAndRecovery = createDatabaseBackupAndRecovery();
 
-        mMediaScanner = new ModernMediaScanner(context);
+        mMediaScanner = new ModernMediaScanner(context, mConfigStore);
         mProjectionHelper = new ProjectionHelper(Column.class, ExportedSince.class);
         mInternalDatabase = new DatabaseHelper(context, INTERNAL_DATABASE_NAME, false, false,
                 mProjectionHelper, Metrics::logSchemaChange, mFilesListener,
@@ -1371,6 +1414,9 @@ public class MediaProvider extends ContentProvider {
                 mConfigStore);
         mPickerUriResolver = new PickerUriResolver(context, mPickerDbFacade, mProjectionHelper,
                 mUriMatcher);
+        mAsyncPickerFileOpener = new AsyncPickerFileOpener(this, mPickerUriResolver);
+
+        mExternalPrimaryBackupExecutor = new BackupExecutor(getContext(), mExternalDatabase);
 
         if (SdkLevel.isAtLeastS()) {
             mTranscodeHelper = new TranscodeHelperImpl(context, this, mConfigStore);
@@ -1383,6 +1429,7 @@ public class MediaProvider extends ContentProvider {
         packageFilter.addDataScheme("package");
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
         packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
         context.registerReceiver(mPackageReceiver, packageFilter);
 
         // Creating intent broadcast receiver for user actions like Intent.ACTION_USER_REMOVED,
@@ -1482,7 +1529,15 @@ public class MediaProvider extends ContentProvider {
 
     @VisibleForTesting
     protected void storageNativeBootPropertyChangeListener() {
-        boolean isGetContentTakeoverEnabled;
+
+        // Notify the Photopicker that DeviceConfig has changed for T+ devices.
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        if (SdkLevel.isAtLeastT()) {
+            getContext().sendBroadcast(intent, MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION);
+        }
+
+        boolean isGetContentTakeoverEnabled = false;
+
         if (SdkLevel.isAtLeastT()) {
             isGetContentTakeoverEnabled = true;
         } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
@@ -1490,10 +1545,16 @@ public class MediaProvider extends ContentProvider {
         } else {
             isGetContentTakeoverEnabled = mConfigStore.isGetContentTakeOverEnabled();
         }
-        setComponentEnabledSetting("PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
+        setComponentEnabledSetting(
+                "PhotoPickerGetContentActivity", isGetContentTakeoverEnabled);
 
-        setComponentEnabledSetting("PhotoPickerUserSelectActivity",
-                mConfigStore.isUserSelectForAppEnabled());
+        // Always make sure PhotoPickerActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerActivity", true);
+
+        // Always make sure PhotoPickerUserSelectActivity is enabled.
+        setComponentEnabledSetting(
+                "PhotoPickerUserSelectActivity", true);
     }
 
     public DatabaseBackupAndRecovery getDatabaseBackupAndRecovery() {
@@ -1549,6 +1610,25 @@ public class MediaProvider extends ContentProvider {
 
     public void restoreLocalCallingIdentity(LocalCallingIdentity token) {
         mCallingIdentity.set(token);
+    }
+
+    /**
+     * Adds the mapping from thread id to uid in PendingOpen map.
+     */
+    public void addToPendingOpenMap(int tid, int uid) {
+        synchronized (mPendingOpenInfo) {
+            mPendingOpenInfo.put(tid, new PendingOpenInfo(uid, /* mediaCapabilitiesUid */ 0,
+                    /* shouldRedact */ false, /* transcodeReason */ 0));
+        }
+    }
+
+    /**
+     * Removes the pending open info for the passed thread i from PendingOpen map.
+     */
+    public void removeFromPendingOpenMap(int tid) {
+        synchronized (mPendingOpenInfo) {
+            mPendingOpenInfo.remove(tid);
+        }
     }
 
     private boolean isPackageKnown(@NonNull String packageName, int userId) {
@@ -1645,6 +1725,12 @@ public class MediaProvider extends ContentProvider {
         // Calculate standard_mime_type_extension column for files which have SPECIAL_FORMAT column
         // value as NULL, and update the same in the picker db
         detectSpecialFormat(signal);
+
+        if (enableBackupAndRestore()) {
+            Log.i(TAG, "Backup is enabled");
+            // Backup needed for B&R
+            mExternalPrimaryBackupExecutor.doBackup(signal);
+        }
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -2037,7 +2123,7 @@ public class MediaProvider extends ContentProvider {
     public void onPackageOrphaned(@NonNull SQLiteDatabase db,
             @NonNull String packageName, int userId) {
         // Delete Android/media entries.
-        deleteAndroidMediaEntries(db, packageName, userId);
+        deleteAndroidMediaEntriesAndInvalidateDentryCache(db, packageName, userId);
         // Orphan rest of entries.
         orphanEntries(db, packageName, userId);
         mDatabaseBackupAndRecovery.removeOwnerIdToPackageRelation(packageName, userId);
@@ -2079,7 +2165,8 @@ public class MediaProvider extends ContentProvider {
                 packages, /* reason */ "Package orphaned", userId);
     }
 
-    private void deleteAndroidMediaEntries(SQLiteDatabase db, String packageName, int userId) {
+    private void deleteAndroidMediaEntriesAndInvalidateDentryCache(SQLiteDatabase db,
+            String packageName, int userId) {
         String relativePath = "Android/media/" + DatabaseUtils.escapeForLike(packageName) + "/%";
         try (Cursor cursor = db.query(
                 "files",
@@ -2106,6 +2193,9 @@ public class MediaProvider extends ContentProvider {
             Log.d(TAG, "Deleted " + countDeleted + " Android/media items belonging to "
                     + packageName + " on " + db.getPath());
         }
+
+        // Invalidate Dentry cache for Android/media/<package-name> directories
+        invalidateDentryForExternalStorage(packageName);
     }
 
     private void orphanEntries(
@@ -2129,7 +2219,7 @@ public class MediaProvider extends ContentProvider {
         return mMediaScanner.scanFile(file, reason);
     }
 
-    private Uri scanFileAsMediaProvider(File file, int reason) {
+    private Uri scanFileAsMediaProvider(File file) {
         final LocalCallingIdentity tokenInner = clearLocalCallingIdentity();
         try {
             return scanFile(file, REASON_DEMAND);
@@ -2502,7 +2592,8 @@ public class MediaProvider extends ContentProvider {
             Log.v(TAG, "Redaction needed for file open: " + isRedactionNeeded);
             long[] redactionRanges = new long[0];
             if (isRedactionNeeded) {
-                redactionRanges = getRedactionRanges(fis, mimeType).redactionRanges;
+                redactionRanges = RedactionUtils.getRedactionRanges(fis, mimeType);
+                Log.v(TAG, "Redaction ranges: " + Arrays.toString(redactionRanges));
             }
             return new FileOpenResult(0 /* status */, uid, /* transformsUid */ 0,
                     /* nativeFd */ pfd.detachFd(), redactionRanges);
@@ -2931,8 +3022,8 @@ public class MediaProvider extends ContentProvider {
      * </ul>
      */
     private void scanRenamedDirectoryForFuse(@NonNull String oldPath, @NonNull String newPath) {
-        scanFileAsMediaProvider(new File(oldPath), REASON_DEMAND);
-        scanFileAsMediaProvider(new File(newPath), REASON_DEMAND);
+        scanFileAsMediaProvider(new File(oldPath));
+        scanFileAsMediaProvider(new File(newPath));
     }
 
     /**
@@ -3044,10 +3135,19 @@ public class MediaProvider extends ContentProvider {
         boolean retryUpdateWithReplace = false;
 
         try {
-            // TODO(b/146777893): System gallery apps can rename a media directory containing
-            // non-media files. This update doesn't support updating non-media files that are not
-            // owned by system gallery app.
-            count = qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            Long parent = values.getAsLong(FileColumns.PARENT);
+            // Opening a transaction here and ensuring the qbForUpdate happens within
+            // doesn't open two transactions, but just joins the existing one
+            count = helper.runWithTransaction((db) -> {
+                if (parent == null && newPath != null) {
+                    final long parentId = getParent(db, newPath);
+                    values.put(FileColumns.PARENT, parentId);
+                }
+                // TODO(b/146777893): System gallery apps can rename a media directory
+                // containing non-media files. This update doesn't support updating
+                // non-media files that are not owned by system gallery app.
+                return qbForUpdate.update(helper, values, selection, new String[]{oldPath});
+            });
         } catch (SQLiteConstraintException e) {
             Log.w(TAG, "Database update failed while renaming " + oldPath, e);
             retryUpdateWithReplace = true;
@@ -3405,10 +3505,10 @@ public class MediaProvider extends ContentProvider {
         // 3) /sdcard/foo/bar.mp3 => /sdcard/foo/.nomedia
         //    in this case, we need to scan all of /sdcard/foo
         if (extractDisplayName(oldPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(oldPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(oldPath).getParentFile());
         }
         if (extractDisplayName(newPath).equals(".nomedia")) {
-            scanFileAsMediaProvider(new File(newPath).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(newPath).getParentFile());
         }
 
         return 0;
@@ -3577,6 +3677,10 @@ public class MediaProvider extends ContentProvider {
         }
 
         if (isPickerUri(uri)) {
+            if (isCallerPhotoPicker()) {
+                // Allow PhotoPicker app access to Picker media.
+                return PERMISSION_GRANTED;
+            }
             // Do not allow implicit access (by the virtue of ownership/permission) to picker uris.
             // Picker uris should have explicit permission grants.
             // If the calling app A has an explicit grant on picker uri, UriGrantsManagerService
@@ -3699,6 +3803,14 @@ public class MediaProvider extends ContentProvider {
         final ArraySet<String> honoredArgs = new ArraySet<>();
         DatabaseUtils.resolveQueryArgs(queryArgs, honoredArgs::add, this::ensureCustomCollator);
 
+        // In case of QUERY_ARG_MEDIA_STANDARD_SORT_ORDER
+        // disregard existing sort order and sort by INFERRED_DATE
+        if (Flags.inferredMediaDate() &&
+                queryArgs.containsKey(QUERY_ARG_MEDIA_STANDARD_SORT_ORDER)) {
+            queryArgs.putString(QUERY_ARG_SQL_SORT_ORDER,
+                    MediaColumns.INFERRED_DATE + " DESC");
+        }
+
         Uri redactedUri = null;
         // REDACTED_URI_BUNDLE_KEY extra should only be set inside MediaProvider.
         queryArgs.remove(QUERY_ARG_REDACTED_URI);
@@ -3712,7 +3824,7 @@ public class MediaProvider extends ContentProvider {
 
         final int targetSdkVersion = getCallingPackageTargetSdkVersion();
         final boolean allowHidden = isCallingPackageAllowedHidden();
-        final int table = matchUri(uri, allowHidden);
+        final int table = mUriMatcher.matchUri(uri, allowHidden, isCallerPhotoPicker());
 
         if (table == MEDIA_GRANTS) {
             return getReadGrantedMediaForPackage(queryArgs);
@@ -3743,15 +3855,12 @@ public class MediaProvider extends ContentProvider {
             return c;
         }
 
-        // TODO(b/195008831): Add test to verify that apps can't access
-        if (table == PICKER_INTERNAL_MEDIA_ALL) {
-            return mPickerDataLayer.fetchAllMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_MEDIA_LOCAL) {
-            return mPickerDataLayer.fetchLocalMedia(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_ALL) {
-            return mPickerDataLayer.fetchAllAlbums(queryArgs);
-        } else if (table == PICKER_INTERNAL_ALBUMS_LOCAL) {
-            return mPickerDataLayer.fetchLocalAlbums(queryArgs);
+        if (PickerUriResolver.PICKER_INTERNAL_TABLES.contains(table)) {
+            return mPickerUriResolver.query(table, queryArgs, mPickerDbFacade.getLocalProvider(),
+                    mPickerSyncController.getCloudProvider(), mPickerDataLayer);
+        }
+        if (table == PICKER_INTERNAL_V2) {
+            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -3827,6 +3936,12 @@ public class MediaProvider extends ContentProvider {
 
         Cursor c;
 
+        if (Flags.enableOemMetadata() && hasOemMetadataInProjection(qb, projection)
+                && !mCallingIdentity.get().checkCallingPermissionOemMetadata()) {
+            // Filter oem_data column to return as NULL
+            projection = updateProjectionToFilterOemMetadata(qb, projection);
+        }
+
         if (shouldFilterOwnerPackageNameFlag()
                 && shouldFilterOwnerPackageNameInProjection(qb, projection)) {
             Log.i(TAG, String.format("Filtering owner package name for %s, projection: %s",
@@ -3874,6 +3989,29 @@ public class MediaProvider extends ContentProvider {
         return c;
     }
 
+    private String[] updateProjectionToFilterOemMetadata(SQLiteQueryBuilder qb,
+            String[] projection) {
+        projection = maybeReplaceNullProjection(projection, qb);
+        if (qb.getProjectionAllowlist() == null) {
+            qb.setProjectionAllowlist(new ArrayList<>());
+        }
+        final String[] updatedProjection = new String[projection.length];
+        for (int i = 0; i < projection.length; i++) {
+            if (!OEM_METADATA.equalsIgnoreCase(projection[i])) {
+                updatedProjection[i] = projection[i];
+            } else {
+                updatedProjection[i] = constructOemMetadataProjection();
+            }
+        }
+        return updatedProjection;
+    }
+
+    private boolean hasOemMetadataInProjection(SQLiteQueryBuilder qb, String[] projection) {
+        return (projection != null && Arrays.asList(projection).contains(OEM_METADATA))
+                || (projection == null && qb.getProjectionMap() != null
+                        && qb.getProjectionMap().containsKey(OEM_METADATA));
+    }
+
     /**
      * Constructs the following projection string:
      *     CASE WHEN owner_package_name IN ("queryablePackageA","queryablePackageB")
@@ -3896,6 +4034,14 @@ public class MediaProvider extends ContentProvider {
                 .append(OWNER_PACKAGE_NAME);
 
         Log.d(TAG, "Constructed owner_package_name substitution: " + newProjection);
+        return newProjection.toString();
+    }
+
+    private String constructOemMetadataProjection() {
+        final StringBuilder newProjection = new StringBuilder()
+                .append("NULL AS ")
+                .append(OEM_METADATA);
+
         return newProjection.toString();
     }
 
@@ -3938,7 +4084,7 @@ public class MediaProvider extends ContentProvider {
 
     private String[] maybeReplaceNullProjection(String[] projection, SQLiteQueryBuilder qb) {
         // List all columns instead of placing "*" in the SQL query
-        // to be able to substitute owner_package_name column
+        // to be able to substitute some columns
         if (projection == null) {
             projection = qb.getAllColumnsFromProjectionMap();
             // Allow all columns from the projection map
@@ -4489,6 +4635,7 @@ public class MediaProvider extends ContentProvider {
 
             FileUtils.sanitizeValues(values, /*rewriteHiddenFileName*/ !isFuseThread());
             FileUtils.computeDataFromValues(values, volumePath, isFuseThread());
+            assertFileColumnsConsistent(match, uri, values);
 
             // Create result file
             File res = new File(values.getAsString(MediaColumns.DATA));
@@ -5618,7 +5765,7 @@ public class MediaProvider extends ContentProvider {
         mCallingIdentity.get().setOwned(rowId, true);
 
         if (path != null && path.toLowerCase(Locale.ROOT).endsWith("/.nomedia")) {
-            scanFileAsMediaProvider(new File(path).getParentFile(), REASON_DEMAND);
+            scanFileAsMediaProvider(new File(path).getParentFile());
         }
 
         return newUri;
@@ -6485,6 +6632,15 @@ public class MediaProvider extends ContentProvider {
             final int[] countPerMediaType = new int[FileColumns.MEDIA_TYPE_COUNT];
             if (isFilesTable) {
                 String deleteparam = uri.getQueryParameter(MediaStore.PARAM_DELETE_DATA);
+
+                // if calling package is not self and its target SDK version is greater than U,
+                // ignore the deleteparam and do not allow use by apps
+                if (!isCallingPackageSelf() && getCallingPackageTargetSdkVersion()
+                        > Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    deleteparam = null;
+                    Log.w(TAG, "Ignoring param:deletedata post U for external apps");
+                }
+
                 if (deleteparam == null || ! deleteparam.equals("false")) {
                     Cursor c = qb.query(helper, projection, userWhere, userWhereArgs,
                             null, null, null, null, null);
@@ -6760,6 +6916,15 @@ public class MediaProvider extends ContentProvider {
             case MediaStore.CREATE_DELETE_REQUEST_CALL: {
                 return getResultForCreateOperationsRequest(method, extras);
             }
+            case MediaStore.CREATE_CANCELLATION_SIGNAL_CALL: {
+                return getResultForCreateCancellationSignal();
+            }
+            case MediaStore.OPEN_FILE_CALL: {
+                return getResultForOpenFile(extras);
+            }
+            case MediaStore.OPEN_ASSET_FILE_CALL: {
+                return getResultForOpenAssetFile(extras);
+            }
             case MediaStore.IS_SYSTEM_GALLERY_CALL:
                 return getResultForIsSystemGallery(arg, extras);
             case MediaStore.PICKER_MEDIA_INIT_CALL: {
@@ -6770,6 +6935,23 @@ public class MediaProvider extends ContentProvider {
             }
             case MediaStore.GET_CLOUD_PROVIDER_LABEL_CALL: {
                 return getResultForGetCloudProviderLabel();
+            }
+            case MediaStore.GET_CLOUD_PROVIDER_DETAILS: {
+                if (isCallerPhotoPicker()) {
+                    return PickerDataLayerV2.getCloudProviderDetails(extras);
+                } else  {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("GET_CLOUD_PROVIDER_DETAILS"));
+                }
+            }
+            case MediaStore.ENSURE_PROVIDERS_CALL: {
+                if (isCallerPhotoPicker()) {
+                    PickerDataLayerV2.ensureProviders();
+                    return new Bundle();
+                } else  {
+                    throw new SecurityException(
+                            getSecurityExceptionMessage("ENSURE_PROVIDERS_CALL"));
+                }
             }
             case MediaStore.SET_CLOUD_PROVIDER_CALL: {
                 return getResultForSetCloudProvider(extras);
@@ -6784,7 +6966,7 @@ public class MediaProvider extends ContentProvider {
                 return getResultForIsCurrentCloudProviderCall(arg);
             }
             case MediaStore.NOTIFY_CLOUD_MEDIA_CHANGED_EVENT_CALL: {
-                return getResultForNotifyCloudMediaChangedEvent(arg);
+                return getResultForNotifyCloudMediaChangedEvent(arg, extras);
             }
             case MediaStore.USES_FUSE_PASSTHROUGH: {
                 return getResultForUsesFusePassThrough(arg);
@@ -6819,19 +7001,12 @@ public class MediaProvider extends ContentProvider {
     @Nullable
     private Bundle getResultForRevokeReadGrantForPackage(Bundle extras) {
         final int caller = Binder.getCallingUid();
+        final Boolean isCallForRevokeAll = extras.getBoolean(
+                REVOKED_ALL_READ_GRANTS_FOR_PACKAGE_CALL);
         int userId;
-        final List<Uri> uris;
+        List<Uri> uris = null;
         String[] packageNames;
-        if (checkPermissionSelf(caller)) {
-            final PackageManager pm = getContext().getPackageManager();
-            final int packageUid = extras.getInt(Intent.EXTRA_UID);
-            packageNames = pm.getPackagesForUid(packageUid);
-            // Get the userId from packageUid as the initiator could be a cloned app, which
-            // accesses Media via MP of its parent user and Binder's callingUid reflects
-            // the latter.
-            userId = uidToUserId(packageUid);
-            uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
-        } else if (checkPermissionShell(caller)) {
+        if (checkPermissionShell(caller)) {
             // If the caller is the shell, the accepted parameter is EXTRA_PACKAGE_NAME
             // (as string).
             if (!extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
@@ -6840,17 +7015,37 @@ public class MediaProvider extends ContentProvider {
                                 + " EXTRA_PACKAGE_NAME");
             }
             packageNames = new String[]{extras.getString(Intent.EXTRA_PACKAGE_NAME)};
-            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Uris are not a requirement for revoke all call
+            if (!isCallForRevokeAll) {
+                uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            }
             // Caller is always shell which may not have the desired userId. Hence, use
             // UserId from the MediaProvider process itself.
             userId = UserHandle.myUserId();
+        } else if (checkPermissionSelf(caller) || isCallerPhotoPicker()) {
+            final PackageManager pm = getContext().getPackageManager();
+            final int packageUid = extras.getInt(Intent.EXTRA_UID);
+            packageNames = pm.getPackagesForUid(packageUid);
+            // Get the userId from packageUid as the initiator could be a cloned app, which
+            // accesses Media via MP of its parent user and Binder's callingUid reflects
+            // the latter.
+            userId = uidToUserId(packageUid);
+            // Uris are not a requirement for revoke all call
+            if (!isCallForRevokeAll) {
+                uris = extras.getParcelableArrayList(MediaStore.EXTRA_URI_LIST);
+            }
         } else {
             // All other callers are unauthorized.
             throw new SecurityException(
-                    getSecurityExceptionMessage("read media grants"));
+                    getSecurityExceptionMessage("revoke media grants"));
         }
 
-        mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        if (isCallForRevokeAll) {
+            mMediaGrants.removeAllMediaGrantsForPackages(packageNames, "user de-selections",
+                    userId);
+        } else if (uris != null) {
+            mMediaGrants.removeMediaGrantsForPackage(packageNames, uris, userId);
+        }
         return null;
     }
 
@@ -6870,6 +7065,8 @@ public class MediaProvider extends ContentProvider {
 
     @Nullable
     private Bundle getResultForSetStableUrisFlag(String volumeName, Bundle extras) {
+        // WRITE_MEDIA_STORAGE is a privileged permission which only MediaProvider and some other
+        // system apps have.
         getContext().enforceCallingPermission(Manifest.permission.WRITE_MEDIA_STORAGE,
                 "Permission missing to call SET_STABLE_URIS by uid:" + Binder.getCallingUid());
         final LocalCallingIdentity token = clearLocalCallingIdentity();
@@ -6979,12 +7176,30 @@ public class MediaProvider extends ContentProvider {
             throw e.rethrowAsIllegalArgumentException();
         }
 
-        final String version = helper.runWithoutTransaction((db) ->
-                db.getVersion() + ":" + DatabaseHelper.getOrCreateUuid(db));
-
+        final String version =
+                helper.runWithoutTransaction(
+                    (db) -> {
+                        final String dbUuid = DatabaseHelper.getOrCreateUuid(db);
+                        if (shouldLockdownMediaStoreVersion()) {
+                            final String input = dbUuid + mCallingIdentity.get().uid;
+                            final HashCode uuidHashCode =
+                                    Hashing.farmHashFingerprint64()
+                                       .hashString(input, StandardCharsets.UTF_8);
+                            return db.getVersion() + ":" + uuidHashCode;
+                        } else {
+                            return db.getVersion() + ":" + dbUuid;
+                        }
+                    });
         final Bundle res = new Bundle();
         res.putString(Intent.EXTRA_TEXT, version);
         return res;
+    }
+
+    private boolean shouldLockdownMediaStoreVersion() {
+        return versionLockdown()
+                && mCallingIdentity.get().getTargetSdkVersion()
+                    > Build.VERSION_CODES.VANILLA_ICE_CREAM
+                && Build.VERSION.SDK_INT > Build.VERSION_CODES.VANILLA_ICE_CREAM;
     }
 
     @NotNull
@@ -7105,7 +7320,21 @@ public class MediaProvider extends ContentProvider {
         int userId;
         final List<Uri> uris;
         String packageName;
-        if (checkPermissionSelf(caller)) {
+        if (checkPermissionShell(caller)) {
+            // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
+            // and EXTRA_PACKAGE_NAME (as string).
+            if (!extras.containsKey(MediaStore.EXTRA_URI)
+                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
+                throw new IllegalArgumentException(
+                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
+            }
+            packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
+            // Caller is always shell which may not have the desired userId. Hence, use
+            // UserId from the MediaProvider process itself.
+            userId = UserHandle.myUserId();
+
+        } else if (checkPermissionSelf(caller) || isCallerPhotoPicker()) {
             // If the caller is MediaProvider the accepted parameters are EXTRA_URI_LIST
             // and EXTRA_UID.
             if (!extras.containsKey(MediaStore.EXTRA_URI_LIST)
@@ -7132,19 +7361,6 @@ public class MediaProvider extends ContentProvider {
             // accesses Media via MP of its parent user and Binder's callingUid reflects
             // the latter.
             userId = uidToUserId(packageUid);
-        } else if (checkPermissionShell(caller)) {
-            // If the caller is the shell, the accepted parameters are EXTRA_URI (as string)
-            // and EXTRA_PACKAGE_NAME (as string).
-            if (!extras.containsKey(MediaStore.EXTRA_URI)
-                    && !extras.containsKey(Intent.EXTRA_PACKAGE_NAME)) {
-                throw new IllegalArgumentException(
-                        "Missing required extras arguments: EXTRA_URI or" + " EXTRA_PACKAGE_NAME");
-            }
-            packageName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
-            uris = List.of(Uri.parse(extras.getString(MediaStore.EXTRA_URI)));
-            // Caller is always shell which may not have the desired userId. Hence, use
-            // UserId from the MediaProvider process itself.
-            userId = UserHandle.myUserId();
         } else {
             // All other callers are unauthorized.
 
@@ -7161,6 +7377,36 @@ public class MediaProvider extends ContentProvider {
         final Bundle res = new Bundle();
         res.putParcelable(MediaStore.EXTRA_RESULT, pi);
         return res;
+    }
+
+    @NotNull
+    private Bundle getResultForCreateCancellationSignal() {
+        final Bundle res = new Bundle();
+        res.putBinder(MediaStore.CREATE_CANCELLATION_SIGNAL_RESULT,
+                (new MPCancellationSignal()).asBinder());
+        return res;
+    }
+
+    @NotNull
+    private Bundle getResultForOpenFile(Bundle extras) {
+        OpenFileRequest request = extras.getParcelable(EXTRA_OPEN_FILE_REQUEST);
+        if (!isPickerUri(request.getUri())) {
+            throw new IllegalArgumentException("Given Uri " + request.getUri()
+                    + " should be a picker URI");
+        }
+        mAsyncPickerFileOpener.scheduleOpenFileAsync(request, mCallingIdentity.get());
+        return new Bundle();
+    }
+
+    @NotNull
+    private Bundle getResultForOpenAssetFile(Bundle extras) {
+        OpenAssetFileRequest request = extras.getParcelable(EXTRA_OPEN_ASSET_FILE_REQUEST);
+        if (!isPickerUri(request.getUri())) {
+            throw new IllegalArgumentException("Given Uri " + request.getUri()
+                    + " should be a picker URI");
+        }
+        mAsyncPickerFileOpener.scheduleOpenAssetFileAsync(request, mCallingIdentity.get());
+        return new Bundle();
     }
 
     @NotNull
@@ -7183,7 +7429,8 @@ public class MediaProvider extends ContentProvider {
     private Bundle getResultForPickerMediaInit(Bundle extras) {
         Log.i(TAG, "Received media init query for extras: " + extras);
         if (!checkPermissionShell(Binder.getCallingUid())
-                && !checkPermissionSelf(Binder.getCallingUid())) {
+                && !checkPermissionSelf(Binder.getCallingUid())
+                && !isCallerPhotoPicker()) {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker media init"));
         }
@@ -7276,10 +7523,10 @@ public class MediaProvider extends ContentProvider {
     }
 
     @NotNull
-    private Bundle getResultForNotifyCloudMediaChangedEvent(String arg) {
+    private Bundle getResultForNotifyCloudMediaChangedEvent(String arg, Bundle extras) {
         final boolean notifyCloudEventResult;
         if (mPickerSyncController.isProviderEnabled(arg, Binder.getCallingUid())) {
-            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false);
+            mPickerDataLayer.handleMediaEventNotification(/*localOnly=*/ false, arg, extras);
             notifyCloudEventResult = true;
         } else {
             notifyCloudEventResult = false;
@@ -7416,6 +7663,19 @@ public class MediaProvider extends ContentProvider {
 
     public void backupDatabases(CancellationSignal signal) {
         mDatabaseBackupAndRecovery.backupDatabases(mInternalDatabase, mExternalDatabase, signal);
+    }
+
+    public void recoverPublicVolumes() {
+        for (MediaVolume mediaVolume : mVolumeCache.getExternalVolumes()) {
+            if (mediaVolume.isPublicVolume()) {
+                try {
+                    mExternalDatabase.tryRecoverPublicVolume(mediaVolume.getName());
+                } catch (Exception e) {
+                    Log.e(TAG, "Exception while recovering public volume: "
+                            + mediaVolume.getName());
+                }
+            }
+        }
     }
 
     private void syncAllMedia() {
@@ -8046,6 +8306,12 @@ public class MediaProvider extends ContentProvider {
                 }
             }
 
+            if (initialValues.containsKey(FileColumns.GENERATION_MODIFIED)
+                    && !isCallingPackageSelf()) {
+                // We only allow MediaScanner to send updates for generation modified
+                initialValues.remove(FileColumns.GENERATION_MODIFIED);
+            }
+
             if (!isCallingPackageSelf()) {
                 Trace.beginSection("MP.filter");
 
@@ -8162,6 +8428,8 @@ public class MediaProvider extends ContentProvider {
                 case IMAGES_MEDIA_ID:
                 case DOWNLOADS_ID:
                 case FILES_ID:
+                    // Check if the caller has the required permissions to do placement
+                    enforceCallingPermission(uri, extras, true);
                     break;
                 default:
                     throw new IllegalArgumentException("Movement of " + uri
@@ -8362,14 +8630,14 @@ public class MediaProvider extends ContentProvider {
                             final boolean notifyTranscodeHelper = isUriPublished;
                             if (deferScan) {
                                 helper.postBackground(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
                                 });
                             } else {
                                 helper.postBlocking(() -> {
-                                    scanFileAsMediaProvider(file, REASON_DEMAND);
+                                    scanFileAsMediaProvider(file);
                                     if (notifyTranscodeHelper) {
                                         notifyTranscodeHelperOnUriPublished(updatedUri, file);
                                     }
@@ -9010,15 +9278,13 @@ public class MediaProvider extends ContentProvider {
 
             try {
                 return mPickerUriResolver.openTypedAssetFile(uri, mimeTypeFilter, opts, signal,
-                        mCallingIdentity.get());
+                        mCallingIdentity.get(), wantsThumb);
             } finally {
                 synchronized (mPendingOpenInfo) {
                     mPendingOpenInfo.remove(tid);
                 }
             }
         }
-
-        // TODO: enforce that caller has access to this uri
 
         // Offer thumbnail of media, when requested
         if (wantsThumb) {
@@ -9037,6 +9303,7 @@ public class MediaProvider extends ContentProvider {
         final int match = matchUri(uri, allowHidden);
 
         Trace.beginSection("MP.ensureThumbnail");
+        checkAccessForThumbnail(uri, match, signal);
         final LocalCallingIdentity token = clearLocalCallingIdentity();
         try {
             switch (match) {
@@ -9085,6 +9352,39 @@ public class MediaProvider extends ContentProvider {
         } finally {
             restoreLocalCallingIdentity(token);
             Trace.endSection();
+        }
+    }
+
+    private void checkAccessForThumbnail(Uri uri, int match, CancellationSignal signal)
+            throws FileNotFoundException {
+        int mediaType = -1;
+        if (match == DOWNLOADS_ID || match == FILES_ID) {
+            mediaType = MimeUtils.resolveMediaType(queryForTypeAsSelf(uri));
+        }
+
+        // check access only for image and video thumbnails
+        // audio thumbnails have many legacy paths that we could break by checking for access
+        // and it doesn't reveal much of data that could be a risk
+        if (match == IMAGES_MEDIA_ID || match == VIDEO_MEDIA_ID
+                || mediaType == MEDIA_TYPE_IMAGE || mediaType == MEDIA_TYPE_VIDEO) {
+
+            // First check existence of the file
+            final String[] projection = new String[] { MediaColumns.DATA };
+            final File file;
+            try (Cursor c = queryForSingleItemAsMediaProvider(
+                    uri, projection, null, null, signal)) {
+                final String data = c.getString(0);
+                if (TextUtils.isEmpty(data)) {
+                    throw new FileNotFoundException("Missing path for " + uri);
+                } else {
+                    file = new File(data).getCanonicalFile();
+                }
+            } catch (IOException e) {
+                throw new FileNotFoundException(e.toString());
+            }
+
+            // Then check if the caller has access to the file
+            checkAccess(uri, Bundle.EMPTY, file, false);
         }
     }
 
@@ -9392,10 +9692,10 @@ public class MediaProvider extends ContentProvider {
         // Figure out if we need to redact contents
         final boolean redactionNeeded = isRedactionNeededForOpenViaContentResolver(redactedUri,
                 ownerPackageName, file);
-        final RedactionInfo redactionInfo;
+        long[] redactionRanges;
         try {
-            redactionInfo = redactionNeeded ? getRedactionRanges(file)
-                    : new RedactionInfo(new long[0], new long[0]);
+            redactionRanges = redactionNeeded ? RedactionUtils.getRedactionRanges(file)
+                    : new long[0];
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -9424,7 +9724,7 @@ public class MediaProvider extends ContentProvider {
                         update(uri, values, null, null);
                         break;
                     default:
-                        scanFileAsMediaProvider(file, REASON_DEMAND);
+                        scanFileAsMediaProvider(file);
                         break;
                 }
             } catch (Exception e2) {
@@ -9445,7 +9745,7 @@ public class MediaProvider extends ContentProvider {
                 // So, we use it to signify that mediaCapabilitiesUid is not set.
                 mediaCapabilitiesUid = 0;
             }
-            if (redactionInfo.redactionRanges.length > 0) {
+            if (redactionRanges.length > 0) {
                 // If fuse is enabled, we can provide an fd that points to the fuse
                 // file system and handle redaction in the fuse handler when the caller reads.
                 pfd = openWithFuse(filePath, uid, mediaCapabilitiesUid, modeBits,
@@ -9531,7 +9831,16 @@ public class MediaProvider extends ContentProvider {
     }
 
     private void deleteAndInvalidate(@NonNull Path path) {
-        deleteAndInvalidate(path.toFile());
+        if (path == null) {
+            return;
+        }
+
+        String fileName = path.getFileName().toString();
+        // Delete and invalidate all files except .nomedia and .database_uuid
+        if (!fileName.equalsIgnoreCase(MEDIA_IGNORE_FILENAME)
+                && !fileName.equalsIgnoreCase(FILE_DATABASE_UUID)) {
+            deleteAndInvalidate(path.toFile());
+        }
     }
 
     private void deleteAndInvalidate(@NonNull File file) {
@@ -9690,71 +9999,6 @@ public class MediaProvider extends ContentProvider {
         return false;
     }
 
-    /**
-     * Set of Exif tags that should be considered for redaction.
-     */
-    private static final String[] REDACTED_EXIF_TAGS = new String[] {
-            ExifInterface.TAG_GPS_ALTITUDE,
-            ExifInterface.TAG_GPS_ALTITUDE_REF,
-            ExifInterface.TAG_GPS_AREA_INFORMATION,
-            ExifInterface.TAG_GPS_DOP,
-            ExifInterface.TAG_GPS_DATESTAMP,
-            ExifInterface.TAG_GPS_DEST_BEARING,
-            ExifInterface.TAG_GPS_DEST_BEARING_REF,
-            ExifInterface.TAG_GPS_DEST_DISTANCE,
-            ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
-            ExifInterface.TAG_GPS_DEST_LATITUDE,
-            ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE,
-            ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_DIFFERENTIAL,
-            ExifInterface.TAG_GPS_IMG_DIRECTION,
-            ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
-            ExifInterface.TAG_GPS_LATITUDE,
-            ExifInterface.TAG_GPS_LATITUDE_REF,
-            ExifInterface.TAG_GPS_LONGITUDE,
-            ExifInterface.TAG_GPS_LONGITUDE_REF,
-            ExifInterface.TAG_GPS_MAP_DATUM,
-            ExifInterface.TAG_GPS_MEASURE_MODE,
-            ExifInterface.TAG_GPS_PROCESSING_METHOD,
-            ExifInterface.TAG_GPS_SATELLITES,
-            ExifInterface.TAG_GPS_SPEED,
-            ExifInterface.TAG_GPS_SPEED_REF,
-            ExifInterface.TAG_GPS_STATUS,
-            ExifInterface.TAG_GPS_TIMESTAMP,
-            ExifInterface.TAG_GPS_TRACK,
-            ExifInterface.TAG_GPS_TRACK_REF,
-            ExifInterface.TAG_GPS_VERSION_ID,
-    };
-
-    /**
-     * Set of ISO boxes that should be considered for redaction.
-     */
-    private static final int[] REDACTED_ISO_BOXES = new int[] {
-            IsoInterface.BOX_LOCI,
-            IsoInterface.BOX_XYZ,
-            IsoInterface.BOX_GPS,
-            IsoInterface.BOX_GPS0,
-    };
-
-    public static final Set<String> sRedactedExifTags = new ArraySet<>(
-            Arrays.asList(REDACTED_EXIF_TAGS));
-
-    private static final class RedactionInfo {
-        public final long[] redactionRanges;
-        public final long[] freeOffsets;
-
-        public RedactionInfo() {
-            this.redactionRanges = new long[0];
-            this.freeOffsets = new long[0];
-        }
-
-        public RedactionInfo(long[] redactionRanges, long[] freeOffsets) {
-            this.redactionRanges = redactionRanges;
-            this.freeOffsets = freeOffsets;
-        }
-    }
-
     private static class LRUCache<K, V> extends LinkedHashMap<K, V> {
         private final int mMaxSize;
 
@@ -9806,7 +10050,7 @@ public class MediaProvider extends ContentProvider {
         final File file = new File(ioPath);
 
         if (forceRedaction) {
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         }
 
         // When calculating redaction ranges initiated from MediaProvider, the redaction policy
@@ -9820,7 +10064,7 @@ public class MediaProvider extends ContentProvider {
             if (info != null && info.uid == original_uid) {
                 boolean shouldRedact = info.shouldRedact;
                 if (shouldRedact) {
-                    return getRedactionRanges(file).redactionRanges;
+                    return RedactionUtils.getRedactionRanges(file);
                 } else {
                     return new long[0];
                 }
@@ -9883,83 +10127,9 @@ public class MediaProvider extends ContentProvider {
                 return new long[0];
             }
 
-            return getRedactionRanges(file).redactionRanges;
+            return RedactionUtils.getRedactionRanges(file);
         } finally {
             restoreLocalCallingIdentity(token);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param file file to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(File file) throws IOException {
-        try (FileInputStream is = new FileInputStream(file)) {
-            return getRedactionRanges(is, MimeUtils.resolveMimeType(file));
-        } catch (FileNotFoundException ignored) {
-            // If file not found, then there's nothing to redact
-            return new RedactionInfo();
-        } catch (IOException e) {
-            throw new IOException("Failed to redact " + file, e);
-        }
-    }
-
-    /**
-     * Calculates the ranges containing sensitive metadata that should be redacted if the caller
-     * doesn't have the required permissions.
-     *
-     * @param fis {@link FileInputStream} to be redacted
-     * @return the ranges to be redacted in a RedactionInfo object, could be empty redaction ranges
-     * if there's sensitive metadata
-     * @throws IOException if an IOException happens while calculating the redaction ranges
-     */
-    @VisibleForTesting
-    public static RedactionInfo getRedactionRanges(FileInputStream fis, String mimeType)
-            throws IOException {
-        final LongArray res = new LongArray();
-        final LongArray freeOffsets = new LongArray();
-
-        Trace.beginSection("MP.getRedactionRanges");
-        try {
-            if (ExifInterface.isSupportedMimeType(mimeType)) {
-                final ExifInterface exif = new ExifInterface(fis.getFD());
-                for (String tag : REDACTED_EXIF_TAGS) {
-                    final long[] range = exif.getAttributeRange(tag);
-                    if (range != null) {
-                        res.add(range[0]);
-                        res.add(range[0] + range[1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface exifXmp = XmpInterface.fromContainer(exif);
-                res.addAll(exifXmp.getRedactionRanges());
-            }
-
-            if (IsoInterface.isSupportedMimeType(mimeType)) {
-                final IsoInterface iso = IsoInterface.fromFileDescriptor(fis.getFD());
-                for (int box : REDACTED_ISO_BOXES) {
-                    final long[] ranges = iso.getBoxRanges(box);
-                    for (int i = 0; i < ranges.length; i += 2) {
-                        long boxTypeOffset = ranges[i] - 4;
-                        freeOffsets.add(boxTypeOffset);
-                        res.add(boxTypeOffset);
-                        res.add(ranges[i + 1]);
-                    }
-                }
-                // Redact xmp where present
-                final XmpInterface isoXmp = XmpInterface.fromContainer(iso);
-                res.addAll(isoXmp.getRedactionRanges());
-            }
-
-            return new RedactionInfo(res.toArray(), freeOffsets.toArray());
-        } finally {
-            Trace.endSection();
         }
     }
 
@@ -10741,11 +10911,11 @@ public class MediaProvider extends ContentProvider {
     }
 
     private boolean isCallingIdentityDownloadProvider() {
-        return getCallingUidOrSelf() == mDownloadsAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mDownloadsAuthorityAppId;
     }
 
     private boolean isCallingIdentityExternalStorageProvider() {
-        return getCallingUidOrSelf() == mExternalStorageAuthorityAppId;
+        return UserHandle.getAppId(getCallingUidOrSelf()) == mExternalStorageAuthorityAppId;
     }
 
     private boolean isCallingIdentityMtp() {
@@ -10884,7 +11054,8 @@ public class MediaProvider extends ContentProvider {
      *
      * @throws SecurityException if access isn't allowed.
      */
-    private void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+    @VisibleForTesting
+    protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
             boolean forWrite) {
         Trace.beginSection("MP.enforceCallingPermission");
         try {
@@ -11354,6 +11525,8 @@ public class MediaProvider extends ContentProvider {
     private MediaGrants mMediaGrants;
     private DatabaseBackupAndRecovery mDatabaseBackupAndRecovery;
 
+    private BackupExecutor mExternalPrimaryBackupExecutor;
+
     // name of the volume currently being scanned by the media scanner (or null)
     private String mMediaScannerVolume;
 
@@ -11544,6 +11717,19 @@ public class MediaProvider extends ContentProvider {
 
     private int getCallingUidOrSelf() {
         return mCallingIdentity.get().uid;
+    }
+
+    private boolean isCallerPhotoPicker() {
+        try {
+            return PermissionUtils.checkManageCloudMediaProvidersPermission(
+                    getContext(),
+                    mCallingIdentity.get().pid,
+                    mCallingIdentity.get().uid
+            );
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not check MANAGE_CLOUD_MEDIA_PROVIDERS_PERMISSION permission", e);
+            return false;
+        }
     }
 
     @Deprecated

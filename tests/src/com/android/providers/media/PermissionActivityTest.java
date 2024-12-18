@@ -74,7 +74,7 @@ import java.util.HashSet;
 import java.util.concurrent.TimeoutException;
 
 /**
- * We already have solid coverage of this logic in {@code CtsProviderTestCases},
+ * We already have solid coverage of this logic in {@code CtsMediaProviderTestCases},
  * but the coverage system currently doesn't measure that, so we add the bare
  * minimum local testing here to convince the tooling that it's covered.
  */

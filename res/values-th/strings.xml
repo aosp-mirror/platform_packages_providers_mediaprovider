@@ -66,7 +66,7 @@
     <string name="picker_preview" msgid="6257414886055861039">"ตัวอย่าง"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"เปลี่ยนไปใช้โปรไฟล์งาน"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"เปลี่ยนไปใช้โปรไฟล์ส่วนตัว"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ส่วนตัว"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"ส่วนบุคคล"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"ผู้ดูแลระบบบล็อกไว้"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"ไม่อนุญาตให้เข้าถึงข้อมูลงานจากแอปส่วนตัว"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"ไม่อนุญาตให้เข้าถึงข้อมูลส่วนตัวจากแอปงาน"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"ยกเลิก"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"รอ"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"การปกป้องเพื่อความปลอดภัย"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Native Transcode Alerts"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Native Transcode Progress"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"การแจ้งเตือนการแปลง"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ความคืบหน้าของการแปลง"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"โปรดลองอีกครั้งในภายหลัง รูปภาพจะพร้อมใช้งานเมื่อปัญหาได้รับการแก้ไขแล้ว"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"โหลดรูปภาพบางรูปไม่ได้"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"รับทราบ"</string>

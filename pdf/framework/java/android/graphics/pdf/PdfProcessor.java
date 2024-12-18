@@ -31,6 +31,7 @@ import android.graphics.pdf.content.PdfPageImageContent;
 import android.graphics.pdf.content.PdfPageLinkContent;
 import android.graphics.pdf.content.PdfPageTextContent;
 import android.graphics.pdf.flags.Flags;
+import android.graphics.pdf.logging.PdfEventLogger;
 import android.graphics.pdf.models.FormEditRecord;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.PageMatchBounds;
@@ -38,6 +39,7 @@ import android.graphics.pdf.models.jni.LoadPdfResult;
 import android.graphics.pdf.models.selection.PageSelection;
 import android.graphics.pdf.models.selection.SelectionBoundary;
 import android.graphics.pdf.utils.Preconditions;
+import android.os.Binder;
 import android.os.ParcelFileDescriptor;
 import android.system.ErrnoException;
 import android.system.Os;
@@ -45,9 +47,9 @@ import android.system.OsConstants;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -69,10 +71,16 @@ public class PdfProcessor {
     public static final int PDF_FORM_TYPE_XFA_FOREGROUND = 3;
 
     private static final String TAG = "PdfProcessor";
+    private static final Object sPdfiumLock = new Object();
+    private final PdfEventLogger mPdfEventLogger;
     private PdfDocumentProxy mPdfDocument;
 
     public PdfProcessor() {
         PdfDocumentProxy.loadLibPdf();
+
+        mPdfEventLogger = new PdfEventLogger(
+                /* processId = */ Binder.getCallingUid(),
+                /* docId = */ new SecureRandom().nextLong());
     }
 
     /**
@@ -89,6 +97,8 @@ public class PdfProcessor {
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public void create(ParcelFileDescriptor fileDescriptor, @Nullable LoadParams params)
             throws IOException {
+        long loadingStartTime = System.currentTimeMillis();
+
         Preconditions.checkNotNull(fileDescriptor, "Input FD cannot be null");
         ensurePdfDestroyed();
         try {
@@ -98,22 +108,67 @@ public class PdfProcessor {
         }
 
         String password = (params != null) ? params.getPassword() : null;
-        LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(),
-                password);
-        switch (result.status) {
-            case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR -> throw new IOException(
-                    "Unable to load the document!");
-            case REQUIRES_PASSWORD -> throw new SecurityException(
-                    "Password required to access document");
-            case LOADED -> this.mPdfDocument = result.pdfDocument;
-            default -> throw new RuntimeException("Unexpected error has occurred!");
+        synchronized (sPdfiumLock) {
+            LoadPdfResult result = PdfDocumentProxy.createFromFd(fileDescriptor.detachFd(),
+                    password);
+            switch (result.status) {
+                case NEED_MORE_DATA, PDF_ERROR, FILE_ERROR -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.ERROR,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new IOException("Unable to load the document!");
+                }
+                case REQUIRES_PASSWORD -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.WRONG_PASSWORD,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new SecurityException("Password required to access document");
+                }
+                case LOADED -> {
+
+                    this.mPdfDocument = result.pdfDocument;
+
+                    @PdfEventLogger.LinearizationTypes.LinearizationType int linearizationType =
+                            mPdfDocument.isPdfLinearized()
+                                    ? PdfEventLogger.LinearizationTypes.LINEARIZED
+                                    : PdfEventLogger.LinearizationTypes.NON_LINEARIZED;
+
+                    // Log pdf loaded successfully.
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.LOADED,
+                            /* linearizationType = */ linearizationType,
+                            /* numPages = */ mPdfDocument.getNumPages());
+                }
+                default -> {
+
+                    mPdfEventLogger.logPdfLoadReportedEvent(
+                            /* loadDurationMillis= */ System.currentTimeMillis() - loadingStartTime,
+                            /* pdfSizeInKb = */ result.pdfSizeInKb,
+                            /* pdfLoadResult = */ PdfEventLogger.PdfLoadResults.UNKNOWN,
+                            /* linearizationType = */ PdfEventLogger.LinearizationTypes.UNKNOWN,
+                            /* numPages = */ -1);
+                    throw new RuntimeException("Unexpected error has occurred!");
+                }
+            }
         }
     }
 
     /** Returns the number of pages in the PDF document */
     public int getNumPages() {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.getNumPages();
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getNumPages();
+        }
     }
 
     /**
@@ -126,9 +181,11 @@ public class PdfProcessor {
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageTextContent> getPageTextContents(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        PdfPageTextContent content = new PdfPageTextContent(mPdfDocument.getPageText(pageNum));
-        return List.of(content);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            PdfPageTextContent content = new PdfPageTextContent(mPdfDocument.getPageText(pageNum));
+            return List.of(content);
+        }
     }
 
     /**
@@ -141,11 +198,11 @@ public class PdfProcessor {
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageImageContent> getPageImageContents(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        // Use {@link java.util.Stream#collect()} instead of {@link java.util.Stream#toList)} as
-        // it is available from Android SDK 34.
-        return mPdfDocument.getPageAltText(pageNum).stream().map(
-                PdfPageImageContent::new).collect(Collectors.toList());
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageAltText(pageNum).stream().map(
+                    PdfPageImageContent::new).collect(Collectors.toList());
+        }
     }
 
     /**
@@ -153,8 +210,10 @@ public class PdfProcessor {
      * pages of the document will have the same dimensions
      */
     public int getPageWidth(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.getPageWidth(pageNum);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageWidth(pageNum);
+        }
     }
 
     /**
@@ -162,8 +221,10 @@ public class PdfProcessor {
      * pages of the document will have the same dimensions
      */
     public int getPageHeight(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.getPageHeight(pageNum);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageHeight(pageNum);
+        }
     }
 
     /**
@@ -173,19 +234,17 @@ public class PdfProcessor {
      * task.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public void renderPage(
-            int pageNum, Bitmap bitmap, Rect destClip, Matrix transform, RenderParams params) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+    public void renderPage(int pageNum, Bitmap bitmap, Rect destClip, Matrix transform,
+            RenderParams params, boolean renderFormFields) {
         Preconditions.checkNotNull(bitmap, "Destination bitmap cannot be null");
         Preconditions.checkNotNull(params, "RenderParams cannot be null");
-        Preconditions.checkArgument(
-                bitmap.getConfig() == Bitmap.Config.ARGB_8888, "Unsupported pixel format");
-        Preconditions.checkArgument(
-                transform == null || transform.isAffine(), "Transform not affine");
+        Preconditions.checkArgument(bitmap.getConfig() == Bitmap.Config.ARGB_8888,
+                "Unsupported pixel format");
+        Preconditions.checkArgument(transform == null || transform.isAffine(),
+                "Transform not affine");
         int renderMode = params.getRenderMode();
-        Preconditions.checkArgument(renderMode == PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
-                        || renderMode == PdfRenderer.Page.RENDER_MODE_FOR_PRINT,
-                "Unsupported render mode");
+        Preconditions.checkArgument(renderMode == RenderParams.RENDER_MODE_FOR_DISPLAY
+                || renderMode == RenderParams.RENDER_MODE_FOR_PRINT, "Unsupported render mode");
         Preconditions.checkArgument(clipInBitmap(destClip, bitmap), "destClip not in bounds");
         final int contentLeft = (destClip != null) ? destClip.left : 0;
         final int contentTop = (destClip != null) ? destClip.top : 0;
@@ -197,8 +256,7 @@ public class PdfProcessor {
             int clipWidth = contentRight - contentLeft;
             int clipHeight = contentBottom - contentTop;
             transform = new Matrix();
-            transform.postScale(
-                    (float) clipWidth / getPageWidth(pageNum),
+            transform.postScale((float) clipWidth / getPageWidth(pageNum),
                     (float) clipHeight / getPageHeight(pageNum));
             transform.postTranslate(contentLeft, contentTop);
         }
@@ -206,16 +264,20 @@ public class PdfProcessor {
         float[] transformArr = new float[9];
         transform.getValues(transformArr);
 
-        mPdfDocument.render(
-                pageNum,
-                bitmap,
-                contentLeft,
-                contentTop,
-                contentRight,
-                contentBottom,
-                transformArr,
-                renderMode,
-                params.areAnnotationsDisabled());
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            mPdfDocument.render(
+                    pageNum,
+                    bitmap,
+                    contentLeft,
+                    contentTop,
+                    contentRight,
+                    contentBottom,
+                    transformArr,
+                    renderMode,
+                    params.getRenderAnnotations(),
+                    renderFormFields);
+        }
     }
 
     /**
@@ -230,9 +292,27 @@ public class PdfProcessor {
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PageMatchBounds> searchPageText(int pageNum, String query) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(query, "Search query cannot be null");
-        return mPdfDocument.searchPageText(pageNum, query).unflattenToList();
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            long searchStartTime = System.currentTimeMillis();
+            List<PageMatchBounds> searchPageTextResult =
+                    mPdfDocument.searchPageText(pageNum, query).unflattenToList();
+
+            // In the current version we are only interested in the results where query length is
+            // 1 as there is no much change in latency after words.
+            if (pageNum == 0 && query.length() == 1) {
+                mPdfEventLogger.logSearchReportedEvent(
+                        /* loadDurationMillis = */ System.currentTimeMillis() - searchStartTime,
+                        /* queryLength = */ query.length(),
+                        /* queryPageNumber = */ pageNum,
+                        /* apiResponse = */ PdfEventLogger.ApiResponseTypes.SUCCESS,
+                        /* numPages = */ mPdfDocument.getNumPages(),
+                        /* matchCount = */ searchPageTextResult.size());
+            }
+
+            return searchPageTextResult;
+        }
     }
 
     /**
@@ -243,45 +323,59 @@ public class PdfProcessor {
      * the same point, selects the word at that point.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
-    public PageSelection selectPageText(int pageNum,
-            SelectionBoundary start, SelectionBoundary stop, boolean isRtl) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+    public PageSelection selectPageText(int pageNum, SelectionBoundary start,
+            SelectionBoundary stop) {
         Preconditions.checkNotNull(start, "Start selection boundary cannot be null");
         Preconditions.checkNotNull(stop, "Stop selection boundary cannot be null");
-        android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
-                mPdfDocument.selectPageText(
-                        pageNum,
-                        android.graphics.pdf.models.jni.SelectionBoundary.convert(start, isRtl),
-                        android.graphics.pdf.models.jni.SelectionBoundary.convert(stop, isRtl));
-        if (legacyPageSelection != null) {
-            return legacyPageSelection.convert(isRtl);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            android.graphics.pdf.models.jni.PageSelection legacyPageSelection =
+                    mPdfDocument.selectPageText(pageNum,
+                            android.graphics.pdf.models.jni.SelectionBoundary.convert(start),
+                            android.graphics.pdf.models.jni.SelectionBoundary.convert(stop));
+            if (legacyPageSelection != null) {
+
+                mPdfEventLogger.logPdfApiUsageReportedEvent(
+                        /* apiType = */ PdfEventLogger.ApiTypes.SELECT_CONTENT,
+                        /* apiResponse = */ PdfEventLogger.ApiResponseTypes.SUCCESS);
+
+                return legacyPageSelection.convert();
+            }
+            return null;
         }
-        return null;
     }
 
     /** Get the bounds and URLs of all the links on the given page. */
     @FlaggedApi(Flags.FLAG_ENABLE_PDF_VIEWER)
     public List<PdfPageLinkContent> getPageLinkContents(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.getPageLinks(pageNum).unflattenToList();
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageLinks(pageNum).unflattenToList();
+        }
     }
 
     /** Returns bookmarks and other goto links (within the current document) on a page */
     public List<PdfPageGotoLinkContent> getPageGotoLinks(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.getPageGotoLinks(pageNum);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getPageGotoLinks(pageNum);
+        }
     }
 
     /** Retains object in memory related to a page when that page becomes visible. */
     public void retainPage(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        mPdfDocument.retainPage(pageNum);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            mPdfDocument.retainPage(pageNum);
+        }
     }
 
     /** Releases object in memory related to a page when that page is no longer visible. */
     public void releasePage(int pageNum) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        mPdfDocument.releasePage(pageNum);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            mPdfDocument.releasePage(pageNum);
+        }
     }
 
     /**
@@ -289,10 +383,11 @@ public class PdfProcessor {
      */
     @PdfLinearizationTypes.PdfLinearizationType
     public int getDocumentLinearizationType() {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.isPdfLinearized()
-                ? PDF_DOCUMENT_TYPE_LINEARIZED
-                : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.isPdfLinearized() ? PDF_DOCUMENT_TYPE_LINEARIZED
+                    : PDF_DOCUMENT_TYPE_NON_LINEARIZED;
+        }
     }
 
     /**
@@ -301,18 +396,24 @@ public class PdfProcessor {
      * @throws IllegalArgumentException if an unrecognized PDF form type is returned
      */
     public int getPdfFormType() {
-        int pdfFormType = mPdfDocument.getFormType();
-        return switch (pdfFormType) {
-            case PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL, PDF_FORM_TYPE_XFA_FOREGROUND ->
-                    pdfFormType;
-            default -> PDF_FORM_TYPE_NONE;
-        };
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            int pdfFormType = mPdfDocument.getFormType();
+            return switch (pdfFormType) {
+                case PDF_FORM_TYPE_ACRO_FORM, PDF_FORM_TYPE_XFA_FULL,
+                        PDF_FORM_TYPE_XFA_FOREGROUND ->
+                        pdfFormType;
+                default -> PDF_FORM_TYPE_NONE;
+            };
+        }
     }
 
     /** Returns true if this PDF prefers to be scaled for printing. */
     public boolean scaleForPrinting() {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
-        return mPdfDocument.scaleForPrinting();
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.scaleForPrinting();
+        }
     }
 
     /**
@@ -323,9 +424,12 @@ public class PdfProcessor {
      * page will be returned.
      */
     @NonNull
-    public List<FormWidgetInfo> getFormWidgetInfos(
-            int pageNum, @NonNull @FormWidgetInfo.WidgetType Set<Integer> types) {
-        return mPdfDocument.getFormWidgetInfos(pageNum, types);
+    public List<FormWidgetInfo> getFormWidgetInfos(int pageNum,
+            @NonNull @FormWidgetInfo.WidgetType int[] types) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            return mPdfDocument.getFormWidgetInfos(pageNum, types);
+        }
     }
 
     /**
@@ -337,21 +441,28 @@ public class PdfProcessor {
      */
     @NonNull
     FormWidgetInfo getFormWidgetInfoAtIndex(int pageNum, int annotationIndex) {
-        FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, annotationIndex);
-        if (result == null) {
-            throw new IllegalArgumentException("No widget found at this index.");
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, annotationIndex);
+            if (result == null) {
+                throw new IllegalArgumentException("No widget found at this index.");
+            }
+            return result;
         }
-        return result;
     }
 
     /** Returns information about the widget at the given point. */
     @NonNull
     public FormWidgetInfo getFormWidgetInfoAtPosition(int pageNum, int x, int y) {
-        FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, x, y);
-        if (result == null) {
-            throw new IllegalArgumentException("No widget found at point.");
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            FormWidgetInfo result = mPdfDocument.getFormWidgetInfo(pageNum, x, y);
+            if (result == null) {
+                throw new IllegalArgumentException("No widget found at point.");
+            }
+            return result;
         }
-        return result;
+
     }
 
     /**
@@ -376,75 +487,67 @@ public class PdfProcessor {
         } else if (editRecord.getType() == FormEditRecord.EDIT_TYPE_SET_TEXT) {
             return applyEditSetText(pageNum, editRecord);
         }
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
     private List<Rect> applyEditTypeClick(int pageNum, @NonNull FormEditRecord editRecord) {
-        Preconditions.checkNotNull(
-                editRecord.getClickPoint(), "Can't apply click edit record without point");
+        Preconditions.checkNotNull(editRecord.getClickPoint(),
+                "Can't apply click edit record without point");
         Point clickPoint = editRecord.getClickPoint();
-        List<Rect> results = mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
-        if (results == null) {
-            throw new IllegalArgumentException("Cannot click on this widget.");
-        }
-        return results;
-    }
-
-    private List<Rect> applyEditTypeSetIndices(int pageNum, @NonNull FormEditRecord editRecord) {
-        Set<Integer> selectedIndices = editRecord.getSelectedIndices();
-        List<Rect> results =
-                mPdfDocument.setFormFieldSelectedIndices(
-                        pageNum, editRecord.getWidgetIndex(), new ArrayList<>(selectedIndices));
-        if (results == null) {
-            throw new IllegalArgumentException("Cannot set selected indices on this widget.");
-        }
-        return results;
-    }
-
-    private List<Rect> applyEditSetText(int pageNum, @NonNull FormEditRecord editRecord) {
-        Preconditions.checkNotNull(
-                editRecord.getText(), "Can't apply set text record without text");
-        String text = editRecord.getText();
-        List<Rect> results =
-                mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(), text);
-        if (results == null) {
-            throw new IllegalArgumentException("Cannot set form field text on this widget.");
-        }
-        return results;
-    }
-
-    /**
-     * Executes the {@link FormEditRecord}s on the page, in order.
-     *
-     * <p>If any record cannot be applied, it will be returned and no further records will be
-     * applied. Records already applied will not be reverted. To restore the page to its state
-     * before any records were applied, re-load the page by closing and re-opening the page.
-     */
-    /** Executes the {@link FormEditRecord}s on the page, in order. */
-    @NonNull
-    public List<FormEditRecord> applyEdits(
-            int pageNum, @NonNull List<FormEditRecord> formEditRecords) {
-        for (int i = 0; i < formEditRecords.size(); i++) {
-            try {
-                applyEdit(pageNum, formEditRecords.get(i));
-            } catch (IllegalArgumentException ex) {
-                Log.e(TAG, String.format("Can't apply record %d", i), ex);
-                return formEditRecords.subList(i, formEditRecords.size());
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            List<Rect> results = mPdfDocument.clickOnPage(pageNum, clickPoint.x, clickPoint.y);
+            if (results == null) {
+                throw new IllegalArgumentException("Cannot click on this widget.");
             }
+            return results;
         }
-        return new ArrayList<>();
+    }
+
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    private List<Rect> applyEditTypeSetIndices(int pageNum, @NonNull FormEditRecord editRecord) {
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            int[] selectedIndices = editRecord.getSelectedIndices();
+            List<Rect> results = mPdfDocument.setFormFieldSelectedIndices(pageNum,
+                    editRecord.getWidgetIndex(), selectedIndices);
+            if (results == null) {
+                throw new IllegalArgumentException("Cannot set selected indices on this widget.");
+            }
+            return results;
+        }
+    }
+
+    @FlaggedApi(Flags.FLAG_ENABLE_FORM_FILLING)
+    private List<Rect> applyEditSetText(int pageNum, @NonNull FormEditRecord editRecord) {
+        Preconditions.checkNotNull(editRecord.getText(),
+                "Can't apply set text record without text");
+        String text = editRecord.getText();
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            List<Rect> results = mPdfDocument.setFormFieldText(pageNum, editRecord.getWidgetIndex(),
+                    text);
+            if (results == null) {
+                throw new IllegalArgumentException("Cannot set form field text on this widget.");
+            }
+            return results;
+        }
     }
 
     /** Ensures that any previous {@link PdfDocumentProxy} instance is closed. */
     public void ensurePdfDestroyed() {
-        if (mPdfDocument != null) {
-            try {
-                mPdfDocument.destroy();
-            } catch (Throwable t) {
-                Log.e(this.getClass().getSimpleName(), "Error closing PdfDocumentProxy", t);
+        synchronized (sPdfiumLock) {
+            if (mPdfDocument != null) {
+                try {
+                    mPdfDocument.destroy();
+                } catch (Throwable t) {
+                    Log.e(TAG, "Error closing PdfDocumentProxy", t);
+                } finally {
+                    mPdfDocument = null;
+                }
             }
         }
-        mPdfDocument = null;
     }
 
     /**
@@ -452,7 +555,6 @@ public class PdfProcessor {
      * ParcelFileDescriptor.
      */
     public void write(ParcelFileDescriptor destination, boolean removePasswordProtection) {
-        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
         Preconditions.checkNotNull(destination, "Destination FD cannot be null");
         if (removePasswordProtection) {
             cloneWithoutSecurity(destination);
@@ -468,7 +570,10 @@ public class PdfProcessor {
      * @param destination points to where pdfclient should make a copy of the pdf without security.
      */
     private void cloneWithoutSecurity(ParcelFileDescriptor destination) {
-        mPdfDocument.cloneWithoutSecurity(destination);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            mPdfDocument.cloneWithoutSecurity(destination);
+        }
     }
 
     /**
@@ -477,15 +582,22 @@ public class PdfProcessor {
      * @param destination where the currently open PDF should be written.
      */
     private void saveAs(ParcelFileDescriptor destination) {
-        mPdfDocument.saveAs(destination);
+        synchronized (sPdfiumLock) {
+            assertPdfDocumentNotNull();
+            mPdfDocument.saveAs(destination);
+        }
     }
 
     private boolean clipInBitmap(@Nullable Rect clip, Bitmap destination) {
         if (clip == null) {
             return true;
         }
-        return clip.left >= 0 && clip.top >= 0
-                && clip.right <= destination.getWidth()
+        return clip.left >= 0 && clip.top >= 0 && clip.right <= destination.getWidth()
                 && clip.bottom <= destination.getHeight();
     }
+
+    private void assertPdfDocumentNotNull() {
+        Preconditions.checkNotNull(mPdfDocument, "PdfDocumentProxy cannot be null");
+    }
+
 }

@@ -28,9 +28,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 import android.content.Context;
 import android.content.Intent;
@@ -63,11 +60,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerDataLayerTest {
@@ -748,48 +742,6 @@ public class PickerDataLayerTest {
 
         // Ensure nothing was changed.
         assertThat(mController.getCurrentCloudProviderInfo().packageName).isEqualTo(PACKAGE_NAME);
-    }
-
-    @Test
-    public void testWaitForSyncWhenSyncFutureIsComplete()
-            throws ExecutionException, InterruptedException {
-        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-        completableFuture.complete(null);
-
-        final int inputRetryCount = 3;
-        assertThat(mDataLayer
-                .waitForSync(completableFuture, "work-name", inputRetryCount))
-                .isEqualTo(inputRetryCount);
-    }
-
-    @Test
-    public void testWaitForSyncWhenSyncFutureNeverCompletes()
-            throws ExecutionException, InterruptedException, TimeoutException {
-        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
-        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
-                mConfigStore, mockSyncManager);
-        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-        doReturn(true).when(mockSyncManager).isUniqueWorkPending(any());
-
-        final int inputRetryCount = 3;
-        assertThat(dataLayer
-                .waitForSync(completableFuture, "work-name", inputRetryCount))
-                .isEqualTo(0);
-    }
-
-    @Test
-    public void testWaitForSyncWhenWorkerFails()
-            throws ExecutionException, InterruptedException, TimeoutException {
-        final PickerSyncManager mockSyncManager = mock(PickerSyncManager.class);
-        final PickerDataLayer dataLayer = new PickerDataLayer(mContext, mFacade, mController,
-                mConfigStore, mockSyncManager);
-        final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-        doReturn(false).when(mockSyncManager).isUniqueWorkPending(any());
-
-        final int inputRetryCount = 3;
-        assertThat(dataLayer
-                .waitForSync(completableFuture, "work-name", inputRetryCount))
-                .isEqualTo(inputRetryCount);
     }
 
     private static void waitForIdle() {

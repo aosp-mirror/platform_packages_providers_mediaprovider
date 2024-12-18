@@ -26,6 +26,11 @@
 
 namespace pdfClient_utils {
 
+// Gets all visible annotations on |page| excluding the types in |types_to_exclude| and stores them
+// in |annots|. See external/pdfium/public/fpdf_annot.h for type definitions.
+void GetVisibleAnnots(FPDF_PAGE page, const std::unordered_set<int>& types_to_exclude,
+                      std::vector<ScopedFPDFAnnotation>* annots);
+
 // Gets all annotations of the types in |types| on |page| and stores them in
 // |annots|. See external/pdfium/public/fpdf_annot.h for type definitions.
 void GetVisibleAnnotsOfType(FPDF_PAGE page, const std::unordered_set<int>& types,

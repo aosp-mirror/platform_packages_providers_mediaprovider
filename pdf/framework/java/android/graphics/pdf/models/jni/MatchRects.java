@@ -18,6 +18,7 @@ package android.graphics.pdf.models.jni;
 
 import android.annotation.FlaggedApi;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.pdf.flags.Flags;
 import android.graphics.pdf.models.PageMatchBounds;
 import android.graphics.pdf.utils.Preconditions;
@@ -27,6 +28,7 @@ import androidx.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents the bounds of search matches as a {@code List<List<Rect>>}, where
@@ -106,13 +108,14 @@ public class MatchRects extends ListOfList<Rect> {
         for (int index = 0; index < mMatchToRect.size(); index++) {
             List<Rect> bounds = new ArrayList<>();
             int boundsForCurrentMatch = (index + 1 < mMatchToRect.size()) ? mMatchToRect.get(
-                    index + 1)
-                    : mRects.size();
+                    index + 1) : mRects.size();
             for (int boundIndex = mMatchToRect.get(index); boundIndex < boundsForCurrentMatch;
                     boundIndex++) {
                 bounds.add(mRects.get(boundIndex));
             }
-            matches.add(new PageMatchBounds(bounds, mCharIndexes.get(index)));
+            matches.add(new PageMatchBounds(
+                    bounds.stream().map(RectF::new).collect(Collectors.toList()),
+                    mCharIndexes.get(index)));
         }
 
         return matches;

@@ -39,8 +39,8 @@
     <string name="deny" msgid="6040983710442068936">"Denegar"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Buscar…"</string>
     <string name="picker_settings" msgid="6443463167344790260">"App multimedia en la nube"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Aplicación multimedia en la nube"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Aplicación multimedia en la nube"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Servicio de almacenamiento en la nube"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Aplicación de fotos en la nube"</string>
     <string name="picker_settings_description" msgid="2916686824777214585">"Accede a tu contenido multimedia en la nube cuando una aplicación o sitio web te pide que selecciones fotos o vídeos"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Accede al contenido multimedia en la nube desde"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Ninguna"</string>
@@ -52,7 +52,7 @@
     <string name="deselect" msgid="4297825044827769490">"Desmarcar"</string>
     <string name="deselected" msgid="8488133193326208475">"Desmarcado"</string>
     <string name="select" msgid="2704765470563027689">"Seleccionar"</string>
-    <string name="selected" msgid="9151797369975828124">"Seleccionado"</string>
+    <string name="selected" msgid="9151797369975828124">"Marcado"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Selecciona hasta <xliff:g id="COUNT_0">^1</xliff:g> elemento}many{Selecciona hasta <xliff:g id="COUNT_1">^1</xliff:g> elementos}other{Selecciona hasta <xliff:g id="COUNT_1">^1</xliff:g> elementos}}"</string>
     <string name="recent" msgid="6694613584743207874">"Recientes"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"No hay fotos ni vídeos"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Cancelar"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Espera"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protección de seguridad"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Alertas de transcodificación nativa"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Progreso de transcodificación nativa"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Notificaciones de transcodificación"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Progreso de la transcodificación"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Inténtalo de nuevo más tarde. Tus fotos estarán disponibles cuando se resuelva el problema."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"No se pueden cargar algunas fotos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Entendido"</string>

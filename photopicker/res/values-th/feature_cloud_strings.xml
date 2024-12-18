@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"พร้อมแล้ว <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> จาก <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> รายการ"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"โหลดรูปภาพบางรูปไม่ได้"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"โปรดลองอีกครั้งในภายหลัง รูปภาพจะพร้อมใช้งานเมื่อปัญหาได้รับการแก้ไขแล้ว"</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"รวมรูปภาพที่สำรองข้อมูลไว้แล้ว"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"คุณเลือกรูปภาพได้จากบัญชี <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> ของ <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"เลือกบัญชี <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"หากต้องการรวมรูปภาพจาก <xliff:g id="APP_NAME">%1$s</xliff:g> ไว้ที่นี่ ให้เลือกบัญชีในแอป"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"เลือกบัญชี"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"เลือกแอปสื่อในระบบคลาวด์"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"หากต้องการรวมรูปภาพที่สำรองข้อมูลไว้ที่นี่ ให้เลือกแอปสื่อในระบบคลาวด์ในการตั้งค่า"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"เลือกแอป"</string>
 </resources>

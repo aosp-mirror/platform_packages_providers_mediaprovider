@@ -17,12 +17,21 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_application_label" msgid="3482718304682270084">"Median valitsin"</string>
+    <string name="photopicker_application_label" msgid="7272391964836190376">"Kuvat ja videot"</string>
     <string name="photopicker_media_item" msgid="3592234718212377636">"Media"</string>
     <string name="photopicker_item_selected" msgid="3741045642641682375">"Valittu"</string>
-    <string name="photopicker_add_button_label" msgid="6805332693977632142">"Lisää <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_done_button_label" msgid="2641444126618862287">"Valmis"</string>
+    <string name="photopicker_clear_selection_button_description" msgid="8614016909754648208">"Poista valinta kaikista"</string>
     <string name="photopicker_selection_limit_exceeded_snackbar" msgid="9136196524514670280">"Valitse enintään <xliff:g id="COUNT">%1$s</xliff:g>"</string>
     <string name="photopicker_photos_nav_button_label" msgid="8716403708343738371">"Kuvat"</string>
     <string name="photopicker_albums_nav_button_label" msgid="4738165281285221320">"Albumit"</string>
+    <string name="photopicker_photos_empty_state_title" msgid="7018770515431149456">"Ei vielä kuvia"</string>
+    <string name="photopicker_photos_empty_state_body" msgid="5959729294856198675">"Aloita kuvien ja videoiden tallennus"</string>
+    <string name="photopicker_camera_empty_state_body" msgid="858373882699294081">"Kamerasovelluksen ottamat kuvat ja videot näkyvät täällä"</string>
+    <string name="photopicker_favorites_empty_state_title" msgid="3855048169943856242">"Ei vielä suosikkeja"</string>
+    <string name="photopicker_favorites_empty_state_body" msgid="4206436541083780797">"Tähdellä tai suosikeiksi merkityt kuvat ja videot näkyvät täällä"</string>
+    <string name="photopicker_videos_empty_state_title" msgid="159181717463348909">"Ei videoita vielä"</string>
+    <string name="photopicker_videos_empty_state_body" msgid="6940271544640894270">"Kamerasovelluksen ottamat, tallennetut tai jaetut videot näkyvät täällä"</string>
     <string name="photopicker_back_option" msgid="986374743479020214">"Takaisin"</string>
+    <string name="photopicker_dismiss_banner_button_label" msgid="2309894998787905178">"Sulje"</string>
 </resources>

@@ -1348,7 +1348,9 @@ static int do_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_i
     ATRACE_CALL();
     struct fuse* fuse = get_fuse(req);
 
-    if (flags != 0) {
+    // VFS handles request with RENAME_NOREPLACE by ensuring that new file does not exist
+    // before redirecting the call to FuseDaemon.
+    if (flags & ~RENAME_NOREPLACE) {
         return EINVAL;
     }
 
@@ -1972,8 +1974,11 @@ static void do_readdir_common(fuse_req_t req,
                 // Ignore lookup errors on
                 // 1. non-existing files returned from MediaProvider database.
                 // 2. path that doesn't match FuseDaemon UID and calling uid.
+                // 3. EIO / EINVAL may be returned on filesystem errors; try to
+                //    keep going to show other files in the directory.
+
                 if (error_code == ENOENT || error_code == EPERM || error_code == EACCES
-                    || error_code == EIO) continue;
+                    || error_code == EIO || error_code == EINVAL) continue;
                 fuse_reply_err(req, error_code);
                 return;
             }

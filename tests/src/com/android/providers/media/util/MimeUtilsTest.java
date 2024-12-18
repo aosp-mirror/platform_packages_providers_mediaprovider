@@ -63,6 +63,8 @@ public class MimeUtilsTest {
                 MimeUtils.resolveMediaType("audio/mpeg"));
         assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
                 MimeUtils.resolveMediaType("video/mpeg"));
+        assertEquals(FileColumns.MEDIA_TYPE_VIDEO,
+                MimeUtils.resolveMediaType("application/vnd.ms-asf"));
         assertEquals(FileColumns.MEDIA_TYPE_IMAGE,
                 MimeUtils.resolveMediaType("image/jpeg"));
         assertEquals(FileColumns.MEDIA_TYPE_DOCUMENT,
@@ -81,6 +83,12 @@ public class MimeUtilsTest {
         // Make sure we catch playlists before audio
         assertEquals(FileColumns.MEDIA_TYPE_PLAYLIST,
                 MimeUtils.resolveMediaType("audio/mpegurl"));
+    }
+
+    @Test
+    public void testIsVideoMimeType() throws Exception {
+        assertTrue(MimeUtils.isVideoMimeType(
+                "application/vnd.ms-asf"));
     }
 
     @Test

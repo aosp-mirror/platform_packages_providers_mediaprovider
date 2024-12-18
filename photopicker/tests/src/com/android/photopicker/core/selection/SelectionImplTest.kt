@@ -1,30 +1,31 @@
 /*
-* Copyright 2024 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.android.photopicker.core.selection
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.android.photopicker.core.configuration.MULTI_SELECT_CONFIG
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.SINGLE_SELECT_CONFIG
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
@@ -46,6 +47,8 @@ class SelectionImplTest {
             }
         }
 
+    private val testPreSelectionMediaData = MutableStateFlow(ArrayList<SelectionData>())
+
     /** Ensures the selection is initialized as empty when no items are provided. */
     @Test
     fun testSelectionIsEmptyByDefault() = runTest {
@@ -53,10 +56,15 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = SINGLE_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(1)
+                            },
+                    ),
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val snapshot = selection.snapshot()
 
@@ -73,11 +81,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preSelectedMedia = testPreSelectionMediaData,
             )
 
         val snapshot = selection.snapshot()
@@ -95,17 +108,65 @@ class SelectionImplTest {
     }
 
     @Test
+    fun testPreSelectionMediaReceived() = runTest {
+        val testPreSelectionMediaData2 = MutableStateFlow(ArrayList<SelectionData>())
+        val selection: Selection<SelectionData> =
+            SelectionImpl(
+                scope = backgroundScope,
+                configuration =
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                preSelectedMedia = testPreSelectionMediaData2,
+            )
+
+        val emissions = mutableListOf<Set<SelectionData>>()
+        backgroundScope.launch { selection.flow.toList(emissions) }
+
+        assertWithMessage("Initial snapshot state does not match expected size")
+            .that(selection.snapshot())
+            .hasSize(0)
+
+        // add 2 values to preSelection
+        testPreSelectionMediaData2.update { arrayListOf(SelectionData(1), SelectionData(2)) }
+
+        assertWithMessage("Resulting snapshot does not match expected size")
+            .that(selection.snapshot())
+            .isEmpty()
+
+        advanceTimeBy(100)
+
+        assertWithMessage("Initial flow state does not match expected size")
+            .that(emissions.first())
+            .hasSize(0)
+
+        // ensure that the size was incremented by 2 because of preSelected media.
+        assertWithMessage("Resulting flow state does not match expected size")
+            .that(emissions.last())
+            .hasSize(2)
+    }
+
+    @Test
     fun testSelectionReturnsSuccess() = runTest {
         val selection: Selection<SelectionData> =
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                preSelectedMedia = testPreSelectionMediaData,
             )
-
 
         assertWithMessage("Selection addition was expected to be successful: item 1")
             .that(selection.add(SelectionData(1)))
@@ -124,13 +185,17 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = SINGLE_SELECT_CONFIG
-                ),
-                initialSelection = setOf(SelectionData(1))
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(1)
+                            },
+                    ),
+                initialSelection = setOf(SelectionData(1)),
+                preSelectedMedia = testPreSelectionMediaData,
             )
-
 
         assertWithMessage("Snapshot was expected to contain the initial selection")
             .that(selection.add(SelectionData(2)))
@@ -144,10 +209,15 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -177,10 +247,15 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                )
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -217,11 +292,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -256,11 +336,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = setOf(testItem, anotherTestItem)
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = setOf(testItem, anotherTestItem),
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -307,11 +392,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = values
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = values,
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -346,11 +436,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -387,11 +482,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preSelectedMedia = testPreSelectionMediaData,
             )
         val emissions = mutableListOf<Set<SelectionData>>()
         backgroundScope.launch { selection.flow.toList(emissions) }
@@ -438,11 +538,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = values
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = values,
+                preSelectedMedia = testPreSelectionMediaData,
             )
 
         assertWithMessage("Received unexpected position for item.")
@@ -457,11 +562,16 @@ class SelectionImplTest {
             SelectionImpl(
                 scope = backgroundScope,
                 configuration =
-                provideTestConfigurationFlow(
-                    scope = backgroundScope,
-                    defaultConfiguration = MULTI_SELECT_CONFIG
-                ),
-                initialSelection = INITIAL_SELECTION
+                    provideTestConfigurationFlow(
+                        scope = backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action("")
+                                selectionLimit(50)
+                            },
+                    ),
+                initialSelection = INITIAL_SELECTION,
+                preSelectedMedia = testPreSelectionMediaData,
             )
 
         val missingElement = SelectionData(id = 999)

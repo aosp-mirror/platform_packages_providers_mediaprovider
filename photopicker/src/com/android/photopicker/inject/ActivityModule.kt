@@ -20,10 +20,15 @@ import android.content.Context
 import android.os.Process
 import android.os.UserHandle
 import android.util.Log
+import com.android.photopicker.core.banners.BannerManager
+import com.android.photopicker.core.banners.BannerManagerImpl
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
+import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.database.DatabaseManager
+import com.android.photopicker.core.database.DatabaseManagerImpl
 import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.selection.GrantsAwareSelectionImpl
 import com.android.photopicker.core.selection.Selection
@@ -70,7 +75,9 @@ class ActivityModule {
 
     // Avoid initialization until it's actually needed.
     private lateinit var backgroundScope: CoroutineScope
+    private lateinit var bannerManager: BannerManager
     private lateinit var configurationManager: ConfigurationManager
+    private lateinit var databaseManager: DatabaseManager
     private lateinit var dataService: DataService
     private lateinit var events: Events
     private lateinit var featureManager: FeatureManager
@@ -85,7 +92,7 @@ class ActivityModule {
     @Background
     fun provideBackgroundScope(
         @Background dispatcher: CoroutineDispatcher,
-        activityRetainedLifecycle: ActivityRetainedLifecycle
+        activityRetainedLifecycle: ActivityRetainedLifecycle,
     ): CoroutineScope {
         if (::backgroundScope.isInitialized) {
             return backgroundScope
@@ -100,12 +107,45 @@ class ActivityModule {
         }
     }
 
+    /** Provider for an implementation of [BannerManager]. */
+    @Provides
+    @ActivityRetainedScoped
+    fun provideBannerManager(
+        @Background backgroundScope: CoroutineScope,
+        @Background backgroundDispatcher: CoroutineDispatcher,
+        configurationManager: ConfigurationManager,
+        databaseManager: DatabaseManager,
+        featureManager: FeatureManager,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+        processOwnerHandle: UserHandle,
+    ): BannerManager {
+        if (::bannerManager.isInitialized) {
+            return bannerManager
+        } else {
+            Log.d(TAG, "BannerManager requested and initializing.")
+            bannerManager =
+                BannerManagerImpl(
+                    backgroundScope,
+                    backgroundDispatcher,
+                    configurationManager,
+                    databaseManager,
+                    featureManager,
+                    dataService,
+                    userMonitor,
+                    processOwnerHandle,
+                )
+            return bannerManager
+        }
+    }
+
     /** Provider for the [ConfigurationManager]. */
     @Provides
     @ActivityRetainedScoped
     fun provideConfigurationManager(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
+        deviceConfigProxy: DeviceConfigProxy,
     ): ConfigurationManager {
         if (::configurationManager.isInitialized) {
             return configurationManager
@@ -113,16 +153,29 @@ class ActivityModule {
             Log.d(
                 ConfigurationManager.TAG,
                 "ConfigurationManager requested but not yet initialized." +
-                    " Initializing ConfigurationManager."
+                    " Initializing ConfigurationManager.",
             )
             configurationManager =
                 ConfigurationManager(
                     /* runtimeEnv= */ PhotopickerRuntimeEnv.ACTIVITY,
                     /* scope= */ scope,
                     /* dispatcher= */ dispatcher,
-                    /* deviceConfigProxy= */ DeviceConfigProxyImpl(),
+                    /* deviceConfigProxy= */ deviceConfigProxy,
+                    /* sessionId */ generatePickerSessionId(),
                 )
             return configurationManager
+        }
+    }
+
+    @Provides
+    @ActivityRetainedScoped
+    fun provideDatabaseManager(@ApplicationContext context: Context): DatabaseManager {
+        if (::databaseManager.isInitialized) {
+            return databaseManager
+        } else {
+            Log.d(TAG, "Initializing DatabaseManager")
+            databaseManager = DatabaseManagerImpl(context)
+            return databaseManager
         }
     }
 
@@ -135,17 +188,20 @@ class ActivityModule {
     @Provides
     @ActivityRetainedScoped
     fun provideDataService(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
-        @ActivityRetainedScoped userMonitor: UserMonitor,
-        @ActivityRetainedScoped notificationService: NotificationService,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped featureManager: FeatureManager
+        userMonitor: UserMonitor,
+        notificationService: NotificationService,
+        configurationManager: ConfigurationManager,
+        featureManager: FeatureManager,
+        @ApplicationContext appContext: Context,
+        events: Events,
+        processOwnerHandle: UserHandle,
     ): DataService {
         if (!::dataService.isInitialized) {
             Log.d(
                 DataService.TAG,
-                "DataService requested but not yet initialized. Initializing DataService."
+                "DataService requested but not yet initialized. Initializing DataService.",
             )
             dataService =
                 DataServiceImpl(
@@ -155,7 +211,10 @@ class ActivityModule {
                     notificationService,
                     MediaProviderClient(),
                     configurationManager.configuration,
-                    featureManager
+                    featureManager,
+                    appContext,
+                    events,
+                    processOwnerHandle,
                 )
         }
         return dataService
@@ -176,15 +235,16 @@ class ActivityModule {
             return events
         } else {
             Log.d(Events.TAG, "Events requested but not yet initialized. Initializing Events.")
-            return Events(scope, configurationManager.configuration, featureManager)
+            events = Events(scope, configurationManager.configuration, featureManager)
+            return events
         }
     }
 
     @Provides
     @ActivityRetainedScoped
     fun provideFeatureManager(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
+        @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
     ): FeatureManager {
 
         if (::featureManager.isInitialized) {
@@ -192,15 +252,12 @@ class ActivityModule {
         } else {
             Log.d(
                 FeatureManager.TAG,
-                "FeatureManager requested but not yet initialized. Initializing FeatureManager."
+                "FeatureManager requested but not yet initialized. Initializing FeatureManager.",
             )
             featureManager =
                 // Do not pass a set of FeatureRegistrations here to use the standard set of
                 // enabled features.
-                FeatureManager(
-                    configurationManager.configuration,
-                    scope,
-                )
+                FeatureManager(configurationManager.configuration, scope)
             return featureManager
         }
     }
@@ -211,7 +268,7 @@ class ActivityModule {
     @Main
     fun provideMainScope(
         @Main dispatcher: CoroutineDispatcher,
-        activityRetainedLifecycle: ActivityRetainedLifecycle
+        activityRetainedLifecycle: ActivityRetainedLifecycle,
     ): CoroutineScope {
 
         if (::mainScope.isInitialized) {
@@ -235,7 +292,7 @@ class ActivityModule {
             Log.d(
                 NotificationService.TAG,
                 "NotificationService requested but not yet initialized. " +
-                    "Initializing NotificationService."
+                    "Initializing NotificationService.",
             )
             notificationService = NotificationServiceImpl()
         }
@@ -245,8 +302,9 @@ class ActivityModule {
     @Provides
     @ActivityRetainedScoped
     fun provideSelection(
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        dataService: DataService,
     ): Selection<Media> {
 
         if (::selection.isInitialized) {
@@ -259,12 +317,13 @@ class ActivityModule {
                         GrantsAwareSelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preGrantedItemsCount = dataService.preGrantedMediaCount,
                         )
-
                     SelectionStrategy.DEFAULT ->
                         SelectionImpl(
                             scope = scope,
                             configuration = configurationManager.configuration,
+                            preSelectedMedia = dataService.preSelectionMediaData,
                         )
                 }
             return selection
@@ -283,17 +342,17 @@ class ActivityModule {
     @ActivityRetainedScoped
     fun provideUserMonitor(
         @ApplicationContext context: Context,
-        @ActivityRetainedScoped configurationManager: ConfigurationManager,
-        @ActivityRetainedScoped @Background scope: CoroutineScope,
+        configurationManager: ConfigurationManager,
+        @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
-        @ActivityRetainedScoped handle: UserHandle,
+        handle: UserHandle,
     ): UserMonitor {
         if (::userMonitor.isInitialized) {
             return userMonitor
         } else {
             Log.d(
                 UserMonitor.TAG,
-                "UserMonitor requested but not yet initialized. Initializing UserMonitor."
+                "UserMonitor requested but not yet initialized. Initializing UserMonitor.",
             )
             userMonitor =
                 UserMonitor(context, configurationManager.configuration, scope, dispatcher, handle)

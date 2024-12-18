@@ -16,6 +16,7 @@
 
 package com.android.photopicker.core.selection
 
+import android.util.Log
 import androidx.annotation.GuardedBy
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
@@ -26,8 +27,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -55,17 +58,22 @@ import kotlinx.coroutines.sync.withLock
  * @property scope A [CoroutineScope] that the flow is shared and updated in.
  * @property initialSelection A collection to include initial selection value.
  * @property configuration a collectable [StateFlow] of configuration changes
- * @property preGrantedItemsCount represents the total number of grants help by the current package.
+ * @property preGrantedItemsCount represents the flow for total number of grants help by the current
+ *   package.
  */
 class GrantsAwareSelectionImpl<T : Grantable>(
     val scope: CoroutineScope,
     val initialSelection: Collection<T>? = null,
     private val configuration: StateFlow<PhotopickerConfiguration>,
-    val preGrantedItemsCount: Int = 0,
+    private val preGrantedItemsCount: StateFlow<Int?>,
 ) : Selection<T> {
 
+    private val TAG = "GrantsAwareSelection"
     // An internal mutex is used to enforce thread-safe access of the selection set.
     private val mutex = Mutex()
+
+    private var _isDeSelectAllEnabled = false
+
     private val _deSelection: LinkedHashSet<T> = LinkedHashSet()
     private val _selection: LinkedHashSet<T> = LinkedHashSet()
 
@@ -73,10 +81,21 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     override val flow: StateFlow<GrantsAwareSet<T>>
 
     init {
+        scope.launch {
+            // Observe the refresh of the stateFlow that holds the count of pre-granted media.
+            // Note that this will always be null in case the intent action is anything other than
+            // [MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP].
+            preGrantedItemsCount
+                .filter { it != null }
+                .collect {
+                    Log.i(TAG, "Received notification for preGranted media count. ")
+                    updateFlow()
+                }
+        }
         if (initialSelection != null) {
             _selection.addAll(initialSelection)
         }
-        _flow = MutableStateFlow(GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount))
+        _flow = MutableStateFlow(createLatestSelectionSet())
         flow =
             _flow.stateIn(
                 scope,
@@ -84,6 +103,16 @@ class GrantsAwareSelectionImpl<T : Grantable>(
                 initialValue = _flow.value,
             )
     }
+
+    /**
+     * Indicates that the user has clicked on the de-select all option on the UI least once in the
+     * current photopicker session.
+     *
+     * In terms of grants it represents that all grants for the current package shall be revoked and
+     * any new selection from the user after this action will be considered as a new selection.
+     */
+    val isDeSelectAllEnabled
+        get() = _isDeSelectAllEnabled
 
     /**
      * Add the requested item to the selection.
@@ -102,7 +131,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     @GuardedBy("mutex")
     override suspend fun add(item: T): SelectionModifiedResult {
         mutex.withLock {
-            if (item.isPreGranted) {
+            if (isPreGranted(item)) {
                 _deSelection.remove(item)
                 updateFlow()
                 return SUCCESS
@@ -134,8 +163,8 @@ class GrantsAwareSelectionImpl<T : Grantable>(
             val itemsWithPregrants = LinkedHashSet<T>()
             val itemsToAdd = LinkedHashSet<T>()
 
-            for (item in items){
-                if (item.isPreGranted){
+            for (item in items) {
+                if (isPreGranted(item)) {
                     itemsWithPregrants.add(item)
                 } else {
                     itemsToAdd.add(item)
@@ -153,7 +182,8 @@ class GrantsAwareSelectionImpl<T : Grantable>(
         }
     }
 
-    /** Empties the current selection of objects, returning the selection to an empty state.
+    /**
+     * Empties the current selection of objects, returning the selection to an empty state.
      *
      * Also, any pre-granted item that was de-selected will now reset i.e. no grants will be
      * revoked.
@@ -163,6 +193,12 @@ class GrantsAwareSelectionImpl<T : Grantable>(
         mutex.withLock {
             _selection.clear()
             _deSelection.clear()
+            // Clearing out selection would mean that user has opted to clear all grants as well,
+            // hence this is an irreversible change and only way out of this would be to close
+            // picker mid process i.e. without using the done button.
+            // This variable once set should not be modified and respected when considering the
+            // checks for pre-grants and selection size.
+            _isDeSelectAllEnabled = true
             updateFlow()
         }
     }
@@ -171,8 +207,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     @GuardedBy("mutex")
     override suspend fun contains(item: T): Boolean {
         return mutex.withLock {
-            _selection.contains(item) ||
-                    (item.isPreGranted && !_deSelection.contains(item))
+            _selection.contains(item) || (isPreGranted(item) && !_deSelection.contains(item))
         }
     }
 
@@ -203,12 +238,13 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     /**
      * Removes the requested item from the selection. If the item is not in the selection, this has
      * no effect. Afterwards, will emit the new selection into the exposed flow.
+     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")
     override suspend fun remove(item: T): SelectionModifiedResult {
         return mutex.withLock {
-            if (item.isPreGranted) {
+            if (isPreGranted(item)) {
                 _deSelection.add(item)
                 updateFlow()
             } else {
@@ -224,6 +260,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
      *
      * If one or more items are not present in the selection, this has no effect. Afterwards, will
      * emit the new selection into the exposed flow.
+     *
      * @return [SelectionModifiedResult] of the outcome of the removal.
      */
     @GuardedBy("mutex")
@@ -231,8 +268,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
         return mutex.withLock {
             _selection.removeAll(items)
             for (item in items) {
-                if (item.isPreGranted)
-                    _deSelection.add(item)
+                if (isPreGranted(item)) _deSelection.add(item)
             }
             updateFlow()
             SUCCESS
@@ -249,19 +285,19 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     override suspend fun snapshot(): Set<T> {
         return mutex.withLock {
             // Create a new [grantsSet] to emit updated values.
-            GrantsAwareSet(_selection.toSet(), _deSelection.toSet(), preGrantedItemsCount)
+            createLatestSelectionSet()
         }
     }
 
     /**
      * Toggles the requested item in the selection.
      *
-     * If the item is of type [Media] and is preGranted i.e. [Media.isPreGranted] is true then when
-     * such an item is toggled, if it is not part of _deSelection then it is added to _deselection
+     * If the item is of type [Media] and is preGranted i.e. [isPreGranted] is true then when such
+     * an item is toggled, if it is not part of _deSelection then it is added to _deselection
      * otherwise removed from it.
      *
-     * For non preGranted items: if the item is already in the selection, it is removed.
-     * If the item is not in the selection, it is added.
+     * For non preGranted items: if the item is already in the selection, it is removed. If the item
+     * is not in the selection, it is added.
      *
      * Afterwards, will emit the new selection into the exposed flow.
      *
@@ -273,7 +309,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     @GuardedBy("mutex")
     override suspend fun toggle(item: T): SelectionModifiedResult {
         mutex.withLock {
-            if (item.isPreGranted) {
+            if (isPreGranted(item)) {
                 if (_deSelection.contains(item)) {
                     _deSelection.remove(item)
                 } else {
@@ -318,7 +354,7 @@ class GrantsAwareSelectionImpl<T : Grantable>(
     override suspend fun toggleAll(items: Collection<T>): SelectionModifiedResult {
         mutex.withLock {
             for (item in items) {
-                if (item.isPreGranted) {
+                if (isPreGranted(item)) {
                     if (_deSelection.contains(item)) {
                         _deSelection.remove(item)
                     } else {
@@ -354,14 +390,28 @@ class GrantsAwareSelectionImpl<T : Grantable>(
      */
     @GuardedBy("mutex")
     override suspend fun getDeselection(): Collection<T> {
-        return mutex.withLock {
-            _deSelection.toSet()
-        }
+        return mutex.withLock { _deSelection.toSet() }
     }
 
     /** Internal method that snapshots the current selection and emits it to the exposed flow. */
     private suspend fun updateFlow() {
-        _flow.update { GrantsAwareSet(_selection, _deSelection, preGrantedItemsCount) }
+        _flow.update { createLatestSelectionSet() }
+    }
+
+    private fun isPreGranted(item: T): Boolean {
+        return item.isPreGranted && !_isDeSelectAllEnabled
+    }
+
+    private fun createLatestSelectionSet(): GrantsAwareSet<T> {
+        if (_isDeSelectAllEnabled) {
+            return GrantsAwareSet(_selection.toSet(), emptySet(), 0, _isDeSelectAllEnabled)
+        } else {
+            return GrantsAwareSet(
+                _selection.toSet(),
+                _deSelection.toSet(),
+                preGrantedItemsCount.value ?: 0
+            )
+        }
     }
 
     /**

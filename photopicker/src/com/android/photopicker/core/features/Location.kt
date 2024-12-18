@@ -38,6 +38,7 @@ enum class Location {
     OVERFLOW_MENU, // The overflow menu anchor
     OVERFLOW_MENU_ITEMS, // Options inside the overflow menu
     PROFILE_SELECTOR, // Where the profile switcher button is drawn
+    SEARCH_BAR, // Where the search bar would be drawn
     SELECTION_BAR, // Where the selection bar should be drawn (when it is active).
     SELECTION_BAR_SECONDARY_ACTION, // Where the extra button is drawn on the selection bar.
     SNACK_BAR, // Where the [Event.ShowSnackbarMessage] toasts will appear.

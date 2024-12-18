@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Ghairi"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Subiri"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Ulinzi wa Usalama"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Arifa za Ubadilishaji Asilia wa Muundo wa Faili"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Maendeleo ya Ubadilishaji Asilia wa Muundo wa Faili"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Arifa za Kubadilisha Muundo wa Faili"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Hatua katika Kubadilisha Muundo wa Faili"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Jaribu tena baadaye. Picha zako zitapatikana mara tu tatizo litakapotatuliwa."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Imeshindwa kupakia baadhi ya Picha"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Nimeelewa"</string>

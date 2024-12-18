@@ -17,6 +17,7 @@
 package com.android.photopicker.features.albumgrid
 
 import android.net.Uri
+import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
@@ -24,10 +25,13 @@ import com.android.photopicker.core.configuration.provideTestConfigurationFlow
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.RegisteredEventClass
+import com.android.photopicker.core.events.Telemetry
+import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
 import com.android.photopicker.core.selection.SelectionImpl
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.google.common.truth.Truth.assertWithMessage
@@ -74,6 +78,27 @@ class AlbumGridViewModelTest {
             standardMimeTypeExtension = 1,
         )
 
+    val album =
+        Group.Album(
+            id = ALBUM_ID_VIDEOS,
+            pickerId = 1234L,
+            authority = "a",
+            displayName = "Videos",
+            coverUri =
+                Uri.EMPTY.buildUpon()
+                    .apply {
+                        scheme("content")
+                        authority("a")
+                        path("1234")
+                    }
+                    .build(),
+            dateTakenMillisLong = 12345678L,
+            coverMediaSource = MediaSource.LOCAL,
+        )
+
+    val updatedMediaItem =
+        mediaItem.copy(mediaItemAlbum = album, selectionSource = Telemetry.MediaLocation.ALBUM)
+
     @Test
     fun testAlbumGridItemClickedUpdatesSelection() {
 
@@ -81,7 +106,8 @@ class AlbumGridViewModelTest {
             val selection =
                 SelectionImpl<Media>(
                     scope = this.backgroundScope,
-                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope)
+                    configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val featureManager =
@@ -112,23 +138,24 @@ class AlbumGridViewModelTest {
                 .isEqualTo(0)
 
             // Toggle the item into the selection
-            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "")
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "", album)
 
             // Wait for selection update.
             advanceTimeBy(100)
 
+            // The selected media item gets updated with the Selectable interface values
             assertWithMessage("Selection did not contain expected item")
                 .that(selection.snapshot())
-                .contains(mediaItem)
+                .contains(updatedMediaItem)
 
             // Toggle the item out of the selection
-            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "")
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, "", album)
 
             advanceTimeBy(100)
 
             assertWithMessage("Selection contains unexpected item")
                 .that(selection.snapshot())
-                .doesNotContain(mediaItem)
+                .doesNotContain(updatedMediaItem)
         }
     }
 
@@ -146,9 +173,11 @@ class AlbumGridViewModelTest {
                                 PhotopickerConfiguration(
                                     action = "TEST_ACTION",
                                     intent = null,
-                                    selectionLimit = 0
+                                    selectionLimit = 0,
+                                    sessionId = generatePickerSessionId()
                                 )
-                        )
+                        ),
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
                 )
 
             val featureManager =
@@ -183,7 +212,7 @@ class AlbumGridViewModelTest {
 
             // Toggle the item into the selection
             val errorMessage = "test"
-            viewModel.handleAlbumMediaGridItemSelection(mediaItem, errorMessage)
+            viewModel.handleAlbumMediaGridItemSelection(mediaItem, errorMessage, album)
 
             // Wait for selection update.
             advanceTimeBy(100)

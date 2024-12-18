@@ -48,9 +48,8 @@ import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.generatePickerSessionId
@@ -62,13 +61,14 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -184,7 +184,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             mockContext,
             mockUserManager,
             mockContentResolver,
-            mockPackageManager
+            mockPackageManager,
         )
     }
 
@@ -194,7 +194,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             PhotopickerConfiguration(
                 action = "TEST_ACTION",
                 selectionLimit = 5,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         assertWithMessage("SelectionBarFeature is not always enabled for TEST_ACTION")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
@@ -204,7 +204,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             PhotopickerConfiguration(
                 action = MediaStore.ACTION_PICK_IMAGES,
                 selectionLimit = 5,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configTwo))
@@ -214,7 +214,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
             PhotopickerConfiguration(
                 action = Intent.ACTION_GET_CONTENT,
                 selectionLimit = 5,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         assertWithMessage("SelectionBarFeature is not always enabled")
             .that(SelectionBarFeature.Registration.isEnabled(configThree))
@@ -248,7 +248,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 action = "",
                 runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                 selectionLimit = 1,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         assertWithMessage("SelectionBarFeature not always enabled for EMBEDDED mode")
             .that(SelectionBarFeature.Registration.isEnabled(configOne))
@@ -259,7 +259,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 action = "",
                 runtimeEnv = PhotopickerRuntimeEnv.EMBEDDED,
                 selectionLimit = 20,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         assertWithMessage("SelectionBarFeature not always enabled for EMBEDDED mode")
             .that(SelectionBarFeature.Registration.isEnabled(configTwo))
@@ -269,7 +269,11 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testSelectionBarIsShown() {
         testScope.runTest {
-            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
+            val photopickerConfiguration: PhotopickerConfiguration =
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                }
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager.get(),
@@ -281,7 +285,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
-                            params = LocationParams.None
+                            params = LocationParams.None,
                         )
                     }
                 }
@@ -302,7 +306,13 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     fun testSelectionBarIsAlwaysShownForGrantsAwareSelection() {
         testScope.runTest {
             val photopickerConfiguration: PhotopickerConfiguration =
-                testUserSelectImagesForAppConfiguration
+                TestPhotopickerConfiguration.build {
+                    action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                    intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                    callingPackage("com.example.test")
+                    callingPackageUid(1234)
+                    callingPackageLabel("test_app")
+                }
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager.get(),
@@ -314,7 +324,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
-                            params = LocationParams.None
+                            params = LocationParams.None,
                         )
                     }
                 }
@@ -332,19 +342,21 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     @Test
     fun testSelectionBarShowsSecondaryAction() {
         val testFeatureRegistrations =
-            setOf(
-                SelectionBarFeature.Registration,
-                SimpleUiFeature.Registration,
-            )
+            setOf(SelectionBarFeature.Registration, SimpleUiFeature.Registration)
 
         testScope.runTest {
             val testFeatureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testFeatureRegistrations,
                 )
-            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
+            val photopickerConfiguration: PhotopickerConfiguration =
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                }
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides testFeatureManager,
@@ -355,7 +367,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
-                            params = LocationParams.None
+                            params = LocationParams.None,
                         )
                     }
                 }
@@ -378,7 +390,11 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
 
         testScope.runTest {
             val clicked = CompletableDeferred<Boolean>()
-            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
+            val photopickerConfiguration: PhotopickerConfiguration =
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                }
             composeTestRule.setContent {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager.get(),
@@ -390,7 +406,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                     PhotopickerTheme(isDarkTheme = false, config = photopickerConfiguration) {
                         SelectionBar(
                             modifier = Modifier.testTag(TEST_TAG_SELECTION_BAR),
-                            params = LocationParams.WithClickAction { clicked.complete(true) }
+                            params = LocationParams.WithClickAction { clicked.complete(true) },
                         )
                     }
                 }
@@ -422,7 +438,11 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
     fun testSelectionBarClearSelection() {
 
         testScope.runTest {
-            val photopickerConfiguration: PhotopickerConfiguration = testPhotopickerConfiguration
+            val photopickerConfiguration: PhotopickerConfiguration =
+                TestPhotopickerConfiguration.build {
+                    action("TEST_ACTION")
+                    intent(Intent("TEST_ACTION"))
+                }
 
             composeTestRule.setContent {
                 CompositionLocalProvider(

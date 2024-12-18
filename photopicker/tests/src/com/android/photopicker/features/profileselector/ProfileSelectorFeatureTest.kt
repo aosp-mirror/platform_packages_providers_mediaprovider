@@ -18,12 +18,14 @@ package com.android.photopicker.features.profileselector
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.UserProperties
 import android.content.pm.UserProperties.SHOW_IN_QUIET_MODE_HIDDEN
 import android.os.Parcel
 import android.os.UserHandle
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
@@ -45,9 +47,7 @@ import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
@@ -56,8 +56,8 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -153,17 +153,37 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
     fun testProfileSelectorEnabledInConfigurations() {
 
         assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_PICK_IMAGES)")
-            .that(ProfileSelectorFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                ProfileSelectorFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("ProfileSelectorFeature is not always enabled (ACTION_GET_CONTENT)")
-            .that(ProfileSelectorFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                ProfileSelectorFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("ProfileSelectorFeature should not be enabled (USER_SELECT_FOR_APP)")
             .that(
                 ProfileSelectorFeature.Registration.isEnabled(
-                    testUserSelectImagesForAppConfiguration
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
                 )
             )
             .isEqualTo(false)
@@ -191,7 +211,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -212,7 +232,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
                     hasContentDescription(
                         getTestableContext()
                             .getResources()
-                            .getString(R.string.photopicker_profile_switch_button_description)
+                            .getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsNotDisplayed()
@@ -297,7 +317,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -375,7 +395,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()
@@ -417,7 +437,7 @@ class ProfileSelectorFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule
                 .onNode(
                     hasContentDescription(
-                        resources.getString(R.string.photopicker_profile_switch_button_description)
+                        resources.getString(R.string.photopicker_profile_primary_label)
                     )
                 )
                 .assertIsDisplayed()

@@ -68,7 +68,7 @@ import com.android.photopicker.core.PhotopickerMain
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.features.FeatureManager
@@ -87,11 +87,11 @@ import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.capture
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.capture
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -279,13 +279,13 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                     surfaceId: Int,
                     format: Int,
                     width: Int,
-                    height: Int
+                    height: Int,
                 ) {
                     mockCloudMediaSurfaceController.onSurfaceChanged(
                         surfaceId,
                         format,
                         width,
-                        height
+                        height,
                     )
                 }
 
@@ -500,12 +500,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val selectButtonLabel =
                 resources.getString(
                     R.string.photopicker_select_button_label,
-                    selection.snapshot().size
+                    selection.snapshot().size,
                 )
             val deselectButtonLabel =
                 resources.getString(
                     R.string.photopicker_deselect_button_label,
-                    selection.snapshot().size
+                    selection.snapshot().size,
                 )
 
             // Navigate on the UI thread (similar to a click handler)
@@ -558,13 +558,20 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
     fun testPreviewSelectionActionsWithGrantsAwareSelection() =
         testScope.runTest {
             composeTestRule.setContent {
-                val testPhotoPickerConfiguration = testUserSelectImagesForAppConfiguration
+                val testPhotoPickerConfiguration =
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
                 val selection =
                     GrantsAwareSelectionImpl<Media>(
                         backgroundScope,
                         null,
                         MutableStateFlow(testPhotoPickerConfiguration),
-                        TestDataServiceImpl().preGrantedMediaCount
+                        TestDataServiceImpl().preGrantedMediaCount,
                     )
                 val navController = createNavController()
                 val disruptiveFlow = flow { emit(0) }
@@ -575,7 +582,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
                         LocalSelection provides selection,
                         LocalPhotopickerConfiguration provides testPhotoPickerConfiguration,
                         LocalNavController provides navController,
-                        LocalEvents provides events
+                        LocalEvents provides events,
                     ) {
                         PhotopickerTheme(config = testPhotoPickerConfiguration) {
                             PhotopickerMain(disruptiveDataNotification = disruptiveFlow)
@@ -595,12 +602,12 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             val selectButtonLabel =
                 resources.getString(
                     R.string.photopicker_select_button_label,
-                    selection.snapshot().size
+                    selection.snapshot().size,
                 )
             val deselectButtonLabel =
                 resources.getString(
                     R.string.photopicker_deselect_button_label,
-                    selection.snapshot().size
+                    selection.snapshot().size,
                 )
 
             // Navigate on the UI thread (similar to a click handler)
@@ -1159,7 +1166,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             callback.setPlaybackState(
                 /*surfaceId=*/ 1,
                 PLAYBACK_STATE_ERROR_RETRIABLE_FAILURE,
-                null
+                null,
             )
 
             advanceTimeBy(100)
@@ -1233,7 +1240,7 @@ class PreviewFeatureTest : PhotopickerFeatureBaseTest() {
             callback.setPlaybackState(
                 /*surfaceId=*/ 1,
                 PLAYBACK_STATE_ERROR_PERMANENT_FAILURE,
-                null
+                null,
             )
 
             advanceTimeBy(100)

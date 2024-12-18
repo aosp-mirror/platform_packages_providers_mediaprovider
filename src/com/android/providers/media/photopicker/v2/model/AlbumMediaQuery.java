@@ -18,6 +18,7 @@ package com.android.providers.media.photopicker.v2.model;
 
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_ALBUM_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
+import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
 import static java.util.Objects.requireNonNull;
 
@@ -26,7 +27,10 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.android.providers.media.photopicker.v2.SelectSQLiteQueryBuilder;
+import com.android.providers.media.photopicker.v2.sqlite.PickerSQLConstants;
+import com.android.providers.media.photopicker.v2.sqlite.SelectSQLiteQueryBuilder;
+
+import java.util.Locale;
 
 /**
  * This is a convenience class for Album content related SQL queries performed on the Picker
@@ -67,17 +71,26 @@ public class AlbumMediaQuery extends MediaQuery {
     @Override
     public void addWhereClause(
             @NonNull SelectSQLiteQueryBuilder queryBuilder,
+            @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority,
             boolean reverseOrder
     ) {
-        super.addWhereClause(queryBuilder, localAuthority, cloudAuthority, reverseOrder);
+        super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
-        queryBuilder.appendWhereStandalone(KEY_ALBUM_ID + " = '" + mAlbumId + "'");
+        queryBuilder.appendWhereStandalone(
+                String.format(
+                        Locale.ROOT,
+                        "%s = '%s'",
+                        prependTableName(table, KEY_ALBUM_ID),
+                        mAlbumId
+                )
+        );
 
         // Don't include cloud items if the album authority is not equal to the cloud authority.
         if (!mAlbumAuthority.equals(cloudAuthority)) {
-            queryBuilder.appendWhereStandalone(KEY_CLOUD_ID + " IS NULL");
+            queryBuilder.appendWhereStandalone(
+                    prependTableName(table, KEY_CLOUD_ID) + " IS NULL");
         }
     }
 }

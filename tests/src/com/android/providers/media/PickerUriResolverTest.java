@@ -80,6 +80,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
 public class PickerUriResolverTest {
@@ -279,6 +280,24 @@ public class PickerUriResolverTest {
             // expected
             assertThat(expected.getMessage()).isEqualTo("PhotoPicker Uris can only be accessed to"
                     + " read. Uri: " + sTestPickerUri);
+        }
+    }
+
+    @Test
+    public void testOpenPickerTranscodedFile() throws Exception {
+        final Uri transcodedUri = Uri.parse(
+                  String.format(
+                    Locale.ROOT,
+                    "content://media/picker_transcoded/%d/com.android.providers.media"
+                        + ".photopicker/media/",
+                    UserHandle.myUserId()) + TEST_ID);
+        updateReadUriPermission(transcodedUri, /* grant */ true);
+
+        // Act & Assert.
+        try (ParcelFileDescriptor pfd = sTestPickerUriResolver.openFile(transcodedUri,
+                "r", /* signal */ null,
+                LocalCallingIdentity.forTest(sCurrentContext, /* uid */ -1, /* permission */0))) {
+            assertThat(pfd).isNotNull();
         }
     }
 

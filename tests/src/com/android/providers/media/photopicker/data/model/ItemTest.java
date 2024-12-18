@@ -45,6 +45,7 @@ import org.junit.runner.RunWith;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
 public class ItemTest {
@@ -91,7 +92,9 @@ public class ItemTest {
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
                 duration, _SPECIAL_FORMAT_NONE);
         cursor.moveToFirst();
-        final UserId userId = UserId.of(UserHandle.of(10));
+        // Some userId other than current user, hence adding 10 to the current user.
+        final int testUser = UserHandle.USER_CURRENT + 10;
+        final UserId userId = UserId.of(UserHandle.of(testUser));
 
         final Item item = new Item(cursor, userId);
 
@@ -101,7 +104,10 @@ public class ItemTest {
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(
-                Uri.parse("content://10@com.android.providers.media.photopicker/media/1"));
+                Uri.parse(String.format(
+                        Locale.ROOT,
+                        "content://%d@com.android.providers.media.photopicker/media/1",
+                        testUser)));
 
         assertThat(item.isImage()).isTrue();
 

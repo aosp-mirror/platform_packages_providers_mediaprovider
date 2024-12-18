@@ -19,13 +19,16 @@ package com.android.photopicker.features.data.paging
 import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
+import android.os.CancellationSignal
 import android.provider.MediaStore
 import androidx.paging.PagingSource.LoadResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.events.generatePickerSessionId
+import com.android.photopicker.data.DEFAULT_SEARCH_REQUEST_ID
+import com.android.photopicker.data.DEFAULT_SEARCH_SUGGESTIONS
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.TestMediaProvider
 import com.android.photopicker.data.model.Group
@@ -33,6 +36,8 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
+import com.android.photopicker.features.search.model.SearchRequest
+import com.android.photopicker.features.search.model.SearchSuggestion
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -71,8 +76,8 @@ class MediaProviderClientTest {
                 config =
                     PhotopickerConfiguration(
                         action = MediaStore.ACTION_PICK_IMAGES,
-                        sessionId = sessionId
-                    )
+                        sessionId = sessionId,
+                    ),
             )
 
         assertThat(mediaLoadResult is LoadResult.Page).isTrue()
@@ -98,7 +103,7 @@ class MediaProviderClientTest {
                 config =
                     PhotopickerConfiguration(
                         action = MediaStore.ACTION_PICK_IMAGES,
-                        sessionId = sessionId
+                        sessionId = sessionId,
                     ),
                 // add a uri to preSelection
                 arrayListOf(
@@ -106,7 +111,7 @@ class MediaProviderClientTest {
                         "content://media/picker/0/com.android.providers.media.photopicker/media/" +
                             testContentProvider.media[1].mediaId
                     )
-                )
+                ),
             )
 
         assertThat(mediaLoadResult).isNotNull()
@@ -124,19 +129,19 @@ class MediaProviderClientTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "cloud_authority",
                     mediaSource = MediaSource.REMOTE,
                     uid = 1,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 2,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -144,7 +149,7 @@ class MediaProviderClientTest {
             PhotopickerConfiguration(
                 action = MediaStore.ACTION_PICK_IMAGES,
                 mimeTypes = mimeTypes,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
 
         mediaProviderClient.refreshMedia(
@@ -172,19 +177,26 @@ class MediaProviderClientTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = "abc"
+                    displayName = "abc",
                 ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 2,
-                    displayName = "xyz"
+                    displayName = "xyz",
                 ),
             )
         mediaProviderClient.refreshMedia(
             providers = providers,
             resolver = testContentResolver,
-            config = testUserSelectImagesForAppConfiguration
+            config =
+                TestPhotopickerConfiguration.build {
+                    action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                    intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                    callingPackage("com.example.test")
+                    callingPackageUid(1234)
+                    callingPackageLabel("test_app")
+                },
         )
 
         assertThat(testContentProvider.lastRefreshMediaRequest).isNotNull()
@@ -195,11 +207,29 @@ class MediaProviderClientTest {
         assertThat(testContentProvider.lastRefreshMediaRequest?.getBoolean("is_local_only", true))
             .isFalse()
         assertThat(testContentProvider.lastRefreshMediaRequest?.getStringArrayList("mime_types"))
-            .isEqualTo(testUserSelectImagesForAppConfiguration.mimeTypes)
+            .isEqualTo(
+                TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                    .mimeTypes
+            )
         assertThat(testContentProvider.lastRefreshMediaRequest?.getString("intent_action"))
             .isEqualTo(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
         assertThat(testContentProvider.lastRefreshMediaRequest?.getInt(Intent.EXTRA_UID))
-            .isEqualTo(testUserSelectImagesForAppConfiguration.callingPackageUid)
+            .isEqualTo(
+                TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                    .callingPackageUid
+            )
     }
 
     @Test
@@ -210,7 +240,15 @@ class MediaProviderClientTest {
         val countOfGrants =
             mediaProviderClient.fetchMediaGrantsCount(
                 contentResolver = testContentResolver,
-                callingPackageUid = testUserSelectImagesForAppConfiguration.callingPackageUid ?: -1,
+                callingPackageUid =
+                    TestPhotopickerConfiguration.build {
+                            action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                            intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                            callingPackage("com.example.test")
+                            callingPackageUid(1234)
+                            callingPackageLabel("test_app")
+                        }
+                        .callingPackageUid ?: -1,
             )
 
         assertThat(countOfGrants).isEqualTo(testContentProvider.TEST_GRANTS_COUNT)
@@ -226,13 +264,13 @@ class MediaProviderClientTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 1,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -240,7 +278,7 @@ class MediaProviderClientTest {
             PhotopickerConfiguration(
                 action = MediaStore.ACTION_PICK_IMAGES,
                 mimeTypes = mimeTypes,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
 
         mediaProviderClient.refreshMedia(
@@ -275,13 +313,13 @@ class MediaProviderClientTest {
                     authority = "local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 0,
-                    displayName = ""
+                    displayName = "",
                 ),
                 Provider(
                     authority = "hypothetical_local_authority",
                     mediaSource = MediaSource.LOCAL,
                     uid = 1,
-                    displayName = ""
+                    displayName = "",
                 ),
             )
         val mimeTypes = arrayListOf("image/gif", "video/*")
@@ -289,7 +327,7 @@ class MediaProviderClientTest {
             PhotopickerConfiguration(
                 action = MediaStore.ACTION_PICK_IMAGES,
                 mimeTypes = mimeTypes,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
 
         mediaProviderClient.refreshAlbumMedia(
@@ -326,7 +364,7 @@ class MediaProviderClientTest {
                 config =
                     PhotopickerConfiguration(
                         action = MediaStore.ACTION_PICK_IMAGES,
-                        sessionId = sessionId
+                        sessionId = sessionId,
                     ),
             )
 
@@ -357,7 +395,7 @@ class MediaProviderClientTest {
                 config =
                     PhotopickerConfiguration(
                         action = MediaStore.ACTION_PICK_IMAGES,
-                        sessionId = sessionId
+                        sessionId = sessionId,
                     ),
             )
 
@@ -369,6 +407,84 @@ class MediaProviderClientTest {
         assertThat(albumMedia.count()).isEqualTo(expectedAlbumMedia.count())
         for (index in albumMedia.indices) {
             assertThat(albumMedia[index]).isEqualTo(expectedAlbumMedia[index])
+        }
+    }
+
+    @Test
+    fun testFetchSearchResultsPage() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+
+        val mediaLoadResult: LoadResult<MediaPageKey, Media> =
+            mediaProviderClient.fetchSearchResults(
+                searchRequestId = 1,
+                pageKey = MediaPageKey(),
+                pageSize = 5,
+                contentResolver = testContentResolver,
+                availableProviders = listOf(Provider("provider", MediaSource.LOCAL, 0, "")),
+                config =
+                    PhotopickerConfiguration(
+                        action = MediaStore.ACTION_PICK_IMAGES,
+                        sessionId = sessionId,
+                    ),
+                cancellationSignal = null,
+            )
+
+        assertThat(mediaLoadResult is LoadResult.Page).isTrue()
+
+        val media: List<Media> = (mediaLoadResult as LoadResult.Page).data
+
+        assertThat(media.count()).isEqualTo(testContentProvider.media.count())
+        for (index in media.indices) {
+            assertThat(media[index]).isEqualTo(testContentProvider.media[index])
+        }
+    }
+
+    @Test
+    fun testCreateSearchRequest() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+        val providers: List<Provider> =
+            mutableListOf(
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 0,
+                    displayName = "",
+                )
+            )
+        val config =
+            PhotopickerConfiguration(action = MediaStore.ACTION_PICK_IMAGES, sessionId = sessionId)
+        val searchRequest = SearchRequest.SearchTextRequest("search_text")
+
+        val searchRequestId =
+            mediaProviderClient.createSearchRequest(
+                searchRequest = searchRequest,
+                providers = providers,
+                resolver = testContentResolver,
+                config = config,
+            )
+
+        assertThat(searchRequestId).isEqualTo(DEFAULT_SEARCH_REQUEST_ID)
+    }
+
+    @Test
+    fun testFetchSearchSuggestions() = runTest {
+        val mediaProviderClient = MediaProviderClient()
+        val cancellationSignal = CancellationSignal()
+
+        val searchSuggestions: List<SearchSuggestion> =
+            mediaProviderClient.fetchSearchSuggestions(
+                resolver = testContentResolver,
+                prefix = "",
+                limit = 10,
+                historyLimit = 3,
+                availableProviders = listOf(),
+                cancellationSignal = cancellationSignal,
+            )
+
+        assertThat(searchSuggestions.size).isEqualTo(DEFAULT_SEARCH_SUGGESTIONS.size)
+
+        for (index in 0..<DEFAULT_SEARCH_SUGGESTIONS.size) {
+            assertThat(searchSuggestions[index]).isEqualTo(DEFAULT_SEARCH_SUGGESTIONS[index])
         }
     }
 }

@@ -37,7 +37,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -67,6 +66,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
@@ -80,7 +81,6 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.requireSystemService
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
@@ -101,7 +101,7 @@ private val MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL = 8.dp
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 12.dp
 
 /** Delay in milliseconds before the player controls are faded. */
-private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 3000L
+private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 5000L
 
 /**
  * Builds a remote video player surface and handles the interactions with the
@@ -123,6 +123,7 @@ fun VideoUi(
     onRequestAudioMuteChange: (Boolean) -> Unit,
     snackbarHostState: SnackbarHostState,
     singleItemPreview: Boolean,
+    contentDescriptionString: String,
     viewModel: PreviewViewModel = obtainViewModel(),
 ) {
 
@@ -167,7 +168,7 @@ fun VideoUi(
                     Telemetry.PreviewModeEntry.LONG_PRESS,
                     previewItemCount = 1,
                     Telemetry.MediaType.VIDEO,
-                    Telemetry.VideoPlayBackInteractions.MUTE
+                    Telemetry.VideoPlayBackInteractions.MUTE,
                 )
             )
         }
@@ -219,7 +220,7 @@ fun VideoUi(
     // Finally! Now the actual VideoPlayer can be created! \0/
     // This is the top level box of the player, and all of its children are drawn on-top
     // of each other.
-    Box {
+    Box(Modifier.semantics { contentDescription = contentDescriptionString }) {
         VideoPlayer(
             aspectRatio = aspectRatio,
             playbackInfo = playbackInfo,
@@ -238,7 +239,7 @@ fun VideoUi(
                                         Telemetry.PreviewModeEntry.LONG_PRESS,
                                         previewItemCount = 1,
                                         Telemetry.MediaType.VIDEO,
-                                        Telemetry.VideoPlayBackInteractions.PLAY
+                                        Telemetry.VideoPlayBackInteractions.PLAY,
                                     )
                                 )
                             }
@@ -255,7 +256,7 @@ fun VideoUi(
                                         Telemetry.PreviewModeEntry.LONG_PRESS,
                                         previewItemCount = 1,
                                         Telemetry.MediaType.VIDEO,
-                                        Telemetry.VideoPlayBackInteractions.PAUSE
+                                        Telemetry.VideoPlayBackInteractions.PAUSE,
                                     )
                                 )
                             }
@@ -431,7 +432,7 @@ private fun VideoSurfaceView(
                                     holder: SurfaceHolder,
                                     format: Int,
                                     width: Int,
-                                    height: Int
+                                    height: Int,
                                 ) {
                                     onSurfaceChanged(format, width, height)
                                 }
@@ -491,7 +492,7 @@ private fun VideoPlayerControls(
         Box(
             Modifier.padding(
                 vertical = MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL,
-                horizontal = MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL
+                horizontal = MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL,
             )
         ) {
             // Play / Pause button (center of the screen)
@@ -687,18 +688,14 @@ private fun rememberAudioFocus(
 private fun producePlaybackInfo(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = obtainViewModel()
+    viewModel: PreviewViewModel = obtainViewModel(),
 ): State<PlaybackInfo> {
 
     return produceState<PlaybackInfo>(
         initialValue =
-            PlaybackInfo(
-                state = PlaybackState.UNKNOWN,
-                surfaceId,
-                authority = video.authority,
-            ),
+            PlaybackInfo(state = PlaybackState.UNKNOWN, surfaceId, authority = video.authority),
         surfaceId,
-        video
+        video,
     ) {
         viewModel.getPlaybackInfoForPlayer(surfaceId, video).collect { playbackInfo ->
             Log.d(PreviewFeature.TAG, "PlaybackState change received: $playbackInfo")
@@ -723,14 +720,10 @@ private fun producePlaybackInfo(
 private fun produceAspectRatio(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = obtainViewModel()
+    viewModel: PreviewViewModel = obtainViewModel(),
 ): State<Float?> {
 
-    return produceState<Float?>(
-        initialValue = null,
-        surfaceId,
-        video,
-    ) {
+    return produceState<Float?>(initialValue = null, surfaceId, video) {
         viewModel
             .getPlaybackInfoForPlayer(surfaceId, video)
             .filter { it.state == PlaybackState.MEDIA_SIZE_CHANGED }

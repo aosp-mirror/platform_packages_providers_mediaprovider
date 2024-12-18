@@ -38,10 +38,10 @@
     <string name="allow" msgid="8885707816848569619">"Разрешить"</string>
     <string name="deny" msgid="6040983710442068936">"Запретить"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Посмотреть"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Прил. для облачн. мультимедиа"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение для мультимедиа в облаке"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для мультимедиа в облаке"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Выбирайте свои фото и видео из облака в приложениях или на сайтах."</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Медиафайлы в облаке"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение для медиафайлов в облаке"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для медиафайлов в облаке"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Когда приложение или сайт предлагает вам добавить фото и видео, вы можете брать их из облака."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Какое приложение использовать для доступа к медиафайлам в облаке?"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нет"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не удалось изменить приложение для мультимедиа."</string>

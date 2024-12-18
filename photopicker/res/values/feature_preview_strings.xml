@@ -17,13 +17,13 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
   <!-- Button label for the "Select" button in the preview screen bottom bar -->
-  <string name="photopicker_select_button_label" translation_description="Button label to select the previewed photo.">Select all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+  <string name="photopicker_select_button_label" translation_description="Button label to select the previewed photo.">Select all (<xliff:g id="count" example="42">%1$s</xliff:g>)</string>
 
   <!-- Button label for the "Select" button in the selection bar -->
   <string name="photopicker_select_current_button_label" translation_description="Button label that selects the current item.">Select</string>
 
   <!-- Button label for the "Deselect" button in the preview screen bottom bar -->
-  <string name="photopicker_deselect_button_label" translation_description="Button label to deselect the previewed photo.">Unselect all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+  <string name="photopicker_deselect_button_label" translation_description="Button label to deselect the previewed photo.">Unselect all (<xliff:g id="count" example="42">%1$s</xliff:g>)</string>
 
   <!-- Button label for the "Preview" button in the selection bar -->
   <string name="photopicker_preview_button_label" translation_description="Button label to navigate to a screen and preview the selected media.">Preview</string>
@@ -52,4 +52,6 @@
   <!-- A11y description for the Unmute button -->
   <string name="photopicker_video_unmute_button_description" translation_description="Accessibility description for a video player volume Unmute button">Unmute Volume</string>
 
+  <!-- A11y description for a page in horizontal pager -->
+  <string name="pohtopicker_horizontal_pager_description" translation_description="Accessibility description for a page in horizontal pager">Page <xliff:g id="page_number" example="1">%1$s</xliff:g> of <xliff:g id="total_pages" example="2">%2$s</xliff:g></string>
 </resources>

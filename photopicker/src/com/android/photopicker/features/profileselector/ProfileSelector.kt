@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,11 +47,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.photopicker.R
 import com.android.photopicker.core.components.ElevationTokens
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.obtainViewModel
+import com.android.photopicker.core.theme.CustomAccentColorScheme
 import com.android.photopicker.core.user.UserProfile
 
 /* The size of the current profile's icon in the selector button */
@@ -66,14 +73,13 @@ fun ProfileSelector(
     // Collect selection to ensure this is recomposed when the selection is updated.
     val allProfiles by viewModel.allProfiles.collectAsStateWithLifecycle()
 
+    val config = LocalPhotopickerConfiguration.current
+
     // MutableState which defines which profile to use to display the [ProfileUnavailableDialog].
     // When this value is null, the dialog is hidden.
     var disabledDialogProfile: UserProfile? by remember { mutableStateOf(null) }
     disabledDialogProfile?.let {
-        ProfileUnavailableDialog(
-            onDismissRequest = { disabledDialogProfile = null },
-            profile = it,
-        )
+        ProfileUnavailableDialog(onDismissRequest = { disabledDialogProfile = null }, profile = it)
     }
 
     // Ensure there is more than one available profile before creating all of the UI.
@@ -81,6 +87,20 @@ fun ProfileSelector(
         val context = LocalContext.current
         val currentProfile by viewModel.selectedProfile.collectAsStateWithLifecycle()
         var expanded by remember { mutableStateOf(false) }
+
+        // The button color should be neutral if and the calling app has provided a valid custom
+        // color. This will avoid unpleasant clashes with the custom color and what is in the
+        // default material theme. If no custom color is set, then the button should be
+        // primaryContainer to align with the theme's accents.
+        val customAccentColorScheme = CustomAccentColorScheme.current
+        val buttonContainerColor =
+            if (customAccentColorScheme.isAccentColorDefined())
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            else MaterialTheme.colorScheme.primaryContainer
+        val currentProfileLabel = currentProfile.label ?: getLabelForProfile(currentProfile)
+        val profileSelectorDescription =
+            stringResource(R.string.photopicker_profile_switch_button_description)
+
         Box(modifier = modifier) {
             FilledTonalButton(
                 modifier = Modifier.align(Alignment.CenterStart),
@@ -88,25 +108,32 @@ fun ProfileSelector(
                 contentPadding = PaddingValues(start = 16.dp, end = 8.dp),
                 colors =
                     ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    )
+                        containerColor = buttonContainerColor,
+                        contentColor =
+                            if (customAccentColorScheme.isAccentColorDefined())
+                                MaterialTheme.colorScheme.primary
+                            else contentColorFor(buttonContainerColor),
+                    ),
             ) {
                 currentProfile.icon?.let {
                     Icon(
                         it,
-                        contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description),
-                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
+                        contentDescription = currentProfileLabel,
+                        modifier =
+                            Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE).semantics {
+                                onClick(label = profileSelectorDescription, action = null)
+                            },
                     )
                 }
                     // If the profile doesn't have an icon drawable set, then
                     // generate one.
                     ?: Icon(
                         getIconForProfile(currentProfile),
-                        contentDescription =
-                            stringResource(R.string.photopicker_profile_switch_button_description),
-                        modifier = Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE),
+                        contentDescription = currentProfileLabel,
+                        modifier =
+                            Modifier.size(MEASUREMENT_PROFILE_ICON_SIZE).semantics {
+                                onClick(label = profileSelectorDescription, action = null)
+                            },
                     )
 
                 Icon(
@@ -126,17 +153,47 @@ fun ProfileSelector(
             ) {
                 for (profile in allProfiles) {
 
+                    // The surface color should be neutral if the profile is selected
+                    // and the calling app has provided a valid custom color. This will
+                    // avoid unpleasant clashes with the custom color and what is in the
+                    // default material theme. If no custom color is set, then the surfaceColor
+                    // should be primaryContainer to align with the theme's accents.
+                    val surfaceColor =
+                        when {
+                            currentProfile == profile ->
+                                if (customAccentColorScheme.isAccentColorDefined())
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                else MaterialTheme.colorScheme.primaryContainer
+                            else -> MaterialTheme.colorScheme.surfaceContainerHigh
+                        }
+                    val surfaceContentColor = contentColorFor(surfaceColor)
+                    val profileLabel = profile.label ?: getLabelForProfile(profile)
+                    val selectedProfileDescription =
+                        stringResource(
+                            R.string.photopicker_selected_profile_description,
+                            profileLabel,
+                        )
+
                     // The background color behind the text
                     Surface(
                         modifier = Modifier.widthIn(min = 200.dp),
-                        color =
-                            if (currentProfile == profile)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerHigh
+                        color = surfaceColor,
+                        contentColor = surfaceContentColor,
                     ) {
                         DropdownMenuItem(
                             modifier = Modifier.fillMaxWidth(),
-                            // enabled = profile.enabled,
+                            enabled =
+                                when (config.runtimeEnv) {
+
+                                    // The button is always enabled in activity runtime, as an error
+                                    // dialog will be shown to the user if the profile cannot be
+                                    // selected.
+                                    PhotopickerRuntimeEnv.ACTIVITY -> true
+
+                                    // For embedded, dialogs cannot be launched, so only allow the
+                                    // profile button to be enabled if the profile is enabled.
+                                    PhotopickerRuntimeEnv.EMBEDDED -> profile.enabled
+                                },
                             onClick = {
                                 // Only request a switch if the profile is actually different.
                                 if (currentProfile != profile) {
@@ -144,7 +201,7 @@ fun ProfileSelector(
                                     if (profile.enabled) {
                                         viewModel.requestSwitchUser(
                                             context = context,
-                                            requested = profile
+                                            requested = profile,
                                         )
                                         // Close the profile switcher popup
                                         expanded = false
@@ -158,8 +215,17 @@ fun ProfileSelector(
                             },
                             text = {
                                 Text(
-                                    text = profile.label ?: getLabelForProfile(profile),
+                                    text = profileLabel,
+                                    color = surfaceContentColor,
                                     style = MaterialTheme.typography.bodyLarge,
+                                    modifier =
+                                        Modifier.semantics {
+                                            contentDescription =
+                                                when (currentProfile == profile) {
+                                                    true -> selectedProfileDescription
+                                                    false -> profileLabel
+                                                }
+                                        },
                                 )
                             },
                             leadingIcon = {
@@ -169,11 +235,11 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MaterialTheme.colorScheme.primary
+                                                true -> surfaceContentColor
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
-                                            }
+                                            },
                                     )
                                 }
                                     // If the profile doesn't have an icon drawable set, then
@@ -183,11 +249,11 @@ fun ProfileSelector(
                                         contentDescription = null,
                                         tint =
                                             when (profile.enabled) {
-                                                true -> MaterialTheme.colorScheme.primary
+                                                true -> surfaceContentColor
                                                 false ->
                                                     MenuDefaults.itemColors()
                                                         .disabledLeadingIconColor
-                                            }
+                                            },
                                     )
                             },
                         )

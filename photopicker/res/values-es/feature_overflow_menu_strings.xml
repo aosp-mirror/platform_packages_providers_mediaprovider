@@ -18,6 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_overflow_menu_description" msgid="6548535301621140571">"Más"</string>
-    <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Aplicación multimedia en la nube"</string>
+    <string name="photopicker_overflow_cloud_media_app" msgid="1790591881463404779">"Aplicación de fotos en la nube"</string>
     <string name="photopicker_overflow_browse" msgid="6764715084773515122">"Buscar…"</string>
 </resources>

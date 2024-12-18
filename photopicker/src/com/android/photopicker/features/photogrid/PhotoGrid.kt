@@ -17,17 +17,24 @@
 package com.android.photopicker.features.photogrid
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.PhotoAlbum
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -35,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -45,7 +53,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
+import com.android.photopicker.core.animations.standardDecelerate
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
@@ -61,6 +72,7 @@ import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -68,11 +80,15 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToCategoryGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
+import com.android.photopicker.features.categorygrid.CategoryGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.launch
 
 private val MEASUREMENT_BANNER_PADDING =
@@ -114,8 +130,14 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
             .collectAsLazyPagingItems()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val localizedSelectionLimit = LocalLocalizationHelper.current.getLocalizedCount(selectionLimit)
+
     val selectionLimitExceededMessage =
-        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+        stringResource(
+            R.string.photopicker_selection_limit_exceeded_snackbar,
+            localizedSelectionLimit,
+        )
+
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
     val configuration = LocalPhotopickerConfiguration.current
@@ -140,11 +162,15 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.ALBUM_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                                     )
                                 )
                             }
                             navController.navigateToAlbumGrid()
+                        } else if (
+                            featureManager.isFeatureEnabled(CategoryGridFeature::class.java)
+                        ) {
+                            navController.navigateToCategoryGrid()
                         }
                     }
                 }
@@ -155,6 +181,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
     val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
+    val host = LocalEmbeddedState.current?.host
 
     Column(
         modifier =
@@ -174,8 +201,15 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 val emptyStatePadding =
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = Icons.Outlined.Image,
                     title = stringResource(R.string.photopicker_photos_empty_state_title),
                     body = stringResource(R.string.photopicker_photos_empty_state_body),
@@ -191,13 +225,32 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 mediaGrid(
                     items = items,
                     isExpandedScreen = isExpandedScreen,
+                    userScrollEnabled =
+                        when (isEmbedded) {
+                            true -> isExpanded
+                            false -> true
+                        },
                     selection = selection,
-                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
+                    bannerContent = {
+                        hideWhenState(
+                            selector =
+                                object : StateSelector.AnimatedVisibilityInEmbedded {
+                                    override val visible =
+                                        LocalEmbeddedState.current?.isExpanded ?: false
+                                    override val enter =
+                                        expandVertically(animationSpec = standardDecelerate(300))
+                                    override val exit =
+                                        shrinkVertically(animationSpec = standardDecelerate(150))
+                                }
+                        ) {
+                            AnimatedBannerWrapper(currentBanner)
+                        }
+                    },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(
                                 item = item.media,
-                                selectionLimitExceededMessage = selectionLimitExceededMessage
+                                selectionLimitExceededMessage = selectionLimitExceededMessage,
                             )
                             // Log user's interaction with picker's main grid(photo grid)
                             scope.launch {
@@ -206,26 +259,26 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                         FeatureToken.PHOTO_GRID.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION
+                                        Telemetry.UiEvent.PICKER_MAIN_GRID_INTERACTION,
                                     )
                                 )
                             }
                         }
                     },
                     onItemLongPress = { item ->
-                        // Log long pressing a media item in the photo grid
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled) {
+                            // Log long pressing a media item in the photo grid
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             if (item is MediaGridItem.MediaItem) {
                                 // Log entry into the photopicker preview mode
                                 scope.launch {
@@ -234,7 +287,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                                             FeatureToken.PREVIEW.token,
                                             configuration.sessionId,
                                             configuration.callingPackageUid ?: -1,
-                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                            Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                         )
                                     )
                                 }
@@ -252,7 +305,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_PHOTOS
+                            Telemetry.UiEvent.UI_LOADED_PHOTOS,
                         )
                     )
                 }
@@ -285,7 +338,7 @@ private fun AnimatedBannerWrapper(
                     if (declaration is BannerDefinitions) {
                         viewModel.markBannerAsDismissed(declaration)
                     }
-                }
+                },
             )
         }
     }
@@ -302,6 +355,8 @@ fun PhotoGridNavButton(modifier: Modifier) {
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
     val contentDescriptionString = stringResource(R.string.photopicker_photos_nav_button_label)
+    val featureManager = LocalFeatureManager.current
+    val categoryFeatureEnabled = featureManager.isFeatureEnabled(CategoryGridFeature::class.java)
 
     NavigationBarButton(
         onClick = {
@@ -312,7 +367,7 @@ fun PhotoGridNavButton(modifier: Modifier) {
                         FeatureToken.PHOTO_GRID.token,
                         configuration.sessionId,
                         configuration.callingPackageUid ?: -1,
-                        Telemetry.UiEvent.SWITCH_PICKER_TAB
+                        Telemetry.UiEvent.SWITCH_PICKER_TAB,
                     )
                 )
             }
@@ -321,6 +376,19 @@ fun PhotoGridNavButton(modifier: Modifier) {
         modifier = modifier.semantics { contentDescription = contentDescriptionString },
         isCurrentRoute = { route -> route == PHOTO_GRID.route },
     ) {
-        Text(stringResource(R.string.photopicker_photos_nav_button_label))
+        when (categoryFeatureEnabled) {
+            true -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhotoAlbum,
+                        contentDescription =
+                            stringResource(R.string.photopicker_photos_nav_button_label),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.photopicker_photos_nav_button_label))
+                }
+            }
+            false -> Text(stringResource(R.string.photopicker_photos_nav_button_label))
+        }
     }
 }

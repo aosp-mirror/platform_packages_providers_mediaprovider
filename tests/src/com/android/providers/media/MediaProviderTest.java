@@ -16,6 +16,8 @@
 
 package com.android.providers.media;
 
+import static android.provider.MediaStore.getGeneration;
+
 import static com.android.providers.media.scan.MediaScannerTest.stage;
 import static com.android.providers.media.util.FileUtils.extractDisplayName;
 import static com.android.providers.media.util.FileUtils.extractRelativePath;
@@ -36,6 +38,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.Manifest;
+import android.content.ContentInterface;
 import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
@@ -53,7 +56,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.RemoteException;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Audio.AudioColumns;
 import android.provider.MediaStore.Files.FileColumns;
@@ -64,7 +69,9 @@ import android.system.Os;
 import android.system.OsConstants;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.Size;
 
+import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.runner.AndroidJUnit4;
@@ -77,14 +84,17 @@ import com.android.providers.media.photopicker.data.ItemsProvider;
 import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.FileUtilsTest;
 import com.android.providers.media.util.SQLiteQueryBuilder;
+import com.android.providers.media.util.UserCache;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -113,7 +123,7 @@ public class MediaProviderTest {
     private static ContentResolver sIsolatedResolver;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUpBeforeClass() {
         InstrumentationRegistry.getInstrumentation().getUiAutomation()
                 .adoptShellPermissionIdentity(Manifest.permission.LOG_COMPAT_CHANGE,
                         Manifest.permission.READ_COMPAT_CHANGE_CONFIG,
@@ -124,7 +134,10 @@ public class MediaProviderTest {
                         // MANAGE_USERS permission for MediaProvider module.
                         Manifest.permission.CREATE_USERS,
                         Manifest.permission.INTERACT_ACROSS_USERS);
+    }
 
+    @Before
+    public void setUp() {
         resetIsolatedContext();
     }
 
@@ -261,7 +274,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -290,7 +303,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -298,13 +311,11 @@ public class MediaProviderTest {
     public void testMetadata() {
         assertNotNull(MediaStore.getVersion(sIsolatedContext,
                 MediaStore.VOLUME_EXTERNAL_PRIMARY));
-        assertNotNull(MediaStore.getGeneration(sIsolatedResolver,
-                MediaStore.VOLUME_EXTERNAL_PRIMARY));
     }
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -313,6 +324,55 @@ public class MediaProviderTest {
         final Collection<Uri> uris = Arrays.asList(
                 MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY, 42));
         assertNotNull(MediaStore.createWriteRequest(sIsolatedResolver, uris));
+    }
+
+    @Test
+    public void testRequestThumbnail_noAccess_throwsSecurityException() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        final String errorMessagetoThrow = "App not allowed to access";
+        final MediaProvider provider = new MediaProvider() {
+            @Override
+            public boolean isFuseThread() {
+                return false;
+            }
+
+            @Override
+            protected void enforceCallingPermission(@NonNull Uri uri, @NonNull Bundle extras,
+                    boolean forWrite) {
+                throw new SecurityException(errorMessagetoThrow);
+            }
+
+            @Override
+            protected void storageNativeBootPropertyChangeListener() {
+                // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
+            }
+        };
+
+        final ProviderInfo info = sIsolatedContext.getPackageManager()
+                .resolveContentProvider(MediaStore.AUTHORITY, PackageManager.GET_META_DATA);
+        // Attach providerInfo, to make sure mCallingIdentity can be populated
+        provider.attachInfo(sIsolatedContext, info);
+        Bundle extras = new Bundle();
+        extras.putSize(ContentResolver.EXTRA_SIZE , new Size(50, 50));
+
+        try (AssetFileDescriptor ignored = provider.openTypedAssetFile(uri, "image/*", extras)) {
+            fail("Expected Security Exception to throw");
+        } catch (Exception e) {
+            assertThat(e.getClass()).isEqualTo(SecurityException.class);
+            assertThat(e.getMessage()).isEqualTo(errorMessagetoThrow);
+        } finally {
+            testFile.delete();
+        }
     }
 
     @Test
@@ -430,9 +490,49 @@ public class MediaProviderTest {
         }
     }
 
+    @Test
+    public void testRevokeAllReadGrantsForPackage() throws Exception {
+        final File dir = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        final File testFile = stage(R.raw.lg_g4_iso_800_jpg,
+                new File(dir, "test" + System.nanoTime() + ".jpg"));
+        final Uri uri = MediaStore.scanFile(sIsolatedResolver, testFile);
+        Long fileId = ContentUris.parseId(uri);
+
+        final Uri.Builder builder = Uri.EMPTY.buildUpon();
+        builder.scheme("content");
+        builder.encodedAuthority(MediaStore.AUTHORITY);
+
+        final Uri testUri = builder.appendPath("picker")
+                .appendPath(Integer.toString(UserHandle.myUserId()))
+                .appendPath(PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)
+                .appendPath(MediaStore.AUTHORITY)
+                .appendPath(Long.toString(fileId))
+                .build();
+
+        try {
+            String[] mimeTypes = {"image/*"};
+            MediaStore.grantMediaReadForPackage(sIsolatedContext,
+                    android.os.Process.myUid(),
+                    List.of(testUri));
+            List<Uri> grantedUris = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
+            assertEquals(ContentUris.parseId(uri), ContentUris.parseId(grantedUris.get(0)));
+
+            // Revoked all grants verify that now the current package has no grants.
+            MediaStore.revokeAllMediaReadForPackages(sIsolatedContext, android.os.Process.myUid());
+            List<Uri> grantedUris2 = sItemsProvider.fetchReadGrantedItemsUrisForPackage(
+                    android.os.Process.myUid(), mimeTypes);
+            assertEquals(0, grantedUris2.size());
+        } finally {
+            dir.delete();
+            testFile.delete();
+        }
+    }
+
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -500,11 +600,36 @@ public class MediaProviderTest {
     }
 
     @Test
+    public void testInsertionWithFilePathOnAnotherUserVolume_throwsIllegalArgumentException() {
+        final UserCache userCache = new UserCache(sContext);
+        UserHandle otherUserHandle = sContext.getSystemService(UserManager.class)
+                .getUserHandles(true).stream()
+                .filter(uH -> !userCache.getUsersCached().contains(uH))
+                .findFirst()
+                .orElse(null);
+        Assume.assumeNotNull(otherUserHandle);
+
+        final ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+        final String filePath = "/storage/emulated/"
+                + otherUserHandle.getIdentifier() + "/Pictures/test.jpg";
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,
+                "./../../../../../../../../../../../" + filePath);
+
+        IllegalArgumentException illegalArgumentException = Assert.assertThrows(
+                IllegalArgumentException.class, () -> sIsolatedResolver.insert(
+                        MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                        values));
+
+        assertThat(illegalArgumentException).hasMessageThat().contains(
+                "Requested path " + filePath + " doesn't appear");
+    }
+
+    @Test
     public void testInsertionWithInvalidFilePath_throwsIllegalArgumentException() {
         final ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example");
-        values.put(MediaStore.Images.Media.DISPLAY_NAME,
-                "./../../../../../../../../../../../data/media/test.txt");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Android/media/com.example/");
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "data/media/test.txt");
 
         IllegalArgumentException illegalArgumentException = Assert.assertThrows(
                 IllegalArgumentException.class, () -> sIsolatedResolver.insert(
@@ -537,7 +662,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -559,7 +684,7 @@ public class MediaProviderTest {
 
     /**
      * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
+     * {@code CtsMediaProviderTestCases}, but the coverage system currently doesn't
      * measure that, so we add the bare minimum local testing here to convince
      * the tooling that it's covered.
      */
@@ -587,32 +712,6 @@ public class MediaProviderTest {
                 null, extras, null)) {
             assertNotNull(c);
         }
-    }
-
-    /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
-     */
-    @Test
-    public void testGetRedactionRanges_Image() throws Exception {
-        final File file = File.createTempFile("test", ".jpg");
-        stage(R.raw.test_image, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
-    }
-
-    /**
-     * We already have solid coverage of this logic in
-     * {@code CtsProviderTestCases}, but the coverage system currently doesn't
-     * measure that, so we add the bare minimum local testing here to convince
-     * the tooling that it's covered.
-     */
-    @Test
-    public void testGetRedactionRanges_Video() throws Exception {
-        final File file = File.createTempFile("test", ".mp4");
-        stage(R.raw.test_video, file);
-        assertNotNull(MediaProvider.getRedactionRanges(file));
     }
 
     @Test
@@ -821,6 +920,12 @@ public class MediaProviderTest {
             @Override
             protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
             }
         };
 
@@ -1290,6 +1395,12 @@ public class MediaProviderTest {
             @Override
             protected void storageNativeBootPropertyChangeListener() {
                 // Ignore this as test app cannot read device config
+            }
+
+            @Override
+            protected DatabaseBackupAndRecovery createDatabaseBackupAndRecovery() {
+                return new TestDatabaseBackupAndRecovery(ConfigStore.getDefaultConfigStore(),
+                        getVolumeCache());
             }
         };
         final ProviderInfo info = sIsolatedContext.getPackageManager()
@@ -1811,6 +1922,25 @@ public class MediaProviderTest {
         } finally {
             file.delete();
         }
+    }
+
+    @Test
+    public void testIllegalStateExceptionOnGetGenerationForNullValue() throws RemoteException {
+        ContentInterface contentInterface = Mockito.mock(MediaProvider.class);
+        Mockito.doReturn(null).when(contentInterface).call(Mockito.anyString(),
+                Mockito.anyString(), Mockito.any(String.class), Mockito.any(Bundle.class));
+        String volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY;
+
+        ContentResolver contentResolver = ContentResolver.wrap(contentInterface);
+
+        try {
+            getGeneration(contentResolver, volumeName);
+            fail("Expected a IllegalStateException Exception");
+        } catch (IllegalStateException e) {
+            assertEquals("Failed to get generation for volume '" + volumeName
+                    + "'. The ContentResolver call returned null.", e.getMessage());
+        }
+
     }
 
     private void testRedactionForFileExtension(int resId, String extension) throws Exception {

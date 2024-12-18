@@ -35,7 +35,7 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 
 /**
- * We already have solid coverage of this logic in {@code CtsProviderTestCases},
+ * We already have solid coverage of this logic in {@code CtsMediaProviderTestCases},
  * but the coverage system currently doesn't measure that, so we add the bare
  * minimum local testing here to convince the tooling that it's covered.
  */
@@ -83,6 +83,7 @@ public class LocalCallingIdentityTest {
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
+        assertTrue(ident.hasPermission(LocalCallingIdentity.PERMISSION_ACCESS_OEM_METADATA));
     }
 
     @Test
@@ -114,5 +115,6 @@ public class LocalCallingIdentityTest {
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_AUDIO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_VIDEO));
         assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_WRITE_IMAGES));
+        assertFalse(ident.hasPermission(LocalCallingIdentity.PERMISSION_ACCESS_OEM_METADATA));
     }
 }

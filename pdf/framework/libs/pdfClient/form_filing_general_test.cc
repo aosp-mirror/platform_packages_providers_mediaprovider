@@ -23,13 +23,11 @@
 
 #include "document.h"
 #include "form_widget_info.h"
+#include "fpdf_formfill.h"
+#include "fpdfview.h"
 #include "page.h"
 #include "rect.h"
 #include "testing/document_utils.h"
-// #include "testing/looks_like.h"
-//  #include "image/base/rawimage.h"
-#include "fpdf_formfill.h"
-#include "fpdfview.h"
 
 using pdfClient::Document;
 using pdfClient::FormWidgetInfo;
@@ -87,68 +85,47 @@ TEST(Test, GetFormWidgetInfoEmptyPoint) {
  * Click on an empty point on the form. Should not change state and page bitmap
  * should not have been changed by this action.
  */
-// TEST(Test, ClickOnEmptyPointDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kFormName);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     page_zero->ClickOnPoint(kEmptyPointDeviceCoords);
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, ClickOnEmptyPointDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kFormName);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    EXPECT_FALSE(page_zero->ClickOnPoint(kEmptyPointDeviceCoords));
+}
 
 /**
  * Call SetChoiceSelection for indices out of range. No error should occur and
  * state of page/page bitmap should not be changed by this action.
  */
-// TEST(Test, SetChoiceSelectionInvalidIndexDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kFormName);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     std::vector<int> selected_indices = {1};
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(-1, selected_indices));
-//     EXPECT_FALSE(page_zero->SetChoiceSelection(100, selected_indices));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, SetChoiceSelectionInvalidIndexDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kFormName);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    std::vector<int> selected_indices = {1};
+    EXPECT_FALSE(page_zero->SetChoiceSelection(-1, selected_indices));
+    EXPECT_FALSE(page_zero->SetChoiceSelection(100, selected_indices));
+}
 
 /**
  * Call SetFormFieldText for indices out of range. No error should occur and
  * state of page/page bitmap should not be changed by this action.
  */
-// TEST(Test, SetTextInvalidIndexDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kFormName);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     EXPECT_FALSE(page_zero->SetFormFieldText(-1, "Valid Text"));
-//     EXPECT_FALSE(page_zero->SetFormFieldText(100, "Valid Text"));
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, SetTextInvalidIndexDoesNotChangePage) {
+    std::unique_ptr<Document> doc = LoadDocument(kFormName);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+
+    EXPECT_FALSE(page_zero->SetFormFieldText(-1, "Valid Text"));
+    EXPECT_FALSE(page_zero->SetFormFieldText(100, "Valid Text"));
+}
 
 /**
  * GetFormWidgetInfo should never change state and therefore should never
  * should never the way the page is rendered.
  */
-// TEST(Test, GetFormWidgetInfoDoesNotChangePage) {
-//     std::unique_ptr<Document> doc = LoadDocument(kFormName);
-//     std::shared_ptr<Page> page_zero = doc->GetPage(0, true, true);
-//     std::unique_ptr<RawImage> starting_image = pdfClient::testing::RenderPage(*page_zero);
-//
-//     page_zero->GetFormWidgetInfo(kComboboxDeviceCoords);
-//
-//     std::unique_ptr<RawImage> after_click_image = pdfClient::testing::RenderPage(*page_zero);
-//     EXPECT_TRUE(pdfClient::testing::LooksLike(*starting_image, *after_click_image,
-//                                           pdfClient::testing::kZeroToleranceDifference));
-// }
+TEST(Test, GetFormWidgetInfoWithCoord) {
+    std::unique_ptr<Document> doc = LoadDocument(kFormName);
+    std::shared_ptr<Page> page_zero = doc->GetPage(0, true);
+    FormWidgetInfo fwiResult = page_zero->GetFormWidgetInfo(kComboboxDeviceCoords);
+    EXPECT_TRUE(fwiResult.FoundWidget());
+}
 
 /**
  * GetFormWidgetInfo should never change state and therefore should never

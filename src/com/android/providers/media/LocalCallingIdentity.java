@@ -23,6 +23,7 @@ import static com.android.providers.media.util.PermissionUtils.checkIsLegacyStor
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaLocation;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMediaOwnerPackageName;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessMtp;
+import static com.android.providers.media.util.PermissionUtils.checkPermissionAccessOemMetadata;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionDelegator;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionInstallPackages;
 import static com.android.providers.media.util.PermissionUtils.checkPermissionManager;
@@ -84,7 +85,7 @@ public class LocalCallingIdentity {
     private final Object lock = new Object();
 
     @GuardedBy("lock")
-    private int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
+    private final int[] mDeletedFileCountsBypassingDatabase = new int[FileColumns.MEDIA_TYPE_COUNT];
 
     private LocalCallingIdentity(Context context, int pid, int uid, UserHandle user,
             String packageNameUnchecked, @Nullable String attributionTag) {
@@ -351,6 +352,7 @@ public class LocalCallingIdentity {
 
     public static final int PERMISSION_QUERY_ALL_PACKAGES = 1 << 28;
     public static final int PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME = 1 << 29;
+    public static final int PERMISSION_ACCESS_OEM_METADATA = 1 << 30;
 
     private volatile int hasPermission;
     private volatile int hasPermissionResolved;
@@ -436,6 +438,9 @@ public class LocalCallingIdentity {
             case PERMISSION_ACCESS_MEDIA_OWNER_PACKAGE_NAME:
                 return checkPermissionAccessMediaOwnerPackageName(
                         context, pid, uid, getPackageName(), attributionTag);
+            case PERMISSION_ACCESS_OEM_METADATA:
+                return checkPermissionAccessOemMetadata(context, pid, uid, getPackageName(),
+                        attributionTag);
             default:
                 return false;
         }
@@ -456,9 +461,11 @@ public class LocalCallingIdentity {
             return true;
         }
 
-        boolean targetSdkIsAtLeastR = getTargetSdkVersion() >= Build.VERSION_CODES.R;
+        // To address b/338519249, we will check for sdk version V+
+        boolean targetSdkIsAtLeastV =
+                getTargetSdkVersion() >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
         return checkIsLegacyStorageGranted(context, uid, getPackageName(), attributionTag,
-                    targetSdkIsAtLeastR);
+                targetSdkIsAtLeastV);
     }
 
     private volatile boolean shouldBypass;
@@ -721,6 +728,14 @@ public class LocalCallingIdentity {
     }
 
     /**
+     * Returns {@code true} if this package has permission to access oem_metadata of any accessible
+     * file.
+     */
+    public boolean checkCallingPermissionOemMetadata() {
+        return hasPermission(PERMISSION_ACCESS_OEM_METADATA);
+    }
+
+    /**
      * Returns {@code true} if this package is a legacy app and has read permission
      */
     public boolean isCallingPackageLegacyRead() {
@@ -756,13 +771,6 @@ public class LocalCallingIdentity {
     protected void dump(String reason) {
         Log.i(TAG, "Invalidating LocalCallingIdentity cache for package " + packageName
                 + ". Reason: " + reason);
-        if (hasDeletedFileCount()) {
-            Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
-                    getDeletedFileCountsBypassingDatabase()));
-        }
-    }
-
-    protected void dump() {
         if (hasDeletedFileCount()) {
             Logging.logPersistent(getDeletedFileCountsLogMessage(uid, getPackageName(),
                     getDeletedFileCountsBypassingDatabase()));

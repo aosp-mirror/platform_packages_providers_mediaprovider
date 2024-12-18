@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Annuller"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Vent"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Beskyttelse"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Underretninger om indbygget omkodning"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Status på indbygget omkodning"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Omkoder notifikationer"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Status for omkodning"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Prøv igen senere. Dine billeder bliver tilgængelige, så snart problemet er løst."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Nogle billeder kan ikke indlæses"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>

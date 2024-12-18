@@ -56,7 +56,6 @@ public class Selection {
     // The list of selected items.
     private Map<Uri, Item> mSelectedItems = new LinkedHashMap<>();
     private Map<Uri, MutableLiveData<Integer>> mSelectedItemsOrder = new HashMap<>();
-    private Map<String, Item> mItemGrantRevocationMap = new HashMap<>();
 
     private MutableLiveData<Integer> mSelectedItemSize = new MutableLiveData<>();
     // The list of selected items for preview. This needs to be saved separately so that if activity
@@ -64,38 +63,16 @@ public class Selection {
     private List<Item> mSelectedItemsForPreview = new ArrayList<>();
     private boolean mIsSelectionOrdered = false;
     private boolean mSelectMultiple = false;
+    private boolean mIsUserSelectAction = false;
     private int mMaxSelectionLimit = 1;
     // This is set to false when max selection limit is reached.
     private boolean mIsSelectionAllowed = true;
 
     private int mTotalNumberOfPreGrantedItems = 0;
-
-    private Set<String> mPreGrantedItemsSet;
+    private Set<Uri> mPreGrantedUris;
+    private Map<Uri, Item> mItemGrantRevocationMap = new HashMap<>();
 
     private static final String TAG = "PhotoPickerSelection";
-
-    /**
-     * Updates the list of pre granted items and the count of selected items.
-     */
-    public void setPreGrantedItemSet(@Nullable Set<String> preGrantedItemSet) {
-        if (preGrantedItemSet != null) {
-            mPreGrantedItemsSet = preGrantedItemSet;
-            setTotalNumberOfPreGrantedItems(preGrantedItemSet.size());
-            Log.d(TAG, "Pre-Granted items have been loaded. Number of items:"
-                    + preGrantedItemSet.size());
-        } else {
-            mPreGrantedItemsSet = new HashSet<>(0);
-            Log.d(TAG, "No Pre-Granted items present");
-        }
-    }
-
-    /**
-     * @return a set of item ids that are pre granted for the current package and user.
-     */
-    @Nullable
-    public Set<String> getPreGrantedItems() {
-        return mPreGrantedItemsSet;
-    }
 
     /**
      * @return {@link #mSelectedItems} - A {@link List} of selected {@link Item}
@@ -106,19 +83,11 @@ public class Selection {
     }
 
     /**
-     * @return A {@link Set} of selected {@link Item} ids.
+     * @return A {@link Set} of selected uris.
      */
-    public Set<String> getSelectedItemsIds() {
-        return mSelectedItems.values().stream().map(Item::getId).collect(
+    public Set<Uri> getSelectedItemsUris() {
+        return mSelectedItems.values().stream().map(Item::getContentUri).collect(
                 Collectors.toSet());
-    }
-
-    /**
-     * @return A {@link List} of selected {@link Item} that do not hold a READ_GRANT.
-     */
-    public List<Item> getSelectedItemsWithoutGrants() {
-        return mSelectedItems.values().stream().filter((Item item) -> !item.isPreGranted())
-                .collect(Collectors.toList());
     }
 
     /**
@@ -129,17 +98,48 @@ public class Selection {
     }
 
     /**
-     * @return A {@link List} of items for which the grants need to be revoked.
+     * Updates the list of pre granted items uris and the count of selected items.
      */
-    public List<Item> getPreGrantedItemsToBeRevoked() {
-        return mItemGrantRevocationMap.values().stream().collect(Collectors.toList());
+    public void setPreGrantedItems(@Nullable List<Uri> preGrantedUris) {
+        if (preGrantedUris != null) {
+            mPreGrantedUris = preGrantedUris.stream().collect(Collectors.toSet());
+            setTotalNumberOfPreGrantedItems(preGrantedUris.size());
+            Log.d(TAG, "Pre-Granted items have been loaded. Number of items:"
+                    + preGrantedUris.size());
+        } else {
+            mPreGrantedUris = new HashSet<>(0);
+            Log.d(TAG, "No Pre-Granted items present");
+        }
     }
 
     /**
-     * @return A {@link List} of ids for which the grants need to be revoked.
+     * @return a set of item uris that are pre granted for the current package and user.
      */
-    public List<String> getPreGrantedItemIdsToBeRevoked() {
-        return mItemGrantRevocationMap.keySet().stream().collect(Collectors.toList());
+    @Nullable
+    public Set<Uri> getPreGrantedUris() {
+        return mPreGrantedUris;
+    }
+
+    /**
+     * @return A {@link Set} of items for which the grants need to be revoked.
+     */
+    public Set<Item> getDeselectedItemsToBeRevoked() {
+        return mItemGrantRevocationMap.values().stream().collect(Collectors.toSet());
+    }
+
+    /**
+     * @return A {@link Set} of uris for which the grants need to be revoked.
+     */
+    public Set<Uri> getDeselectedUrisToBeRevoked() {
+        return mItemGrantRevocationMap.keySet().stream().collect(Collectors.toSet());
+    }
+
+    /**
+     * @return A {@link List} of selected {@link Item} that do not hold a READ_GRANT.
+     */
+    public List<Item> getNewlySelectedItems() {
+        return mSelectedItems.values().stream().filter((Item item) -> !item.isPreGranted())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -177,12 +177,19 @@ public class Selection {
      * Add the selected {@code item} into {@link #mSelectedItems}.
      */
     public void addSelectedItem(Item item) {
-        if (item.isPreGranted() && mItemGrantRevocationMap.containsKey(item.getId())) {
-            mItemGrantRevocationMap.remove(item.getId());
-        }
         if (mIsSelectionOrdered) {
             mSelectedItemsOrder.put(
                     item.getContentUri(), new MutableLiveData(getTotalItemsCount() + 1));
+        }
+        if (item.isPreGranted()) {
+            if (mPreGrantedUris == null) {
+                mPreGrantedUris = new HashSet<>();
+            }
+            mPreGrantedUris.add(item.getContentUri());
+            setTotalNumberOfPreGrantedItems(mPreGrantedUris.size());
+            if (mItemGrantRevocationMap.containsKey(item.getContentUri())) {
+                mItemGrantRevocationMap.remove(item.getContentUri());
+            }
         }
         mSelectedItems.put(item.getContentUri(), item);
         mSelectedItemSize.postValue(getTotalItemsCount());
@@ -221,7 +228,7 @@ public class Selection {
             // Maintain a list of items that were pre-granted but the user has deselected them in
             // the current session. This list will be used to revoke existing grants for these
             // items.
-            mItemGrantRevocationMap.put(item.getId(), item);
+            mItemGrantRevocationMap.put(item.getContentUri(), item);
         }
         if (mIsSelectionOrdered) {
             MutableLiveData<Integer> removedItem = mSelectedItemsOrder.remove(item.getContentUri());
@@ -274,8 +281,16 @@ public class Selection {
     }
 
     private void updateSelectionAllowed() {
-        final int size = mSelectedItems.size();
-        if (size  - countOfPreGrantedItems() >= mMaxSelectionLimit) {
+        int size = mSelectedItems.size();
+        // In ACTION_USER_SELECT_IMAGES_FOR_APP mode the total count of selected media can
+        // exceed the mMaxSelectionLimit because in that scenario previous selection plus new
+        // selection are incrementally merged together. But for other cases
+        // (i.e. ACTION_PICK_IMAGES and ACTION_GET_CONTENT) it should remain
+        // mMaxSelectionLimit.
+        if (mIsUserSelectAction) {
+            size = size - countOfPreGrantedItems();
+        }
+        if (size >= mMaxSelectionLimit) {
             if (mIsSelectionAllowed) {
                 mIsSelectionAllowed = false;
             }
@@ -340,6 +355,7 @@ public class Selection {
 
         if (intent.getAction() != null
                 && intent.getAction().equals(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)) {
+            mIsUserSelectAction = true;
             // If this is picking media for an app, enable multiselect.
             mSelectMultiple = true;
             // disable ordered selection.

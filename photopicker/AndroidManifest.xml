@@ -33,20 +33,26 @@
   <!-- Permissions required for reading device configs -->
   <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
+   <!-- Permissions required for fetching User profiles -->
+  <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS"/>
+
   <application
           android:name="com.android.photopicker.PhotopickerApplication"
+          android:icon="@mipmap/photopicker_app_icon"
           android:label="@string/photopicker_application_label"
           android:allowBackup="false"
           android:supportsRtl="true">
 
     <activity
       android:name="com.android.photopicker.MainActivity"
+      android:enabled="false"
       android:exported="true"
       android:theme="@style/Theme.Photopicker"
       android:label="@string/photopicker_application_label"
+      android:windowSoftInputMode="adjustResize"
       android:excludeFromRecents="true">
 
-      <intent-filter android:priority="105" >
+      <intent-filter android:priority="110" >
                 <action android:name="android.provider.action.PICK_IMAGES"/>
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
@@ -60,11 +66,11 @@
 
     <activity-alias
         android:name="com.android.photopicker.PhotopickerGetContentActivity"
+        android:enabled="false"
         android:targetActivity="com.android.photopicker.MainActivity"
         android:exported="true"
-        android:excludeFromRecents="true"
-        android:enabled="true">
-        <intent-filter android:priority="105" >
+        android:excludeFromRecents="true">
+        <intent-filter android:priority="110" >
             <action android:name="android.intent.action.GET_CONTENT"/>
             <category android:name="android.intent.category.OPENABLE"/>
             <category android:name="android.intent.category.DEFAULT"/>
@@ -73,5 +79,81 @@
         </intent-filter>
     </activity-alias>
 
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerUserSelectActivity"
+        android:targetActivity="com.android.photopicker.MainActivity"
+        android:permission="android.permission.GRANT_RUNTIME_PERMISSIONS"
+        android:exported="true"
+        android:enabled="false"
+        android:excludeFromRecents="true">
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="image/*" />
+            <data android:mimeType="video/*" />
+        </intent-filter>
+        <intent-filter android:priority="105">
+            <action android:name="android.provider.action.USER_SELECT_IMAGES_FOR_APP" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+    </activity-alias>
+
+    <!--
+      Receiver that receives broadcasts from MediaProvider when the DeviceConfig is updated.
+      This is required because Photopicker does not have a persistent process of its own, but
+      needs to enable or disable various package components based on flag state. MediaProvider
+      sends broadcasts to Photopicker anytime the DeviceConfig is updated so that Photopicker
+      can wake up and evaluate its component state.
+
+      These broadcasts are scoped to the MANAGE_CLOUD_MEDIA_PROVIDERS permission so that other
+      apps are unable to eavesdrop on these broadcasts (though they contain no data and are just
+      a wake up signal).
+    -->
+    <receiver android:name="com.android.photopicker.PhotopickerDeviceConfigReceiver"
+              android:exported="true"
+              android:permission="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+      </intent-filter>
+    </receiver>
+
+    <!--
+    The Embedded Photopicker service that allows external apps to launch an embedded photopicker
+    experience inside of their own application. This service uses Remote Rendering to provide a
+    view to the binding application, and renders the view from the photopicker process.
+    See EmbeddedService and Session classes for the entrypoints into the Embedded Photopicker.
+    -->
+    <service android:name="com.android.photopicker.core.embedded.EmbeddedService"
+             android:exported="true">
+      <intent-filter>
+        <action android:name="com.android.photopicker.core.embedded.EmbeddedService.BIND" />
+      </intent-filter>
+    </service>
+
   </application>
+
+
+  <queries>
+    <!--
+      Ensure that all CLOUD_MEDIA_PROVIDER packages are visible to this app.
+      Since Photopicker does not hold QUERY_ALL_PACKAGES, but it queries the
+      CloudMediaProviders directly when loading media, declare the intent
+      action that all CloudMediaProviders use to identify themselves so their
+      packages are visible to Photopicker.
+    -->
+    <intent>
+      <action android:name="android.content.action.CLOUD_MEDIA_PROVIDER" />
+    </intent>
+
+    <!--
+      Ensure that Photopicker can resolve DocumentsUI which is the
+      default handler of [OPEN_DOCUMENT]. Photopicker uses this to redirect
+      the user to DocumentsUI in some ACTION_GET_CONTENT cases.
+    -->
+    <intent>
+      <action android:name="android.intent.action.OPEN_DOCUMENT" />
+      <data android:mimeType="*/*" />
+    </intent>
+  </queries>
+
 </manifest>

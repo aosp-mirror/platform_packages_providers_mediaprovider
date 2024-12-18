@@ -6,35 +6,77 @@ package {
 android_library {
     name: "PhotopickerLib",
     manifest: "AndroidManifest.xml",
-    srcs: ["src/**/*.kt"],
+    srcs: [
+        "src/**/*.kt",
+        ":statslog-mediaprovider-java-gen",
+    ],
     resource_dirs: ["res"],
     sdk_version: "module_current",
     min_sdk_version: "30",
     libs: [
-        "framework-configinfrastructure",
+        "framework-configinfrastructure.stubs.module_lib",
         "framework-connectivity.stubs.module_lib",
+        "framework-mediaprovider.impl",
+        "framework-photopicker.impl",
+        "framework-statsd.stubs.module_lib",
+    ],
+    javacflags: [
+        "-Aroom.schemaLocation=packages/providers/MediaProvider/photopicker/schemas",
+    ],
+    kotlincflags: [
+        "-Werror",
+        "-Xjvm-default=all",
     ],
     static_libs: [
         "androidx.activity_activity-compose",
+        "androidx.appcompat_appcompat",
         "androidx.compose.foundation_foundation",
         "androidx.compose.material3_material3",
+        "androidx.compose.material3_material3-window-size-class",
+        "androidx.compose.material_material-icons-extended",
         "androidx.compose.runtime_runtime",
         "androidx.compose.ui_ui",
         "androidx.core_core-ktx",
         "androidx.lifecycle_lifecycle-runtime-compose",
         "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.hilt_hilt-navigation-compose",
         "androidx.navigation_navigation-compose",
         "androidx.navigation_navigation-runtime-ktx",
+        "androidx.paging_paging-common",
+        "androidx.paging_paging-common-ktx",
+        "androidx.paging_paging-compose",
+        "androidx.paging_paging-runtime",
+        "androidx.room_room-runtime",
+        "androidx.room_room-ktx",
+        // glide and dependencies
+        "androidx.exifinterface_exifinterface",
+        "androidx.vectordrawable_vectordrawable-animated",
+        "glide-prebuilt",
+        "glide-ktx-prebuilt",
+        "glide-integration-webpdecoder-prebuilt",
+        "glide-gifdecoder-prebuilt",
+        "glide-disklrucache-prebuilt",
+        "glide-compose-prebuilt",
+        "glide-annotation-and-compiler-prebuilt",
+        //
         "hilt_android",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_coroutines",
+        "mediaprovider_flags_java_lib",
         "modules-utils-build",
     ],
     apex_available: [
         "//apex_available:platform",
         "com.android.mediaprovider",
     ],
+    plugins: [
+        "glide-annotation-processor",
+        "androidx.room_room-compiler-plugin",
+    ],
+    lint: {
+        extra_check_modules: ["PhotopickerLintChecker"],
+    },
 }
 
 android_app {
@@ -43,6 +85,12 @@ android_app {
     static_libs: [
         "PhotopickerLib",
     ],
+    optimize: {
+        // Optimize bytecode
+        optimize: true,
+        // Needed for removing unused icons from material-icons-extended
+        shrink_resources: true,
+    },
     plugins: [],
     kotlincflags: ["-Xjvm-default=all"],
     certificate: "media",
@@ -54,5 +102,6 @@ android_app {
         "//apex_available:platform",
         "com.android.mediaprovider",
     ],
+    updatable: true,
 
 }

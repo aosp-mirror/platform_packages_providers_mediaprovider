@@ -75,7 +75,7 @@
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Hlé gert á vinnuforritum"</string>
     <string name="picker_profile_paused_title" msgid="2079739512895529028">"Hlé var gert á <xliff:g id="PROFILE">%s</xliff:g>-forritum"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Kveiktu á vinnuforritunum og reyndu síðan að opna vinnumyndirnar aftur"</string>
-    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Til að opna <xliff:g id="PROFILE1">%1$s</xliff:g>-myndir skaltu kveikja á <xliff:g id="PROFILE2">%2$s</xliff:g>-forritum og reyna aftur"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Til að opna myndir í „<xliff:g id="PROFILE1">%1$s</xliff:g>“ skaltu kveikja á forritum í „<xliff:g id="PROFILE2">%2$s</xliff:g>“ og reyna aftur"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Þetta forrit hefur aðeins aðgang að myndunum sem þú velur"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Veldu myndir og myndskeið sem þetta forrit má fá aðgang að"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> atriði}one{<xliff:g id="COUNT_1">^1</xliff:g> atriði}other{<xliff:g id="COUNT_1">^1</xliff:g> atriði}}"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Hætta við"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Bíða"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Öryggisbúnaður"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Viðvaranir fyrir sérforritaðar umkóðanir"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Sérforritað umkóðunarferli"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Tilkynningar um umkóðun"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Framvinda umkóðunar"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Reyndu aftur síðar. Myndirnar þínar verða tiltækar um leið og vandamálið er leyst."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Ekki tekst að hlaða sumum myndum"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ég skil"</string>

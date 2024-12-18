@@ -32,6 +32,8 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_OPEN_PERSONAL_PROFILE(942),
         @UiEvent(doc = "Photo picker opened in work profile")
         PHOTO_PICKER_OPEN_WORK_PROFILE(943),
+        @UiEvent(doc = "Photo picker opened in unknown profile")
+        PHOTO_PICKER_OPEN_UNKNOWN_PROFILE(1691),
         @UiEvent(doc = "Photo picker opened via GET_CONTENT intent")
         PHOTO_PICKER_OPEN_GET_CONTENT(1080),
         @UiEvent(doc = "Photo picker opened in half screen")
@@ -54,10 +56,14 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_CANCEL_WORK_PROFILE(1125),
         @UiEvent(doc = "Photo picker cancelled in personal profile")
         PHOTO_PICKER_CANCEL_PERSONAL_PROFILE(1126),
+        @UiEvent(doc = "Photo picker cancelled in unknown profile")
+        PHOTO_PICKER_CANCEL_UNKNOWN_PROFILE(1692),
         @UiEvent(doc = "Confirmed selection in Photo picker in work profile")
         PHOTO_PICKER_CONFIRM_WORK_PROFILE(1127),
         @UiEvent(doc = "Confirmed selection in Photo picker in personal profile")
         PHOTO_PICKER_CONFIRM_PERSONAL_PROFILE(1128),
+        @UiEvent(doc = "Confirmed selection in Photo picker in unknown profile")
+        PHOTO_PICKER_CONFIRM_UNKNOWN_PROFILE(1693),
         @UiEvent(doc = "Photo picker opened with an active cloud provider")
         PHOTO_PICKER_CLOUD_PROVIDER_ACTIVE(1198),
         @UiEvent(doc = "Clicked the mute / unmute button in a photo picker video preview")
@@ -66,10 +72,15 @@ public class PhotoPickerUiEventLogger {
         PHOTO_PICKER_PREVIEW_ALL_SELECTED(1414),
         @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible and enabled")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_ENABLED(1415),
+        @UiEvent(doc = "Photo picker opened with the 'switch profile menu' button visible")
+        PHOTO_PICKER_PROFILE_SWITCH_MENU_BUTTON_VISIBLE(1694),
         @UiEvent(doc = "Photo picker opened with the 'switch profile' button visible but disabled")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_DISABLED(1416),
+
         @UiEvent(doc = "Clicked the 'switch profile' button in photo picker")
         PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK(1417),
+        @UiEvent(doc = "Clicked the 'switch profile menu' button in photo picker")
+        PHOTO_PICKER_PROFILE_SWITCH_MENU_BUTTON_CLICK(1695),
         @UiEvent(doc = "Exited photo picker by swiping down")
         PHOTO_PICKER_EXIT_SWIPE_DOWN(1420),
         @UiEvent(doc = "Back pressed in photo picker")
@@ -167,6 +178,21 @@ public class PhotoPickerUiEventLogger {
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_OPEN_WORK_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the picker has opened in unknown profile
+     * @param instanceId     an identifier for the current picker session
+     * @param callingUid     the uid of the app initiating the picker launch
+     * @param callingPackage the package name of the app initiating the picker launch
+     */
+    public void logPickerOpenUnknown(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_OPEN_UNKNOWN_PROFILE,
                 callingUid,
                 callingPackage,
                 instanceId);
@@ -327,6 +353,19 @@ public class PhotoPickerUiEventLogger {
     }
 
     /**
+     * Log metrics to notify that user has confirmed selection in unknown profile
+     */
+    public void logPickerConfirmUnknown(InstanceId instanceId, int callingUid,
+            String callingPackage, int countOfItemsConfirmed) {
+        logger.logWithInstanceIdAndPosition(
+                PhotoPickerEvent.PHOTO_PICKER_CONFIRM_UNKNOWN_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId,
+                countOfItemsConfirmed);
+    }
+
+    /**
      * Log metrics to notify that user has cancelled picker (without any selection) in personal
      * profile
      */
@@ -347,6 +386,19 @@ public class PhotoPickerUiEventLogger {
             String callingPackage) {
         logger.logWithInstanceId(
                 PhotoPickerEvent.PHOTO_PICKER_CANCEL_WORK_PROFILE,
+                callingUid,
+                callingPackage,
+                instanceId);
+    }
+
+    /**
+     * Log metrics to notify that user has cancelled picker (without any selection) in unknown
+     * profile
+     */
+    public void logPickerCancelUnknown(InstanceId instanceId, int callingUid,
+            String callingPackage) {
+        logger.logWithInstanceId(
+                PhotoPickerEvent.PHOTO_PICKER_CANCEL_UNKNOWN_PROFILE,
                 callingUid,
                 callingPackage,
                 instanceId);
@@ -394,6 +446,15 @@ public class PhotoPickerUiEventLogger {
     }
 
     /**
+     * Log metrics to notify that the 'switch profile menu' button is visible
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logProfileSwitchMenuButtonVisible(InstanceId instanceId) {
+        logWithInstance(
+                PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_MENU_BUTTON_VISIBLE, instanceId);
+    }
+
+    /**
      * Log metrics to notify that the 'switch profile' button is visible but disabled
      * @param instanceId an identifier for the current picker session
      */
@@ -407,6 +468,14 @@ public class PhotoPickerUiEventLogger {
      */
     public void logProfileSwitchButtonClick(InstanceId instanceId) {
         logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_BUTTON_CLICK, instanceId);
+    }
+
+    /**
+     * Log metrics to notify that the user has clicked the 'switch profile menu' button
+     * @param instanceId an identifier for the current picker session
+     */
+    public void logProfileSwitchMenuButtonClick(InstanceId instanceId) {
+        logWithInstance(PhotoPickerEvent.PHOTO_PICKER_PROFILE_SWITCH_MENU_BUTTON_CLICK, instanceId);
     }
 
     /**

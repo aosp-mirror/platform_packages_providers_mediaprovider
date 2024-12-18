@@ -15,14 +15,48 @@
   -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.android.photopicker.tests">
+
+  <uses-permission
+      android:name="com.android.providers.media.permission.MANAGE_CLOUD_MEDIA_PROVIDERS"/>
 
   <application android:debuggable="true">
     <uses-library android:name="android.test.runner"/>
+     <activity
+      android:name="com.android.photopicker.tests.HiltTestActivity"
+      android:exported="false"/>
+
+    <activity
+      android:name="com.android.photopicker.MainActivity"
+      android:enabled="true"
+      tools:replace="android:enabled">
+    </activity>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerGetContentActivity"
+        android:enabled="true"
+        tools:replace="android:enabled">
+    </activity-alias>
+
+    <activity-alias
+        android:name="com.android.photopicker.PhotopickerUserSelectActivity"
+        android:enabled="true"
+        android:permission=""
+        tools:replace="android:enabled,android:permission">
+    </activity-alias>
+
+    <!-- A test provider to allow the test application to issue uri grants for selected media-->
+    <provider
+      android:name="com.android.photopicker.tests.utils.StubProvider"
+      android:authorities="photopickertest"
+      android:exported="false"
+      android:grantUriPermissions="true"
+    />
   </application>
 
   <instrumentation
-    android:name="androidx.test.runner.AndroidJUnitRunner"
+    android:name="com.android.photopicker.tests.HiltTestRunner"
     android:targetPackage="com.android.photopicker.tests"
     android:label="Tests for Android Photopicker"/>
 </manifest>

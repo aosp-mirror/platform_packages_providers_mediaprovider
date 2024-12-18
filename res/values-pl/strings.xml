@@ -66,16 +66,16 @@
     <string name="picker_preview" msgid="6257414886055861039">"Podgląd"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Włącz profil służbowy"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Włącz profil osobisty"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Osobisty charakter"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Osobisty"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Czynność zablokowana przez administratora"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Nie można korzystać z danych służbowych w aplikacji osobistej"</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Nie można korzystać z danych osobistych w aplikacji służbowej"</string>
     <string name="picker_profile_admin_msg" msgid="4060112887923255178">"Dostęp do danych profilu <xliff:g id="PROFILE1">%1$s</xliff:g> z aplikacji <xliff:g id="PROFILE2">%2$s</xliff:g> jest niedozwolony"</string>
     <string name="picker_profile_switch_message" msgid="1133817927412489487">"Przełącz na: <xliff:g id="PROFILE">%s</xliff:g>"</string>
     <string name="picker_profile_work_paused_title" msgid="382212880704235925">"Aplikacje służbowe zostały wstrzymane"</string>
-    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplikacje <xliff:g id="PROFILE">%s</xliff:g> zostały wstrzymane"</string>
+    <string name="picker_profile_paused_title" msgid="2079739512895529028">"Aplikacje w profilu „<xliff:g id="PROFILE">%s</xliff:g>” zostały wstrzymane"</string>
     <string name="picker_profile_work_paused_msg" msgid="6321552322125246726">"Aby otworzyć zdjęcia służbowe, włącz aplikacje służbowe i spróbuj ponownie"</string>
-    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Aby otworzyć zdjęcia profilu <xliff:g id="PROFILE1">%1$s</xliff:g>, włącz aplikacje <xliff:g id="PROFILE2">%2$s</xliff:g> i spróbuj ponownie"</string>
+    <string name="picker_profile_paused_msg" msgid="1215076898583993782">"Aby otworzyć zdjęcia z profilu „<xliff:g id="PROFILE1">%1$s</xliff:g>”, włącz aplikacje w profilu „<xliff:g id="PROFILE2">%2$s</xliff:g>” i spróbuj ponownie"</string>
     <string name="picker_privacy_message" msgid="9132700451027116817">"Ta aplikacja ma dostęp tylko do wybranych przez Ciebie zdjęć"</string>
     <string name="picker_header_permissions" msgid="675872774407768495">"Wybierz zdjęcia i filmy, do których ta aplikacja ma mieć dostęp"</string>
     <string name="picker_album_item_count" msgid="4420723302534177596">"{count,plural, =1{<xliff:g id="COUNT_0">^1</xliff:g> element}few{<xliff:g id="COUNT_1">^1</xliff:g> elementy}many{<xliff:g id="COUNT_1">^1</xliff:g> elementów}other{<xliff:g id="COUNT_1">^1</xliff:g> elementu}}"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Anuluj"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Czekaj"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Sprzęt zabezpieczający"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Alerty dotyczące transkodowania natywnego"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Postępy transkodowania natywnego"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Powiadomienia o transkodowaniu"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Postęp transkodowania"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Spróbuj ponownie później. Zdjęcia będą dostępne po rozwiązaniu problemu."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Nie można wczytać niektórych zdjęć"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>

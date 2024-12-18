@@ -216,8 +216,7 @@ public interface UserManagerState {
         // change in a UserIdManager instance.
         private final UserId mCurrentUser;
         private final Handler mHandler;
-
-        private Runnable mIsProviderAvailableRunnable;
+        private Map<UserId, Runnable> mIsProviderAvailableRunnableMap = new HashMap<>();
 
         // This is the user profile selected in the photo picker. Photo picker will display media
         // for this user. It could be different from mCurrentUser.
@@ -435,6 +434,9 @@ public interface UserManagerState {
         @Override
         public void waitForMediaProviderToBeAvailable(UserId userId) {
             assertMainThread();
+            // Remove callbacks if any pre-available callbacks are present in the message queue for
+            // given user
+            stopWaitingForProviderToBeAvailableForUser(userId);
             if (CrossProfileUtils.isMediaProviderAvailable(userId , mContext)) {
                 mProfileOffStatus.put(userId, false);
                 updateAndPostCrossProfileStatus();
@@ -445,42 +447,48 @@ public interface UserManagerState {
 
         private void waitForProviderToBeAvailable(UserId userId, int numOfTries) {
             // The runnable should make sure to post update on the live data if it is changed.
-            mIsProviderAvailableRunnable = () -> {
-                // We stop the recursive check when
-                // 1. the provider is available
-                // 2. the profile is in quiet mode, i.e. provider will not be available
-                // 3. after maximum retries
-                if (CrossProfileUtils.isMediaProviderAvailable(userId, mContext)) {
-                    mProfileOffStatus.put(userId, false);
-                    updateAndPostCrossProfileStatus();
-                    return;
-                }
+            Runnable runnable = () -> {
+                try {
+                    // We stop the recursive check when
+                    // 1. the provider is available
+                    // 2. the profile is in quiet mode, i.e. provider will not be available
+                    // 3. after maximum retries
+                    if (CrossProfileUtils.isMediaProviderAvailable(userId, mContext)) {
+                        mProfileOffStatus.put(userId, false);
+                        updateAndPostCrossProfileStatus();
+                        return;
+                    }
 
-                if (CrossProfileUtils.isQuietModeEnabled(userId, mContext)) {
-                    return;
-                }
+                    if (CrossProfileUtils.isQuietModeEnabled(userId, mContext)) {
+                        return;
+                    }
 
-                if (numOfTries <= PROVIDER_AVAILABILITY_MAX_RETRIES) {
-                    Log.d(TAG, "MediaProvider is not available. Retry after "
-                            + PROVIDER_AVAILABILITY_CHECK_DELAY);
-                    waitForProviderToBeAvailable(userId, numOfTries + 1);
-                    return;
-                }
+                    if (numOfTries <= PROVIDER_AVAILABILITY_MAX_RETRIES) {
+                        Log.d(TAG, "MediaProvider is not available. Retry after "
+                                + PROVIDER_AVAILABILITY_CHECK_DELAY);
+                        waitForProviderToBeAvailable(userId, numOfTries + 1);
+                        return;
+                    }
 
-                Log.w(TAG, "Failed waiting for MediaProvider for user:" + userId
-                        + " to be available");
+                    Log.w(TAG, "Failed waiting for MediaProvider for user:" + userId
+                            + " to be available");
+                } catch (Exception e) {
+                    Log.e(TAG, "An error occurred in runnable while waiting for "
+                            + "MediaProvider for user:" + userId + " to be available", e);
+                }
             };
-
-            mHandler.postDelayed(mIsProviderAvailableRunnable, PROVIDER_AVAILABILITY_CHECK_DELAY);
+            mIsProviderAvailableRunnableMap.put(userId, runnable);
+            mHandler.postDelayed(runnable, PROVIDER_AVAILABILITY_CHECK_DELAY);
         }
 
         // Todo(b/319561515): Modify method to remove callbacks only for specified user
-        private void stopWaitingForProviderToBeAvailable() {
-            if (mIsProviderAvailableRunnable == null) {
+        private void stopWaitingForProviderToBeAvailableForUser(UserId userId) {
+            Runnable runnable = mIsProviderAvailableRunnableMap.get(userId);
+            if (runnable == null) {
                 return;
             }
-            mHandler.removeCallbacks(mIsProviderAvailableRunnable);
-            mIsProviderAvailableRunnable = null;
+            mHandler.removeCallbacks(runnable);
+            mIsProviderAvailableRunnableMap.put(userId, null);
         }
 
         @Override

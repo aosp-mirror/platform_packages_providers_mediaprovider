@@ -59,10 +59,10 @@
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"ပံ့ပိုးထားသော ဓာတ်ပုံ (သို့) ဗီဒီယို မရှိပါ"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"အယ်လ်ဘမ်များ မရှိပါ"</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"ပြသမှုကို ရွေးချယ်ထားသည်"</string>
-    <string name="picker_photos" msgid="7415035516411087392">"ဓာတ်ပုံများ"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"ဓာတ်ပုံ"</string>
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
-    <string name="picker_albums" msgid="4822511902115299142">"အယ်လ်ဘမ်များ"</string>
+    <string name="picker_albums" msgid="4822511902115299142">"အယ်လ်ဘမ်"</string>
     <string name="picker_preview" msgid="6257414886055861039">"အစမ်းကြည့်ရှုခြင်း"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"အလုပ်သို့ ပြောင်းပါ"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"ပုဂ္ဂိုလ်ရေးသီးသန့်အဖြစ် ပြောင်းပါ"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"မလုပ်တော့"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"စောင့်ရန်"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"လုံခြုံရေး ကာကွယ်မှု"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"မူရင်းမီဒီယာကုဒ်ပြောင်းသည့် သတိပေးချက်များ"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"မူရင်းမီဒီယာကုဒ်ပြောင်းသည့် အခြေအနေ"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ကုဒ်ပြောင်းခြင်း အကြောင်းကြားချက်များ"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ကုဒ်ပြောင်းနေသည်"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"နောက်မှထပ်စမ်းပါ။ ပြဿနာကို ဖြေရှင်းပြီးသည့်အခါ သင့်ဓာတ်ပုံများကို ရနိုင်မည်။"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"ဓာတ်ပုံအချို့ကို ဖွင့်၍ မရပါ"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"နားလည်ပြီ"</string>

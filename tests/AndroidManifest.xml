@@ -12,6 +12,7 @@
         <package android:name="com.android.providers.media.testapp.withmediaperms" />
         <package android:name="com.android.providers.media.testapp.withuserselectedperms" />
         <package android:name="com.android.providers.media.testapp.legacy" />
+        <package android:name="com.android.providers.media.testapp.legacywithtargetsdk35" />
     </queries>
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -20,6 +21,12 @@
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
+
+    <uses-permission
+        android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE"/>
+    <uses-permission
+        android:name="com.android.providers.media.permission.BIND_OEM_METADATA_SERVICE"/>
+
     <application android:label="MediaProvider Tests">
         <uses-library android:name="android.test.runner" />
 
@@ -66,6 +73,14 @@
         <activity android:name="com.android.providers.media.photopicker.espresso.PhotoPickerAccessibilityDisabledTestActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+            </intent-filter>
+        </activity>
+
+        <activity android:name="com.android.providers.media.photopicker.ui.testapp.TestActivity"
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+            <intent-filter>
+                <action android:name="com.android.providers.media.photopicker.tests.LAUNCH_TEST" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -124,6 +139,36 @@
             android:name="com.android.providers.media.IdleService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+
+        <service android:name="com.android.providers.media.mediacognitionservices.TestMediaCognitionService"
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE">
+            <intent-filter>
+                <action android:name="android.provider.MediaCognitionService" />
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.android.providers.media.oemmetadataservices.TestOemMetadataService"
+            android:exported="true"
+            android:permission="com.android.providers.media.permission.BIND_OEM_METADATA_SERVICE">
+            <intent-filter>
+                <action android:name="android.provider.OemMetadataService"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
+        <service
+            android:name="com.android.providers.media.oemmetadataservices.TestOemMetadataServiceWithoutPermission"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.OemMetadataService"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
     </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

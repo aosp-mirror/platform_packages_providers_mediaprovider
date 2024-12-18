@@ -41,7 +41,7 @@
     <string name="picker_settings" msgid="6443463167344790260">"Cloudmedia-app"</string>
     <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Cloudmedia-app"</string>
     <string name="picker_settings_title" msgid="5647700706470673258">"Cloudmedia-app"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Toegang krijgen tot je cloudmedia als een app of website je vraagt om foto\'s of video\'s te selecteren"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Krijg toegang tot je cloudmedia als een app of website je vraagt om foto\'s of video\'s te selecteren"</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Cloudmedia openen vanuit"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Geen"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Cloudmedia-app kan nu niet worden gewijzigd."</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Annuleren"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Wachten"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Beveiliging"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Meldingen voor native transcodering"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Voortgang van native transcodering"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Transcoderingsmeldingen"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Voortgang van transcodering"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Probeer het later opnieuw. Je foto\'s komen beschikbaar nadat het probleem is opgelost."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Kan bepaalde foto\'s niet laden"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"OK"</string>

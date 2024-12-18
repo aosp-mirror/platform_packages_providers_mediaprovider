@@ -54,7 +54,7 @@
     <string name="select" msgid="2704765470563027689">"Hautatu"</string>
     <string name="selected" msgid="9151797369975828124">"Hautatuta"</string>
     <string name="select_up_to" msgid="6994294169508439957">"{count,plural, =1{Hautatu <xliff:g id="COUNT_0">^1</xliff:g> elementu, gehienez}other{Hautatu <xliff:g id="COUNT_1">^1</xliff:g> elementu, gehienez}}"</string>
-    <string name="recent" msgid="6694613584743207874">"Azkenak"</string>
+    <string name="recent" msgid="6694613584743207874">"Azkenaldikoak"</string>
     <string name="picker_photos_empty_message" msgid="5980619500554575558">"Ez dago argazki edo bideorik"</string>
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Ez dago onartutako argazkirik edo bideorik"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Ez dago albumik"</string>
@@ -99,7 +99,7 @@
     <string name="picker_play_video" msgid="7106025944628666250">"Erreproduzitu"</string>
     <string name="picker_pause_video" msgid="1092718225234326702">"Pausatu"</string>
     <string name="picker_error_snackbar" msgid="5970192792792369203">"Ezin da erreproduzitu bideoa"</string>
-    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Arazoren bat izan da bideoa erreproduzitzean"</string>
+    <string name="picker_error_dialog_title" msgid="4540095603788920965">"Arazoak daude bideoa erreproduzitzeko"</string>
     <string name="picker_error_dialog_body" msgid="2515738446802971453">"Egiaztatu Internetera konektatuta zaudela eta saiatu berriro"</string>
     <string name="picker_error_dialog_positive_action" msgid="749544129082109232">"Saiatu berriro"</string>
     <string name="not_selected" msgid="2244008151669896758">"hautatu gabe"</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Utzi"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Itxaron"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Segurtasun-babesa"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Transkodetze-alerta natiboak"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Transkodetze natiboaren garapena"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Jakinarazpenak transkodetzen"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Transkodetze-prozesuaren garapena"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Saiatu berriro geroago. Arazoa konpondu ondoren egongo dira erabilgarri argazkiak."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Ezin dira kargatu argazki batzuk"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Ados"</string>

@@ -51,8 +51,6 @@ using pdfClient::SelectionBoundary;
 using pdfClient::Status;
 using std::vector;
 
-using pdfClient::BufferWriter;
-using pdfClient::FdWriter;
 using pdfClient::LinuxFileOps;
 
 namespace {
@@ -88,6 +86,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromF
     std::unique_ptr<Document> doc;
 
     auto fileReader = std::make_unique<FileReader>(std::move(fd));
+    size_t pdfSizeInBytes = fileReader->CompleteSize();
     Status status = Document::Load(std::move(fileReader), password,
                                    /* closeFdOnFailure= */ true, &doc);
 
@@ -95,7 +94,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_createFromF
         env->ReleaseStringUTFChars(jpassword, password);
     }
     // doc is owned by the LoadPdfResult in java.
-    return convert::ToJavaLoadPdfResult(env, status, std::move(doc));
+    return convert::ToJavaLoadPdfResult(env, status, std::move(doc), pdfSizeInBytes);
 }
 
 JNIEXPORT void JNICALL Java_android_graphics_pdf_PdfDocumentProxy_destroy(JNIEnv* env,
@@ -152,7 +151,7 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageHeight(
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jbitmap, jint clipLeft,
         jint clipTop, jint clipRight, jint clipBottom, jfloatArray jTransform, jint renderMode,
-        jboolean hideTextAnnots) {
+        jint showAnnotTypes, jboolean renderFormFields) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
 
@@ -182,7 +181,7 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_render(
     // Actually render via Page
     std::shared_ptr<Page> page = doc->GetPage(pageNum);
     page->Render(bitmap, pdfiumTransform, clipLeft, clipTop, clipRight, clipBottom, renderMode,
-                 hideTextAnnots);
+                 showAnnotTypes, renderFormFields);
     if (AndroidBitmap_unlockPixels(env, jbitmap) < 0) {
         LOGE("Couldn't unlock bitmap pixel address");
         return false;
@@ -363,7 +362,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidg
 }
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormWidgetInfos(
-        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jTypeIds) {
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jintArray jTypeIds) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
@@ -427,7 +426,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
 
 JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFieldSelectedIndices(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
-        jobject jSelectedIndices) {
+        jintArray jSelectedIndices) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);

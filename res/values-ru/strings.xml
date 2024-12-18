@@ -38,10 +38,10 @@
     <string name="allow" msgid="8885707816848569619">"Разрешить"</string>
     <string name="deny" msgid="6040983710442068936">"Запретить"</string>
     <string name="picker_browse" msgid="5554477454636075934">"Посмотреть"</string>
-    <string name="picker_settings" msgid="6443463167344790260">"Прил. для облачн. мультимедиа"</string>
-    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение для мультимедиа в облаке"</string>
-    <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для мультимедиа в облаке"</string>
-    <string name="picker_settings_description" msgid="2916686824777214585">"Выбирайте свои фото и видео из облака в приложениях или на сайтах."</string>
+    <string name="picker_settings" msgid="6443463167344790260">"Медиафайлы в облаке"</string>
+    <string name="picker_settings_system_settings_menu_title" msgid="3055084757610063581">"Приложение для медиафайлов в облаке"</string>
+    <string name="picker_settings_title" msgid="5647700706470673258">"Приложение для медиафайлов в облаке"</string>
+    <string name="picker_settings_description" msgid="2916686824777214585">"Когда приложение или сайт предлагает вам добавить фото и видео, вы можете брать их из облака."</string>
     <string name="picker_settings_selection_message" msgid="245453573086488596">"Какое приложение использовать для доступа к медиафайлам в облаке?"</string>
     <string name="picker_settings_no_provider" msgid="2582311853680058223">"Нет"</string>
     <string name="picker_settings_toast_error" msgid="697274445512467469">"Не удалось изменить приложение для мультимедиа."</string>
@@ -59,14 +59,14 @@
     <string name="picker_album_media_empty_message" msgid="7061850698189881671">"Нет поддерживаемых фото или видео"</string>
     <string name="picker_albums_empty_message" msgid="8341079772950966815">"Альбомов нет."</string>
     <string name="picker_view_selected" msgid="2266031384396143883">"Посмотреть выбранное"</string>
-    <string name="picker_photos" msgid="7415035516411087392">"Фотографии"</string>
+    <string name="picker_photos" msgid="7415035516411087392">"Фото"</string>
     <!-- no translation found for picker_videos (2886971435439047097) -->
     <skip />
     <string name="picker_albums" msgid="4822511902115299142">"Альбомы"</string>
-    <string name="picker_preview" msgid="6257414886055861039">"Предварительный просмотр"</string>
+    <string name="picker_preview" msgid="6257414886055861039">"Предпросмотр"</string>
     <string name="picker_work_profile" msgid="2083221066869141576">"Перейти в рабочий профиль"</string>
     <string name="picker_personal_profile" msgid="639484258397758406">"Перейти в личный профиль"</string>
-    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Личный профиль"</string>
+    <string name="picker_personal_profile_label" msgid="6189198163209597344">"Личный"</string>
     <string name="picker_profile_admin_title" msgid="4172022376418293777">"Заблокировано администратором"</string>
     <string name="picker_profile_admin_msg_from_personal" msgid="1941639895084555723">"Доступ к рабочим данным из личного приложения запрещен."</string>
     <string name="picker_profile_admin_msg_from_work" msgid="8048524337462790110">"Доступ к персональным данным из рабочего приложения запрещен."</string>
@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Отмена"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Подождать"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Защита безопасности"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Уведомления нативного перекодирования"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Прогресс нативного перекодирования"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Уведомления о перекодировании"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Прогресс перекодирования"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Повторите попытку позже. Ваши фотографии станут доступны после устранения проблемы."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Не удается загрузить некоторые фотографии"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"ОК"</string>

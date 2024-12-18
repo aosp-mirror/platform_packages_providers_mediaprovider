@@ -16,8 +16,11 @@
 
 package com.android.photopicker.core
 
+import android.content.ContentResolver
 import android.content.Context
 import android.util.Log
+import com.android.photopicker.core.configuration.DeviceConfigProxy
+import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.network.NetworkMonitor
 import dagger.Module
 import dagger.Provides
@@ -61,6 +64,18 @@ class ApplicationModule {
             backgroundScope = CoroutineScope(SupervisorJob() + dispatcher)
             return backgroundScope
         }
+    }
+
+    @Provides
+    @ApplicationOwned
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver {
+        return context.getContentResolver()
+    }
+
+    /** Top level provider for access to DeviceConfig */
+    @Provides
+    fun provideDeviceConfigProxy(): DeviceConfigProxy {
+        return DeviceConfigProxyImpl()
     }
 
     /**

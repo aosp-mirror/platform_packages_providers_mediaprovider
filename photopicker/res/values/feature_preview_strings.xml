@@ -1,0 +1,55 @@
+<!--
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+  <!-- Button label for the "Select" button in the preview screen bottom bar -->
+  <string name="photopicker_select_button_label" translation_description="Button label to select the previewed photo.">Select all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+
+  <!-- Button label for the "Select" button in the selection bar -->
+  <string name="photopicker_select_current_button_label" translation_description="Button label that selects the current item.">Select</string>
+
+  <!-- Button label for the "Deselect" button in the preview screen bottom bar -->
+  <string name="photopicker_deselect_button_label" translation_description="Button label to deselect the previewed photo.">Unselect all <xliff:g id="count" example="42">(%1$s)</xliff:g></string>
+
+  <!-- Button label for the "Preview" button in the selection bar -->
+  <string name="photopicker_preview_button_label" translation_description="Button label to navigate to a screen and preview the selected media.">Preview</string>
+
+  <!-- Dialog title for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_title" translation_description="Dialog title for when a video cannot be played.">Trouble playing video</string>
+
+  <!-- Dialog message for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_message" translation_description="Dialog message for when a video cannot be played due to an internet connection issue.">Check your internet connection and try again</string>
+
+  <!-- Dialog message for the Preview video error dialog. -->
+  <string name="photopicker_preview_dialog_error_retry_button_label" translation_description="Button label to allow a user to attempt to play a video again after an error.">Retry</string>
+
+  <!-- Snackbar message for Preview video errors -->
+  <string name="photopicker_preview_video_error_snackbar" translation_description="Snackbar message shown to the user when the requested video cannot be played.">Cannot play video</string>
+
+  <!-- A11y description for the Play button -->
+  <string name="photopicker_video_play_button_description" translation_description="Accessibility description for a video player Play button">Play</string>
+
+  <!-- A11y description for the Pause button -->
+  <string name="photopicker_video_pause_button_description" translation_description="Accessibility description for a video player Pause button">Pause</string>
+
+  <!-- A11y description for the Mute button -->
+  <string name="photopicker_video_mute_button_description" translation_description="Accessibility description for a video player volume Mute button">Mute Volume</string>
+
+  <!-- A11y description for the Unmute button -->
+  <string name="photopicker_video_unmute_button_description" translation_description="Accessibility description for a video player volume Unmute button">Unmute Volume</string>
+
+</resources>

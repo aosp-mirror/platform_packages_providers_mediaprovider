@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="photopicker_preloading_dialog_title" msgid="5873072481166085925">"Се подготвуваат избраните аудиовизуелни содржини"</string>
+    <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Подготвени: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> од <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
+    <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Некои фотографии не може да се вчитаат"</string>
+    <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Обидете се повторно подоцна. Вашите фотографии ќе бидат достапни откако ќе се реши проблемот."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Отсега се опфатени фотографии од бекап"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Може да изберете фотографии од сметката <xliff:g id="USER_ACCOUNT">%2$s</xliff:g> на <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Изберете сметка на <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"За да опфатите фотографии од <xliff:g id="APP_NAME">%1$s</xliff:g> овде, изберете сметка во апликацијата"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Изберете сметка"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Изберете апликација за аудиовизуелни содржини во облак"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"За да го вклучите бекапот од фотографиите овде, изберете апликација за аудиовизуелни содржини во облак во „Поставки“"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Изберете апликација"</string>
+</resources>

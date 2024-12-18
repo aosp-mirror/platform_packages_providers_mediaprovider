@@ -17,7 +17,14 @@
 package com.android.photopicker.core.features
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.android.photopicker.core.banners.Banner
+import com.android.photopicker.core.banners.BannerDefinitions
+import com.android.photopicker.core.banners.BannerState
+import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.navigation.Route
+import com.android.photopicker.core.user.UserMonitor
+import com.android.photopicker.data.DataService
 
 /**
  * All Features that wish to add composables to the UI must implement this interface.
@@ -26,6 +33,68 @@ import com.android.photopicker.core.navigation.Route
  * calls it's composable hook during runtime.
  */
 interface PhotopickerUiFeature : PhotopickerFeature {
+
+    /**
+     * A set of banners which this feature owns the implementation of.
+     *
+     * Features will only receive banner related callbacks for the banners in its ownedBanners
+     * declaration.
+     */
+    val ownedBanners: Set<BannerDefinitions>
+        get() = emptySet<BannerDefinitions>()
+
+    /**
+     * When computing the current banner state the [BannerManager] will call this method for each
+     * [BannerDefinitions] in a feature's ownedBanners declaration.
+     *
+     * BannerManager will provide some additional inputs and then the feature must decide the
+     * current priority of the [BannerDefinitions] given the current [BannerState] and
+     * [PhotopickerConfiguration] as well as any additional data that needs to be fetched from the
+     * [DataService].
+     *
+     * After all banner implementations have responded, the BannerManager will update the banner
+     * state with the assigned display priority.
+     *
+     * While it's OK to fetch data from [DataService]; expensive or slow calls should try to be
+     * avoided as much as possible, as slow responses may be skipped if it exceeds the configured
+     * timeout for this call.
+     *
+     * A priority MUST be returned, but if the banner should never be shown under the current state,
+     * then [Priority.DISABLED] should be returned.
+     *
+     * @param banner The unique BannerDefinition for the banner being requested.
+     * @param bannerState the persisted BannerState, if it exists.
+     * @param config The current [PhotopickerConfiguration]
+     * @param dataService A dataService that can be used to fetch external data.
+     * @param userMonitor UserMonitor for UserProfile access.
+     */
+    suspend fun getBannerPriority(
+        banner: BannerDefinitions,
+        bannerState: BannerState?,
+        config: PhotopickerConfiguration,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Int {
+        return Priority.DISABLED.priority
+    }
+
+    /**
+     * This is a factory method for providing an implementation of a [BannerDefinitions]. This
+     * factory must always return a [Banner]. The [BannerManager] guarantees that this method will
+     * only be called for any [BannerDefinition]s that are in the [ownedBanners] declaration.
+     *
+     * @param banner The [BannerDefinitions] that should be constructed.
+     * @param dataService A dataService that can be used to fetch external data.
+     * @param userMonitor UserMonitor for UserProfile access.
+     * @return A [Banner] implementation for the requested [BannerDefinitions]
+     */
+    suspend fun buildBanner(
+        banner: BannerDefinitions,
+        dataService: DataService,
+        userMonitor: UserMonitor,
+    ): Banner {
+        throw IllegalArgumentException("Cannot build the requested banner: ${banner.id}")
+    }
 
     /**
      * This is called during feature initialization. The FeatureManager will request a list of UI
@@ -70,7 +139,7 @@ interface PhotopickerUiFeature : PhotopickerFeature {
      * thread. Do not do expensive operations in this method, and follow all best practices for
      * normal @Composable functions. (Such as offloading background work via Coroutines.)
      */
-    @Composable fun compose(location: Location): Unit
+    @Composable fun compose(location: Location, modifier: Modifier, params: LocationParams): Unit
 
     /**
      * This is called when the [NavHost] is composed for all enabled [PhotopickerUiFeature] to

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"फोटो पिकर"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Docs UI"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"पिकर निवड"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"इमेज निवडा"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"आशय मिळवण्याची कृती"</string>
+    <string name="open_document" msgid="8593796561386540777">"दस्तऐवज उघडा"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"डॉक्युमेंट ट्री"</string>
+    <string name="create_document" msgid="6073553682715924527">"दस्‍तऐवज तयार करा"</string>
+    <string name="create_file" msgid="2532895579648102462">"फाइल तयार करा"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"निवडीचा क्रम दाखवा"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"फक्त इमेज दाखवा"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"फक्त व्हिडिओ दाखवा"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"Mime प्रकार एंटर करा"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"लाँच टॅब निवडा"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"एकाहून अधिक निवड करण्यास अनुमती द्या"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"कस्टम MIME प्रकाराला अनुमती द्या"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"मीडिया आयटमची कमाल संख्या"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"एकाहून मोठी असलेली वैध संख्या एंटर करा"</string>
+    <string name="pick_media" msgid="5269447618857205416">"मीडिया निवडा"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"त्यावर प्रक्रिया सुरू आहे"</string>
+    <string name="show_metadata" msgid="132548935678717609">"निवडलेल्या मीडियासाठी मेटा डेटा दाखवणे"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"आधीपासून निवड करणे सुरू करा"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"परवानग्यांची विनंती करा"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"पुढील गोष्टींसाठी परवानग्यांची विनंती करा:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"फक्त Android U आणि त्यावरील आवृत्ती असलेल्या डिव्हाइसवर पिकर निवड वैशिष्‍ट्य उपलब्ध आहे. \n\nहे वैशिष्ट्य वापरण्यासाठी कृपया तुमचे डिव्हाइस अपग्रेड करा."</string>
+    <string name="images" msgid="4986074635830919568">"इमेज"</string>
+    <string name="videos" msgid="4638519191891522146">"व्हिडिओ"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"इमेज आणि व्हिडिओ दोन्ही"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"फक्त अलीकडील निवड दाखवणे"</string>
+</resources>

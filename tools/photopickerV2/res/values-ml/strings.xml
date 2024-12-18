@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="7491502461683057858">"PhotoPickerToolV2"</string>
+    <string name="tab_photopicker" msgid="539892295679626089">"ഫോട്ടോ പിക്കർ"</string>
+    <string name="tab_docsui" msgid="3160259263092034827">"Docs UI"</string>
+    <string name="tab_pickerchoice" msgid="4712185277128670984">"പിക്കർ ചോയ്‌സ്"</string>
+    <string name="title_photopicker" msgid="3154038243490840415">"PhotoPicker V2"</string>
+    <string name="pick_images" msgid="5326258471545526911">"ചിത്രങ്ങൾ തിരഞ്ഞെടുക്കുക"</string>
+    <string name="action_get_content" msgid="4319210475508093083">"ആക്ഷൻ ഉള്ളടക്കം നേടുക"</string>
+    <string name="open_document" msgid="8593796561386540777">"ഡോക്യുമെന്റ് തുറക്കുക"</string>
+    <string name="open_document_tree" msgid="8979404185180480396">"ഡോക്യുമെന്റ് ട്രീ തുറക്കുക"</string>
+    <string name="create_document" msgid="6073553682715924527">"ഡോക്യുമെന്റ് സൃഷ്ടിക്കുക"</string>
+    <string name="create_file" msgid="2532895579648102462">"ഫയൽ സൃഷ്ടിക്കുക"</string>
+    <string name="display_order_of_selection" msgid="4554686912260313887">"തിരഞ്ഞെടുത്തവ പ്രദർശിപ്പിക്കുന്ന ക്രമം"</string>
+    <string name="show_images_only" msgid="6365019348435132030">"ചിത്രങ്ങൾ മാത്രം കാണിക്കുക"</string>
+    <string name="show_videos_only" msgid="7302756380142587762">"വീഡിയോകൾ മാത്രം കാണിക്കുക"</string>
+    <string name="enter_mime_type" msgid="6599304148898478294">"MIME തരം നൽകുക"</string>
+    <string name="select_launch_tab" msgid="1219436289162294907">"ലോഞ്ച് ടാബ് തിരഞ്ഞെടുക്കുക"</string>
+    <string name="allow_multiple_selection" msgid="3485101220559262266">"ഒന്നിലധികം സെലക്ഷൻ അനുവദിക്കുക"</string>
+    <string name="allow_custom_mime_type" msgid="770032039896650761">"ഇഷ്‍ടാനുസൃത MIME തരം അനുവദിക്കുക"</string>
+    <string name="max_number_of_media_items" msgid="2736386927806685966">"മീഡിയ ഇനങ്ങളുടെ പരമാവധി എണ്ണം"</string>
+    <string name="enter_valid_number" msgid="650407643348891234">"ഒന്നിനേക്കാൾ വലുതും സാധുതയുള്ളതുമായ അക്കം നൽകുക"</string>
+    <string name="pick_media" msgid="5269447618857205416">"മീഡിയ തിരഞ്ഞെടുക്കുക"</string>
+    <string name="working_on_it" msgid="1373762827081252341">"ശ്രമിച്ചുകൊണ്ടിരിക്കുകയാണ്"</string>
+    <string name="show_metadata" msgid="132548935678717609">"തിരഞ്ഞെടുത്ത മീഡിയയ്ക്കുള്ള മെറ്റാ ഡാറ്റ കാണിക്കുക"</string>
+    <string name="enable_preselection" msgid="2266294242249606873">"മുൻകൂട്ടി തിരഞ്ഞെടുക്കൽ പ്രവർത്തനക്ഷമമാക്കുക"</string>
+    <string name="request_permissions" msgid="8271143604678594856">"അനുമതികൾ അഭ്യർത്ഥിക്കുക"</string>
+    <string name="request_permissions_for" msgid="7533381244454184499">"ഇനിപ്പറയുന്നതിനുള്ള അനുമതികൾ അഭ്യർത്ഥിക്കുക:"</string>
+    <string name="picker_choice_unsupported" msgid="9174726575940583917">"Android U അല്ലെങ്കിൽ അതിന് ശേഷമുള്ള പതിപ്പ് ഉപയോഗിക്കുന്ന ഉപകരണങ്ങൾക്ക് മാത്രമേ പിക്കർ ചോയ്‌സ് ഫീച്ചർ ലഭ്യമാകൂ. \n\nഈ ഫീച്ചർ ഉപയോഗിക്കാൻ നിങ്ങളുടെ ഉപകരണം അപ്‌ഗ്രേഡ് ചെയ്യുക."</string>
+    <string name="images" msgid="4986074635830919568">"ചിത്രങ്ങൾ"</string>
+    <string name="videos" msgid="4638519191891522146">"വീഡിയോകൾ"</string>
+    <string name="both_images_and_videos" msgid="8279890829701511638">"ചിത്രങ്ങളും വീഡിയോകളും"</string>
+    <string name="show_latest_selection_only" msgid="5905076602365360876">"ഏറ്റവും പുതിയ തിരഞ്ഞെടുപ്പ് മാത്രം കാണിക്കുക"</string>
+</resources>

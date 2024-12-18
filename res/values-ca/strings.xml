@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Cancel·la"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Espera"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Protecció de seguretat"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Alertes de transcodificació nativa"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Progrés de la transcodificació nativa"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Notificacions de transcodificació"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Progrés de transcodificació"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Torna-ho a provar més tard. Les teves fotos estaran disponibles un cop el problema s\'hagi resolt."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"No es poden carregar algunes fotos"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Entesos"</string>

@@ -34,44 +34,66 @@ import java.time.temporal.ChronoUnit
  *
  * It generates and returns its own fake data.
  */
-class FakeInMemoryAlbumPagingSource(val DATA_SIZE: Int = 10_000) :
-    PagingSource<MediaPageKey, Group.Album>() {
-    private val currentDateTime = LocalDateTime.now()
+class FakeInMemoryAlbumPagingSource
+private constructor(
+    val DATA_SIZE: Int = DEFAULT_SIZE,
+    private val DATA_LIST: List<Group.Album>? = null
+) : PagingSource<MediaPageKey, Group.Album>() {
 
     companion object {
         const val TEST_ALBUM_NAME_PREFIX = "AlbumNumber_"
+        const val DEFAULT_SIZE = 10_000
     }
 
-    // Generate an internal dataset of size [DATA_SIZE], and hold it in a list in memory.
+    constructor(dataSize: Int = 10_000) : this(dataSize, null)
+
+    constructor(dataList: List<Group.Album>) : this(DEFAULT_SIZE, dataList)
+
+    private val currentDateTime = LocalDateTime.now()
+
+    // If a [DATA_LIST] was provided, use it, otherwise generate a list of the requested size.
     val DATA =
-        buildList<Group.Album> {
-            for (i in 1..DATA_SIZE) {
-                add(
-                    Group.Album(
-                        id = "$i",
-                        pickerId = i.toLong(),
-                        authority = "a",
-                        displayName = TEST_ALBUM_NAME_PREFIX + "$i",
-                        coverUri =
-                            Uri.EMPTY.buildUpon()
-                                .apply {
-                                    scheme("content")
-                                    authority("a")
-                                    path("$i")
-                                }
-                                .build(),
-                        dateTakenMillisLong =
-                            currentDateTime
-                                .minus(i.toLong(), ChronoUnit.DAYS)
-                                .toEpochSecond(ZoneOffset.UTC) * 1000,
-                        coverMediaSource = MediaSource.LOCAL,
-                    ),
-                )
+        DATA_LIST
+            ?: buildList<Group.Album> {
+                for (i in 1..DATA_SIZE) {
+                    add(
+                        Group.Album(
+                            id = "$i",
+                            pickerId = i.toLong(),
+                            authority = "a",
+                            displayName = TEST_ALBUM_NAME_PREFIX + "$i",
+                            coverUri =
+                                Uri.EMPTY.buildUpon()
+                                    .apply {
+                                        scheme("content")
+                                        authority("a")
+                                        path("$i")
+                                    }
+                                    .build(),
+                            dateTakenMillisLong =
+                                currentDateTime
+                                    .minus(i.toLong(), ChronoUnit.DAYS)
+                                    .toEpochSecond(ZoneOffset.UTC) * 1000,
+                            coverMediaSource = MediaSource.LOCAL,
+                        ),
+                    )
+                }
             }
+
+    override suspend fun load(
+        params: LoadParams<MediaPageKey>
+    ): LoadResult<MediaPageKey, Group.Album> {
+
+        // Handle a data size of 0 for the first page, and return an empty page with no further
+        // keys.
+        if (DATA.size == 0 && params.key == null) {
+            return LoadResult.Page(
+                data = emptyList(),
+                nextKey = null,
+                prevKey = null,
+            )
         }
 
-    override suspend fun load(params: LoadParams<MediaPageKey>): LoadResult<
-            MediaPageKey, Group.Album> {
         // This is inefficient, but a reliable way to locate the record being requested by the
         // [MediaPageKey] without having to keep track of offsets.
         val startIndex =
@@ -82,7 +104,7 @@ class FakeInMemoryAlbumPagingSource(val DATA_SIZE: Int = 10_000) :
             }
 
         // The list is zero-based, and loadSize isn't; so, offset by 1
-        val endIndex = (startIndex + params.loadSize) - 1
+        val endIndex = Math.min((startIndex + params.loadSize) - 1, DATA.lastIndex)
 
         // Item at start position doesn't exist, so this isn't a valid page.
         if (DATA.getOrNull(startIndex) == null) {

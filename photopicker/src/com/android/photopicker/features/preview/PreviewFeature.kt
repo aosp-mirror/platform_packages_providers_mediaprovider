@@ -23,6 +23,7 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDeepLink
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.RegisteredEventClass
 import com.android.photopicker.core.features.FeatureManager
@@ -34,7 +35,6 @@ import com.android.photopicker.core.features.PhotopickerUiFeature
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.Route
-import com.android.photopicker.core.navigation.utils.SetDialogDestinationToEdgeToEdge
 import com.android.photopicker.data.model.Media
 
 /**
@@ -47,7 +47,8 @@ class PreviewFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPreviewFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(config: PhotopickerConfiguration) =
+            config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
 
         override fun build(featureManager: FeatureManager) = PreviewFeature()
 
@@ -61,12 +62,13 @@ class PreviewFeature : PhotopickerUiFeature {
 
     /** Events produced by the Preview page */
     override val eventsProduced =
-        setOf<RegisteredEventClass>(Event.MediaSelectionConfirmed::class.java)
+        setOf<RegisteredEventClass>(
+            Event.LogPhotopickerUIEvent::class.java,
+            Event.LogPhotopickerPreviewInfo::class.java,
+        )
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(
-            Pair(Location.SELECTION_BAR_SECONDARY_ACTION, Priority.HIGH.priority),
-        )
+        return listOf(Pair(Location.SELECTION_BAR_SECONDARY_ACTION, Priority.HIGH.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {
@@ -81,12 +83,8 @@ class PreviewFeature : PhotopickerUiFeature {
                     DialogProperties(
                         dismissOnBackPress = true,
                         dismissOnClickOutside = true,
-                        // decorFitsSystemWindows = true doesn't currently allow dialogs to
-                        // go full edge-to-edge. Until b/281081905 is fixed, use a workaround that
-                        // involves setting usePlatformDefaultWidth = true and copying the
-                        // attributes in the parent window.
-                        usePlatformDefaultWidth = true, // is true to get the hack to work.
-                        decorFitsSystemWindows = false,
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = true,
                     )
 
                 override val enterTransition = null
@@ -95,12 +93,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val popExitTransition = null
 
                 @Composable
-                override fun composable(
-                    navBackStackEntry: NavBackStackEntry?,
-                ) {
-                    // Until b/281081905 is fixed, use a workaround to enable edge-to-edge in the
-                    // dialog
-                    SetDialogDestinationToEdgeToEdge()
+                override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     PreviewSelection()
                 }
             },
@@ -114,12 +107,8 @@ class PreviewFeature : PhotopickerUiFeature {
                     DialogProperties(
                         dismissOnBackPress = true,
                         dismissOnClickOutside = true,
-                        // decorFitsSystemWindows = true doesn't currently allow dialogs to
-                        // go full edge-to-edge. Until b/281081905 is fixed, use a workaround that
-                        // involves setting usePlatformDefaultWidth = true and copying the
-                        // attributes in the parent window.
-                        usePlatformDefaultWidth = true, // is true to get the hack to work.
-                        decorFitsSystemWindows = false,
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = true,
                     )
 
                 override val enterTransition = null
@@ -128,9 +117,7 @@ class PreviewFeature : PhotopickerUiFeature {
                 override val popExitTransition = null
 
                 @Composable
-                override fun composable(
-                    navBackStackEntry: NavBackStackEntry?,
-                ) {
+                override fun composable(navBackStackEntry: NavBackStackEntry?) {
                     val flow =
                         checkNotNull(
                             navBackStackEntry
@@ -139,21 +126,14 @@ class PreviewFeature : PhotopickerUiFeature {
                         ) {
                             "Unable to get a savedStateHandle for preview media"
                         }
-                    // Until b/281081905 is fixed, use a workaround to enable edge-to-edge in the
-                    // dialog
-                    SetDialogDestinationToEdgeToEdge()
-                    PreviewMedia(flow)
+                    PreviewSelection(previewItemFlow = flow)
                 }
             },
         )
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.SELECTION_BAR_SECONDARY_ACTION -> PreviewSelectionButton(modifier)
             else -> {}

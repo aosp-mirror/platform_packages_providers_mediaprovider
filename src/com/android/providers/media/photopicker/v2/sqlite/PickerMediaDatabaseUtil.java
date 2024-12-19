@@ -133,12 +133,16 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
@@ -226,14 +230,18 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
 
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
                         + query.getAlbumId());
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
 
 
@@ -383,14 +391,18 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
 
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
                         + albumId);
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
@@ -492,8 +504,10 @@ public class PickerMediaDatabaseUtil {
 
             return null;
         } finally {
-            database.setTransactionSuccessful();
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+                database.endTransaction();
+            }
         }
     }
 

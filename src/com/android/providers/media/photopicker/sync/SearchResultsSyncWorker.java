@@ -150,9 +150,8 @@ public class SearchResultsSyncWorker extends Worker {
         final PickerSearchProviderClient searchClient =
                 PickerSearchProviderClient.create(mContext, authority);
 
-        boolean resetResumeKey =
+        final boolean resetResumeKey =
                 maybeResetResumeKey(searchRequestId, searchRequest, authority, syncSource);
-
         if (resetResumeKey) {
             searchRequest = requireNonNull(SearchRequestDatabaseUtil
                     .getSearchRequestDetails(getDatabase(), searchRequestId));
@@ -237,12 +236,16 @@ public class SearchResultsSyncWorker extends Worker {
                 throwIfWorkerStopped();
                 throwIfCloudProviderHasChanged(authority);
 
-                getDatabase().setTransactionSuccessful();
+                if (getDatabase().inTransaction()) {
+                    getDatabase().setTransactionSuccessful();
+                }
                 return true;
             } catch (RuntimeException e) {
                 Log.e(TAG, "Could not clear sync resume info", e);
             } finally {
-                getDatabase().endTransaction();
+                if (getDatabase().inTransaction()) {
+                    getDatabase().endTransaction();
+                }
             }
         }
 

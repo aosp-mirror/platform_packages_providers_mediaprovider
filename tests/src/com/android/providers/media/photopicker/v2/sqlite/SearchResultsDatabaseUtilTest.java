@@ -936,6 +936,60 @@ public class SearchResultsDatabaseUtilTest {
         }
     }
 
+    @Test
+    public void testClearAllSearchResults() {
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        final Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, null, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        final Cursor cursor2 = getLocalMediaCursor(LOCAL_ID_1, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+
+        final int searchRequestId1 = 1;
+        SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, LOCAL_PROVIDER, List.of(
+                        getContentValues(LOCAL_ID_1, null, searchRequestId1)
+                ), /* cancellationSignal */ null);
+        SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, CLOUD_PROVIDER, List.of(
+                        getContentValues(null, CLOUD_ID_1, searchRequestId1)
+                ), /* cancellationSignal */ null);
+
+        final Bundle extras = new Bundle();
+        extras.putInt("page_size", 100);
+        extras.putStringArrayList("providers",
+                new ArrayList<>(List.of(LOCAL_PROVIDER, CLOUD_PROVIDER)));
+        extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
+
+        // Query items for searchRequestId
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(2);
+        }
+
+        // Clear all search results
+        SearchResultsDatabaseUtil.clearAllSearchResults(mDatabase);
+
+        // Query items for searchRequestId
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(0);
+        }
+    }
+
     private ContentValues getContentValues(String localId, String cloudId, int searchRequestId) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(

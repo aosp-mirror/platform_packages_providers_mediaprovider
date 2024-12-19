@@ -58,6 +58,7 @@ import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.util.MimeUtils;
 
@@ -224,7 +225,10 @@ public class PickerDbFacade {
 
     /**
      * Sets the cloud provider to be returned after querying the picker db
-     * If null, cloud media will be excluded from all queries.
+     *
+     * Set cloud provider to null in case the CMP or collection id has changed and the cloud media
+     * results previously synced in the database should not be displayed on the UI.
+     *
      * This should not be used in picker sync paths because we should not wait on a lock
      * indefinitely during the picker sync process.
      * Use {@link this#setCloudProviderWithTimeout} instead.
@@ -235,14 +239,17 @@ public class PickerDbFacade {
             final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
             if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
-                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+                onCloudProviderUpdate(mCloudProvider);
             }
         }
     }
 
     /**
      * Sets the cloud provider to be returned after querying the picker db
-     * If null, cloud media will be excluded from all queries.
+     *
+     * Set cloud provider to null in case the CMP or collection id has changed and the cloud media
+     * results previously synced in the database should not be displayed on the UI.
+     *
      * This should be used in picker sync paths because we should not wait on a lock
      * indefinitely during the picker sync process
      */
@@ -252,8 +259,21 @@ public class PickerDbFacade {
             final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
             if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
-                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+                onCloudProviderUpdate(mCloudProvider);
             }
+        }
+    }
+
+    /**
+     * Notifies dependant systems that the cloud provider has changed.
+     */
+    public void onCloudProviderUpdate(String mCloudProvider) {
+        PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+        // If cloud provider set is null, it means that the cloud queries have been disabled because
+        // a full sync is required (this is typically triggered by collection id change
+        // or CMP change). Notify PickerDataLayerV2 to handle this change.
+        if (mCloudProvider == null) {
+            PickerDataLayerV2.handleCloudMediaReset(mContext);
         }
     }
 

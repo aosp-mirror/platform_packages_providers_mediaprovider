@@ -87,6 +87,7 @@ public class EmbeddedPhotoPickerProviderFactory {
             implements EmbeddedPhotoPickerProvider {
 
         private static final String TAG = "EmbeddedProviderFactory";
+        private static final int OPEN_SESSION_ATTEMPTS_LIMIT = 5;
 
         private static final boolean DEBUG = false;
 
@@ -203,6 +204,7 @@ public class EmbeddedPhotoPickerProviderFactory {
             if (mConnection.isBindRequested()) {
                 // Failure in binding service is terminal error, so add request to queue only if
                 // we were able to successfully send binding request to system.
+                sessionRequest.mTotalOpenSessionAttempts += 1;
                 mPendingOpenSessionRequests.add(sessionRequest);
             }
         }
@@ -223,8 +225,13 @@ public class EmbeddedPhotoPickerProviderFactory {
                 }
                 mConnection.disposeLocked();
                 mEmbeddedPhotopicker = null;
-                // todo(b/359469032): Add retry counter
-                bindServiceAndSaveRequestSerialized(sessionRequest);
+                if (sessionRequest.mTotalOpenSessionAttempts < OPEN_SESSION_ATTEMPTS_LIMIT) {
+                    bindServiceAndSaveRequestSerialized(sessionRequest);
+                } else {
+                    reportSessionErrorLocked(sessionRequest.mClientCallbackWrapper,
+                            /*cause*/ new RuntimeException("Unable to get valid remote delegate."
+                            + "Please request a new session"));
+                }
             } catch (RemoteException e) {
                 reportSessionErrorLocked(sessionRequest.mClientCallbackWrapper,
                         new RemoteException("Remote delegate is Invalid! "
@@ -487,6 +494,7 @@ public class EmbeddedPhotoPickerProviderFactory {
             public final int mHeight;
             public final EmbeddedPhotoPickerClientWrapper mClientCallbackWrapper;
             public final EmbeddedPhotoPickerFeatureInfo mFeatureInfo;
+            public int mTotalOpenSessionAttempts = 0;
 
             private OpenSessionRequest(IBinder hostToken, int displayId, int width,
                     int height, EmbeddedPhotoPickerClientWrapper clientCallbackWrapper,

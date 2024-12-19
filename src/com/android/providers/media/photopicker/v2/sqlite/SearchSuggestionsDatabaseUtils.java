@@ -47,8 +47,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class SearchSuggestionsDatabaseUtils {
     private static final String TAG = "SearchSuggestionsDBUtil";
-    private static final int TTL_HISTORY_SUGGESTIONS_IN_DAYS = 60;
-    private static final int TTL_CACHED_SUGGESTIONS_IN_DAYS = 30;
+    static final int TTL_HISTORY_SUGGESTIONS_IN_DAYS = 60;
+    static final int TTL_CACHED_SUGGESTIONS_IN_DAYS = 30;
 
     /**
      * Save Search Request as search history to serve as search suggestions later.
@@ -343,6 +343,71 @@ public class SearchSuggestionsDatabaseUtils {
                 database.endTransaction();
             }
         }
+    }
+
+    /**
+     * Clear all expired cached search suggestions from the database.
+     *
+     * @param database SQLiteDatabase object that holds DB connections.
+     * @return the number of items deleted from the database.
+     */
+    public static int clearExpiredCachedSearchSuggestions(@NonNull SQLiteDatabase database) {
+        requireNonNull(database);
+
+        final Long creationThreshold = System.currentTimeMillis()
+                - TimeUnit.DAYS.toMillis(TTL_CACHED_SUGGESTIONS_IN_DAYS);
+
+        final String whereClause = String.format(
+                Locale.ROOT,
+                " %s < ? ",
+                PickerSQLConstants.SearchSuggestionsTableColumns.CREATION_TIME_MS);
+
+        final String[] whereArgs = List.of(creationThreshold.toString()).toArray(new String[0]);
+
+        int suggestionsDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_SUGGESTION.name(),
+                        whereClause,
+                        whereArgs);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search suggestions table",
+                suggestionsDeletionCount));
+
+        return suggestionsDeletionCount;
+    }
+
+    /**
+     * Clear all expired history search suggestions from the database.
+     *
+     * @param database SQLiteDatabase object that holds DB connections.
+     * @return the number of items deleted from the database.
+     */
+    public static int clearExpiredHistorySearchSuggestions(@NonNull SQLiteDatabase database) {
+        requireNonNull(database);
+
+        final Long creationThreshold = System.currentTimeMillis()
+                - TimeUnit.DAYS.toMillis(TTL_HISTORY_SUGGESTIONS_IN_DAYS);
+
+        final String whereClause = String.format(
+                Locale.ROOT,
+                " %s < ? ",
+                PickerSQLConstants.SearchHistoryTableColumns.CREATION_TIME_MS);
+
+        final String[] whereArgs = List.of(creationThreshold.toString()).toArray(new String[0]);
+
+        int historyDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_HISTORY.name(),
+                        whereClause,
+                        whereArgs);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search history table",
+                historyDeletionCount));
+        return historyDeletionCount;
     }
 
     /**

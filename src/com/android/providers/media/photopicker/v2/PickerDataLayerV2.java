@@ -64,6 +64,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.work.WorkManager;
 
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.sync.PickerSearchProviderClient;
@@ -1417,6 +1418,27 @@ public class PickerDataLayerV2 {
     }
 
     /**
+     * Handle cloud media queries being disabled. This method is called from the critical path of
+     * updating the PickerDBFacade cloud provider. This method should not take a long time to
+     * execute and it should ensure that unexpected exceptions/failures don't cause any disruption.
+     * @param context The application context.
+     */
+    public static void handleCloudMediaReset(Context context) {
+        try {
+            if (Flags.enablePhotopickerSearch()) {
+                Log.d(TAG, "Cloud media reset detected. "
+                        + "Clear search results cache that has synced with a cloud media provider");
+
+                final PickerSyncManager syncManager =
+                        new PickerSyncManager(getWorkManager(context), context);
+                syncManager.resetCloudSearchResults();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Unexpected error occurred in handleCloudMediaReset", e);
+        }
+    }
+
+    /**
      * Schedules MediaSets sync for both local and cloud provider if the corresponding
      * providers implement Categories.
      * @param appContext  The application context
@@ -1465,8 +1487,14 @@ public class PickerDataLayerV2 {
         final Set<String> providers = new HashSet<>(
                 Objects.requireNonNull(extras.getStringArrayList("providers")));
 
-        scheduleSyncWithLocalProvider(searchRequest, searchRequestId, syncManager, providers);
-        scheduleSyncWithCloudProvider(searchRequest, searchRequestId, syncManager, providers);
+        final boolean localSyncWasScheduled = scheduleSearchSyncWithLocalProvider(
+                searchRequest, searchRequestId, syncManager, providers);
+        final boolean cloudSyncWasScheduled = scheduleSearchSyncWithCloudProvider(
+                searchRequest, searchRequestId, syncManager, providers);
+
+        if (localSyncWasScheduled || cloudSyncWasScheduled) {
+            syncManager.delayedResetSearchCache();
+        }
     }
 
     /**
@@ -1478,8 +1506,9 @@ public class PickerDataLayerV2 {
      * @param syncManager An instance of PickerSyncManager that helps us schedule work manager
      *                    sync requests.
      * @param providers Set of valid providers we can sync search results from.
+     * @return True if the sync was schedules, else returns false.
      */
-    private static void scheduleSyncWithLocalProvider(
+    private static boolean scheduleSearchSyncWithLocalProvider(
             @NonNull SearchRequest searchRequest,
             int searchRequestId,
             @NonNull PickerSyncManager syncManager,
@@ -1490,7 +1519,7 @@ public class PickerDataLayerV2 {
             Log.d(TAG, "Search is not enabled for the current local authority. "
                     + "Not syncing search results with local provider for request id "
                     + searchRequestId);
-            return;
+            return false;
         }
 
         if (searchRequest instanceof SearchSuggestionRequest) {
@@ -1501,16 +1530,17 @@ public class PickerDataLayerV2 {
                     Log.d(TAG, "Album search suggestion does not belong to local provider. "
                             + "Not syncing search results with local provider for request id "
                             + searchRequestId);
-                    return;
+                    return false;
                 }
             }
         }
 
-        Log.d(TAG, "Scheduling search results syc with local provider: " + searchRequestId);
+        Log.d(TAG, "Scheduling search results sync with local provider: " + searchRequestId);
         syncManager.syncSearchResultsForProvider(
                 searchRequestId,
                 SYNC_LOCAL_ONLY,
                 syncController.getLocalProvider());
+        return true;
     }
 
     /**
@@ -1522,8 +1552,9 @@ public class PickerDataLayerV2 {
      * @param syncManager An instance of PickerSyncManager that helps us schedule work manager
      *                    sync requests.
      * @param providers Set of valid providers we can sync search results from.
+     * @return True if the sync was schedules, else returns false.
      */
-    private static void scheduleSyncWithCloudProvider(
+    private static boolean scheduleSearchSyncWithCloudProvider(
             @NonNull SearchRequest searchRequest,
             int searchRequestId,
             @NonNull PickerSyncManager syncManager,
@@ -1536,7 +1567,7 @@ public class PickerDataLayerV2 {
             Log.d(TAG, "Search is not enabled for the current cloud authority. "
                     + "Not syncing search results with cloud provider for request id "
                     + searchRequestId);
-            return;
+            return false;
         }
 
         if (searchRequest instanceof SearchSuggestionRequest) {
@@ -1547,16 +1578,17 @@ public class PickerDataLayerV2 {
                     Log.d(TAG, "Album search suggestion does not belong to cloud provider. "
                             + "Not syncing search results with cloud provider for request id "
                             + searchRequestId);
-                    return;
+                    return false;
                 }
             }
         }
 
-        Log.d(TAG, "Scheduling search results syc with cloud provider: " + searchRequestId);
+        Log.d(TAG, "Scheduling search results sync with cloud provider: " + searchRequestId);
         syncManager.syncSearchResultsForProvider(
                 searchRequestId,
                 SYNC_CLOUD_ONLY,
                 cloudAuthority);
+        return true;
     }
 
     /**

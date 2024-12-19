@@ -62,8 +62,6 @@ public final class StampAnnotation extends PdfAnnotation {
      *         annotation.
      */
     public void addObject(@NonNull PdfPageObject pageObject) {
-        Preconditions.checkArgument(pageObject.getObjectId() == -1,
-                "This page object is already added to the page");
         Preconditions.checkArgument(pageObject.isAddedInAnnotation(),
                 "This page object is already added to an annotation");
         mObjects.add(pageObject);
@@ -89,16 +87,7 @@ public final class StampAnnotation extends PdfAnnotation {
      *         id
      */
     public void removeObject(int id) {
-        throwIfIdNotPresentInAnnotation(id);
+        // TODO: Add precondition for valid Id
         mObjects.remove(id);
-    }
-
-    private boolean throwIfIdNotPresentInAnnotation(int id) {
-        for (PdfPageObject pageObject : mObjects) {
-            if (pageObject.getObjectId() == id) {
-                return true;
-            }
-        }
-        return false;
     }
 }

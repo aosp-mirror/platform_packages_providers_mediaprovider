@@ -222,9 +222,14 @@ public class PreviewMediaQuery extends MediaQuery {
                     qb.insert(database, cv);
                 }
             }
-            database.setTransactionSuccessful();
+
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+            }
         } finally {
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.endTransaction();
+            }
         }
     }
 }

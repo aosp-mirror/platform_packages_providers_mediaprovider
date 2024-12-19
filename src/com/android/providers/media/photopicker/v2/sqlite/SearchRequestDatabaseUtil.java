@@ -32,6 +32,7 @@ import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -309,6 +310,64 @@ public class SearchRequestDatabaseUtil {
     }
 
     /**
+     * @param database The database you need to run the query on.
+     * @param isLocal True if the search results synced with the local provider need to be reset.
+     *                Else if the search results synced with cloud provider need to be reset,
+     *                this is false.
+     * @return a list of search request IDs of the search requests that are either fully or
+     * partially synced with the provider.
+     */
+    public static List<Integer> getSyncedRequestIds(
+            @NonNull SQLiteDatabase database,
+            boolean isLocal) {
+        SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database);
+        queryBuilder.setTables(PickerSQLConstants.Table.SEARCH_REQUEST.name())
+                .setProjection(List.of(
+                        PickerSQLConstants.SearchRequestTableColumns
+                                .SEARCH_REQUEST_ID.getColumnName()
+                ));
+
+        if (isLocal) {
+            queryBuilder.appendWhereStandalone(
+                    String.format(
+                            Locale.ROOT,
+                            "%s IS NOT NULL OR %s IS NOT NULL",
+                            PickerSQLConstants.SearchRequestTableColumns
+                                    .LOCAL_AUTHORITY.getColumnName(),
+                            PickerSQLConstants.SearchRequestTableColumns
+                                    .LOCAL_SYNC_RESUME_KEY.getColumnName()
+                    )
+            );
+        } else {
+            queryBuilder.appendWhereStandalone(
+                    String.format(
+                            Locale.ROOT,
+                            "%s IS NOT NULL OR %s IS NOT NULL",
+                            PickerSQLConstants.SearchRequestTableColumns
+                                    .CLOUD_AUTHORITY.getColumnName(),
+                            PickerSQLConstants.SearchRequestTableColumns
+                                    .CLOUD_SYNC_RESUME_KEY.getColumnName()
+                    )
+            );
+        }
+
+        final List<Integer> searchRequestIds = new ArrayList<>();
+        try (Cursor cursor = database.rawQuery(queryBuilder.buildQuery(), null)) {
+            if (cursor.moveToFirst()) {
+                do {
+                    searchRequestIds.add(cursor.getInt(
+                            cursor.getColumnIndexOrThrow(
+                                    PickerSQLConstants.SearchRequestTableColumns
+                                            .SEARCH_REQUEST_ID.getColumnName()
+                            )
+                    ));
+                } while (cursor.moveToNext());
+            }
+        }
+        return searchRequestIds;
+    }
+
+    /**
      * Clear sync resume info from the database.
      *
      * @param database SQLiteDatabase object that contains the database connection.
@@ -368,6 +427,29 @@ public class SearchRequestDatabaseUtil {
                 /* whereArgs */ null);
         Log.d(TAG, "Updated number of search results: " + updatedSearchRequestsCount);
         return updatedSearchRequestsCount;
+    }
+
+    /**
+     * Clears all search requests from the database.
+     *
+     * @param database SQLiteDatabase object that contains the database connection.
+     * @return The number of items that were updated.
+     */
+    public static int clearAllSearchRequests(@NonNull SQLiteDatabase database) {
+        requireNonNull(database);
+
+        int searchRequestsDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_REQUEST.name(),
+                        /* whereClause */ null,
+                        /* whereArgs */ null);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search request table",
+                searchRequestsDeletionCount));
+
+        return searchRequestsDeletionCount;
     }
 
 

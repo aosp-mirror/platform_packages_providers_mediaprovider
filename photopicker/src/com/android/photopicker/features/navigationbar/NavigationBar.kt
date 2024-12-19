@@ -307,7 +307,6 @@ private fun NavigationBarForGroup(modifier: Modifier) {
                 ?.getStateFlow<Group?>(CategoryGridFeature.GROUP_KEY, null)
         val group = flow?.value
         when (group) {
-            null -> {}
             is Group.Album -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // back button
@@ -335,6 +334,7 @@ private fun NavigationBarForGroup(modifier: Modifier) {
                     )
                 }
             }
+            else -> {}
         }
         val featureManager = LocalFeatureManager.current
         val overFlowMenuEnabled =

@@ -2444,8 +2444,8 @@ public class PickerDataLayerV2Test {
         assertThat(result).isNotNull();
         assertThat(result.getInt("search_request_id")).isEqualTo(1);
 
-        // Assert that both local and cloud syncs were scheduled
-        verify(mMockWorkManager, times(2))
+        // Assert that local sync, cloud sync and cache clearing work was scheduled
+        verify(mMockWorkManager, times(3))
                 .enqueueUniqueWork(anyString(), any(ExistingWorkPolicy.class),
                         any(OneTimeWorkRequest.class));
 

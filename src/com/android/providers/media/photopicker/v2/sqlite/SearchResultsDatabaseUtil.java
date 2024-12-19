@@ -269,14 +269,19 @@ public class SearchResultsDatabaseUtil {
             );
             addPrevPageKey(extraArgs, prevPageKeyCursor);
 
-            database.setTransactionSuccessful();
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+            }
+
             pageData.setExtras(extraArgs);
             Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
             return pageData;
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
         } finally {
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.endTransaction();
+            }
         }
     }
 
@@ -431,5 +436,28 @@ public class SearchResultsDatabaseUtil {
                 /* whereArgs */ null);
         Log.d(TAG, "Deleted number of search results: " + deletedSearchResultsCount);
         return deletedSearchResultsCount;
+    }
+
+    /**
+     * Clears all cached search results from the database.
+     *
+     * @param database SQLiteDatabase object that contains the database connection.
+     * @return The number of items that were updated.
+     */
+    public static int clearAllSearchResults(@NonNull SQLiteDatabase database) {
+        requireNonNull(database);
+
+        int searchResultsDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_RESULT_MEDIA.name(),
+                        /* whereClause */ null,
+                        /* whereArgs */ null);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search results table",
+                searchResultsDeletionCount));
+
+        return searchResultsDeletionCount;
     }
 }

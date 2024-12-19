@@ -21,8 +21,12 @@ import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_HIST
 import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_FACE;
 import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_LOCATION;
 
+import static com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils.TTL_CACHED_SUGGESTIONS_IN_DAYS;
+import static com.android.providers.media.photopicker.v2.sqlite.SearchSuggestionsDatabaseUtils.TTL_HISTORY_SUGGESTIONS_IN_DAYS;
+
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -35,6 +39,7 @@ import androidx.annotation.Nullable;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
+import com.android.providers.media.photopicker.v2.model.SearchRequest;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestion;
 import com.android.providers.media.photopicker.v2.model.SearchSuggestionRequest;
 import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
@@ -46,6 +51,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class SearchSuggestionsDatabaseUtilTest {
     private SQLiteDatabase mDatabase;
@@ -671,6 +677,77 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isNotNull();
         assertWithMessage("Unexpected number of search suggestions.")
                 .that(resultSearchSuggestions2.size())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void testClearExpiredCachedSuggestions() {
+        final String authority = "com.random.authority";
+        SearchSuggestion searchSuggestion1 = new SearchSuggestion(
+                /* searchText */ null,
+                "media-set-id1",
+                authority,
+                SEARCH_SUGGESTION_ALBUM,
+                /* coverMediaId */ null
+        );
+        SearchSuggestion searchSuggestion2 = new SearchSuggestion(
+                /* searchText */ "test",
+                "media-set-id2",
+                authority,
+                SEARCH_SUGGESTION_ALBUM,
+                /* coverMediaId */ null
+        );
+
+        SearchSuggestionsDatabaseUtils.cacheSearchSuggestions(
+                mDatabase, authority, List.of(searchSuggestion1, searchSuggestion2));
+
+        final ContentValues contentValues = new ContentValues();
+        contentValues.put(
+                PickerSQLConstants.SearchSuggestionsTableColumns.CREATION_TIME_MS.getColumnName(),
+                System.currentTimeMillis()
+                        - TimeUnit.DAYS.toMillis(TTL_CACHED_SUGGESTIONS_IN_DAYS + 1));
+        mDatabase.update(
+                PickerSQLConstants.Table.SEARCH_SUGGESTION.name(),
+                contentValues,
+                PickerSQLConstants.SearchSuggestionsTableColumns.MEDIA_SET_ID.getColumnName()
+                        + " = 'media-set-id2'", null);
+
+        final int rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearExpiredCachedSearchSuggestions(mDatabase);
+        assertWithMessage("Unexpected number of expired cached suggestions deleted.")
+                .that(rowsDeletedCount)
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void testClearExpiredHistorySuggestions() {
+        SearchRequest searchRequest1 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "summer"
+        );
+        SearchRequest searchRequest2 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "coffee"
+        );
+
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest1);
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
+
+        final ContentValues contentValues = new ContentValues();
+        contentValues.put(
+                PickerSQLConstants.SearchHistoryTableColumns.CREATION_TIME_MS.getColumnName(),
+                System.currentTimeMillis()
+                        - TimeUnit.DAYS.toMillis(TTL_HISTORY_SUGGESTIONS_IN_DAYS + 1));
+        mDatabase.update(
+                PickerSQLConstants.Table.SEARCH_HISTORY.name(),
+                contentValues,
+                PickerSQLConstants.SearchHistoryTableColumns.SEARCH_TEXT.getColumnName()
+                        + " = 'summer'", null);
+
+        final int rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearExpiredHistorySearchSuggestions(mDatabase);
+        assertWithMessage("Unexpected number of expired history suggestions deleted.")
+                .that(rowsDeletedCount)
                 .isEqualTo(1);
     }
 

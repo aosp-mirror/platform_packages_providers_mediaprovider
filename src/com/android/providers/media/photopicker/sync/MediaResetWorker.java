@@ -46,7 +46,8 @@ import com.android.providers.media.photopicker.sync.PickerSyncManager.SyncResetT
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
 
 /**
- * This is a {@link Worker} class responsible for handling table reset operations in the picker
+ * This is a {@link Worker} class responsible for handling table reset operations for media and
+ * album_media tables in the picker
  * database.
  */
 public class MediaResetWorker extends Worker {

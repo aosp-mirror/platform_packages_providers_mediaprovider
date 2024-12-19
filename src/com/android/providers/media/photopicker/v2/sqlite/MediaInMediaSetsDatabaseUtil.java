@@ -179,14 +179,18 @@ public class MediaInMediaSetsDatabaseUtil {
             );
             addPrevPageKey(extraArgs, prevPageKeyCursor);
 
-            database.setTransactionSuccessful();
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+            }
             pageData.setExtras(extraArgs);
             Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
             return pageData;
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media from the media set", e);
         } finally {
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.endTransaction();
+            }
         }
     }
 

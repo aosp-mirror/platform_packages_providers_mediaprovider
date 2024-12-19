@@ -16,7 +16,11 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXPIRED_SUGGESTIONS_RESET;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXTRA_MIME_TYPES;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_RESULTS_FULL_CACHE_RESET;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_RESULTS_PARTIAL_CACHE_RESET;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_RESULTS_RESET_DELAY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SHOULD_SYNC_GRANTS;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
@@ -24,6 +28,7 @@ import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYN
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_CATEGORY_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
@@ -32,9 +37,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -70,6 +75,7 @@ import org.mockito.Mock;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class PickerSyncManagerTest {
     private PickerSyncManager mPickerSyncManager;
@@ -161,7 +167,6 @@ public class PickerSyncManagerTest {
 
         mConfigStore.disableCloudMediaFeature();
 
-
         setupPickerSyncManager(true);
 
         // Ensure no syncs have been scheduled yet.
@@ -175,8 +180,8 @@ public class PickerSyncManagerTest {
 
         waitForIdle();
 
-        // Ensure the syncs are now scheduled.
-        verify(mMockWorkManager, times(2))
+        // Ensure the media and album reset syncs are now scheduled.
+        verify(mMockWorkManager, atLeast(2))
                 .enqueueUniquePeriodicWork(anyString(),
                         any(),
                         mPeriodicWorkRequestArgumentCaptor.capture());
@@ -212,13 +217,15 @@ public class PickerSyncManagerTest {
         mConfigStore.disableCloudMediaFeature();
         waitForIdle();
 
-        verify(mMockWorkManager, times(2)).cancelUniqueWork(anyString());
+        // There should be at least 2 invocations, one for cancelling proactive media syncs,
+        // the other for albums reset. There might be more invocations depending on whether the
+        // search feature flag is turned on or not.
+        verify(mMockWorkManager, atLeast(2)).cancelUniqueWork(anyString());
     }
 
     @Test
     public void testAdhocProactiveSyncLocalOnly() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaProactively(/* localOnly */ true);
         verify(mMockWorkManager, times(1))
@@ -243,8 +250,6 @@ public class PickerSyncManagerTest {
     @Test
     public void testAdhocProactiveSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-
-        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaProactively(/* localOnly */ false);
         verify(mMockWorkManager, times(1))
@@ -271,7 +276,6 @@ public class PickerSyncManagerTest {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
         mConfigStore.setIsModernPickerEnabled(true);
-        reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
                 /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null),
@@ -304,7 +308,6 @@ public class PickerSyncManagerTest {
         mConfigStore.setIsModernPickerEnabled(true);
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
-        reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
                 /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null),
@@ -333,8 +336,6 @@ public class PickerSyncManagerTest {
     public void testImmediateCloudSync() {
         mConfigStore.setIsModernPickerEnabled(true);
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
-
-        reset(mMockWorkManager);
 
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ false,
@@ -449,39 +450,10 @@ public class PickerSyncManagerTest {
                 .isEqualTo(SYNC_CLOUD_ONLY);
     }
 
-    private void setupPickerSyncManager(boolean schedulePeriodicSyncs) {
-        doReturn(mMockOperation).when(mMockWorkManager)
-                .enqueueUniquePeriodicWork(anyString(),
-                        any(ExistingPeriodicWorkPolicy.class),
-                        any(PeriodicWorkRequest.class));
-        doReturn(mMockOperation).when(mMockWorkManager)
-                .enqueueUniqueWork(anyString(),
-                        any(ExistingWorkPolicy.class),
-                        any(OneTimeWorkRequest.class));
-        doReturn(mMockWorkContinuation)
-                .when(mMockWorkManager)
-                .beginUniqueWork(
-                        anyString(), any(ExistingWorkPolicy.class), any(List.class));
-        // Handle .then chaining
-        doReturn(mMockWorkContinuation)
-                .when(mMockWorkContinuation)
-                .then(any(List.class));
-        doReturn(mMockOperation).when(mMockWorkContinuation).enqueue();
-        doReturn(mMockFuture).when(mMockOperation).getResult();
-
-        mPickerSyncManager = new PickerSyncManager(mMockWorkManager, mMockContext);
-        if (schedulePeriodicSyncs) {
-            mPickerSyncManager.schedulePeriodicSync(
-                    mConfigStore, /* periodicSyncInitialDelay */ 0L);
-        }
-        waitForIdle();
-    }
-
     @Test
     public void testSearchResultsLocalSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
-        reset(mMockWorkManager);
         mPickerSyncManager.syncSearchResultsForProvider(
                 /* searchRequestId */ 10,
                 SYNC_LOCAL_ONLY,
@@ -513,7 +485,6 @@ public class PickerSyncManagerTest {
     public void testSearchResultsCloudSync() {
         setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
 
-        reset(mMockWorkManager);
         mPickerSyncManager.syncSearchResultsForProvider(
                 /* searchRequestId */ 10,
                 SYNC_CLOUD_ONLY,
@@ -544,8 +515,6 @@ public class PickerSyncManagerTest {
     @Test
     public void testMediaSetsSyncLocalProvider() {
         setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
-
-        reset(mMockWorkManager);
 
         String categoryId = "id";
         String[] mimeTypes = new String[] { "image/*" };
@@ -591,8 +560,6 @@ public class PickerSyncManagerTest {
     public void testMediaSetsSyncCloudProvider() {
         setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
 
-        reset(mMockWorkManager);
-
         String categoryId = "id";
         String[] mimeTypes = new String[] { "image/*" };
         Bundle extras = new Bundle();
@@ -637,8 +604,6 @@ public class PickerSyncManagerTest {
     public void testMediaInMediaSetSyncLocalProvider() {
         setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
 
-        reset(mMockWorkManager);
-
         String mediaSetPickerId = "id";
         Bundle extras = new Bundle();
         extras.putString("authority", SearchProvider.AUTHORITY);
@@ -679,8 +644,6 @@ public class PickerSyncManagerTest {
     public void testMediaInMediaSetSyncCloudProvider() {
         setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
 
-        reset(mMockWorkManager);
-
         String mediaSetPickerId = "id";
         Bundle extras = new Bundle();
         extras.putString("authority", SearchProvider.AUTHORITY);
@@ -715,5 +678,110 @@ public class PickerSyncManagerTest {
         assertThat(workRequest.getWorkSpec().input
                 .getString(SYNC_WORKER_INPUT_AUTHORITY))
                 .isEqualTo(SearchProvider.AUTHORITY);
+    }
+
+    @Test
+    public void testResetCloudSearchResults() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        mPickerSyncManager.resetCloudSearchResults();
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(),
+                        any(),
+                        mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResetWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_RESET_TYPE, -1))
+                .isEqualTo(SEARCH_RESULTS_PARTIAL_CACHE_RESET);
+    }
+
+    @Test
+    public void testDelayedResetSearchCache() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        mPickerSyncManager.delayedResetSearchCache();
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(),
+                        any(),
+                        mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final OneTimeWorkRequest workRequest = mOneTimeWorkRequestArgumentCaptor.getValue();
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResetWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isFalse();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_RESET_TYPE, -1))
+                .isEqualTo(SEARCH_RESULTS_FULL_CACHE_RESET);
+        assertThat(workRequest.getWorkSpec().initialDelay)
+                .isEqualTo(TimeUnit.MINUTES.toMillis(SEARCH_RESULTS_RESET_DELAY));
+        assertThat(workRequest.getWorkSpec().constraints.requiresDeviceIdle())
+                .isTrue();
+
+    }
+
+    @Test
+    public void testScheduleClearExpiredSuggestions() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        mPickerSyncManager.schedulePeriodicSearchSuggestionsReset();
+        verify(mMockWorkManager, times(1))
+                .enqueueUniquePeriodicWork(anyString(),
+                        any(),
+                        mPeriodicWorkRequestArgumentCaptor.capture());
+
+        final PeriodicWorkRequest workRequest =
+                mPeriodicWorkRequestArgumentCaptor.getAllValues().get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResetWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isFalse();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isTrue();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_AND_CLOUD);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_RESET_TYPE, -1))
+                .isEqualTo(EXPIRED_SUGGESTIONS_RESET);
+        assertThat(workRequest.getWorkSpec().constraints.requiresCharging()).isTrue();
+        assertThat(workRequest.getWorkSpec().constraints.requiresDeviceIdle()).isTrue();
+    }
+
+    private void setupPickerSyncManager(boolean schedulePeriodicSyncs) {
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniquePeriodicWork(anyString(),
+                        any(ExistingPeriodicWorkPolicy.class),
+                        any(PeriodicWorkRequest.class));
+        doReturn(mMockOperation).when(mMockWorkManager)
+                .enqueueUniqueWork(anyString(),
+                        any(ExistingWorkPolicy.class),
+                        any(OneTimeWorkRequest.class));
+        doReturn(mMockWorkContinuation)
+                .when(mMockWorkManager)
+                .beginUniqueWork(
+                        anyString(), any(ExistingWorkPolicy.class), any(List.class));
+        // Handle .then chaining
+        doReturn(mMockWorkContinuation)
+                .when(mMockWorkContinuation)
+                .then(any(List.class));
+        doReturn(mMockOperation).when(mMockWorkContinuation).enqueue();
+        doReturn(mMockFuture).when(mMockOperation).getResult();
+
+        mPickerSyncManager = new PickerSyncManager(mMockWorkManager, mMockContext);
+        if (schedulePeriodicSyncs) {
+            mPickerSyncManager.schedulePeriodicSync(
+                    mConfigStore, /* periodicSyncInitialDelay */ 0L);
+        }
+        waitForIdle();
     }
 }

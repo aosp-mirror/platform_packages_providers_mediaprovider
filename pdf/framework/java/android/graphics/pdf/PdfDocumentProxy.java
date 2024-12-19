@@ -31,6 +31,7 @@ import android.graphics.pdf.models.jni.PageSelection;
 import android.graphics.pdf.models.jni.SelectionBoundary;
 import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
+import android.util.Pair;
 
 import java.util.List;
 
@@ -280,7 +281,7 @@ public class PdfDocumentProxy {
     /**
      * Removes an annotation from the given page
      *
-     * @param pageNum         - page number of the page from which annotation is to be removed
+     * @param pageNum      - page number of the page from which annotation is to be removed
      * @param annotationId - id of the annotation to be removed
      */
     public native PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
@@ -289,8 +290,8 @@ public class PdfDocumentProxy {
     /**
      * Updates an annotation on the given page
      *
-     * @param pageNum     page number of the page on which annotation is to be updated
-     * @param annotation  annotation to be updated
+     * @param pageNum    page number of the page on which annotation is to be updated
+     * @param annotation annotation to be updated
      */
     public native boolean updatePageAnnotation(@IntRange(from = 0) int pageNum,
             PdfAnnotation annotation);
@@ -304,11 +305,13 @@ public class PdfDocumentProxy {
      * other page object types.
      *
      * @param pageNum - page number of the page whose annotations list is returned
-     * @return list of {@link PdfPageObject} present on the page
+     * @return A {@link List} of {@link Pair} objects, where each pair contains:
+     * - An {@link Integer} representing the object ID.
+     * - A {@link PdfPageObject} representing the page object.
      * @throws IllegalStateException if the document/page is
      *                               closed before invocation
      */
-    public native List<PdfPageObject> getPageObjects(int pageNum);
+    public native List<Pair<Integer, PdfPageObject>> getPageObjects(int pageNum);
 
     /**
      * Adds the given page object to the page.
@@ -325,13 +328,14 @@ public class PdfDocumentProxy {
     /**
      * Update the given {@link PdfPageObject} to the page.
      *
+     * @param objectId   The unique identifier of the page object to update.
      * @param pageObject the {@code PdfPageObject} object to
      *                   add
      * @return true if page object is updated, false otherwise
      * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or null.
      * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before invocation.
      */
-    public native boolean updatePageObject(int pageNum,
+    public native boolean updatePageObject(int pageNum, int objectId,
             @NonNull PdfPageObject pageObject);
 
     /**

@@ -146,10 +146,6 @@ class LoadMediaTest {
             override fun getDataSource(): DataSource {
                 return DataSource.LOCAL
             }
-
-            override fun getTimestamp(): Long {
-                return 100L
-            }
         }
 
     @Before

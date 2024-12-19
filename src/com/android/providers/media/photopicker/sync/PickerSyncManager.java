@@ -48,6 +48,7 @@ import androidx.work.Worker;
 
 import com.android.modules.utils.BackgroundThread;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
 import com.android.providers.media.photopicker.v2.model.MediaInMediaSetSyncRequestParams;
 import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
@@ -90,6 +91,20 @@ public class PickerSyncManager {
     @Retention(RetentionPolicy.SOURCE)
     public @interface SyncResetType {}
 
+    /** Clears all search requests and search results from the database. */
+    public static final int SEARCH_RESULTS_FULL_CACHE_RESET = 1;
+    /** Clears search results of the local or cloud provider from the database. */
+    public static final int SEARCH_RESULTS_PARTIAL_CACHE_RESET = 2;
+    /** Clears all expired history and cached suggestions from the database. */
+    public static final int EXPIRED_SUGGESTIONS_RESET = 3;
+
+    @IntDef(value = {
+            SEARCH_RESULTS_FULL_CACHE_RESET,
+            SEARCH_RESULTS_PARTIAL_CACHE_RESET,
+            EXPIRED_SUGGESTIONS_RESET})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface SearchCacheResetType {}
+
     static final String SYNC_WORKER_INPUT_AUTHORITY = "INPUT_AUTHORITY";
     static final String SYNC_WORKER_INPUT_SYNC_SOURCE = "INPUT_SYNC_TYPE";
     static final String SYNC_WORKER_INPUT_RESET_TYPE = "INPUT_RESET_TYPE";
@@ -102,6 +117,9 @@ public class PickerSyncManager {
     static final long PROACTIVE_SYNC_DELAY_MS = 1500;
     private static final int SYNC_MEDIA_PERIODIC_WORK_INTERVAL = 4; // Time unit is hours.
     private static final int RESET_ALBUM_MEDIA_PERIODIC_WORK_INTERVAL = 12; // Time unit is hours.
+    // Time unit is days.
+    private static final int RESET_SEARCH_SUGGESTIONS_PERIODIC_WORK_INTERVAL = 7;
+    static final int SEARCH_RESULTS_RESET_DELAY = 30; // Time unit is minutes.
 
     public static final String PERIODIC_SYNC_WORK_NAME;
     private static final String PROACTIVE_LOCAL_SYNC_WORK_NAME;
@@ -115,6 +133,8 @@ public class PickerSyncManager {
     public static final String IMMEDIATE_CLOUD_MEDIA_SETS_SYNC_WORK_NAME;
     public static final String IMMEDIATE_LOCAL_MEDIA_IN_MEDIA_SET_SYNC_WORK_NAME;
     public static final String IMMEDIATE_CLOUD_MEDIA_IN_MEDIA_SET_SYNC_WORK_NAME;
+    public static final String SEARCH_CACHE_RESET_WORK_NAME;
+    public static final String PERIODIC_SEARCH_SUGGESTIONS_RESET_WORK_NAME;
     public static final String PERIODIC_ALBUM_RESET_WORK_NAME;
     private static final String ENDLESS_WORK_NAME;
     public static final String IMMEDIATE_GRANTS_SYNC_WORK_NAME;
@@ -142,6 +162,8 @@ public class PickerSyncManager {
         IMMEDIATE_CLOUD_SYNC_WORK_NAME = syncImmediatePrefix + syncCloudSuffix;
         IMMEDIATE_ALBUM_SYNC_WORK_NAME = "SYNC_ALBUM_MEDIA_IMMEDIATE";
         IMMEDIATE_LOCAL_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncLocalSuffix;
+        // Use this work name to schedule cloud search results sync and cloud search results
+        // reset both.
         IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME = syncSearchResultsImmediatePrefix + syncCloudSuffix;
         IMMEDIATE_LOCAL_MEDIA_SETS_SYNC_WORK_NAME = syncMediaSetsImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_MEDIA_SETS_SYNC_WORK_NAME = syncMediaSetsImmediatePrefix + syncCloudSuffix;
@@ -149,6 +171,8 @@ public class PickerSyncManager {
                 syncMediaInMediaSetImmediatePrefix + syncLocalSuffix;
         IMMEDIATE_CLOUD_MEDIA_IN_MEDIA_SET_SYNC_WORK_NAME =
                 syncMediaInMediaSetImmediatePrefix + syncCloudSuffix;
+        SEARCH_CACHE_RESET_WORK_NAME = "SEARCH_CACHE_FULL_RESET";
+        PERIODIC_SEARCH_SUGGESTIONS_RESET_WORK_NAME = "RESET_SEARCH_SUGGESTIONS";
         ENDLESS_WORK_NAME = "ENDLESS_WORK";
         SHOULD_SYNC_GRANTS = "SHOULD_SYNC_GRANTS";
         EXTRA_MIME_TYPES = "mime_types";
@@ -207,17 +231,27 @@ public class PickerSyncManager {
      * the cloud photopicker experiment is currently enabled.
      */
     private void setUpPeriodicWork(@NonNull ConfigStore configStore) {
-        requireNonNull(configStore);
+        try {
+            requireNonNull(configStore);
 
-        if (configStore.isCloudMediaInPhotoPickerEnabled()) {
-            PickerSyncNotificationHelper.createNotificationChannel(mContext);
+            if (configStore.isCloudMediaInPhotoPickerEnabled()) {
+                PickerSyncNotificationHelper.createNotificationChannel(mContext);
 
-            schedulePeriodicSyncs();
-            schedulePeriodicAlbumReset();
-        } else {
-            // Disable any scheduled ongoing work if the feature is disabled.
-            mWorkManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME);
-            mWorkManager.cancelUniqueWork(PERIODIC_ALBUM_RESET_WORK_NAME);
+                schedulePeriodicSyncs();
+                schedulePeriodicAlbumReset();
+            } else {
+                // Disable any scheduled ongoing work if the feature is disabled.
+                mWorkManager.cancelUniqueWork(PERIODIC_SYNC_WORK_NAME);
+                mWorkManager.cancelUniqueWork(PERIODIC_ALBUM_RESET_WORK_NAME);
+            }
+
+            if (Flags.enablePhotopickerSearch()) {
+                schedulePeriodicSearchSuggestionsReset();
+            } else {
+                mWorkManager.cancelUniqueWork(PERIODIC_SEARCH_SUGGESTIONS_RESET_WORK_NAME);
+            }
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Could not schedule periodic work", e);
         }
     }
 
@@ -497,6 +531,85 @@ public class PickerSyncManager {
     }
 
     /**
+     * Schedules work to reset all cloud search results synced in the database. This is used when
+     * the cloud media provider changes or the collection id of the cloud media provider changes
+     * indicating that a full reset of cloud media is required.
+     */
+    public void resetCloudSearchResults() {
+        final Data inputData =
+                new Data(Map.of(
+                        SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
+                        SYNC_WORKER_INPUT_RESET_TYPE, SEARCH_RESULTS_PARTIAL_CACHE_RESET));
+
+        final OneTimeWorkRequest syncRequest =
+                buildOneTimeWorkerRequest(SearchResetWorker.class, inputData);
+
+        try {
+            Log.d(TAG, "Scheduling cloud search results reset request.");
+
+            // Enqueue cloud search reset request with the ExistingWorkPolicy as REPLACE so
+            // that any currently running synced will be cancelled. Don't wait to check the
+            // results of the enqueue operation because this runs the critical path.
+            mWorkManager.enqueueUniqueWork(
+                    IMMEDIATE_CLOUD_SEARCH_SYNC_WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    syncRequest);
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue search results cloud reset request", e);
+        }
+    }
+
+    /**
+     * Schedules work to reset all search results cache after some delay from the search database.
+     */
+    public void delayedResetSearchCache() {
+        final Data inputData =
+                new Data(Map.of(
+                        SYNC_WORKER_INPUT_RESET_TYPE, SEARCH_RESULTS_FULL_CACHE_RESET,
+                        SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+        final OneTimeWorkRequest syncRequest =
+                getDelayedSearchResetRequest(inputData);
+
+        // Enqueue full cache reset request. Ensure that this runs when the device is idle to
+        // prevent search requests from clearing when the user is using PhotoPicker search feature.
+        try {
+            Log.d(TAG, "Scheduling search results full cache reset request.");
+            mWorkManager.enqueueUniqueWork(
+                    SEARCH_CACHE_RESET_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    syncRequest);
+        } catch (Exception e) {
+            Log.e(TAG, "Could not enqueue search results full cache reset request", e);
+        }
+    }
+
+    /**
+     * Schedules periodic syncs that clears expired search history and cached suggestions from the
+     * Picker database when the search feature is turned on.
+     */
+    public void schedulePeriodicSearchSuggestionsReset() {
+        final Data inputData =
+                new Data(Map.of(
+                        SYNC_WORKER_INPUT_RESET_TYPE, EXPIRED_SUGGESTIONS_RESET,
+                        SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD));
+        final PeriodicWorkRequest syncRequest =
+                getPeriodicSearchSuggestionsResetRequest(inputData);
+
+        try {
+            Operation enqueueOperation =
+                    mWorkManager.enqueueUniquePeriodicWork(
+                            PERIODIC_SEARCH_SUGGESTIONS_RESET_WORK_NAME,
+                            ExistingPeriodicWorkPolicy.KEEP,
+                            syncRequest);
+
+            // Check that the request has been successfully enqueued.
+            enqueueOperation.getResult().get();
+        } catch (InterruptedException | ExecutionException e) {
+            Log.e(TAG, "Could not enqueue periodic search suggestions request", e);
+        }
+    }
+
+    /**
      * Creates OneTimeWork request for syncing media sets with the given provider
      * @param requestParams The MediaSetsSyncRequestsParams object containing all input parameters
      *                      for creating a sync request
@@ -605,6 +718,41 @@ public class PickerSyncManager {
                 .setInputData(inputData)
                 .setConstraints(getRequiresChargingAndIdleConstraints())
                 .addTag(SYNC_WORKER_TAG_IS_PERIODIC)
+                .build();
+    }
+
+    /**
+     * @param inputData Input data required by the Worker.
+     * @return A PeriodicWorkRequest for periodically clearing expired search suggestions from
+     * the database.
+     */
+    @NotNull
+    private PeriodicWorkRequest getPeriodicSearchSuggestionsResetRequest(@NotNull Data inputData) {
+
+        return new PeriodicWorkRequest.Builder(
+                SearchResetWorker.class,
+                RESET_SEARCH_SUGGESTIONS_PERIODIC_WORK_INTERVAL,
+                TimeUnit.DAYS)
+                .setInputData(inputData)
+                .setConstraints(getRequiresChargingAndIdleConstraints())
+                .build();
+    }
+
+    /**
+     * @param inputData Input data required by the Worker.
+     * @return A OneTimeWorkRequest for clearing all search results cache after an initial delay.
+     */
+    @NotNull
+    private OneTimeWorkRequest getDelayedSearchResetRequest(@NotNull Data inputData) {
+        Constraints constraints =  new Constraints.Builder()
+                .setRequiresDeviceIdle(true)
+                .build();
+
+        return new OneTimeWorkRequest
+                .Builder(SearchResetWorker.class)
+                .setConstraints(constraints)
+                .setInitialDelay(SEARCH_RESULTS_RESET_DELAY, TimeUnit.MINUTES)
+                .setInputData(inputData)
                 .build();
     }
 

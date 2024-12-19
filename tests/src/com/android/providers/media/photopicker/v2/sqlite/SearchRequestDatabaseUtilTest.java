@@ -465,4 +465,108 @@ public class SearchRequestDatabaseUtilTest {
                 .that(updatedSearchRequest2.getCloudAuthority())
                 .isNull();
     }
+
+    @Test
+    public void testGetSyncedRequestIds() {
+        // Insert a search request in the database.
+        final SearchTextRequest searchRequest1 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "mountains"
+        );
+        SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest1);
+
+        // Get search request ID
+        final int searchRequestID1 =
+                SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest1);
+        assertWithMessage("Search request ID should exist in DB")
+                .that(searchRequestID1)
+                .isAtLeast(0);
+
+        // Update local resume key and save
+        final String localResumeKey = "LOCAL_RESUME_KEY";
+        final String localAuthority = "LOCAL_AUTHORITY";
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID1, localResumeKey,
+                localAuthority, /* isLocal */ true);
+
+        // Insert another search request in the database.
+        final SearchTextRequest searchRequest2 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "volcano"
+        );
+        SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest2);
+
+        // Get search request ID
+        final int searchRequestID2 =
+                SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest2);
+        assertWithMessage("Search request ID should exist in DB")
+                .that(searchRequestID2)
+                .isAtLeast(0);
+
+        // Update cloud resume key and save
+        final String cloudResumeKey = "CLOUD_RESUME_KEY";
+        final String cloudAuthority = "CLOUD_AUTHORITY";
+        SearchRequestDatabaseUtil.updateResumeKey(mDatabase, searchRequestID2, cloudResumeKey,
+                cloudAuthority, /* isLocal */ false);
+
+        final List<Integer> localSyncedSearchRequests =
+                SearchRequestDatabaseUtil.getSyncedRequestIds(
+                        mDatabase,
+                        /* isLocal */ true
+                );
+        assertWithMessage("Unexpected count of search requests received.")
+                .that(localSyncedSearchRequests.size())
+                .isEqualTo(1);
+        assertWithMessage("Unexpected search request id.")
+                .that(localSyncedSearchRequests.get(0))
+                .isEqualTo(searchRequestID1);
+
+        final List<Integer> cloudSyncedSearchRequests =
+                SearchRequestDatabaseUtil.getSyncedRequestIds(
+                        mDatabase,
+                        /* isLocal */ false
+                );
+        assertWithMessage("Unexpected count of search requests received.")
+                .that(cloudSyncedSearchRequests.size())
+                .isEqualTo(1);
+        assertWithMessage("Unexpected search request id.")
+                .that(cloudSyncedSearchRequests.get(0))
+                .isEqualTo(searchRequestID2);
+    }
+
+    @Test
+    public void testClearAllSearchRequests() {
+        // Insert a search request in the database.
+        final SearchTextRequest searchRequest1 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "mountains"
+        );
+        SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest1);
+
+        // Insert another search request in the database.
+        final SearchTextRequest searchRequest2 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "volcano"
+        );
+        SearchRequestDatabaseUtil.saveSearchRequest(mDatabase, searchRequest2);
+
+        assertWithMessage("Search request ID should exist in DB")
+                .that(SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest1))
+                .isAtLeast(0);
+        assertWithMessage("Search request ID should exist in DB")
+                .that(SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest2))
+                .isAtLeast(0);
+
+        final int deletedSearchRequestsCount =
+                SearchRequestDatabaseUtil.clearAllSearchRequests(mDatabase);
+
+        assertWithMessage("Incorrect search requests were deleted.")
+                .that(deletedSearchRequestsCount)
+                .isEqualTo(2);
+        assertWithMessage("Search request ID should not exist in DB")
+                .that(SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest1))
+                .isEqualTo(-1);
+        assertWithMessage("Search request ID should not exist in DB")
+                .that(SearchRequestDatabaseUtil.getSearchRequestID(mDatabase, searchRequest2))
+                .isEqualTo(-1);
+    }
 }

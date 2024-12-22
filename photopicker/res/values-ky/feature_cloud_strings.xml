@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"<xliff:g id="NUMBER_TOTAL">%2$d</xliff:g> ичинен <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> даяр"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Айрым сүрөттөр жүктөлбөй жатат"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Кийинчерээк кайталап көрүңүз. Сүрөттөрүңүз маселе чечилгенден кийин жеткиликтүү болот."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Эми камдык көчүрмөсү сакталган сүрөттөр камтылат"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"<xliff:g id="APP_NAME">%1$s</xliff:g> аккаунтундагы (<xliff:g id="USER_ACCOUNT">%2$s</xliff:g>) сүрөттөрдү тандай аласыз"</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"<xliff:g id="APP_NAME">%1$s</xliff:g> аккаунтун тандоо"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Бул жерде <xliff:g id="APP_NAME">%1$s</xliff:g> сүрөттөрүн камтуу үчүн колдонмодон аккаунтту тандаңыз"</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Аккаунт тандоо"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Булуттагы мультимедиа колдонмосун тандоо"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Бул жерде камдык көчүрмөсү сакталган сүрөттөрдү камтуу үчүн Параметрлерден булуттагы мультимедиа колдонмосун тандаңыз"</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Колдонмо тандоо"</string>
 </resources>

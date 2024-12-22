@@ -18,8 +18,10 @@ package com.android.photopicker.features.overflowmenu
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.UserManager
+import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -33,14 +35,16 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
+import com.android.photopicker.core.ApplicationModule
+import com.android.photopicker.core.ApplicationOwned
 import com.android.photopicker.core.Background
 import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testActionPickImagesConfiguration
-import com.android.photopicker.core.configuration.testGetContentConfiguration
-import com.android.photopicker.core.configuration.testUserSelectImagesForAppConfiguration
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.RegisteredEventClass
@@ -48,11 +52,13 @@ import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken.OVERFLOW_MENU
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
 import com.google.common.truth.Truth.assertWithMessage
+import dagger.Lazy
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.android.testing.BindValue
@@ -76,6 +82,7 @@ import org.mockito.MockitoAnnotations
 
 @UninstallModules(
     ActivityModule::class,
+    ApplicationModule::class,
     ConcurrencyModule::class,
     EmbeddedServiceModule::class,
 )
@@ -87,6 +94,7 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
+    @get:Rule(order = 2) val glideRule = GlideTestRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -94,17 +102,19 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
     val testDispatcher = StandardTestDispatcher()
 
     /* Overrides for ActivityModule */
-    @BindValue @Main val mainScope: TestScope = TestScope(testDispatcher)
-    @BindValue @Background var testBackgroundScope: CoroutineScope = mainScope.backgroundScope
+    val testScope: TestScope = TestScope(testDispatcher)
+    @BindValue @Main val mainScope: CoroutineScope = testScope
+    @BindValue @Background var testBackgroundScope: CoroutineScope = testScope.backgroundScope
 
     /* Overrides for the ConcurrencyModule */
     @BindValue @Main val mainDispatcher: CoroutineDispatcher = testDispatcher
     @BindValue @Background val backgroundDispatcher: CoroutineDispatcher = testDispatcher
 
-    val contentResolver: ContentResolver = MockContentResolver()
+    @BindValue @ApplicationOwned val contentResolver: ContentResolver = MockContentResolver()
 
     // Needed for UserMonitor
     @Inject lateinit var mockContext: Context
+    @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
     @Mock lateinit var mockUserManager: UserManager
     @Mock lateinit var mockPackageManager: PackageManager
 
@@ -119,31 +129,50 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
     fun testOverflowMenuEnabledInConfigurations() {
 
         assertWithMessage("OverflowMenuFeature is not always enabled (ACTION_PICK_IMAGES)")
-            .that(OverflowMenuFeature.Registration.isEnabled(testActionPickImagesConfiguration))
+            .that(
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("OverflowMenuFeature is not always enabled (ACTION_GET_CONTENT)")
-            .that(OverflowMenuFeature.Registration.isEnabled(testGetContentConfiguration))
+            .that(
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
             .isEqualTo(true)
 
         assertWithMessage("OverflowMenuFeature is not always enabled (USER_SELECT_FOR_APP)")
             .that(
-                OverflowMenuFeature.Registration.isEnabled(testUserSelectImagesForAppConfiguration)
+                OverflowMenuFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
             )
             .isEqualTo(true)
     }
 
     @Test
     fun testOverflowMenuAnchorShownIfMenuItemsExist() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        SimpleUiFeature.Registration,
-                        OverflowMenuFeature.Registration,
-                    ),
+                    setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -159,6 +188,11 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }
@@ -177,14 +211,12 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testOverflowMenuAnchorHiddenWhenNoMenuItemsExist() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        OverflowMenuFeature.Registration,
-                    ),
+                    setOf(OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -217,15 +249,12 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testOverflowMenuIsHiddenAfterItemSelected() =
-        mainScope.runTest {
+        testScope.runTest {
             val featureManager =
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
-                    setOf(
-                        SimpleUiFeature.Registration,
-                        OverflowMenuFeature.Registration,
-                    ),
+                    setOf(SimpleUiFeature.Registration, OverflowMenuFeature.Registration),
                     /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                     /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
                 )
@@ -240,6 +269,11 @@ class OverflowMenuFeatureTest : PhotopickerFeatureBaseTest() {
                 CompositionLocalProvider(
                     LocalFeatureManager provides featureManager,
                     LocalEvents provides events,
+                    LocalPhotopickerConfiguration provides
+                        TestPhotopickerConfiguration.build {
+                            action("TEST_ACTION")
+                            intent(Intent("TEST_ACTION"))
+                        },
                 ) {
                     featureManager.composeLocation(Location.OVERFLOW_MENU)
                 }

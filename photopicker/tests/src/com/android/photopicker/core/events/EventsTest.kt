@@ -16,11 +16,12 @@
 
 package com.android.photopicker.core.events
 
+import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.configuration.TestPhotopickerConfiguration
 import com.android.photopicker.core.configuration.provideTestConfigurationFlow
-import com.android.photopicker.core.configuration.testPhotopickerConfiguration
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
@@ -49,21 +50,23 @@ class EventsTest {
     private val mockRegistration =
         object : FeatureRegistration {
             override val TAG = "MockedFeature"
+
             override fun isEnabled(config: PhotopickerConfiguration) = true
+
             override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
+
             val token = "MockedFeatureToken"
         }
     private val testRegistrations = setOf(mockRegistration)
+    private val sessionId = generatePickerSessionId()
+
+    private data class TestEvent(override val dispatcherToken: String) : Event
 
     @Before
     fun setup() {
 
-        whenever(mockSimpleUiFeature.eventsConsumed) {
-            setOf(Event.MediaSelectionConfirmed::class.java)
-        }
-        whenever(mockSimpleUiFeature.eventsProduced) {
-            setOf(Event.MediaSelectionConfirmed::class.java)
-        }
+        whenever(mockSimpleUiFeature.eventsConsumed) { setOf(TestEvent::class.java) }
+        whenever(mockSimpleUiFeature.eventsProduced) { setOf(TestEvent::class.java) }
         whenever(mockSimpleUiFeature.token) { mockRegistration.token }
     }
 
@@ -73,7 +76,7 @@ class EventsTest {
             Events(
                 scope = backgroundScope,
                 provideTestConfigurationFlow(scope = backgroundScope),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
 
         val collectorOne = mutableListOf<Event>()
@@ -82,7 +85,7 @@ class EventsTest {
         backgroundScope.launch { events.flow.toList(collectorOne) }
         backgroundScope.launch { events.flow.toList(collectorTwo) }
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         events.dispatch(event)
 
@@ -102,7 +105,7 @@ class EventsTest {
             Events(
                 scope = backgroundScope,
                 provideTestConfigurationFlow(scope = backgroundScope),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
 
         val collectorOne = mutableListOf<Event>()
@@ -110,7 +113,7 @@ class EventsTest {
 
         backgroundScope.launch { events.flow.toList(collectorOne) }
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         events.dispatch(event)
         advanceTimeBy(100)
@@ -132,7 +135,7 @@ class EventsTest {
             Events(
                 scope = backgroundScope,
                 provideTestConfigurationFlow(scope = backgroundScope),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
         val collectorOne = mutableListOf<Event>()
         val collectorTwo = mutableListOf<Event>()
@@ -140,7 +143,7 @@ class EventsTest {
         backgroundScope.launch { events.flow.toList(collectorOne) }
         backgroundScope.launch { events.flow.toList(collectorTwo) }
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         events.dispatch(event) // 1
         events.dispatch(event)
@@ -168,13 +171,13 @@ class EventsTest {
             Events(
                 scope = backgroundScope,
                 provideTestConfigurationFlow(scope = backgroundScope),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
 
         val collectorOne = mutableListOf<Event>()
         val collectorTwo = mutableListOf<Event>()
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         events.dispatch(event) // 1
         events.dispatch(event)
@@ -212,15 +215,19 @@ class EventsTest {
                 scope = backgroundScope,
                 provideTestConfigurationFlow(
                     scope = backgroundScope,
-                    PhotopickerConfiguration(action = "TEST", deviceIsDebuggable = true)
+                    PhotopickerConfiguration(
+                        action = "TEST",
+                        deviceIsDebuggable = true,
+                        sessionId = sessionId,
+                    ),
                 ),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
 
         val collector = mutableListOf<Event>()
         backgroundScope.launch { events.flow.toList(collector) }
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         assertThrows(UnregisteredEventDispatchedException::class.java) {
             runBlocking { events.dispatch(event) }
@@ -240,15 +247,19 @@ class EventsTest {
                 scope = backgroundScope,
                 provideTestConfigurationFlow(
                     scope = backgroundScope,
-                    PhotopickerConfiguration(action = "TEST", deviceIsDebuggable = false)
+                    PhotopickerConfiguration(
+                        action = "TEST",
+                        deviceIsDebuggable = false,
+                        sessionId = sessionId,
+                    ),
                 ),
-                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope)
+                buildFeatureManagerWithFeatures(testRegistrations, backgroundScope),
             )
 
         val collector = mutableListOf<Event>()
         backgroundScope.launch { events.flow.toList(collector) }
 
-        val event = Event.MediaSelectionConfirmed(mockRegistration.token)
+        val event = TestEvent(mockRegistration.token)
 
         // This should not throw on production
         events.dispatch(event)
@@ -259,6 +270,7 @@ class EventsTest {
             .that(collector)
             .contains(event)
     }
+
     /**
      * Builds a feature manager that is initialized with the given feature registrations and config.
      *
@@ -268,14 +280,15 @@ class EventsTest {
     private fun buildFeatureManagerWithFeatures(
         features: Set<FeatureRegistration>,
         scope: CoroutineScope,
-        config: PhotopickerConfiguration = testPhotopickerConfiguration,
+        config: PhotopickerConfiguration =
+            TestPhotopickerConfiguration.build {
+                action("TEST_ACTION")
+                intent(Intent("TEST_ACTION"))
+            },
     ): FeatureManager {
         return FeatureManager(
             configuration =
-                provideTestConfigurationFlow(
-                    scope = scope,
-                    defaultConfiguration = config,
-                ),
+                provideTestConfigurationFlow(scope = scope, defaultConfiguration = config),
             scope = scope,
             registeredFeatures = features,
             /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),

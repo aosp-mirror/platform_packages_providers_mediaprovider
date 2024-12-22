@@ -1,28 +1,38 @@
-######################################
-# Android Photopicker README
-######################################
+#############################################
+  ___ _        _            _    _
+ | _ \ |_  ___| |_ ___ _ __(_)__| |_____ _ _
+ |  _/ ' \/ _ \  _/ _ \ '_ \ / _| / / -_) '_|
+ |_| |_||_\___/\__\___/ .__/_\__|_\_\___|_|
+                      |_|
+#############################################
+NOTE: This Photopicker application is currently being developed for
+Android API level 33+. It is intended as a drop-in replacement to the
+legacy java application. If you are working on a pre API 33 OS, you
+might be looking for:
 
-Note: This photopicker app is currently under development, and is not
-(currently) being shipped with mediaprovider. You might be looking for:
+/packages/providers/MediaProvider/src/com/android/providers/media/photopicker
 
-/packages/providers/MediaProvider/photopicker
-
-######################################
+#############################################
 # To install for development / testing:
-######################################
+#############################################
 
-Consider using photopicker_utils.sh for deploying/incremental installs/removing.
+Photopicker is bundled in the MediaProvider apex, so building that module will
+include the Photopicker APK. It is not recommended to build Photopicker as as a
+standalone application, as it relies on pregranted permissions that it obtains via
+its bundling in the MediaProvider apex.
 
-Build a mediaprovider APEX which includes Photopicker. The initial deployment
-needs to be from the APEX to ensure Photopicker receives its certificate specific
-permissions.
+It is very important that Photopicker apk is signed by the same certificate as the
+installed MediaProvider.apk. Photopicker relies on signature permissions declared in
+MediaProvider, and will fail to obtain them if signed separately.
 
-Incremental builds can be done by making the Photopicker target and directly
-installing the resulting APK.
+Additionally, the DeviceConfig `enable_modern_picker` in the `mediaprovider` namespace
+needs to be enabled to `true` in order for the new photopicker to become active.
 
-######################################
+```adb shell device_config put mediaprovider enable_modern_picker true`
+
+#############################################
 # Troubleshooting
-######################################
+#############################################
 
 Launching ACTION_PICK_IMAGES or ACTION_GET_CONTENT should bring you into the new
 PhotopickerActivity. If not, try debugging the intents to see if the activity
@@ -35,9 +45,9 @@ that can handle this intent and com.android.photopicker.MainActivity should be
 in the list. If not, try the installation steps above again. (Be sure to reboot)
 
 
-######################################
+#############################################
 # Testing
-######################################
+#############################################
 To run the tests:
 
 atest PhotopickerTests

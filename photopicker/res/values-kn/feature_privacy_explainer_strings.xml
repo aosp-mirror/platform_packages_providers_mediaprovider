@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="photopicker_privacy_explainer" msgid="4607406928962678061">"ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಫೋಟೋಗಳಿಗೆ ಮಾತ್ರ <xliff:g id="APP_NAME">%1$s</xliff:g> ಆ್ಯಕ್ಸೆಸ್ ಅನ್ನು ಹೊಂದಿರುತ್ತದೆ"</string>
+    <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"ನೀವು <xliff:g id="APP_NAME">%1$s</xliff:g> ಗೆ ಆ್ಯಕ್ಸೆಸ್‌ ಮಾಡಲು ಅನುಮತಿಸುವ ಫೋಟೋಗಳು ಮತ್ತು ವೀಡಿಯೊಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ"</string>
+    <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"ಈ ಆ್ಯಪ್"</string>
+</resources>

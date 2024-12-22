@@ -42,6 +42,7 @@ import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserProfile.DisabledReason
 import com.android.photopicker.core.user.UserProfile.DisabledReason.CROSS_PROFILE_NOT_ALLOWED
 import com.android.photopicker.core.user.UserProfile.DisabledReason.QUIET_MODE
+import com.android.photopicker.core.user.UserProfile.DisabledReason.QUIET_MODE_DO_NOT_SHOW
 
 /* Size of the spacer between dialog elements. */
 private val MEASUREMENT_DIALOG_SPACER_SIZE = 24.dp
@@ -116,7 +117,8 @@ private fun getDialogContentForReason(
                 stringResource(R.string.photopicker_profile_blocked_by_admin_dialog_title),
                 stringResource(R.string.photopicker_profile_blocked_by_admin_dialog_message)
             )
-        QUIET_MODE ->
+        QUIET_MODE,
+        QUIET_MODE_DO_NOT_SHOW ->
             Pair(
                 stringResource(R.string.photopicker_profile_unavailable_dialog_title, profileLabel),
                 stringResource(

@@ -1,0 +1,20 @@
+<!--
+ Copyright 2024 The Android Open Source Project
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!-- Android Security Privacy shield icon -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="960" android:viewportHeight="960">
+	<path android:fillColor="@android:color/white" android:pathData="M480,797Q522,774 554.5,738Q587,702 587,651Q587,587 535,547Q483,507 428,472Q379,440 350,390Q321,340 321,282Q321,265 323,248.5Q325,232 330,215L240,247Q240,247 240,247Q240,247 240,247L240,412Q240,546 299.5,639Q359,732 480,797ZM666,629Q693,583 706.5,529Q720,475 720,412L720,247Q720,247 720,247Q720,247 720,247L480,161Q442,175 421.5,208.5Q401,242 401,282Q401,325 426.5,359.5Q452,394 489,416Q552,454 605.5,504Q659,554 666,629Q666,629 666,629Q666,629 666,629ZM480,880Q473,880 466.5,878.5Q460,877 454,874Q306,798 233,685.5Q160,573 160,412L160,248Q160,222 174.5,201Q189,180 213,172L453,86Q460,84 466.5,82Q473,80 480,80Q489,80 507,86L747,172Q771,180 785.5,200.5Q800,221 800,247L800,412Q800,573 725.5,686Q651,799 505,874Q499,877 493,878.5Q487,880 480,880Z"/>
+</vector>

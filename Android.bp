@@ -178,6 +178,7 @@ aconfig_declarations {
     package: "com.android.providers.media.flags",
     container: "com.android.mediaprovider",
     srcs: ["mediaprovider_flags.aconfig"],
+    exportable: true,
 }
 
 java_aconfig_library {

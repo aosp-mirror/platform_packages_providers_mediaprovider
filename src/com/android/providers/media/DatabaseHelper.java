@@ -66,7 +66,9 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.modules.utils.BackgroundThread;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.dao.FileRow;
+import com.android.providers.media.flags.Flags;
 import com.android.providers.media.playlist.Playlist;
 import com.android.providers.media.util.DatabaseUtils;
 import com.android.providers.media.util.FileUtils;
@@ -566,14 +568,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         Log.v(TAG, "onOpen() for " + mName);
         // Recovering before migration from legacy because recovery process will clear up data to
         // read from xattrs once ids are persisted in xattrs.
-        tryRecoverDatabase(db);
+        if (isInternal()) {
+            tryRecoverDatabase(db, MediaStore.VOLUME_INTERNAL);
+        } else {
+            tryRecoverDatabase(db, MediaStore.VOLUME_EXTERNAL_PRIMARY);
+            mDatabaseBackupAndRecovery.queuePublicVolumeRecovery(mContext);
+        }
         tryRecoverRowIdSequence(db);
         tryMigrateFromLegacy(db);
     }
 
-    private void tryRecoverDatabase(SQLiteDatabase db) {
-        String volumeName =
-                isInternal() ? MediaStore.VOLUME_INTERNAL : MediaStore.VOLUME_EXTERNAL_PRIMARY;
+    public void tryRecoverPublicVolume(String volumeName) {
+        if (MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                || MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            return;
+        }
+        tryRecoverDatabase(super.getWritableDatabase(), mVolumeName);
+    }
+
+    private void tryRecoverDatabase(SQLiteDatabase db, String volumeName) {
+        if (!MediaStore.VOLUME_INTERNAL.equalsIgnoreCase(volumeName)
+                && !MediaStore.VOLUME_EXTERNAL_PRIMARY.equalsIgnoreCase(volumeName)) {
+            // Implement for public volume
+            return;
+        }
+
         if (!mDatabaseBackupAndRecovery.isStableUrisEnabled(volumeName)) {
             return;
         }
@@ -609,8 +628,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                             :
                                     MediaProviderStatsLog.MEDIA_PROVIDER_DATABASE_ROLLBACK_REPORTED__DATABASE_NAME__EXTERNAL);
             Log.w(TAG, String.format(Locale.ROOT, "%s database inconsistency identified.", mName));
-            // Delete old data and create new schema.
-            recreateLatestSchema(db);
             // Recover data from backup
             // Ensure we do not back up in case of recovery.
             mIsRecovering.set(true);
@@ -629,16 +646,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     protected String getExternalStorageDbXattrPath() {
         return DATA_MEDIA_XATTR_DIRECTORY_PATH;
-    }
-
-    @GuardedBy("sRecoveryLock")
-    private void recreateLatestSchema(SQLiteDatabase db) {
-        mSchemaLock.writeLock().lock();
-        try {
-            createLatestSchema(db);
-        } finally {
-            mSchemaLock.writeLock().unlock();
-        }
     }
 
     private void tryRecoverRowIdSequence(SQLiteDatabase db) {
@@ -1142,7 +1149,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + "_transcode_status INTEGER DEFAULT 0, _video_codec_type TEXT DEFAULT NULL,"
                 + "_modifier INTEGER DEFAULT 0, is_recording INTEGER DEFAULT 0,"
                 + "redacted_uri_id TEXT DEFAULT NULL, _user_id INTEGER DEFAULT "
-                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL)");
+                + UserHandle.myUserId() + ", _special_format INTEGER DEFAULT NULL,"
+                + "oem_metadata BLOB DEFAULT NULL,"
+                + "inferred_media_date INTEGER,"
+                + "bits_per_sample INTEGER DEFAULT NULL, samplerate INTEGER DEFAULT NULL,"
+                + "inferred_date INTEGER)");
         db.execSQL("CREATE TABLE log (time DATETIME, message TEXT)");
         db.execSQL("CREATE TABLE deleted_media (_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "old_id INTEGER UNIQUE, generation_modified INTEGER NOT NULL)");
@@ -1152,6 +1163,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                     + "audio_id INTEGER NOT NULL,playlist_id INTEGER NOT NULL,"
                     + "play_order INTEGER NOT NULL)");
             updateAddMediaGrantsTable(db);
+            createSearchIndexProcessingStatusTable(db);
         }
 
         createLatestViews(db);
@@ -1635,7 +1647,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + ",_modifier";
     }
 
-    private static void makePristineTriggers(SQLiteDatabase db) {
+    @VisibleForTesting
+    static void makePristineTriggers(SQLiteDatabase db) {
         // drop all triggers
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'trigger'",
                 null, null, null, null);
@@ -1682,7 +1695,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
                 + " BEGIN SELECT _DELETE(" + deleteArg + "); END");
     }
 
-    private static void makePristineIndexes(SQLiteDatabase db) {
+    @VisibleForTesting
+    static void makePristineIndexes(SQLiteDatabase db) {
         // drop all indexes
         Cursor c = db.query("sqlite_master", new String[] {"name"}, "type is 'index'",
                 null, null, null, null);
@@ -1961,10 +1975,49 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
         db.execSQL("CREATE INDEX generation_modified_index ON files(generation_modified)");
     }
 
+    // Deprecated column, use inferred_date instead.
+    private static void updateAddInferredMediaDate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN inferred_media_date INTEGER;");
+    }
+
+    private static void updateAddInferredDate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN inferred_date INTEGER;");
+    }
+
+    private static void updateAddAudioSampleRate(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN bits_per_sample INTEGER DEFAULT NULL;");
+        db.execSQL("ALTER TABLE files ADD COLUMN samplerate INTEGER DEFAULT NULL;");
+        // We want existing audio files to be re-scanned during idle maintenance if they are not
+        // already waiting for re-scanning.
+        if (SdkLevel.isAtLeastT() && Flags.audioSampleColumns()) {
+            db.execSQL("UPDATE files SET _modifier=? WHERE media_type=? AND _modifier=?;",
+                    new String[]{String.valueOf(FileColumns._MODIFIER_SCHEMA_UPDATE),
+                            String.valueOf(FileColumns.MEDIA_TYPE_AUDIO),
+                            String.valueOf(FileColumns._MODIFIER_MEDIA_SCAN)});
+        }
+    }
+
+    private static void updateBackfillInferredDate(SQLiteDatabase db) {
+        if (Flags.inferredMediaDate()) {
+            db.execSQL("UPDATE files SET _modifier=? WHERE inferred_date=0 AND _modifier=?;",
+                    new String[]{String.valueOf(FileColumns._MODIFIER_SCHEMA_UPDATE),
+                            String.valueOf(FileColumns._MODIFIER_MEDIA_SCAN)});
+        }
+    }
+
     private void updateUserId(SQLiteDatabase db) {
         db.execSQL(String.format(Locale.ROOT,
                 "ALTER TABLE files ADD COLUMN _user_id INTEGER DEFAULT %d;",
                 UserHandle.myUserId()));
+    }
+
+    private static void updateAddOemMetadata(SQLiteDatabase db) {
+        db.execSQL("ALTER TABLE files ADD COLUMN oem_metadata BLOB DEFAULT NULL;");
+    }
+
+    private static void updateBackfillAsfMimeType(SQLiteDatabase db) {
+        db.execSQL("UPDATE files SET media_type=? WHERE mime_type=\"application/vnd.ms-asf\";",
+                new String[]{String.valueOf(FileColumns.MEDIA_TYPE_VIDEO)});
     }
 
     private static void recomputeDataValues(SQLiteDatabase db) {
@@ -2024,7 +2077,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
     // Leave some gaps in database version tagging to allow T schema changes
     // to go independent of U schema changes.
     static final int VERSION_U = 1409;
-    public static final int VERSION_LATEST = VERSION_U;
+    static final int VERSION_V = 1506;
+    public static final int VERSION_LATEST = VERSION_V;
 
     /**
      * This method takes care of updating all the tables in the database to the
@@ -2251,6 +2305,34 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
             if (fromVersion < 1409) {
                 updateAddDateModifiedAndGenerationModifiedIndexes(db);
+            }
+
+            if (fromVersion < 1500) {
+                updateAddOemMetadata(db);
+            }
+
+            if (fromVersion < 1501) {
+                updateAddInferredMediaDate(db);
+            }
+
+            if (fromVersion < 1502) {
+                updateAddAudioSampleRate(db);
+            }
+
+            if (fromVersion < 1503) {
+                updateAddInferredDate(db);
+            }
+
+            if (fromVersion < 1504) {
+                updateBackfillInferredDate(db);
+            }
+
+            if (fromVersion < 1505) {
+                updateBackfillAsfMimeType(db);
+            }
+
+            if (fromVersion < 1506) {
+                createSearchIndexProcessingStatusTable(db);
             }
 
             // If this is the legacy database, it's not worth recomputing data
@@ -2521,5 +2603,27 @@ public class DatabaseHelper extends SQLiteOpenHelper implements AutoCloseable {
 
     private String traceSectionName(@NonNull String method) {
         return "DH[" + getDatabaseName() + "]." + method;
+    }
+
+    // Create a table search_index_processing_status which holds the processing status
+    // of all the parameters based on which the media items are indexed. Every processing status
+    // is set to 0 to begin with. New table is asynchronously populated with all the existing
+    // media items from the files table based on their generation numbers.
+    private void createSearchIndexProcessingStatusTable(@NonNull SQLiteDatabase database) {
+        Objects.requireNonNull(database, "Sqlite database object found to be null. "
+                + "Cannot create media status table");
+        database.execSQL("CREATE TABLE IF NOT EXISTS search_index_processing_status ("
+                + "media_id INTEGER PRIMARY_KEY,"
+                + "metadata_processing_status INTEGER DEFAULT 0,"
+                + "label_processing_status INTEGER DEFAULT 0,"
+                + "ocr_latin_processing_status INTEGER DEFAULT 0,"
+                + "location_processing_status INTEGER DEFAULT 0,"
+                + "generation_number INTEGER DEFAULT 0,"
+                + "display_name TEXT DEFAULT NULL,"
+                + "mime_type TEXT DEFAULT NULL,"
+                + "date_taken INTEGER DEFAULT 0,"
+                + "size INTEGER DEFAULT 0,"
+                + "latitude DOUBLE DEFAULT 0.0,"
+                + "longitude DOUBLE DEFAULT 0.0)");
     }
 }

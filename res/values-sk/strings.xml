@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"Zrušiť"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"Počkať"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"Bezpečnosť"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"Upozornenia natívneho prekódovania"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"Postup natívneho prekódovania"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"Upozornenia na prekódovanie"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"Postup prekódovania"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"Skúste to neskôr. Po vyriešení problému budú vaše fotky k dispozícii."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"Niektoré fotky sa nedajú načítať"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"Dobre"</string>

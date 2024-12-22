@@ -160,8 +160,8 @@
     <string name="transcode_cancel" msgid="8555752601907598192">"रद्द गर्नुहोस्"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"पर्खनुहोस्"</string>
     <string name="safety_protection_icon_label" msgid="6714354052747723623">"सेफ्टी प्रोटेक्सन"</string>
-    <string name="transcode_alert_channel" msgid="997332371757680478">"नेटिभ ट्रान्स्कोड अलर्ट"</string>
-    <string name="transcode_progress_channel" msgid="6905136787933058387">"नेटिभ ट्रान्स्कोड प्रोग्रेस"</string>
+    <string name="transcode_alert_channel" msgid="9004850719456228643">"ट्रान्सकोडिङसम्बन्धी नोटिफिकेसनहरू"</string>
+    <string name="transcode_progress_channel" msgid="6122609645085712101">"ट्रान्सकोडिङको प्रोग्रेस"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"पछि फेरि प्रयास गर्नुहोस्। समस्या समाधान हुनेबित्तिकै तपाईंका फोटो उपलब्ध हुने छन्।"</string>
     <string name="dialog_error_title" msgid="636349284077820636">"केही फोटोहरू लोड गर्न सकिँदैन"</string>
     <string name="dialog_button_text" msgid="351366485240852280">"बुझेँ"</string>

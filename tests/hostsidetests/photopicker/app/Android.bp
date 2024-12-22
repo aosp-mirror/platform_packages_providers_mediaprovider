@@ -1,0 +1,8 @@
+android_test_helper_app {
+    name: "TestCloudMediaProviderApp",
+    srcs: [
+        "src/**/*.java",
+        "src/**/*.kt",
+    ],
+    sdk_version: "current",
+}

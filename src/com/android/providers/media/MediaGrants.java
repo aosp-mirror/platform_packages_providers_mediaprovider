@@ -19,6 +19,7 @@ package com.android.providers.media;
 import static com.android.providers.media.LocalUriMatcher.PICKER_ID;
 import static com.android.providers.media.util.DatabaseUtils.replaceMatchAnyChar;
 
+import android.annotation.Nullable;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -34,9 +35,12 @@ import androidx.annotation.NonNull;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -54,6 +58,13 @@ public class MediaGrants {
     public static final String GENERATION_GRANTED = "generation_granted";
     public static final String OWNER_PACKAGE_NAME_COLUMN =
             MediaStore.MediaColumns.OWNER_PACKAGE_NAME;
+    // At a time for a package and userId only a limited number of grants should be held in
+    // database.
+    public static final int PER_PACKAGE_GRANTS_LIMIT_CONST = 5000;
+
+    // This should be equal to the pre-defined limit, but is modifiable for the purpose of testing.
+    @VisibleForTesting
+    public static int PER_PACKAGE_GRANTS_LIMIT = PER_PACKAGE_GRANTS_LIMIT_CONST;
 
     private static final String CREATE_TEMPORARY_TABLE_QUERY = "CREATE TEMPORARY TABLE ";
     private static final String MEDIA_GRANTS_AND_FILES_JOIN_TABLE_NAME = "media_grants LEFT JOIN "
@@ -99,6 +110,11 @@ public class MediaGrants {
         mQueryBuilder.setTables(MEDIA_GRANTS_TABLE);
     }
 
+    @VisibleForTesting
+    protected void setGrantsLimit(int newLimit) {
+        PER_PACKAGE_GRANTS_LIMIT = newLimit;
+    }
+
     /**
      * Adds media_grants for the provided URIs for the provided package name.
      *
@@ -142,24 +158,53 @@ public class MediaGrants {
                         }
                     }
 
+                    // A clean up for older grants needs to be performed, anytime the number of
+                    // grants reach more than the limit the excess grants should be removed.
+                    // This is done based on order of insertion in the table.
+                    SQLiteQueryBuilder sqbForGrantsCleanUp = new SQLiteQueryBuilder();
+                    sqbForGrantsCleanUp.setTables(MEDIA_GRANTS_TABLE);
+
+                    String recentGrantsSubQuery = String.format(
+                            Locale.ROOT, " SELECT rowid FROM %s "
+                                    + " WHERE  %s = '%s' AND %s = %d ORDER BY rowid DESC LIMIT %d",
+                            MEDIA_GRANTS_TABLE,
+                            OWNER_PACKAGE_NAME_COLUMN,
+                            packageName,
+                            PACKAGE_USER_ID_COLUMN,
+                            packageUserId,
+                            PER_PACKAGE_GRANTS_LIMIT);
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            "rowid NOT IN (" + recentGrantsSubQuery + ")");
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            WHERE_MEDIA_GRANTS_PACKAGE_NAME_IN + " ('" + packageName + "')");
+                    sqbForGrantsCleanUp.appendWhereStandalone(
+                            PACKAGE_USER_ID_COLUMN + " = " + packageUserId);
+                    int countOfGrantsDeleted = sqbForGrantsCleanUp.delete(db, null, null);
+
                     Log.d(
                             TAG,
                             String.format(
                                     "Successfully added %s media_grants for %s.",
                                     uris.size(), packageName));
+                    Log.d(TAG, "Grants clean up : " + countOfGrantsDeleted + " deleted");
 
                     return null;
                 });
     }
 
     /**
-     * Returns the cursor for file data of items for which the passed package has READ_GRANTS.
+     * Returns the cursor for file data of items for which the passed package has READ_GRANTS with a
+     * row limit of {@link MediaGrants#PER_PACKAGE_GRANTS_LIMIT}. Any grants older than the latest
+     * {@link MediaGrants#PER_PACKAGE_GRANTS_LIMIT} number of grants are not considered.
      *
      * @param packageNames  the package name that has access.
-     * @param packageUserId the user_id of the package
+     * @param packageUserId the user_id of the package.
+     * @param mimeTypes the mimeTypes of items for which the grants needs to be returned.
+     * @param availableVolumes volumes that are available, grants for items only in these volumes
+     *                         should be considered.
      */
-    Cursor getMediaGrantsForPackages(String[] packageNames, int packageUserId,
-            String[] mimeTypes, String[] availableVolumes)
+    Cursor getMediaGrantsForPackages(@NonNull String[] packageNames, int packageUserId,
+            @Nullable String[] mimeTypes, @NonNull String[] availableVolumes)
             throws IllegalArgumentException {
         Objects.requireNonNull(packageNames);
         return mExternalDatabase.runWithoutTransaction((db) -> {
@@ -178,8 +223,16 @@ public class MediaGrants {
                             .build());
 
             return queryBuilder.query(db,
-                    new String[]{FILE_ID_COLUMN, PACKAGE_USER_ID_COLUMN}, null,
-                    selectionArgs, null, null, null, null, null);
+                    new String[]{FILE_ID_COLUMN,
+                            String.format("%s.%s", MEDIA_GRANTS_TABLE, OWNER_PACKAGE_NAME_COLUMN),
+                            PACKAGE_USER_ID_COLUMN},
+                    /* selection */ null,
+                    /* selection args */ selectionArgs,
+                    /* group by */ null,
+                    /* having */ null,
+                    /* sort order */ null,
+                    /* limit */ String.valueOf(PER_PACKAGE_GRANTS_LIMIT),
+                    /* cancellation signal */ null);
         });
     }
 

@@ -21,4 +21,12 @@
     <string name="photopicker_preloading_progress_message" msgid="2040744085284344354">"Gatavs: <xliff:g id="NUMBER_PRELOADED">%1$d</xliff:g> no <xliff:g id="NUMBER_TOTAL">%2$d</xliff:g>"</string>
     <string name="photopicker_preloading_dialog_error_title" msgid="9143648403177687062">"Nevar ielādēt dažus fotoattēlus"</string>
     <string name="photopicker_preloading_dialog_error_message" msgid="1467289671708199538">"Vēlāk mēģiniet vēlreiz. Fotoattēli būs pieejami, tiklīdz būs novērsta problēma."</string>
+    <string name="photopicker_banner_cloud_media_available_title" msgid="3630564281302679941">"Tagad ir iekļauti dublētie fotoattēli"</string>
+    <string name="photopicker_banner_cloud_media_available_message" msgid="6224134038092008505">"Varat atlasīt fotoattēlus no lietotnes <xliff:g id="APP_NAME">%1$s</xliff:g> konta <xliff:g id="USER_ACCOUNT">%2$s</xliff:g>."</string>
+    <string name="photopicker_banner_cloud_choose_account_title" msgid="286679907089224434">"Izvēlieties kontu lietotnē <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="photopicker_banner_cloud_choose_account_message" msgid="5173210485511611652">"Lai šeit iekļautu fotoattēlus no lietotnes <xliff:g id="APP_NAME">%1$s</xliff:g>, lietotnē izvēlieties kontu."</string>
+    <string name="photopicker_banner_cloud_choose_account_button" msgid="3407910358624445230">"Izvēlēties kontu"</string>
+    <string name="photopicker_banner_cloud_choose_provider_title" msgid="992613053341538886">"Izvēlieties mākoņa multivides lietotni"</string>
+    <string name="photopicker_banner_cloud_choose_provider_message" msgid="1102889303996108506">"Lai šeit iekļautu dublētus fotoattēlus, iestatījumos izvēlieties mākoņa multivides lietotni."</string>
+    <string name="photopicker_banner_cloud_choose_app_button" msgid="8228365266860220123">"Izvēlēties lietotni"</string>
 </resources>

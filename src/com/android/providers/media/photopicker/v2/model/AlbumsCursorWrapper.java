@@ -18,6 +18,8 @@ package com.android.providers.media.photopicker.v2.model;
 
 import static android.provider.MediaStore.MY_USER_ID;
 
+import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.PINNED_ALBUMS_ORDER;
+
 import static java.util.Objects.requireNonNull;
 
 import android.database.Cursor;
@@ -27,12 +29,11 @@ import android.provider.CloudMediaProviderContract;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.providers.media.PickerUriResolver;
 import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.PickerSQLConstants;
-
-import java.util.List;
 
 /**
  * A wrapper for Albums cursor to map a value from the cursor received from CMP to the value in the
@@ -40,28 +41,19 @@ import java.util.List;
  */
 public class AlbumsCursorWrapper extends CursorWrapper {
     private static final String TAG = "AlbumsCursorWrapper";
-    // Local albums predefined order they should be displayed in. They always need to be
-    // displayed above the cloud albums too. The sort order is DESC(date_taken, picker_id).
-    private static final List<String> localAlbumsOrder = List.of(
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES,
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA,
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS,
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_SCREENSHOTS,
-            CloudMediaProviderContract.AlbumColumns.ALBUM_ID_DOWNLOADS
-    );
-    // This represents that media item is not available.
+    // This media ID  points to a ghost/unavailable media item.
     public static final String EMPTY_MEDIA_ID = "";
 
     @NonNull final String mCoverAuthority;
-    @NonNull final String mLocalAuthority;
+    @Nullable final String mLocalAuthority;
 
     public AlbumsCursorWrapper(
             @NonNull Cursor cursor,
             @NonNull String authority,
-            @NonNull String localAuthority) {
+            @Nullable String localAuthority) {
         super(requireNonNull(cursor));
         mCoverAuthority = requireNonNull(authority);
-        mLocalAuthority = requireNonNull(localAuthority);
+        mLocalAuthority = localAuthority;
     }
 
     @Override
@@ -122,7 +114,7 @@ public class AlbumsCursorWrapper extends CursorWrapper {
 
         switch (albumResponse) {
             case AUTHORITY:
-                if (PickerDataLayerV2.sMergedAlbumIds.contains(albumId)) {
+                if (PickerDataLayerV2.MERGED_ALBUMS.contains(albumId)) {
                     // By default, always keep merged album authority as local.
                     return mLocalAuthority;
                 }
@@ -143,16 +135,16 @@ public class AlbumsCursorWrapper extends CursorWrapper {
                 }
 
             case PICKER_ID:
-                if (localAlbumsOrder.contains(albumId)) {
+                if (PINNED_ALBUMS_ORDER.contains(albumId)) {
                     return Integer.toString(
-                            Integer.MAX_VALUE - localAlbumsOrder.indexOf(columnName)
+                            Integer.MAX_VALUE - PINNED_ALBUMS_ORDER.indexOf(columnName)
                     );
                 } else {
                     return Integer.toString(getMediaIdFromWrappedCursor().hashCode());
                 }
 
             case COVER_MEDIA_SOURCE:
-                if (mLocalAuthority.equals(mCoverAuthority)) {
+                if (mCoverAuthority.equals(mLocalAuthority)) {
                     return MediaSource.LOCAL.toString();
                 } else {
                     return MediaSource.REMOTE.toString();
@@ -162,7 +154,7 @@ public class AlbumsCursorWrapper extends CursorWrapper {
                 return albumId;
 
             case DATE_TAKEN:
-                if (localAlbumsOrder.contains(albumId)) {
+                if (PINNED_ALBUMS_ORDER.contains(albumId)) {
                     return Long.toString(Long.MAX_VALUE);
                 }
                 // Fall through to return the wrapped cursor value as it is.

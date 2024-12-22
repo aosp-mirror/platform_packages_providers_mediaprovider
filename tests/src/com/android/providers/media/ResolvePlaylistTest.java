@@ -67,7 +67,7 @@ public class ResolvePlaylistTest {
         mIsolatedContext = new IsolatedContext(context, "modern", /*asFuseThread*/ false);
         mIsolatedResolver = mIsolatedContext.getContentResolver();
 
-        mModern = new ModernMediaScanner(mIsolatedContext);
+        mModern = new ModernMediaScanner(mIsolatedContext, new TestConfigStore());
     }
 
     @After

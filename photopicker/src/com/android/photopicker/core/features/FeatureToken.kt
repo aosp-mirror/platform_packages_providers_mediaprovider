@@ -24,6 +24,7 @@ enum class FeatureToken(val token: String) {
     // keep-sorted start
     ALBUM_GRID("ALBUM_GRID"),
     BROWSE("BROWSE"),
+    CATEGORY_GRID("CATEGORY_GRID"),
     CLOUD_MEDIA("CLOUD_MEDIA"),
     CORE("CORE"),
     MEDIA_PREPARE("MEDIA_PREPARE"),

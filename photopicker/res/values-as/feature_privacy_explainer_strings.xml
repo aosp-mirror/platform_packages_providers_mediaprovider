@@ -18,6 +18,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_privacy_explainer" msgid="4607406928962678061">"<xliff:g id="APP_NAME">%1$s</xliff:g>এ কেৱল আপুনি বাছনি কৰা ফট’হে এক্সেছ কৰিব পাৰিব"</string>
-    <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"আপুনি <xliff:g id="APP_NAME">%1$s</xliff:g>ক এক্সেছ কৰিবলৈ অনুমতি দিয়া ফট’ আৰু ভিডিঅ’ বাছনি কৰক"</string>
+    <!-- no translation found for photopicker_privacy_explainer_permission_mode (6875197264505249268) -->
+    <skip />
     <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"এইটো এপ্‌"</string>
 </resources>

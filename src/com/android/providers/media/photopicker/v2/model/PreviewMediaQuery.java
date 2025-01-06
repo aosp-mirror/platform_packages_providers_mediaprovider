@@ -20,6 +20,7 @@ import static com.android.providers.media.MediaGrants.FILE_ID_COLUMN;
 import static com.android.providers.media.MediaGrants.MEDIA_GRANTS_TABLE;
 import static com.android.providers.media.MediaGrants.OWNER_PACKAGE_NAME_COLUMN;
 import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
+import static com.android.providers.media.MediaProvider.isOwnedPhotosEnabled;
 import static com.android.providers.media.photopicker.PickerSyncController.getPackageNameFromUid;
 import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
@@ -54,15 +55,16 @@ import java.util.Objects;
 public class PreviewMediaQuery extends MediaQuery {
     private final ArrayList<String> mCurrentSelection;
     private final ArrayList<String> mCurrentDeSelection;
+    private final String[] mCallingPackageNames;
 
-    public PreviewMediaQuery(
-            @NonNull Bundle queryArgs) {
+    public PreviewMediaQuery(@NonNull Bundle queryArgs, @NonNull Context context) {
         super(queryArgs);
 
         // This is not required for preview.
         mShouldPopulateItemsBeforeCount = false;
         mCurrentSelection = queryArgs.getStringArrayList("current_selection");
         mCurrentDeSelection = queryArgs.getStringArrayList("current_de_selection");
+        mCallingPackageNames = getPackageNameFromUid(context, getCallingPackageUid());
     }
 
     public ArrayList<String> getCurrentSelection() {
@@ -83,10 +85,11 @@ public class PreviewMediaQuery extends MediaQuery {
     ) {
         super.addWhereClause(queryBuilder, table, localAuthority, cloudAuthority, reverseOrder);
 
-        addIdSelectionClause(queryBuilder);
+        addIdSelectionClause(queryBuilder, table.name());
     }
 
-    private void addIdSelectionClause(@NonNull SelectSQLiteQueryBuilder queryBuilder) {
+    private void addIdSelectionClause(@NonNull SelectSQLiteQueryBuilder queryBuilder,
+            String table) {
         StringBuilder idSelectionPlaceholder = new StringBuilder();
         if (mCurrentSelection != null && !mCurrentSelection.isEmpty()) {
             idSelectionPlaceholder.append("local_id IN  (");
@@ -99,12 +102,34 @@ public class PreviewMediaQuery extends MediaQuery {
             idSelectionPlaceholder.append(" OR ");
         }
 
-        idSelectionPlaceholder.append(
-                String.format("(%s.%s IS NOT NULL AND %s.%s IS NULL)",
-                        // current_media_grants.file_id IS NOT NULL
-                        CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN,
-                        // current_de_selections.file_id IS NULL
-                        CURRENT_DE_SELECTIONS_TABLE, MediaGrants.FILE_ID_COLUMN));
+        if (isOwnedPhotosEnabled(getCallingPackageUid())) {
+            StringBuilder packageSelection =
+                    getPackageSelectionWhereClause(mCallingPackageNames, table);
+            int userId = uidToUserId(getCallingPackageUid());
+
+            /*
+             (current_media_grants.file_id IS NOT NULL OR
+             (media.owner_package_name IN (com.android.example) AND media._user_id = 0))
+             AND current_de_selections.file_id IS NULL)
+             */
+            String selectionQueryForPreviewMode =  String.format(Locale.ROOT,
+                    "((%s.%s IS NOT NULL OR (%s AND %s.%s = %d)) AND %s.%s IS NULL)",
+                    CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN,
+                    packageSelection, table, "_user_id", userId,
+                    CURRENT_DE_SELECTIONS_TABLE, MediaGrants.FILE_ID_COLUMN);
+
+            idSelectionPlaceholder.append(selectionQueryForPreviewMode);
+        } else {
+            idSelectionPlaceholder.append(
+                    String.format(
+                            Locale.ROOT,
+                            "(%s.%s IS NOT NULL AND %s.%s IS NULL)",
+                            // current_media_grants.file_id IS NOT NULL
+                            CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN,
+                            // current_de_selections.file_id IS NULL
+                            CURRENT_DE_SELECTIONS_TABLE, MediaGrants.FILE_ID_COLUMN));
+        }
+
         queryBuilder.appendWhereStandalone(idSelectionPlaceholder.toString());
     }
 
@@ -165,6 +190,7 @@ public class PreviewMediaQuery extends MediaQuery {
                 CURRENT_DE_SELECTIONS_TABLE);
 
         return String.format(
+                Locale.ROOT,
                 "%s LEFT JOIN %s"
                         + " ON %s.%s = %s.%s "
                         + "LEFT JOIN %s"
@@ -219,9 +245,14 @@ public class PreviewMediaQuery extends MediaQuery {
                     qb.insert(database, cv);
                 }
             }
-            database.setTransactionSuccessful();
+
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+            }
         } finally {
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.endTransaction();
+            }
         }
     }
 }

@@ -32,10 +32,16 @@ import android.os.Bundle;
 import android.os.UserManager;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup.MarginLayoutParams;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
@@ -88,8 +94,7 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         // in the base theme will be copied.
         getTheme().applyStyle(R.style.PickerMaterialTheme, /* force */ false);
 
-        // TODO(b/309578419): Make this activity handle insets properly and then remove this.
-        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, /* force */ false);
+        EdgeToEdge.enable(this);
 
         super.onCreate(savedInstanceState);
 
@@ -105,6 +110,17 @@ public class PhotoPickerSettingsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_photo_picker_settings);
         displayActionBar();
         createAndShowFragment(mCallingUserId, /* allowReplace= */ false);
+
+        View settingsView = findViewById(R.id.settings_activity_root);
+        ViewCompat.setOnApplyWindowInsetsListener(settingsView, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            MarginLayoutParams mlp = (MarginLayoutParams) v.getLayoutParams();
+            mlp.topMargin = insets.top;
+            mlp.bottomMargin = insets.bottom;
+            v.setLayoutParams(mlp);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         updateRecentsVisibilitySetting();
 

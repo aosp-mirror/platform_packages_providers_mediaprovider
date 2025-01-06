@@ -32,6 +32,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.work.Configuration;
 import androidx.work.Data;
 import androidx.work.Worker;
@@ -109,19 +110,37 @@ public class SyncWorkerTestUtils {
                 SYNC_WORKER_INPUT_ALBUM_ID, albumId));
     }
 
-    public static Data getLocalSearchResultsSyncInputData(int searchRequestId) {
+    /**
+     * Returns input data for the SearchResultsSyncWorker to perform sync with the
+     * local provider.
+     */
+    public static Data getLocalSearchResultsSyncInputData(int searchRequestId,
+                                                          @NonNull String authority) {
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_ONLY,
-                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId,
+                SYNC_WORKER_INPUT_AUTHORITY, authority));
     }
 
-    public static Data getCloudSearchResultsSyncInputData(int searchRequestId) {
+    /**
+     * Returns input data for the SearchResultsSyncWorker to perform sync with the
+     * cloud provider.
+     */
+    public static Data getCloudSearchResultsSyncInputData(int searchRequestId,
+                                                          @NonNull String authority) {
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
-                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId,
+                SYNC_WORKER_INPUT_AUTHORITY, authority));
     }
 
-    public static Data getInvalidSearchResultsSyncInputData(int searchRequestId) {
+    /**
+     * Returns input data for the SearchResultsSyncWorker to perform sync with the
+     * an invalid sync source
+     */
+    public static Data getInvalidSearchResultsSyncInputData(int searchRequestId,
+                                                            @Nullable String authority) {
         return new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_LOCAL_AND_CLOUD,
-                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId));
+                SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, searchRequestId,
+                SYNC_WORKER_INPUT_AUTHORITY, authority));
     }
 
     static <W extends Worker> W buildTestWorker(@NonNull Context context,

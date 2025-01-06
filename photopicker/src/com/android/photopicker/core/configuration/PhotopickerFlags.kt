@@ -46,6 +46,7 @@ data class PhotopickerFlags(
     val MANAGED_SELECTION_ENABLED: Boolean = FEATURE_PICKER_CHOICE_MANAGED_SELECTION.second,
     val PICKER_SEARCH_ENABLED: Boolean = Flags.enablePhotopickerSearch(),
     val PICKER_TRANSCODING_ENABLED: Boolean = Flags.enablePhotopickerTranscoding(),
+    val OWNED_PHOTOS_ENABLED: Boolean = Flags.revokeAccessOwnedPhotos(),
 ) {
     /**
      * Implement a custom equals method to correctly check the equality of the Array member

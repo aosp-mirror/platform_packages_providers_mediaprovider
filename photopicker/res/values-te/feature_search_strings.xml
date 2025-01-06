@@ -23,4 +23,5 @@
     <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"ఫలితాలు ఏవీ కనుగొనబడలేదు"</string>
     <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"ఒకే రకమైన పదాల కోసం సెర్చ్ చేయడానికి ట్రై చేయండి"</string>
     <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"సూచనలు"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"సెర్చ్ డిజేబుల్ అయింది."</string>
 </resources>

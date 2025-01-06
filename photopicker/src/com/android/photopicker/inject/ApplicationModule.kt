@@ -22,6 +22,7 @@ import android.util.Log
 import com.android.photopicker.core.configuration.DeviceConfigProxy
 import com.android.photopicker.core.configuration.DeviceConfigProxyImpl
 import com.android.photopicker.core.network.NetworkMonitor
+import com.android.photopicker.data.MediaProviderClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -78,6 +79,12 @@ class ApplicationModule {
         return DeviceConfigProxyImpl()
     }
 
+    /** Provider for [MediaProviderClient]. */
+    @Provides
+    fun providerMediaProviderClient(): MediaProviderClient {
+        return MediaProviderClient()
+    }
+
     /**
      * Provider for the [NetworkMonitor]. This is lazily initialized only when requested to save on
      * initialization costs of this module.
@@ -93,7 +100,7 @@ class ApplicationModule {
         } else {
             Log.d(
                 NetworkMonitor.TAG,
-                "NetworkMonitor requested, but not yet initialized. Initializing NetworkMonitor."
+                "NetworkMonitor requested, but not yet initialized. Initializing NetworkMonitor.",
             )
             networkMonitor = NetworkMonitor(context, scope)
             return networkMonitor

@@ -16,9 +16,12 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
+import static com.android.providers.media.MediaProvider.isOwnedPhotosEnabled;
 import static com.android.providers.media.PickerUriResolver.getPickerSegmentFromIntentAction;
+import static com.android.providers.media.photopicker.PickerSyncController.uidToUserId;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_CLOUD_ID;
 import static com.android.providers.media.photopicker.data.PickerDbFacade.KEY_LOCAL_ID;
+import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.getPackageSelectionWhereClause;
 
 import static java.util.Objects.requireNonNull;
 
@@ -30,10 +33,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.providers.media.MediaGrants;
+import com.android.providers.media.photopicker.data.PickerDbFacade;
 import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.model.MediaSource;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Utility class to generate and return sql projection for {@link PickerSQLConstants.MediaResponse}.
@@ -51,6 +56,8 @@ public class MediaProjection {
     private final String mIntentAction;
     @Nullable
     private final PickerSQLConstants.Table mTableName;
+    private String[] mCallingPackageNames;
+    private int mCallingPackageUid;
     private static final String DEFAULT_PROJECTION = "%s AS %s";
 
     public MediaProjection(
@@ -62,6 +69,18 @@ public class MediaProjection {
         mCloudAuthority = cloudAuthority;
         mIntentAction = intentAction;
         mTableName = tableName;
+    }
+
+    public MediaProjection(
+            @Nullable String localAuthority,
+            @Nullable String cloudAuthority,
+            @Nullable String intentAction,
+            @Nullable PickerSQLConstants.Table tableName,
+            int callingPackageUid,
+            @Nullable String[] callingPackageNames) {
+        this(localAuthority, cloudAuthority, intentAction, tableName);
+        mCallingPackageUid = callingPackageUid;
+        mCallingPackageNames = callingPackageNames;
     }
 
     /**
@@ -93,33 +112,39 @@ public class MediaProjection {
         switch (mediaResponseColumn) {
             case MEDIA_ID:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getMediaId(),
                         mediaResponseColumn.getProjectedName());
             case MEDIA_SOURCE:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getMediaSource(),
                         mediaResponseColumn.getProjectedName());
             case WRAPPED_URI:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getWrappedUri(mLocalAuthority, mCloudAuthority, mIntentAction),
                         mediaResponseColumn.getProjectedName());
             case AUTHORITY:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getAuthority(mLocalAuthority, mCloudAuthority),
                         mediaResponseColumn.getProjectedName());
             case UNWRAPPED_URI:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         getUnwrappedUri(mLocalAuthority, mCloudAuthority),
                         mediaResponseColumn.getProjectedName());
             case IS_PRE_GRANTED:
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
-                        getIsPregranted(mIntentAction),
+                        getIsPreGranted(mIntentAction),
                         mediaResponseColumn.getProjectedName());
             default:
                 if (mediaResponseColumn.getColumnName() == null) {
@@ -128,6 +153,7 @@ public class MediaProjection {
                     );
                 }
                 return String.format(
+                        Locale.ROOT,
                         DEFAULT_PROJECTION,
                         prependTableName(mTableName, mediaResponseColumn.getColumnName()),
                         mediaResponseColumn.getProjectedName());
@@ -137,6 +163,7 @@ public class MediaProjection {
 
     private String getMediaId() {
         return String.format(
+                Locale.ROOT,
                 "IFNULL(%s, %s)",
                 getCloudIdColumn(),
                 getLocalIdColumn()
@@ -145,6 +172,7 @@ public class MediaProjection {
 
     private String getMediaSource() {
         return String.format(
+                Locale.ROOT,
                 "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 getCloudIdColumn(),
                 MediaSource.LOCAL,
@@ -157,6 +185,7 @@ public class MediaProjection {
             @Nullable String cloudAuthority
     ) {
         return String.format(
+                Locale.ROOT,
                 "CASE WHEN %s IS NULL THEN '%s' ELSE '%s' END",
                 getCloudIdColumn(),
                 localAuthority,
@@ -172,6 +201,7 @@ public class MediaProjection {
         // The format is:
         // content://media/picker/<user-id>/<cloud-provider-authority>/media/<media-id>
         return String.format(
+                Locale.ROOT,
                 "'content://%s/%s/%s/' || %s || '/media/' || %s",
                 MediaStore.AUTHORITY,
                 getPickerSegmentFromIntentAction(intentAction),
@@ -188,6 +218,7 @@ public class MediaProjection {
         // The format is:
         // content://<cloud-provider-authority>/media/<media-id>
         return String.format(
+                Locale.ROOT,
                 "'content://%s@' || %s || '/media/' || %s",
                 MediaStore.MY_USER_ID,
                 getAuthority(localAuthority, cloudAuthority),
@@ -195,9 +226,32 @@ public class MediaProjection {
         );
     }
 
-    private String getIsPregranted(String intentAction) {
+    private String getIsPreGranted(String intentAction) {
         if (MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP.equals(intentAction)) {
-            return String.format("CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
+            if (isOwnedPhotosEnabled(mCallingPackageUid) && mCallingPackageNames != null) {
+                StringBuilder packageSelection =
+                        getPackageSelectionWhereClause(mCallingPackageNames, mTableName.name());
+                int userId = uidToUserId(mCallingPackageUid);
+
+                /*
+                 * sample query :
+                 * CASE
+                 * WHEN current_media_grants.file_id IS NOT NULL
+                 * OR (media.owner_package_name IN ('com.google.example') AND media._user_id = 0)
+                 * THEN 1 ELSE 0
+                 * END
+                 */
+                return String.format(Locale.ROOT,
+                        "CASE "
+                                + "WHEN %s.%s IS NOT NULL OR (%s AND %s = %d) "
+                                + "THEN 1 ELSE 0 "
+                                + "END",
+                        PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN,
+                        packageSelection, prependTableName(mTableName, PickerDbFacade.KEY_USER_ID),
+                        userId);
+            }
+            return String.format(
+                    Locale.ROOT, "CASE WHEN %s.%s IS NOT NULL THEN 1 ELSE 0 END",
                     PickerDataLayerV2.CURRENT_GRANTS_TABLE, MediaGrants.FILE_ID_COLUMN);
         } else {
             return "0"; // default case for other intent actions
@@ -222,7 +276,7 @@ public class MediaProjection {
         if (table == null) {
             return columnName;
         } else {
-            return String.format("%s.%s", table.name(), columnName);
+            return String.format(Locale.ROOT, "%s.%s", table.name(), columnName);
         }
     }
 }

@@ -408,19 +408,6 @@ class node {
     // Looks up for the node with the given ino rooted at |root|, or nullptr if no such node exists.
     static const node* LookupInode(const node* root, ino_t ino);
 
-    int GetBackingId() {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-        return backing_id_;
-    }
-
-    // A Node should only have one backing id.
-    bool SetBackingId(int new_id) {
-        std::lock_guard<std::recursive_mutex> guard(*lock_);
-        if (backing_id_) return false;
-        backing_id_ = new_id;
-        return true;
-    }
-
   private:
     node(node* parent, const std::string& name, const std::string& io_path,
          const bool transforms_complete, const int transforms, const int transforms_reason,
@@ -436,7 +423,6 @@ class node {
           deleted_(false),
           lock_(lock),
           ino_(ino),
-          backing_id_(0),
           tracker_(tracker) {
         tracker_->NodeCreated(this);
         Acquire();
@@ -587,8 +573,6 @@ class node {
     std::recursive_mutex* lock_;
     // Inode number of the file represented by this node.
     const ino_t ino_;
-    // Backing identifier for upstream passthrough
-    int backing_id_;
 
     NodeTracker* const tracker_;
 

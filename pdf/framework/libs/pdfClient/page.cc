@@ -59,7 +59,8 @@ Page::Page(FPDF_DOCUMENT doc, int page_num, FormFiller* form_filler)
     : document_(doc),
       page_(FPDF_LoadPage(doc, page_num)),
       form_filler_(form_filler),
-      invalid_rect_(kEmptyIntRectangle) {}
+      invalid_rect_(kEmptyIntRectangle),
+      page_num_(page_num) {}
 
 Page::Page(Page&& p) = default;
 
@@ -287,7 +288,12 @@ vector<GotoLink> Page::GetGotoLinks() const {
 
         // Get and parse the destination
         FPDF_DEST fpdf_dest = FPDFLink_GetDest(document_, link);
-        goto_link_dest->set_page_number(FPDFDest_GetDestPageIndex(document_, fpdf_dest));
+        int dest_page_index = FPDFDest_GetDestPageIndex(document_, fpdf_dest);
+        if (dest_page_index < 0) {
+            LOGE("Goto Link has invalid destination page index");
+            continue;
+        }
+        goto_link_dest->set_page_number(dest_page_index);
 
         FPDF_BOOL has_x_coord;
         FPDF_BOOL has_y_coord;
@@ -426,6 +432,75 @@ void* Page::page() {
     return page_.get();
 }
 
+std::vector<PageObject*> Page::GetPageObjects(bool refetch) {
+    PopulatePageObjects(refetch);
+
+    std::vector<PageObject*> page_objects;
+    for (const auto& page_object : page_objects_) {
+        page_objects.push_back(page_object.get());
+    }
+
+    return page_objects;
+}
+
+int Page::AddPageObject(std::unique_ptr<PageObject> pageObject) {
+    // Create a scoped PDFium page object.
+    ScopedFPDFPageObject scoped_page_object = pageObject->CreateFPDFInstance(document_);
+
+    // Check if a FPDF page object was created.
+    if (!scoped_page_object) {
+        return -1;
+    }
+
+    // Insert the FPDF page object into the FPDF page.
+    FPDFPage_InsertObject(page_.get(), scoped_page_object.release());
+    FPDFPage_GenerateContent(page_.get());
+
+    // Add pageObject in stored list if populated.
+    if (!page_objects_.empty()) {
+        page_objects_.push_back(std::move(pageObject));
+    }
+
+    return FPDFPage_CountObjects(page_.get()) - 1;
+}
+
+bool Page::RemovePageObject(int index) {
+    FPDF_PAGEOBJECT page_object = FPDFPage_GetObject(page_.get(), index);
+    // Remove FPDF PageObject
+    if (!FPDFPage_RemoveObject(page_.get(), page_object)) {
+        return false;
+    }
+
+    FPDFPageObj_Destroy(page_object);
+    FPDFPage_GenerateContent(page_.get());
+
+    // Remove pageObject from stored list if populated.
+    if (!page_objects_.empty()) {
+        page_objects_.erase(page_objects_.begin() + index);
+    }
+
+    return true;
+}
+
+bool Page::UpdatePageObject(int index, std::unique_ptr<PageObject> pageObject) {
+    // Check for valid index
+    if (index < 0 || index >= FPDFPage_CountObjects(page_.get())) {
+        return false;
+    }
+
+    // Get PDFium PageObject.
+    FPDF_PAGEOBJECT page_object = FPDFPage_GetObject(page_.get(), index);
+
+    // Update PDFium PageObject
+    if (!pageObject->UpdateFPDFInstance(page_object)) {
+        return false;
+    }
+
+    FPDFPage_GenerateContent(page_.get());
+
+    return true;
+}
+
 FPDF_TEXTPAGE Page::text_page() {
     EnsureTextPageInitialized();
     return text_page_.get();
@@ -445,7 +520,25 @@ void Page::EnsureTextPageInitialized() {
     if (text_page_) {
         return;
     }
+    if (!page_.get()) {
+        // Page should never be null but a partner has an unexplained bug b/376796346
+        LOGE("Null page (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+        // since the text_page_ would not have a page to load from
+        // Initialize variables to -1, otherwise they carry over garbage values.
+        first_printable_char_index_ = -1;
+        last_printable_char_index_ = -1;
+        return;
+    }
+
     text_page_.reset(FPDFText_LoadPage(page_.get()));
+    if (!text_page_) {
+        // This will get into infinite recursion if not returned - b/376796346
+        LOGE("Failed to load text (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+        // Initialize variables to -1, otherwise they carry over garbage values.
+        first_printable_char_index_ = -1;
+        last_printable_char_index_ = -1;
+        return;
+    }
 
     int num_chars = NumChars();
 
@@ -676,6 +769,42 @@ bool Page::IsGotoLink(FPDF_LINK link) const {
 bool Page::IsUrlLink(FPDF_LINK link) const {
     FPDF_ACTION action = FPDFLink_GetAction(link);
     return action != nullptr && FPDFAction_GetType(action) == PDFACTION_URI;
+}
+
+void Page::PopulatePageObjects(bool refetch) {
+    if (!refetch && !page_objects_.empty()) {
+        return;
+    }
+
+    int object_count = FPDFPage_CountObjects(page_.get());
+    // Resize PageObjects
+    page_objects_.resize(object_count);
+
+    for (int index = 0; index < object_count; ++index) {
+        FPDF_PAGEOBJECT page_object = FPDFPage_GetObject(page_.get(), index);
+        int type = FPDFPageObj_GetType(page_object);
+
+        // Pointer to PageObject
+        std::unique_ptr<PageObject> page_object_ = nullptr;
+
+        switch (type) {
+            case FPDF_PAGEOBJ_PATH: {
+                page_object_ = std::make_unique<PathObject>();
+                break;
+            }
+            case FPDF_PAGEOBJ_IMAGE: {
+                page_object_ = std::make_unique<ImageObject>();
+                break;
+            }
+            default:
+                break;
+        }
+
+        // Populate PageObject From Page
+        if (page_object_ && page_object_->PopulateFromFPDFInstance(page_object)) {
+            page_objects_[index] = std::move(page_object_);
+        }
+    }
 }
 
 }  // namespace pdfClient

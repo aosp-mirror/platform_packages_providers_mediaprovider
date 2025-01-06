@@ -21,6 +21,7 @@ import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.AVA
 import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.MEDIA_PATH_SEGMENT;
 import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.PICKER_INTERNAL_PATH_SEGMENT;
 import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.PICKER_V2_PATH_SEGMENT;
+import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.SEARCH_RESULT_MEDIA_PATH_SEGMENT;
 import static com.android.providers.media.photopicker.v2.PickerUriResolverV2.UPDATE_PATH_SEGMENT;
 
 import static java.util.Objects.requireNonNull;
@@ -69,6 +70,15 @@ public class PickerNotificationSender {
             .appendPath(PICKER_INTERNAL_PATH_SEGMENT)
             .appendPath(PICKER_V2_PATH_SEGMENT)
             .appendPath(ALBUM_PATH_SEGMENT)
+            .appendPath(UPDATE_PATH_SEGMENT)
+            .build();
+
+    private static final Uri SEARCH_RESULTS_UPDATE_URI = new Uri.Builder()
+            .scheme(ContentResolver.SCHEME_CONTENT)
+            .authority(MediaStore.AUTHORITY)
+            .appendPath(PICKER_INTERNAL_PATH_SEGMENT)
+            .appendPath(PICKER_V2_PATH_SEGMENT)
+            .appendPath(SEARCH_RESULT_MEDIA_PATH_SEGMENT)
             .appendPath(UPDATE_PATH_SEGMENT)
             .build();
 
@@ -126,6 +136,22 @@ public class PickerNotificationSender {
         }
     }
 
+    /**
+     * Send search results update notification to the registered
+     * {@link android.database.ContentObserver}-s.
+     * @param context The application context.
+     * @param searchRequestId Search request ID corresponding for which the search results
+     *                        have updated.
+     */
+    public static void notifySearchResultsChange(
+            @NonNull Context context,
+            @NonNull int searchRequestId) {
+        Log.d(TAG, "Sending a notification for search results update " + searchRequestId);
+        context.getContentResolver().notifyChange(
+                getSearchResultsUpdateUri(searchRequestId),
+                /* observer= */ null);
+    }
+
     private static Uri getAlbumMediaUpdateUri(
             @NonNull String albumAuthority,
             @NonNull String albumId) {
@@ -133,6 +159,13 @@ public class PickerNotificationSender {
                 .buildUpon()
                 .appendPath(requireNonNull(albumAuthority))
                 .appendPath(requireNonNull(albumId))
+                .build();
+    }
+
+    private static Uri getSearchResultsUpdateUri(@NonNull int searchRequestId) {
+        return SEARCH_RESULTS_UPDATE_URI
+                .buildUpon()
+                .appendPath(Integer.toString(searchRequestId))
                 .build();
     }
 }

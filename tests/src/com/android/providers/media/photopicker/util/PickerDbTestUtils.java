@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.util;
 
+import static android.provider.CloudMediaProviderContract.SEARCH_SUGGESTION_ALBUM;
+
 import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -62,6 +64,7 @@ public class PickerDbTestUtils {
     public static final int STANDARD_MIME_TYPE_EXTENSION =
             CloudMediaProviderContract.MediaColumns.STANDARD_MIME_TYPE_EXTENSION_GIF;
     public static final String TEST_PACKAGE_NAME = "com.test.package";
+    public static final String TEST_DIFFERENT_PACKAGE_NAME = "com.test.different.package";
 
     public static final String LOCAL_PROVIDER = "com.local.provider";
     public static final String CLOUD_PROVIDER = "com.cloud.provider";
@@ -312,6 +315,52 @@ public class PickerDbTestUtils {
                 SIZE_BYTES, mimeType, STANDARD_MIME_TYPE_EXTENSION, isFavorite);
     }
 
+    public static Cursor getSuggestionCursor(String mediaSetId) {
+        String[] projectionKey = new String[]{
+                CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_SET_ID,
+                CloudMediaProviderContract.SearchSuggestionColumns.DISPLAY_TEXT,
+                CloudMediaProviderContract.SearchSuggestionColumns.TYPE,
+                CloudMediaProviderContract.SearchSuggestionColumns.MEDIA_COVER_ID,
+        };
+
+        String[] projectionValue = new String[]{
+                mediaSetId,
+                "display_text",
+                SEARCH_SUGGESTION_ALBUM,
+                CLOUD_ID_1,
+        };
+
+        MatrixCursor c = new MatrixCursor(projectionKey);
+        c.addRow(projectionValue);
+        return c;
+    }
+
+    public static Cursor getMediaCategoriesCursor(String categoryId) {
+        String[] projectionKey = new String[]{
+                CloudMediaProviderContract.MediaCategoryColumns.ID,
+                CloudMediaProviderContract.MediaCategoryColumns.DISPLAY_NAME,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_CATEGORY_TYPE,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID1,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID2,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID3,
+                CloudMediaProviderContract.MediaCategoryColumns.MEDIA_COVER_ID4,
+        };
+
+        String[] projectionValue = new String[]{
+                categoryId,
+                "display_text",
+                CloudMediaProviderContract.MEDIA_CATEGORY_TYPE_PEOPLE_AND_PETS,
+                CLOUD_ID_1,
+                CLOUD_ID_2,
+                /* MEDIA_COVER_ID3 */ null,
+                /* MEDIA_COVER_ID4 */ null
+        };
+
+        MatrixCursor c = new MatrixCursor(
+                CloudMediaProviderContract.MediaCategoryColumns.ALL_PROJECTION);
+        c.addRow(projectionValue);
+        return c;
+    }
     public static String toMediaStoreUri(String localId) {
         if (localId == null) {
             return null;
@@ -324,8 +373,8 @@ public class PickerDbTestUtils {
     }
 
     public static String getData(String authority, String displayName, String pickerSegmentType) {
-        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/0/" + authority + "/media/"
-                + displayName;
+        return "/sdcard/.transforms/synthetic/" + pickerSegmentType + "/" + UserHandle.myUserId()
+                + "/" + authority + "/media/" + displayName;
     }
 
     public static void assertCloudAlbumCursor(Cursor cursor, String albumId, String displayName,

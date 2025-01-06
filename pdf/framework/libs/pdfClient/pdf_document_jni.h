@@ -109,6 +109,18 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_setFormFiel
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint annotationIndex,
         jintArray jSelectedIndices);
 
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_addPageObject(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jPageObject);
+
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageObjects(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum);
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_removePageObject(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index);
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_updatePageObject(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index, jobject jPageObject);
+
 #ifdef __cplusplus
 }
 #endif

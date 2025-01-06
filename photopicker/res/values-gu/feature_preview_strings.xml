@@ -17,9 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_select_button_label" msgid="658102027531907034">"તમામ <xliff:g id="COUNT">(%1$s)</xliff:g> પસંદ કરો"</string>
+    <string name="photopicker_select_button_label" msgid="8663207309796656185">"તમામ (<xliff:g id="COUNT">%1$s</xliff:g>) પસંદ કરો"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"પસંદ કરો"</string>
-    <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"તમામ <xliff:g id="COUNT">(%1$s)</xliff:g> નાપસંદ કરો"</string>
+    <string name="photopicker_deselect_button_label" msgid="4730476375060939835">"તમામ (<xliff:g id="COUNT">%1$s</xliff:g>) નાપસંદ કરો"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"પ્રીવ્યૂ કરો"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"વીડિયો ચલાવવામાં સમસ્યા આવી"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"તમારું ઇન્ટરનેટ કનેક્શન ચેક કરો અને ફરી પ્રયાસ કરો"</string>
@@ -29,4 +29,5 @@
     <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"થોભાવો"</string>
     <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"વૉલ્યૂમ મ્યૂટ કરો"</string>
     <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"વૉલ્યૂમ અનમ્યૂટ કરો"</string>
+    <string name="pohtopicker_horizontal_pager_description" msgid="7701816075322699545">"<xliff:g id="TOTAL_PAGES">%2$s</xliff:g>માંથી પેજ <xliff:g id="PAGE_NUMBER">%1$s</xliff:g>"</string>
 </resources>

@@ -22,13 +22,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.UserManager
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_CAMERA
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_FAVORITES
 import android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_VIDEOS
 import android.provider.MediaStore
 import android.test.mock.MockContentResolver
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -38,6 +41,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import androidx.test.filters.SdkSuppress
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -63,9 +67,10 @@ import com.android.photopicker.data.paging.FakeInMemoryAlbumPagingSource.Compani
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
+import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -99,6 +104,7 @@ import org.mockito.MockitoAnnotations
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
@@ -106,6 +112,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
+    @get:Rule(order = 3) var setFlagsRule = SetFlagsRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -166,7 +173,8 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testAlbumGridIsAlwaysEnabled() {
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testAlbumGridIsEnabledWhenSearchFlagOff() {
         assertWithMessage("AlbumGridFeature is not always enabled for TEST_ACTION")
             .that(
                 AlbumGridFeature.Registration.isEnabled(
@@ -216,6 +224,58 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testAlbumGridIsDisabledWhenSearchFlagOn() {
+        assertWithMessage("AlbumGridFeature is enabled for TEST_ACTION")
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action("TEST_ACTION")
+                        intent(Intent("TEST_ACTION"))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("AlbumGridFeature is always enabled")
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_PICK_IMAGES)
+                        intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("AlbumGridFeature is always enabled")
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(Intent.ACTION_GET_CONTENT)
+                        intent(Intent(Intent.ACTION_GET_CONTENT))
+                    }
+                )
+            )
+            .isEqualTo(false)
+
+        assertWithMessage("AlbumGridFeature is always enabled")
+            .that(
+                AlbumGridFeature.Registration.isEnabled(
+                    TestPhotopickerConfiguration.build {
+                        action(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP)
+                        intent(Intent(MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP))
+                        callingPackage("com.example.test")
+                        callingPackageUid(1234)
+                        callingPackageLabel("test_app")
+                    }
+                )
+            )
+            .isEqualTo(false)
+    }
+
+    @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testNavigateAlbumGridAndAlbumsAreVisible() =
         testScope.runTest {
             composeTestRule.setContent {
@@ -250,6 +310,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testAlbumsCanBeSelected() =
         testScope.runTest {
             composeTestRule.setContent {
@@ -294,6 +355,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testSwipeLeftToNavigateToPhotoGrid() =
         testScope.runTest {
             composeTestRule.setContent {
@@ -329,6 +391,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
         }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testAlbumMediaShowsEmptyStateWhenEmpty() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -389,6 +452,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForFavorites() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -470,6 +534,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForVideos() {
 
         val testDataService = dataService as? TestDataServiceImpl
@@ -546,6 +611,7 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     fun testEmptyStateContentForCamera() {
 
         val testDataService = dataService as? TestDataServiceImpl

@@ -39,8 +39,12 @@ import com.android.photopicker.core.selection.SelectionStrategy
 import com.android.photopicker.core.selection.SelectionStrategy.Companion.determineSelectionStrategy
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
+import com.android.photopicker.data.MediaProviderClient
+import com.android.photopicker.data.PrefetchDataService
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
 import dagger.Module
 import dagger.Provides
@@ -48,6 +52,7 @@ import dagger.hilt.migration.DisableInstallInCheck
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.mockito.Mockito.mock
 
@@ -82,7 +87,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
     @Provides
     fun provideEmbeddedLifecycle(
         viewModelFactory: EmbeddedViewModelFactory,
-        @Main dispatcher: CoroutineDispatcher
+        @Main dispatcher: CoroutineDispatcher,
     ): EmbeddedLifecycle {
         // Force Lifecycle to be created on the MainDispatcher
         val embeddedLifecycle = runBlocking(dispatcher) { EmbeddedLifecycle(viewModelFactory) }
@@ -99,6 +104,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
         selection: Lazy<Selection<Media>>,
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
+        searchDataService: Lazy<SearchDataService>,
         events: Lazy<Events>,
     ): EmbeddedViewModelFactory {
         val embeddedViewModelFactory =
@@ -107,6 +113,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
                 configurationManager,
                 bannerManager,
                 dataService,
+                searchDataService,
                 events,
                 featureManager,
                 selection,
@@ -144,7 +151,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
     fun createConfigurationManager(
         @Background scope: CoroutineScope,
         @Background dispatcher: CoroutineDispatcher,
-        deviceConfigProxy: DeviceConfigProxy
+        deviceConfigProxy: DeviceConfigProxy,
     ): ConfigurationManager {
 
         return ConfigurationManager(
@@ -152,7 +159,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
             scope,
             dispatcher,
             deviceConfigProxy,
-            generatePickerSessionId()
+            generatePickerSessionId(),
         )
     }
 
@@ -189,7 +196,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
             configurationManager.configuration,
             scope,
             dispatcher,
-            userHandle
+            userHandle,
         )
     }
 
@@ -204,7 +211,7 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
     fun createEvents(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
-        featureManager: FeatureManager
+        featureManager: FeatureManager,
     ): Events {
         return Events(scope = scope, configurationManager.configuration, featureManager)
     }
@@ -214,32 +221,47 @@ abstract class PhotopickerTestModule(val options: TestOptions = TestOptions.Buil
     fun createFeatureManager(
         @Background scope: CoroutineScope,
         configurationManager: ConfigurationManager,
+        prefetchDataService: PrefetchDataService,
     ): FeatureManager {
         return FeatureManager(
             configuration = configurationManager.configuration,
             scope = scope,
+            prefetchDataService = prefetchDataService,
             registeredFeatures = options.registeredFeatures,
+            dispatcher = Dispatchers.Main.immediate,
         )
+    }
+
+    @Singleton
+    @Provides
+    fun createMediaProviderClient(): MediaProviderClient {
+        return MediaProviderClient()
+    }
+
+    @Singleton
+    @Provides
+    fun createPrefetchDataService(): PrefetchDataService {
+        return TestPrefetchDataService()
     }
 
     @Singleton
     @Provides
     fun createSelection(
         @Background scope: CoroutineScope,
-        configurationManager: ConfigurationManager
+        configurationManager: ConfigurationManager,
     ): Selection<Media> {
         return when (determineSelectionStrategy(configurationManager.configuration.value)) {
             SelectionStrategy.GRANTS_AWARE_SELECTION ->
                 GrantsAwareSelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
-                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount
+                    preGrantedItemsCount = TestDataServiceImpl().preGrantedMediaCount,
                 )
             SelectionStrategy.DEFAULT ->
                 SelectionImpl(
                     scope = scope,
                     configuration = configurationManager.configuration,
-                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData
+                    preSelectedMedia = TestDataServiceImpl().preSelectionMediaData,
                 )
         }
     }

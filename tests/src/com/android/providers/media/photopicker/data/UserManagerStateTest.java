@@ -42,7 +42,7 @@ import java.util.List;
 
 @SdkSuppress(minSdkVersion = 31, codeName = "S")
 public class UserManagerStateTest {
-    private final UserHandle mPersonalUser = UserHandle.SYSTEM;
+    private final UserHandle mPersonalUser = UserHandle.of(UserHandle.myUserId());
     private final UserHandle mManagedUser = UserHandle.of(100); // like a managed profile
     private final UserHandle mOtherUser1 = UserHandle.of(101); // like a private profile
     private final UserHandle mOtherUser2 = UserHandle.of(102); // like a clone profile

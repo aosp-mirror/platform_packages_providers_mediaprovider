@@ -65,6 +65,11 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
         }
     }
 
+    /** Provide a timestamp for ordering this Media item within a list of other Media items. */
+    fun getTimestamp(): Long {
+        return dateTakenMillisLong
+    }
+
     override fun getSignature(resolution: Resolution): ObjectKey {
         return ObjectKey("${mediaUri}_$resolution")
     }
@@ -78,10 +83,6 @@ sealed interface Media : GlideLoadable, Grantable, Parcelable, Selectable {
             MediaSource.LOCAL -> DataSource.LOCAL
             MediaSource.REMOTE -> DataSource.REMOTE
         }
-    }
-
-    override fun getTimestamp(): Long {
-        return dateTakenMillisLong
     }
 
     /** Implemented for [Parcelable], but always returns 0 since Media is never a FileDescriptor. */

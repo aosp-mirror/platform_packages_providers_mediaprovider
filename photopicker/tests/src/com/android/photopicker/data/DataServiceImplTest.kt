@@ -46,9 +46,9 @@ import com.android.photopicker.data.model.MediaPageKey
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.cloudmedia.CloudMediaFeature
-import com.android.photopicker.tests.utils.mockito.nonNullableAny
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.nonNullableAny
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,8 +75,6 @@ import org.mockito.Mockito.verify
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class DataServiceImplTest {
-
-    val testSessionId = generatePickerSessionId()
 
     companion object {
         private fun createUserHandle(userId: Int = 0): UserHandle {
@@ -133,6 +131,7 @@ class DataServiceImplTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -190,7 +189,7 @@ class DataServiceImplTest {
                     defaultConfiguration =
                         PhotopickerConfiguration(
                             action = "TEST_ACTION",
-                            sessionId = testSessionId,
+                            sessionId = sessionId,
                             flags =
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
@@ -199,6 +198,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -217,7 +217,7 @@ class DataServiceImplTest {
                         defaultConfiguration =
                             PhotopickerConfiguration(
                                 action = "TEST_ACTION",
-                                sessionId = testSessionId,
+                                sessionId = sessionId,
                                 flags =
                                     PhotopickerFlags(
                                         CLOUD_MEDIA_ENABLED = true,
@@ -295,6 +295,7 @@ class DataServiceImplTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 setOf(), // Don't register CloudMediaFeature
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -355,7 +356,7 @@ class DataServiceImplTest {
                     defaultConfiguration =
                         PhotopickerConfiguration(
                             action = "TEST_ACTION",
-                            sessionId = testSessionId,
+                            sessionId = sessionId,
                             flags =
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
@@ -364,6 +365,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -381,7 +383,7 @@ class DataServiceImplTest {
                         this.backgroundScope,
                         PhotopickerConfiguration(
                             action = "TEST_ACTION",
-                            sessionId = testSessionId,
+                            sessionId = sessionId,
                             flags =
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
@@ -1048,7 +1050,7 @@ class DataServiceImplTest {
                     defaultConfiguration =
                         PhotopickerConfiguration(
                             action = "TEST_ACTION",
-                            sessionId = testSessionId,
+                            sessionId = sessionId,
                             flags =
                                 PhotopickerFlags(
                                     CLOUD_MEDIA_ENABLED = true,
@@ -1057,6 +1059,7 @@ class DataServiceImplTest {
                         ),
                 ),
                 this.backgroundScope,
+                TestPrefetchDataService(),
                 setOf(CloudMediaFeature.Registration),
                 setOf<RegisteredEventClass>(),
                 setOf<RegisteredEventClass>(),
@@ -1075,7 +1078,7 @@ class DataServiceImplTest {
                         defaultConfiguration =
                             PhotopickerConfiguration(
                                 action = "TEST_ACTION",
-                                sessionId = testSessionId,
+                                sessionId = sessionId,
                                 flags =
                                     PhotopickerFlags(
                                         CLOUD_MEDIA_ENABLED = true,

@@ -53,7 +53,6 @@ import android.provider.MediaStore;
 
 import androidx.test.InstrumentationRegistry;
 
-import com.android.providers.media.TestConfigStore;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.SearchState;
 import com.android.providers.media.photopicker.data.PickerDatabaseHelper;
@@ -74,6 +73,8 @@ import java.util.List;
 public class SearchResultsDatabaseUtilTest {
     @Mock
     private PickerSyncController mMockSyncController;
+    @Mock
+    private SearchState mSearchState;
     private SQLiteDatabase mDatabase;
     private Context mContext;
     private PickerDbFacade mFacade;
@@ -90,15 +91,13 @@ public class SearchResultsDatabaseUtilTest {
         mFacade = new PickerDbFacade(mContext, new PickerSyncLockManager(), LOCAL_PROVIDER);
         mFacade.setCloudProvider(CLOUD_PROVIDER);
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.setIsSearchFeatureEnabled(true);
-        final SearchState searchState = new SearchState(configStore);
-
         doReturn(LOCAL_PROVIDER).when(mMockSyncController).getLocalProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProvider();
         doReturn(CLOUD_PROVIDER).when(mMockSyncController).getCloudProviderOrDefault(any());
         doReturn(mFacade).when(mMockSyncController).getDbFacade();
-        doReturn(searchState).when(mMockSyncController).getSearchState();
+        doReturn(mSearchState).when(mMockSyncController).getSearchState();
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any());
+        doReturn(true).when(mSearchState).isCloudSearchEnabled(any(), any());
         doReturn(new PickerSyncLockManager()).when(mMockSyncController).getPickerSyncLockManager();
     }
 
@@ -125,7 +124,8 @@ public class SearchResultsDatabaseUtilTest {
 
         final long cloudRowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, CLOUD_PROVIDER, List.of(
-                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1)));
+                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1)),
+                /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -133,7 +133,8 @@ public class SearchResultsDatabaseUtilTest {
 
         final long localRowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, LOCAL_PROVIDER, List.of(
-                        getContentValues(LOCAL_ID_1, null, searchRequestId1)));
+                        getContentValues(LOCAL_ID_1, null, searchRequestId1)),
+                /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(localRowsInsertedCount)
@@ -189,7 +190,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -253,7 +254,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId3),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId2),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -307,7 +308,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -316,7 +317,7 @@ public class SearchResultsDatabaseUtilTest {
         final long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, LOCAL_PROVIDER, List.of(
                         getContentValues(LOCAL_ID_4, null, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -388,7 +389,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -397,7 +398,7 @@ public class SearchResultsDatabaseUtilTest {
         final long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, LOCAL_PROVIDER, List.of(
                         getContentValues(LOCAL_ID_4, null, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -465,7 +466,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -474,7 +475,7 @@ public class SearchResultsDatabaseUtilTest {
         final long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, LOCAL_PROVIDER, List.of(
                         getContentValues(LOCAL_ID_4, null, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -533,7 +534,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(null, CLOUD_ID_3, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(cloudRowsInsertedCount)
@@ -542,7 +543,7 @@ public class SearchResultsDatabaseUtilTest {
         final long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, LOCAL_PROVIDER, List.of(
                         getContentValues(LOCAL_ID_4, null, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -596,7 +597,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_1, CLOUD_ID_1, searchRequestId1),
                         getContentValues(LOCAL_ID_4, null, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -658,11 +659,11 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(LOCAL_ID_1, null, searchRequestId2),
                         getContentValues(LOCAL_ID_2, null, searchRequestId2),
                         getContentValues(LOCAL_ID_2, null, searchRequestId2)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
-                .isEqualTo(3);
+                .isEqualTo(4);
 
         final Bundle extras = new Bundle();
         extras.putInt("page_size", 100);
@@ -735,7 +736,7 @@ public class SearchResultsDatabaseUtilTest {
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId2),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
                         getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1)
-                ));
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -805,12 +806,15 @@ public class SearchResultsDatabaseUtilTest {
         final int searchRequestId1 = 1;
 
         // Batch insert items in the search results table.
-        final long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
+        long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, LOCAL_PROVIDER, List.of(
+                        getContentValues(LOCAL_ID_2, null, searchRequestId1)
+                ), /* cancellationSignal */ null);
+        rowsInsertedCount += SearchResultsDatabaseUtil.cacheSearchResults(
                 mDatabase, CLOUD_PROVIDER, List.of(
                         getContentValues(null, CLOUD_ID_1, searchRequestId1),
-                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1),
-                        getContentValues(LOCAL_ID_2, null, searchRequestId1)
-                ));
+                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1)
+                ), /* cancellationSignal */ null);
 
         assertWithMessage("Unexpected number of rows inserted in the search results table")
                 .that(rowsInsertedCount)
@@ -844,6 +848,145 @@ public class SearchResultsDatabaseUtilTest {
                     .that(cursor.getString(cursor.getColumnIndexOrThrow(
                             PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
                     .isEqualTo(CLOUD_ID_1);
+        }
+    }
+
+    @Test
+    public void testClearObsoleteSearchResults() {
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        final Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, null, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        final Cursor cursor2 = getLocalMediaCursor(LOCAL_ID_2, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+        final Cursor cursor3 = getCloudMediaCursor(CLOUD_ID_2, LOCAL_ID_2, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor3, 1);
+
+        final int searchRequestId1 = 1;
+        // Batch insert items in the search results table.
+        long rowsInsertedCount = SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, LOCAL_PROVIDER, List.of(
+                        getContentValues(LOCAL_ID_2, null, searchRequestId1)
+                ), /* cancellationSignal */ null);
+        rowsInsertedCount += SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, CLOUD_PROVIDER, List.of(
+                        getContentValues(null, CLOUD_ID_1, searchRequestId1),
+                        getContentValues(LOCAL_ID_2, CLOUD_ID_2, searchRequestId1)
+                ), /* cancellationSignal */ null);
+
+        assertWithMessage("Unexpected number of rows inserted in the search results table")
+                .that(rowsInsertedCount)
+                .isEqualTo(2);
+
+        final Bundle extras = new Bundle();
+        extras.putInt("page_size", 100);
+        extras.putStringArrayList("providers",
+                new ArrayList<>(List.of(LOCAL_PROVIDER, CLOUD_PROVIDER)));
+        extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
+
+        // Query items for searchRequestId
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(2);
+        }
+
+        // Clear search results received from the cloud provider.
+        SearchResultsDatabaseUtil.clearObsoleteSearchResults(mDatabase, List.of(searchRequestId1),
+                /* isLocal */ false);
+
+        // Verify cloud results have been cleared
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(1);
+
+            cursor.moveToFirst();
+            assertWithMessage("Media ID is not as expected in the search results")
+                    .that(cursor.getString(cursor.getColumnIndexOrThrow(
+                            PickerSQLConstants.MediaResponse.MEDIA_ID.getProjectedName())))
+                    .isEqualTo(LOCAL_ID_2);
+        }
+
+        // Clear search results received from the local provider.
+        SearchResultsDatabaseUtil.clearObsoleteSearchResults(mDatabase, List.of(searchRequestId1),
+                /* isLocal */ true);
+
+        // Verify cloud results have been cleared
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testClearAllSearchResults() {
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any());
+        doReturn(true).when(mMockSyncController).shouldQueryCloudMedia(any(), any());
+
+        final Cursor cursor1 = getCloudMediaCursor(CLOUD_ID_1, null, 0);
+        assertAddMediaOperation(mFacade, CLOUD_PROVIDER, cursor1, 1);
+        final Cursor cursor2 = getLocalMediaCursor(LOCAL_ID_1, 0);
+        assertAddMediaOperation(mFacade, LOCAL_PROVIDER, cursor2, 1);
+
+        final int searchRequestId1 = 1;
+        SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, LOCAL_PROVIDER, List.of(
+                        getContentValues(LOCAL_ID_1, null, searchRequestId1)
+                ), /* cancellationSignal */ null);
+        SearchResultsDatabaseUtil.cacheSearchResults(
+                mDatabase, CLOUD_PROVIDER, List.of(
+                        getContentValues(null, CLOUD_ID_1, searchRequestId1)
+                ), /* cancellationSignal */ null);
+
+        final Bundle extras = new Bundle();
+        extras.putInt("page_size", 100);
+        extras.putStringArrayList("providers",
+                new ArrayList<>(List.of(LOCAL_PROVIDER, CLOUD_PROVIDER)));
+        extras.putString("intent_action", MediaStore.ACTION_PICK_IMAGES);
+
+        // Query items for searchRequestId
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(2);
+        }
+
+        // Clear all search results
+        SearchResultsDatabaseUtil.clearAllSearchResults(mDatabase);
+
+        // Query items for searchRequestId
+        try (Cursor cursor =
+                     PickerDataLayerV2.querySearchMedia(mContext, extras, searchRequestId1)) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursor)
+                    .isNotNull();
+
+            assertWithMessage("Cursor count is not as expected")
+                    .that(cursor.getCount())
+                    .isEqualTo(0);
         }
     }
 

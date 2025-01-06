@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2.sqlite;
 
+import static com.android.providers.media.MediaProvider.isOwnedPhotosEnabled;
+import static com.android.providers.media.photopicker.PickerSyncController.getPackageNameFromUid;
 import static com.android.providers.media.photopicker.v2.PickerDataLayerV2.getDefaultEmptyAlbum;
 import static com.android.providers.media.photopicker.v2.sqlite.MediaProjection.prependTableName;
 
@@ -133,12 +135,16 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " media metadata");
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
@@ -226,14 +232,18 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
 
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
                         + query.getAlbumId());
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
 
 
@@ -383,14 +393,18 @@ public class PickerMediaDatabaseUtil {
                     addItemsBeforeCountKey(extraArgs, itemsBeforeCountCursor);
                 }
 
-                database.setTransactionSuccessful();
+                if (database.inTransaction()) {
+                    database.setTransactionSuccessful();
+                }
 
                 pageData.setExtras(extraArgs);
                 Log.i(TAG, "Returning " + pageData.getCount() + " album media items for album "
                         + albumId);
                 return pageData;
             } finally {
-                database.endTransaction();
+                if (database.inTransaction()) {
+                    database.endTransaction();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Could not fetch media", e);
@@ -492,8 +506,10 @@ public class PickerMediaDatabaseUtil {
 
             return null;
         } finally {
-            database.setTransactionSuccessful();
-            database.endTransaction();
+            if (database.inTransaction()) {
+                database.setTransactionSuccessful();
+                database.endTransaction();
+            }
         }
     }
 
@@ -507,11 +523,21 @@ public class PickerMediaDatabaseUtil {
             @NonNull PickerSQLConstants.Table table,
             @Nullable String localAuthority,
             @Nullable String cloudAuthority) {
+        int callingPackageUid = query.getCallingPackageUid();
+        String[] packageNames = null;
+
+        if (callingPackageUid != -1 && isOwnedPhotosEnabled(callingPackageUid) && appContext != null
+                && appContext.getPackageManager() != null) {
+            packageNames = getPackageNameFromUid(appContext, callingPackageUid);
+        }
+
         final MediaProjection projectionUtil = new MediaProjection(
                 localAuthority,
                 cloudAuthority,
                 query.getIntentAction(),
-                table
+                table,
+                callingPackageUid,
+                packageNames
         );
 
         SelectSQLiteQueryBuilder queryBuilder = new SelectSQLiteQueryBuilder(database)

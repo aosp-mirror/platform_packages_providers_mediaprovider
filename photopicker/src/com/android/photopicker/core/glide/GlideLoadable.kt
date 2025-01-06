@@ -62,9 +62,4 @@ interface GlideLoadable {
     fun getMimeTypeForGlide(): String {
         return DEFAULT_IMAGE_MIME_TYPE
     }
-
-    /**
-     * Provide a timestamp for ordering this GlideLoadable within a list of other GlideLoadables.
-     */
-    fun getTimestamp(): Long
 }

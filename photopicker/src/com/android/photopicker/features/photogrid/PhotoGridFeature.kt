@@ -36,9 +36,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.Route
+import kotlinx.coroutines.Deferred
 
 /**
  * Feature class for the Photopicker's primary photo grid.
@@ -49,7 +51,10 @@ class PhotoGridFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPhotoGridFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = PhotoGridFeature()
     }
@@ -64,7 +69,7 @@ class PhotoGridFeature : PhotopickerUiFeature {
         setOf(Event.ShowSnackbarMessage::class.java, Event.LogPhotopickerUIEvent::class.java)
 
     override fun registerLocations(): List<Pair<Location, Int>> {
-        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGH.priority))
+        return listOf(Pair(Location.NAVIGATION_BAR_NAV_BUTTON, Priority.HIGHEST.priority))
     }
 
     override fun registerNavigationRoutes(): Set<Route> {

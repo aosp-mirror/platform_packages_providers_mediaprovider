@@ -25,10 +25,12 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import android.content.Context;
+import android.os.Build;
 import android.platform.test.annotations.DisableFlags;
 import android.platform.test.annotations.EnableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
 
+import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.android.providers.media.TestConfigStore;
@@ -42,10 +44,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 
+// SetFlagsRule.ClassRule is not available in lower Android versions and Search feature will only
+// be enabled for Android T+ devices.
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 public class SearchStateTest {
     @Mock
     private PickerSyncController mMockSyncController;
     private Context mContext;
+    private TestConfigStore mConfigStore;
+
 
     @ClassRule
     public static final SetFlagsRule.ClassRule mSetFlagsClassRule = new SetFlagsRule.ClassRule();
@@ -58,53 +65,56 @@ public class SearchStateTest {
         Assume.assumeTrue(isHardwareSupportedForSearch());
         PickerSyncController.setInstance(mMockSyncController);
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        mConfigStore = new TestConfigStore();
+        mConfigStore.setIsModernPickerEnabled(true);
     }
 
+    @EnableFlags({
+            Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH,
+            Flags.FLAG_ENABLE_CLOUD_MEDIA_PROVIDER_CAPABILITIES
+    })
     @DisableFlags(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
     @Test
     public void testSearchAPIFlagIsDisabled() {
         doReturn(SearchProvider.AUTHORITY)
                 .when(mMockSyncController).getCloudProviderOrDefault(any());
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.setIsSearchFeatureEnabled(true);
-
-        final SearchState searchState = new SearchState(configStore);
-
+        final SearchState searchState = new SearchState(mConfigStore);
         final boolean isCloudSearchEnabled = searchState.isCloudSearchEnabled(mContext);
 
         assertThat(isCloudSearchEnabled).isFalse();
     }
 
-    @EnableFlags(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @EnableFlags({
+            Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH,
+            Flags.FLAG_ENABLE_CLOUD_MEDIA_PROVIDER_CAPABILITIES
+    })
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
     @Test
     public void testSearchFeatureFlagIsDisabled() {
         doReturn(SearchProvider.AUTHORITY)
                 .when(mMockSyncController).getCloudProviderOrDefault(any());
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.setIsSearchFeatureEnabled(false);
-
-        final SearchState searchState = new SearchState(configStore);
-
+        final SearchState searchState = new SearchState(mConfigStore);
         final boolean isCloudSearchEnabled = searchState.isCloudSearchEnabled(mContext);
 
         assertThat(isCloudSearchEnabled).isFalse();
     }
 
-    @EnableFlags(Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH)
+    @EnableFlags({
+            Flags.FLAG_CLOUD_MEDIA_PROVIDER_SEARCH,
+            Flags.FLAG_ENABLE_CLOUD_MEDIA_PROVIDER_CAPABILITIES,
+            Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH
+    })
     @Test
-    public void testCloudSearchIsEnabled() {
+    public void testProviderCloudSearchIsEnabled() {
         doReturn(SearchProvider.AUTHORITY)
                 .when(mMockSyncController).getCloudProviderOrDefault(any());
 
-        final TestConfigStore configStore = new TestConfigStore();
-        configStore.setIsSearchFeatureEnabled(true);
-
-        final SearchState searchState = new SearchState(configStore);
-
-        final boolean isCloudSearchEnabled = searchState.isCloudSearchEnabled(mContext);
-
-        assertThat(isCloudSearchEnabled).isTrue();
+        final SearchState searchState = new SearchState(mConfigStore);
+        assertThat(searchState.isCloudSearchEnabled(mContext)).isTrue();
+        assertThat(searchState.isCloudSearchEnabled(mContext, SearchProvider.AUTHORITY)).isTrue();
+        assertThat(searchState.isCloudSearchEnabled(mContext, "random")).isFalse();
     }
 }

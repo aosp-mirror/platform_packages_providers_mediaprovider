@@ -45,6 +45,7 @@ import org.junit.runner.RunWith;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Locale;
 
 @RunWith(AndroidJUnit4.class)
 public class ItemTest {
@@ -62,7 +63,7 @@ public class ItemTest {
         final String mimeType = "image/png";
         final long duration = 1000;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, _SPECIAL_FORMAT_NONE);
+                duration, _SPECIAL_FORMAT_NONE, UserHandle.USER_CURRENT);
         cursor.moveToFirst();
 
         final Item item = new Item(cursor, UserId.CURRENT_USER);
@@ -88,10 +89,12 @@ public class ItemTest {
         final long generationModified = 1L;
         final String mimeType = "image/png";
         final long duration = 1000;
+        // Some userId other than current user, hence adding 10 to the current user.
+        final int testUser = UserHandle.USER_CURRENT + 10;
         final Cursor cursor = generateCursorForItem(id, mimeType, dateTaken, generationModified,
-                duration, _SPECIAL_FORMAT_NONE);
+                duration, _SPECIAL_FORMAT_NONE, testUser);
         cursor.moveToFirst();
-        final UserId userId = UserId.of(UserHandle.of(10));
+        final UserId userId = UserId.of(UserHandle.of(testUser));
 
         final Item item = new Item(cursor, userId);
 
@@ -101,7 +104,10 @@ public class ItemTest {
         assertThat(item.getMimeType()).isEqualTo(mimeType);
         assertThat(item.getDuration()).isEqualTo(duration);
         assertThat(item.getContentUri()).isEqualTo(
-                Uri.parse("content://10@com.android.providers.media.photopicker/media/1"));
+                Uri.parse(String.format(
+                        Locale.ROOT,
+                        "content://%d@com.android.providers.media.photopicker/media/1",
+                        testUser)));
 
         assertThat(item.isImage()).isTrue();
 
@@ -306,7 +312,7 @@ public class ItemTest {
     }
 
     private static Cursor generateCursorForItem(String id, String mimeType, long dateTaken,
-            long generationModified, long duration, int specialFormat) {
+            long generationModified, long duration, int specialFormat, int userId) {
         final MatrixCursor cursor = new MatrixCursor(MediaColumns.ALL_PROJECTION);
         cursor.addRow(new Object[] {
                 id,
@@ -322,7 +328,9 @@ public class ItemTest {
                 500, // height
                 0, // orientation
                 "/storage/emulated/0/foo", // data
-                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY,
+                null, //owner_package_name
+                userId
                 }
         );
         return cursor;

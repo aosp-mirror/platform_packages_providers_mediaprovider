@@ -58,6 +58,7 @@ import com.android.providers.media.photopicker.sync.CloseableReentrantLock;
 import com.android.providers.media.photopicker.sync.PickerSyncLockManager;
 import com.android.providers.media.photopicker.sync.SyncTrackerRegistry;
 import com.android.providers.media.photopicker.util.exceptions.UnableToAcquireLockException;
+import com.android.providers.media.photopicker.v2.PickerDataLayerV2;
 import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.util.MimeUtils;
 
@@ -132,6 +133,8 @@ public class PickerDbFacade {
     public static final String KEY_WIDTH = "width";
     @VisibleForTesting
     public static final String KEY_ORIENTATION = "orientation";
+    public static final String KEY_OWNER_PACKAGE_NAME = "owner_package_name";
+    public static final String KEY_USER_ID = "_user_id";
     public static final String EXTRA_OWNER_PACKAGE_NAMES = "owner_package_names";
     public static final String EXTRA_PACKAGE_USER_ID = "package_user_id";
 
@@ -224,7 +227,10 @@ public class PickerDbFacade {
 
     /**
      * Sets the cloud provider to be returned after querying the picker db
-     * If null, cloud media will be excluded from all queries.
+     *
+     * Set cloud provider to null in case the CMP or collection id has changed and the cloud media
+     * results previously synced in the database should not be displayed on the UI.
+     *
      * This should not be used in picker sync paths because we should not wait on a lock
      * indefinitely during the picker sync process.
      * Use {@link this#setCloudProviderWithTimeout} instead.
@@ -235,14 +241,17 @@ public class PickerDbFacade {
             final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
             if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
-                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+                onCloudProviderUpdate(mCloudProvider);
             }
         }
     }
 
     /**
      * Sets the cloud provider to be returned after querying the picker db
-     * If null, cloud media will be excluded from all queries.
+     *
+     * Set cloud provider to null in case the CMP or collection id has changed and the cloud media
+     * results previously synced in the database should not be displayed on the UI.
+     *
      * This should be used in picker sync paths because we should not wait on a lock
      * indefinitely during the picker sync process
      */
@@ -252,8 +261,21 @@ public class PickerDbFacade {
             final String previousCloudProvider = mCloudProvider;
             mCloudProvider = authority;
             if (!Objects.equals(previousCloudProvider, mCloudProvider)) {
-                PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+                onCloudProviderUpdate(mCloudProvider);
             }
+        }
+    }
+
+    /**
+     * Notifies dependant systems that the cloud provider has changed.
+     */
+    public void onCloudProviderUpdate(String mCloudProvider) {
+        PickerNotificationSender.notifyAvailableProvidersChange(mContext);
+        // If cloud provider set is null, it means that the cloud queries have been disabled because
+        // a full sync is required (this is typically triggered by collection id change
+        // or CMP change). Notify PickerDataLayerV2 to handle this change.
+        if (mCloudProvider == null) {
+            PickerDataLayerV2.handleCloudMediaReset(mContext);
         }
     }
 
@@ -1296,6 +1318,8 @@ public class PickerDbFacade {
             getProjectionSimple(KEY_MIME_TYPE, MediaColumns.MIME_TYPE),
             getProjectionSimple(KEY_STANDARD_MIME_TYPE_EXTENSION,
                     MediaColumns.STANDARD_MIME_TYPE_EXTENSION),
+            getProjectionSimple(KEY_OWNER_PACKAGE_NAME, MediaColumns.OWNER_PACKAGE_NAME),
+            getProjectionSimple(KEY_USER_ID, MediaColumns.USER_ID),
         };
     }
 
@@ -1464,6 +1488,12 @@ public class PickerDbFacade {
                     if (TextUtils.isEmpty(albumId)) {
                         values.put(KEY_IS_FAVORITE, cursor.getInt(index));
                     }
+                    break;
+                case MediaColumns.OWNER_PACKAGE_NAME:
+                    values.put(KEY_OWNER_PACKAGE_NAME, cursor.getString(index));
+                    break;
+                case MediaColumns.USER_ID:
+                    values.put(KEY_USER_ID, cursor.getInt(index));
                     break;
 
                     /* The below columns are only included if this is not the album_media table

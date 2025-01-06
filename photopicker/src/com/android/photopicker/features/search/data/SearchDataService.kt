@@ -20,8 +20,8 @@ import android.os.CancellationSignal
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
-import com.android.photopicker.features.search.model.SearchEnabledState
 import com.android.photopicker.features.search.model.SearchSuggestion
+import com.android.photopicker.features.search.model.UserSearchStateInfo
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -37,11 +37,11 @@ interface SearchDataService {
     }
 
     /**
-     * A [StateFlow] that emits a value when current profile changes or search config in the data
-     * source changes. It hold that value of the current profile's search enabled state
-     * [SearchEnabledState].
+     * A [StateFlow] that emits a value when current profile changes or the current profile's
+     * available provider changes. It hold that value of the current profile's search enabled state
+     * [UserSearchStateInfo].
      */
-    val isSearchEnabled: StateFlow<SearchEnabledState>
+    val userSearchStateInfo: StateFlow<UserSearchStateInfo>
 
     /**
      * Get search suggestions for the user in zero state and as the user is typing.
@@ -68,7 +68,10 @@ interface SearchDataService {
      * @return The [PagingSource] that fetches a page using [MediaPageKey]. A page in the paging
      *   source contains a [List] of [Media] items.
      */
-    fun getSearchResults(suggestion: SearchSuggestion): PagingSource<MediaPageKey, Media>
+    fun getSearchResults(
+        suggestion: SearchSuggestion,
+        cancellationSignal: CancellationSignal? = null,
+    ): PagingSource<MediaPageKey, Media>
 
     /**
      * Get search results for a search text query. This method should be used when the user searches
@@ -78,5 +81,8 @@ interface SearchDataService {
      * @return The [PagingSource] that fetches a page using [MediaPageKey]. A page in the paging
      *   source contains a [List] of [Media] items.
      */
-    fun getSearchResults(searchText: String): PagingSource<MediaPageKey, Media>
+    fun getSearchResults(
+        searchText: String,
+        cancellationSignal: CancellationSignal? = null,
+    ): PagingSource<MediaPageKey, Media>
 }

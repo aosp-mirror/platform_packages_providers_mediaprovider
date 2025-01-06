@@ -18,6 +18,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_privacy_explainer" msgid="4607406928962678061">"நீங்கள் தேர்ந்தெடுக்கும் படங்களை மட்டுமே <xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸால் அணுக முடியும்"</string>
-    <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"<xliff:g id="APP_NAME">%1$s</xliff:g> ஆப்ஸ் அணுகுவதற்கு நீங்கள் அனுமதியளிக்கும் படங்களையும் வீடியோக்களையும் தேர்ந்தெடுங்கள்"</string>
+    <!-- no translation found for photopicker_privacy_explainer_permission_mode (6875197264505249268) -->
+    <skip />
     <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"இந்த ஆப்ஸ்"</string>
 </resources>

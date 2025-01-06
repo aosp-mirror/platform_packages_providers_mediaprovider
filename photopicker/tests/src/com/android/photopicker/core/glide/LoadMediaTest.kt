@@ -37,10 +37,10 @@ import com.android.photopicker.core.ConcurrencyModule
 import com.android.photopicker.core.EmbeddedServiceModule
 import com.android.photopicker.core.Main
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.GlideLoadableIdlingResource
-import com.android.photopicker.test.utils.MockContentProviderWrapper
-import com.android.photopicker.tests.utils.mockito.capture
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.GlideLoadableIdlingResource
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.capture
+import com.android.photopicker.util.test.whenever
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -70,7 +70,6 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.any
-import org.mockito.Mockito.reset
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 
@@ -147,10 +146,6 @@ class LoadMediaTest {
             override fun getDataSource(): DataSource {
                 return DataSource.LOCAL
             }
-
-            override fun getTimestamp(): Long {
-                return 100L
-            }
         }
 
     @Before
@@ -200,7 +195,7 @@ class LoadMediaTest {
                 capture(uri),
                 capture(mimeType),
                 capture(options),
-                any(CancellationSignal::class.java)
+                any(CancellationSignal::class.java),
             )
 
         assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
@@ -256,7 +251,7 @@ class LoadMediaTest {
                 capture(uri),
                 capture(mimeType),
                 capture(options),
-                any(CancellationSignal::class.java)
+                any(CancellationSignal::class.java),
             )
 
         assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
@@ -311,7 +306,7 @@ class LoadMediaTest {
                 capture(uri),
                 capture(mimeType),
                 capture(options),
-                any(CancellationSignal::class.java)
+                any(CancellationSignal::class.java),
             )
 
         assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
@@ -370,7 +365,7 @@ class LoadMediaTest {
                 capture(uri),
                 capture(mimeType),
                 capture(options),
-                any(CancellationSignal::class.java)
+                any(CancellationSignal::class.java),
             )
 
         assertThat(uri.getValue()).isEqualTo(loadable.getLoadableUri())
@@ -410,7 +405,7 @@ class LoadMediaTest {
     private fun setupRequestListener(
         media: GlideLoadable,
         resolution: Resolution,
-        builder: RequestBuilder<Drawable>
+        builder: RequestBuilder<Drawable>,
     ): RequestBuilder<Drawable> {
 
         glideIdlingResource.loadStarted()
@@ -422,7 +417,7 @@ class LoadMediaTest {
                     ex: GlideException?,
                     model: Any?,
                     target: Target<Drawable>,
-                    isFirstResource: Boolean
+                    isFirstResource: Boolean,
                 ): Boolean {
                     glideIdlingResource.loadFinished()
                     // Return false to indicate the target hasn't been modified by the listener.
@@ -434,7 +429,7 @@ class LoadMediaTest {
                     model: Any,
                     target: Target<Drawable>,
                     datasource: DataSource,
-                    isFirstResource: Boolean
+                    isFirstResource: Boolean,
                 ): Boolean {
                     glideIdlingResource.loadFinished()
                     // Return false to indicate the target hasn't been modified by the listener.

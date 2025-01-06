@@ -181,11 +181,9 @@ public class MediaGrants {
                             PACKAGE_USER_ID_COLUMN + " = " + packageUserId);
                     int countOfGrantsDeleted = sqbForGrantsCleanUp.delete(db, null, null);
 
-                    Log.d(
-                            TAG,
-                            String.format(
-                                    "Successfully added %s media_grants for %s.",
-                                    uris.size(), packageName));
+                    Log.d(TAG, String.format("Successfully added %s media_grants for "
+                                    + "package %s and packageUserId %d.",
+                                    uris.size(), packageName, packageUserId));
                     Log.d(TAG, "Grants clean up : " + countOfGrantsDeleted + " deleted");
 
                     return null;

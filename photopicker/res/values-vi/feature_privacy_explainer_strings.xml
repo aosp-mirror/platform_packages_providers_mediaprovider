@@ -18,6 +18,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_privacy_explainer" msgid="4607406928962678061">"<xliff:g id="APP_NAME">%1$s</xliff:g> sẽ chỉ có quyền truy cập vào những ảnh bạn chọn"</string>
-    <string name="photopicker_privacy_explainer_permission_mode" msgid="2329456210808751436">"Chọn những ảnh và video mà bạn cho phép <xliff:g id="APP_NAME">%1$s</xliff:g> truy cập"</string>
+    <!-- no translation found for photopicker_privacy_explainer_permission_mode (6875197264505249268) -->
+    <skip />
     <string name="photopicker_privacy_explainer_generic_app_name" msgid="765602231395858098">"Ứng dụng này"</string>
 </resources>

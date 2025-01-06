@@ -95,6 +95,9 @@ public class ExternalDbFacade {
         MediaColumns.WIDTH + " AS " + CloudMediaProviderContract.MediaColumns.WIDTH,
         MediaColumns.HEIGHT + " AS " + CloudMediaProviderContract.MediaColumns.HEIGHT,
         MediaColumns.ORIENTATION + " AS " + CloudMediaProviderContract.MediaColumns.ORIENTATION,
+        MediaColumns.OWNER_PACKAGE_NAME + " AS "
+                + CloudMediaProviderContract.MediaColumns.OWNER_PACKAGE_NAME,
+        FileColumns._USER_ID + " AS " + CloudMediaProviderContract.MediaColumns.USER_ID,
     };
     private static final String[] PROJECTION_MEDIA_INFO = new String[] {
         "MAX(" + MediaColumns.GENERATION_MODIFIED + ") AS "

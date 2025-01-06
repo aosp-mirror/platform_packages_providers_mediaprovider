@@ -19,7 +19,7 @@
 	<!-- The standard PRIVACY_EXPLAINER banner message. -->
 	<string name="photopicker_privacy_explainer" translation_description="A privacy banner message that is shown to the user when photopicker is opened by the application"><xliff:g id="app_name" example="Calculator">%1$s</xliff:g> will only have access to the photos you select</string>
 	<!-- The permission mode PRIVACY_EXPLAINER banner message. -->
-	<string name="photopicker_privacy_explainer_permission_mode" translation_description="A privacy banner message that is shown to the user when photopicker is used in permission mode.">Select photos and videos that you allow <xliff:g id="app_name" example="Calendar">%1$s</xliff:g> to access</string>
+	<string name="photopicker_privacy_explainer_permission_mode" translation_description="A privacy banner message that is shown to the user when photopicker is used in permission mode.">Manage photos and videos <xliff:g id="app_name" example="Calendar">%1$s</xliff:g> has access to</string>
 
 	<!-- A Generic app name if callingPackageLabel can't be determined at runtime. -->
 	<string name="photopicker_privacy_explainer_generic_app_name" translation_description="A generic identifier of an application that is used in place of the Apps name if one is not defined or can not be fetched.">This app</string>

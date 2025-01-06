@@ -17,9 +17,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="photopicker_select_button_label" msgid="658102027531907034">"Selecciona-ho tot (<xliff:g id="COUNT">(%1$s)</xliff:g>)"</string>
+    <string name="photopicker_select_button_label" msgid="8663207309796656185">"Selecciona-ho tot (<xliff:g id="COUNT">%1$s</xliff:g>)"</string>
     <string name="photopicker_select_current_button_label" msgid="5328497370795781055">"Selecciona"</string>
-    <string name="photopicker_deselect_button_label" msgid="7353310112181878711">"Desselecciona-ho tot <xliff:g id="COUNT">(%1$s)</xliff:g>"</string>
+    <string name="photopicker_deselect_button_label" msgid="4730476375060939835">"Desselecciona-ho tot (<xliff:g id="COUNT">%1$s</xliff:g>)"</string>
     <string name="photopicker_preview_button_label" msgid="3567318300811305531">"Previsualitza"</string>
     <string name="photopicker_preview_dialog_error_title" msgid="3285599941790002206">"Hi ha hagut un problema en reproduir el vídeo"</string>
     <string name="photopicker_preview_dialog_error_message" msgid="1945612118302563356">"Comprova la connexió a Internet i torna-ho a provar"</string>
@@ -29,4 +29,5 @@
     <string name="photopicker_video_pause_button_description" msgid="7283388320356598588">"Posa en pausa"</string>
     <string name="photopicker_video_mute_button_description" msgid="982357994508317757">"Silencia el volum"</string>
     <string name="photopicker_video_unmute_button_description" msgid="8194626942498103715">"Deixa de silenciar el volum"</string>
+    <string name="pohtopicker_horizontal_pager_description" msgid="7701816075322699545">"Pàgina <xliff:g id="PAGE_NUMBER">%1$s</xliff:g> de <xliff:g id="TOTAL_PAGES">%2$s</xliff:g>"</string>
 </resources>

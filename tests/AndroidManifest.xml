@@ -22,6 +22,10 @@
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG" />
 
+    <!-- Permissions required for reading and logging compat changes -->
+    <uses-permission android:name="android.permission.LOG_COMPAT_CHANGE"/>
+    <uses-permission android:name="android.permission.READ_COMPAT_CHANGE_CONFIG"/>
+
     <uses-permission
         android:name="com.android.providers.media.permission.BIND_MEDIA_COGNITION_SERVICE"/>
     <uses-permission

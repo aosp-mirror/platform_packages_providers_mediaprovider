@@ -21,10 +21,15 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.UserManager
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.filters.SdkSuppress
 import com.android.photopicker.R
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.events.Events
@@ -36,12 +41,14 @@ import com.android.photopicker.data.DataService
 import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToAlbumGrid
+import com.android.photopicker.extensions.navigateToCategoryGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.StubProvider
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.StubProvider
+import com.android.photopicker.util.test.whenever
+import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -68,11 +75,7 @@ import org.mockito.Mockito.any
 import org.mockito.MockitoAnnotations
 
 /** This test class will run Photopicker's actual MainActivity. */
-@UninstallModules(
-    ApplicationModule::class,
-    ActivityModule::class,
-    EmbeddedServiceModule::class,
-)
+@UninstallModules(ApplicationModule::class, ActivityModule::class, EmbeddedServiceModule::class)
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
@@ -81,6 +84,7 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
+    @get:Rule(order = 3) var setFlagsRule = SetFlagsRule()
 
     val testDispatcher = StandardTestDispatcher()
 
@@ -134,7 +138,9 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testDataDisruptionResetsTheUi() {
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testDataDisruptionResetsTheUi_searchFlagOff() {
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -146,7 +152,7 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
                             initial = 0
                         ) { prev, _ ->
                             prev + 1
-                        }
+                        },
                 )
             }
 
@@ -170,6 +176,67 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
             assertWithMessage("Expected current route to be AlbumGrid")
                 .that(albumRoute)
                 .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            val testDataService =
+                checkNotNull(dataService.get() as? TestDataServiceImpl) {
+                    "Expected a TestDataServiceImpl"
+                }
+
+            testDataService.sendDisruptiveDataUpdateNotification()
+
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            assertWithMessage("Expected selection to be empty")
+                .that(selection.get().snapshot().size)
+                .isEqualTo(0)
+
+            val endRoute = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected to return to start destination")
+                .that(endRoute)
+                .isEqualTo(startDestination)
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testDataDisruptionResetsTheUi_searchFlagOn() {
+        testScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager.get(),
+                    selection = selection.get(),
+                    events = events.get(),
+                    disruptiveDataFlow =
+                        dataService.get().disruptiveDataUpdateChannel.receiveAsFlow().runningFold(
+                            initial = 0
+                        ) { prev, _ ->
+                            prev + 1
+                        },
+                )
+            }
+
+            selection.get().addAll(StubProvider.getTestMediaFromStubProvider(count = 5))
+
+            advanceTimeBy(100)
+
+            assertWithMessage("Expected selection to contain items")
+                .that(selection.get().snapshot().size)
+                .isEqualTo(5)
+
+            val startDestination = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected the starting destination to not be category grid")
+                .that(startDestination)
+                .isNotEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
+
+            composeTestRule.runOnUiThread { navController.navigateToCategoryGrid() }
+            composeTestRule.waitForIdle()
+
+            val albumRoute = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected current route to be CategoryGrid")
+                .that(albumRoute)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
 
             val testDataService =
                 checkNotNull(dataService.get() as? TestDataServiceImpl) {

@@ -21,20 +21,25 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.UserManager
+import android.platform.test.annotations.DisableFlags
+import android.platform.test.annotations.EnableFlags
+import android.platform.test.flag.junit.SetFlagsRule
 import android.provider.MediaStore
 import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.test.filters.SdkSuppress
 import com.android.photopicker.R
 import com.android.photopicker.core.ActivityModule
 import com.android.photopicker.core.ApplicationModule
@@ -58,12 +63,14 @@ import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
+import com.android.providers.media.flags.Flags
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -100,6 +107,7 @@ import org.mockito.MockitoAnnotations
 )
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
@@ -107,6 +115,7 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @get:Rule(order = 1)
     val composeTestRule = createAndroidComposeRule(activityClass = HiltTestActivity::class.java)
     @get:Rule(order = 2) val glideRule = GlideTestRule()
+    @get:Rule(order = 3) var setFlagsRule = SetFlagsRule()
 
     /* Setup dependencies for the UninstallModules for the test class. */
     @Module @InstallIn(SingletonComponent::class) class TestModule : PhotopickerTestModule()
@@ -145,6 +154,8 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var bannerManager: Lazy<BannerManager>
     @Inject lateinit var dataService: DataService
     @Inject lateinit var databaseManager: DatabaseManager
+
+    private val MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING = "taken on"
 
     val sessionId = generatePickerSessionId()
 
@@ -198,7 +209,8 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             FeatureManager(
                 registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
                 scope = testBackgroundScope,
-                configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
+                prefetchDataService = TestPrefetchDataService(),
+                configuration = provideTestConfigurationFlow(scope = testBackgroundScope),
             )
 
         testScope.runTest {
@@ -221,9 +233,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosCanBeSelected() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -242,7 +251,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performClick()
 
@@ -258,9 +272,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosAreDisplayed() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -275,7 +286,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .assert(hasClickAction())
                 .assertIsDisplayed()
@@ -283,10 +299,8 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     }
 
     @Test
-    fun testSwipeLeftToNavigateToAlbumGrid() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSwipeLeftToNavigateToAlbumGrid_searchFlagOff() {
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -301,7 +315,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()
@@ -309,6 +328,39 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             assertWithMessage("Expected swipe to navigate to AlbumGrid")
                 .that(route)
                 .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+        }
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testSwipeLeftToNavigateToCategoryGrid_searchFlagOn() {
+        testScope.runTest {
+            composeTestRule.setContent {
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // Wait for the PhotoGridViewModel to load data and for the UI to update.
+            advanceTimeBy(100)
+            composeTestRule.waitForIdle()
+
+            composeTestRule
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
+                .onFirst()
+                .performTouchInput { swipeLeft() }
+            composeTestRule.waitForIdle()
+            val route = navController.currentBackStackEntry?.destination?.route
+            assertWithMessage("Expected swipe to navigate to CategoryGrid")
+                .that(route)
+                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
         }
     }
 

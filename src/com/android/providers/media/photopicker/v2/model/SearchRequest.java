@@ -16,6 +16,8 @@
 
 package com.android.providers.media.photopicker.v2.model;
 
+import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
@@ -36,25 +38,52 @@ public abstract class SearchRequest {
     @Nullable
     protected final List<String> mMimeTypes;
     @Nullable
-    protected String mResumeKey;
+    protected String mLocalSyncResumeKey;
+    @Nullable
+    protected String mLocalAuthority;
+    @Nullable
+    protected String mCloudSyncResumeKey;
+    @Nullable
+    protected String mCloudAuthority;
 
-    protected SearchRequest(@Nullable List<String> rawMimeTypes) {
-        this (
-                rawMimeTypes,
-                /* resumeKey */ null
-        );
-    }
+    /**
+     * Creates an instance of {@link SearchRequest} with resume keys set as null.
+     * Only use this method to create a new search request item that has not been synced with the
+     * CMPs yet.
+     *
+     * @param extras Bundle with input parameters.
+     * @return A new instance of {@link SearchRequest}.
+     */
+    public static SearchRequest create(Bundle extras) {
+        final List<String> mimeTypes = extras.getStringArrayList("mime_types") != null
+                ? new ArrayList<>(extras.getStringArrayList("mime_types")) : null;
+        final String searchText = extras.getString("search_text");
+        final String mediaSetId = extras.getString("media_set_id");
+        final String suggestionAuthority = extras.getString("authority");
+        final String searchSuggestionType = extras.getString("search_suggestion_type");
 
-    protected SearchRequest(
-            @Nullable String rawMimeTypes,
-            @Nullable String resumeKey
-    ) {
-        this (getMimeTypesAsList(rawMimeTypes), resumeKey);
+        if (searchSuggestionType != null) {
+            return new SearchSuggestionRequest(
+                mimeTypes,
+                searchText,
+                mediaSetId,
+                suggestionAuthority,
+                searchSuggestionType
+            );
+        } else {
+            return new SearchTextRequest(
+                    mimeTypes,
+                    searchText
+            );
+        }
     }
 
     protected SearchRequest(
             @Nullable List<String> rawMimeTypes,
-            @Nullable String resumeKey
+            @Nullable String localSyncResumeKey,
+            @Nullable String localAuthority,
+            @Nullable String cloudSyncResumeKey,
+            @Nullable String cloudAuthority
     ) {
         if (rawMimeTypes != null) {
             mMimeTypes = new ArrayList<>();
@@ -66,7 +95,10 @@ public abstract class SearchRequest {
             mMimeTypes = null;
         }
 
-        mResumeKey = resumeKey;
+        mLocalSyncResumeKey = localSyncResumeKey;
+        mLocalAuthority = localAuthority;
+        mCloudSyncResumeKey = cloudSyncResumeKey;
+        mCloudAuthority = cloudAuthority;
     }
 
     /**
@@ -103,15 +135,44 @@ public abstract class SearchRequest {
     }
 
     @Nullable
-    public String getResumeKey() {
-        return mResumeKey;
+    public String getLocalSyncResumeKey() {
+        return mLocalSyncResumeKey;
     }
 
     /**
-     * Set the resume key for a given search request.
+     * Set the local sync resume key for a given search request.
      */
-    public void setResumeKey(@Nullable String mResumeKey) {
-        this.mResumeKey = mResumeKey;
+    public void setLocalSyncResumeKey(
+            @Nullable String localSyncResumeKey) {
+        this.mLocalSyncResumeKey = localSyncResumeKey;
+    }
+
+    public String getLocalAuthority() {
+        return mLocalAuthority;
+    }
+
+    public void setLocalAuthority(String mCloudAuthority) {
+        this.mCloudAuthority = mCloudAuthority;
+    }
+
+    @Nullable
+    public String getCloudSyncResumeKey() {
+        return mCloudSyncResumeKey;
+    }
+
+    /**
+     * Set the cloud sync resume key for a given search request.
+     */
+    public void setCloudResumeKey(@Nullable String cloudSyncResumeKey) {
+        this.mCloudSyncResumeKey = cloudSyncResumeKey;
+    }
+
+    public String getCloudAuthority() {
+        return mCloudAuthority;
+    }
+
+    public void setCloudAuthority(String mCloudAuthority) {
+        this.mCloudAuthority = mCloudAuthority;
     }
 }
 

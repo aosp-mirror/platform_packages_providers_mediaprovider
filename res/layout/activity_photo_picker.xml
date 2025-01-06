@@ -21,6 +21,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/photo_picker_base"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -147,23 +148,23 @@
                     app:iconGravity="textStart"
                     style="@style/MaterialBorderlessButtonStyle"/>
 
-                <Button
-                    android:id="@+id/button_add"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
-                    android:gravity="center|center_vertical"
-                    android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
-                    android:text="@string/add"
-                    android:textAllCaps="false"
-                    android:textColor="?attr/pickerHighlightTextColor"
-                    android:maxLines="1"
-                    android:ellipsize="middle"
-                    android:backgroundTint="?attr/pickerHighlightColor"
-                    style="@style/MaterialButtonStyle"/>
+                    <Button
+                        android:id="@+id/button_add"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="@dimen/picker_bottom_bar_horizontal_gap"
+                        android:gravity="center|center_vertical"
+                        android:paddingVertical="@dimen/picker_bottom_bar_buttons_vertical_gap"
+                        android:text="@string/add"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/pickerHighlightTextColor"
+                        android:maxLines="1"
+                        android:ellipsize="middle"
+                        android:backgroundTint="?attr/pickerHighlightColor"
+                        style="@style/MaterialButtonStyle"/>
 
-            </LinearLayout>
+                </LinearLayout>
 
         </FrameLayout>
 

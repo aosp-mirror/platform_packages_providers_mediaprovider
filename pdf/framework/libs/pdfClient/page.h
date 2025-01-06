@@ -30,6 +30,7 @@
 #include "form_filler.h"
 #include "form_widget_info.h"
 #include "fpdfview.h"
+#include "page_object.h"
 #include "rect.h"
 
 namespace pdfClient {
@@ -39,12 +40,18 @@ namespace pdfClient {
 // LINT.IfChange
 static const int FLAG_RENDER_TEXT_ANNOTATIONS = 1 << 1;
 static const int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 1 << 2;
+static const int FLAG_RENDER_STAMP_ANNOTATIONS = 1 << 3;
+static const int FLAG_RENDER_FREETEXT_ANNOTATIONS = 1 << 4;
 // LINT.ThenChange(packages/providers/MediaProvider/pdf/framework/java/android/graphics/pdf/RenderParams.java)
 
 static const std::unordered_map<int, std::vector<int>> renderFlagsAnnotsMap = {
-        {FLAG_RENDER_TEXT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_TEXT, FPDF_ANNOT_FREETEXT}},
-        {FLAG_RENDER_HIGHLIGHT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_HIGHLIGHT}}};
-
+        {FLAG_RENDER_TEXT_ANNOTATIONS,
+         std::vector<int>{
+                 FPDF_ANNOT_TEXT,
+                 FPDF_ANNOT_FREETEXT}},  // TODO Remove FreeText from FLAG_RENDER_TEXT_ANNOTATIONS
+        {FLAG_RENDER_HIGHLIGHT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_HIGHLIGHT}},
+        {FLAG_RENDER_STAMP_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_STAMP}},
+        {FLAG_RENDER_FREETEXT_ANNOTATIONS, std::vector<int>{FPDF_ANNOT_FREETEXT}}};
 // A start index (inclusive) and a stop index (exclusive) into the string of
 // codepoints that make up a range of text.
 typedef std::pair<int, int> TextRange;
@@ -221,6 +228,19 @@ class Page {
     // requesting the FPDF_PAGE directly through this method.
     void* page();
 
+    // Get all PageObjects on this Page. Ownership of PageObjects is with Page.
+    std::vector<PageObject*> GetPageObjects(bool refetch = false);
+
+    // Add PageObject to Page.
+    int AddPageObject(std::unique_ptr<PageObject> page_object);
+
+    // Remove PageObject on Page.
+    bool RemovePageObject(int index);
+
+    // Update the attributes of the PageObject on the Page. Ownership stays with
+    // the Page, we only modify the PageObject's attributes.
+    bool UpdatePageObject(int index, std::unique_ptr<PageObject> page_object);
+
   private:
     // Convenience methods to access the variables dependent on an initialized
     // ScopedFPDFTextPage. We lazy init text_page_ for efficiency because many
@@ -323,6 +343,15 @@ class Page {
     // Rectangles are invalidated due to form filling operations.
     // Rectangle is in Device Coordinates.
     Rectangle_i invalid_rect_;
+
+    // Page number that is opened.
+    int page_num_;
+
+    // Page Objects
+    std::vector<std::unique_ptr<PageObject>> page_objects_;
+
+    // Populates page_objects_ with PageObjects on Page.
+    void PopulatePageObjects(bool refetch);
 };
 
 }  // namespace pdfClient

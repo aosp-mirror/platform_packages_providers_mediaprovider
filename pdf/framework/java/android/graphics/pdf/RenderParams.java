@@ -55,17 +55,43 @@ public final class RenderParams {
      * @see RenderParams.Builder#setRenderFlags(int)
      */
     public static final int FLAG_RENDER_HIGHLIGHT_ANNOTATIONS = 1 << 2;
+
+    /**
+     * Flag to enable rendering of stamp annotation on the page.
+     *
+     * @see RenderParams#getRenderFlags()
+     * @see RenderParams.Builder#setRenderFlags(int)
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_STAMP_ANNOTATIONS)
+    public static final int FLAG_RENDER_STAMP_ANNOTATIONS = 1 << 3;
+
+    /**
+     * Flag to enable rendering of freetext annotation on the page.
+     *
+     * @see RenderParams#getRenderFlags()
+     * @see RenderParams.Builder#setRenderFlags(int)
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_TEXT_ANNOTATIONS)
+    public static final int FLAG_RENDER_FREETEXT_ANNOTATIONS = 1 << 4;
     // LINT.ThenChange(packages/providers/MediaProvider/pdf/framework/libs/pdfClient/page.h)
-
-    private static final int RENDER_FLAGS_MASK =
-            FLAG_RENDER_TEXT_ANNOTATIONS | FLAG_RENDER_HIGHLIGHT_ANNOTATIONS;
     private final int mRenderMode;
-
     private final int mRenderFlags;
 
     private RenderParams(int renderMode, int renderFlags) {
         this.mRenderMode = renderMode;
         this.mRenderFlags = renderFlags;
+    }
+
+    private static int getRenderMask() {
+
+        int renderMask = FLAG_RENDER_TEXT_ANNOTATIONS | FLAG_RENDER_HIGHLIGHT_ANNOTATIONS;
+        if (Flags.enableEditPdfTextAnnotations()) {
+            renderMask |= FLAG_RENDER_FREETEXT_ANNOTATIONS;
+        }
+        if (Flags.enableEditPdfStampAnnotations()) {
+            renderMask |= FLAG_RENDER_STAMP_ANNOTATIONS;
+        }
+        return renderMask;
     }
 
     /**
@@ -86,7 +112,7 @@ public final class RenderParams {
 
     /** @hide */
     public int getRenderAnnotations() {
-        return mRenderFlags & RENDER_FLAGS_MASK;
+        return mRenderFlags & getRenderMask();
     }
 
     /** @hide */
@@ -101,7 +127,9 @@ public final class RenderParams {
     /** @hide */
     @IntDef(flag = true, prefix = {"FLAG_"}, value = {
             FLAG_RENDER_TEXT_ANNOTATIONS,
-            FLAG_RENDER_HIGHLIGHT_ANNOTATIONS
+            FLAG_RENDER_HIGHLIGHT_ANNOTATIONS,
+            FLAG_RENDER_STAMP_ANNOTATIONS,
+            FLAG_RENDER_FREETEXT_ANNOTATIONS
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface RenderFlags {
@@ -137,7 +165,7 @@ public final class RenderParams {
          */
         @NonNull
         public Builder setRenderFlags(@RenderFlags int renderFlags) {
-            setRenderFlags(renderFlags, RENDER_FLAGS_MASK);
+            setRenderFlags(renderFlags, getRenderMask());
             return this;
         }
 
@@ -170,7 +198,7 @@ public final class RenderParams {
         @NonNull
         public Builder setRenderFlags(@RenderFlags int renderFlags, @RenderFlags int mask) {
             // Sanitize the mask
-            mask &= RENDER_FLAGS_MASK;
+            mask &= getRenderMask();
 
             // Mask the flags
             renderFlags &= mask;

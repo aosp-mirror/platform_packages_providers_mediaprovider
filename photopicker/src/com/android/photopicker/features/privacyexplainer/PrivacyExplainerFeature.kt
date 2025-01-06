@@ -35,9 +35,11 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
+import kotlinx.coroutines.Deferred
 
 /** Feature class for the Photopicker's Privacy explainer. */
 class PrivacyExplainerFeature : PhotopickerUiFeature {
@@ -45,7 +47,10 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerPrivacyExplainerFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = true
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = true
 
         override fun build(featureManager: FeatureManager) = PrivacyExplainerFeature()
     }
@@ -91,19 +96,19 @@ class PrivacyExplainerFeature : PhotopickerUiFeature {
                     @Composable
                     override fun buildMessage(): String {
                         val config = LocalPhotopickerConfiguration.current
+                        val genericAppName =
+                            stringResource(R.string.photopicker_privacy_explainer_generic_app_name)
 
                         return when (config.action) {
                             MediaStore.ACTION_USER_SELECT_IMAGES_FOR_APP ->
                                 stringResource(
                                     R.string.photopicker_privacy_explainer_permission_mode,
-                                    config.callingPackageLabel
-                                        ?: R.string.photopicker_privacy_explainer_generic_app_name
+                                    config.callingPackageLabel ?: genericAppName,
                                 )
                             else ->
                                 stringResource(
                                     R.string.photopicker_privacy_explainer,
-                                    config.callingPackageLabel
-                                        ?: R.string.photopicker_privacy_explainer_generic_app_name
+                                    config.callingPackageLabel ?: genericAppName,
                                 )
                         }
                     }

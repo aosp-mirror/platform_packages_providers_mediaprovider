@@ -455,6 +455,9 @@ void Page::EnsureTextPageInitialized() {
         // Page should never be null but a partner has an unexplained bug b/376796346
         LOGE("Null page (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
         // since the text_page_ would not have a page to load from
+        // Initialize variables to -1, otherwise they carry over garbage values.
+        first_printable_char_index_ = -1;
+        last_printable_char_index_ = -1;
         return;
     }
 
@@ -462,6 +465,9 @@ void Page::EnsureTextPageInitialized() {
     if (!text_page_) {
         // This will get into infinite recursion if not returned - b/376796346
         LOGE("Failed to load text (err=%lu). for (page_num=%d)", FPDF_GetLastError(), page_num_);
+        // Initialize variables to -1, otherwise they carry over garbage values.
+        first_printable_char_index_ = -1;
+        last_printable_char_index_ = -1;
         return;
     }
 

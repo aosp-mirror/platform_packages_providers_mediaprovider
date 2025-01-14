@@ -48,11 +48,13 @@
           android:label="@string/photopicker_application_label"
           android:crossProfile="true"
           android:allowBackup="false"
+          android:enableOnBackInvokedCallback="true"
           android:supportsRtl="true">
 
     <activity
       android:name="com.android.photopicker.MainActivity"
       android:enabled="false"
+      android:enableOnBackInvokedCallback="false"
       android:exported="true"
       android:theme="@style/Theme.Photopicker"
       android:label="@string/photopicker_application_label"

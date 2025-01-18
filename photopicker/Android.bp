@@ -10,6 +10,7 @@ android_library {
         "src/**/*.kt",
         ":statslog-mediaprovider-java-gen",
     ],
+    kotlin_lang_version: "1.9",
     resource_dirs: ["res"],
     sdk_version: "module_current",
     min_sdk_version: "30",

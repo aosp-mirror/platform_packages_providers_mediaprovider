@@ -164,7 +164,7 @@
     <string name="transcode_progress_channel" msgid="6122609645085712101">"میزان پیشرفت تراتبدیل"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"بعداً دوباره امتحان کنید. عکس‌هایتان پس‌از رفع مشکل دردسترس خواهد بود."</string>
     <string name="dialog_error_title" msgid="636349284077820636">"برخی‌از عکس‌ها را نمی‌توان بار کرد"</string>
-    <string name="dialog_button_text" msgid="351366485240852280">"متوجه‌ام"</string>
+    <string name="dialog_button_text" msgid="351366485240852280">"متوجهم"</string>
     <string name="permlab_accessMediaOwnerPackageName" msgid="3849443148060165651">"دسترسی به نام بسته مالک رسانه"</string>
     <string name="permdesc_accessMediaOwnerPackageName" msgid="7381563109363105371">"به برنامه اجازه می‌دهد به نام بسته‌های مالک همه فایل‌های رسانه موجود دسترسی داشته باشد."</string>
 </resources>

@@ -345,28 +345,40 @@ class UserMonitor(
         val isQuietModeEnabled = userManager.isQuietModeEnabled(handle)
         var isCrossProfileSupported = getIsCrossProfileAllowedForHandle(handle)
 
-        val userContext = context.createContextAsUser(handle, /* flags= */ 0)
-        val localUserManager: UserManager = userContext.requireSystemService()
-
         val (icon, label) =
-            with(localUserManager) {
-                if (SdkLevel.isAtLeastV()) {
-                    try {
+            try {
+
+                val userContext = context.createContextAsUser(handle, /* flags= */ 0)
+                val localUserManager: UserManager = userContext.requireSystemService()
+
+                with(localUserManager) {
+                    if (SdkLevel.isAtLeastV()) {
                         // Since these require an external call to generate, create them once
                         // and cache them in the profile that is getting passed to the UI to
                         // speed things up!
                         Pair(getUserBadge().toBitmap().asImageBitmap(), getProfileLabel())
-                    } catch (exception: Resources.NotFoundException) {
+                    } else {
+                        // For Pre-V the UI will use pre-compiled resources and mappings to generate
+                        // the icon.
+                        Pair(null, null)
+                    }
+                }
+            } catch (ex: Exception) {
+                when (ex) {
+                    is IllegalStateException -> {
+                        Log.w(TAG, "IllegalState encountered while fetching icon and label.", ex)
+                    }
+                    is Resources.NotFoundException -> {
                         // If either resource is not defined by the system, fall back to the
                         // pre-compiled options to ensure that the UI doesn't end up in a weird
                         // state.
-                        Pair(null, null)
+                        Log.w(TAG, "Expected profile resources could not be found", ex)
                     }
-                } else {
-                    // For Pre-V the UI will use pre-compiled resources and mappings to generate the
-                    // icon.
-                    Pair(null, null)
+                    else -> {
+                        Log.w(TAG, "Encountered exception during profile initialization: ", ex)
+                    }
                 }
+                Pair(null, null)
             }
 
         return UserProfile(

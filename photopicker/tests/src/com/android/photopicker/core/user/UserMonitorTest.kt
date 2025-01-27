@@ -360,6 +360,39 @@ class UserMonitorTest {
         }
     }
 
+    /** Ensures that displayable content for a profile is fetched from the platform on V+ */
+    @Test
+    fun testProfileMisconfigured() {
+
+        whenever(mockContext.createContextAsUser(any(UserHandle::class.java), anyInt())) {
+            throw IllegalStateException("Profile is misconfigured!")
+        }
+
+        runTest { // this: TestScope
+            userMonitor =
+                UserMonitor(
+                    mockContext,
+                    provideTestConfigurationFlow(
+                        scope = this.backgroundScope,
+                        defaultConfiguration =
+                            TestPhotopickerConfiguration.build {
+                                action(MediaStore.ACTION_PICK_IMAGES)
+                                intent(Intent(MediaStore.ACTION_PICK_IMAGES))
+                            },
+                    ),
+                    this.backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                    USER_HANDLE_PRIMARY,
+                )
+
+            launch {
+                val reportedStatus = userMonitor.userStatus.first()
+                assertThat(reportedStatus.activeUserProfile.icon).isNull()
+                assertThat(reportedStatus.activeUserProfile.label).isNull()
+            }
+        }
+    }
+
     /** Ensures that displayable content for a profile is not set before Android V */
     @Test
     fun testProfileDisplayablesPriorToV() {

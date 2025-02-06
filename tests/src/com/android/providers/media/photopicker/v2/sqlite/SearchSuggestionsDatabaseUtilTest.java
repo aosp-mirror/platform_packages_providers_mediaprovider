@@ -751,6 +751,128 @@ public class SearchSuggestionsDatabaseUtilTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void testClearCachedSuggestionsForAuthority() {
+        final String authority1 = "com.random.authority1";
+        final String authority2 = "com.random.authority2";
+        SearchSuggestion searchSuggestion1 = new SearchSuggestion(
+                /* searchText */ null,
+                "media-set-id1",
+                authority1,
+                SEARCH_SUGGESTION_ALBUM,
+                /* coverMediaId */ null
+        );
+        SearchSuggestion searchSuggestion2 = new SearchSuggestion(
+                /* searchText */ "test",
+                "media-set-id2",
+                authority2,
+                SEARCH_SUGGESTION_ALBUM,
+                /* coverMediaId */ null
+        );
+
+        SearchSuggestionsDatabaseUtils.cacheSearchSuggestions(
+                mDatabase, authority1, List.of(searchSuggestion1));
+        SearchSuggestionsDatabaseUtils.cacheSearchSuggestions(
+                mDatabase, authority2, List.of(searchSuggestion2));
+
+        int rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearCachedSearchSuggestionsForAuthority(
+                        mDatabase, authority1);
+        assertWithMessage("Unexpected number of cached suggestions deleted.")
+                .that(rowsDeletedCount)
+                .isEqualTo(1);
+
+        rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearCachedSearchSuggestionsForAuthority(
+                        mDatabase, null);
+        assertWithMessage("Unexpected number of cached suggestions deleted.")
+                .that(rowsDeletedCount)
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void testClearHistorySuggestionsForAuthority() {
+        final String authority1 = "com.random.authority1";
+        final String authority2 = "com.random.authority2";
+
+        SearchRequest searchRequest1 = new SearchTextRequest(
+                /* mimeTypes */ null,
+                "summer"
+        );
+        SearchRequest searchRequest2 = new SearchSuggestionRequest(
+                /* mimeTypes */ null,
+                /* searchText */ null,
+                "media-set-id1",
+                authority1,
+                SEARCH_SUGGESTION_ALBUM
+        );
+        SearchRequest searchRequest3 = new SearchSuggestionRequest(
+                /* mimeTypes */ null,
+                /* searchText */ "test",
+                "media-set-id2",
+                authority2,
+                SEARCH_SUGGESTION_ALBUM
+        );
+
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest1);
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest2);
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest3);
+
+        int rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearHistorySearchSuggestionsForAuthority(
+                        mDatabase, authority1);
+        assertWithMessage("Unexpected number of history suggestions deleted.")
+                .that(rowsDeletedCount)
+                .isEqualTo(1);
+
+        rowsDeletedCount =
+                SearchSuggestionsDatabaseUtils.clearHistorySearchSuggestionsForAuthority(
+                        mDatabase, null);
+        assertWithMessage("Unexpected number of history suggestions deleted.")
+                .that(rowsDeletedCount)
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void testSaveDuplicateSearchHistorySuggestion() {
+        final String searchText = "mountains";
+        final SearchTextRequest searchRequest = new SearchTextRequest(
+                /* mimeTypes */ null,
+                searchText
+        );
+
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest);
+        SearchSuggestionsDatabaseUtils.saveSearchHistory(mDatabase, searchRequest);
+
+        final List<SearchSuggestion> searchSuggestions =
+                SearchSuggestionsDatabaseUtils.getHistorySuggestions(
+                        mDatabase,
+                        getSearchSuggestionQuery(
+                                /* providers */ List.of(),
+                                /* limit */ 10));
+
+        assertWithMessage("Search history suggestions cannot be null")
+                .that(searchSuggestions)
+                .isNotNull();
+        assertWithMessage("Unexpected number of search history suggestions.")
+                .that(searchSuggestions.size())
+                .isEqualTo(1);
+
+        final SearchSuggestion result = searchSuggestions.get(0);
+        assertWithMessage("Search history search text is not as expected")
+                .that(result.getSearchText())
+                .isEqualTo(searchText);
+        assertWithMessage("Search history media set id is not as expected")
+                .that(result.getMediaSetId())
+                .isNull();
+        assertWithMessage("Search history authority is not as expected")
+                .that(result.getAuthority())
+                .isNull();
+        assertWithMessage("Search history suggestion type is not as expected")
+                .that(result.getSearchSuggestionType())
+                .isEqualTo(SEARCH_SUGGESTION_HISTORY);
+    }
+
     private Cursor getCursor(@NonNull List<SearchSuggestion> searchSuggestions) {
         final MatrixCursor cursor = new MatrixCursor(
                 CloudMediaProviderContract.SearchSuggestionColumns.ALL_PROJECTION);

@@ -39,6 +39,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -71,6 +73,22 @@ constructor(
     // Keep up to 10 pages loaded in memory before unloading pages.
     private val ALBUM_GRID_MAX_ITEMS_IN_MEMORY = ALBUM_GRID_PAGE_SIZE * 10
 
+    private val _previouslySelectedItem = MutableStateFlow<MediaGridItem?>(null)
+    val previouslySelectedItem: StateFlow<MediaGridItem?> = _previouslySelectedItem
+
+    /**
+     * Sets the previously selected album grid item.
+     *
+     * This function updates the [_previouslySelectedItem] with the provided item. The stored item
+     * is used to request focus to that album's cell in the album grid when the user navigates back
+     * from the album media grid.
+     *
+     * @param item The media grid item to store as the previously selected item, or null to reset
+     */
+    fun setPreviouslySelectedItem(item: MediaGridItem?) {
+        _previouslySelectedItem.value = item
+    }
+
     /**
      * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing media for the album
      * represented by [albumId].
@@ -81,7 +99,7 @@ constructor(
                 PagingConfig(
                     pageSize = ALBUM_GRID_PAGE_SIZE,
                     maxSize = ALBUM_GRID_MAX_ITEMS_IN_MEMORY,
-                ),
+                )
             ) {
                 // pagingSource
                 dataService.albumMediaPagingSource(album)
@@ -109,7 +127,7 @@ constructor(
                 PagingConfig(
                     pageSize = ALBUM_GRID_PAGE_SIZE,
                     maxSize = ALBUM_GRID_MAX_ITEMS_IN_MEMORY,
-                ),
+                )
             ) {
                 dataService.albumPagingSource()
             }
@@ -133,7 +151,7 @@ constructor(
     fun handleAlbumMediaGridItemSelection(
         item: Media,
         selectionLimitExceededMessage: String,
-        album: Group.Album
+        album: Group.Album,
     ) {
         // Update the selectable values in the received media item.
         val updatedMediaItem =

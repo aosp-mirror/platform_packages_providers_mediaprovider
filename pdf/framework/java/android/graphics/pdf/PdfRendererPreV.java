@@ -674,27 +674,18 @@ public final class PdfRendererPreV implements AutoCloseable {
          * {@link PdfRendererPreV#write}.
          *
          * @param annotationId id of the annotation to remove from the page
-         * @return the removed annotation
          * @throws IllegalArgumentException if annotationId ie negative
          * @throws IllegalStateException    if {@link PdfRendererPreV} or
          *                                  {@link PdfRendererPreV.Page} is closed before invocation
          *                                  or if annotation is failed to get removed from the page.
          */
         @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_ANNOTATIONS)
-        @NonNull
-        public PdfAnnotation removePageAnnotation(@IntRange(from = 0) int annotationId) {
+        public void removePageAnnotation(@IntRange(from = 0) int annotationId) {
             throwIfDocumentOrPageClosed();
             Preconditions.checkArgument(annotationId >= 0,
                     "Annotation id should be non-negative");
-            PdfAnnotation removedAnnotation = mPdfProcessor.removePageAnnotation(mIndex,
-                    annotationId);
-            if (removedAnnotation == null) {
-                throw new IllegalStateException(
-                        "Failed to remove annotation with id " + annotationId);
-            }
-            return removedAnnotation;
+            mPdfProcessor.removePageAnnotation(mIndex, annotationId);
         }
-
 
         /**
          * Update the given {@link PdfAnnotation} to the page.
@@ -810,21 +801,15 @@ public final class PdfRendererPreV implements AutoCloseable {
          * {@link PdfRenderer#write}.
          *
          * @param objectId the id of the page object to remove from the page.
-         * @return {@link PdfPageObject} that is removed.
          * @throws IllegalArgumentException if the provided objectId doesn't exist.
          * @throws IllegalStateException    if the page object cannot be removed.
          */
         @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
-        @NonNull
-        public PdfPageObject removePageObject(@IntRange(from = 0) int objectId) {
+        public void removePageObject(@IntRange(from = 0) int objectId) {
             throwIfDocumentOrPageClosed();
             Preconditions.checkArgument(objectId >= 0,
                     "Page object id should be greater than equal to 0.");
-            PdfPageObject pageObject = mPdfProcessor.removePageObject(mIndex, objectId);
-            if (pageObject == null) {
-                throw new IllegalStateException("Page object cannot be removed.");
-            }
-            return pageObject;
+            mPdfProcessor.removePageObject(mIndex, objectId);
         }
 
         /**

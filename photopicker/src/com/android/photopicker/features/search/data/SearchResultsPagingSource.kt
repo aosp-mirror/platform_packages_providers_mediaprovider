@@ -22,6 +22,9 @@ import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
+import com.android.photopicker.core.events.Event
+import com.android.photopicker.core.events.Events
+import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.data.MediaProviderClient
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
@@ -43,6 +46,7 @@ class SearchResultsPagingSource(
     private val dispatcher: CoroutineDispatcher,
     private val configuration: PhotopickerConfiguration,
     private val cancellationSignal: CancellationSignal?,
+    private val events: Events,
 ) : PagingSource<MediaPageKey, Media>() {
     companion object {
         val TAG: String = "PickerSearchPagingSource"
@@ -73,6 +77,16 @@ class SearchResultsPagingSource(
                         )
 
                     if (searchResults is LoadResult.Page) {
+                        // Dispatch a pageInfo event to log paging details for fetching albums
+                        // Keeping page number as 0 for all dispatched events for now for simplicity
+                        events.dispatch(
+                            Event.LogPhotopickerPageInfo(
+                                FeatureToken.SEARCH.token,
+                                configuration.sessionId,
+                                /* pageNumber */ 0,
+                                pageSize,
+                            )
+                        )
                         Log.d(
                             TAG,
                             "Received ${searchResults.data.count()} search results from MP for $searchRequestId",

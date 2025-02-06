@@ -358,9 +358,9 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()
             val route = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Expected swipe to navigate to CategoryGrid")
+            assertWithMessage("Expected swipe to navigate to Album Grid for category")
                 .that(route)
-                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
         }
     }
 

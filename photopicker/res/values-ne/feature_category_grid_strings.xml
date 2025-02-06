@@ -18,4 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_categories_nav_button_label" msgid="988315710756227148">"सङ्ग्रहहरू"</string>
+    <string name="photopicker_people_category_empty_state_title" msgid="3099829676185479658">"अहिलेसम्म व्यक्ति तथा पाल्तु जनावरहरू भएको कुनै पनि मिडिया छैन"</string>
+    <string name="photopicker_people_category_empty_state_body" msgid="6240429033719283301">"मिल्दाजुल्दा अनुहारअनुसार समूहबद्ध गरिएका फोटो तथा भिडियोहरू यहाँ देखिने छन्"</string>
 </resources>

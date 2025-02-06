@@ -475,16 +475,17 @@ public class ModernMediaScanner implements MediaScanner {
         private int mDeleteCount;
 
         /**
-         * Tracks hidden directory and hidden subdirectories in a directory tree. A positive count
-         * indicates that one or more of the current file's parents is a hidden directory.
-         */
-        private int mHiddenDirCount;
-        /**
          * Indicates if the nomedia directory tree is dirty. When a nomedia directory is dirty, we
          * mark the top level nomedia as dirty. Hence if one of the sub directory in the nomedia
          * directory is dirty, we consider the whole top level nomedia directory tree as dirty.
          */
         private boolean mIsDirectoryTreeDirty;
+
+        /**
+         * Tracks hidden directory and hidden subdirectories in a directory tree.
+         */
+        private boolean mIsDirectoryTreeHidden = false;
+        private String mTopLevelHiddenDirectory;
 
         Scan(File root, int reason) throws FileNotFoundException {
             Trace.beginSection("Scanner.ctor");
@@ -551,16 +552,20 @@ public class ModernMediaScanner implements MediaScanner {
 
         private void walkFileTree() {
             mSignal.throwIfCanceled();
-            final Pair<Boolean, Boolean> isDirScannableAndHidden =
-                    shouldScanPathAndIsPathHidden(mSingleFile ? mRoot.getParentFile() : mRoot);
+
+            File dirPath = mSingleFile ? mRoot.getParentFile() : mRoot;
+            final Pair<Boolean, Boolean> isDirScannableAndHidden = shouldScanPathAndIsPathHidden(
+                    dirPath);
             if (isDirScannableAndHidden.first) {
                 // This directory is scannable.
                 Trace.beginSection("Scanner.walkFileTree");
 
                 if (isDirScannableAndHidden.second) {
                     // This directory is hidden
-                    mHiddenDirCount++;
+                    mIsDirectoryTreeHidden = true;
+                    mTopLevelHiddenDirectory = dirPath.getAbsolutePath();
                 }
+
                 if (mSingleFile) {
                     acquireDirectoryLock(mRoot.getParentFile().toPath().toString());
                 }
@@ -842,8 +847,9 @@ public class ModernMediaScanner implements MediaScanner {
             // overlap and confuse each other
             acquireDirectoryLock(dir.toString());
 
-            if (FileUtils.isDirectoryHidden(dir.toFile())) {
-                mHiddenDirCount++;
+            if (!mIsDirectoryTreeHidden && FileUtils.isDirectoryHidden(dir.toFile())) {
+                mIsDirectoryTreeHidden = true;
+                mTopLevelHiddenDirectory = dir.toString();
             }
 
             // Scan this directory as a normal file so that "parent" database
@@ -1016,7 +1022,7 @@ public class ModernMediaScanner implements MediaScanner {
                 File file, String mimeType, int defaultMediaType) {
             if (mimeType != null) {
                 return resolveMediaTypeFromFilePath(
-                        file, mimeType, /*isHidden*/ mHiddenDirCount > 0);
+                        file, mimeType, /*isHidden*/ mIsDirectoryTreeHidden);
             }
             return defaultMediaType;
         }
@@ -1075,8 +1081,18 @@ public class ModernMediaScanner implements MediaScanner {
             // before releasing our lock below
             applyPending();
 
-            if (FileUtils.isDirectoryHidden(dir.toFile())) {
-                mHiddenDirCount--;
+            boolean isDirHidden = FileUtils.isDirectoryHidden(dir.toFile());
+
+            if (isDirHidden && !mIsDirectoryTreeHidden) {
+                Log.w(TAG, "Hidden state of directory " + dir + " changed during active scan.");
+            }
+
+            if (mTopLevelHiddenDirectory != null && dir.toString().equals(
+                    mTopLevelHiddenDirectory)) {
+                // Post visit the top level hidden directory being tracked. Reset hidden status
+                // for directory tree.
+                mIsDirectoryTreeHidden = false;
+                mTopLevelHiddenDirectory = null;
             }
 
             // Now that we're finished scanning this directory, release lock to
@@ -1199,8 +1215,8 @@ public class ModernMediaScanner implements MediaScanner {
         if (existingId == -1) {
             try {
                 if (restoreExecutor != null) {
-                    Optional<ContentValues> restoredDataOptional =
-                            restoreExecutor.getMetadataForFileIfBackedUp(file.getAbsolutePath());
+                    Optional<ContentValues> restoredDataOptional = restoreExecutor
+                            .getMetadataForFileIfBackedUp(file.getAbsolutePath(), mContext);
                     if (restoredDataOptional.isPresent()) {
                         ContentValues valuesRestored = restoredDataOptional.get();
                         if (isRestoredMetadataOfActualFile(valuesRestored, attrs)) {

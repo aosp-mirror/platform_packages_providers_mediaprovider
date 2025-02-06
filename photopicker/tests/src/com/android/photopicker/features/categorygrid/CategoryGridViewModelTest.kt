@@ -43,6 +43,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import src.com.android.photopicker.features.categorygrid.data.TestCategoryDataServiceImpl
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
@@ -135,6 +136,7 @@ class CategoryGridViewModelTest {
                 CategoryGridViewModel(
                     this.backgroundScope,
                     selection,
+                    TestCategoryDataServiceImpl(),
                     TestDataServiceImpl(),
                     events,
                 )

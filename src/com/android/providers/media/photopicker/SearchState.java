@@ -23,6 +23,7 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
@@ -45,9 +46,13 @@ public class SearchState {
      */
     public boolean isCloudSearchEnabled(
             @NonNull Context context,
-            @NonNull String cloudAuthority) {
+            @Nullable String cloudAuthority) {
         requireNonNull(context);
-        requireNonNull(cloudAuthority);
+
+        if (cloudAuthority == null) {
+            Log.d(TAG, "Cloud authority received is null. Cloud search is disabled");
+            return false;
+        }
 
         if (!isSearchFeatureEnabled(context)) {
             Log.d(TAG, "Search feature is disabled on the device.");

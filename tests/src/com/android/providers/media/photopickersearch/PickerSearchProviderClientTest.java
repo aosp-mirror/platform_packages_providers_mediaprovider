@@ -79,7 +79,7 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchSuggestedSearchResultsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchResultsFromCmp(
-                TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, null, 1, 100,
+                TEST_SEARCH_SUGGESTION_MEDIA_SET_ID, null, 1, null, 100,
                 null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_ID_FROM_SUGGESTED_SEARCH, cursor.getString(cursor.getColumnIndex(
@@ -90,7 +90,7 @@ public class PickerSearchProviderClientTest {
     @Test
     public void testFetchTextSearchResultsFromCmp() {
         Cursor cursor = mPickerSearchProviderClient.fetchSearchResultsFromCmp(
-                null, "test", 1, 100,
+                null, "test", 1, null, 100,
                 null, null);
         cursor.moveToFirst();
         assertEquals(TEST_MEDIA_ID_FROM_TEXT_SEARCH, cursor.getString(cursor.getColumnIndex(

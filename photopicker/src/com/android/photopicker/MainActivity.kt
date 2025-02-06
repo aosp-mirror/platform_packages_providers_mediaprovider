@@ -287,6 +287,7 @@ class MainActivity : Hilt_MainActivity() {
             lazyEvents = events,
             photopickerConfiguration = configurationManager.configuration.value,
             pickerIntentAction = intentAction,
+            lazyFeatureManager = featureManager,
         )
     }
 

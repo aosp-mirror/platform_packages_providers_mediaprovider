@@ -24,6 +24,8 @@
             <item type="string" name="config_default_cloud_provider_authority"/>
             <item type="string" name="config_default_media_cognition_service_package" />
             <item type="string" name="config_default_oem_metadata_service_package" />
+
+            <item type="array" name="config_foldersToSkipInDefaultCreation" />
         </policy>
     </overlayable>
 </resources>

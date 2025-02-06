@@ -39,6 +39,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
 import android.platform.test.annotations.EnableFlags;
 import android.provider.CloudMediaProviderContract;
 
@@ -232,7 +233,7 @@ public class MediaSetsSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
-        Cursor cursorFromSearchProvider = SearchProvider.getCursorForMediaSetSyncTest();
+        Cursor cursorFromSearchProvider = SearchProvider.sMediaSets;
 
         try (Cursor cursorFromMediaSetTable = mDatabase.rawQuery(
                 new SelectSQLiteQueryBuilder(mDatabase).setTables(
@@ -280,7 +281,7 @@ public class MediaSetsSyncWorkerTest {
         final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
         assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
 
-        Cursor cursorFromSearchProvider = SearchProvider.getCursorForMediaSetSyncTest();
+        Cursor cursorFromSearchProvider = SearchProvider.sMediaSets;
 
         try (Cursor cursorFromMediaSetTable = mDatabase.rawQuery(
                 new SelectSQLiteQueryBuilder(mDatabase).setTables(
@@ -295,6 +296,60 @@ public class MediaSetsSyncWorkerTest {
             compareMediaSetCursorsForMediaSetProperties(
                     cursorFromMediaSetTable, cursorFromSearchProvider);
         }
+    }
+
+    @Test
+    public void testMediaSetsSyncLoop() throws
+            ExecutionException, InterruptedException {
+        // Setup
+        final String repeatPageToken = "LOOP";
+        final Cursor cursorFromSearchProvider =
+                SearchProvider.getDefaultCursorForMediaSetSyncTest();
+        final Bundle bundle = new Bundle();
+        bundle.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, repeatPageToken);
+        cursorFromSearchProvider.setExtras(bundle);
+        SearchProvider.setMediaSets(cursorFromSearchProvider);
+
+        // Run test
+        final OneTimeWorkRequest request =
+                new OneTimeWorkRequest.Builder(MediaSetsSyncWorker.class)
+                        .setInputData(
+                                new Data(Map.of(SYNC_WORKER_INPUT_SYNC_SOURCE, SYNC_CLOUD_ONLY,
+                                        SYNC_WORKER_INPUT_CATEGORY_ID, mCategoryId,
+                                        SYNC_WORKER_INPUT_AUTHORITY, SearchProvider.AUTHORITY,
+                                        EXTRA_MIME_TYPES, mMimeTypes)))
+                        .build();
+
+        final WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.enqueue(request).getResult().get();
+
+        // Verify
+        final WorkInfo workInfo = workManager.getWorkInfoById(request.getId()).get();
+        assertThat(workInfo.getState()).isEqualTo(WorkInfo.State.SUCCEEDED);
+
+        try (Cursor cursorFromMediaSetTable = mDatabase.rawQuery(
+                new SelectSQLiteQueryBuilder(mDatabase).setTables(
+                        PickerSQLConstants.Table.MEDIA_SETS.name()
+                ).buildQuery(), null
+        )) {
+            assertWithMessage("Cursor should not be null")
+                    .that(cursorFromMediaSetTable)
+                    .isNotNull();
+            assertEquals(cursorFromMediaSetTable.getCount(), cursorFromSearchProvider.getCount());
+
+            compareMediaSetCursorsForMediaSetProperties(
+                    cursorFromMediaSetTable, cursorFromSearchProvider);
+        }
+
+        verify(mLocalMediaSetsSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mLocalMediaSetsSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .markSyncCompleted(any());
+
+        verify(mCloudMediaSetsSyncTracker, times(/* wantedNumberOfInvocations */ 0))
+                .createSyncFuture(any());
+        verify(mCloudMediaSetsSyncTracker, times(/* wantedNumberOfInvocations */ 1))
+                .markSyncCompleted(any());
     }
 
 

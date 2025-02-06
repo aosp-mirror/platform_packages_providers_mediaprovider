@@ -26,13 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
@@ -93,6 +93,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
             else -> false
         }
 
+    val previouslySelectedItem by viewModel.previouslySelectedItem.collectAsStateWithLifecycle()
     Column(
         modifier =
             Modifier.fillMaxSize().pointerInput(Unit) {
@@ -126,11 +127,7 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
         // the album content for the album that is selected by the user.
         mediaGrid(
             items = items,
-            userScrollEnabled =
-                when (isEmbedded) {
-                    true -> isExpanded
-                    false -> true
-                },
+            focusItem = previouslySelectedItem,
             onItemClick = { item ->
                 if (item is MediaGridItem.AlbumItem) {
                     // Dispatch events to log album related details
@@ -152,6 +149,8 @@ fun AlbumGrid(viewModel: AlbumGridViewModel = obtainViewModel()) {
                             )
                         )
                     }
+                    // store the album that is being navigated into
+                    viewModel.setPreviouslySelectedItem(item)
                     navController.navigateToAlbumMediaGrid(album = item.album)
                 }
             },
@@ -193,7 +192,6 @@ fun AlbumGridNavButton(modifier: Modifier) {
     val events = LocalEvents.current
     val sessionId = LocalPhotopickerConfiguration.current.sessionId
     val packageUid = LocalPhotopickerConfiguration.current.callingPackageUid ?: -1
-    val contentDescriptionString = stringResource(R.string.photopicker_albums_nav_button_label)
 
     NavigationBarButton(
         onClick = {
@@ -210,7 +208,7 @@ fun AlbumGridNavButton(modifier: Modifier) {
             }
             navController.navigateToAlbumGrid()
         },
-        modifier = modifier.semantics { contentDescription = contentDescriptionString },
+        modifier = modifier,
         isCurrentRoute = { route -> route == PhotopickerDestinations.ALBUM_GRID.route },
     ) {
         Text(stringResource(R.string.photopicker_albums_nav_button_label))

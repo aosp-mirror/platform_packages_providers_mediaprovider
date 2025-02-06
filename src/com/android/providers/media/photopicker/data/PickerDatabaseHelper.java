@@ -55,7 +55,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     public static final int VERSION_INTRODUCING_SEARCH_SUGGESTION_TABLES = 16;
     public static final int VERSION_UPDATING_SEARCH_TABLES = 17;
     private static final int VERSION_INTRODUCING_OWNED_PHOTOS = 18;
-    public static final int VERSION_LATEST = VERSION_INTRODUCING_OWNED_PHOTOS;
+    private static final int VERSION_ADDING_UNIQUE_CONSTRAINT_TO_MEDIA_IN_MEDIA_SETS_TABLE = 19;
+    public static final int VERSION_LATEST =
+            VERSION_ADDING_UNIQUE_CONSTRAINT_TO_MEDIA_IN_MEDIA_SETS_TABLE;
 
     final Context mContext;
     final String mName;
@@ -128,6 +130,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
 
             mContext.getSharedPreferences(PICKER_SYNC_PREFS_FILE_NAME, Context.MODE_PRIVATE)
                     .edit().remove(getPrefsKey(true, MEDIA_COLLECTION_ID)).apply();
+        }
+        if (oldV < VERSION_ADDING_UNIQUE_CONSTRAINT_TO_MEDIA_IN_MEDIA_SETS_TABLE) {
+            createMediaInMediaSetsTable(db);
         }
     }
 
@@ -338,7 +343,9 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "cloud_id TEXT,"
                 + "local_id TEXT,"
                 + "media_set_picker_id INTEGER,"
-                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL))");
+                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
+                + "UNIQUE(media_set_picker_id, local_id),"
+                + "UNIQUE(media_set_picker_id, cloud_id))");
     }
 
     /**

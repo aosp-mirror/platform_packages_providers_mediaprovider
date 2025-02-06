@@ -18,4 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_categories_nav_button_label" msgid="988315710756227148">"कलेक्शन"</string>
+    <string name="photopicker_people_category_empty_state_title" msgid="3099829676185479658">"अभी तक किसी व्यक्ति और पालतू जानवर से जुड़ा कॉन्टेंट उपलब्ध नहीं है"</string>
+    <string name="photopicker_people_category_empty_state_body" msgid="6240429033719283301">"एक जैसे चेहरों के हिसाब से बनाए गए अलग-अलग फ़ोटो और वीडियो के ग्रुप यहां दिखेंगे"</string>
 </resources>

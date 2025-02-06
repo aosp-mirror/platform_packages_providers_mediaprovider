@@ -139,7 +139,6 @@ import static com.android.providers.media.PickerUriResolver.PICKER_GET_CONTENT_S
 import static com.android.providers.media.PickerUriResolver.PICKER_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.PICKER_TRANSCODED_SEGMENT;
 import static com.android.providers.media.PickerUriResolver.getMediaUri;
-import static com.android.providers.media.flags.Flags.enableBackupAndRestore;
 import static com.android.providers.media.flags.Flags.indexMediaLatitudeLongitude;
 import static com.android.providers.media.flags.Flags.versionLockdown;
 import static com.android.providers.media.photopicker.data.ItemsProvider.EXTRA_MIME_TYPE_SELECTION;
@@ -735,7 +734,7 @@ public class MediaProvider extends ContentProvider {
                     packageManager.getPackageUidAsUser(
                             packageName, PackageManager.PackageInfoFlags.of(0), userId);
             LocalCallingIdentity lci = LocalCallingIdentity.fromExternal(context, mUserCache, uid);
-            if (!lci.checkCallingPermissionUserSelected()) {
+            if (!lci.checkCallingPermissionUserSelected(/* forDataDelivery */ false)) {
                 String[] packages = lci.getSharedPackageNamesArray();
                 mMediaGrants.removeAllMediaGrantsForPackages(
                         packages, /* reason= */ "Mode changed: " + op, userId);
@@ -1211,8 +1210,7 @@ public class MediaProvider extends ContentProvider {
 
                 mDatabaseBackupAndRecovery.deleteFromDbBackup(helper, deletedRow);
                 if (deletedRow.getVolumeName() != null
-                        && deletedRow.getVolumeName().equalsIgnoreCase(VOLUME_EXTERNAL_PRIMARY)
-                        && enableBackupAndRestore()) {
+                        && deletedRow.getVolumeName().equalsIgnoreCase(VOLUME_EXTERNAL_PRIMARY)) {
                     mExternalPrimaryBackupExecutor.deleteBackupForPath(deletedRow.getPath());
                 }
             });
@@ -1301,12 +1299,24 @@ public class MediaProvider extends ContentProvider {
         }
     }
 
+    @VisibleForTesting
+    protected String[] getDefaultFolderNames() {
+        return DEFAULT_FOLDER_NAMES;
+    }
+
+    @VisibleForTesting
+    protected List<String> getFoldersToSkipInDefaultCreation() {
+        return StringUtils.getStringArrayConfig(getContext(),
+                R.array.config_foldersToSkipInDefaultCreation);
+    }
+
     /**
      * Ensure that default folders are created on mounted storage devices.
      * We only do this once per volume so we don't annoy the user if deleted
-     * manually.
+     * manually. Folders in the exclusion list are not created.
      */
-    private void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
+    @VisibleForTesting
+    protected void ensureDefaultFolders(@NonNull MediaVolume volume, @NonNull SQLiteDatabase db) {
         if (volume.shouldSkipDefaultDirCreation()) {
             // Default folders should not be automatically created inside volumes managed from
             // outside Android.
@@ -1327,12 +1337,31 @@ public class MediaProvider extends ContentProvider {
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         if (prefs.getInt(key, 0) == 0) {
-            for (String folderName : DEFAULT_FOLDER_NAMES) {
+            // Get case insensitive exclusion list.
+            List<String> exclusionList =
+                    Flags.enableExclusionListForDefaultFolders()
+                            ? getFoldersToSkipInDefaultCreation().stream().map(
+                            String::toLowerCase).collect(Collectors.toList())
+                            : List.of();
+            if (exclusionList.size() > getDefaultFolderNames().length) {
+                Log.e(TAG, "Exclusion list has " + exclusionList.size()
+                        + " items which exceeds the size of default folders list which has size "
+                        + getDefaultFolderNames().length);
+                exclusionList = List.of();
+            }
+            for (String folderName : getDefaultFolderNames()) {
                 final File folder = new File(volume.getPath(), folderName);
-                if (!folder.exists()) {
-                    folder.mkdirs();
-                    insertDirectory(db, folder.getAbsolutePath());
+                if (folder.exists()) {
+                    continue;
                 }
+                if (Flags.enableExclusionListForDefaultFolders() && exclusionList.contains(
+                        folderName.toLowerCase(Locale.ROOT))) {
+                    // Do not create mobile-centric folders for PC.
+                    Log.d(TAG, "Excluding " + folder + " from default creation");
+                    continue;
+                }
+                folder.mkdirs();
+                insertDirectory(db, folder.getAbsolutePath());
             }
 
             SharedPreferences.Editor editor = prefs.edit();
@@ -1788,11 +1817,7 @@ public class MediaProvider extends ContentProvider {
         // value as NULL, and update the same in the picker db
         detectSpecialFormat(signal);
 
-        if (enableBackupAndRestore()) {
-            Log.i(TAG, "Backup is enabled");
-            // Backup needed for B&R
-            mExternalPrimaryBackupExecutor.doBackup(signal);
-        }
+        mExternalPrimaryBackupExecutor.doBackup(signal);
 
         final long durationMillis = (SystemClock.elapsedRealtime() - startTime);
         Metrics.logIdleMaintenance(MediaStore.VOLUME_EXTERNAL, itemCount,
@@ -3335,11 +3360,13 @@ public class MediaProvider extends ContentProvider {
 
     private ArrayList<String> getIncludedDefaultDirectories() {
         final ArrayList<String> includedDefaultDirs = new ArrayList<>();
-        if (mCallingIdentity.get().checkCallingPermissionVideo(/* forWrite */ true)) {
+        if (mCallingIdentity.get().checkCallingPermissionVideo(/* forWrite */
+                true, /* forDataDelivery */ true)) {
             includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
             includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
             includedDefaultDirs.add(Environment.DIRECTORY_MOVIES);
-        } else if (mCallingIdentity.get().checkCallingPermissionImages(/* forWrite */ true)) {
+        } else if (mCallingIdentity.get().checkCallingPermissionImages(/* forWrite */
+                true, /* forDataDelivery */ true)) {
             includedDefaultDirs.add(Environment.DIRECTORY_DCIM);
             includedDefaultDirs.add(Environment.DIRECTORY_PICTURES);
         }
@@ -3981,7 +4008,8 @@ public class MediaProvider extends ContentProvider {
                     mPickerSyncController.getCloudProvider(), mPickerDataLayer);
         }
         if (table == PICKER_INTERNAL_V2) {
-            return PickerUriResolverV2.query(getContext().getApplicationContext(), uri, queryArgs);
+            return PickerUriResolverV2.query(
+                    getContext().getApplicationContext(), uri, queryArgs, signal);
         }
 
         final DatabaseHelper helper = getDatabaseForUri(uri);
@@ -7739,7 +7767,7 @@ public class MediaProvider extends ContentProvider {
             throw new SecurityException(
                     getSecurityExceptionMessage("Picker search media init"));
         }
-        return PickerDataLayerV2.handleNewSearchRequest(getContext(), extras);
+        return PickerDataLayerV2.handleSearchResultsInit(getContext(), extras);
     }
 
     private void initMediaSets(@NonNull Bundle extras) {
@@ -10453,15 +10481,17 @@ public class MediaProvider extends ContentProvider {
         // Hence, we check the mPendingOpenInfo object (populated when opens are initiated from
         // MediaProvider) if there's a pending open from MediaProvider with matching tid and uid and
         // use the shouldRedact decision there if there's one.
+        PendingOpenInfo info;
         synchronized (mPendingOpenInfo) {
-            PendingOpenInfo info = mPendingOpenInfo.get(tid);
-            if (info != null && info.uid == original_uid) {
-                boolean shouldRedact = info.shouldRedact;
-                if (shouldRedact) {
-                    return RedactionUtils.getRedactionRanges(file);
-                } else {
-                    return new long[0];
-                }
+            info = mPendingOpenInfo.get(tid);
+        }
+
+        if (info != null && info.uid == original_uid) {
+            boolean shouldRedact = info.shouldRedact;
+            if (shouldRedact) {
+                return RedactionUtils.getRedactionRanges(file);
+            } else {
+                return new long[0];
             }
         }
 

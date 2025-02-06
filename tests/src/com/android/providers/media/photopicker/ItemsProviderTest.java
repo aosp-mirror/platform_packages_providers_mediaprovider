@@ -33,6 +33,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import android.Manifest;
 import android.app.Instrumentation;
@@ -49,6 +51,7 @@ import android.os.CancellationSignal;
 import android.os.Environment;
 import android.os.OperationCanceledException;
 import android.os.ParcelFileDescriptor;
+import android.os.UserManager;
 import android.provider.CloudMediaProviderContract;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -216,6 +219,7 @@ public class ItemsProviderTest {
      */
     @Test
     public void testGetCategories_screenshots() throws Exception {
+        assumeFalse("Not testable in HSUM device", UserManager.isHeadlessSystemUserMode());
         Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null,
                 /* cancellationSignal*/ null);
         assertThat(c.getCount()).isEqualTo(0);
@@ -248,6 +252,46 @@ public class ItemsProviderTest {
             myAlbumScreenshotsImg.delete();
             myAlbumScreenshotsDir.delete();
             deleteTopLevelScreenshotDir();
+        }
+    }
+
+    /**
+     * Tests {@link ItemsProvider#getAllCategories(String[], UserId, CancellationSignal)} to return
+     * correct info about {@link AlbumColumns#ALBUM_ID_SCREENSHOTS}.
+     * This test is specifically for HSUM devices since creating a top-level screenshots directory
+     * is not possible.
+     */
+    @Test
+    public void testGetCategoriesForHSUM_screenshots() throws Exception {
+        assumeTrue("Test only for HSUM device", UserManager.isHeadlessSystemUserMode());
+        Cursor c = mItemsProvider.getAllCategories(/* mimeType */ null, /* userId */ null,
+                /* cancellationSignal*/ null);
+        assertThat(c.getCount()).isEqualTo(0);
+
+        // Create 1 image file in Screenshots dir to test
+        final File screenshotsDir = getScreenshotsDir();
+        File imageFile = assertCreateNewImage(screenshotsDir);
+        // Create 1 image file in Screenshots dir of Downloads dir
+        final File screenshotsDirInDownloadsDir = getScreenshotsDirFromDownloadsDir();
+        File imageFileInScreenshotDirInDownloads =
+                assertCreateNewImage(screenshotsDirInDownloadsDir);
+
+        // This file should not be included since it's not a valid screenshot directory, even though
+        // it looks like one.
+        final File myAlbumScreenshotsDir =
+                new File(getPicturesDir(), "MyAlbum" + Environment.DIRECTORY_SCREENSHOTS);
+        final File myAlbumScreenshotsImg = assertCreateNewImage(myAlbumScreenshotsDir);
+
+        try {
+            assertGetCategoriesMatchMultiple(Arrays.asList(
+                    Pair.create(ALBUM_ID_SCREENSHOTS, 2),
+                    Pair.create(ALBUM_ID_DOWNLOADS, 1)
+            ));
+        } finally {
+            imageFile.delete();
+            imageFileInScreenshotDirInDownloads.delete();
+            myAlbumScreenshotsImg.delete();
+            myAlbumScreenshotsDir.delete();
         }
     }
 
@@ -1423,7 +1467,8 @@ public class ItemsProviderTest {
     private Uri prepareFileAndGetUri(File file, long lastModifiedTime) throws IOException {
         ensureParentExists(file.getParentFile());
 
-        assertThat(file.createNewFile()).isTrue();
+        file.createNewFile();
+        assertThat(file.exists()).isTrue();
 
         // Write 1 byte because 0byte files are not valid in the picker db
         try (FileOutputStream fos = new FileOutputStream(file)) {

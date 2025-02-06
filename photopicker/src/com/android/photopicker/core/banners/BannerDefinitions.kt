@@ -32,7 +32,7 @@ package com.android.photopicker.core.banners
  */
 enum class BannerDefinitions(
     override val id: String,
-    override val dismissableStrategy: DismissStrategy
+    override val dismissableStrategy: DismissStrategy,
 ) : BannerDeclaration {
 
     // keep-sorted start
@@ -41,7 +41,7 @@ enum class BannerDefinitions(
     CLOUD_MEDIA_AVAILABLE("cloud_media_available", DismissStrategy.ONCE),
     CLOUD_UPDATED_ACCOUNT("cloud_updated_account", DismissStrategy.ONCE),
     PRIVACY_EXPLAINER("privacy_explainer", DismissStrategy.PER_UID),
-    SWITCH_PROFILE("switch_profile", DismissStrategy.SESSION);
+    SWITCH_PROFILE("switch_profile", DismissStrategy.PER_UID);
 
     // keep-sorted end
 

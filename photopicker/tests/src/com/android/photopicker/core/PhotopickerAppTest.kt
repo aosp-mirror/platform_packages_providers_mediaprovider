@@ -226,17 +226,17 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
                 .isEqualTo(5)
 
             val startDestination = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Expected the starting destination to not be category grid")
+            assertWithMessage("Expected the starting destination to not be categories album grid")
                 .that(startDestination)
-                .isNotEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
+                .isNotEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
 
             composeTestRule.runOnUiThread { navController.navigateToCategoryGrid() }
             composeTestRule.waitForIdle()
 
             val albumRoute = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Expected current route to be CategoryGrid")
+            assertWithMessage("Expected current route to be Category Album Grid")
                 .that(albumRoute)
-                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
 
             val testDataService =
                 checkNotNull(dataService.get() as? TestDataServiceImpl) {

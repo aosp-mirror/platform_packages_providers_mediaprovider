@@ -18,4 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_categories_nav_button_label" msgid="988315710756227148">"컬렉션"</string>
+    <string name="photopicker_people_category_empty_state_title" msgid="3099829676185479658">"아직 인물 및 반려동물 없음"</string>
+    <string name="photopicker_people_category_empty_state_body" msgid="6240429033719283301">"비슷한 얼굴별로 그룹화된 사진 및 동영상이 여기에 표시됩니다."</string>
 </resources>

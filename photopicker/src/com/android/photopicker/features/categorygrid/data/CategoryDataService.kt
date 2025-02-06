@@ -37,30 +37,17 @@ interface CategoryDataService {
     }
 
     /**
-     * Creates a paging source that can load root level categories and albums. Root level categories
-     * are the ones that have no parent (categories).
+     * Creates a paging source that can load categories and albums.
      *
-     * @param cancellationSignal An optional [CancellationSignal] that can be marked as cancelled
-     *   when the query results are no longer required.
-     * @return The [PagingSource] that fetches a page using [GroupPageKey]. A page in the paging
-     *   source contains a [List] of [Group.Category] or [Group.Album] items.
-     */
-    fun getCategories(
-        cancellationSignal: CancellationSignal? = null
-    ): PagingSource<GroupPageKey, Group>
-
-    /**
-     * Creates a paging source that can load child categories. Child categories are the ones that
-     * have a parent categories.
-     *
-     * @param category the parent [Category].
+     * @param category the parent [Category]. If the parent category is null then the method returns
+     *   root categories.
      * @param cancellationSignal An optional [CancellationSignal] that can be marked as cancelled
      *   when the query results are no longer required.
      * @return The [PagingSource] that fetches a page using [GroupPageKey]. A page in the paging
      *   source contains a [List] of [Group.Category] items.
      */
     fun getCategories(
-        parentCategory: Group.Category,
+        parentCategory: Group.Category? = null,
         cancellationSignal: CancellationSignal? = null,
     ): PagingSource<GroupPageKey, Group>
 

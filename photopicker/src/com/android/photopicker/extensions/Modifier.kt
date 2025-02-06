@@ -20,9 +20,9 @@ import android.os.Build
 import android.view.SurfaceControlViewHost
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -94,18 +94,17 @@ fun Modifier.circleBackground(
 }
 
 /**
- * Transfer necessary touch events occurred on Photos/Albums grid to host at runtime in Embedded
- * Photopicker
+ * Transfer necessary touch events on scrollable objects like a grid or list to host at runtime in
+ * Embedded Photopicker
  *
- * @param state the state of Photos/albums grid. If state is null means Photos/Albums grid has not
- *   requested the custom modifier
+ * @param state the state of a scrollable object.
  * @param isExpanded the updates on current status of embedded photopicker
  * @param host the instance of [SurfaceControlViewHost]
  * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-fun Modifier.transferGridTouchesToHostInEmbedded(
-    state: LazyGridState,
+fun Modifier.transferScrollableTouchesToHostInEmbedded(
+    state: ScrollableState,
     isExpanded: State<Boolean>,
     host: SurfaceControlViewHost,
 ): Modifier {
@@ -114,38 +113,60 @@ fun Modifier.transferGridTouchesToHostInEmbedded(
 }
 
 /**
- * Transfer necessary touch events occurred outside of Photos/Albums grid to host on runtime in
+ * Transfer necessary touch events occurred outside of scrollable objects to host on runtime in
  * Embedded Photopicker
  *
  * @param host the instance of [SurfaceControlViewHost]
+ * @param pass the PointerEventPass where the gesture needs to be handled. The default
+ *   [PointerEventPass] is set as [PointerEventPass.Initial].
  * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-fun Modifier.transferTouchesToHostInEmbedded(host: SurfaceControlViewHost): Modifier {
+fun Modifier.transferTouchesToHostInEmbedded(
+    host: SurfaceControlViewHost,
+    pass: PointerEventPass = PointerEventPass.Initial,
+): Modifier {
     return this then
-        transferTouchesToSurfaceControlViewHost(state = null, isExpanded = null, host = host)
+        transferTouchesToSurfaceControlViewHost(
+            state = null,
+            isExpanded = null,
+            host = host,
+            pass = pass,
+        )
 }
 
 /**
  * Transfer necessary touch events to host on runtime in Embedded Photopicker.
  *
- * This custom modifier has been explicitly applied to four different components - the navigation
- * bar, Album media grid's empty state, Photos grid's empty state and media grid.
+ * This custom modifier has been explicitly applied to the box that wraps [PhotopickerMain]
+ * composable and the [mediaGrid] composable that backs all media and group grids in Photopicker
+ * like [PhotoGrid], [SearchResultsGrid] etc.
  *
- * Todo(b/368021407): Touches should also be transferred into the empty spaces left within the
- * embedded
- *
- * @param state the state of Photos/albums grid. If state is null means Photos/Albums grid has not
- *   requested the custom modifier
+ * @param state the state of the scrollable object like lazy grid or lazy list. If state is null
+ *   means a scrollable object has not requested the custom modifier
  * @param isExpanded the updates on current status of embedded photopicker
  * @param host the instance of [SurfaceControlViewHost]
+ * @param pass the PointerEventPass where the gesture needs to be handled.
+ *
+ * PointerInputChanges traverse though the UI tree in the following passes, in the same order:
+ * 1. Initial: Down the tree from ancestor to descendant. Any touch gestures that need to be
+ *    transferred to the host in the parent, before a child element consumes it, should be handled
+ *    in this pass.
+ * 2. Main: Up the tree from descendant to ancestor. This is the primary path where descendants will
+ *    interact with PointerInputChanges before parents.
+ * 3. Final: Down the tree from ancestor to descendant. Handling any unconsumed touch gestures after
+ *    the Initial and Main pass should happen here.
+ *
+ * The default [PointerEventPass] is set as [PointerEventPass.Initial].
+ *
  * @return a [Modifier] to transfer the touch gestures at runtime in Embedded photopicker
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 private fun Modifier.transferTouchesToSurfaceControlViewHost(
-    state: LazyGridState?,
+    state: ScrollableState?,
     isExpanded: State<Boolean>?,
     host: SurfaceControlViewHost,
+    pass: PointerEventPass = PointerEventPass.Initial,
 ): Modifier {
 
     val pointerInputModifier =
@@ -154,31 +175,27 @@ private fun Modifier.transferTouchesToSurfaceControlViewHost(
                 val touchSlop = viewConfiguration.touchSlop
                 val touchSlopDetector = TouchSlopDetector(Orientation.Vertical)
 
-                // This needs to run in the [PointerEventPass.Initial] to ensure that the event
-                // can be handled in the parent, rather than the child.
-                //
-                // This touch handler is a parent of the touch handler the grid is using to monitor
-                // clicks & scroll, so these touches are processed in the first pass, and if they
-                // aren't transferred to the host they will be processed by the grid in the
-                // [PointerEventPass.Main]
-                val down =
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                // Wait for the first pointer touch.
+                val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
                 val pointerId = down.id
 
                 // Now that a down exists set up a loop which processes the touch input and
                 // evaluates if it should be sent to the host.
                 do {
-                    val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                    // Check if the initial pointer input change was part of a drag gesture.
+                    val event = awaitPointerEvent(pass = pass)
                     val dragEvent = event.changes.firstOrNull { it.id == pointerId }
 
                     // If the dragEvent cannot be found for the pointer, or is consumed elsewhere
                     // cancel this gesture.
                     val canceled = dragEvent?.isConsumed ?: true
 
+                    // If the event is not a dragEvent or it was already consumed,
+                    // stop handling the event.
+                    if (canceled) break
+
                     val postSlopOffset =
-                        if (dragEvent != null)
-                            touchSlopDetector.addPointerInputChange(dragEvent, touchSlop)
-                        else Offset.Unspecified
+                        touchSlopDetector.addPointerInputChange(dragEvent, touchSlop)
 
                     // Once pastTouchSlop check to see if the touch meets the conditions to be
                     // transferred to the host.
@@ -191,21 +208,18 @@ private fun Modifier.transferTouchesToSurfaceControlViewHost(
                         val shouldTransferToHost =
                             when {
 
-                                // When this isn't attached to a grid, all vertical gestures should
-                                // be transferred.
+                                // When this isn't attached to a scrollable object, all vertical
+                                // gestures should be transferred.
                                 state == null -> true
 
-                                // If the grid is collapsed and vertical touchSlop has been passed,
-                                // touches should be transferred.
+                                // If the scrollable object is collapsed and vertical touchSlop has
+                                // been passed, touches should be transferred.
                                 isGridCollapsed -> true
 
-                                // If the grid isExpanded, scrolled to the first item and the
-                                // gesture
-                                // direction was up (to collapse the Photopicker)
+                                // If the scrollable object isExpanded, scrolled to the first item
+                                // and the gesture direction was up (to collapse the Photopicker)
                                 isGridExpanded &&
-                                    (state.firstVisibleItemIndex == 0 &&
-                                        state.firstVisibleItemScrollOffset == 0 &&
-                                        postSlopOffset.y > 0F) -> true
+                                    (!state.canScrollBackward && postSlopOffset.y > 0F) -> true
 
                                 // Otherwise don't transfer
                                 else -> false

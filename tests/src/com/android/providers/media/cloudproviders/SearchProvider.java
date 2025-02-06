@@ -53,18 +53,6 @@ public class SearchProvider extends CloudMediaProvider {
             getCloudMediaCursor(CLOUD_ID_4, null, 0)
     ).toArray(new Cursor[0]));
 
-    public static final MergeCursor DEFAULT_CLOUD_SEARCH_RESULTS = new MergeCursor(List.of(
-            getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, 1),
-            getCloudMediaCursor(CLOUD_ID_3, null, 0)
-    ).toArray(new Cursor[0]));
-
-    public static final MergeCursor DEFAULT_LOCAL_SEARCH_RESULTS = new MergeCursor(List.of(
-            getLocalMediaCursor(LOCAL_ID_1, 1),
-            getLocalMediaCursor(LOCAL_ID_2, 0)
-    ).toArray(new Cursor[0]));
-
-    private static Cursor sSearchResults = DEFAULT_CLOUD_SEARCH_RESULTS;
-
     public static final MergeCursor DEFAULT_SUGGESTION_RESULTS = new MergeCursor(List.of(
             getSuggestionCursor(CLOUD_ID_1),
             getSuggestionCursor(CLOUD_ID_2)
@@ -84,6 +72,12 @@ public class SearchProvider extends CloudMediaProvider {
 
     private static Cursor sAlbums = DEFAULT_ALBUM_RESULTS;
 
+    private static Cursor sSearchResults = getDefaultCloudSearchResults();
+
+    public static Cursor sMediaSets = getDefaultCursorForMediaSetSyncTest();
+
+    public static Cursor sMediaSetContents = getDefaultCloudSearchResults();
+
     @Override
     public Cursor onSearchMedia(String mediaSetId, String fallbackSearchText,
                                 Bundle extras, CancellationSignal cancellationSignal) {
@@ -99,7 +93,7 @@ public class SearchProvider extends CloudMediaProvider {
     @Override
     public Cursor onQueryMediaInMediaSet(String mediaSetId,
             Bundle extras, CancellationSignal cancellationSignal) {
-        return sSearchResults;
+        return sMediaSetContents;
     }
 
     @Override
@@ -111,7 +105,7 @@ public class SearchProvider extends CloudMediaProvider {
     @Override
     public Cursor onQueryMediaSets(String mediaCategoryId,
             Bundle extras, CancellationSignal cancellationSignal) {
-        return getCursorForMediaSetSyncTest();
+        return sMediaSets;
     }
 
     @Override
@@ -178,10 +172,18 @@ public class SearchProvider extends CloudMediaProvider {
         return sSearchResults;
     }
 
-    /*
-     Returns a media set data cursor for tests
+    public static void setMediaSets(Cursor mediaSets) {
+        sMediaSets = mediaSets;
+    }
+
+    public static void setMediaSetContents(Cursor mediaSetContents) {
+        sMediaSetContents = mediaSetContents;
+    }
+
+    /**
+     Returns a default media set data cursor for tests
      */
-    public static Cursor getCursorForMediaSetSyncTest() {
+    public static Cursor getDefaultCursorForMediaSetSyncTest() {
         String[] columns = new String[]{
                 CloudMediaProviderContract.MediaSetColumns.ID,
                 CloudMediaProviderContract.MediaSetColumns.DISPLAY_NAME,
@@ -192,5 +194,25 @@ public class SearchProvider extends CloudMediaProvider {
         cursor.addRow(new Object[] { "mediaSetId", "name", "id" });
 
         return cursor;
+    }
+
+    /**
+     * Returns a default set of cloud search results for tests.
+     */
+    public static final MergeCursor getDefaultCloudSearchResults() {
+        return new MergeCursor(List.of(
+                getCloudMediaCursor(CLOUD_ID_1, LOCAL_ID_1, 1),
+                getCloudMediaCursor(CLOUD_ID_3, null, 0)
+        ).toArray(new Cursor[0]));
+    }
+
+    /**
+     * Returns a default set of local search results for tests.
+     */
+    public static final MergeCursor getDefaultLocalSearchResults() {
+        return new MergeCursor(List.of(
+                getLocalMediaCursor(LOCAL_ID_1, 1),
+                getLocalMediaCursor(LOCAL_ID_2, 0)
+        ).toArray(new Cursor[0]));
     }
 }

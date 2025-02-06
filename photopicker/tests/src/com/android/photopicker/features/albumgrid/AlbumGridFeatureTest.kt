@@ -35,6 +35,8 @@ import android.test.mock.MockContentResolver
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -80,6 +82,9 @@ import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
 import dagger.hilt.components.SingletonComponent
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -307,6 +312,106 @@ class AlbumGridFeatureTest : PhotopickerFeatureBaseTest() {
                 .onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1"))
                 .assert(hasClickAction())
                 .assertIsDisplayed()
+        }
+
+    @Test
+    @DisableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun testConsistentAlbumFocus() =
+        testScope.runTest {
+            val currentDateTime = LocalDateTime.now()
+            val dataList =
+                buildList<Group.Album> {
+                    for (i in 1..3) {
+                        add(
+                            Group.Album(
+                                id = "$i",
+                                pickerId = i.toLong(),
+                                authority = "a",
+                                displayName = TEST_ALBUM_NAME_PREFIX + "$i",
+                                coverUri =
+                                    Uri.EMPTY.buildUpon()
+                                        .apply {
+                                            scheme("content")
+                                            authority("a")
+                                            path("$i")
+                                        }
+                                        .build(),
+                                dateTakenMillisLong =
+                                    currentDateTime
+                                        .minus(i.toLong(), ChronoUnit.DAYS)
+                                        .toEpochSecond(ZoneOffset.UTC) * 1000,
+                                coverMediaSource = MediaSource.LOCAL,
+                            )
+                        )
+                    }
+                }
+
+            val testDataService = dataService as? TestDataServiceImpl
+            checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
+            testDataService.albumsList = dataList
+
+            composeTestRule.setContent {
+                // Set an explicit size to prevent errors in glide being unable to measure
+                callPhotopickerMain(
+                    featureManager = featureManager,
+                    selection = selection,
+                    events = events,
+                )
+            }
+
+            // wait for the composition to finish
+            advanceTimeBy(100)
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            composeTestRule.waitForIdle()
+
+            // wait for the album grid to show up
+            advanceTimeBy(100)
+
+            val allAlbumNodes =
+                composeTestRule.onAllNodes(hasText(text = TEST_ALBUM_NAME_PREFIX, substring = true))
+
+            allAlbumNodes[0].assert(hasClickAction()).assertIsDisplayed().performClick()
+
+            assertWithMessage("Expected route to be album media grid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_MEDIA_GRID.route)
+
+            composeTestRule.waitForIdle()
+
+            // Navigate on the UI thread (similar to a click handler)
+            composeTestRule.runOnUiThread({ navController.navigateToAlbumGrid() })
+
+            assertWithMessage("Expected route to be albumgrid")
+                .that(navController.currentBackStackEntry?.destination?.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
+
+            composeTestRule.waitForIdle()
+
+            // wait for the album grid to show up
+            advanceTimeBy(150)
+
+            composeTestRule.waitUntil(timeoutMillis = 5_000) {
+                try {
+                    composeTestRule
+                        .onNode(hasText(TEST_ALBUM_NAME_PREFIX + "1", substring = true))
+                        .assertExists()
+                        .assertIsFocused()
+                    true // Condition met
+                } catch (e: AssertionError) {
+                    false // Condition not yet met
+                }
+            }
+
+            allAlbumNodes[0].assertIsFocused()
+            allAlbumNodes[1].assertIsNotFocused()
+            allAlbumNodes[2].assertIsNotFocused()
         }
 
     @Test

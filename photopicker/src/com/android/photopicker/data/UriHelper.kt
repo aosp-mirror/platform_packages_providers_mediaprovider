@@ -23,15 +23,18 @@ import android.provider.MediaStore
 /** Provides URI constants and helper functions. */
 internal const val MEDIA_PROVIDER_AUTHORITY = MediaStore.AUTHORITY
 private const val UPDATE_PATH_SEGMENT = "update"
-private const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
-private const val COLLECTION_INFO_SEGMENT = "collection_info"
-private const val MEDIA_PATH_SEGMENT = "media"
-private const val ALBUM_PATH_SEGMENT = "album"
-private const val MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count"
+const val AVAILABLE_PROVIDERS_PATH_SEGMENT = "available_providers"
+const val COLLECTION_INFO_SEGMENT = "collection_info"
+const val MEDIA_PATH_SEGMENT = "media"
+const val ALBUM_PATH_SEGMENT = "album"
+const val MEDIA_GRANTS_COUNT_PATH_SEGMENT = "media_grants_count"
 private const val PREVIEW_PATH_SEGMENT = "preview"
-private const val PRE_SELECTION_URI_PATH_SEGMENT = "pre_selection"
-private const val SEARCH_MEDIA_PATH_SEGMENT = "search_media"
-private const val SEARCH_SUGGESTIONS_PATH_SEGMENT = "search_suggestions"
+const val PRE_SELECTION_URI_PATH_SEGMENT = "pre_selection"
+const val SEARCH_MEDIA_PATH_SEGMENT = "search_media"
+const val SEARCH_SUGGESTIONS_PATH_SEGMENT = "search_suggestions"
+const val CATEGORIES_PATH_SEGMENT = "categories"
+const val MEDIA_SETS_PATH_SEGMENT = "media_sets"
+const val MEDIA_SET_CONTENTS_PATH_SEGMENT = "media_set_contents"
 
 const val PICKER_SEGMENT = "picker"
 const val PICKER_TRANSCODED_SEGMENT = "picker_transcoded"
@@ -128,3 +131,34 @@ fun getSearchResultsMediaUri(searchRequestId: Int): Uri {
         }
         .build()
 }
+
+fun getCategoryUri(parentCategoryId: String?): Uri {
+    return pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(CATEGORIES_PATH_SEGMENT)
+            parentCategoryId?.let { appendPath(parentCategoryId) }
+        }
+        .build()
+}
+
+val MEDIA_SETS_URI = pickerUri.buildUpon().appendPath(MEDIA_SETS_PATH_SEGMENT).build()
+val MEDIA_SETS_UPDATE_URI =
+    pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(MEDIA_SETS_PATH_SEGMENT)
+            appendPath(UPDATE_PATH_SEGMENT)
+        }
+        .build()
+
+val MEDIA_SET_CONTENTS_URI =
+    pickerUri.buildUpon().appendPath(MEDIA_SET_CONTENTS_PATH_SEGMENT).build()
+val MEDIA_SET_CONTENT_UPDATE_URI =
+    pickerUri
+        .buildUpon()
+        .apply {
+            appendPath(MEDIA_SET_CONTENTS_PATH_SEGMENT)
+            appendPath(UPDATE_PATH_SEGMENT)
+        }
+        .build()

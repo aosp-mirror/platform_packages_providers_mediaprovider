@@ -51,6 +51,7 @@ import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
+import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.util.test.mockSystemService
 import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertThat
@@ -117,6 +118,7 @@ class DispatchersTest {
     private lateinit var eventsDispatched: MutableList<Event>
     private lateinit var lazyUserMonitor: Lazy<UserMonitor>
     private lateinit var lazyMediaSelection: Lazy<Selection<Media>>
+    private lateinit var lazyFeatureManager: Lazy<FeatureManager>
 
     private fun setup(testScope: TestScope) {
         val backgroundScope = testScope.backgroundScope
@@ -133,6 +135,7 @@ class DispatchersTest {
                 scope = backgroundScope,
                 prefetchDataService = TestPrefetchDataService(),
             )
+        lazyFeatureManager = Lazy { featureManager }
 
         val events =
             Events(
@@ -359,6 +362,7 @@ class DispatchersTest {
         setup(testScope = this)
 
         val pickerIntentAction = Telemetry.PickerIntentAction.ACTION_PICK_IMAGES
+        val cloudSearch = lazyFeatureManager.get().isFeatureEnabled(SearchFeature::class.java)
 
         val expectedEvent =
             Event.ReportPhotopickerApiInfo(
@@ -373,7 +377,7 @@ class DispatchersTest {
                 isOrderedSelectionSet = false,
                 isAccentColorSet = false,
                 isDefaultTabSet = false,
-                isCloudSearchEnabled = false,
+                isCloudSearchEnabled = cloudSearch,
                 isLocalSearchEnabled = false,
             )
 
@@ -383,6 +387,7 @@ class DispatchersTest {
             lazyEvents = lazyEvents,
             photopickerConfiguration = photopickerConfiguration,
             pickerIntentAction = pickerIntentAction,
+            lazyFeatureManager = lazyFeatureManager,
         )
         advanceTimeBy(delayTimeMillis = 50)
 

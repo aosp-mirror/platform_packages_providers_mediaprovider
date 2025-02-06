@@ -27,6 +27,7 @@ import static com.android.providers.media.util.Logging.TAG;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.CancellationSignal;
 import android.provider.MediaStore.Files.FileColumns;
@@ -92,9 +93,10 @@ public final class BackupExecutor {
      * 3. Updates the new backed up generation number
      */
     public void doBackup(CancellationSignal signal) {
-        if (!SdkLevel.isAtLeastS() || !enableBackupAndRestore()) {
+        if (!isBackupAndRestoreSupported(mContext)) {
             return;
         }
+        Log.v(TAG, "Backup is enabled");
 
         if (mLevelDBInstance == null) {
             mLevelDBInstance = LevelDBManager.getInstance(getBackupFilePath());
@@ -107,6 +109,34 @@ public final class BackupExecutor {
         Log.v(TAG, "Last backed up generation number: " + lastBackedUpGenerationNumber);
         long lastGenerationNumber = backupData(lastBackedUpGenerationNumber, signal);
         updateLastBackedUpGenerationNumber(lastGenerationNumber);
+    }
+
+    /**
+     * Checks whether backup and restore operations are supported and enabled on the current device.
+     *
+     * <p>This method verifies that the required backup and restore flag is enabled, SDK version is
+     * S+ and ensures the device hardware is suitable for these operations. Backup and restore are
+     * supported only on mobile phones and tablets, excluding devices like automotive systems, TVs,
+     * PCs, and smartwatches.</p>
+     *
+     * @param context the application {@link Context}, used to access system resources.
+     * @return {@code true} if backup and restore is enabled and supported on the device,
+     *         {@code false} otherwise.
+     */
+    public static boolean isBackupAndRestoreSupported(Context context) {
+        if (!enableBackupAndRestore() || !SdkLevel.isAtLeastS()) {
+            return false;
+        }
+
+        if (context == null || context.getPackageManager() == null) {
+            return false;
+        }
+
+        final PackageManager pm = context.getPackageManager();
+        return !pm.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
+                && !pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+                && !pm.hasSystemFeature(PackageManager.FEATURE_PC)
+                && !pm.hasSystemFeature(PackageManager.FEATURE_WATCH);
     }
 
     private long clearBackupIfNeededAndReturnLastBackedUpNumber(long currentDbGenerationNumber,
@@ -272,7 +302,7 @@ public final class BackupExecutor {
      * Removes entry for given file path from Backup.
      */
     public void deleteBackupForPath(String path) {
-        if (enableBackupAndRestore() && path != null && mLevelDBInstance != null) {
+        if (isBackupAndRestoreSupported(mContext) && path != null && mLevelDBInstance != null) {
             mLevelDBInstance.delete(path);
         }
     }

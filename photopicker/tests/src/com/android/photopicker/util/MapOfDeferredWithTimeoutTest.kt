@@ -20,9 +20,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertWithMessage
 import kotlin.time.measureTime
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -31,26 +36,28 @@ import org.junit.runner.RunWith
 class MapOfDeferredWithTimeoutTest {
 
     @Test
-    fun testTasksRunsInParallel() {
+    fun testTasksRunsInParallel() = runTest {
         val time = measureTime {
-            runBlocking {
-                val inputMap: MutableMap<Int, suspend (Unit) -> Any?> = mutableMapOf()
-                for (i in 1..10) {
-                    inputMap[i] = {
-                        delay(50)
-                        i
-                    }
+            val inputMap: MutableMap<Int, suspend (Unit) -> Any?> = mutableMapOf()
+            for (i in 1..10) {
+                inputMap[i] = {
+                    delay(50)
+                    i
                 }
+            }
 
-                val resultMap: Map<Int, Deferred<Any?>> =
-                    mapOfDeferredWithTimeout(inputMap, Unit, 100)
+            val resultMap: Map<Int, Deferred<Any?>> =
+                mapOfDeferredWithTimeout(
+                    inputMap,
+                    Unit,
+                    100,
+                    backgroundScope,
+                    StandardTestDispatcher(this.testScheduler),
+                )
 
-                for (i in 1..10) {
-                    val result: Any? = resultMap[i]?.await()
-                    assertWithMessage("Expected result type is not Int")
-                        .that(result is Int)
-                        .isTrue()
-                }
+            for (i in 1..10) {
+                val result: Any? = resultMap[i]?.await()
+                assertWithMessage("Expected result type is not Int").that(result is Int).isTrue()
             }
         }
 
@@ -63,6 +70,9 @@ class MapOfDeferredWithTimeoutTest {
 
     @Test
     fun testMapTimeout() {
+        val backgroundDispatcher = Dispatchers.IO
+        val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         val time = measureTime {
             runBlocking {
                 val inputMap: Map<String, suspend (Unit) -> Any?> =
@@ -81,7 +91,13 @@ class MapOfDeferredWithTimeoutTest {
                     )
 
                 val resultMap: Map<String, Deferred<Any?>> =
-                    mapOfDeferredWithTimeout(inputMap, Unit, 50)
+                    mapOfDeferredWithTimeout(
+                        inputMap,
+                        Unit,
+                        50,
+                        backgroundScope,
+                        backgroundDispatcher,
+                    )
 
                 assertWithMessage("Task should be timed out. Expected result is null.")
                     .that(resultMap["key1"]?.await())

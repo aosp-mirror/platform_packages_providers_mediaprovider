@@ -191,7 +191,8 @@ public class PermissionUtils {
             }
 
             return amlRequested && userSelectedImplicit && checkPermissionReadVisualUserSelected(
-                    context, pid, uid, packageName, attributionTag, isTargetSdkAtLeastT);
+                    context, pid, uid, packageName, attributionTag, isTargetSdkAtLeastT,
+                    /* forDataDelivery */ true);
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
@@ -223,7 +224,8 @@ public class PermissionUtils {
             int uid,
             @NonNull String packageName,
             @Nullable String attributionTag,
-            boolean targetSdkIsAtLeastT) {
+            boolean targetSdkIsAtLeastT,
+            boolean forDataDelivery) {
 
         String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
                 ? READ_MEDIA_AUDIO : READ_EXTERNAL_STORAGE;
@@ -233,18 +235,18 @@ public class PermissionUtils {
         }
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_AUDIO, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     public static boolean checkPermissionWriteAudio(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
+            @NonNull String packageName, @Nullable String attributionTag, boolean forDataDelivery) {
         if (!checkPermissionAllowingNonLegacy(
                     context, WRITE_EXTERNAL_STORAGE, pid, uid, packageName)) {
             return false;
         }
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_AUDIO, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     public static boolean checkPermissionReadVideo(
@@ -253,7 +255,8 @@ public class PermissionUtils {
             int uid,
             @NonNull String packageName,
             @Nullable String attributionTag,
-            boolean targetSdkIsAtLeastT) {
+            boolean targetSdkIsAtLeastT,
+            boolean forDataDelivery) {
         String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
                 ? READ_MEDIA_VIDEO : READ_EXTERNAL_STORAGE;
 
@@ -263,18 +266,18 @@ public class PermissionUtils {
 
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_VIDEO, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     public static boolean checkPermissionWriteVideo(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
+            @NonNull String packageName, @Nullable String attributionTag, boolean forDataDelivery) {
         if (!checkPermissionAllowingNonLegacy(
                 context, WRITE_EXTERNAL_STORAGE, pid, uid, packageName)) {
             return false;
         }
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_VIDEO, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     public static boolean checkPermissionReadImages(
@@ -283,7 +286,7 @@ public class PermissionUtils {
             int uid,
             @NonNull String packageName,
             @Nullable String attributionTag,
-            boolean targetSdkIsAtLeastT) {
+            boolean targetSdkIsAtLeastT, boolean forDataDelivery) {
         String permission = targetSdkIsAtLeastT && SdkLevel.isAtLeastT()
                 ? READ_MEDIA_IMAGES : READ_EXTERNAL_STORAGE;
 
@@ -293,18 +296,18 @@ public class PermissionUtils {
 
         return checkAppOpAllowingLegacy(context, OPSTR_READ_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     public static boolean checkPermissionWriteImages(@NonNull Context context, int pid, int uid,
-            @NonNull String packageName, @Nullable String attributionTag) {
+            @NonNull String packageName, @Nullable String attributionTag, boolean forDataDelivery) {
         if (!checkPermissionAllowingNonLegacy(
                 context, WRITE_EXTERNAL_STORAGE, pid, uid, packageName)) {
             return false;
         }
         return checkAppOpAllowingLegacy(context, OPSTR_WRITE_MEDIA_IMAGES, pid,
                 uid, packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+                generateAppOpMessage(packageName, sOpDescription.get()), forDataDelivery);
     }
 
     /**
@@ -317,13 +320,21 @@ public class PermissionUtils {
             int uid,
             @NonNull String packageName,
             @Nullable String attributionTag,
-            boolean targetSdkIsAtLeastT) {
+            boolean targetSdkIsAtLeastT,
+            boolean forDataDelivery) {
         if (!SdkLevel.isAtLeastU() || !targetSdkIsAtLeastT) {
             return false;
         }
-        return checkPermissionForDataDelivery(context, READ_MEDIA_VISUAL_USER_SELECTED, pid, uid,
-                packageName, attributionTag,
-                generateAppOpMessage(packageName, sOpDescription.get()));
+        if (forDataDelivery) {
+            return checkPermissionForDataDelivery(context, READ_MEDIA_VISUAL_USER_SELECTED, pid,
+                    uid,
+                    packageName, attributionTag,
+                    generateAppOpMessage(packageName, sOpDescription.get()));
+        } else {
+            return checkPermissionForPreflight(context, READ_MEDIA_VISUAL_USER_SELECTED, pid,
+                    uid,
+                    packageName);
+        }
     }
 
     /**
@@ -476,9 +487,11 @@ public class PermissionUtils {
      */
     private static boolean checkAppOpAllowingLegacy(@NonNull Context context,
             @NonNull String op, int pid, int uid, @NonNull String packageName,
-            @Nullable String attributionTag, @Nullable String opMessage) {
+            @Nullable String attributionTag, @Nullable String opMessage, boolean forDataDelivery) {
         final AppOpsManager appOps = context.getSystemService(AppOpsManager.class);
-        final int mode = appOps.noteOpNoThrow(op, uid, packageName, attributionTag, opMessage);
+        final int mode = forDataDelivery
+                ? appOps.noteOpNoThrow(op, uid, packageName, attributionTag, opMessage)
+                : appOps.unsafeCheckOpNoThrow(op, uid, packageName);
         switch (mode) {
             case AppOpsManager.MODE_ALLOWED:
                 return true;

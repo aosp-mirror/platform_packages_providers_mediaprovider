@@ -108,11 +108,17 @@ cc_test {
 
     static_libs: [
         "libbase_ndk",
+        "libpdfium_static",
     ],
 
     shared_libs: [
-        "libpdfium",
         "liblog",
+        "libjnigraphics",
+        "libdl",
+        "libft2",
+        "libicu",
+        "libjpeg",
+        "libz",
     ],
 
     cflags: [

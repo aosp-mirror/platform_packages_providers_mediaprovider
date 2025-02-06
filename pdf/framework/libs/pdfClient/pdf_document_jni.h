@@ -121,6 +121,18 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_removePage
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_updatePageObject(
         JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index, jobject jPageObject);
 
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageAnnotations(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum);
+
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_addPageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jPageAnnotation);
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_removePageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index);
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_updatePageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index, jobject jPageAnnotation);
+
 #ifdef __cplusplus
 }
 #endif

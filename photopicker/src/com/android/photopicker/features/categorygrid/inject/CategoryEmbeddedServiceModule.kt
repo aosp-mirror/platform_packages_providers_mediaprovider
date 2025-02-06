@@ -17,14 +17,21 @@
 package com.android.photopicker.features.categorygrid.inject
 
 import android.util.Log
+import com.android.photopicker.core.Background
 import com.android.photopicker.core.EmbeddedServiceComponent
 import com.android.photopicker.core.SessionScoped
+import com.android.photopicker.core.configuration.ConfigurationManager
+import com.android.photopicker.core.events.Events
 import com.android.photopicker.data.DataService
+import com.android.photopicker.data.MediaProviderClient
+import com.android.photopicker.data.NotificationService
 import com.android.photopicker.features.categorygrid.data.CategoryDataService
-import com.android.photopicker.features.categorygrid.data.FakeCategoryDataServiceImpl
+import com.android.photopicker.features.categorygrid.data.CategoryDataServiceImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * Injection Module for category feature specific dependencies, that provides access to objects
@@ -49,7 +56,15 @@ class CategoryEmbeddedServiceModule {
     /** Provider for an implementation of [CategoryDataService]. */
     @Provides
     @SessionScoped
-    fun provideCategoryDataService(dataService: DataService): CategoryDataService {
+    fun provideCategoryDataService(
+        dataService: DataService,
+        configurationManager: ConfigurationManager,
+        @Background scope: CoroutineScope,
+        @Background dispatcher: CoroutineDispatcher,
+        mediaProviderClient: MediaProviderClient,
+        notificationService: NotificationService,
+        events: Events,
+    ): CategoryDataService {
         if (::categoryDataService.isInitialized) {
             return categoryDataService
         } else {
@@ -59,8 +74,16 @@ class CategoryEmbeddedServiceModule {
                     " Initializing CategoryDataService.",
             )
 
-            // TODO(b/361043596): Switch with actual implementation when ready.
-            categoryDataService = FakeCategoryDataServiceImpl(dataService)
+            categoryDataService =
+                CategoryDataServiceImpl(
+                    dataService,
+                    configurationManager.configuration,
+                    scope,
+                    dispatcher,
+                    notificationService,
+                    mediaProviderClient,
+                    events,
+                )
             return categoryDataService
         }
     }

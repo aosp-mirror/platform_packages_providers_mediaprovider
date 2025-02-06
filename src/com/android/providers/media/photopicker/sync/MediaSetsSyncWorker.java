@@ -40,11 +40,14 @@ import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.photopicker.v2.sqlite.MediaSetsDatabaseUtil;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class MediaSetsSyncWorker extends Worker {
 
@@ -55,6 +58,8 @@ public class MediaSetsSyncWorker extends Worker {
     private final int PAGE_SIZE = 500;
     private final Context mContext;
     private final CancellationSignal mCancellationSignal;
+    private boolean mMarkedSyncWorkAsComplete = false;
+
 
     public MediaSetsSyncWorker(@NonNull Context context, @NonNull WorkerParameters parameters) {
         super(context, parameters);
@@ -66,6 +71,7 @@ public class MediaSetsSyncWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
+
         final int syncSource = getInputData().getInt(SYNC_WORKER_INPUT_SYNC_SOURCE,
                 /* defaultValue */ INVALID_SYNC_SOURCE);
         final String categoryId = getInputData().getString(SYNC_WORKER_INPUT_CATEGORY_ID);
@@ -91,7 +97,7 @@ public class MediaSetsSyncWorker extends Worker {
             return ListenableWorker.Result.success();
         } catch (RuntimeException | RequestObsoleteException e) {
             Log.e(TAG, "Could not complete media sets sync from "
-                            + syncSource + " with categoryId " + categoryId + " due to " + e);
+                            + syncSource + " with categoryId " + categoryId, e);
             return ListenableWorker.Result.failure();
         }
     }
@@ -124,6 +130,7 @@ public class MediaSetsSyncWorker extends Worker {
                 : Arrays.asList(mimeTypes);
         final PickerSearchProviderClient searchClient =
                 PickerSearchProviderClient.create(mContext, categoryAuthority);
+        final Set<String> knownTokens = new HashSet<>();
         String nextPageToken = null;
 
         try {
@@ -138,15 +145,36 @@ public class MediaSetsSyncWorker extends Worker {
                             getDatabase(), mediaSetsCursor, categoryId,
                             categoryAuthority, mimeTypesList);
                     Log.i(TAG, "Cached " + numberOfRowsInserted + " media sets");
+
                     // Update the next page token
                     nextPageToken = getNextPageToken(mediaSetsCursor.getExtras());
                     if (nextPageToken.equals(SYNC_COMPLETE_KEY)) {
+                        Log.d(TAG, "Number of media set results pages synced: "
+                                + (currentIteration + 1));
                         break;
+                    } else if (knownTokens.contains(nextPageToken)) {
+                        Log.e(TAG, "Loop detected! CMP has sent the same page token twice: "
+                                + nextPageToken);
+                        break;
+                    }
+                    knownTokens.add(nextPageToken);
+
+                    // Mark sync as complete
+                    if (mMarkedSyncWorkAsComplete) {
+                        // Notify the UI that a change has been made in the DB
+                        if (numberOfRowsInserted > 0) {
+                            PickerNotificationSender.notifyMediaSetsChange(mContext, categoryId);
+                        }
+                    } else {
+                        markMediaSetsSyncAsComplete(syncSource, getId());
+                        mMarkedSyncWorkAsComplete = true;
                     }
                 }
             }
         } finally {
-            markMediaSetsSyncAsComplete(syncSource, getId());
+            if (!mMarkedSyncWorkAsComplete) {
+                markMediaSetsSyncAsComplete(syncSource, getId());
+            }
         }
     }
 
@@ -165,6 +193,7 @@ public class MediaSetsSyncWorker extends Worker {
         return cursor;
     }
 
+    @NonNull
     private String getNextPageToken(Bundle extras) {
         if (extras == null
                 || extras.getString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN) == null) {

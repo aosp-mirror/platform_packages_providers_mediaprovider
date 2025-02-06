@@ -240,6 +240,7 @@ public class PrefetchDataServiceImplTest {
                 userMonitor,
                 mockPrimaryUserContext,
                 StandardTestDispatcher(this.testScheduler),
+                backgroundScope,
             )
 
         val globalSearchState = prefetchDataService.getGlobalSearchState()
@@ -273,6 +274,7 @@ public class PrefetchDataServiceImplTest {
                 userMonitor,
                 mockPrimaryUserContext,
                 StandardTestDispatcher(this.testScheduler),
+                backgroundScope,
             )
 
         testPrimaryUserContentProvider.searchProviders = listOf()
@@ -312,6 +314,7 @@ public class PrefetchDataServiceImplTest {
                 userMonitor,
                 mockPrimaryUserContext,
                 StandardTestDispatcher(this.testScheduler),
+                backgroundScope,
             )
 
         testPrimaryUserContentProvider.searchProviders = listOf()
@@ -350,6 +353,7 @@ public class PrefetchDataServiceImplTest {
                 userMonitor,
                 mockPrimaryUserContext,
                 StandardTestDispatcher(this.testScheduler),
+                backgroundScope,
             )
 
         val globalSearchState = prefetchDataService.getGlobalSearchState()

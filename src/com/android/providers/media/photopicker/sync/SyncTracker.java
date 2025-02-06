@@ -88,6 +88,22 @@ public class SyncTracker {
     }
 
     /**
+     * Use this method to mark all picker sync futures as complete.
+     *
+     * This is useful when using {@link ExistingWorkPolicy.REPLACE} to enqueue Unique Work.
+     * It clears the tracker of the work that will get cancelled by the REPLACE policy.
+     */
+    public void markAllSyncsCompleted() {
+        synchronized (mFutureMap) {
+            for (CompletableFuture future : mFutureMap.values()) {
+                future.complete(FUTURE_RESULT);
+            }
+            mFutureMap.clear();
+            Log.i(TAG, String.format("Marked all sync futures as complete"));
+        }
+    }
+
+    /**
      * Use this method to check if any sync request is still pending.
      * @return a {@link Collection} of {@link CompletableFuture} of pending syncs. This can be
      * used to track when all pending are complete.

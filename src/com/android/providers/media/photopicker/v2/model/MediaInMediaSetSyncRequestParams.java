@@ -23,22 +23,23 @@ import androidx.annotation.NonNull;
 import java.util.Objects;
 
 public class MediaInMediaSetSyncRequestParams {
+    public static final String KEY_PARENT_MEDIA_SET_AUTHORITY = "media_set_picker_authority";
+    public static final String KEY_PARENT_MEDIA_SET_PICKER_ID = "media_set_picker_id";
     private final String mAuthority;
-    private final String mMediaSetPickerId;
+    private final Long mMediaSetPickerId;
 
     public MediaInMediaSetSyncRequestParams(@NonNull Bundle extras) {
         Objects.requireNonNull(extras);
-        mAuthority = extras.getString("authority");
-        mMediaSetPickerId = extras.getString("media_set_picker_id");
+        mAuthority = extras.getString(KEY_PARENT_MEDIA_SET_AUTHORITY);
+        mMediaSetPickerId = extras.getLong(KEY_PARENT_MEDIA_SET_PICKER_ID);
         Objects.requireNonNull(mAuthority);
-        Objects.requireNonNull(mMediaSetPickerId);
     }
 
     public String getAuthority() {
         return mAuthority;
     }
 
-    public String getMediaSetPickerId() {
+    public Long getMediaSetPickerId() {
         return mMediaSetPickerId;
     }
 }

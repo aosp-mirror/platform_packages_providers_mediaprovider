@@ -85,10 +85,10 @@ public final class RenderParams {
     private static int getRenderMask() {
 
         int renderMask = FLAG_RENDER_TEXT_ANNOTATIONS | FLAG_RENDER_HIGHLIGHT_ANNOTATIONS;
-        if (Flags.enableEditPdfTextAnnotations()) {
+        if (android.graphics.pdf.flags.readonly.Flags.enableEditPdfTextAnnotations()) {
             renderMask |= FLAG_RENDER_FREETEXT_ANNOTATIONS;
         }
-        if (Flags.enableEditPdfStampAnnotations()) {
+        if (android.graphics.pdf.flags.readonly.Flags.enableEditPdfStampAnnotations()) {
             renderMask |= FLAG_RENDER_STAMP_ANNOTATIONS;
         }
         return renderMask;

@@ -46,8 +46,8 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") @NonNull public java.util.List<android.util.Pair<java.lang.Integer,android.graphics.pdf.component.PdfPageObject>> getPageObjects();
     method @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
     method @IntRange(from=0) public int getWidth();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") @NonNull public android.graphics.pdf.component.PdfAnnotation removePageAnnotation(@IntRange(from=0) int);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") @NonNull public android.graphics.pdf.component.PdfPageObject removePageObject(@IntRange(from=0) int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public void removePageAnnotation(@IntRange(from=0) int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public void removePageObject(@IntRange(from=0) int);
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);
     method @Nullable public android.graphics.pdf.models.selection.PageSelection selectContent(@NonNull android.graphics.pdf.models.selection.SelectionBoundary, @NonNull android.graphics.pdf.models.selection.SelectionBoundary);
@@ -113,10 +113,8 @@ package android.graphics.pdf.component {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public abstract class PdfPageObject {
-    method @NonNull public android.graphics.RectF getBounds();
     method @NonNull public float[] getMatrix();
     method public int getPdfObjectType();
-    method public void setBounds(@NonNull android.graphics.RectF);
     method public void setMatrix(@NonNull android.graphics.Matrix);
     method public void transform(float, float, float, float, float, float);
   }
@@ -130,21 +128,18 @@ package android.graphics.pdf.component {
   }
 
   @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public final class PdfPagePathObject extends android.graphics.pdf.component.PdfPageObject {
-    ctor public PdfPagePathObject();
+    ctor public PdfPagePathObject(@NonNull android.graphics.Path);
     method @Nullable public android.graphics.Color getFillColor();
-    method @Nullable public android.graphics.PathEffect getLineStyle();
-    method @NonNull public android.graphics.Path getPath();
-    method @NonNull public android.graphics.Color getStrokeColor();
+    method @Nullable public android.graphics.Color getStrokeColor();
     method public float getStrokeWidth();
     method public void setFillColor(@Nullable android.graphics.Color);
-    method public void setLineStyle(int);
-    method public void setPath(@NonNull android.graphics.Path);
-    method public void setStrokeColor(@NonNull android.graphics.Color);
+    method public void setStrokeColor(@Nullable android.graphics.Color);
     method public void setStrokeWidth(float);
+    method @NonNull public android.graphics.Path toPath();
   }
 
-  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public final class PdfPageTextObject extends android.graphics.pdf.component.PdfPageObject {
-    ctor @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_text_objects") public PdfPageTextObject(@NonNull String, @NonNull android.graphics.Typeface, float);
+  @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_text_objects") public final class PdfPageTextObject extends android.graphics.pdf.component.PdfPageObject {
+    ctor public PdfPageTextObject(@NonNull String, @NonNull android.graphics.Typeface, float);
     method @Nullable public android.graphics.Color getFillColor();
     method public float getFontSize();
     method @NonNull public android.graphics.Color getStrokeColor();

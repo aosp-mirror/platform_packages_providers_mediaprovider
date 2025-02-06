@@ -38,6 +38,7 @@ import com.android.photopicker.features.search.SearchFeature
 import com.android.photopicker.features.selectionbar.SelectionBarFeature
 import com.android.photopicker.features.snackbar.SnackbarFeature
 import com.android.photopicker.util.mapOfDeferredWithTimeout
+import java.util.concurrent.CopyOnWriteArraySet
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -124,7 +125,11 @@ class FeatureManager(
     }
 
     // The internal mutable set of enabled features.
-    private val _enabledFeatures: MutableSet<PhotopickerFeature> = mutableSetOf()
+    // This field is read in the public method [isFeatureEnabled] which can be called from both the
+    // main thread as well as various background threads, so ensure concurrency by using a slower,
+    // but thread safe data structure. This list is fairly small (roughly the size of
+    // KNOWN_FEATURE_REGISTRATIONS), and it's access is retrieval heavy rather than mutation heavy.
+    private val _enabledFeatures: CopyOnWriteArraySet<PhotopickerFeature> = CopyOnWriteArraySet()
 
     // The internal map of claimed [FeatureToken] to the claiming [PhotopickerFeature]
     private val _tokenMap: HashMap<String, PhotopickerFeature> = HashMap()
@@ -232,6 +237,8 @@ class FeatureManager(
                     inputMap = prefetchRequestMap,
                     input = prefetchDataService,
                     timeoutMillis = 200L,
+                    backgroundScope = scope,
+                    dispatcher = dispatcher,
                 )
             }
 

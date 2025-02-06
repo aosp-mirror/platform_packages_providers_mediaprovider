@@ -24,6 +24,7 @@ import com.android.photopicker.features.search.model.GlobalSearchState
 import com.android.photopicker.features.search.model.GlobalSearchStateInfo
 import com.android.photopicker.util.mapOfDeferredWithTimeout
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 
 /** Implementation of [PrefetchDataService] that typically fetches data from MediaProvider. */
@@ -32,6 +33,7 @@ class PrefetchDataServiceImpl(
     val userMonitor: UserMonitor,
     val context: Context,
     val dispatcher: CoroutineDispatcher,
+    val scope: CoroutineScope,
 ) : PrefetchDataService {
 
     override suspend fun getGlobalSearchState(): GlobalSearchState {
@@ -63,6 +65,8 @@ class PrefetchDataServiceImpl(
                 inputMap = inputMap,
                 input = mediaProviderClient,
                 timeoutMillis = 100L,
+                backgroundScope = scope,
+                dispatcher = dispatcher,
             )
 
         // Await all the deferred tasks and create a map of user id to the search provider

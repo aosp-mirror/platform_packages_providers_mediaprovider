@@ -159,7 +159,7 @@
     <string name="transcode_processing" msgid="6753136468864077258">"جارٍ معالجة الوسائط…"</string>
     <string name="transcode_cancel" msgid="8555752601907598192">"إلغاء"</string>
     <string name="transcode_wait" msgid="8909773149560697501">"الانتظار"</string>
-    <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية الأمن الشخصي"</string>
+    <string name="safety_protection_icon_label" msgid="6714354052747723623">"حماية السلامة الشخصية"</string>
     <string name="transcode_alert_channel" msgid="9004850719456228643">"إشعارات تحويل الترميز"</string>
     <string name="transcode_progress_channel" msgid="6122609645085712101">"مستوى التقدُّم في عملية تحويل الترميز"</string>
     <string name="dialog_error_message" msgid="5120432204743681606">"يُرجى إعادة المحاولة لاحقًا. ستتوفّر صورك عند حل المشكلة."</string>

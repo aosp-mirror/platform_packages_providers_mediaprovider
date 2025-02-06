@@ -30,7 +30,7 @@ import java.util.Locale;
  * Picker DB.
  */
 public class MediaInMediaSetsCloudSubQuery extends MediaInMediaSetsSubQuery {
-    public MediaInMediaSetsCloudSubQuery(Bundle queryArgs, String mediaSetPickerId) {
+    public MediaInMediaSetsCloudSubQuery(Bundle queryArgs, Long mediaSetPickerId) {
         super(queryArgs, mediaSetPickerId);
     }
 

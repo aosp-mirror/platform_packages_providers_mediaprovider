@@ -50,6 +50,19 @@ public class SyncTrackerTests {
     }
 
     @Test
+    public void testMarkAllSyncsComplete() {
+        SyncTracker syncTracker = new SyncTracker();
+        syncTracker.createSyncFuture(UUID.randomUUID());
+        syncTracker.createSyncFuture(UUID.randomUUID());
+        syncTracker.createSyncFuture(UUID.randomUUID());
+        Collection<CompletableFuture<Object>> futures = syncTracker.pendingSyncFutures();
+        assertThat(futures.size()).isEqualTo(3);
+
+        syncTracker.markAllSyncsCompleted();
+        assertThat(futures.size()).isEqualTo(0);
+    }
+
+    @Test
     public void testCompleteOnTimeoutSyncFuture()
             throws InterruptedException, ExecutionException, TimeoutException {
         SyncTracker syncTracker = new SyncTracker();

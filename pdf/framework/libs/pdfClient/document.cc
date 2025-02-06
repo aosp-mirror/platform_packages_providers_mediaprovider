@@ -116,7 +116,7 @@ std::shared_ptr<Page> Document::GetPage(int pageNum, bool retain) {
     if (retain) {
         page->InitializeFormFilling();
         pages_.try_emplace(pageNum, page);
-        fpdf_page_index_lookup_.try_emplace(page->page(), pageNum);
+        fpdf_page_index_lookup_.try_emplace(page->Get(), pageNum);
     }
 
     return page;
@@ -136,7 +136,7 @@ void Document::ReleaseRetainedPage(int pageNum) {
         std::shared_ptr<pdfClient::Page> page = pages_.at(pageNum);
         page->TerminateFormFilling();
         pages_.erase(pageNum);
-        fpdf_page_index_lookup_.erase(page->page());
+        fpdf_page_index_lookup_.erase(page->Get());
     }
 }
 

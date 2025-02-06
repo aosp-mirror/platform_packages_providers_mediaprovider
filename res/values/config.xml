@@ -29,4 +29,9 @@
     <string name="config_default_media_cognition_service_package" translatable="false"></string>
     <!-- Config for OemMetadataService package -->
     <string name="config_default_oem_metadata_service_package" translatable="false"></string>
+
+    <!-- The subset of folders that should not be created during the default creation of folders on
+    the root directory of mounted storage devices by the MediaProvider. This is empty by default.
+    -->
+    <string-array name="config_foldersToSkipInDefaultCreation" translatable="false"></string-array>
 </resources>

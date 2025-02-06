@@ -31,6 +31,7 @@ import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult
+import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
@@ -38,6 +39,7 @@ import com.android.photopicker.features.search.data.SearchDataService
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import com.android.photopicker.features.search.model.UserSearchStateInfo
+import com.google.common.annotations.VisibleForTesting
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -66,17 +68,18 @@ constructor(
     private val scopeOverride: CoroutineScope?,
     @Background val backgroundDispatcher: CoroutineDispatcher,
     private val searchDataService: SearchDataService,
+    private val dataService: DataService,
     private val selection: Selection<Media>,
     private val events: Events,
     private val configurationManager: ConfigurationManager,
 ) : ViewModel() {
 
     companion object {
+        private const val SEARCH_RESULT_GRID_PAGE_SIZE = 50
+        private const val SEARCH_RESULT_GRID_MAX_ITEMS_IN_MEMORY = SEARCH_RESULT_GRID_PAGE_SIZE * 10
         const val HISTORY_SUGGESTION_MAX_LIMIT = 3
         const val FACE_SUGGESTION_MAX_LIMIT = 6
         const val ALL_SUGGESTION_MAX_LIMIT = 6
-        const val SEARCH_RESULT_GRID_PAGE_SIZE = 50
-        const val SEARCH_RESULT_GRID_MAX_ITEMS_IN_MEMORY = SEARCH_RESULT_GRID_PAGE_SIZE * 10
     }
 
     // Check if a scope override was injected before using the default [viewModelScope]
@@ -115,6 +118,13 @@ constructor(
 
     init {
         fetchSuggestions("")
+        // Listen to available provider changes and clear search suggestions cache.
+        scope.launch(backgroundDispatcher) {
+            dataService.availableProviders.collect {
+                suggestionCache.clearSuggestions()
+                fetchSuggestions("")
+            }
+        }
     }
 
     /**
@@ -310,6 +320,11 @@ constructor(
         }
         _suggestionLists.value = SuggestionLists(history, face, other)
         return result
+    }
+
+    @VisibleForTesting
+    fun getCachedSuggestions(): SearchSuggestionCache {
+        return suggestionCache
     }
 }
 

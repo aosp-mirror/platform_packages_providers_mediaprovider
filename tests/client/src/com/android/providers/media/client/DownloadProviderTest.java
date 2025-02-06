@@ -65,6 +65,16 @@ public class DownloadProviderTest {
         deletePublicVolumes();
     }
 
+    @Test
+    public void canCreateOtherPackageExternalFilesDir() {
+        try {
+            // Verifies that downloadProvider can create files dir for other packages.
+            createOtherPackageExternalFilesDir();
+        } catch (Exception e) {
+            throw new UnsupportedOperationException(
+                    "Unable to create files dir: \n" + e.getMessage());
+        }
+    }
 
     @Test
     public void testCanReadWriteOtherAppPrivateFiles() throws Exception {
@@ -104,11 +114,11 @@ public class DownloadProviderTest {
 
             for (String dir: otherPackageDirsOnSameVolume) {
                 otherPackageDirs.add(new File(dir));
-                final String otherPackageExternalFilesDir = dir + "/files";
-                executeShellCommand("mkdir -p " + otherPackageExternalFilesDir + " -m 2770");
+                File otherPackageExternalFilesDir = new File(dir, "/files");
+                otherPackageExternalFilesDir.mkdirs();
                 // Need to wait for the directory to be created, as the rest of the test depends on
                 // the dir to be created. A race condition can cause the test to be flaky.
-                pollForDirectoryToBeCreated(new File(otherPackageExternalFilesDir));
+                pollForDirectoryToBeCreated(otherPackageExternalFilesDir);
             }
         }
         return otherPackageDirs;

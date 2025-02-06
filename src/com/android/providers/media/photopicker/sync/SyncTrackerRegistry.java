@@ -351,6 +351,19 @@ public class SyncTrackerRegistry {
     }
 
     /**
+     * Mark all the pending futures as complete.
+     */
+    public static void markAllSearchResultsSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalSearchSyncTracker().markAllSyncsCompleted();
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudSearchSyncTracker().markAllSyncsCompleted();
+        }
+    }
+
+    /**
      * Mark the required futures as complete for existing media set sync requests.
      */
     public static void markMediaSetsSyncAsComplete(
@@ -375,6 +388,19 @@ public class SyncTrackerRegistry {
         }
         if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
             getCloudMediaInMediaSetTracker().markSyncCompleted(syncRequestId);
+        }
+    }
+
+    /**
+     * Mark all media in media sets sync pending futures as complete
+     */
+    public static void markAllMediaInMediaSetsSyncAsComplete(
+            @PickerSyncManager.SyncSource int syncSource) {
+        if (syncSource == SYNC_LOCAL_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getLocalMediaInMediaSetTracker().markAllSyncsCompleted();
+        }
+        if (syncSource == SYNC_CLOUD_ONLY || syncSource == SYNC_LOCAL_AND_CLOUD) {
+            getCloudMediaInMediaSetTracker().markAllSyncsCompleted();
         }
     }
 }

@@ -33,16 +33,18 @@ import android.provider.OpenFileRequest;
 import android.provider.ParcelableException;
 import android.util.Log;
 
+import com.android.providers.media.util.FileUtils;
 import com.android.providers.media.util.StringUtils;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Utility class used to open picker files asynchronously.
- * It manages a {@link java.util.concurrent.ThreadPoolExecutor} that is being used to schedule
+ * It manages a {@link ThreadPoolExecutor} that is being used to schedule
  * pending open file requests.
  */
 public class AsyncPickerFileOpener {
@@ -99,9 +101,10 @@ public class AsyncPickerFileOpener {
         final int tid = Process.myTid();
         mMediaProvider.addToPendingOpenMap(tid, callingIdentity.uid);
 
+        ParcelFileDescriptor pfd = null;
         try {
             cancellationSignal.throwIfCanceled();
-            final ParcelFileDescriptor pfd = mPickerUriResolver.openFile(
+            pfd = mPickerUriResolver.openFile(
                     request.getUri(), "r", cancellationSignal, callingIdentity);
             callback.onSuccess(pfd);
         } catch (RemoteException ignore) {
@@ -114,6 +117,10 @@ public class AsyncPickerFileOpener {
                 // ignore remote exception as it means the requester has died
             }
         }  finally {
+            if (pfd != null) {
+                // Closing the file descriptor on this side as Binder will dup it
+                FileUtils.closeQuietly(pfd);
+            }
             mMediaProvider.removeFromPendingOpenMap(tid);
         }
     }
@@ -164,10 +171,10 @@ public class AsyncPickerFileOpener {
 
         final int tid = Process.myTid();
         mMediaProvider.addToPendingOpenMap(tid, callingIdentity.uid);
-
+        AssetFileDescriptor afd = null;
         try {
             cancellationSignal.throwIfCanceled();
-            AssetFileDescriptor afd = mPickerUriResolver.openTypedAssetFile(
+            afd = mPickerUriResolver.openTypedAssetFile(
                     request.getUri(), request.getMimeType(), opts, cancellationSignal,
                     callingIdentity, wantsThumb);
             callback.onSuccess(afd);
@@ -181,6 +188,10 @@ public class AsyncPickerFileOpener {
                 // ignore remote Exception as it means that the requester has died
             }
         }  finally {
+            if (afd != null) {
+                // Closing the file descriptor on this side as Binder will dup it
+                FileUtils.closeQuietly(afd);
+            }
             mMediaProvider.removeFromPendingOpenMap(tid);
         }
     }

@@ -30,6 +30,8 @@ import android.widget.photopicker.EmbeddedPhotoPickerFeatureInfo
 import android.widget.photopicker.IEmbeddedPhotoPickerClient
 import android.widget.photopicker.IEmbeddedPhotoPickerSession
 import android.widget.photopicker.ParcelableException
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -203,8 +205,9 @@ open class Session(
     private val _host: SurfaceControlViewHost
     private val _view: ComposeView
     private val _stateManager: EmbeddedStateManager
+    private val _onBackInvokedCallback: OnBackInvokedCallback
 
-    fun getView() = _view
+    fun getView(): ComposeView = _view
 
     open val surfacePackage: SurfaceControlViewHost.SurfacePackage
         get() {
@@ -266,6 +269,7 @@ open class Session(
         startListeningToTelemetryEvents()
 
         _view = createPhotopickerComposeView(context)
+        _onBackInvokedCallback = setupBackInvokedCallback()
         _host = createSurfaceControlViewHost(context, displayId, hostToken)
         // This initialization should happen only after receiving the [_host]
         _stateManager =
@@ -310,6 +314,9 @@ open class Session(
         // Mark the [EmbeddedLifecycle] associated with the session as destroyed when this class is
         // closed. Block until the call is complete to ensure the lifecycle is marked as destroyed.
         runBlocking(_main) {
+            _view
+                .findOnBackInvokedDispatcher()
+                ?.unregisterOnBackInvokedCallback(_onBackInvokedCallback)
             _host.release()
             _embeddedViewLifecycle.onDestroy()
         }
@@ -600,6 +607,16 @@ open class Session(
         }
     }
 
+    private fun setupBackInvokedCallback(): OnBackInvokedCallback {
+        val callback = OnBackInvokedCallback { clientCallback.onSelectionComplete() }
+        runBlocking(_main) {
+            _view
+                .findOnBackInvokedDispatcher()
+                ?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+        }
+        return callback
+    }
+
     // ---------- Begin Telemetry event functions ----------
 
     /** Picker event logger starts listening for events dispatched throughout the session */
@@ -619,6 +636,7 @@ open class Session(
             lazyEvents = _dependencies.events(),
             photopickerConfiguration =
                 _dependencies.configurationManager().get().configuration.value,
+            lazyFeatureManager = _dependencies.featureManager(),
         )
     }
 

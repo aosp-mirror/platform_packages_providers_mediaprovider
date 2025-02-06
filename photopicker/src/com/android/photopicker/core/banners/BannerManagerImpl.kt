@@ -47,7 +47,7 @@ class BannerManagerImpl(
     private val featureManager: FeatureManager,
     private val dataService: DataService,
     private val userMonitor: UserMonitor,
-    private val processOwnerHandle: UserHandle
+    private val processOwnerHandle: UserHandle,
 ) : BannerManager {
 
     companion object {
@@ -62,7 +62,7 @@ class BannerManagerImpl(
      * Keeps track of any banners with [DismissStrategy.SESSION] that were dismissed during the
      * current Photopicker session.
      */
-    private val bannersDismissedInSession: MutableSet<BannerDefinitions> = mutableSetOf()
+    private val bannersDismissedInSession: MutableSet<BannerDeclaration> = mutableSetOf()
 
     init {
         // Observe Profile switches and always force banner refresh when the
@@ -82,7 +82,7 @@ class BannerManagerImpl(
      * Unless a specific banner is needed, it is better to use [refreshBanners] to allow the banner
      * with the highest priority to be shown.
      */
-    override suspend fun showBanner(banner: BannerDefinitions) {
+    override suspend fun showBanner(banner: BannerDeclaration) {
         try {
             _flow.updateAndGet { generateBanner(banner) }
         } catch (ex: RuntimeException) {
@@ -99,7 +99,7 @@ class BannerManagerImpl(
     }
 
     /** Attempt to mark the banner as dismissed in current context. */
-    override suspend fun markBannerAsDismissed(banner: BannerDefinitions) {
+    override suspend fun markBannerAsDismissed(banner: BannerDeclaration) {
 
         if (banner.dismissable) {
 
@@ -124,7 +124,7 @@ class BannerManagerImpl(
                                         Log.w(
                                             TAG,
                                             "Cannot mark ${banner.id} as dismissed for UID," +
-                                                " no UID present in configuration."
+                                                " no UID present in configuration.",
                                         )
                                         return@markBannerAsDismissed
                                     }
@@ -137,14 +137,14 @@ class BannerManagerImpl(
                                 return@markBannerAsDismissed
                             }
                         },
-                    dismissed = true
+                    dismissed = true,
                 )
             )
         }
     }
 
     /** Retrieve the requested banner state from the database */
-    override suspend fun getBannerState(banner: BannerDefinitions): BannerState? {
+    override suspend fun getBannerState(banner: BannerDeclaration): BannerState? {
 
         // No need to check the database if the banner cannot be dismissed.
         if (banner.dismissableStrategy == DismissStrategy.NONE) {
@@ -177,13 +177,14 @@ class BannerManagerImpl(
                                     }
                                 DismissStrategy.ONCE -> 0
                                 else -> 0
-                            }
+                            },
                     )
             } catch (ex: IllegalStateException) {
                 Log.w(
+                    TAG,
                     "Attempted to retrieve a PER_UID banner state and no uid was present in the" +
                         " configuration.",
-                    ex
+                    ex,
                 )
                 null
             }
@@ -209,7 +210,7 @@ class BannerManagerImpl(
         ) {
             Log.d(
                 TAG,
-                "User profile has been changed and is no longer owner, banners will be cleared."
+                "User profile has been changed and is no longer owner, banners will be cleared.",
             )
             _flow.updateAndGet { null }
             return
@@ -220,9 +221,9 @@ class BannerManagerImpl(
 
             // Acquire all possible active banners and their relative priority from
             // the enabled ui features.
-            val allAvailableBanners: MutableList<Pair<BannerDefinitions, Int>> =
+            val allAvailableBanners: MutableList<Pair<BannerDeclaration, Int>> =
                 featureManager.enabledUiFeatures
-                    // FlatMap from List<List<Pair<PhotopickerUiFeature,BannerDefinition>>> to a
+                    // FlatMap from List<List<Pair<PhotopickerUiFeature,BannerDeclaration>>> to a
                     // single Iterable list so the work can be run in parallel in the next step.
                     .flatMap { feature -> feature.ownedBanners.map { Pair(feature, it) } }
                     // Use [pmap] to launch these in parallel, so each banner checked
@@ -273,18 +274,24 @@ class BannerManagerImpl(
     }
 
     /**
-     * Locates the [PhotopickerUiFeature] responsible for building the [BannerDefinition] and calls
+     * Locates the [PhotopickerUiFeature] responsible for building the [BannerDeclaration] and calls
      * the factory builder.
      *
-     * @param [BannerDefinition] to acquire an implementation for.
-     * @return a [Banner] implementation for the provided [BannerDefinition]
+     * @param [BannerDeclaration] to acquire an implementation for.
+     * @return a [Banner] implementation for the provided [BannerDeclaration]
      */
-    private suspend fun generateBanner(banner: BannerDefinitions): Banner {
+    private suspend fun generateBanner(banner: BannerDeclaration): Banner {
         val feature: PhotopickerUiFeature? =
             featureManager.enabledUiFeatures
                 .filter { it.ownedBanners.contains(banner) }
                 .firstOrNull()
         checkNotNull(feature) { "Could not find an enabled builder for $banner" }
-        return feature.buildBanner(banner, dataService, userMonitor)
+        return feature.buildBanner(
+            checkNotNull(banner as? BannerDefinitions) {
+                "Could not cast declaration to valid banner definition"
+            },
+            dataService,
+            userMonitor,
+        )
     }
 }

@@ -72,7 +72,7 @@ class MediaPagingSource(
                             currentSelection,
                             currentDeSelection,
                             // only true for first page or refreshes.
-                            /* isFirstPage */ (params.key == null)
+                            /* isFirstPage */ (params.key == null),
                         )
                     } else {
                         mediaProviderClient.fetchMedia(
@@ -80,7 +80,7 @@ class MediaPagingSource(
                             pageSize,
                             contentResolver,
                             availableProviders,
-                            configuration
+                            configuration,
                         )
                     }
                 } catch (e: Exception) {
@@ -97,9 +97,11 @@ class MediaPagingSource(
                     FeatureToken.CORE.token,
                     configuration.sessionId,
                     /* pageNumber */ 0,
-                    pageSize
+                    pageSize,
                 )
             )
+
+            Log.d(TAG, "Received ${mediaFetchResult.data.size} media items from the data source.")
         }
         return mediaFetchResult
     }

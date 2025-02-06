@@ -41,10 +41,12 @@
 
 #define LOG_TAG "pdf_document_jni"
 
+using pdfClient::Annotation;
 using pdfClient::Document;
 using pdfClient::FileReader;
 using pdfClient::GotoLink;
 using pdfClient::Page;
+using pdfClient::Point_f;
 using pdfClient::Point_i;
 using pdfClient::Rectangle_i;
 using pdfClient::SelectionBoundary;
@@ -319,8 +321,8 @@ Java_android_graphics_pdf_PdfDocumentProxy_isPdfLinearized(JNIEnv* env, jobject 
     return doc->IsLinearized();
 }
 
-JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormType(
-        JNIEnv* env, jobject jPdfDocument) {
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getFormType(JNIEnv* env,
+                                                                       jobject jPdfDocument) {
     std::unique_lock<std::mutex> lock(mutex_);
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     return doc->GetFormType();
@@ -453,7 +455,8 @@ JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_addPageObject(
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
-    std::unique_ptr<PageObject> page_object = convert::ToNativePageObject(env, jPageObject);
+    std::unique_ptr<PageObject> page_object =
+            convert::ToNativePageObject(env, jPageObject, page.get());
 
     if (!page_object) {
         return -1;
@@ -474,7 +477,7 @@ JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageObje
     std::vector<PageObject*> page_objects = page->GetPageObjects();
 
     doc->ReleaseRetainedPage(pageNum);
-    return convert::ToJavaPdfPageObjects(env, page_objects);
+    return convert::ToJavaPdfPageObjects(env, page_objects, page.get());
 }
 
 JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_removePageObject(
@@ -495,13 +498,76 @@ JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_updatePage
     Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
     std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
 
-    std::unique_ptr<PageObject> page_object = convert::ToNativePageObject(env, jPageObject);
+    std::unique_ptr<PageObject> page_object =
+            convert::ToNativePageObject(env, jPageObject, page.get());
 
     if (!page_object) {
         return false;
     }
 
     bool updated = page->UpdatePageObject(index, std::move(page_object));
+
+    doc->ReleaseRetainedPage(pageNum);
+    return updated;
+}
+
+JNIEXPORT jobject JNICALL Java_android_graphics_pdf_PdfDocumentProxy_getPageAnnotations(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
+
+    std::vector<Annotation*> annotations = page->GetPageAnnotations();
+
+    doc->ReleaseRetainedPage(pageNum);
+    return convert::ToJavaPageAnnotations(env, annotations, page.get());
+}
+
+JNIEXPORT jint JNICALL Java_android_graphics_pdf_PdfDocumentProxy_addPageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jobject jPageAnnotation) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
+
+    std::unique_ptr<Annotation> annotation =
+            convert::ToNativePageAnnotation(env, jPageAnnotation, page.get());
+
+    if (!annotation) {
+        return -1;
+    }
+
+    int new_annotation_index = page->AddPageAnnotation(std::move(annotation));
+
+    doc->ReleaseRetainedPage(pageNum);
+    return new_annotation_index;
+}
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_removePageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
+
+    bool removed = page->RemovePageAnnotation(index);
+
+    doc->ReleaseRetainedPage(pageNum);
+    return removed;
+}
+
+JNIEXPORT jboolean JNICALL Java_android_graphics_pdf_PdfDocumentProxy_updatePageAnnotation(
+        JNIEnv* env, jobject jPdfDocument, jint pageNum, jint index, jobject jPageAnnotation) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    Document* doc = convert::GetPdfDocPtr(env, jPdfDocument);
+    std::shared_ptr<Page> page = doc->GetPage(pageNum, true);
+
+    std::unique_ptr<Annotation> annotation =
+            convert::ToNativePageAnnotation(env, jPageAnnotation, page.get());
+
+    if (!annotation) {
+        return false;
+    }
+
+    bool updated = page->UpdatePageAnnotation(index, std::move(annotation));
 
     doc->ReleaseRetainedPage(pageNum);
     return updated;

@@ -114,7 +114,7 @@ fun NavController.navigateToAlbumMediaGrid(navOptions: NavOptions? = null, album
 }
 
 /**
- * Utility function for navigating to the [PhotopickerDestinations.CATEGORY_GRID] route.
+ * Utility function for navigating to the [PhotopickerDestinations.ALBUM_GRID] route.
  *
  * This attempts to reclaim an existing BackStack entry, preserving any previous state that existed.
  *
@@ -122,20 +122,20 @@ fun NavController.navigateToAlbumMediaGrid(navOptions: NavOptions? = null, album
  */
 fun NavController.navigateToCategoryGrid(navOptions: NavOptions? = null) {
     // First, check to see if the destination is already the current route.
-    if (this.currentDestination?.route == PhotopickerDestinations.CATEGORY_GRID.route) {
+    if (this.currentDestination?.route == PhotopickerDestinations.ALBUM_GRID.route) {
         // Nothing to do. Return early to prevent navigation animations from triggering.
         return
     } else if (
         // Try to return to the entry that is already on the backstack, so the user's
         // previous state and scroll position is restored.
         !this.popBackStack(
-            PhotopickerDestinations.CATEGORY_GRID.route,
+            PhotopickerDestinations.ALBUM_GRID.route,
             /* inclusive= */ false,
             /* saveState = */ true,
         )
     ) {
-        // Last resort; CATEGORY_GRID isn't on the backstack, then navigate directly.
-        this.navigate(PhotopickerDestinations.CATEGORY_GRID.route, navOptions)
+        // Last resort; ALBUM_GRID for Category isn't on the backstack, then navigate directly.
+        this.navigate(PhotopickerDestinations.ALBUM_GRID.route, navOptions)
     }
 }
 
@@ -156,4 +156,55 @@ fun NavController.navigateToAlbumMediaGridForCategories(
     this.getBackStackEntry(PhotopickerDestinations.ALBUM_MEDIA_GRID.route)
         .savedStateHandle
         .set(CategoryGridFeature.GROUP_KEY, album)
+}
+
+/**
+ * Utility function for navigating to the [PhotopickerDestinations.MEDIA_SET_CONTENT_GRID] route for
+ * categories.
+ *
+ * @param mediaSet The media set for which the media needs to be displayed.
+ */
+fun NavController.navigateToMediaSetContentGrid(
+    navOptions: NavOptions? = null,
+    mediaSet: Group.MediaSet,
+) {
+    this.navigate(PhotopickerDestinations.MEDIA_SET_CONTENT_GRID.route, navOptions)
+
+    // Album object must be parcellized and passed to the new route so it can be loaded.
+    // This back stack entry is guaranteed to exist since it was just navigated to.
+    this.getBackStackEntry(PhotopickerDestinations.MEDIA_SET_CONTENT_GRID.route)
+        .savedStateHandle
+        .set(CategoryGridFeature.GROUP_KEY, mediaSet)
+}
+
+/**
+ * Utility function for navigating to the [PhotopickerDestinations.MEDIA_SET_GRID] route for
+ * categories.
+ *
+ * @param category The category for which the media set needs to be displayed.
+ */
+fun NavController.navigateToMediaSetGrid(
+    navOptions: NavOptions? = null,
+    category: Group.Category? = null,
+) {
+    if (this.currentDestination?.route == PhotopickerDestinations.MEDIA_SET_GRID.route) {
+        // Nothing to do. Return early to prevent navigation animations from triggering.
+        return
+    } else if (
+        // Try to return to the entry that is already on the backstack, so the user's
+        // previous state and scroll position is restored.
+        !this.popBackStack(
+            PhotopickerDestinations.MEDIA_SET_GRID.route,
+            /* inclusive= */ false,
+            /* saveState = */ true,
+        )
+    ) {
+        // Last resort; MEDIA_SET_GRID isn't on the backstack, then navigate directly.
+        this.navigate(PhotopickerDestinations.MEDIA_SET_GRID.route, navOptions)
+        // Category object must be parcellized and passed to the new route so it can be loaded.
+        // This back stack entry is guaranteed to exist since it was just navigated to.
+        this.getBackStackEntry(PhotopickerDestinations.MEDIA_SET_GRID.route)
+            .savedStateHandle
+            .set(CategoryGridFeature.GROUP_KEY, category)
+    }
 }

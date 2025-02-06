@@ -64,7 +64,6 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToPreviewMedia
-import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.preview.PreviewFeature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -132,7 +131,6 @@ private fun AlbumMediaGrid(
     val state = rememberLazyGridState()
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
-    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
 
     val host = LocalEmbeddedState.current?.host
     // Container encapsulating the album title followed by the album content in the form of a
@@ -154,7 +152,7 @@ private fun AlbumMediaGrid(
                         if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
                             // In embedded no need to give extra top padding to make empty
                             // state title and body clearly visible in collapse mode (small view)
-                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                            Modifier.fillMaxWidth()
                         } else {
                             // Provide 20% of screen height as empty space above
                             Modifier.fillMaxWidth().padding(top = emptyStatePadding)
@@ -169,11 +167,6 @@ private fun AlbumMediaGrid(
                 mediaGrid(
                     // Album content grid
                     items = items,
-                    userScrollEnabled =
-                        when (isEmbedded) {
-                            true -> isExpanded
-                            false -> true
-                        },
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
                     onItemClick = { item ->

@@ -47,6 +47,7 @@ import com.android.photopicker.data.NotificationServiceImpl
 import com.android.photopicker.data.PrefetchDataService
 import com.android.photopicker.data.PrefetchDataServiceImpl
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.categorygrid.data.CategoryDataService
 import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
 import dagger.Module
@@ -120,6 +121,7 @@ class EmbeddedServiceModule {
         userMonitor: Lazy<UserMonitor>,
         dataService: Lazy<DataService>,
         searchDataService: Lazy<SearchDataService>,
+        categoryDataService: Lazy<CategoryDataService>,
         events: Lazy<Events>,
     ): EmbeddedViewModelFactory {
         if (::embeddedViewModelFactory.isInitialized) {
@@ -133,6 +135,7 @@ class EmbeddedServiceModule {
                     bannerManager,
                     dataService,
                     searchDataService,
+                    categoryDataService,
                     events,
                     featureManager,
                     selection,
@@ -395,6 +398,7 @@ class EmbeddedServiceModule {
         @ApplicationContext context: Context,
         @Background backgroundDispatcher: CoroutineDispatcher,
         mediaProviderClient: MediaProviderClient,
+        @Background scope: CoroutineScope,
     ): PrefetchDataService {
 
         if (!::prefetchDataService.isInitialized) {
@@ -409,6 +413,7 @@ class EmbeddedServiceModule {
                     userMonitor,
                     context,
                     backgroundDispatcher,
+                    scope,
                 )
         }
         return prefetchDataService

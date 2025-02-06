@@ -53,8 +53,10 @@ import com.android.providers.media.photopicker.v2.model.SearchTextRequest;
 import com.android.providers.media.photopicker.v2.sqlite.SearchRequestDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.SearchResultsDatabaseUtil;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * This is a {@link Worker} class responsible for syncing search results media with the
@@ -128,7 +130,9 @@ public class SearchResultsSyncWorker extends Worker {
                     syncSource, searchRequestId), e);
             return ListenableWorker.Result.failure();
         } finally {
-            markSearchResultsSyncAsComplete(syncSource, getId());
+            if (!mMarkedSyncWorkAsComplete) {
+                markSearchResultsSyncAsComplete(syncSource, getId());
+            }
         }
     }
 
@@ -162,24 +166,30 @@ public class SearchResultsSyncWorker extends Worker {
         final Pair<String, String> resumeKey = getResumeKey(searchRequest, syncSource);
 
         if (SYNC_COMPLETE_RESUME_KEY.equals(resumeKey.first)) {
-            Log.i(TAG, "Sync has already been completed.");
+            Log.i(TAG, "Sync was already complete.");
             return;
         }
 
+        final Set<String> knownTokens = new HashSet<>();
         String nextPageToken = resumeKey.first;
+        if (nextPageToken != null) {
+            knownTokens.add(nextPageToken);
+        }
+
         try {
             for (int iteration = 0; iteration < SYNC_PAGE_COUNT; iteration++) {
                 throwIfWorkerStopped();
                 throwIfCloudProviderHasChanged(authority);
 
                 try (Cursor cursor = fetchSearchResultsFromCmp(
-                        searchClient, authority, searchRequest, nextPageToken)) {
+                        searchClient, authority, searchRequest, nextPageToken,
+                        searchRequest.getMimeTypes())) {
 
                     List<ContentValues> contentValues =
                             SearchResultsDatabaseUtil.extractContentValuesList(
                                     searchRequestId, cursor, isLocal(authority));
 
-                    SearchResultsDatabaseUtil
+                    int numberOfRowsInserted = SearchResultsDatabaseUtil
                             .cacheSearchResults(getDatabase(), authority, contentValues,
                                     mCancellationSignal);
 
@@ -188,13 +198,21 @@ public class SearchResultsSyncWorker extends Worker {
                         Log.d(TAG, "Number of search results pages synced: " + (iteration + 1));
                         // Stop syncing if there are no more pages to sync.
                         break;
+                    } else if (knownTokens.contains(nextPageToken)) {
+                        Log.e(TAG, "Loop detected! CMP has sent the same page token twice: "
+                                + nextPageToken);
+                        break;
                     }
+                    knownTokens.add(nextPageToken);
 
                     // Mark sync as completed after getting the first page to start returning
                     // search results to the UI.
                     if (mMarkedSyncWorkAsComplete) {
-                        PickerNotificationSender
-                                .notifySearchResultsChange(mContext, searchRequestId);
+                        // Notify the UI that a change has been made in the DB
+                        if (numberOfRowsInserted > 0) {
+                            PickerNotificationSender
+                                    .notifySearchResultsChange(mContext, searchRequestId);
+                        }
                     } else {
                         markSearchResultsSyncAsComplete(syncSource, getId());
                         mMarkedSyncWorkAsComplete = true;
@@ -271,6 +289,7 @@ public class SearchResultsSyncWorker extends Worker {
         }
     }
 
+    @NonNull
     private Pair<String, String> getResumeKey(
             @NonNull SearchRequest searchRequest,
             @PickerSyncManager.SyncSource int syncSource) {
@@ -303,7 +322,8 @@ public class SearchResultsSyncWorker extends Worker {
             @NonNull PickerSearchProviderClient searchClient,
             @NonNull String authority,
             @NonNull SearchRequest searchRequest,
-            @Nullable String resumePageToken) {
+            @Nullable String resumePageToken,
+            @Nullable List<String> mimeTypes) {
         final String suggestedMediaSetId;
         final String searchText;
         if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
@@ -326,6 +346,7 @@ public class SearchResultsSyncWorker extends Worker {
                 suggestedMediaSetId,
                 searchText,
                 CloudMediaProviderContract.SORT_ORDER_DESC_DATE_TAKEN,
+                mimeTypes,
                 PAGE_SIZE,
                 resumePageToken,
                 mCancellationSignal

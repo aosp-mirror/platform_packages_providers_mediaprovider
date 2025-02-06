@@ -26,19 +26,25 @@ import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.events.Telemetry
-import com.android.photopicker.core.features.FeatureToken.ALBUM_GRID
+import com.android.photopicker.core.features.FeatureToken.CATEGORY_GRID
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.selection.SelectionModifiedResult.FAILURE_SELECTION_LIMIT_EXCEEDED
 import com.android.photopicker.data.DataService
+import com.android.photopicker.data.model.CategoryType
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.insertMonthSeparators
-import com.android.photopicker.extensions.toMediaGridItemFromAlbum
+import com.android.photopicker.extensions.toMediaGridItemFromCategory
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
+import com.android.photopicker.extensions.toMediaGridItemFromMediaSet
+import com.android.photopicker.extensions.toMediaGridItemFromPeopleMediaSet
+import com.android.photopicker.features.categorygrid.data.CategoryDataService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -54,6 +60,7 @@ class CategoryGridViewModel
 constructor(
     private val scopeOverride: CoroutineScope?,
     private val selection: Selection<Media>,
+    private val categoryDataService: CategoryDataService,
     private val dataService: DataService,
     private val events: Events,
 ) : ViewModel() {
@@ -66,10 +73,26 @@ constructor(
         }
 
     // Request Media in batches of 50 items
-    private val ALBUM_GRID_PAGE_SIZE = 50
+    private val CATEGORY_GRID_PAGE_SIZE = 50
 
     // Keep up to 10 pages loaded in memory before unloading pages.
-    private val ALBUM_GRID_MAX_ITEMS_IN_MEMORY = ALBUM_GRID_PAGE_SIZE * 10
+    private val CATEGORY_GRID_MAX_ITEMS_IN_MEMORY = CATEGORY_GRID_PAGE_SIZE * 10
+
+    private val _previouslySelectedItem = MutableStateFlow<MediaGridItem?>(null)
+    val previouslySelectedItem: StateFlow<MediaGridItem?> = _previouslySelectedItem
+
+    /**
+     * Sets the previously selected category grid item.
+     *
+     * This function updates the [_previouslySelectedItem] with the provided item. The stored item
+     * is used to request focus to that album's cell in the album grid when the user navigates back
+     * from the album media grid.
+     *
+     * @param item The media grid item to store as the previously selected item, or null to reset
+     */
+    fun setPreviouslySelectedItem(item: MediaGridItem?) {
+        _previouslySelectedItem.value = item
+    }
 
     /**
      * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing media for the album
@@ -79,8 +102,8 @@ constructor(
         val pagerForAlbumMedia =
             Pager(
                 PagingConfig(
-                    pageSize = ALBUM_GRID_PAGE_SIZE,
-                    maxSize = ALBUM_GRID_MAX_ITEMS_IN_MEMORY,
+                    pageSize = CATEGORY_GRID_PAGE_SIZE,
+                    maxSize = CATEGORY_GRID_MAX_ITEMS_IN_MEMORY,
                 )
             ) {
                 // pagingSource
@@ -103,26 +126,88 @@ constructor(
     /**
      * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing data for user's albums.
      */
-    fun getAlbums(): Flow<PagingData<MediaGridItem>> {
-        val pagerForAlbums =
+    fun getCategoriesAndAlbums(category: Group.Category? = null): Flow<PagingData<MediaGridItem>> {
+        val pagerForCategories =
             Pager(
                 PagingConfig(
-                    pageSize = ALBUM_GRID_PAGE_SIZE,
-                    maxSize = ALBUM_GRID_MAX_ITEMS_IN_MEMORY,
+                    pageSize = CATEGORY_GRID_PAGE_SIZE,
+                    maxSize = CATEGORY_GRID_MAX_ITEMS_IN_MEMORY,
                 )
             ) {
-                dataService.albumPagingSource()
+                when {
+                    category != null -> {
+                        categoryDataService.getCategories(parentCategory = category)
+                    }
+                    else -> {
+                        categoryDataService.getCategories()
+                    }
+                }
             }
 
-        /** Export the data from the pager and prepare it for use in the [AlbumGrid] */
-        val albums =
-            pagerForAlbums.flow
-                .toMediaGridItemFromAlbum()
+        /** Export the data from the pager and prepare it for use in the [CategoryGrid] */
+        val group =
+            pagerForCategories.flow
+                .toMediaGridItemFromCategory(category)
                 // After the load and transformations, cache the data in the viewModelScope.
                 // This ensures that the list position and state will be remembered by the MediaGrid
                 // when navigating back to the AlbumGrid route.
                 .cachedIn(scope)
-        return albums
+        return group
+    }
+
+    /**
+     * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing media for the mediaset
+     * represented by [mediaset].
+     */
+    fun getMediaSetContent(mediaset: Group.MediaSet): Flow<PagingData<MediaGridItem>> {
+        val pagerForMediaSetContents =
+            Pager(
+                PagingConfig(
+                    pageSize = CATEGORY_GRID_PAGE_SIZE,
+                    maxSize = CATEGORY_GRID_MAX_ITEMS_IN_MEMORY,
+                )
+            ) {
+                categoryDataService.getMediaSetContents(mediaset)
+            }
+
+        return pagerForMediaSetContents.flow
+            .toMediaGridItemFromMedia()
+            .insertMonthSeparators()
+            // After the load and transformations, cache the data in the viewModelScope.
+            // This ensures that the list position and state will be remembered by the MediaGrid
+            // when navigating back to the AlbumGrid route.
+            .cachedIn(scope)
+    }
+
+    /**
+     * Returns [PagingData] of type [MediaGridItem] as a [Flow] containing media for the category
+     * represented by [categoryId].
+     */
+    fun getMediaSets(category: Group.Category): Flow<PagingData<MediaGridItem>> {
+        val pagerForMediaSets =
+            Pager(
+                PagingConfig(
+                    pageSize = CATEGORY_GRID_PAGE_SIZE,
+                    maxSize = CATEGORY_GRID_MAX_ITEMS_IN_MEMORY,
+                )
+            ) {
+                categoryDataService.getMediaSets(category)
+            }
+
+        /** Export the data from the pager and prepare it for use in the [CategoryGrid] */
+        val mediaSets =
+            if (category.categoryType == CategoryType.PEOPLE_AND_PETS) {
+                pagerForMediaSets.flow
+                    .toMediaGridItemFromPeopleMediaSet()
+                    // data should always be cached after all transformations are applied
+                    .cachedIn(scope)
+            } else {
+                pagerForMediaSets.flow
+                    .toMediaGridItemFromMediaSet()
+                    // data should always be cached after all transformations are applied
+                    .cachedIn(scope)
+            }
+        return mediaSets
     }
 
     /**
@@ -142,7 +227,21 @@ constructor(
             val result = selection.toggle(updatedMediaItem)
             if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
                 events.dispatch(
-                    Event.ShowSnackbarMessage(ALBUM_GRID.token, selectionLimitExceededMessage)
+                    Event.ShowSnackbarMessage(CATEGORY_GRID.token, selectionLimitExceededMessage)
+                )
+            }
+        }
+    }
+
+    fun handleMediaSetItemSelection(item: Media, selectionLimitExceededMessage: String) {
+        // Update the selectable values in the received media item.
+        val updatedMediaItem =
+            Media.withSelectable(item, /* selectionSource */ Telemetry.MediaLocation.CATEGORY, null)
+        scope.launch {
+            val result = selection.toggle(updatedMediaItem)
+            if (result == FAILURE_SELECTION_LIMIT_EXCEEDED) {
+                events.dispatch(
+                    Event.ShowSnackbarMessage(CATEGORY_GRID.token, selectionLimitExceededMessage)
                 )
             }
         }

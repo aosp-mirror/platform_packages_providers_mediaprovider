@@ -17,10 +17,11 @@
 package com.android.providers.media.photopicker.sync;
 
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXPIRED_SUGGESTIONS_RESET;
-import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_RESULTS_PARTIAL_CACHE_RESET;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_PARTIAL_CACHE_RESET;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SEARCH_RESULTS_FULL_CACHE_RESET;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_RESET_TYPE;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 
@@ -50,6 +51,7 @@ public class SearchResetWorker extends Worker {
 
     private final int mSyncSource;
     private final int mResetType;
+    private final String mProviderAuthority;
 
     public SearchResetWorker(
             @NonNull Context context,
@@ -58,6 +60,7 @@ public class SearchResetWorker extends Worker {
 
         mSyncSource = getInputData().getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1);
         mResetType = getInputData().getInt(SYNC_WORKER_INPUT_RESET_TYPE, -1);
+        mProviderAuthority = getInputData().getString(SYNC_WORKER_INPUT_AUTHORITY);
     }
 
     @Override
@@ -73,8 +76,8 @@ public class SearchResetWorker extends Worker {
             case SEARCH_RESULTS_FULL_CACHE_RESET:
                 return searchResultsFullCacheReset();
 
-            case SEARCH_RESULTS_PARTIAL_CACHE_RESET:
-                return searchResultsPartialCacheReset();
+            case SEARCH_PARTIAL_CACHE_RESET:
+                return searchPartialCacheResetForAuthority();
 
             case EXPIRED_SUGGESTIONS_RESET:
                 return expiredSuggestionsReset();
@@ -93,7 +96,7 @@ public class SearchResetWorker extends Worker {
      * or a failure.
      */
     @NonNull
-    private ListenableWorker.Result searchResultsPartialCacheReset() {
+    private ListenableWorker.Result searchPartialCacheResetForAuthority() {
         final SQLiteDatabase database = getDatabase();
 
         try {
@@ -115,6 +118,12 @@ public class SearchResetWorker extends Worker {
                     database, syncedSearchRequestIds, isLocal);
             SearchResultsDatabaseUtil.clearObsoleteSearchResults(
                     database, syncedSearchRequestIds, isLocal);
+
+            // Clear all history and caches search suggestions sources received from the authority.
+            SearchSuggestionsDatabaseUtils.clearCachedSearchSuggestionsForAuthority(
+                    database, mProviderAuthority);
+            SearchSuggestionsDatabaseUtils.clearHistorySearchSuggestionsForAuthority(
+                    database, mProviderAuthority);
 
 
             // Check if this work has been cancelled before committing these changes to

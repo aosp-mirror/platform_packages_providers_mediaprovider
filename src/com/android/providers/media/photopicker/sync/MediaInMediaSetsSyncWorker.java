@@ -42,11 +42,14 @@ import androidx.work.WorkerParameters;
 
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.util.exceptions.RequestObsoleteException;
+import com.android.providers.media.photopicker.v2.PickerNotificationSender;
 import com.android.providers.media.photopicker.v2.sqlite.MediaInMediaSetsDatabaseUtil;
 import com.android.providers.media.photopicker.v2.sqlite.MediaSetsDatabaseUtil;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * This is a {@link Worker} class responsible for syncing the media items of a media set with the
@@ -54,7 +57,7 @@ import java.util.Objects;
  */
 public class MediaInMediaSetsSyncWorker extends Worker {
 
-    private static final String TAG = "SearchSyncWorker";
+    private static final String TAG = "MediaSetsContentSyncWorker";
     private static final int SYNC_PAGE_COUNT = Integer.MAX_VALUE;
     private static final int PAGE_SIZE = 500;
     private static final int INVALID_SYNC_SOURCE = -1;
@@ -63,6 +66,7 @@ public class MediaInMediaSetsSyncWorker extends Worker {
     private final Context mContext;
     private final CancellationSignal mCancellationSignal;
     private final SQLiteDatabase mDatabase;
+    private boolean mMarkedSyncWorkAsComplete = false;
 
     public MediaInMediaSetsSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
@@ -77,7 +81,8 @@ public class MediaInMediaSetsSyncWorker extends Worker {
         final int syncSource = getInputData().getInt(SYNC_WORKER_INPUT_SYNC_SOURCE,
                 /* defaultValue */ INVALID_SYNC_SOURCE);
         String mediaSetAuthority = getInputData().getString(SYNC_WORKER_INPUT_AUTHORITY);
-        String mediaSetPickerId = getInputData().getString(SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID);
+        Long mediaSetPickerId = getInputData().getLong(
+                SYNC_WORKER_INPUT_MEDIA_SET_PICKER_ID, Long.MIN_VALUE);
         String mediaSetId = "";
 
         try {
@@ -110,11 +115,13 @@ public class MediaInMediaSetsSyncWorker extends Worker {
 
         } catch (RuntimeException | RequestObsoleteException e) {
             Log.e(TAG, "Could not complete media in media set sync from sync source "
-                    + " for mediaSetId " + mediaSetId);
+                    + " for mediaSetId " + mediaSetId, e);
             return ListenableWorker.Result.failure();
         } finally {
             // mark sync as complete
-            markMediaInMediaSetSyncAsComplete(syncSource, getId());
+            if (!mMarkedSyncWorkAsComplete) {
+                markMediaInMediaSetSyncAsComplete(syncSource, getId());
+            }
         }
     }
 
@@ -126,7 +133,7 @@ public class MediaInMediaSetsSyncWorker extends Worker {
      */
     private void syncMediaInMediaSet(
             int syncSource, @NonNull String mediaSetId,
-            @NonNull String mediaSetPickerId, @NonNull String mediaSetAuthority,
+            @NonNull Long mediaSetPickerId, @NonNull String mediaSetAuthority,
             @Nullable String[] mimeTypes)
             throws RequestObsoleteException, IllegalArgumentException {
         final PickerSearchProviderClient searchClient =
@@ -139,6 +146,11 @@ public class MediaInMediaSetsSyncWorker extends Worker {
         if (SYNC_COMPLETE_RESUME_KEY.equals(resumePageToken)) {
             Log.i(TAG, "Sync has already been completed.");
             return;
+        }
+
+        final Set<String> knownTokens = new HashSet<>();
+        if (resumePageToken != null) {
+            knownTokens.add(resumePageToken);
         }
 
         try {
@@ -155,16 +167,34 @@ public class MediaInMediaSetsSyncWorker extends Worker {
                                     mediaSetPickerId,
                                     isAuthorityLocal(mediaSetAuthority)
                             );
-                    MediaInMediaSetsDatabaseUtil.cacheMediaOfMediaSet(
+                    int numberOfRowsInserted = MediaInMediaSetsDatabaseUtil.cacheMediaOfMediaSet(
                             mDatabase, mediaItemsToInsert, mediaSetAuthority
                     );
                     resumePageToken = getResumePageToken(mediaInMediaSetsCursor.getExtras());
 
                     if (resumePageToken.equals(SYNC_COMPLETE_RESUME_KEY)) {
+                        Log.d(TAG, "Number of media set results pages synced: "
+                                + (currentIteration + 1));
+                        break;
+                    } else if (knownTokens.contains(resumePageToken)) {
+                        Log.e(TAG, "Loop detected! CMP has sent the same page token twice: "
+                                + resumePageToken);
                         break;
                     }
-                    // mark sync as complete
-                    markMediaInMediaSetSyncAsComplete(syncSource, getId());
+
+                    knownTokens.add(resumePageToken);
+
+                    // Mark sync as complete
+                    if (mMarkedSyncWorkAsComplete) {
+                        // Notify the UI that a change has been made in the DB
+                        if (numberOfRowsInserted > 0) {
+                            PickerNotificationSender
+                                    .notifyMediaSetContentChange(mContext, mediaSetId);
+                        }
+                    } else {
+                        markMediaInMediaSetSyncAsComplete(syncSource, getId());
+                        mMarkedSyncWorkAsComplete = true;
+                    }
                 }
             }
         } finally {
@@ -233,7 +263,7 @@ public class MediaInMediaSetsSyncWorker extends Worker {
 
     private void checkValidityOfWorkerInputParams(
             @NonNull String mediaSetId, int syncSource,
-            @NonNull String mediaSetPickerId, @NonNull String mediaSetAuthority) {
+            @NonNull Long mediaSetPickerId, @NonNull String mediaSetAuthority) {
         Objects.requireNonNull(mediaSetId);
         if (mediaSetId.isEmpty()) {
             Log.e(TAG, "Received empty mediaSetId id to fetch media set items");
@@ -241,10 +271,6 @@ public class MediaInMediaSetsSyncWorker extends Worker {
         }
 
         Objects.requireNonNull(mediaSetPickerId);
-        if (mediaSetPickerId.isEmpty()) {
-            Log.e(TAG, "Received empty mediaSetPickerId id to fetch media set items");
-            throw new IllegalArgumentException("mediaSetPickerId was an empty string");
-        }
 
         // SyncSource should either be cloud or local in order to fetch media set items
         if (syncSource != SYNC_LOCAL_ONLY && syncSource != SYNC_CLOUD_ONLY) {

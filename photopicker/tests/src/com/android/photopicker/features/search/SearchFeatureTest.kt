@@ -81,6 +81,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
@@ -96,7 +97,7 @@ import org.mockito.MockitoAnnotations
     ViewModelModule::class,
 )
 @HiltAndroidTest
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalCoroutinesApi::class, ExperimentalTestApi::class)
 class SearchFeatureTest : PhotopickerFeatureBaseTest() {
     /* Hilt's rule needs to come first to ensure the DI container is setup for the test. */
@@ -360,6 +361,7 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 .assertIsDisplayed()
                 .performClick()
             composeTestRule.waitForIdle()
+            advanceTimeBy(1000)
 
             // Asserts search view page with its placeholder text displayed
             composeTestRule
@@ -378,6 +380,7 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 .assert(hasClickAction())
                 .performClick()
             composeTestRule.waitForIdle()
+            advanceTimeBy(1000)
 
             // Search bar with Search text placeholder is displayed
             composeTestRule
@@ -403,6 +406,7 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 .onNode(hasText(resources.getString(R.string.photopicker_search_placeholder_text)))
                 .performClick()
             composeTestRule.waitForIdle()
+            advanceTimeBy(1000)
 
             // Input test query in search bar and verify it is displayed
             val testQuery = "testquery"
@@ -423,6 +427,7 @@ class SearchFeatureTest : PhotopickerFeatureBaseTest() {
                 )
                 .performClick()
             composeTestRule.waitForIdle()
+            advanceTimeBy(1000)
 
             // Make sure test query is cleared and Search text placeholder is displayed
             composeTestRule.onNodeWithText(testQuery).assertIsNotDisplayed()

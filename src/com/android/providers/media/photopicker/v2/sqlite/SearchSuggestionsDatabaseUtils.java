@@ -47,8 +47,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class SearchSuggestionsDatabaseUtils {
     private static final String TAG = "SearchSuggestionsDBUtil";
-    static final int TTL_HISTORY_SUGGESTIONS_IN_DAYS = 60;
-    static final int TTL_CACHED_SUGGESTIONS_IN_DAYS = 30;
+    // Note that SQLite treats all null values as different. So, if you apply a
+    // UNIQUE(...) constraint on some columns and if any of those columns holds a null value,
+    // the unique constraint will not be applied. This is why in the search history table,
+    // a placeholder value will be used instead of null so that the unique constraint gets
+    // applied to all search requests saved in the table.
+    // The placeholder values should not be a valid value to any of the columns in the unique
+    // constraint.
+    public static final String PLACEHOLDER_FOR_NULL = "";
+    static final int TTL_HISTORY_SUGGESTIONS_IN_DAYS = 7;
+    static final int TTL_CACHED_SUGGESTIONS_IN_DAYS = 3;
 
     /**
      * Save Search Request as search history to serve as search suggestions later.
@@ -257,12 +265,12 @@ public class SearchSuggestionsDatabaseUtils {
                 } catch (RuntimeException e) {
                     ContentValues contentValues = new ContentValues();
                     DatabaseUtils.cursorRowToContentValues(cursor, contentValues);
-                    Log.e(TAG, "Invalid search suggestion - skipping it: " + contentValues);
+                    Log.e(TAG, "Invalid search suggestion - skipping it: " + contentValues, e);
                 }
             } while (cursor.moveToNext());
         }
 
-        Log.d(TAG, "Extracted suggestions from cursor: " + searchSuggestions);
+        Log.d(TAG, "Extracted suggestions from cursor: " + searchSuggestions.size());
         return searchSuggestions;
     }
 
@@ -379,6 +387,45 @@ public class SearchSuggestionsDatabaseUtils {
     }
 
     /**
+     * Clear all cached search suggestions for the given authority.
+     *
+     * @param database SQLiteDatabase object that holds DB connections.
+     * @param providerAuthority The provider authority for which all suggestions need to be cleared.
+     *                         If the authority is null, all cached suggestions will be cleared to
+     *                         be on the safer side.
+     * @return the number of items deleted from the database.
+     */
+    public static int clearCachedSearchSuggestionsForAuthority(
+            @NonNull SQLiteDatabase database,
+            @Nullable String providerAuthority) {
+        requireNonNull(database);
+
+        String whereClause = null;
+        String[] whereArgs = null;
+        if (providerAuthority != null) {
+            whereClause = String.format(
+                    Locale.ROOT,
+                    " %s = ? ",
+                    PickerSQLConstants.SearchSuggestionsTableColumns.AUTHORITY);
+
+            whereArgs = List.of(providerAuthority).toArray(new String[0]);
+        }
+
+        int suggestionsDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_SUGGESTION.name(),
+                        whereClause,
+                        whereArgs);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search suggestions table",
+                suggestionsDeletionCount));
+
+        return suggestionsDeletionCount;
+    }
+
+    /**
      * Clear all expired history search suggestions from the database.
      *
      * @param database SQLiteDatabase object that holds DB connections.
@@ -396,6 +443,52 @@ public class SearchSuggestionsDatabaseUtils {
                 PickerSQLConstants.SearchHistoryTableColumns.CREATION_TIME_MS);
 
         final String[] whereArgs = List.of(creationThreshold.toString()).toArray(new String[0]);
+
+        int historyDeletionCount =
+                database.delete(
+                        PickerSQLConstants.Table.SEARCH_HISTORY.name(),
+                        whereClause,
+                        whereArgs);
+
+        Log.d(TAG, String.format(
+                Locale.ROOT,
+                "Deleted %s rows in search history table",
+                historyDeletionCount));
+        return historyDeletionCount;
+    }
+
+    /**
+     * Clear all expired history search suggestions from the database that were sourced from the
+     * given authority.
+     *
+     * @param database SQLiteDatabase object that holds DB connections.
+     * @param providerAuthority The provider authority for which all suggestions need to be cleared.
+     *                          If the authority is null, all suggestion search requests stored in
+     *                          the history table will be cleared to  be on the safer side.
+     * @return the number of items deleted from the database.
+     */
+    public static int clearHistorySearchSuggestionsForAuthority(
+            @NonNull SQLiteDatabase database,
+            @Nullable String providerAuthority) {
+        requireNonNull(database);
+
+        final String whereClause;
+        final String[] whereArgs;
+        if (providerAuthority != null) {
+            whereClause = String.format(
+                    Locale.ROOT,
+                    " %s = ? ",
+                    PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY);
+
+            whereArgs = List.of(providerAuthority).toArray(new String[0]);
+        } else {
+            whereClause = String.format(
+                    Locale.ROOT,
+                    " %s IS NOT NULL ",
+                    PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY);
+
+            whereArgs = null;
+        }
 
         int historyDeletionCount =
                 database.delete(
@@ -480,8 +573,7 @@ public class SearchSuggestionsDatabaseUtils {
         if (suggestionType == null) {
             throw new IllegalArgumentException("Suggestion type cannot be null");
         }
-
-        if (searchText == null && (suggestionType != SEARCH_SUGGESTION_FACE)) {
+        if (searchText == null && !suggestionType.equals(SEARCH_SUGGESTION_FACE)) {
             throw new IllegalArgumentException(
                     "Only FACE type suggestions can have null search text");
         }
@@ -516,8 +608,8 @@ public class SearchSuggestionsDatabaseUtils {
                     PickerSQLConstants.SearchHistoryTableColumns.COVER_MEDIA_ID.getColumnName()));
 
             return new SearchSuggestion(
-                    searchText,
-                    mediaSetId,
+                    getValueOrNull(searchText),
+                    getValueOrNull(mediaSetId),
                     authority,
                     SEARCH_SUGGESTION_HISTORY,
                     coverMediaId
@@ -590,15 +682,21 @@ public class SearchSuggestionsDatabaseUtils {
         if (searchRequest instanceof SearchTextRequest searchTextRequest) {
             values.put(
                     PickerSQLConstants.SearchHistoryTableColumns.SEARCH_TEXT.getColumnName(),
-                    searchTextRequest.getSearchText());
-        } else if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
-            values.put(
-                    PickerSQLConstants.SearchHistoryTableColumns.SEARCH_TEXT.getColumnName(),
-                    searchSuggestionRequest.getSearchSuggestion().getSearchText());
+                    getValueOrPlaceholder(searchTextRequest.getSearchText()));
 
             values.put(
                     PickerSQLConstants.SearchHistoryTableColumns.MEDIA_SET_ID.getColumnName(),
-                    searchSuggestionRequest.getSearchSuggestion().getMediaSetId());
+                    PLACEHOLDER_FOR_NULL);
+        } else if (searchRequest instanceof SearchSuggestionRequest searchSuggestionRequest) {
+            values.put(
+                    PickerSQLConstants.SearchHistoryTableColumns.SEARCH_TEXT.getColumnName(),
+                    getValueOrPlaceholder(
+                            searchSuggestionRequest.getSearchSuggestion().getSearchText()));
+
+            values.put(
+                    PickerSQLConstants.SearchHistoryTableColumns.MEDIA_SET_ID.getColumnName(),
+                    getValueOrPlaceholder(
+                            searchSuggestionRequest.getSearchSuggestion().getMediaSetId()));
 
             values.put(
                     PickerSQLConstants.SearchHistoryTableColumns.AUTHORITY.getColumnName(),
@@ -613,6 +711,16 @@ public class SearchSuggestionsDatabaseUtils {
         }
 
         return values;
+    }
+
+    @NonNull
+    private static String getValueOrPlaceholder(@Nullable String value) {
+        return value == null ? PLACEHOLDER_FOR_NULL : value;
+    }
+
+    @Nullable
+    private static String getValueOrNull(@Nullable String value) {
+        return (value == null || PLACEHOLDER_FOR_NULL.equals(value)) ? null : value;
     }
 }
 

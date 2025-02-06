@@ -19,8 +19,10 @@ package com.android.photopicker.data
 import android.net.Uri
 import android.os.CancellationSignal
 import androidx.paging.PagingSource
+import com.android.photopicker.data.model.Icon
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
 import com.android.photopicker.features.search.data.SearchDataService
 import com.android.photopicker.features.search.model.SearchSuggestion
@@ -48,7 +50,13 @@ class TestSearchDataServiceImpl() : SearchDataService {
         return listOf(
             SearchSuggestion("1", "authority", "France", SearchSuggestionType.LOCATION, null),
             SearchSuggestion("2", "authority", "Favorites", SearchSuggestionType.ALBUM, null),
-            SearchSuggestion("3", "authority", "Emma", SearchSuggestionType.FACE, Uri.parse("xyz")),
+            SearchSuggestion(
+                "3",
+                "authority",
+                "Emma",
+                SearchSuggestionType.FACE,
+                Icon(Uri.parse("xyz"), MediaSource.LOCAL),
+            ),
             SearchSuggestion(null, "authority", "paris", SearchSuggestionType.HISTORY, null),
         )
     }

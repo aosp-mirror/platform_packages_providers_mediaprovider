@@ -356,8 +356,7 @@ public class PickerDbTestUtils {
                 /* MEDIA_COVER_ID4 */ null
         };
 
-        MatrixCursor c = new MatrixCursor(
-                CloudMediaProviderContract.MediaCategoryColumns.ALL_PROJECTION);
+        MatrixCursor c = new MatrixCursor(projectionKey);
         c.addRow(projectionValue);
         return c;
     }

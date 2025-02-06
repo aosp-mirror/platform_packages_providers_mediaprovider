@@ -21,11 +21,11 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * The [BannerManager] is responsible for managing the global state of banners across various
  * Photopicker activities, recalling that state, and providing a [Banner] implementation to the
- * compose UI for each banner declared in [BannerDefinition].
+ * compose UI for each banner declared in [BannerDeclaration].
  *
  * Banners must be declared in a [PhotopickerUiFeature] and the implementation is provided by the
  * owning feature. BannerManager coordinates the implementation with each active feature at runtime,
- * and provides access to the persisted [BannerState] for each [BannerDefinition] in the current
+ * and provides access to the persisted [BannerState] for each [BannerDeclaration] in the current
  * [PhotopickerConfiguration] context. Individual features fully control their respective banner's
  * implementation, and display priority. BannerManager just provides persisted state and
  * orchestrates / enforces the correct call structure to generate banners during runtime.
@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
  * Additionally, a set of APIs to show, hide and mark banners as dismissed in the persisted state
  * are available for use. Individual [BannerState] can also be set and retrieved.
  *
- * @see [Banner] and [BannerDefinition] for implementing banners.
+ * @see [Banner] and [BannerDeclaration] for implementing banners.
  * @see [PhotopickerUiFeature] for adding a banner to a feature's registration.
  */
 interface BannerManager {
@@ -42,13 +42,13 @@ interface BannerManager {
     val flow: StateFlow<Banner?>
 
     /**
-     * Set the currently shown banner to a banner which implements the provided [BannerDefinition]
+     * Set the currently shown banner to a banner which implements the provided [BannerDeclaration]
      *
-     * This method will attempt to locate a factory for the provided [BannerDefinition]
+     * This method will attempt to locate a factory for the provided [BannerDeclaration]
      *
-     * @param banner The [BannerDefinition] to build.
+     * @param banner The [BannerDeclaration] to build.
      */
-    suspend fun showBanner(banner: BannerDefinitions)
+    suspend fun showBanner(banner: BannerDeclaration)
 
     /**
      * Immediately hides any shown banners.
@@ -58,15 +58,15 @@ interface BannerManager {
     fun hideBanners()
 
     /**
-     * Mark the [BannerDefinition] as dismissed in the current runtime context.
+     * Mark the [BannerDeclaration] as dismissed in the current runtime context.
      *
-     * This will be handled differently based on the [BannerDefinition.DismissStrategy] of the
-     * provided BannerDefinition. If the [BannerDefinition.dismissable] is FALSE, this has no effect
-     * on internal [BannerState].
+     * This will be handled differently based on the [BannerDeclaration.DismissStrategy] of the
+     * provided BannerDeclaration. If the [BannerDeclaration.dismissable] is FALSE, this has no
+     * effect on internal [BannerState].
      *
-     * @param banner The BannerDefinition to mark as dismissed.
+     * @param banner The BannerDeclaration to mark as dismissed.
      */
-    suspend fun markBannerAsDismissed(banner: BannerDefinitions)
+    suspend fun markBannerAsDismissed(banner: BannerDeclaration)
 
     /**
      * Refresh the current banner state by evaluating all enabled banners again. The banner with the
@@ -74,22 +74,22 @@ interface BannerManager {
      * are ignored. This method is time-limited, but can result in external data calls depending on
      * the enabled banners implementation.
      *
-     * If no BannerDefinition has a valid priority, this method clears the existing banner.
+     * If no BannerDeclaration has a valid priority, this method clears the existing banner.
      */
     suspend fun refreshBanners()
 
     /**
-     * Retrieve the persisted [BannerState] for the requested [BannerDefinition].
+     * Retrieve the persisted [BannerState] for the requested [BannerDeclaration].
      *
      * Note: This will only return a [BannerState] that matches the current
      * [PhotopickerConfiguration] constraints, specifically the callingPackageUid in the case of
-     * banners that are using the [BannerDefinition.DismissStrategy.PER_UID].
+     * banners that are using the [BannerDeclaration.DismissStrategy.PER_UID].
      *
-     * @return The persisted [BannerState] for the [BannerDefinition] in the current runtime
+     * @return The persisted [BannerState] for the [BannerDeclaration] in the current runtime
      *   context. This returns null when there is no persisted [BannerState] for the current runtime
      *   context.
      */
-    suspend fun getBannerState(banner: BannerDefinitions): BannerState?
+    suspend fun getBannerState(banner: BannerDeclaration): BannerState?
 
     /**
      * Persists a [BannerState] to be retrieved later. This persistence out lives any individual

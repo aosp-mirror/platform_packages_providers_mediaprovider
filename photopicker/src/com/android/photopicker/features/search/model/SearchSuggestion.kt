@@ -16,7 +16,7 @@
 
 package com.android.photopicker.features.search.model
 
-import android.net.Uri
+import com.android.photopicker.core.glide.GlideLoadable
 import com.android.photopicker.util.hashCodeOf
 
 /**
@@ -34,12 +34,12 @@ data class SearchSuggestion(
     /* Display text could be null sometimes for instance, if the suggestion type is a face */
     val displayText: String?,
     val type: SearchSuggestionType,
-    /* Unwrapped URI of the icon shown to the user along with the suggestion. If this is null,
+    /* GlideLoadable icon shown to the user along with the suggestion. If this is null,
     please fallback to default icons based on the [SearchSuggestionType] of the suggestion. */
-    val iconUri: Uri?,
+    val icon: GlideLoadable?,
 ) {
     init {
-        require(type != SearchSuggestionType.FACE || iconUri != null) {
+        require(type != SearchSuggestionType.FACE || icon != null) {
             "Icon cannot be null for FACE type search suggestion"
         }
         require(type == SearchSuggestionType.FACE || displayText != null) {

@@ -105,5 +105,6 @@ class SearchFeature : PhotopickerUiFeature {
             Event.ShowSnackbarMessage::class.java,
             Event.LogPhotopickerUIEvent::class.java,
             Event.ReportPhotopickerSearchInfo::class.java,
+            Event.LogPhotopickerPageInfo::class.java,
         )
 }

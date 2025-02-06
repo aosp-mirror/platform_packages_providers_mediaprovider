@@ -53,7 +53,9 @@ import android.util.Pair;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,6 +81,8 @@ public class PdfProcessor {
     private static final Object sPdfiumLock = new Object();
     private final PdfEventLogger mPdfEventLogger;
     private PdfDocumentProxy mPdfDocument;
+    private final HashMap<Integer, PdfPageComponentsIdManager> mPageObjectIdManagerMap;
+    private final HashMap<Integer, PdfPageComponentsIdManager> mPageAnnotationsIdManagerMap;
 
     public PdfProcessor() {
         PdfDocumentProxy.loadLibPdf();
@@ -86,6 +90,8 @@ public class PdfProcessor {
         mPdfEventLogger = new PdfEventLogger(
                 /* processId = */ Binder.getCallingUid(),
                 /* docId = */ new SecureRandom().nextLong());
+        mPageObjectIdManagerMap = new HashMap<>();
+        mPageAnnotationsIdManagerMap = new HashMap<>();
     }
 
     /**
@@ -371,6 +377,12 @@ public class PdfProcessor {
     public void retainPage(int pageNum) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
+            if (!mPageObjectIdManagerMap.containsKey(pageNum)) {
+                mPageObjectIdManagerMap.put(pageNum, new PdfPageComponentsIdManager());
+            }
+            if (!mPageAnnotationsIdManagerMap.containsKey(pageNum)) {
+                mPageAnnotationsIdManagerMap.put(pageNum, new PdfPageComponentsIdManager());
+            }
             mPdfDocument.retainPage(pageNum);
         }
     }
@@ -379,6 +391,8 @@ public class PdfProcessor {
     public void releasePage(int pageNum) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
+            mPageObjectIdManagerMap.remove(pageNum);
+            mPageAnnotationsIdManagerMap.remove(pageNum);
             mPdfDocument.releasePage(pageNum);
         }
     }
@@ -583,7 +597,18 @@ public class PdfProcessor {
     public List<Pair<Integer, PdfAnnotation>> getPageAnnotations(@IntRange(from = 0) int pageNum) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.getPageAnnotations(pageNum);
+            PdfPageComponentsIdManager pageAnnotationIdManager =
+                    mPageAnnotationsIdManagerMap.get(pageNum);
+            List<PdfAnnotation> pdfAnnotations = mPdfDocument.getPageAnnotations(pageNum);
+            List<Pair<Integer, PdfAnnotation>> pdfAnnotationIdPairs = new ArrayList<>();
+            for (int i = 0; i < pdfAnnotations.size(); i++) {
+                if (pdfAnnotations.get(i) != null) {
+                    pdfAnnotationIdPairs.add(
+                            new Pair<>(pageAnnotationIdManager.getIdForIndex(i),
+                                    pdfAnnotations.get(i)));
+                }
+            }
+            return pdfAnnotationIdPairs;
         }
     }
 
@@ -603,23 +628,36 @@ public class PdfProcessor {
             PdfAnnotation annotation) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.addPageAnnotation(pageNum, annotation);
+            int addedAnnotationIndex = mPdfDocument.addPageAnnotation(pageNum, annotation);
+            if (addedAnnotationIndex == -1) {
+                throw new IllegalArgumentException("Failed to add annotation");
+            }
+            return mPageAnnotationsIdManagerMap.get(pageNum).getIdForIndex(addedAnnotationIndex);
         }
     }
 
     /**
      * Removes the annotation with the specified index.
      *
-     * @param annotationIndex the index of the annotation to remove
+     * @param annotationId the Id of the annotation to remove
      *                        from the page
      * @param pageNum         page number from which annotation is to be removed
-     * @return the removed annotation
      */
-    public PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
-            int annotationIndex) {
+    public void removePageAnnotation(@IntRange(from = 0) int pageNum,
+            int annotationId) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.removePageAnnotation(pageNum, annotationIndex);
+            PdfPageComponentsIdManager pdfAnnotationsIdManager =
+                    mPageAnnotationsIdManagerMap.get(pageNum);
+            int annotationIndex = pdfAnnotationsIdManager.getIndexForId(annotationId);
+            if (annotationIndex == -1) {
+                throw new IllegalArgumentException("Unknown annotationId. getPageAnnotations() "
+                        + "call never made?");
+            }
+            if (!mPdfDocument.removePageAnnotation(pageNum, annotationIndex)) {
+                throw new IllegalArgumentException("Annotation cannot be removed.");
+            }
+            pdfAnnotationsIdManager.deleteId(annotationId);
         }
     }
 
@@ -638,7 +676,16 @@ public class PdfProcessor {
             @NonNull PdfAnnotation annotation) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.updatePageAnnotation(pageNum, annotationId, annotation);
+            int annotationIndex = mPageAnnotationsIdManagerMap.get(pageNum)
+                    .getIndexForId(annotationId);
+            if (annotationIndex == -1) {
+                throw new IllegalArgumentException("Unknown annotation Id. getPageAnnotations()"
+                        + " call never made?");
+            }
+            if (!mPdfDocument.updatePageAnnotation(pageNum, annotationIndex, annotation)) {
+                throw new IllegalArgumentException("Update Failed");
+            }
+            return true;
         }
     }
 
@@ -659,7 +706,16 @@ public class PdfProcessor {
     public List<Pair<Integer, PdfPageObject>> getPageObjects(int pageNum) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.getPageObjects(pageNum);
+            PdfPageComponentsIdManager pageObjectIdManager = mPageObjectIdManagerMap.get(pageNum);
+            List<PdfPageObject> pageObjects = mPdfDocument.getPageObjects(pageNum);
+            List<Pair<Integer, PdfPageObject>> pageObjectIdPairs = new ArrayList<>();
+            for (int i = 0; i < pageObjects.size(); i++) {
+                if (pageObjects.get(i) != null) {
+                    pageObjectIdPairs.add(
+                            new Pair<>(pageObjectIdManager.getIdForIndex(i), pageObjects.get(i)));
+                }
+            }
+            return pageObjectIdPairs;
         }
     }
 
@@ -676,7 +732,11 @@ public class PdfProcessor {
     public int addPageObject(int pageNum, @NonNull PdfPageObject pageObject) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.addPageObject(pageNum, pageObject);
+            int addedObjectIndex = mPdfDocument.addPageObject(pageNum, pageObject);
+            if (addedObjectIndex == -1) {
+                throw new IllegalArgumentException("Failed to add PageObject");
+            }
+            return mPageObjectIdManagerMap.get(pageNum).getIdForIndex(addedObjectIndex);
         }
     }
 
@@ -694,7 +754,15 @@ public class PdfProcessor {
             @NonNull PdfPageObject pageObject) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.updatePageObject(pageNum, objectId, pageObject);
+            int objectIndex = mPageObjectIdManagerMap.get(pageNum).getIndexForId(objectId);
+            if (objectIndex == -1) {
+                throw new IllegalArgumentException("Unknown objectId. "
+                        + "getPageObjects() call never made?");
+            }
+            if (!mPdfDocument.updatePageObject(pageNum, objectIndex, pageObject)) {
+                throw new IllegalArgumentException("Update Failed");
+            }
+            return true;
         }
     }
 
@@ -703,15 +771,24 @@ public class PdfProcessor {
      *
      * @param objectId the id of the page object to remove
      *                 from the page
-     * @return {@link PdfPageObject} that is removed.
      * @throws IllegalStateException if the provided
      *                               objectId doesn't exist.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
-    public PdfPageObject removePageObject(int pageNum, int objectId) {
+    public void removePageObject(int pageNum, int objectId) {
         synchronized (sPdfiumLock) {
             assertPdfDocumentNotNull();
-            return mPdfDocument.removePageObject(pageNum, objectId);
+            PdfPageComponentsIdManager pageObjectIdManager =
+                    mPageObjectIdManagerMap.get(pageNum);
+            int objectIndex = pageObjectIdManager.getIndexForId(objectId);
+            if (objectIndex == -1) {
+                throw new IllegalArgumentException("Unknown objectId. getPageObjects() "
+                        + "call never made ?");
+            }
+            if (!mPdfDocument.removePageObject(pageNum, objectIndex)) {
+                throw new IllegalArgumentException("Page object cannot be removed.");
+            }
+            pageObjectIdManager.deleteId(objectId);
         }
     }
 

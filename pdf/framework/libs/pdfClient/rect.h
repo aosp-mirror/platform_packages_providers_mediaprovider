@@ -33,6 +33,12 @@ struct Point_d {
     double y;
 };
 
+// A point with float precision
+struct Point_f {
+    float x;
+    float y;
+};
+
 // A rectangle with integer precision
 struct Rectangle_i {
     // The x-coordinate of the left-top corner (lesser value).
@@ -67,6 +73,24 @@ struct Rectangle_d {
     double Height() const { return bottom - top; }
 
     Point_d Center() const { return Point_d{(left + right) / 2, (top + bottom) / 2}; }
+};
+
+// A rectangle with float precision
+struct Rectangle_f {
+    // The x-coordinate of the left-top corner (lesser value).
+    float left;
+    // The y-coordinate of the left-top corner (lesser value).
+    float top;
+    // The x-coordinate of the right-bottom corner (greater value).
+    float right;
+    // The y-coordinate of the right-bottom corner (greater value).
+    float bottom;
+
+    float Width() const { return right - left; }
+
+    float Height() const { return bottom - top; }
+
+    Point_f Center() const { return Point_f{(left + right) / 2, (top + bottom) / 2}; }
 };
 
 // Check if two points are equal:
@@ -126,6 +150,8 @@ Rectangle_d Intersect(const Rectangle_d& lhs, const Rectangle_d& rhs);
 // Returns the union of two Rectangles.
 Rectangle_i Union(const Rectangle_i& lhs, const Rectangle_i& rhs);
 Rectangle_d Union(const Rectangle_d& lhs, const Rectangle_d& rhs);
+
+Rectangle_f FloatRect(const float x1, const float y1, const float x2, const float y2);
 
 }  // namespace pdfClient
 

@@ -71,7 +71,7 @@ class AlbumMediaPagingSource(
                         pageSize,
                         contentResolver,
                         availableProviders,
-                        configuration
+                        configuration,
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Could not fetch page from MediaProvider for album $albumId", e)
@@ -86,8 +86,13 @@ class AlbumMediaPagingSource(
                     FeatureToken.CORE.token,
                     configuration.sessionId,
                     /* pageNumber */ 0,
-                    pageSize
+                    pageSize,
                 )
+            )
+
+            Log.d(
+                TAG,
+                "Received ${albumMediaFetchResult.data.size} album media items from the data source.",
             )
         }
 

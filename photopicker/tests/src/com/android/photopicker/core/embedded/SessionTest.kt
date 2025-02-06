@@ -65,8 +65,6 @@ import com.android.photopicker.core.Main
 import com.android.photopicker.core.ViewModelModule
 import com.android.photopicker.core.configuration.ConfigurationManager
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
-import com.android.photopicker.core.events.Events
-import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.glide.GlideTestRule
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
@@ -99,7 +97,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -173,11 +170,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Mock lateinit var mockPackageManager: PackageManager
     @Inject lateinit var mockContext: Context
     @Inject lateinit var embeddedServiceComponentBuilder: EmbeddedServiceComponentBuilder
-    @Inject lateinit var selection: Selection<Media>
-    @Inject lateinit var featureManager: FeatureManager
-    @Inject lateinit var events: Events
+    @Inject lateinit var selection: Lazy<Selection<Media>>
     @Inject override lateinit var configurationManager: Lazy<ConfigurationManager>
-    @Inject lateinit var dataService: DataService
+    @Inject lateinit var dataService: Lazy<DataService>
     @Inject lateinit var embeddedLifecycle: EmbeddedLifecycle
 
     @Captor lateinit var uriCaptor: ArgumentCaptor<Uri>
@@ -331,7 +326,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(1)
         }
 
@@ -391,14 +386,14 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 .that(sessionLifecycle.lifecycle.currentState)
                 .isEqualTo(Lifecycle.State.RESUMED)
 
-            async { session.notifyVisibilityChanged(isVisible = false) }.await()
+            session.notifyVisibilityChanged(isVisible = false)
             advanceTimeBy(100)
 
             assertWithMessage("Expected state to be CREATED")
                 .that(sessionLifecycle.lifecycle.currentState)
                 .isEqualTo(Lifecycle.State.CREATED)
 
-            async { session.notifyVisibilityChanged(isVisible = true) }.await()
+            session.notifyVisibilityChanged(isVisible = true)
             advanceTimeBy(100)
 
             assertWithMessage("Expected final state to be RESUMED")
@@ -461,10 +456,10 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     fun testURIDebounceOnSelectionOfMediaItems() =
         testScope.runTest {
             val component = embeddedServiceComponentBuilder.build()
-            val session = getSessionUnderTest(component)
 
-            val itemCount = 20
-            setUpTestDataWithStubProvider(itemCount)
+            setUpTestDataWithStubProvider(mediaCount = 20)
+
+            val session = getSessionUnderTest(component)
 
             advanceTimeBy(100)
 
@@ -518,7 +513,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(2) // Indices {2, 4}
 
             // Verify that grantUriPermission is invoked for all newly selected media.
@@ -560,7 +555,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(3) // Indices {4, 6, 8}
 
             // Verify that grantUriPermission is invoked for all newly selected media.
@@ -584,10 +579,10 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     fun testSelectionUpdateGrantsAndRevokesPermissionSuccess() =
         testScope.runTest {
             val component = embeddedServiceComponentBuilder.build()
-            val session = getSessionUnderTest(component)
 
-            val itemCount = 20
-            setUpTestDataWithStubProvider(itemCount)
+            setUpTestDataWithStubProvider(mediaCount = 20)
+
+            val session = getSessionUnderTest(component)
 
             advanceTimeBy(100)
 
@@ -631,7 +626,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(3)
 
             // Verify that grantUriPermission is invoked for all newly selected media.
@@ -660,7 +655,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(1)
 
             // Verify that revokeUriPermission is invoked for all newly deselected media.
@@ -688,7 +683,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(3)
 
             // Verify that grantUriPermission is invoked for all newly selected media.
@@ -705,7 +700,9 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
     @Test
     fun testSelectionGrantOrRevokePermissionFailed() =
         testScope.runTest {
-            setUpTestDataWithStubProvider(20)
+            val component = embeddedServiceComponentBuilder.build()
+
+            setUpTestDataWithStubProvider(mediaCount = 20)
 
             // Mark image at node 0 as media item we aren't able to grant permission.
             val grantFailureUri = constructUrisForIndices(setOf(0))[0]
@@ -713,7 +710,6 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 EmbeddedService.GrantResult.FAILURE
             }
 
-            val component = embeddedServiceComponentBuilder.build()
             val session = getSessionUnderTest(component)
             advanceTimeBy(100)
 
@@ -757,7 +753,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(3)
 
             // Verify that client callback is invoked for all uris that were successfully
@@ -792,7 +788,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             // Ensure the click handler correctly ran by checking the selection snapshot.
             assertWithMessage("Expected selection to contain an item, but it did not.")
-                .that(selection.snapshot().size)
+                .that(selection.get().snapshot().size)
                 .isEqualTo(2) // images at indices 0, 4 are still selected
 
             // Verify client callback is never invoked if we failed to revoke permission to uri
@@ -818,7 +814,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             val newWidth = 2 * initialWidth
             val newHeight = 2 * initialHeight
 
-            async { session.notifyResized(newWidth, newHeight) }.await()
+            session.notifyResized(newWidth, newHeight)
             advanceTimeBy(100)
 
             assertWithMessage("Expected view's width to be resized")
@@ -852,7 +848,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 )
             }
 
-            async { session.notifyPhotopickerExpanded(true) }.await()
+            session.notifyPhotopickerExpanded(true)
             advanceTimeBy(100)
 
             val resources = getTestableContext().getResources()
@@ -866,7 +862,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
             // Create new configuration which will update theme to dark
             val newConfig = Configuration()
             newConfig.uiMode = Configuration.UI_MODE_NIGHT_YES
-            async { session.notifyConfigurationChanged(newConfig) }.await()
+            session.notifyConfigurationChanged(newConfig)
             advanceTimeBy(100)
 
             val finalColor = node.extractTextColor()
@@ -904,7 +900,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
 
             composeTestRule.onNodeWithText(photosTabLabel).assertDoesNotExist()
 
-            async { session.notifyPhotopickerExpanded(true) }.await()
+            session.notifyPhotopickerExpanded(true)
             advanceTimeBy(100)
 
             composeTestRule.onNodeWithText(photosTabLabel).assertExists().assertIsDisplayed()
@@ -941,7 +937,7 @@ class SessionTest : EmbeddedPhotopickerFeatureBaseTest() {
                 displayName = "Stub Provider",
             )
 
-        val testDataService = dataService as? TestDataServiceImpl
+        val testDataService = dataService.get() as? TestDataServiceImpl
         checkNotNull(testDataService) { "Expected a TestDataServiceImpl" }
         testDataService.setAvailableProviders(listOf(stubProvider))
         testDataService.collectionInfo.put(

@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,8 +39,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.photopicker.R
 import com.android.photopicker.core.components.MediaGridItem
@@ -58,9 +60,11 @@ import com.android.photopicker.core.obtainViewModel
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumMediaGridForCategories
 import com.android.photopicker.extensions.navigateToCategoryGrid
+import com.android.photopicker.extensions.navigateToMediaSetGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.photogrid.PhotoGridFeature
+import com.android.photopicker.features.search.SearchFeature
 import kotlinx.coroutines.launch
 
 /** The number of grid cells per row for Phone / narrow layouts */
@@ -73,14 +77,14 @@ private val CELLS_PER_ROW_EXPANDED_FOR_CATEGORY_GRID = 3
 private val MEASUREMENT_HORIZONTAL_CELL_SPACING_CATEGORY_GRID = 16.dp
 
 /**
- * Primary composable for drawing the main Category Grid on [PhotopickerDestinations.CATEGORY_GRID]
+ * Primary composable for drawing the main Category Grid on [PhotopickerDestinations.ALBUM_GRID]
  *
  * @param viewModel - A viewModel override for the composable. Normally, this is fetched via hilt
  *   from the backstack entry by using obtainViewModel()
  */
 @Composable
 fun CategoryGrid(viewModel: CategoryGridViewModel = obtainViewModel()) {
-    val items = viewModel.getAlbums().collectAsLazyPagingItems()
+    val items = viewModel.getCategoriesAndAlbums().collectAsLazyPagingItems()
     val state = rememberLazyGridState()
     val navController = LocalNavController.current
     val featureManager = LocalFeatureManager.current
@@ -100,6 +104,7 @@ fun CategoryGrid(viewModel: CategoryGridViewModel = obtainViewModel()) {
             else -> false
         }
 
+    val previouslySelectedItem by viewModel.previouslySelectedItem.collectAsStateWithLifecycle()
     Column(
         modifier =
             Modifier.fillMaxSize().pointerInput(Unit) {
@@ -133,11 +138,7 @@ fun CategoryGrid(viewModel: CategoryGridViewModel = obtainViewModel()) {
         // the category content for the category that is selected by the user.
         mediaGrid(
             items = items,
-            userScrollEnabled =
-                when (isEmbedded) {
-                    true -> isExpanded
-                    false -> true
-                },
+            focusItem = previouslySelectedItem,
             onItemClick = { item ->
                 if (item is MediaGridItem.AlbumItem) {
                     // Dispatch events to log album related details
@@ -159,7 +160,21 @@ fun CategoryGrid(viewModel: CategoryGridViewModel = obtainViewModel()) {
                             )
                         )
                     }
+                    viewModel.setPreviouslySelectedItem(item)
                     navController.navigateToAlbumMediaGridForCategories(album = item.album)
+                } else if (item is MediaGridItem.CategoryItem) {
+                    scope.launch {
+                        events.dispatch(
+                            Event.LogPhotopickerUIEvent(
+                                FeatureToken.CATEGORY_GRID.token,
+                                configuration.sessionId,
+                                configuration.callingPackageUid ?: -1,
+                                Telemetry.UiEvent.CATEGORY_MEDIA_SETS_OPEN,
+                            )
+                        )
+                    }
+                    viewModel.setPreviouslySelectedItem(item)
+                    navController.navigateToMediaSetGrid(category = item.category)
                 }
             },
             isExpandedScreen = isExpandedScreen,
@@ -174,14 +189,14 @@ fun CategoryGrid(viewModel: CategoryGridViewModel = obtainViewModel()) {
             state = state,
         )
         LaunchedEffect(Unit) {
-            // Dispatch UI event to denote loading of media albums
+            // Dispatch UI event to denote loading of media categories and albums
             scope.launch {
                 events.dispatch(
                     Event.LogPhotopickerUIEvent(
-                        FeatureToken.PHOTO_GRID.token,
+                        FeatureToken.CATEGORY_GRID.token,
                         configuration.sessionId,
                         configuration.callingPackageUid ?: -1,
-                        Telemetry.UiEvent.UI_LOADED_ALBUMS,
+                        Telemetry.UiEvent.UI_LOADED_CATEGORIES_AND_ALBUMS,
                     )
                 )
             }
@@ -200,7 +215,8 @@ fun CategoryButton(modifier: Modifier) {
     val events = LocalEvents.current
     val sessionId = LocalPhotopickerConfiguration.current.sessionId
     val packageUid = LocalPhotopickerConfiguration.current.callingPackageUid ?: -1
-    val contentDescriptionString = stringResource(R.string.photopicker_categories_nav_button_label)
+    val featureManager = LocalFeatureManager.current
+    val searchFeatureEnabled = featureManager.isFeatureEnabled(SearchFeature::class.java)
 
     NavigationBarButton(
         onClick = {
@@ -217,16 +233,31 @@ fun CategoryButton(modifier: Modifier) {
             }
             navController.navigateToCategoryGrid()
         },
-        modifier = modifier.semantics { contentDescription = contentDescriptionString },
-        isCurrentRoute = { route -> route == PhotopickerDestinations.CATEGORY_GRID.route },
+        modifier = modifier,
+        isCurrentRoute = { route -> route == PhotopickerDestinations.ALBUM_GRID.route },
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.photopicker_category_icon),
-                contentDescription = contentDescriptionString,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.photopicker_categories_nav_button_label))
+        when {
+            searchFeatureEnabled -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector =
+                            ImageVector.vectorResource(R.drawable.photopicker_category_icon),
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.photopicker_categories_nav_button_label),
+                        maxLines = 1, // Limit the text to a single line
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            else ->
+                Text(
+                    stringResource(R.string.photopicker_categories_nav_button_label),
+                    maxLines = 1, // Limit the text to a single line
+                    overflow = TextOverflow.Ellipsis,
+                )
         }
     }
 }

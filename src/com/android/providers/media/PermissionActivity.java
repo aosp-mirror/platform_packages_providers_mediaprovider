@@ -512,21 +512,24 @@ public class PermissionActivity extends Activity {
             if (shouldCheckMediaPermissions) {
                 // check READ_MEDIA_AUDIO
                 if (shouldCheckReadAudio && !checkPermissionReadAudio(context, pid, uid,
-                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                        packageName, attributionTag, isTargetSdkAtLeastT,
+                        /* forDataDelivery */ true)) {
                     Log.d(TAG, "No permission READ_MEDIA_AUDIO or MANAGE_EXTERNAL_STORAGE");
                     return true;
                 }
 
                 // check READ_MEDIA_IMAGES
                 if (shouldCheckReadImages && !checkPermissionReadImages(context, pid, uid,
-                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                        packageName, attributionTag, isTargetSdkAtLeastT,
+                        /* forDataDelivery */ true)) {
                     Log.d(TAG, "No permission READ_MEDIA_IMAGES or MANAGE_EXTERNAL_STORAGE");
                     return true;
                 }
 
                 // check READ_MEDIA_VIDEO
                 if (shouldCheckReadVideo && !checkPermissionReadVideo(context, pid, uid,
-                        packageName, attributionTag, isTargetSdkAtLeastT)) {
+                        packageName, attributionTag, isTargetSdkAtLeastT,
+                        /* forDataDelivery */ true)) {
                     Log.d(TAG, "No permission READ_MEDIA_VIDEO or MANAGE_EXTERNAL_STORAGE");
                     return true;
                 }
@@ -534,9 +537,9 @@ public class PermissionActivity extends Activity {
                 // For subtitle case, check READ_MEDIA_AUDIO or READ_MEDIA_VIDEO
                 if (mShouldCheckReadAudioOrReadVideo
                         && !checkPermissionReadAudio(context, pid, uid, packageName, attributionTag,
-                        isTargetSdkAtLeastT)
+                        isTargetSdkAtLeastT, /* forDataDelivery */ true)
                         && !checkPermissionReadVideo(context, pid, uid, packageName, attributionTag,
-                        isTargetSdkAtLeastT)) {
+                        isTargetSdkAtLeastT, /* forDataDelivery */  true)) {
                     Log.d(TAG, "No permission READ_MEDIA_AUDIO, READ_MEDIA_VIDEO or "
                             + "MANAGE_EXTERNAL_STORAGE");
                     return true;

@@ -16,7 +16,10 @@
 
 package com.android.photopicker.core.theme
 
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -44,10 +47,11 @@ import com.android.photopicker.core.theme.typography.photopickerTypography
  * composables downstream to react to WindowSize changes.
  */
 @Composable
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 fun PhotopickerTheme(
     isDarkTheme: Boolean = isSystemInDarkTheme(),
     config: PhotopickerConfiguration,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val accentColorHelper = AccentColorHelper(config.accentColor ?: -1)
@@ -84,7 +88,7 @@ fun PhotopickerTheme(
                         // in the theme to use the accent color.
                         darkTheme.copy(
                             primary = accentColorHelper.getAccentColor(),
-                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents(),
                         )
                     }
                 false ->
@@ -95,7 +99,7 @@ fun PhotopickerTheme(
                             // When an accent color has been specified, set primary and onPrimary
                             // in the theme to use the accent color.
                             primary = accentColorHelper.getAccentColor(),
-                            onPrimary = accentColorHelper.getTextColorForAccentComponents()
+                            onPrimary = accentColorHelper.getTextColorForAccentComponents(),
                         )
                     }
             }
@@ -113,17 +117,30 @@ fun PhotopickerTheme(
     // Calculate the current screen size
     val windowSizeClass: WindowSizeClass = calculateWindowSizeClass()
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
+    if (
+        config.flags.EXPRESSIVE_THEME_ENABLED &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
     ) {
-        CompositionLocalProvider(
-            LocalWindowSizeClass provides windowSizeClass,
-            LocalFixedAccentColors provides fixedAccentColors,
-            CustomAccentColorScheme provides
-                AccentColorScheme(accentColorHelper = accentColorHelper),
-        ) {
-            content()
+        MaterialExpressiveTheme(colorScheme = colorScheme, typography = typography) {
+            CompositionLocalProvider(
+                LocalWindowSizeClass provides windowSizeClass,
+                LocalFixedAccentColors provides fixedAccentColors,
+                CustomAccentColorScheme provides
+                    AccentColorScheme(accentColorHelper = accentColorHelper),
+            ) {
+                content()
+            }
+        }
+    } else {
+        MaterialTheme(colorScheme = colorScheme, typography = typography) {
+            CompositionLocalProvider(
+                LocalWindowSizeClass provides windowSizeClass,
+                LocalFixedAccentColors provides fixedAccentColors,
+                CustomAccentColorScheme provides
+                    AccentColorScheme(accentColorHelper = accentColorHelper),
+            ) {
+                content()
+            }
         }
     }
 }

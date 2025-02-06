@@ -246,3 +246,30 @@ flag {
     is_fixed_read_only: true
     bug: "323322157"
 }
+
+flag {
+    name: "enable_exclusion_list_for_default_folders"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will prevent folders on the exclusion list being created during default folder creation."
+    is_fixed_read_only: true
+    bug: "381310841"
+}
+
+flag {
+    name: "enable_photopicker_expressive_theme"
+    is_exported: false
+    namespace: "mediaprovider"
+    description: "This flag controls the material expressive theme in com.android.photopicker"
+    is_fixed_read_only: true
+    bug: "390142346"
+}
+
+flag {
+    name: "exclude_unreliable_volumes"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable exclusion of unreliable storage volumes in the returned list from MediaStore APIs."
+    is_fixed_read_only: true
+    bug: "391360514"
+}

@@ -57,7 +57,8 @@ public abstract class SearchRequest {
     public static SearchRequest create(Bundle extras) {
         final List<String> mimeTypes = extras.getStringArrayList("mime_types") != null
                 ? new ArrayList<>(extras.getStringArrayList("mime_types")) : null;
-        final String searchText = extras.getString("search_text");
+        final String rawSearchText = extras.getString("search_text");
+        final String searchText = rawSearchText == null ? null : rawSearchText.trim();
         final String mediaSetId = extras.getString("media_set_id");
         final String suggestionAuthority = extras.getString("authority");
         final String searchSuggestionType = extras.getString("search_suggestion_type");

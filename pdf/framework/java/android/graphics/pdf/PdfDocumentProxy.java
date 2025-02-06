@@ -31,7 +31,6 @@ import android.graphics.pdf.models.jni.PageSelection;
 import android.graphics.pdf.models.jni.SelectionBoundary;
 import android.graphics.pdf.utils.StrictModeUtils;
 import android.os.ParcelFileDescriptor;
-import android.util.Pair;
 
 import java.util.List;
 
@@ -260,94 +259,88 @@ public class PdfDocumentProxy {
             int pageNum, int annotIndex, int[] selectedIndices);
 
     /**
-     * Gets the list of pair of annotations of supported types (freetext, image, stamp) and their
-     * ids present on the page
+     * Returns the list of {@link PdfAnnotation} present on the page.
+     * The list item is non-null for supported types (freetext, image, stamp) and
+     * null for unsupported types.
      *
      * @param pageNum - page number of the page whose annotations list is to be returned
+     * @return A {@link List} of {@link PdfAnnotation}
      */
-    public native @NonNull List<Pair<Integer, PdfAnnotation>> getPageAnnotations(
+    public native @NonNull List<PdfAnnotation> getPageAnnotations(
             @IntRange(from = 0) int pageNum);
 
     /**
-     * Adds an annotation to the given page
+     * Adds the given {@link PdfAnnotation} to the given page
      *
      * @param pageNum    - page number of the page to which annotation is to be added
-     * @param annotation - annotation to be added to the given page
-     * @return index of the annotation added and -1 in case of failure
+     * @param annotation - {@link PdfAnnotation} to be added to the given page
+     * @return index of the annotation added, -1 in case of failure
      */
     public native int addPageAnnotation(@IntRange(from = 0) int pageNum,
             @NonNull PdfAnnotation annotation);
 
     /**
-     * Removes an annotation from the given page
+     * Removes the {@link PdfAnnotation} with the specified index from the given page.
      *
-     * @param pageNum      - page number of the page from which annotation is to be removed
-     * @param annotationId - id of the annotation to be removed
+     * @param pageNum      - page number from which {@link PdfAnnotation} is to be removed
+     * @param annotationIndex - index of the {@link PdfAnnotation} to be removed
+     *
+     * @return true if remove was successful, false otherwise
      */
-    public native PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
-            @IntRange(from = 0) int annotationId);
+    public native boolean removePageAnnotation(@IntRange(from = 0) int pageNum,
+            @IntRange(from = 0) int annotationIndex);
 
     /**
-     * Updates an annotation on the given page
+     * Update the given {@link PdfAnnotation} on the given page
      *
-     * @param pageNum    page number of the page on which annotation is to be updated
-     * @param annotationId id corresponding to which the annotation is to be updated
+     * @param pageNum    page number on which annotation is to be updated
+     * @param annotationIndex index of the annotation
      * @param annotation annotation to be updated
+     *
+     * @return true if page object is updated, false otherwise
      */
     public native boolean updatePageAnnotation(@IntRange(from = 0) int pageNum,
-            int annotationId, PdfAnnotation annotation);
+            int annotationIndex, PdfAnnotation annotation);
 
 
     /**
-     * Return list of supported {@link PdfPageObject} present on
-     * the page.
-     * The list will be empty  if there are no supported page
-     * objects present on the page, even if the page contains
-     * other page object types.
+     * Returns the list of {@link PdfPageObject} present on the page.
+     * The list item is non-null for supported types and
+     * null for unsupported types.
      *
-     * @param pageNum - page number of the page whose annotations list is returned
-     * @return A {@link List} of {@link Pair} objects, where each pair contains:
-     * - An {@link Integer} representing the object ID.
-     * - A {@link PdfPageObject} representing the page object.
-     * @throws IllegalStateException if the document/page is
-     *                               closed before invocation
+     * @param pageNum - page number of the page whose annotations list is to be returned
+     * @return A {@link List} of {@link PdfPageObject}
      */
-    public native List<Pair<Integer, PdfPageObject>> getPageObjects(int pageNum);
+    public native List<PdfPageObject> getPageObjects(int pageNum);
 
     /**
      * Adds the given page object to the page.
      *
      * @param pageNum    - page number of the page to which pageObject is to be added
-     * @param pageObject the {@link PdfPageObject} object to
-     *                   add
-     * @return object id of added page object, -1 otherwise
-     * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or null.
-     * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before invocation.
+     * @param pageObject - {@link PdfPageObject} to be added to the given page
+     * @return index of added page object, -1 in the case of failure
      */
     public native int addPageObject(int pageNum, @NonNull PdfPageObject pageObject);
 
     /**
-     * Update the given {@link PdfPageObject} to the page.
+     * Update the given {@link PdfPageObject} on the given page
      *
-     * @param objectId   The unique identifier of the page object to update.
-     * @param pageObject the {@code PdfPageObject} object to
-     *                   add
+     * @param pageNum    page number on which the {@link PdfPageObject} is to be updated
+     * @param objectIndex   index of the pageObject
+     * @param pageObject pageObject to be updated
+     *
      * @return true if page object is updated, false otherwise
-     * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or null.
-     * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before invocation.
      */
-    public native boolean updatePageObject(int pageNum, int objectId,
+    public native boolean updatePageObject(int pageNum, int objectIndex,
             @NonNull PdfPageObject pageObject);
 
     /**
-     * Removes the {@link PdfPageObject} with the specified ID.
+     * Removes the {@link PdfPageObject} with the specified Index from the given page.
      *
-     * @param pageNum  - page number of the page from which annotation is to be removed
-     * @param objectId the ID of the page object to remove
-     *                 from the page
-     * @return {@link PdfPageObject} that is removed.
-     * @throws IllegalStateException if the provided
-     *                               objectId doesn't exist.
+     * @param pageNum  - page number from which {@link PdfPageObject} is to be removed
+     * @param objectIndex the index of the {@link PdfPageObject} to be removed
+     *
+     * @return true if remove was successful, false otherwise
      */
-    public native PdfPageObject removePageObject(int pageNum, int objectId);
+    public native boolean removePageObject(int pageNum, int objectIndex);
 }

@@ -317,6 +317,7 @@ class ActivityModule {
         @ApplicationContext context: Context,
         @Background backgroundDispatcher: CoroutineDispatcher,
         mediaProviderClient: MediaProviderClient,
+        @Background scope: CoroutineScope,
     ): PrefetchDataService {
 
         if (!::prefetchDataService.isInitialized) {
@@ -331,6 +332,7 @@ class ActivityModule {
                     userMonitor,
                     context,
                     backgroundDispatcher,
+                    scope,
                 )
         }
         return prefetchDataService

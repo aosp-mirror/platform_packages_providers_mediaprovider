@@ -37,8 +37,8 @@ package android.graphics.pdf {
     method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") @NonNull public java.util.List<android.util.Pair<java.lang.Integer,android.graphics.pdf.component.PdfPageObject>> getPageObjects();
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.content.PdfPageTextContent> getTextContents();
     method @IntRange(from=0) public int getWidth();
-    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") @NonNull public android.graphics.pdf.component.PdfAnnotation removePageAnnotation(@IntRange(from=0) int);
-    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") @NonNull public android.graphics.pdf.component.PdfPageObject removePageObject(@IntRange(from=0) int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_annotations") public void removePageAnnotation(@IntRange(from=0) int);
+    method @FlaggedApi("android.graphics.pdf.flags.enable_edit_pdf_page_objects") public void removePageObject(@IntRange(from=0) int);
     method public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, int);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") public void render(@NonNull android.graphics.Bitmap, @Nullable android.graphics.Rect, @Nullable android.graphics.Matrix, @NonNull android.graphics.pdf.RenderParams);
     method @FlaggedApi("android.graphics.pdf.flags.enable_pdf_viewer") @NonNull public java.util.List<android.graphics.pdf.models.PageMatchBounds> searchText(@NonNull String);

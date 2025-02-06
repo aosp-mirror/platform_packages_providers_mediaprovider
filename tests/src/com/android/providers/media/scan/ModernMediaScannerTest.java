@@ -30,6 +30,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -49,6 +50,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+import android.os.UserManager;
 import android.platform.test.annotations.EnableFlags;
 import android.platform.test.flag.junit.SetFlagsRule;
 import android.provider.MediaStore;
@@ -468,6 +470,11 @@ public class ModernMediaScannerTest {
      */
     @Test
     public void testVisibleDefaultFolders() throws Exception {
+        // Skip test if running in Headless System User Mode
+        // We cannot create nomedia file in public directories for secondary users except
+        // in [Documents, Downloads].
+        assumeFalse(UserManager.isHeadlessSystemUserMode());
+
         final File root = new File("storage/emulated/0");
 
         assertVisibleFolder(root);
@@ -494,6 +501,10 @@ public class ModernMediaScannerTest {
      */
     @Test
     public void testVisibleRootWithNoMediaDirectory() throws Exception {
+        // Skip test if running in Headless System User Mode
+        // We cannot create test files in root directory for secondary users.
+        assumeFalse(UserManager.isHeadlessSystemUserMode());
+
         final File root = new File("storage/emulated/0");
         final File nomediaDir = new File(root, ".nomedia");
         final File file = new File(nomediaDir, "test.jpg");

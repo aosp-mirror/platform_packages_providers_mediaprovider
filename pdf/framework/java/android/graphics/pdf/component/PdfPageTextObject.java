@@ -27,7 +27,7 @@ import android.graphics.pdf.flags.Flags;
  * Represents a text object on a PDF page.
  * This class extends PageObject and provides methods to access and modify the text content.
  */
-@FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_PAGE_OBJECTS)
+@FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_TEXT_OBJECTS)
 public final class PdfPageTextObject extends PdfPageObject {
     private String mText;
     private Typeface mTypeface;
@@ -43,7 +43,6 @@ public final class PdfPageTextObject extends PdfPageObject {
      * @param typeface The font of the text.
      * @param fontSize The font size of the text.
      */
-    @FlaggedApi(Flags.FLAG_ENABLE_EDIT_PDF_TEXT_OBJECTS)
     public PdfPageTextObject(@NonNull String text, @NonNull Typeface typeface, float fontSize) {
         super(PdfPageObjectType.TEXT);
         this.mText = text;

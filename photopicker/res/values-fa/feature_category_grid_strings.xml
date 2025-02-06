@@ -18,4 +18,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_categories_nav_button_label" msgid="988315710756227148">"مجموعه‌ها"</string>
+    <string name="photopicker_people_category_empty_state_title" msgid="3099829676185479658">"هنوز فرد یا حیوان خانگی وجود ندارد"</string>
+    <string name="photopicker_people_category_empty_state_body" msgid="6240429033719283301">"عکس‌ها و ویدیوها که براساس چهره‌های مشابه دسته‌بندی شده‌اند اینجا نشان داده خواهند شد"</string>
 </resources>

@@ -30,6 +30,7 @@ java_sdk_library {
         "modules-utils-preconditions",
         "unsupportedappusage",
         "pdf_viewer_flags_java_lib",
+        "pdf_viewer_flags_readonly_java_lib",
     ],
     stub_only_libs: [
         "framework-pdf.stubs.module_lib",
@@ -45,6 +46,7 @@ java_sdk_library {
     ],
     aconfig_declarations: [
         "pdf_viewer_flags",
+        "pdf_viewer_flags_readonly",
     ],
     impl_library_visibility: [
         "//packages/providers/MediaProvider:__subpackages__",

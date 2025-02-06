@@ -32,6 +32,8 @@ import com.android.photopicker.data.TestDataServiceImpl
 import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.TestSearchDataServiceImpl
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.data.model.MediaSource
+import com.android.photopicker.data.model.Provider
 import com.android.photopicker.features.search.model.SearchSuggestion
 import com.android.photopicker.features.search.model.SearchSuggestionType
 import com.android.providers.media.flags.Flags
@@ -71,6 +73,7 @@ class SearchViewModelTest {
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     TestSearchDataServiceImpl(),
+                    TestDataServiceImpl(),
                     selection,
                     events,
                     configurationManager,
@@ -111,10 +114,12 @@ class SearchViewModelTest {
                     this.backgroundScope,
                     StandardTestDispatcher(this.testScheduler),
                     TestSearchDataServiceImpl(),
+                    TestDataServiceImpl(),
                     selection,
                     events,
                     configurationManager,
                 )
+            advanceTimeBy(1000)
             viewModel.fetchSuggestions("abc")
             advanceTimeBy(1000)
             val suggestionLists = viewModel.suggestionLists.value
@@ -150,6 +155,7 @@ class SearchViewModelTest {
                 this.backgroundScope,
                 StandardTestDispatcher(this.testScheduler),
                 TestSearchDataServiceImpl(),
+                TestDataServiceImpl(),
                 selection,
                 events,
                 configurationManager,
@@ -178,6 +184,7 @@ class SearchViewModelTest {
                 this.backgroundScope,
                 StandardTestDispatcher(this.testScheduler),
                 TestSearchDataServiceImpl(),
+                TestDataServiceImpl(),
                 selection,
                 events,
                 configurationManager,
@@ -213,6 +220,7 @@ class SearchViewModelTest {
                 this.backgroundScope,
                 StandardTestDispatcher(this.testScheduler),
                 TestSearchDataServiceImpl(),
+                TestDataServiceImpl(),
                 selection,
                 events,
                 configurationManager,
@@ -222,6 +230,87 @@ class SearchViewModelTest {
         assertWithMessage("Search state is not Active for query search")
             .that(SearchState.Active.QuerySearch(query))
             .isEqualTo(viewModel.searchState.value)
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun onSearch_suggestionsAreCached() = runTest {
+        provideSelectionEvents(this.backgroundScope)
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                generatePickerSessionId(),
+            )
+        val viewModel =
+            SearchViewModel(
+                this.backgroundScope,
+                StandardTestDispatcher(this.testScheduler),
+                TestSearchDataServiceImpl(),
+                TestDataServiceImpl(),
+                selection,
+                events,
+                configurationManager,
+            )
+        advanceTimeBy(1000)
+        val query = "test query"
+        assertWithMessage("Initial Cached suggestions is not empty")
+            .that(viewModel.getCachedSuggestions().getSuggestions(query))
+            .isNull()
+        viewModel.fetchSuggestions(query)
+        advanceTimeBy(1000)
+        assertWithMessage("After fetchSuggestions UI cached suggestions is Null")
+            .that(viewModel.getCachedSuggestions().getSuggestions(query))
+            .isNotNull()
+    }
+
+    @Test
+    @EnableFlags(Flags.FLAG_ENABLE_PHOTOPICKER_SEARCH)
+    fun onProvidersChange_cachedSuggestionsCleared() = runTest {
+        provideSelectionEvents(this.backgroundScope)
+        val configurationManager =
+            ConfigurationManager(
+                runtimeEnv = PhotopickerRuntimeEnv.ACTIVITY,
+                scope = this.backgroundScope,
+                dispatcher = StandardTestDispatcher(this.testScheduler),
+                deviceConfigProxy,
+                generatePickerSessionId(),
+            )
+        val testDataService = TestDataServiceImpl()
+        val viewModel =
+            SearchViewModel(
+                this.backgroundScope,
+                StandardTestDispatcher(this.testScheduler),
+                TestSearchDataServiceImpl(),
+                testDataService,
+                selection,
+                events,
+                configurationManager,
+            )
+
+        advanceTimeBy(1000)
+        val query = "test query"
+        viewModel.fetchSuggestions(query)
+        advanceTimeBy(1000)
+        assertWithMessage("UI cached suggestions is Null")
+            .that(viewModel.getCachedSuggestions().getSuggestions(query))
+            .isNotNull()
+        testDataService.setAvailableProviders(
+            listOf(
+                Provider(
+                    authority = "local_authority",
+                    mediaSource = MediaSource.LOCAL,
+                    uid = 1,
+                    displayName = "Local Provider",
+                )
+            )
+        )
+        advanceTimeBy(1000)
+        assertWithMessage("After active provider change cached suggestions is not cleared")
+            .that(viewModel.getCachedSuggestions().getSuggestions(query))
+            .isNull()
     }
 
     private fun provideSelectionEvents(scope: CoroutineScope) {

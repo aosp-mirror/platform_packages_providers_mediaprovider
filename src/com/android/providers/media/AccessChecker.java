@@ -107,19 +107,22 @@ public class AccessChecker {
             case AUDIO_GENRES_ALL_MEMBERS:
             case AUDIO_PLAYLISTS_ID_MEMBERS_ID:
             case AUDIO_PLAYLISTS_ID_MEMBERS: {
-                return callingIdentity.checkCallingPermissionAudio(forWrite);
+                return callingIdentity.checkCallingPermissionAudio(forWrite,
+                        /* forDataDelivery */ true);
             }
             case IMAGES_MEDIA:
             case IMAGES_MEDIA_ID:
             case IMAGES_THUMBNAILS_ID:
             case IMAGES_THUMBNAILS: {
-                return callingIdentity.checkCallingPermissionImages(forWrite);
+                return callingIdentity.checkCallingPermissionImages(forWrite,
+                        /* forDataDelivery */ true);
             }
             case VIDEO_MEDIA_ID:
             case VIDEO_MEDIA:
             case VIDEO_THUMBNAILS_ID:
             case VIDEO_THUMBNAILS: {
-                return callingIdentity.checkCallingPermissionVideo(forWrite);
+                return callingIdentity.checkCallingPermissionVideo(forWrite,
+                        /* forDataDelivery */ true);
             }
             case DOWNLOADS_ID:
             case DOWNLOADS:
@@ -166,7 +169,8 @@ public class AccessChecker {
             case DOWNLOADS:
             case FILES_ID:
             case FILES: {
-                return callingIdentity.checkCallingPermissionUserSelected();
+                return callingIdentity.checkCallingPermissionUserSelected(
+                        /* forDataDelivery */ true);
             }
             default: return false;
         }

@@ -44,11 +44,8 @@ public class MediaInMediaSetsQuery {
     final MediaInMediaSetsCloudSubQuery mCloudMediaSubquery;
 
 
-    public MediaInMediaSetsQuery(Bundle queryArgs, @NonNull String mediaPickerSetId) {
+    public MediaInMediaSetsQuery(Bundle queryArgs, @NonNull Long mediaPickerSetId) {
         Objects.requireNonNull(mediaPickerSetId);
-        if (mediaPickerSetId.isEmpty()) {
-            throw new RuntimeException("MediaSet pickerId to query media cannot be null");
-        }
         mIntentAction = queryArgs.getString("intent_action");
         mProviders = new ArrayList<>(
                 Objects.requireNonNull(queryArgs.getStringArrayList("providers")));

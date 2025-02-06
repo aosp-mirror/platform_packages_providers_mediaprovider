@@ -107,7 +107,7 @@ class PathObject : public PageObject {
             : command(command), x(x), y(y), is_closed(is_closed) {}
     };
 
-    bool is_fill_mode = true;
+    bool is_fill_mode = false;
     bool is_stroke = false;
 
     std::vector<Segment> segments;
@@ -125,8 +125,8 @@ class ImageObject : public PageObject {
 
     ~ImageObject();
 
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
     ScopedFPDFBitmap bitmap;
 };
 

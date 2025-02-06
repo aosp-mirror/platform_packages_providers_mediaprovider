@@ -772,11 +772,17 @@ class BannerManagerImplTest {
                 callingPackageUid = 12345,
                 callingPackageLabel = "Test Package",
             )
+            val test_session_banner =
+                object : BannerDeclaration {
+                    override val id = "test_session_banner"
+                    override val dismissableStrategy = BannerDeclaration.DismissStrategy.SESSION
+                    override val dismissable = true
+                }
 
-            bannerManager.markBannerAsDismissed(BannerDefinitions.SWITCH_PROFILE)
+            bannerManager.markBannerAsDismissed(test_session_banner)
 
             assertWithMessage("Expected banner state to be dismissed")
-                .that(bannerManager.getBannerState(BannerDefinitions.SWITCH_PROFILE)?.dismissed)
+                .that(bannerManager.getBannerState(test_session_banner)?.dismissed)
                 .isTrue()
 
             // Ensure no calls to persist the state in the database.

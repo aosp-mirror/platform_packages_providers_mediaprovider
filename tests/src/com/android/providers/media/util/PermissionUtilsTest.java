@@ -139,12 +139,18 @@ public class PermissionUtilsTest {
         assertThat(checkPermissionReadStorage(context, pid, uid, packageName, null)).isTrue();
         assertThat(checkPermissionWriteStorage(context, pid, uid, packageName, null)).isTrue();
 
-        assertThat(checkPermissionReadAudio(context, pid, uid, packageName, null, false)).isTrue();
-        assertThat(checkPermissionWriteAudio(context, pid, uid, packageName, null)).isFalse();
-        assertThat(checkPermissionReadVideo(context, pid, uid, packageName, null, false)).isTrue();
-        assertThat(checkPermissionWriteVideo(context, pid, uid, packageName, null)).isFalse();
-        assertThat(checkPermissionReadImages(context, pid, uid, packageName, null, false)).isTrue();
-        assertThat(checkPermissionWriteImages(context, pid, uid, packageName, null)).isFalse();
+        assertThat(checkPermissionReadAudio(context, pid, uid, packageName, null, false,
+                /* forDataDelivery */ true)).isTrue();
+        assertThat(checkPermissionWriteAudio(context, pid, uid, packageName, null,
+                /* forDataDelivery */ true)).isFalse();
+        assertThat(checkPermissionReadVideo(context, pid, uid, packageName, null, false,
+                /* forDataDelivery */ true)).isTrue();
+        assertThat(checkPermissionWriteVideo(context, pid, uid, packageName, null,
+                /* forDataDelivery */ true)).isFalse();
+        assertThat(checkPermissionReadImages(context, pid, uid, packageName, null, false,
+                /* forDataDelivery */ true)).isTrue();
+        assertThat(checkPermissionWriteImages(context, pid, uid, packageName, null,
+                /* forDataDelivery */ true)).isFalse();
         assertThat(checkPermissionInstallPackages(context, pid, uid, packageName, null)).isFalse();
     }
 
@@ -291,9 +297,9 @@ public class PermissionUtilsTest {
             assertMediaReadPermissions(TEST_APP_PID, testAppUid, packageName,
                 true /* targetSdkIsAtLeastT */, false /* expected */);
             assertThat(checkPermissionReadVisualUserSelected(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null, false)).isFalse();
+                    packageName, null, false, /* forDataDelivery */ true)).isFalse();
             assertThat(checkPermissionReadVisualUserSelected(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null, true)).isFalse();
+                    packageName, null, true, /* forDataDelivery */ true)).isFalse();
         } finally {
             dropShellPermission();
         }
@@ -462,19 +468,19 @@ public class PermissionUtilsTest {
         try {
             assertThat(checkPermissionReadVisualUserSelected(getApplicationContext(), TEST_APP_PID,
                     testAppUid,
-                    packageName, null, targetSdkIsAtLeastT)).isTrue();
+                    packageName, null, targetSdkIsAtLeastT, /* forDataDelivery */ true)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VISUAL_USER_SELECTED,
                     AppOpsManager.MODE_ERRORED);
             assertThat(checkPermissionReadVisualUserSelected(getApplicationContext(), TEST_APP_PID,
                     testAppUid,
-                    packageName, null, targetSdkIsAtLeastT)).isFalse();
+                    packageName, null, targetSdkIsAtLeastT, /* forDataDelivery */ true)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VISUAL_USER_SELECTED,
                     AppOpsManager.MODE_ALLOWED);
             assertThat(checkPermissionReadVisualUserSelected(getApplicationContext(), TEST_APP_PID,
                     testAppUid,
-                    packageName, null, targetSdkIsAtLeastT)).isTrue();
+                    packageName, null, targetSdkIsAtLeastT, /* forDataDelivery */ true)).isTrue();
         } finally {
             dropShellPermission();
         }
@@ -487,15 +493,15 @@ public class PermissionUtilsTest {
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
         try {
             assertThat(checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null, isAtLeastT)).isTrue();
+                    packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VIDEO, AppOpsManager.MODE_ERRORED);
             assertThat(checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid,
-                    packageName, null, isAtLeastT)).isFalse();
+                    packageName, null, isAtLeastT, /* forDataDelivery */ true)).isFalse();
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_VIDEO, AppOpsManager.MODE_ALLOWED);
             // Adding sleep before appops check to allow appops change to propagate
             SystemClock.sleep(200);
             assertThat(checkPermissionReadVideo(getContext(), TEST_APP_PID, testAppUid,
-                packageName, null, isAtLeastT)).isTrue();
+                packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
         } finally {
             dropShellPermission();
         }
@@ -511,17 +517,17 @@ public class PermissionUtilsTest {
         try {
             assertThat(
                     checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* forDataDelivery */ true)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_WRITE_MEDIA_AUDIO, AppOpsManager.MODE_ALLOWED);
             assertThat(
                     checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
-                            null)).isTrue();
+                            null, /* forDataDelivery */ true)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_WRITE_MEDIA_AUDIO, AppOpsManager.MODE_ERRORED);
             assertThat(
                     checkPermissionWriteAudio(getContext(), TEST_APP_PID, testAppUid, packageName,
-                            null)).isFalse();
+                            null, /* forDataDelivery */ true)).isFalse();
         } finally {
             dropShellPermission();
         }
@@ -545,17 +551,17 @@ public class PermissionUtilsTest {
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
         try {
             assertThat(checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid,
-                        packageName, null, isAtLeastT)).isTrue();
+                        packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_AUDIO, AppOpsManager.MODE_ERRORED);
             assertThat(checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid,
-                        packageName, null, isAtLeastT)).isFalse();
+                        packageName, null, isAtLeastT, /* forDataDelivery */ true)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_AUDIO, AppOpsManager.MODE_ALLOWED);
             // Adding sleep before appops check to allow appops change to propagate
             SystemClock.sleep(200);
             assertThat(checkPermissionReadAudio(getContext(), TEST_APP_PID, testAppUid,
-                        packageName, null, isAtLeastT)).isTrue();
+                        packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
         } finally {
             dropShellPermission();
         }
@@ -579,17 +585,17 @@ public class PermissionUtilsTest {
         adoptShellPermission(UPDATE_APP_OPS_STATS, MANAGE_APP_OPS_MODES);
         try {
             assertThat(checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid,
-                            packageName, null, isAtLeastT)).isTrue();
+                            packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_IMAGES, AppOpsManager.MODE_ERRORED);
             assertThat(checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid,
-                            packageName, null, isAtLeastT)).isFalse();
+                            packageName, null, isAtLeastT, /* forDataDelivery */ true)).isFalse();
 
             modifyAppOp(testAppUid, OPSTR_READ_MEDIA_IMAGES, AppOpsManager.MODE_ALLOWED);
             // Adding sleep before appops check to allow appops change to propagate
             SystemClock.sleep(200);
             assertThat(checkPermissionReadImages(getContext(), TEST_APP_PID, testAppUid,
-                            packageName, null, isAtLeastT)).isTrue();
+                            packageName, null, isAtLeastT, /* forDataDelivery */ true)).isTrue();
         } finally {
             dropShellPermission();
         }
@@ -685,11 +691,14 @@ public class PermissionUtilsTest {
         assertEquals(expected,
                 checkWriteImagesOrVideoAppOps(getContext(), uid, packageName, null));
         assertEquals(expected,
-                checkPermissionWriteImages(getContext(), pid, uid, packageName, null));
+                checkPermissionWriteImages(getContext(), pid, uid, packageName, null,
+                        /* forDataDelivery */ true));
         assertEquals(expected,
-                checkPermissionWriteVideo(getContext(), pid, uid, packageName, null));
+                checkPermissionWriteVideo(getContext(), pid, uid, packageName, null,
+                        /* forDataDelivery */ true));
         assertThat(
-                checkPermissionWriteAudio(getContext(), pid, uid, packageName, null))
+                checkPermissionWriteAudio(getContext(), pid, uid, packageName, null,
+                        /* forDataDelivery */ true))
                 .isFalse();
     }
 
@@ -698,14 +707,17 @@ public class PermissionUtilsTest {
         assertEquals(
                 expected,
                 checkPermissionReadAudio(
-                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT));
+                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT,
+                        /* forDataDelivery */ true));
         assertEquals(
                 expected,
                 checkPermissionReadImages(
-                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT));
+                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT,
+                        /* forDataDelivery */ true));
         assertEquals(
                 expected,
                 checkPermissionReadVideo(
-                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT));
+                        getContext(), pid, uid, packageName, null, targetSdkIsAtLeastT,
+                        /* forDataDelivery */ true));
     }
 }

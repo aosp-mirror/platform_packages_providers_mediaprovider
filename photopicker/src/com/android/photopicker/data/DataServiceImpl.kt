@@ -426,7 +426,7 @@ class DataServiceImpl(
 
                     Log.v(
                         DataService.TAG,
-                        "Created an album media paging source that queries " + "$availableProviders",
+                        "Created an album media paging source that queries $availableProviders",
                     )
 
                     albumMap[album.id] = albumMediaPagingSource
@@ -454,7 +454,7 @@ class DataServiceImpl(
 
             Log.v(
                 DataService.TAG,
-                "Created an album paging source that queries " + "$availableProviders",
+                "Created an album paging source that queries $availableProviders",
             )
 
             albumPagingSources.add(albumPagingSource)
@@ -512,7 +512,7 @@ class DataServiceImpl(
 
             Log.v(
                 DataService.TAG,
-                "Created a media paging source that queries database for" + "preview items.",
+                "Created a media paging source that queries database for preview items.",
             )
             mediaPagingSources.add(mediaPagingSource)
             mediaPagingSource

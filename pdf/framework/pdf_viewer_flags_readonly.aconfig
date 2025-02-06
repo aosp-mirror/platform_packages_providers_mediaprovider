@@ -1,0 +1,25 @@
+package: "android.graphics.pdf.flags.readonly"
+container: "com.android.mediaprovider"
+
+# These are the read-only version of the aconfig flags in android.graphics.pdf
+# that will be built with 'force-read-only' mode.
+# See b/368409430 - these flags will be removed once the new aconfig API landed.
+
+flag {
+    name: "enable_edit_pdf_text_annotations"
+    is_exported: false
+    namespace: "pdf_viewer"
+    description: "This flag controls whether to enable text annotations editing support."
+    bug: "379008090"
+    is_fixed_read_only: true
+}
+
+
+flag {
+    name: "enable_edit_pdf_stamp_annotations"
+    is_exported: false
+    namespace: "pdf_viewer"
+    description: "This flag controls whether to enable stamp annotations editing support."
+    bug: "379008090"
+    is_fixed_read_only: true
+}

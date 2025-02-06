@@ -22,6 +22,7 @@ import static android.provider.DeviceConfig.NAMESPACE_STORAGE_NATIVE_BOOT;
 import static java.util.Objects.requireNonNull;
 
 import android.content.res.Resources;
+import android.content.res.Resources.NotFoundException;
 import android.os.Binder;
 import android.os.Build;
 import android.os.SystemProperties;
@@ -399,18 +400,24 @@ public interface ConfigStore {
         @Nullable
         @Override
         public String getDefaultCloudProviderPackage() {
-            String pkg = mResources.getString(R.string.config_default_cloud_media_provider_package);
-            if (pkg == null && Build.VERSION.SDK_INT <= TIRAMISU) {
-                // We are on Android T or below and do not have
-                // config_default_cloud_media_provider_package: let's see if we have now deprecated
-                // config_default_cloud_provider_authority.
-                final String authority =
-                        mResources.getString(R.string.config_default_cloud_provider_authority);
-                if (authority != null) {
-                    pkg = maybeExtractPackageNameFromCloudProviderAuthority(authority);
+            try {
+                String pkg =
+                        mResources.getString(R.string.config_default_cloud_media_provider_package);
+                if (pkg == null && Build.VERSION.SDK_INT <= TIRAMISU) {
+                    // We are on Android T or below and do not have
+                    // config_default_cloud_media_provider_package: let's see if we have now
+                    // deprecated
+                    // config_default_cloud_provider_authority.
+                    final String authority =
+                            mResources.getString(R.string.config_default_cloud_provider_authority);
+                    if (authority != null) {
+                        pkg = maybeExtractPackageNameFromCloudProviderAuthority(authority);
+                    }
                 }
+                return pkg;
+            } catch (NotFoundException e) {
+                return null;
             }
-            return pkg;
         }
 
         @NonNull
@@ -533,12 +540,16 @@ public interface ConfigStore {
 
         @Override
         public Optional<String> getDefaultOemMetadataServicePackage() {
-            String pkg = mResources.getString(R.string.config_default_oem_metadata_service_package);
-            if (pkg == null || pkg.isEmpty()) {
+            try {
+                String pkg =
+                        mResources.getString(R.string.config_default_oem_metadata_service_package);
+                if (pkg == null || pkg.isEmpty()) {
+                    return Optional.empty();
+                }
+                return Optional.of(pkg);
+            } catch (NotFoundException e) {
                 return Optional.empty();
             }
-
-            return Optional.of(pkg);
         }
 
         @Override

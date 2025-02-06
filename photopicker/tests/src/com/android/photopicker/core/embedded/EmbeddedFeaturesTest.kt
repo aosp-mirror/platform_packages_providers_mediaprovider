@@ -465,9 +465,9 @@ class EmbeddedFeaturesTest : EmbeddedPhotopickerFeatureBaseTest() {
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()
             val route = navController.currentBackStackEntry?.destination?.route
-            assertWithMessage("Expected swipe to navigate to CategoryGrid")
+            assertWithMessage("Expected swipe to navigate to Categories Album Grid")
                 .that(route)
-                .isEqualTo(PhotopickerDestinations.CATEGORY_GRID.route)
+                .isEqualTo(PhotopickerDestinations.ALBUM_GRID.route)
         }
 
     @Test

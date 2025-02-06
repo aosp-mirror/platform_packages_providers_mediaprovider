@@ -529,13 +529,16 @@ public class PermissionActivityTest {
                     /* attributionTag= */ null);
         } else if (TextUtils.equals(op, OP_READ_MEDIA_IMAGES)) {
             return expected == checkPermissionReadImages(
-                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true);
+                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true,
+                    /* forDataDelivery */ true);
         } else if (TextUtils.equals(op, OP_READ_MEDIA_AUDIO)) {
             return expected == checkPermissionReadAudio(
-                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true);
+                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true,
+                    /* forDataDelivery */ true);
         } else if (TextUtils.equals(op, OP_READ_MEDIA_VIDEO)) {
             return expected == checkPermissionReadVideo(
-                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true);
+                context, pid, uid, packageName, /* attributionTag= */ null, /* isAtleastT */ true,
+                    /* forDataDelivery */ true);
         } else if (TextUtils.equals(op, OP_MANAGE_EXTERNAL_STORAGE)) {
             return expected == checkPermissionManager(context, pid, uid, packageName,
                     /* attributionTag= */ null);

@@ -353,13 +353,13 @@ public class PickerSQLConstants {
         /** Source provider's authority. */
         AUTHORITY("authority"),
         /** Cover image Uri for the group. */
-        UNWRAPPED_COVER_URI("cover_uri_1"),
+        UNWRAPPED_COVER_URI("unwrapped_cover_uri"),
         /** Additional cover image Uri for the category. */
-        ADDITIONAL_UNWRAPPED_COVER_URI_1("cover_uri_2"),
+        ADDITIONAL_UNWRAPPED_COVER_URI_1("additional_cover_uri_1"),
         /** Additional cover image Uri for the category. */
-        ADDITIONAL_UNWRAPPED_COVER_URI_2("cover_uri_3"),
+        ADDITIONAL_UNWRAPPED_COVER_URI_2("additional_cover_uri_2"),
         /** Additional cover image Uri for the category. */
-        ADDITIONAL_UNWRAPPED_COVER_URI_3("cover_uri_4"),
+        ADDITIONAL_UNWRAPPED_COVER_URI_3("additional_cover_uri_3"),
         /** If the media group is category, this will be populated with the category type. */
         CATEGORY_TYPE("category_type"),
         /** True, if the media category is leaf category which contains media sets,

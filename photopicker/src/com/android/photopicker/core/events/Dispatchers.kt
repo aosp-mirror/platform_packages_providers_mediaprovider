@@ -19,6 +19,7 @@ package com.android.photopicker.core.events
 import android.provider.MediaStore
 import com.android.photopicker.core.configuration.PhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
@@ -29,6 +30,7 @@ import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.extensions.getUserProfilesVisibleToPhotopicker
+import com.android.photopicker.features.search.SearchFeature
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -41,6 +43,7 @@ fun dispatchReportPhotopickerApiInfoEvent(
     photopickerConfiguration: PhotopickerConfiguration,
     pickerIntentAction: Telemetry.PickerIntentAction =
         Telemetry.PickerIntentAction.UNSET_PICKER_INTENT_ACTION,
+    lazyFeatureManager: Lazy<FeatureManager>,
 ) {
     val dispatcherToken = FeatureToken.CORE.token
     val sessionId = photopickerConfiguration.sessionId
@@ -74,8 +77,8 @@ fun dispatchReportPhotopickerApiInfoEvent(
             .isValidAccentColorSet()
     val isDefaultTabSet =
         photopickerConfiguration.startDestination != PhotopickerDestinations.DEFAULT
+    val isCloudSearchEnabled = lazyFeatureManager.get().isFeatureEnabled(SearchFeature::class.java)
     // TODO(b/376822503): Update when search is added
-    val isCloudSearchEnabled = false
     val isLocalSearchEnabled = false
     for (mediaFilter in mediaFilters) {
         coroutineScope.launch {

@@ -17,6 +17,8 @@
 package com.android.photopicker.core.components
 
 import com.android.photopicker.data.model.Group.Album
+import com.android.photopicker.data.model.Group.Category
+import com.android.photopicker.data.model.Group.MediaSet
 import com.android.photopicker.data.model.Media
 
 /**
@@ -40,16 +42,34 @@ sealed class MediaGridItem {
     data class AlbumItem(val album: Album) : MediaGridItem()
 
     /**
+     * Represents a [CategoryItem] in the [MediaGrid].
+     *
+     * @property mediaCategory The media category that this item represents.
+     */
+    data class CategoryItem(val category: Category) : MediaGridItem()
+
+    /**
+     * Represents a [MediaSet] for People and Pets media category in the [MediaGrid].
+     *
+     * @property mediaSet The media set that this item represents.
+     */
+    data class PersonMediaSetItem(val mediaSet: MediaSet) : MediaGridItem()
+
+    /**
+     * Represents a [MediaSet] for all categories other than People and Pets in the [MediaGrid].
+     *
+     * @property mediaSet The media set that this item represents.
+     */
+    data class MediaSetItem(val mediaSet: MediaSet) : MediaGridItem()
+
+    /**
      * Represents a separator in the [MediaGrid]. (Such as a month separator.)
      *
      * @property label A label that can be used to represent this separator in the UI.
      */
     data class SeparatorItem(val label: String) : MediaGridItem()
 
-
-    /**
-     * Handles operations that requires customized output based on the type of [MediaGridItem].
-     */
+    /** Handles operations that requires customized output based on the type of [MediaGridItem]. */
     companion object {
         /**
          * Assembles a key for a [MediaGridItem]. This key must be always be stable and unique in
@@ -62,6 +82,9 @@ sealed class MediaGridItem {
                 is MediaItem -> "${item.media.pickerId}"
                 is SeparatorItem -> "${item.label}_$index"
                 is AlbumItem -> "${item.album.pickerId}" // check if this should be id or pickerId
+                is CategoryItem -> "${item.category.pickerId}"
+                is PersonMediaSetItem -> "${item.mediaSet.pickerId}"
+                is MediaSetItem -> "${item.mediaSet.pickerId}"
                 null -> "$index"
             }
         }
@@ -80,6 +103,9 @@ sealed class MediaGridItem {
                 is MediaItem -> 1
                 is SeparatorItem -> 2
                 is AlbumItem -> 3
+                is CategoryItem -> 4
+                is PersonMediaSetItem -> 5
+                is MediaSetItem -> 6
                 null -> 0
             }
         }

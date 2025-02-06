@@ -34,6 +34,7 @@
 
 namespace {
 
+using ::pdfClient::Annotation;
 using ::pdfClient::Color;
 using ::pdfClient::Document;
 using ::pdfClient::ImageObject;
@@ -41,10 +42,12 @@ using ::pdfClient::Page;
 using ::pdfClient::PageObject;
 using ::pdfClient::PathObject;
 using ::pdfClient::Rectangle_i;
+using ::pdfClient::StampAnnotation;
 
 static const std::string kTestdata = "testdata";
 static const std::string kSekretNoPassword = "sekret_no_password.pdf";
 static const std::string kPageObject = "page_object.pdf";
+static const std::string kAnnotation = "annotation.pdf";
 
 std::string GetTestDataDir() {
     return android::base::GetExecutableDirectory();
@@ -187,7 +190,7 @@ TEST(Test, InvalidPageNumberTest) {
     // The above call succeeds and returns a non-null ptr.
     ASSERT_NE(nullptr, page);
     // Even though the underlying pointer is null.
-    ASSERT_EQ(nullptr, page->page());
+    ASSERT_EQ(nullptr, page->Get());
 
     // Rest of the calls should give some default values.
     EXPECT_EQ(-1, page->NumChars());
@@ -388,6 +391,114 @@ TEST(Test, UpdatePathPageObjectTest) {
     ASSERT_EQ(updatedPageObjects[1]->matrix.d, 2.0f);
     ASSERT_EQ(updatedPageObjects[1]->matrix.e, 0.0f);
     ASSERT_EQ(updatedPageObjects[1]->matrix.f, 0.0f);
+}
+
+TEST(Test, GetPageAnnotationsTest) {
+    Document doc(LoadTestDocument(kAnnotation), false);
+
+    std::shared_ptr<Page> page = doc.GetPage(0);
+    std::vector<Annotation*> annotations = page->GetPageAnnotations();
+
+    // Check for number of annotations
+    ASSERT_EQ(1, annotations.size());
+
+    // Check for the first Annotation to be StampAnnotation.
+    ASSERT_EQ(Annotation::Type::Stamp, annotations[0]->GetType());
+
+    StampAnnotation* stamp_annotation = static_cast<StampAnnotation*>(annotations[0]);
+    std::vector<PageObject*> pageObjects = stamp_annotation->GetObjects();
+
+    // Check for number of page objects inside stamp annotation
+    ASSERT_EQ(2, pageObjects.size());
+
+    // Check for the first PageObject to be ImageObject.
+    ASSERT_EQ(PageObject::Type::Image, pageObjects[0]->GetType());
+    // Check for the second PageObject to be PathObject.
+    ASSERT_EQ(PageObject::Type::Path, pageObjects[1]->GetType());
+}
+
+TEST(Test, AddStampAnnotationTest) {
+    Document doc(LoadTestDocument(kAnnotation), false);
+    std::shared_ptr<Page> page = doc.GetPage(0);
+
+    std::vector<Annotation*> initialAnnotations = page->GetPageAnnotations();
+
+    // Bounds for stamp annotation
+    Rectangle_f bounds = pdfClient::Rectangle_f{0, 300, 200, 0};
+    // Create Stamp Annotation
+    auto stampAnnotation = std::make_unique<StampAnnotation>(bounds);
+
+    // Insert image page object
+    auto imageObject = std::make_unique<ImageObject>();
+
+    // Create FPDF Bitmap.
+    imageObject->bitmap = ScopedFPDFBitmap(FPDFBitmap_Create(100, 100, 1));
+    FPDFBitmap_FillRect(imageObject->bitmap.get(), 0, 0, 100, 100, 0xFF000000);
+
+    // Set Matrix.
+    imageObject->matrix = {1.0f, 0, 0, 1.0f, 0, 0};
+
+    // Add the page object.
+    stampAnnotation->AddObject(std::move(imageObject));
+
+    // Create Path Object.
+    auto pathObject = std::make_unique<PathObject>();
+
+    // Command Simple Path
+    pathObject->segments.emplace_back(PathObject::Segment::Command::Move, 0.0f, 0.0f);
+    pathObject->segments.emplace_back(PathObject::Segment::Command::Line, 100.0f, 150.0f);
+    pathObject->segments.emplace_back(PathObject::Segment::Command::Line, 150.0f, 150.0f);
+
+    // Set Draw Mode
+    pathObject->is_fill_mode = false;
+    pathObject->is_stroke = true;
+
+    // Set PathObject Matrix.
+    pathObject->matrix = {1.0f, 0, 0, 1.0f, 0, 0};
+
+    // Add the page object.
+    stampAnnotation->AddObject(std::move(pathObject));
+
+    // Add the stamp annotation.
+    ASSERT_EQ(page->AddPageAnnotation(std::move(stampAnnotation)), initialAnnotations.size());
+
+    // Get Updated annotations
+    std::vector<Annotation*> updatedAnnotations = page->GetPageAnnotations();
+
+    // Assert that the size has increased by one.
+    ASSERT_EQ(initialAnnotations.size() + 1, updatedAnnotations.size());
+    // Check for the first Annotation to be StampAnnotation
+    ASSERT_EQ(Annotation::Type::Stamp, updatedAnnotations[0]->GetType());
+    // Check for the second Annotation to be StampAnnotation.
+    ASSERT_EQ(Annotation::Type::Stamp, updatedAnnotations[1]->GetType());
+
+    // Check for the page objects inside stamp annotation
+    StampAnnotation* stamp_annotation = static_cast<StampAnnotation*>(updatedAnnotations[1]);
+    std::vector<PageObject*> pageObjects = stamp_annotation->GetObjects();
+
+    // Check for number of page objects inside stamp annotation
+    ASSERT_EQ(2, pageObjects.size());
+
+    // Check for the first PageObject to be ImageObject.
+    ASSERT_EQ(PageObject::Type::Image, pageObjects[0]->GetType());
+    // Check for the second PageObject to be PathObject.
+    ASSERT_EQ(PageObject::Type::Path, pageObjects[1]->GetType());
+}
+
+TEST(Test, RemovePageAnnotationTest) {
+    Document doc(LoadTestDocument(kAnnotation), false);
+
+    std::shared_ptr<Page> page = doc.GetPage(0);
+
+    std::vector<Annotation*> initialAnnotations = page->GetPageAnnotations();
+
+    EXPECT_TRUE(initialAnnotations.size() > 0);
+    // Remove an annotation
+    EXPECT_TRUE(page->RemovePageAnnotation(0));
+    // Get Updated annotations after removal
+    std::vector<Annotation*> updatedAnnotations = page->GetPageAnnotations();
+
+    ASSERT_EQ(initialAnnotations.size() - 1, updatedAnnotations.size());
 }
 
 }  // namespace

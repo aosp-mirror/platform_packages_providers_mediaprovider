@@ -34,6 +34,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.List;
+
 /**
  * A client class responsible for fetching search results from
  * cloud media provider and local search provider.
@@ -70,6 +72,7 @@ public class PickerSearchProviderClient {
             @Nullable String suggestedMediaSetId,
             @Nullable String searchText,
             @SortOrder int sortOrder,
+            @Nullable List<String> mimeTypes,
             int pageSize,
             @Nullable String resumePageToken,
             @Nullable CancellationSignal cancellationSignal) {
@@ -83,12 +86,17 @@ public class PickerSearchProviderClient {
         queryArgs.putInt(CloudMediaProviderContract.EXTRA_PAGE_SIZE, pageSize);
         queryArgs.putString(CloudMediaProviderContract.EXTRA_PAGE_TOKEN, resumePageToken);
         queryArgs.putInt(CloudMediaProviderContract.EXTRA_SORT_ORDER, sortOrder);
+        if (mimeTypes != null) {
+            queryArgs.putStringArray(
+                    Intent.EXTRA_MIME_TYPES,
+                    mimeTypes.toArray(new String[mimeTypes.size()]));
+        }
 
         Log.d(TAG, "Search results query sent to CMP: " + queryArgs);
 
         final Cursor cursor = mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_SEARCH_MEDIA),
-                null, queryArgs,  cancellationSignal);
+                null, queryArgs, null);
 
         if (cursor == null) {
             Log.d(TAG, "Search results response from the CMP is null.");
@@ -115,7 +123,7 @@ public class PickerSearchProviderClient {
 
         final Cursor cursor = mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_SEARCH_SUGGESTION),
-                null, queryArgs,  cancellationSignal);
+                null, queryArgs, null);
 
         if (cursor == null) {
             Log.d(TAG, "Search suggestions response from the CMP is null.");
@@ -144,7 +152,7 @@ public class PickerSearchProviderClient {
 
         final Cursor cursor = mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_CATEGORY),
-                null, queryArgs, cancellationSignal);
+                null, queryArgs, null);
 
         if (cursor == null) {
             Log.d(TAG, "Categories response from the CMP is null.");
@@ -174,7 +182,7 @@ public class PickerSearchProviderClient {
 
         final Cursor cursor = mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_SET),
-                null, queryArgs,  cancellationSignal);
+                null, queryArgs, null);
 
         if (cursor == null) {
             Log.d(TAG, "Media sets response from the CMP is null.");
@@ -209,7 +217,7 @@ public class PickerSearchProviderClient {
 
         final Cursor cursor = mContext.getContentResolver().query(
                 getCloudUriFromPath(CloudMediaProviderContract.URI_PATH_MEDIA_IN_MEDIA_SET),
-                null, queryArgs,  cancellationSignal);
+                null, queryArgs, null);
 
         if (cursor == null) {
             Log.d(TAG, "Media set contents response from the CMP is null.");

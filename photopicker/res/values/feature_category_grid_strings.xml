@@ -17,4 +17,10 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Button label for the category navigation button -->
     <string name="photopicker_categories_nav_button_label" translation_description="Button label that gives the user the option to navigate to a grid of their collections.">Collections</string>
+
+    <!-- Empty state title when the People & pets Category has no media set to show-->
+    <string name="photopicker_people_category_empty_state_title" translation_description="Title of the message shown to the user when there is nothing to show in People and Pets category">No people &amp; pets yet</string>
+
+    <!-- Empty state message when the People & pet category has no media set to show -->
+    <string name="photopicker_people_category_empty_state_body" translation_description="Message shown to the user when when there are no media set to show in People and Pets category underneath the primary message title">Photos and videos, grouped by similar faces, will appear here</string>
 </resources>

@@ -30,9 +30,9 @@ import java.util.Locale;
  * and media table in Picker DB.
  */
 public abstract class MediaInMediaSetsSubQuery extends MediaQuery {
-    private final String mMediaSetPickerId;
+    private final Long mMediaSetPickerId;
 
-    public MediaInMediaSetsSubQuery(Bundle queryArgs, String mediaSetPickerId) {
+    public MediaInMediaSetsSubQuery(Bundle queryArgs, Long mediaSetPickerId) {
         super(queryArgs);
 
         mMediaSetPickerId = mediaSetPickerId;

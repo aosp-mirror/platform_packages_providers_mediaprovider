@@ -31,6 +31,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -75,6 +76,8 @@ import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -100,20 +103,23 @@ import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBu
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
 import com.android.photopicker.core.embedded.LocalEmbeddedState
+import com.android.photopicker.core.glide.ParcelableGlideLoadable
 import com.android.photopicker.core.glide.Resolution
 import com.android.photopicker.core.glide.loadMedia
 import com.android.photopicker.core.theme.CustomAccentColorScheme
+import com.android.photopicker.data.model.CategoryType
 import com.android.photopicker.data.model.Group.Album
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.circleBackground
 import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
-import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
+import com.android.photopicker.extensions.transferScrollableTouchesToHostInEmbedded
 import com.android.photopicker.util.LocalLocalizationHelper
 import com.android.photopicker.util.getMediaContentDescription
 import java.text.DateFormat
 import java.text.NumberFormat
+import kotlinx.coroutines.delay
 
 /** The number of grid cells per row for Phone / narrow layouts */
 private val CELLS_PER_ROW: Int = 3
@@ -181,6 +187,7 @@ val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 12.dp
  *
  * @param items The LazyPagingItems that have been collected. See [collectAsLazyPagingItems] to
  *   transform a PagingData flow into the correct format for this composable.
+ * @param focusItem Optional item that needs to request focus when the media grid is drawn.
  * @param isExpandedScreen Whether the device is using an expanded screen size. This impacts the
  *   default number of cells shown per row. Has no effect if columns parameter is set directly.
  * @param columns number of cells per row.
@@ -195,10 +202,12 @@ val MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE = 12.dp
  * @param contentItemFactory Optional custom implementation for composing individual grid items.
  * @param contentSeparatorFactory Optional custom implementation for composing individual grid
  *   separators.
+ * @param bannerContent Optional custom implementation for banner content to displayed
  */
 @Composable
 fun mediaGrid(
     items: LazyPagingItems<MediaGridItem>,
+    focusItem: MediaGridItem? = null,
     selection: Set<Media>,
     onItemClick: (item: MediaGridItem) -> Unit,
     onItemLongPress: (item: MediaGridItem) -> Unit = {},
@@ -231,9 +240,13 @@ fun mediaGrid(
                         onClick = onClick,
                         onLongPress = onLongPress,
                         dateFormat = dateFormat,
+                        focusItem = focusItem,
                     )
 
-                is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick)
+                is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick, focusItem)
+                is MediaGridItem.CategoryItem -> defaultBuildCategoryItem(item, onClick, focusItem)
+                is MediaGridItem.PersonMediaSetItem -> defaultBuildPersonMediaSetItem(item, onClick)
+                is MediaGridItem.MediaSetItem -> defaultBuildMediaSetItem(item, onClick)
                 else -> {}
             }
         },
@@ -261,7 +274,7 @@ fun mediaGrid(
         columns = columns,
         modifier =
             if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
-                modifier.transferGridTouchesToHostInEmbedded(state, isExpanded, host)
+                modifier.transferScrollableTouchesToHostInEmbedded(state, isExpanded, host)
             } else {
                 modifier
             },
@@ -304,7 +317,10 @@ fun mediaGrid(
                             dateFormat,
                         )
 
-                    is MediaGridItem.AlbumItem ->
+                    is MediaGridItem.AlbumItem,
+                    is MediaGridItem.CategoryItem,
+                    is MediaGridItem.MediaSetItem,
+                    is MediaGridItem.PersonMediaSetItem ->
                         contentItemFactory(
                             item,
                             /* isSelected */ false,
@@ -312,7 +328,6 @@ fun mediaGrid(
                             onItemLongPress,
                             dateFormat,
                         )
-
                     is MediaGridItem.SeparatorItem -> contentSeparatorFactory(item)
                 }
             }
@@ -374,6 +389,7 @@ private fun defaultBuildMediaItem(
     onClick: ((item: MediaGridItem) -> Unit)?,
     onLongPress: ((item: MediaGridItem) -> Unit)?,
     dateFormat: DateFormat,
+    focusItem: MediaGridItem?,
 ) {
     when (item) {
         is MediaGridItem.MediaItem -> {
@@ -393,7 +409,20 @@ private fun defaultBuildMediaItem(
                 )
 
             // Modifier for the image itself, which uses the animated padding defined above.
-            val baseModifier = Modifier.fillMaxSize().padding(padding)
+            var baseModifier = Modifier.fillMaxSize().padding(padding)
+
+            // If the caller has specified an item to receive focus,
+            // apply the focus requester modifier to it.
+            if (focusItem != null) {
+                val focusRequester = remember { FocusRequester() }
+                baseModifier = baseModifier.focusRequester(focusRequester).focusable(true)
+                LaunchedEffect(Unit) {
+                    if (item == focusItem) {
+                        delay(150)
+                        focusRequester.requestFocus()
+                    }
+                }
+            }
 
             // Additionally, selected items get rounded corners, so that is added to the
             // baseModifier
@@ -609,12 +638,15 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
  * GridCell, and provides a text title for it just below the thumbnail.
  */
 @Composable
-private fun defaultBuildAlbumItem(item: MediaGridItem, onClick: ((item: MediaGridItem) -> Unit)?) {
+private fun defaultBuildAlbumItem(
+    item: MediaGridItem,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+    focusItem: MediaGridItem? = null,
+) {
     when (item) {
         is MediaGridItem.AlbumItem -> {
-
-            Column(
-                // Apply semantics for the click handlers
+            // Apply semantics for the click handlers
+            var baseModifier =
                 Modifier.semantics(mergeDescendants = true) {
                         onClick(
                             action = {
@@ -625,7 +657,21 @@ private fun defaultBuildAlbumItem(item: MediaGridItem, onClick: ((item: MediaGri
                     }
                     .pointerInput(Unit) { detectTapGestures(onTap = { onClick?.invoke(item) }) }
                     .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
-            ) {
+
+            // If the caller has specified an item to receive focus,
+            // apply the focus requester modifier to it.
+            if (focusItem != null) {
+                val focusRequester = remember { FocusRequester() }
+                baseModifier = baseModifier.focusRequester(focusRequester).focusable(true)
+                LaunchedEffect(Unit) {
+                    if (item == focusItem) {
+                        delay(150)
+                        focusRequester.requestFocus()
+                    }
+                }
+            }
+
+            Column(modifier = baseModifier) {
                 // In the current implementation for AlbumsGrid, favourites and videos are
                 // 2 mandatory albums and are shown even when they contain no data. For this
                 // case they have special thumbnails associated with them.
@@ -669,9 +715,234 @@ private fun defaultBuildAlbumItem(item: MediaGridItem, onClick: ((item: MediaGri
                 )
             } // Album cell column
         }
-
         else -> {}
     }
+}
+
+/** Default [MediaGridItem.PersonMediaSetItem] builder that loads People and pets mediaset. */
+@Composable
+private fun defaultBuildPersonMediaSetItem(
+    item: MediaGridItem.PersonMediaSetItem,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+) {
+    Box(
+        // Apply semantics for the click handlers
+        Modifier.semantics(mergeDescendants = true) {
+                contentDescription = item.mediaSet.displayName ?: ""
+                onClick(
+                    action = {
+                        onClick?.invoke(item)
+                        /* eventHandled= */ true
+                    }
+                )
+            }
+            .pointerInput(Unit) { detectTapGestures(onTap = { onClick?.invoke(item) }) }
+    ) {
+        with(item.mediaSet) {
+            val modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+            loadMedia(media = icon, resolution = Resolution.THUMBNAIL, modifier = modifier)
+            Surface(color = Color.Black.copy(alpha = 0.2f), contentColor = Color.White) {
+                Box(modifier = modifier) {
+                    Text(
+                        text = displayName ?: "",
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Default [MediaGridItem.MediaSetItem] builder that loads mediaset. */
+@Composable
+private fun defaultBuildMediaSetItem(
+    item: MediaGridItem.MediaSetItem,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+) {
+    Column(
+        // Apply semantics for the click handlers
+        Modifier.semantics(mergeDescendants = true) {
+                contentDescription = item.mediaSet.displayName ?: ""
+                onClick(
+                    action = {
+                        onClick?.invoke(item)
+                        /* eventHandled= */ true
+                    }
+                )
+            }
+            .pointerInput(Unit) { detectTapGestures(onTap = { onClick?.invoke(item) }) }
+            .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
+    ) {
+        with(item.mediaSet) {
+            val modifier =
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                    .aspectRatio(1f)
+            DefaultAlbumIcon(/* icon */ Icons.Outlined.PhotoCamera, modifier)
+            Spacer(Modifier.size(MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE))
+            // Media set title shown on the media set grid.
+            Text(
+                text = displayName ?: "",
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+/**
+ * Default [MediaGridItem.CategoryItem] builder that loads category into a square (1:1) aspect ratio
+ * GridCell with icons in square grid and provides a text title below it.
+ */
+@Composable
+private fun defaultBuildCategoryItem(
+    item: MediaGridItem.CategoryItem,
+    onClick: ((item: MediaGridItem) -> Unit)?,
+    focusItem: MediaGridItem?,
+) {
+    // Apply semantics for the click handlers
+    var baseModifier =
+        Modifier.semantics(mergeDescendants = true) {
+                contentDescription = item.category.displayName ?: ""
+                onClick(
+                    action = {
+                        onClick?.invoke(item)
+                        /* eventHandled */ true
+                    }
+                )
+            }
+            .pointerInput(Unit) { detectTapGestures(onTap = { onClick?.invoke(item) }) }
+            .padding(bottom = MEASUREMENT_DEFAULT_ALBUM_BOTTOM_PADDING)
+
+    // If the caller has specified an item to receive focus,
+    // apply the focus requester modifier to it.
+    if (focusItem != null) {
+        val focusRequester = remember { FocusRequester() }
+        baseModifier = baseModifier.focusRequester(focusRequester).focusable(true)
+        LaunchedEffect(Unit) {
+            if (item == focusItem) {
+                delay(150)
+                focusRequester.requestFocus()
+            }
+        }
+    }
+
+    Column(modifier = baseModifier) {
+        with(item.category) {
+            val modifier =
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                    .aspectRatio(1f)
+            IconGrid(icons, modifier = modifier, categoryType)
+            Spacer(Modifier.size(MEASUREMENT_DEFAULT_ALBUM_LABEL_SPACER_SIZE))
+            // Category title shown below the category grid.
+            Text(
+                text = displayName ?: "",
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+fun IconGrid(
+    icons: List<ParcelableGlideLoadable>,
+    modifier: Modifier,
+    categoryType: CategoryType,
+    maxIcon: Int = 4,
+    iconPerRow: Int = 2,
+) {
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Pad the list to ensure we required icons per row
+            val paddedIcons = (icons + List(maxIcon) { null }).take(maxIcon)
+            val iconsInRow = paddedIcons.chunked(iconPerRow)
+
+            iconsInRow.forEachIndexed { rowIndex, rowItem ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    rowItem.forEachIndexed { colIndex, icon ->
+                        Box(modifier = Modifier.weight(1f).aspectRatio(1f)) {
+                            if (icons.isNotEmpty() && icon is ParcelableGlideLoadable) {
+                                CategoryIcon(icon, Modifier.fillMaxSize(), categoryType)
+                            } else {
+                                if (
+                                    icons.isEmpty() &&
+                                        !(rowIndex == iconsInRow.lastIndex &&
+                                            colIndex == rowItem.lastIndex)
+                                ) {
+                                    CategoryIconPlaceholder(Modifier.fillMaxSize(), categoryType)
+                                } else {
+                                    CategoryIconPlaceholder(
+                                        Modifier.fillMaxSize(),
+                                        categoryType,
+                                        false,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryIconPlaceholder(
+    modifier: Modifier,
+    categoryType: CategoryType,
+    showPlaceholder: Boolean = true,
+) {
+    Box(
+        modifier =
+            if (categoryType == CategoryType.PEOPLE_AND_PETS) {
+                when (showPlaceholder) {
+                    true ->
+                        modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                    false -> modifier.size(48.dp)
+                }
+            } else {
+                modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                    .background(MaterialTheme.colorScheme.surface)
+            }
+    )
+}
+
+@Composable
+fun CategoryIcon(icon: ParcelableGlideLoadable, modifier: Modifier, categoryType: CategoryType) {
+    loadMedia(
+        media = icon,
+        resolution = Resolution.THUMBNAIL,
+        modifier =
+            if (categoryType == CategoryType.PEOPLE_AND_PETS) {
+                modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+            } else {
+                modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS_FOR_ALBUMS))
+                    .background(MaterialTheme.colorScheme.surface)
+            },
+    )
 }
 
 /**

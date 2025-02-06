@@ -22,6 +22,7 @@ import androidx.paging.map
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.core.user.UserStatus
+import com.android.photopicker.data.model.CategoryType
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.Media
 import java.time.LocalDateTime
@@ -50,6 +51,58 @@ fun Flow<PagingData<Media>>.toMediaGridItemFromMedia(): Flow<PagingData<MediaGri
  */
 fun Flow<PagingData<Group.Album>>.toMediaGridItemFromAlbum(): Flow<PagingData<MediaGridItem>> {
     return this.map { pagingData -> pagingData.map { MediaGridItem.AlbumItem(it) } }
+}
+
+/**
+ * An extension function to prepare a flow of [PagingData<MediaSet>] to be provided to the
+ * [MediaGrid] composable, by wrapping all of the [MediaSet] objects in a [MediaGridItem].
+ *
+ * @return A [PagingData<MediaGridItem>] that can be processed further, or provided to the
+ *   [MediaGrid].
+ */
+fun Flow<PagingData<Group.MediaSet>>.toMediaGridItemFromMediaSet():
+    Flow<PagingData<MediaGridItem>> {
+    return this.map { pagingData -> pagingData.map { MediaGridItem.MediaSetItem(it) } }
+}
+
+/**
+ * An extension function to prepare a flow of [PagingData<MediaSet>] for People & Pets category to
+ * be provided to the [MediaGrid] composable, by wrapping all of the [MediaSet] objects in a
+ * [MediaGridItem].
+ *
+ * @return A [PagingData<MediaGridItem>] that can be processed further, or provided to the
+ *   [MediaGrid].
+ */
+fun Flow<PagingData<Group.MediaSet>>.toMediaGridItemFromPeopleMediaSet():
+    Flow<PagingData<MediaGridItem>> {
+    return this.map { pagingData -> pagingData.map { MediaGridItem.PersonMediaSetItem(it) } }
+}
+
+/**
+ * An extension function to prepare a flow of [PagingData<Category>] to be provided to the
+ * [MediaGrid] composable, by wrapping all of the [Category] objects in a [MediaGridItem].
+ *
+ * @return A [PagingData<MediaGridItem>] that can be processed further, or provided to the
+ *   [MediaGrid].
+ */
+fun Flow<PagingData<Group>>.toMediaGridItemFromCategory(
+    category: Group.Category? = null
+): Flow<PagingData<MediaGridItem>> {
+    return this.map { pagingData ->
+        pagingData.map { group ->
+            when (group) {
+                is Group.MediaSet -> {
+                    if (category != null && category.categoryType == CategoryType.PEOPLE_AND_PETS) {
+                        MediaGridItem.PersonMediaSetItem(group)
+                    } else {
+                        MediaGridItem.MediaSetItem(group)
+                    }
+                }
+                is Group.Category -> MediaGridItem.CategoryItem(group)
+                is Group.Album -> MediaGridItem.AlbumItem(group)
+            }
+        }
+    }
 }
 
 /**

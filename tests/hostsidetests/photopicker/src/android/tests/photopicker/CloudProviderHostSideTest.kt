@@ -39,6 +39,8 @@ import org.junit.runner.RunWith
 class CloudProviderHostSideTest : IDeviceTest {
     private lateinit var mDevice: ITestDevice
 
+    private var mInitialCloudProvider: String? = null
+
     companion object {
         /** The package name of the test APK.  */
         private const val TEST_PACKAGE = "com.android.photopicker.testcloudmediaproviderapp"
@@ -68,6 +70,15 @@ class CloudProviderHostSideTest : IDeviceTest {
     fun setUp() {
         // ensure the test APK is enabled before each test by setting it explicitly.
         mDevice.executeShellCommand(COMMAND_ENABLE_TEST_APK)
+        // find the initial cloud provider to be reset at the end of the test execution.
+        mInitialCloudProvider = null
+        val result: String = mDevice.executeShellCommand(COMMAND_GET_CLOUD_PROVIDER)
+        val regex = Regex("get_cloud_provider_result=(.*?)}]")
+        val matchResult = regex.find(result)
+        val initialCloudProvider = matchResult?.groupValues?.get(1)
+        if (initialCloudProvider != "null") {
+            mInitialCloudProvider = initialCloudProvider
+        }
     }
 
     /**
@@ -87,8 +98,8 @@ class CloudProviderHostSideTest : IDeviceTest {
 
         // Add the test package authority to the allowlist for cloud providers.
         mDevice.executeShellCommand(
-                "device_config put mediaprovider allowed_cloud_providers "
-                        + "\"$TEST_CLOUD_PROVIDER_AUTHORITY\""
+            "device_config put mediaprovider allowed_cloud_providers "
+                    + "\"$TEST_CLOUD_PROVIDER_AUTHORITY\""
         )
 
         // Set the test cloud provider as the current provider.
@@ -126,8 +137,10 @@ class CloudProviderHostSideTest : IDeviceTest {
                     COMMAND_GET_CLOUD_PROVIDER
                 )
                 assertWithMessage("Unexpected cloud provider, expected : null")
-                    .that(resultForGetCloudProvider
-                        .contains("{get_cloud_provider_result=null}"))
+                    .that(
+                        resultForGetCloudProvider
+                            .contains("{get_cloud_provider_result=null}")
+                    )
                     .isTrue()
                 isCloudProviderReset = true
                 break // Condition met, exit the loop
@@ -144,5 +157,20 @@ class CloudProviderHostSideTest : IDeviceTest {
     @Throws(Exception::class)
     fun tearDown() {
         mDevice.executeShellCommand(COMMAND_ENABLE_TEST_APK)
+
+        // reset initial cloud provider.
+        val setCloudProvider: String
+        if (mInitialCloudProvider != null) {
+            setCloudProvider = " content call --uri content://media --method set_cloud_provider" +
+                    " --extra cloud_provider:s:$mInitialCloudProvider"
+        } else {
+            // set to null if no cloud provider was set earlier.
+            setCloudProvider =
+                " content call --uri content://media --method set_cloud_provider"
+        }
+        mDevice.executeShellCommand(setCloudProvider)
+
+        // To enable syncs after test is completed
+        mDevice.executeShellCommand("device_config set_sync_disabled_for_tests none")
     }
 }

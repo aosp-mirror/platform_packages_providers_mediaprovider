@@ -111,6 +111,7 @@ bootclasspath_fragment {
         split_packages: [
             "android.graphics.pdf",
             "android.graphics.pdf.flags",
+            "android.graphics.pdf.flags.readonly",
             "android.provider",
             "android.provider.mediacognitionutils",
             "android.provider.media.internal.flags",

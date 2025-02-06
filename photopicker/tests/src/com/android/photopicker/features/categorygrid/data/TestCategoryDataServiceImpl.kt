@@ -22,33 +22,45 @@ import com.android.photopicker.data.model.Group
 import com.android.photopicker.data.model.GroupPageKey
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaPageKey
+import com.android.photopicker.data.paging.FakeInMemoryCategoryPagingSource
+import com.android.photopicker.data.paging.FakeInMemoryMediaPagingSource
+import com.android.photopicker.data.paging.FakeInMemoryMediaSetPagingSource
 import com.android.photopicker.features.categorygrid.data.CategoryDataService
 
 class TestCategoryDataServiceImpl : CategoryDataService {
-    override fun getCategories(
-        cancellationSignal: CancellationSignal?
-    ): PagingSource<GroupPageKey, Group> {
-        TODO("Not yet implemented")
-    }
+
+    // Overrides for CategoryPagingSource
+    var categoryAlbumSize: Int = FakeInMemoryCategoryPagingSource.DEFAULT_SIZE
+    var categoryAlbumList: List<Group>? = null
+
+    // Overrides for AMediaPagingSource
+    var mediaSetSize: Int = FakeInMemoryMediaSetPagingSource.DEFAULT_SIZE
+    var mediaSetList: List<Group.MediaSet>? = null
+
+    var mediaSetContentSize: Int = FakeInMemoryMediaPagingSource.DEFAULT_SIZE
+    var mediaSetContentList: List<Media>? = null
 
     override fun getCategories(
-        parentCategory: Group.Category,
+        parentCategory: Group.Category?,
         cancellationSignal: CancellationSignal?,
     ): PagingSource<GroupPageKey, Group> {
-        TODO("Not yet implemented")
+        return categoryAlbumList?.let { FakeInMemoryCategoryPagingSource(it) }
+            ?: FakeInMemoryCategoryPagingSource(categoryAlbumSize)
     }
 
     override fun getMediaSets(
         category: Group.Category,
         cancellationSignal: CancellationSignal?,
     ): PagingSource<GroupPageKey, Group.MediaSet> {
-        TODO("Not yet implemented")
+        return mediaSetList?.let { FakeInMemoryMediaSetPagingSource(it) }
+            ?: FakeInMemoryMediaSetPagingSource(mediaSetSize)
     }
 
     override fun getMediaSetContents(
         mediaSet: Group.MediaSet,
         cancellationSignal: CancellationSignal?,
     ): PagingSource<MediaPageKey, Media> {
-        TODO("Not yet implemented")
+        return mediaSetContentList?.let { FakeInMemoryMediaPagingSource(it) }
+            ?: FakeInMemoryMediaPagingSource(mediaSetContentSize)
     }
 }

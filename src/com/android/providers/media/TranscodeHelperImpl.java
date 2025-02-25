@@ -119,6 +119,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -142,7 +147,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
     private static final int MY_UID = android.os.Process.myUid();
 
     // Whether the device has HDR plugin for transcoding HDR to SDR video.
-    private boolean mHasHdrPlugin = false;
+    private Future<Boolean> mHasHdrPlugin;
 
     /**
      * Force enable an app to support the HEVC media capability
@@ -279,7 +284,9 @@ public class TranscodeHelperImpl implements TranscodeHelper {
                 mTranscodingUiNotifier, mConfigStore.getTranscodeMaxDurationMs());
         mSupportedRelativePaths = verifySupportedRelativePaths(StringUtils.getStringArrayConfig(
                         mContext, R.array.config_supported_transcoding_relative_paths));
-        mHasHdrPlugin = hasHDRPlugin();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        mHasHdrPlugin = executor.submit(() -> { return hasHDRPlugin(); });
+        executor.shutdown();
 
         parseTranscodeCompatManifest();
         // The storage namespace is a boot namespace so we actually don't expect this to be changed
@@ -310,7 +317,6 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         } finally {
             if (decoder != null) {
                 try {
-                    decoder.stop();
                     decoder.release();
                 } catch (Exception e) {
                     Log.w(TAG, "Unable to stop decoder", e);
@@ -319,6 +325,15 @@ public class TranscodeHelperImpl implements TranscodeHelper {
         }
         Log.i(TAG, "Device HDR Plugin is available: " + hasPlugin);
         return hasPlugin;
+    }
+
+    private boolean getHasHdrPlugin() {
+        try {
+            return mHasHdrPlugin.get(1, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            Log.w(TAG, "Unable to get HDR plugin status", e);
+            return false;
+        }
     }
 
     /**
@@ -815,7 +830,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             // the original file regardless whether the app supports HEVC due to not all the devices
             // support transcoding 10bit HEVC to 8bit AVC. This check needs to be removed when
             // devices add support for it.
-            boolean isTranscodeUnsupported = isHdr10Plus && !mHasHdrPlugin;
+            boolean isTranscodeUnsupported = isHdr10Plus && !getHasHdrPlugin();
             if (isTranscodeUnsupported) {
                 return Pair.create(0, 0L);
             }
@@ -1529,7 +1544,7 @@ public class TranscodeHelperImpl implements TranscodeHelper {
             writer.println("mAppCompatMediaCapabilities=" + mAppCompatMediaCapabilities);
             writer.println("mStorageTranscodingSessions=" + mStorageTranscodingSessions);
             writer.println("mSupportedTranscodingRelativePaths=" + mSupportedRelativePaths);
-            writer.println("mHasHdrPlugin=" + mHasHdrPlugin);
+            writer.println("mHasHdrPlugin=" + getHasHdrPlugin());
             dumpFinishedSessions(writer);
         }
     }

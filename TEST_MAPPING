@@ -244,6 +244,16 @@
             ]
         }
     ],
+    "presubmit-large": [
+        {
+          "name": "CtsScopedStoragePublicVolumeHostTest",
+          "options": [
+                {
+                  "exclude-annotation": "androidx.test.filters.FlakyTest"
+                }
+          ]
+        }
+    ],
     "postsubmit": [
         {
             "name": "MediaProviderClientTests"

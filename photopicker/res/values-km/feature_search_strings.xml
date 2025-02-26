@@ -18,5 +18,10 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"ស្វែងរក"</string>
-    <string name="photopicker_searchView_placeholder_text" msgid="4851664928178114364">"ស្វែងរក​រូបថត​របស់​អ្នក"</string>
+    <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"ស្វែងរក​រូបថត​របស់​អ្នក"</string>
+    <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"ស្វែងរកវីដេអូរបស់អ្នក"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"រក​មិន​ឃើញ​លទ្ធផលទេ"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"សាកល្បងស្វែងរកពាក្យស្រដៀងគ្នា"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"ការណែនាំ"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"បាន​បិទ​ការ​ស្វែងរក។"</string>
 </resources>

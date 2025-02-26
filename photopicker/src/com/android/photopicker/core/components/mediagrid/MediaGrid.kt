@@ -25,10 +25,10 @@ import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_GIF
 import android.provider.MediaStore.Files.FileColumns._SPECIAL_FORMAT_MOTION_PHOTO
 import android.text.format.DateUtils
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -70,6 +70,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
@@ -92,6 +94,8 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.animations.emphasizedAccelerateFloat
+import com.android.photopicker.core.animations.springDefaultEffectFloat
 import com.android.photopicker.core.components.MediaGridItem.Companion.defaultBuildContentType
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
 import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
@@ -106,6 +110,9 @@ import com.android.photopicker.extensions.insertMonthSeparators
 import com.android.photopicker.extensions.toMediaGridItemFromAlbum
 import com.android.photopicker.extensions.toMediaGridItemFromMedia
 import com.android.photopicker.extensions.transferGridTouchesToHostInEmbedded
+import com.android.photopicker.util.LocalLocalizationHelper
+import com.android.photopicker.util.getMediaContentDescription
+import java.text.DateFormat
 import java.text.NumberFormat
 
 /** The number of grid cells per row for Phone / narrow layouts */
@@ -212,8 +219,9 @@ fun mediaGrid(
             isSelected: Boolean,
             onClick: ((item: MediaGridItem) -> Unit)?,
             onLongPress: ((item: MediaGridItem) -> Unit)?,
+            dateFormat: DateFormat,
         ) -> Unit =
-        { item, isSelected, onClick, onLongPress ->
+        { item, isSelected, onClick, onLongPress, dateFormat ->
             when (item) {
                 is MediaGridItem.MediaItem ->
                     defaultBuildMediaItem(
@@ -222,6 +230,7 @@ fun mediaGrid(
                         selectedPosition = selection.indexOf(item.media),
                         onClick = onClick,
                         onLongPress = onLongPress,
+                        dateFormat = dateFormat,
                     )
 
                 is MediaGridItem.AlbumItem -> defaultBuildAlbumItem(item, onClick)
@@ -237,6 +246,11 @@ fun mediaGrid(
     val isEmbedded =
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val host = LocalEmbeddedState.current?.host
+    val dateFormat =
+        LocalLocalizationHelper.current.getLocalizedDateTimeFormatter(
+            dateStyle = DateFormat.MEDIUM,
+            timeStyle = DateFormat.SHORT,
+        )
 
     /**
      * Bottom sheet current state in runtime Embedded Photopicker. This assignment is necessary to
@@ -287,6 +301,7 @@ fun mediaGrid(
                             selection.contains(item.media),
                             onItemClick,
                             onItemLongPress,
+                            dateFormat,
                         )
 
                     is MediaGridItem.AlbumItem ->
@@ -295,6 +310,7 @@ fun mediaGrid(
                             /* isSelected */ false,
                             onItemClick,
                             onItemLongPress,
+                            dateFormat,
                         )
 
                     is MediaGridItem.SeparatorItem -> contentSeparatorFactory(item)
@@ -357,6 +373,7 @@ private fun defaultBuildMediaItem(
     selectedPosition: Int,
     onClick: ((item: MediaGridItem) -> Unit)?,
     onLongPress: ((item: MediaGridItem) -> Unit)?,
+    dateFormat: DateFormat,
 ) {
     when (item) {
         is MediaGridItem.MediaItem -> {
@@ -383,7 +400,7 @@ private fun defaultBuildMediaItem(
             val selectedModifier =
                 baseModifier.clip(RoundedCornerShape(MEASUREMENT_SELECTED_CORNER_RADIUS))
 
-            val mediaDescription = stringResource(R.string.photopicker_media_item)
+            val mediaDescription = getMediaContentDescription(item.media, dateFormat)
 
             // Wrap the entire Grid cell in a box for handling aspectRatio and clicks.
             Box(
@@ -468,6 +485,7 @@ private fun MimeTypeOverlay(item: MediaGridItem.MediaItem) {
                 Text(
                     text = DateUtils.formatElapsedTime(item.media.duration / 1000L),
                     style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
                 Spacer(Modifier.size(MEASUREMENT_DURATION_TEXT_SPACER_SIZE))
                 Icon(Icons.Filled.PlayCircle, contentDescription = null)
@@ -513,20 +531,26 @@ private fun SelectedIconOverlay(isSelected: Boolean, selectedIndex: Int) {
                         y = -MEASUREMENT_SELECTED_ICON_OFFSET,
                     ),
             visible = isSelected,
-            enter = scaleIn(),
-            // No exit transition so it disappears on the next frame.
-            exit = ExitTransition.None,
+            enter = scaleIn(animationSpec = springDefaultEffectFloat),
+            exit = scaleOut(animationSpec = emphasizedAccelerateFloat),
         ) {
             val configuration = LocalPhotopickerConfiguration.current
-            val shouldIndicateSelected = isSelected && configuration.selectionLimit > 1
+            val shouldIndicateSelected = configuration.selectionLimit > 1
             if (shouldIndicateSelected) {
                 when (configuration.pickImagesInOrder) {
                     true -> {
                         val numberFormatter = remember { NumberFormat.getInstance() }
+                        var rememberedIndex by remember { mutableStateOf(selectedIndex) }
+
+                        LaunchedEffect(isSelected, selectedIndex) {
+                            if (isSelected) {
+                                rememberedIndex = selectedIndex
+                            }
+                        }
                         Text(
                             // Since this is a 0-based index, increment it by 1 for displaying
                             // to the user.
-                            text = numberFormatter.format(selectedIndex + 1),
+                            text = numberFormatter.format(rememberedIndex + 1),
                             textAlign = TextAlign.Center,
                             modifier =
                                 Modifier.circleBackground(

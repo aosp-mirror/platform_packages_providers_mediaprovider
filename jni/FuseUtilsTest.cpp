@@ -59,4 +59,18 @@ TEST(FuseUtilsTest, testContainsMount_isFalseForPathWithAdditionalSlash) {
     EXPECT_FALSE(containsMount("/storage/emulated/1234//Android/data"));
 }
 
+TEST(FuseUtilsTest, getVolumeNameFromPath) {
+    EXPECT_EQ(getVolumeNameFromPath("/storage/emulated/0/Pictures"), VOLUME_EXTERNAL_PRIMARY);
+    EXPECT_EQ(getVolumeNameFromPath("/storage/emulated/0/DCIM"), VOLUME_EXTERNAL_PRIMARY);
+    EXPECT_EQ(getVolumeNameFromPath("/storage/emulated/0/"), VOLUME_EXTERNAL_PRIMARY);
+    EXPECT_EQ(getVolumeNameFromPath("/storage/emulated/0"), VOLUME_EXTERNAL_PRIMARY);
+    EXPECT_EQ(getVolumeNameFromPath("/storage/1234-5678/Music"), "1234-5678");
+    EXPECT_EQ(getVolumeNameFromPath("/storage/ABCD-EFGH/Movies"), "abcd-efgh");
+    EXPECT_EQ(getVolumeNameFromPath("/storage/AB12-E34g/Movies"), "ab12-e34g");
+    EXPECT_EQ(getVolumeNameFromPath("/storage/"), "");
+    EXPECT_EQ(getVolumeNameFromPath("/storage"), VOLUME_EXTERNAL_PRIMARY);
+    EXPECT_EQ(getVolumeNameFromPath("/data/media/0/"), VOLUME_INTERNAL);
+    EXPECT_EQ(getVolumeNameFromPath("/data/user_de/0/com.example.app/"), VOLUME_INTERNAL);
+}
+
 }  // namespace mediaprovider::fuse

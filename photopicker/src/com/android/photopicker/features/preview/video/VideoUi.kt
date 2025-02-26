@@ -101,7 +101,7 @@ private val MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL = 8.dp
 private val MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL = 12.dp
 
 /** Delay in milliseconds before the player controls are faded. */
-private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 3000L
+private val TIME_MS_PLAYER_CONTROLS_FADE_DELAY = 5000L
 
 /**
  * Builds a remote video player surface and handles the interactions with the
@@ -167,7 +167,7 @@ fun VideoUi(
                     Telemetry.PreviewModeEntry.LONG_PRESS,
                     previewItemCount = 1,
                     Telemetry.MediaType.VIDEO,
-                    Telemetry.VideoPlayBackInteractions.MUTE
+                    Telemetry.VideoPlayBackInteractions.MUTE,
                 )
             )
         }
@@ -238,7 +238,7 @@ fun VideoUi(
                                         Telemetry.PreviewModeEntry.LONG_PRESS,
                                         previewItemCount = 1,
                                         Telemetry.MediaType.VIDEO,
-                                        Telemetry.VideoPlayBackInteractions.PLAY
+                                        Telemetry.VideoPlayBackInteractions.PLAY,
                                     )
                                 )
                             }
@@ -255,7 +255,7 @@ fun VideoUi(
                                         Telemetry.PreviewModeEntry.LONG_PRESS,
                                         previewItemCount = 1,
                                         Telemetry.MediaType.VIDEO,
-                                        Telemetry.VideoPlayBackInteractions.PAUSE
+                                        Telemetry.VideoPlayBackInteractions.PAUSE,
                                     )
                                 )
                             }
@@ -431,7 +431,7 @@ private fun VideoSurfaceView(
                                     holder: SurfaceHolder,
                                     format: Int,
                                     width: Int,
-                                    height: Int
+                                    height: Int,
                                 ) {
                                     onSurfaceChanged(format, width, height)
                                 }
@@ -491,7 +491,7 @@ private fun VideoPlayerControls(
         Box(
             Modifier.padding(
                 vertical = MEASUREMENT_PLAYER_CONTROLS_PADDING_VERTICAL,
-                horizontal = MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL
+                horizontal = MEASUREMENT_PLAYER_CONTROLS_PADDING_HORIZONTAL,
             )
         ) {
             // Play / Pause button (center of the screen)
@@ -687,18 +687,14 @@ private fun rememberAudioFocus(
 private fun producePlaybackInfo(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = obtainViewModel()
+    viewModel: PreviewViewModel = obtainViewModel(),
 ): State<PlaybackInfo> {
 
     return produceState<PlaybackInfo>(
         initialValue =
-            PlaybackInfo(
-                state = PlaybackState.UNKNOWN,
-                surfaceId,
-                authority = video.authority,
-            ),
+            PlaybackInfo(state = PlaybackState.UNKNOWN, surfaceId, authority = video.authority),
         surfaceId,
-        video
+        video,
     ) {
         viewModel.getPlaybackInfoForPlayer(surfaceId, video).collect { playbackInfo ->
             Log.d(PreviewFeature.TAG, "PlaybackState change received: $playbackInfo")
@@ -723,14 +719,10 @@ private fun producePlaybackInfo(
 private fun produceAspectRatio(
     surfaceId: Int,
     video: Media.Video,
-    viewModel: PreviewViewModel = obtainViewModel()
+    viewModel: PreviewViewModel = obtainViewModel(),
 ): State<Float?> {
 
-    return produceState<Float?>(
-        initialValue = null,
-        surfaceId,
-        video,
-    ) {
+    return produceState<Float?>(initialValue = null, surfaceId, video) {
         viewModel
             .getPlaybackInfoForPlayer(surfaceId, video)
             .filter { it.state == PlaybackState.MEDIA_SIZE_CHANGED }

@@ -28,8 +28,10 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
 import com.android.photopicker.core.navigation.Route
+import kotlinx.coroutines.Deferred
 
 /** Feature class for the Photopicker's selection bar. */
 class SelectionBarFeature : PhotopickerUiFeature {
@@ -40,7 +42,10 @@ class SelectionBarFeature : PhotopickerUiFeature {
         // The selection bar is only shown when in multi-select mode. For single select,
         // the activity ends as soon as the first Media is selected, so this feature is
         // disabled to prevent it's animation for playing when the selection changes.
-        override fun isEnabled(config: PhotopickerConfiguration): Boolean {
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ): Boolean {
             if (config.runtimeEnv == PhotopickerRuntimeEnv.ACTIVITY) {
                 return config.selectionLimit > 1
             }

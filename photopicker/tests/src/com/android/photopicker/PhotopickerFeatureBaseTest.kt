@@ -44,8 +44,8 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
 import com.android.photopicker.data.model.Media
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import dagger.Lazy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -86,7 +86,7 @@ abstract class PhotopickerFeatureBaseTest {
         mockContext: Context,
         mockUserManager: UserManager,
         contentResolver: ContentResolver,
-        mockPackageManager: PackageManager
+        mockPackageManager: PackageManager,
     ) {
         // Stub out UserManager with the mock
         mockSystemService(mockContext, UserManager::class.java) { mockUserManager }
@@ -123,7 +123,7 @@ abstract class PhotopickerFeatureBaseTest {
             mockContext.createPackageContextAsUser(
                 anyString(),
                 anyInt(),
-                any(UserHandle::class.java)
+                any(UserHandle::class.java),
             )
         ) {
             mockContext
@@ -140,7 +140,7 @@ abstract class PhotopickerFeatureBaseTest {
         selection: Selection<Media>,
         events: Events,
         navController: TestNavHostController = createNavController(),
-        disruptiveDataFlow: Flow<Int> = flow { emit(0) }
+        disruptiveDataFlow: Flow<Int> = flow { emit(0) },
     ) {
         val photopickerConfiguration by
             configurationManager.get().configuration.collectAsStateWithLifecycle()
@@ -150,7 +150,7 @@ abstract class PhotopickerFeatureBaseTest {
             LocalSelection provides selection,
             LocalPhotopickerConfiguration provides photopickerConfiguration,
             LocalNavController provides navController,
-            LocalEvents provides events
+            LocalEvents provides events,
         ) {
             PhotopickerTheme(config = photopickerConfiguration) {
                 PhotopickerMain(disruptiveDataNotification = disruptiveDataFlow)

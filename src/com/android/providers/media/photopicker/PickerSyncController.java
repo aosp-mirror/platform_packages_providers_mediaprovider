@@ -164,6 +164,10 @@ public class PickerSyncController {
     private ProviderCollectionInfo mLatestLocalProviderCollectionInfo;
     @NonNull
     private ProviderCollectionInfo mLatestCloudProviderCollectionInfo;
+    @NonNull
+    private SearchState mSearchState;
+    @NonNull
+    private CategoriesState mCategoriesState;
     @Nullable
     private static PickerSyncController sInstance;
 
@@ -251,6 +255,8 @@ public class PickerSyncController {
         mDbFacade = dbFacade;
         mPickerSyncLockManager = pickerSyncLockManager;
         mLocalProvider = localProvider;
+        mSearchState = new SearchState(mConfigStore);
+        mCategoriesState = new CategoriesState(mConfigStore);
 
         // Listen to the device config, and try to enable cloud features when the config changes.
         mConfigStore.addOnChangeListener(BackgroundThread.getExecutor(), this::initCloudProvider);
@@ -837,6 +843,11 @@ public class PickerSyncController {
                 resetCloudProvider();
             }
         }
+    }
+
+    @NonNull
+    public SearchState getSearchState() {
+        return mSearchState;
     }
 
     private void resetCloudProvider() {
@@ -2070,6 +2081,93 @@ public class PickerSyncController {
             Log.e(TAG, "Could not check if cloud media should be queried", e);
             return false;
         }
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Input cloud provider is not null.
+     * 2. Input cloud provider is present in the given providers list.
+     * 3. Input cloud provider is also the current cloud provider.
+     * 4. Search feature is enabled for the given cloud provider.
+     * Otherwise returns false.
+     */
+    public boolean shouldQueryCloudMediaForSearch(
+            @NonNull Set<String> providers,
+            @Nullable String cloudProvider) {
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            return cloudProvider != null
+                    && providers.contains(cloudProvider)
+                    && cloudProvider.equals(getCloudProviderWithTimeout())
+                    && getSearchState().isCloudSearchEnabled(mContext, cloudProvider);
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not check if cloud media should be queried", e);
+            return false;
+        }
+    }
+
+    /**
+     * Returns true when all the following conditions are true:
+     * 1. Current local provider is not null.
+     * 2. Current local provider is present in the given providers list.
+     * 3. Search feature is enabled for the current local provider.
+     * Otherwise returns false.
+     */
+    public boolean shouldQueryLocalMediaForSearch(
+            @NonNull Set<String> providers) {
+        final String localProvider = getLocalProvider();
+        return localProvider != null
+                && providers.contains(localProvider)
+                && getSearchState().isLocalSearchEnabled();
+    }
+
+    /**
+     * @param providers List of providers for the current request
+     * @return Returns whether the local sync is possible
+     * Returns true if all of the following are true:
+     *  -The retrieved local provider is not null
+     *  -The input list of providers contains the current provider
+     *  -The CMP implements categories API
+     *  Otherwise, we get false
+     */
+    public boolean shouldQueryLocalMediaSets(@NonNull Set<String> providers) {
+        Objects.requireNonNull(providers);
+        final String localProvider = getLocalProvider();
+        return localProvider != null
+                && providers.contains(localProvider)
+                && getCategoriesState().areCategoriesEnabled(mContext, localProvider);
+    }
+
+    /**
+     * @param providers Set of providers for the current request
+     * @param cloudProvider The cloudAuthority to query for
+     * @return Returns whether the local sync is possible
+     * Returns true if all of the following are true:
+     *  -The given cloud provider is not null
+     *  -The input list of providers contains the current cloud provider
+     *  -Input cloud provider is the same as the current cloud provider
+     *  -The CMP implements categories API
+     *  Otherwise, we get false
+     */
+    public boolean shouldQueryCloudMediaSets(
+            @NonNull Set<String> providers,
+            @Nullable String cloudProvider) {
+        Objects.requireNonNull(providers);
+        try (CloseableReentrantLock ignored =
+                     mPickerSyncLockManager.tryLock(PickerSyncLockManager.CLOUD_PROVIDER_LOCK)) {
+            return cloudProvider != null
+                    && providers.contains(cloudProvider)
+                    && cloudProvider.equals(getCloudProviderWithTimeout())
+                    && getCategoriesState().areCategoriesEnabled(mContext, cloudProvider);
+        } catch (UnableToAcquireLockException e) {
+            Log.e(TAG, "Could not check if cloud media sets are to be queried", e);
+            return false;
+        }
+    }
+
+    @NonNull
+    public CategoriesState getCategoriesState() {
+        return mCategoriesState;
     }
 
     /**

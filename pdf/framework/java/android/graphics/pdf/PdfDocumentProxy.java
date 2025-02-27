@@ -16,8 +16,12 @@
 
 package android.graphics.pdf;
 
+import android.annotation.IntRange;
+import android.annotation.NonNull;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.graphics.pdf.component.PdfAnnotation;
+import android.graphics.pdf.component.PdfPageObject;
 import android.graphics.pdf.content.PdfPageGotoLinkContent;
 import android.graphics.pdf.models.FormWidgetInfo;
 import android.graphics.pdf.models.jni.LinkRects;
@@ -118,18 +122,18 @@ public class PdfDocumentProxy {
     /**
      * Renders a page to a bitmap.
      *
-     * @param pageNum the page number of the page to be rendered
-     * @param clipLeft the left coordinate of the clipping boundary in bitmap coordinates
-     * @param clipTop the top coordinate of the clipping boundary in bitmap coordinates
-     * @param clipRight the right coordinate of the clipping boundary in bitmap coordinates
-     * @param clipBottom the bottom coordinate of the clipping boundary in bitmap coordinates
-     * @param transform an affine transform matrix in the form of an array.
-     * @see android.graphics.Matrix#getValues(float[])
-     * @param renderMode the render mode
-     * @param showAnnotTypes Bitmask of renderFlags to indicate the types of annotations to
-     *                       be rendered
+     * @param pageNum          the page number of the page to be rendered
+     * @param clipLeft         the left coordinate of the clipping boundary in bitmap coordinates
+     * @param clipTop          the top coordinate of the clipping boundary in bitmap coordinates
+     * @param clipRight        the right coordinate of the clipping boundary in bitmap coordinates
+     * @param clipBottom       the bottom coordinate of the clipping boundary in bitmap coordinates
+     * @param transform        an affine transform matrix in the form of an array.
+     * @param renderMode       the render mode
+     * @param showAnnotTypes   Bitmask of renderFlags to indicate the types of annotations to
+     *                         be rendered
      * @param renderFormFields true to included PDF form content in the output
      * @return true if the page was rendered into the destination bitmap
+     * @see android.graphics.Matrix#getValues(float[])
      */
     public native boolean render(
             int pageNum,
@@ -253,4 +257,92 @@ public class PdfDocumentProxy {
      */
     public native List<Rect> setFormFieldSelectedIndices(
             int pageNum, int annotIndex, int[] selectedIndices);
+
+    /**
+     * Gets the list of annotations of supported types (freetext, image, stamp) present
+     * on the page
+     *
+     * @param pageNum - page number of the page whose annotations list is to be returned
+     */
+    public native @NonNull List<PdfAnnotation> getPageAnnotations(
+            @IntRange(from = 0) int pageNum);
+
+    /**
+     * Adds an annotation to the given page
+     *
+     * @param pageNum    - page number of the page to which annotation is to be added
+     * @param annotation - annotation to be added to the given page
+     * @return index of the annotation added and -1 in case of failure
+     */
+    public native int addPageAnnotation(@IntRange(from = 0) int pageNum,
+            @NonNull PdfAnnotation annotation);
+
+    /**
+     * Removes an annotation from the given page
+     *
+     * @param pageNum         - page number of the page from which annotation is to be removed
+     * @param annotationId - id of the annotation to be removed
+     */
+    public native PdfAnnotation removePageAnnotation(@IntRange(from = 0) int pageNum,
+            @IntRange(from = 0) int annotationId);
+
+    /**
+     * Updates an annotation on the given page
+     *
+     * @param pageNum     page number of the page on which annotation is to be updated
+     * @param annotation  annotation to be updated
+     */
+    public native boolean updatePageAnnotation(@IntRange(from = 0) int pageNum,
+            PdfAnnotation annotation);
+
+
+    /**
+     * Return list of supported {@link PdfPageObject} present on
+     * the page.
+     * The list will be empty  if there are no supported page
+     * objects present on the page, even if the page contains
+     * other page object types.
+     *
+     * @param pageNum - page number of the page whose annotations list is returned
+     * @return list of {@link PdfPageObject} present on the page
+     * @throws IllegalStateException if the document/page is
+     *                               closed before invocation
+     */
+    public native List<PdfPageObject> getPageObjects(int pageNum);
+
+    /**
+     * Adds the given page object to the page.
+     *
+     * @param pageNum    - page number of the page to which pageObject is to be added
+     * @param pageObject the {@link PdfPageObject} object to
+     *                   add
+     * @return object id of added page object, -1 otherwise
+     * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or null.
+     * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before invocation.
+     */
+    public native int addPageObject(int pageNum, @NonNull PdfPageObject pageObject);
+
+    /**
+     * Update the given {@link PdfPageObject} to the page.
+     *
+     * @param pageObject the {@code PdfPageObject} object to
+     *                   add
+     * @return true if page object is updated, false otherwise
+     * @throws IllegalArgumentException if the provided {@link PdfPageObject} is unknown or null.
+     * @throws IllegalStateException    if the {@link PdfRenderer.Page} is closed before invocation.
+     */
+    public native boolean updatePageObject(int pageNum,
+            @NonNull PdfPageObject pageObject);
+
+    /**
+     * Removes the {@link PdfPageObject} with the specified ID.
+     *
+     * @param pageNum  - page number of the page from which annotation is to be removed
+     * @param objectId the ID of the page object to remove
+     *                 from the page
+     * @return {@link PdfPageObject} that is removed.
+     * @throws IllegalStateException if the provided
+     *                               objectId doesn't exist.
+     */
+    public native PdfPageObject removePageObject(int pageNum, int objectId);
 }

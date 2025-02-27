@@ -41,15 +41,18 @@ import com.android.photopicker.core.database.DatabaseManagerTestImpl
 import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.core.user.UserProfile
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -191,6 +194,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     emptySet<FeatureRegistration>(),
                 )
 
@@ -245,6 +249,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -303,6 +308,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -386,6 +392,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -459,6 +466,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -520,6 +528,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -589,6 +598,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -653,6 +663,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -723,6 +734,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration, HighPriorityUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -790,7 +802,10 @@ class BannerManagerImplTest {
                 object : FeatureRegistration {
                     override val TAG = "MockedFeature"
 
-                    override fun isEnabled(config: PhotopickerConfiguration) = true
+                    override fun isEnabled(
+                        config: PhotopickerConfiguration,
+                        deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+                    ) = true
 
                     override fun build(featureManager: FeatureManager) = mockSimpleUiFeature
                 }
@@ -808,6 +823,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(mockRegistration),
                 )
             val databaseManager = DatabaseManagerTestImpl()
@@ -888,6 +904,7 @@ class BannerManagerImplTest {
                 FeatureManager(
                     configurationManager.configuration,
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     setOf(SimpleUiFeature.Registration),
                 )
             val databaseManager = DatabaseManagerTestImpl()

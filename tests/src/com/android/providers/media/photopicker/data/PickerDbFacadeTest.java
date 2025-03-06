@@ -22,6 +22,7 @@ import static android.provider.CloudMediaProviderContract.AlbumColumns.ALBUM_ID_
 import static com.android.providers.media.util.MimeUtils.getExtensionFromMimeType;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import static org.junit.Assert.assertThrows;
 
@@ -985,20 +986,32 @@ public class PickerDbFacadeTest {
         }
 
         // Assert invalid projection column
-        final String invalidColumn = "testInvalidColumn";
-        final String[] invalidProjection = new String[] {
+        final String invalidColumn = "test invalid column";
+        final String[] invalidProjection = new String[]{
                 PickerMediaColumns.DATE_TAKEN,
                 invalidColumn
         };
 
         try (Cursor cr = mFacade.queryMediaIdForApps(CLOUD_PROVIDER, CLOUD_ID,
                 invalidProjection)) {
-            assertThat(cr.getCount()).isEqualTo(1);
+            assertWithMessage(
+                    "Unexpected number of rows when asserting invalid projection column with "
+                            + "cloud provider.")
+                    .that(cr.getCount()).isEqualTo(1);
+            assertWithMessage("Unexpected number of columns in cursor")
+                    .that(cr.getColumnCount())
+                    .isEqualTo(2);
 
             cr.moveToFirst();
-            assertThat(cr.getLong(cr.getColumnIndex(invalidColumn)))
+            assertWithMessage("Unexpected value of the invalidColumn with cloud provider.")
+                    .that(cr.getLong(cr.getColumnIndexOrThrow(invalidColumn)))
                     .isEqualTo(0);
-            assertThat(cr.getLong(cr.getColumnIndex(PickerMediaColumns.DATE_TAKEN)))
+            assertWithMessage("Unexpected value of the invalidColumn with cloud provider.")
+                    .that(cr.getString(cr.getColumnIndexOrThrow(invalidColumn)))
+                    .isEqualTo(null);
+            assertWithMessage(
+                    "Unexpected value of PickerMediaColumns.DATE_TAKEN with cloud provider.")
+                    .that(cr.getLong(cr.getColumnIndexOrThrow(PickerMediaColumns.DATE_TAKEN)))
                     .isEqualTo(DATE_TAKEN_MS);
         }
     }

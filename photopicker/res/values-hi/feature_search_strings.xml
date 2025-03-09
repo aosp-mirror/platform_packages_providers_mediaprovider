@@ -18,5 +18,10 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="photopicker_search_placeholder_text" msgid="2056650487029735317">"खोजें"</string>
-    <string name="photopicker_searchView_placeholder_text" msgid="4851664928178114364">"अपनी फ़ोटो खोजें"</string>
+    <string name="photopicker_search_photos_placeholder_text" msgid="4193624269605283280">"अपनी फ़ोटो खोजें"</string>
+    <string name="photopicker_search_videos_placeholder_text" msgid="6373176950925263103">"अपने वीडियो खोजें"</string>
+    <string name="photopicker_search_result_empty_state_title" msgid="5464851093908453867">"कोई नतीजा नहीं मिला"</string>
+    <string name="photopicker_search_result_empty_state_body" msgid="1732249539645056618">"मिलते-जुलते शब्द खोजें"</string>
+    <string name="photopicker_search_suggestions_text" msgid="1758802235973720586">"सुझाव"</string>
+    <string name="photopicker_search_disabled_hint" msgid="4049451515025551462">"खोज करने की सुविधा बंद की गई है."</string>
 </resources>

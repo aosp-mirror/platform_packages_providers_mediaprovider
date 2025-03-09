@@ -28,7 +28,9 @@ import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
+import kotlinx.coroutines.Deferred
 
 /**
  * Test [PhotopickerUiFeature] that is always disabled, no matter what it tries, but always tries to
@@ -39,7 +41,10 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "AlwaysDisabledFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) = false
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = false
 
         override fun build(featureManager: FeatureManager) = AlwaysDisabledFeature()
 
@@ -59,11 +64,7 @@ class AlwaysDisabledFeature : PhotopickerUiFeature {
     }
 
     @Composable
-    override fun compose(
-        location: Location,
-        modifier: Modifier,
-        params: LocationParams,
-    ) {
+    override fun compose(location: Location, modifier: Modifier, params: LocationParams) {
         when (location) {
             Location.COMPOSE_TOP -> composeTop()
             else -> {}

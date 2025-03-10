@@ -45,9 +45,9 @@ import com.android.photopicker.core.events.Events
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.tests.utils.StubProvider
-import com.android.photopicker.tests.utils.mockito.mockSystemService
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.StubProvider
+import com.android.photopicker.util.test.mockSystemService
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -76,11 +76,7 @@ import org.mockito.Mockito.anyString
 import org.mockito.MockitoAnnotations
 
 /** This test class will run Photopicker's actual MainActivity. */
-@UninstallModules(
-    ApplicationModule::class,
-    ActivityModule::class,
-    EmbeddedServiceModule::class,
-)
+@UninstallModules(ApplicationModule::class, ActivityModule::class, EmbeddedServiceModule::class)
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainActivityTest {
@@ -134,7 +130,7 @@ class MainActivityTest {
             mockContext.createPackageContextAsUser(
                 anyString(),
                 anyInt(),
-                any(UserHandle::class.java)
+                any(UserHandle::class.java),
             )
         ) {
             mockContext
@@ -150,7 +146,7 @@ class MainActivityTest {
                     .setComponent(
                         ComponentName(
                             InstrumentationRegistry.getInstrumentation().targetContext,
-                            MainActivity::class.java
+                            MainActivity::class.java,
                         )
                     )
             with(ActivityScenario.launch<MainActivity>(intent)) {
@@ -170,7 +166,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
         with(launchActivityForResult<MainActivity>(intent)) {
@@ -200,7 +196,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
                 .putExtra(Intent.EXTRA_UID, Process.myUid())
@@ -239,7 +235,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
 
@@ -283,7 +279,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
 
@@ -327,7 +323,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
 
@@ -372,7 +368,7 @@ class MainActivityTest {
                 .setComponent(
                     ComponentName(
                         InstrumentationRegistry.getInstrumentation().targetContext,
-                        MainActivity::class.java
+                        MainActivity::class.java,
                     )
                 )
 

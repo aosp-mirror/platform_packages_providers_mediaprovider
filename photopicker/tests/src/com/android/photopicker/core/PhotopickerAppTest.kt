@@ -38,10 +38,10 @@ import com.android.photopicker.data.model.Media
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.StubProvider
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.StubProvider
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -68,11 +68,7 @@ import org.mockito.Mockito.any
 import org.mockito.MockitoAnnotations
 
 /** This test class will run Photopicker's actual MainActivity. */
-@UninstallModules(
-    ApplicationModule::class,
-    ActivityModule::class,
-    EmbeddedServiceModule::class,
-)
+@UninstallModules(ApplicationModule::class, ActivityModule::class, EmbeddedServiceModule::class)
 @HiltAndroidTest
 @OptIn(ExperimentalCoroutinesApi::class)
 class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
@@ -146,7 +142,7 @@ class PhotopickerAppTest : PhotopickerFeatureBaseTest() {
                             initial = 0
                         ) { prev, _ ->
                             prev + 1
-                        }
+                        },
                 )
             }
 

@@ -44,11 +44,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
 import com.android.photopicker.core.components.EmptyState
 import com.android.photopicker.core.components.MediaGridItem
 import com.android.photopicker.core.components.mediaGrid
 import com.android.photopicker.core.configuration.LocalPhotopickerConfiguration
+import com.android.photopicker.core.configuration.PhotopickerRuntimeEnv
+import com.android.photopicker.core.embedded.LocalEmbeddedState
 import com.android.photopicker.core.events.Event
 import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry
@@ -61,7 +64,9 @@ import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.data.model.Group
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -77,15 +82,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumMediaGrid(
     flow: StateFlow<Group.Album?>,
-    viewModel: AlbumGridViewModel = obtainViewModel()
+    viewModel: AlbumGridViewModel = obtainViewModel(),
 ) {
     val albumState by flow.collectAsStateWithLifecycle(initialValue = null)
     val album = albumState
 
-    when (album) {
-        null -> {}
-        else -> {
-            AlbumMediaGrid(album = album, albumItems = viewModel.getAlbumMedia(album))
+    Column(modifier = Modifier.fillMaxSize()) {
+        when (album) {
+            null -> {}
+            else -> {
+                val albumItems = remember(album) { viewModel.getAlbumMedia(album) }
+                AlbumMediaGrid(album = album, albumItems = albumItems)
+            }
         }
     }
 }
@@ -108,8 +116,12 @@ private fun AlbumMediaGrid(
     val selection by LocalSelection.current.flow.collectAsStateWithLifecycle()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val localizedSelectionLimit = LocalLocalizationHelper.current.getLocalizedCount(selectionLimit)
     val selectionLimitExceededMessage =
-        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+        stringResource(
+            R.string.photopicker_selection_limit_exceeded_snackbar,
+            localizedSelectionLimit,
+        )
     val scope = rememberCoroutineScope()
     val events = LocalEvents.current
     val configuration = LocalPhotopickerConfiguration.current
@@ -123,6 +135,11 @@ private fun AlbumMediaGrid(
         }
 
     val state = rememberLazyGridState()
+    val isEmbedded =
+        LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
+    val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
+
+    val host = LocalEmbeddedState.current?.host
     // Container encapsulating the album title followed by the album content in the form of a
     // grid, the content also includes date and month separators.
     Column(modifier = Modifier.fillMaxSize()) {
@@ -138,8 +155,15 @@ private fun AlbumMediaGrid(
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 val (title, body, icon) = getEmptyStateContentForAlbum(album)
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = icon,
                     title = title,
                     body = body,
@@ -150,6 +174,11 @@ private fun AlbumMediaGrid(
                 mediaGrid(
                     // Album content grid
                     items = items,
+                    userScrollEnabled =
+                        when (isEmbedded) {
+                            true -> isExpanded
+                            false -> true
+                        },
                     isExpandedScreen = isExpandedScreen,
                     selection = selection,
                     onItemClick = { item ->
@@ -157,24 +186,24 @@ private fun AlbumMediaGrid(
                             viewModel.handleAlbumMediaGridItemSelection(
                                 item.media,
                                 selectionLimitExceededMessage,
-                                album
+                                album,
                             )
                         }
                     },
                     onItemLongPress = { item ->
-                        // Dispatch UI event to log long pressing the media item
-                        scope.launch {
-                            events.dispatch(
-                                Event.LogPhotopickerUIEvent(
-                                    FeatureToken.PREVIEW.token,
-                                    configuration.sessionId,
-                                    configuration.callingPackageUid ?: -1,
-                                    Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM
-                                )
-                            )
-                        }
                         // If the [PreviewFeature] is enabled, launch the preview route.
                         if (isPreviewEnabled && item is MediaGridItem.MediaItem) {
+                            // Dispatch UI event to log long pressing the media item
+                            scope.launch {
+                                events.dispatch(
+                                    Event.LogPhotopickerUIEvent(
+                                        FeatureToken.PREVIEW.token,
+                                        configuration.sessionId,
+                                        configuration.callingPackageUid ?: -1,
+                                        Telemetry.UiEvent.PICKER_LONG_SELECT_MEDIA_ITEM,
+                                    )
+                                )
+                            }
                             // Dispatch UI event to log entry into preview mode
                             scope.launch {
                                 events.dispatch(
@@ -182,7 +211,7 @@ private fun AlbumMediaGrid(
                                         FeatureToken.PREVIEW.token,
                                         configuration.sessionId,
                                         configuration.callingPackageUid ?: -1,
-                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE
+                                        Telemetry.UiEvent.ENTER_PICKER_PREVIEW_MODE,
                                     )
                                 )
                             }
@@ -198,7 +227,7 @@ private fun AlbumMediaGrid(
                             FeatureToken.PHOTO_GRID.token,
                             configuration.sessionId,
                             configuration.callingPackageUid ?: -1,
-                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS
+                            Telemetry.UiEvent.UI_LOADED_ALBUM_CONTENTS,
                         )
                     )
                 }

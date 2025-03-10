@@ -73,6 +73,7 @@ aconfig_declarations {
         "pdf_viewer_flags.aconfig",
     ],
     container: "com.android.mediaprovider",
+    exportable: true,
 }
 
 java_aconfig_library {
@@ -86,7 +87,6 @@ java_aconfig_library {
         "com.android.mediaprovider",
     ],
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
-
 }
 
 // To generate the Stats log classes for the Android Pdf.

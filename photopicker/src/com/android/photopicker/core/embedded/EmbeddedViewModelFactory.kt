@@ -15,7 +15,6 @@
  */
 package com.android.photopicker.core.embedded
 
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.android.photopicker.core.Background
@@ -28,10 +27,12 @@ import com.android.photopicker.core.user.UserMonitor
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.albumgrid.AlbumGridViewModel
-import com.android.photopicker.features.cloudmedia.MediaPreloaderViewModel
 import com.android.photopicker.features.photogrid.PhotoGridViewModel
+import com.android.photopicker.features.preparemedia.MediaPreparerViewModel
 import com.android.photopicker.features.preview.PreviewViewModel
 import com.android.photopicker.features.profileselector.ProfileSelectorViewModel
+import com.android.photopicker.features.search.SearchViewModel
+import com.android.photopicker.features.search.data.SearchDataService
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineDispatcher
 
@@ -67,6 +68,7 @@ class EmbeddedViewModelFactory(
     val configurationManager: Lazy<ConfigurationManager>,
     val bannerManager: Lazy<BannerManager>,
     val dataService: Lazy<DataService>,
+    val searchDataService: Lazy<SearchDataService>,
     val events: Lazy<Events>,
     val featureManager: Lazy<FeatureManager>,
     val selection: Lazy<Selection<Media>>,
@@ -77,8 +79,8 @@ class EmbeddedViewModelFactory(
             return when {
                 isAssignableFrom(AlbumGridViewModel::class.java) ->
                     AlbumGridViewModel(null, selection.get(), dataService.get(), events.get()) as T
-                isAssignableFrom(MediaPreloaderViewModel::class.java) ->
-                    MediaPreloaderViewModel(
+                isAssignableFrom(MediaPreparerViewModel::class.java) ->
+                    MediaPreparerViewModel(
                         null,
                         backgroundDispatcher,
                         selection.get(),
@@ -112,7 +114,17 @@ class EmbeddedViewModelFactory(
                         selection.get(),
                         userMonitor.get(),
                         events.get(),
-                        configurationManager.get()
+                        configurationManager.get(),
+                    )
+                        as T
+                isAssignableFrom(SearchViewModel::class.java) ->
+                    SearchViewModel(
+                        null,
+                        backgroundDispatcher,
+                        searchDataService.get(),
+                        selection.get(),
+                        events.get(),
+                        configurationManager.get(),
                     )
                         as T
                 else ->

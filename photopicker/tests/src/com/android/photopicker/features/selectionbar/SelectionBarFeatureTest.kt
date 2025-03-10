@@ -61,13 +61,14 @@ import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.selection.LocalSelection
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.core.theme.PhotopickerTheme
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.data.model.MediaSource
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
 import com.android.photopicker.inject.PhotopickerTestModule
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -348,6 +349,7 @@ class SelectionBarFeatureTest : PhotopickerFeatureBaseTest() {
                 FeatureManager(
                     provideTestConfigurationFlow(scope = this.backgroundScope),
                     this.backgroundScope,
+                    TestPrefetchDataService(),
                     testFeatureRegistrations,
                 )
             val photopickerConfiguration: PhotopickerConfiguration =

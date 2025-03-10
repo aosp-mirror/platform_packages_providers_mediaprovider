@@ -87,11 +87,11 @@ import com.android.photopicker.extensions.navigateToPreviewMedia
 import com.android.photopicker.extensions.navigateToPreviewSelection
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.capture
-import com.android.photopicker.tests.utils.mockito.nonNullableEq
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.capture
+import com.android.photopicker.util.test.nonNullableEq
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module

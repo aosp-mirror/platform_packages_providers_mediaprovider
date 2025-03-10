@@ -16,10 +16,14 @@
 
 package com.android.providers.media.photopicker.sync;
 
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.EXTRA_MIME_TYPES;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SHOULD_SYNC_GRANTS;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_CLOUD_ONLY;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_AND_CLOUD;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_LOCAL_ONLY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_AUTHORITY;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_CATEGORY_ID;
+import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SEARCH_REQUEST_ID;
 import static com.android.providers.media.photopicker.sync.PickerSyncManager.SYNC_WORKER_INPUT_SYNC_SOURCE;
 import static com.android.providers.media.util.BackgroundThreadUtils.waitForIdle;
 
@@ -37,6 +41,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.os.Bundle;
 
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
@@ -48,8 +53,10 @@ import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
 import com.android.providers.media.TestConfigStore;
+import com.android.providers.media.cloudproviders.SearchProvider;
 import com.android.providers.media.photopicker.PickerSyncController;
 import com.android.providers.media.photopicker.data.PickerSyncRequestExtras;
+import com.android.providers.media.photopicker.v2.model.MediaSetsSyncRequestParams;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -59,6 +66,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PickerSyncManagerTest {
@@ -95,7 +103,7 @@ public class PickerSyncManagerTest {
 
     @Test
     public void testScheduleEndlessWorker() {
-        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ true);
 
         // The third call here comes from the EndlessWorker
         verify(mMockWorkManager, times(1))
@@ -264,7 +272,8 @@ public class PickerSyncManagerTest {
         reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ true, null),
+                mConfigStore);
         verify(mMockWorkManager, times(2))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -296,7 +305,8 @@ public class PickerSyncManagerTest {
         reset(mMockWorkManager);
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ true,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null),
+                mConfigStore);
         verify(mMockWorkManager, times(2))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -326,7 +336,8 @@ public class PickerSyncManagerTest {
 
         mPickerSyncManager.syncMediaImmediately(new PickerSyncRequestExtras(/* albumId */null,
                 /* albumAuthority */ null, /* initLocalDataOnly */ false,
-                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null));
+                /* callingPackageUid */ 0, /* shouldSyncGrants */ false, null),
+                mConfigStore);
         verify(mMockWorkManager, times(3))
                 .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
 
@@ -456,8 +467,167 @@ public class PickerSyncManagerTest {
         doReturn(mMockOperation).when(mMockWorkContinuation).enqueue();
         doReturn(mMockFuture).when(mMockOperation).getResult();
 
-        mPickerSyncManager =
-                new PickerSyncManager(mMockWorkManager, mMockContext,
-                        mConfigStore, schedulePeriodicSyncs);
+        mPickerSyncManager = new PickerSyncManager(mMockWorkManager, mMockContext);
+        if (schedulePeriodicSyncs) {
+            mPickerSyncManager.schedulePeriodicSync(
+                    mConfigStore, /* periodicSyncInitialDelay */ 0L);
+        }
+        waitForIdle();
+    }
+
+    @Test
+    public void testSearchResultsLocalSync() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
+        mPickerSyncManager.syncSearchResultsForProvider(
+                /* searchRequestId */ 10,
+                SYNC_LOCAL_ONLY,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+        );
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResultsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, -1))
+                .isEqualTo(10);
+    }
+
+    @Test
+    public void testSearchResultsCloudSync() {
+        setupPickerSyncManager(/* schedulePeriodicSyncs */ false);
+
+        reset(mMockWorkManager);
+        mPickerSyncManager.syncSearchResultsForProvider(
+                /* searchRequestId */ 10,
+                SYNC_CLOUD_ONLY,
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY
+        );
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(SearchResultsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SEARCH_REQUEST_ID, -1))
+                .isEqualTo(10);
+    }
+
+    @Test
+    public void testMediaSetsSyncLocalProvider() {
+        setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
+
+        reset(mMockWorkManager);
+
+        String categoryId = "id";
+        String[] mimeTypes = new String[] { "image/*" };
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putStringArray("mime_types", mimeTypes);
+        extras.putString("category_id", categoryId);
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(
+                PickerSyncController.LOCAL_PICKER_PROVIDER_AUTHORITY)));
+
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(extras);
+
+        mPickerSyncManager.syncMediaSetsForProvider(requestParams, SYNC_LOCAL_ONLY);
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(MediaSetsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_LOCAL_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_CATEGORY_ID))
+                .isEqualTo(categoryId);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_AUTHORITY))
+                .isEqualTo(SearchProvider.AUTHORITY);
+        assertThat(workRequest.getWorkSpec().input
+                .getStringArray(EXTRA_MIME_TYPES))
+                .isEqualTo(mimeTypes);
+    }
+
+    @Test
+    public void testMediaSetsSyncCloudProvider() {
+        setupPickerSyncManager(/*schedulePeriodicSyncs*/ false);
+
+        reset(mMockWorkManager);
+
+        String categoryId = "id";
+        String[] mimeTypes = new String[] { "image/*" };
+        Bundle extras = new Bundle();
+        extras.putString("authority", SearchProvider.AUTHORITY);
+        extras.putStringArray("mime_types", mimeTypes);
+        extras.putString("category_id", categoryId);
+        extras.putStringArrayList("providers", new ArrayList<>(List.of(
+                SearchProvider.AUTHORITY)));
+
+        MediaSetsSyncRequestParams requestParams = new MediaSetsSyncRequestParams(extras);
+
+        mPickerSyncManager.syncMediaSetsForProvider(requestParams, SYNC_CLOUD_ONLY);
+        verify(mMockWorkManager, times(1))
+                .enqueueUniqueWork(anyString(), any(), mOneTimeWorkRequestArgumentCaptor.capture());
+
+        final List<OneTimeWorkRequest> workRequestList =
+                mOneTimeWorkRequestArgumentCaptor.getAllValues();
+        assertThat(workRequestList.size()).isEqualTo(1);
+
+        WorkRequest workRequest = workRequestList.get(0);
+        assertThat(workRequest.getWorkSpec().workerClassName)
+                .isEqualTo(MediaSetsSyncWorker.class.getName());
+        assertThat(workRequest.getWorkSpec().expedited).isTrue();
+        assertThat(workRequest.getWorkSpec().isPeriodic()).isFalse();
+        assertThat(workRequest.getWorkSpec().id).isNotNull();
+        assertThat(workRequest.getWorkSpec().constraints.requiresBatteryNotLow()).isFalse();
+        assertThat(workRequest.getWorkSpec().input
+                .getInt(SYNC_WORKER_INPUT_SYNC_SOURCE, -1))
+                .isEqualTo(SYNC_CLOUD_ONLY);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_CATEGORY_ID))
+                .isEqualTo(categoryId);
+        assertThat(workRequest.getWorkSpec().input
+                .getString(SYNC_WORKER_INPUT_AUTHORITY))
+                .isEqualTo(SearchProvider.AUTHORITY);
+        assertThat(workRequest.getWorkSpec().input
+                .getStringArray(EXTRA_MIME_TYPES))
+                .isEqualTo(mimeTypes);
     }
 }

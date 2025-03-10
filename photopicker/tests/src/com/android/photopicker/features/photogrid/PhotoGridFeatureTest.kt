@@ -28,9 +28,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -58,12 +58,13 @@ import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.selection.Selection
 import com.android.photopicker.data.DataService
 import com.android.photopicker.data.TestDataServiceImpl
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.data.model.Media
 import com.android.photopicker.features.PhotopickerFeatureBaseTest
 import com.android.photopicker.inject.PhotopickerTestModule
-import com.android.photopicker.test.utils.MockContentProviderWrapper
 import com.android.photopicker.tests.HiltTestActivity
-import com.android.photopicker.tests.utils.mockito.whenever
+import com.android.photopicker.util.test.MockContentProviderWrapper
+import com.android.photopicker.util.test.whenever
 import com.google.common.truth.Truth.assertWithMessage
 import dagger.Lazy
 import dagger.Module
@@ -146,6 +147,8 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
     @Inject lateinit var dataService: DataService
     @Inject lateinit var databaseManager: DatabaseManager
 
+    private val MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING = "taken on"
+
     val sessionId = generatePickerSessionId()
 
     @Before
@@ -198,7 +201,8 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             FeatureManager(
                 registeredFeatures = FeatureManager.KNOWN_FEATURE_REGISTRATIONS,
                 scope = testBackgroundScope,
-                configuration = provideTestConfigurationFlow(scope = testBackgroundScope)
+                prefetchDataService = TestPrefetchDataService(),
+                configuration = provideTestConfigurationFlow(scope = testBackgroundScope),
             )
 
         testScope.runTest {
@@ -221,9 +225,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosCanBeSelected() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -242,7 +243,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performClick()
 
@@ -258,9 +264,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testPhotosAreDisplayed() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -275,7 +278,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .assert(hasClickAction())
                 .assertIsDisplayed()
@@ -284,9 +292,6 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
 
     @Test
     fun testSwipeLeftToNavigateToAlbumGrid() {
-        val resources = getTestableContext().getResources()
-        val mediaItemString = resources.getString(R.string.photopicker_media_item)
-
         testScope.runTest {
             composeTestRule.setContent {
                 callPhotopickerMain(
@@ -301,7 +306,12 @@ class PhotoGridFeatureTest : PhotopickerFeatureBaseTest() {
             composeTestRule.waitForIdle()
 
             composeTestRule
-                .onAllNodesWithContentDescription(mediaItemString)
+                .onAllNodes(
+                    hasContentDescription(
+                        value = MEDIA_ITEM_CONTENT_DESCRIPTION_SUBSTRING,
+                        substring = true,
+                    )
+                )
                 .onFirst()
                 .performTouchInput { swipeLeft() }
             composeTestRule.waitForIdle()

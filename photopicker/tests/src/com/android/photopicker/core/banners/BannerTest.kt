@@ -46,6 +46,7 @@ import com.android.photopicker.core.events.LocalEvents
 import com.android.photopicker.core.events.Telemetry.BannerType
 import com.android.photopicker.core.events.Telemetry.UserBannerInteraction
 import com.android.photopicker.core.features.FeatureManager
+import com.android.photopicker.data.TestPrefetchDataService
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -129,6 +130,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -177,6 +179,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -227,6 +230,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -257,6 +261,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =
@@ -310,6 +315,7 @@ class BannerTest {
             FeatureManager(
                 configuration = provideTestConfigurationFlow(scope = this.backgroundScope),
                 scope = this.backgroundScope,
+                TestPrefetchDataService(),
             )
 
         val events =

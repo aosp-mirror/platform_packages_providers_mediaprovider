@@ -17,6 +17,8 @@
 package com.android.photopicker.features.photogrid
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +47,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import com.android.modules.utils.build.SdkLevel
 import com.android.photopicker.R
+import com.android.photopicker.core.StateSelector
+import com.android.photopicker.core.animations.standardDecelerate
 import com.android.photopicker.core.banners.Banner
 import com.android.photopicker.core.banners.BannerDefinitions
 import com.android.photopicker.core.components.EmptyState
@@ -61,6 +66,7 @@ import com.android.photopicker.core.events.Telemetry
 import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.LocalFeatureManager
 import com.android.photopicker.core.features.Location
+import com.android.photopicker.core.hideWhenState
 import com.android.photopicker.core.navigation.LocalNavController
 import com.android.photopicker.core.navigation.PhotopickerDestinations
 import com.android.photopicker.core.navigation.PhotopickerDestinations.PHOTO_GRID
@@ -70,9 +76,11 @@ import com.android.photopicker.core.theme.LocalWindowSizeClass
 import com.android.photopicker.extensions.navigateToAlbumGrid
 import com.android.photopicker.extensions.navigateToPhotoGrid
 import com.android.photopicker.extensions.navigateToPreviewMedia
+import com.android.photopicker.extensions.transferTouchesToHostInEmbedded
 import com.android.photopicker.features.albumgrid.AlbumGridFeature
 import com.android.photopicker.features.navigationbar.NavigationBarButton
 import com.android.photopicker.features.preview.PreviewFeature
+import com.android.photopicker.util.LocalLocalizationHelper
 import kotlinx.coroutines.launch
 
 private val MEASUREMENT_BANNER_PADDING =
@@ -114,8 +122,14 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
             .collectAsLazyPagingItems()
 
     val selectionLimit = LocalPhotopickerConfiguration.current.selectionLimit
+    val localizedSelectionLimit = LocalLocalizationHelper.current.getLocalizedCount(selectionLimit)
+
     val selectionLimitExceededMessage =
-        stringResource(R.string.photopicker_selection_limit_exceeded_snackbar, selectionLimit)
+        stringResource(
+            R.string.photopicker_selection_limit_exceeded_snackbar,
+            localizedSelectionLimit,
+        )
+
     val events = LocalEvents.current
     val scope = rememberCoroutineScope()
     val configuration = LocalPhotopickerConfiguration.current
@@ -155,6 +169,7 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
         LocalPhotopickerConfiguration.current.runtimeEnv == PhotopickerRuntimeEnv.EMBEDDED
     val isExpanded = LocalEmbeddedState.current?.isExpanded ?: false
     val isEmbeddedAndCollapsed = isEmbedded && !isExpanded
+    val host = LocalEmbeddedState.current?.host
 
     Column(
         modifier =
@@ -174,8 +189,15 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 val emptyStatePadding =
                     remember(localConfig) { (localConfig.screenHeightDp * .20).dp }
                 EmptyState(
-                    // Provide 20% of screen height as empty space above
-                    modifier = Modifier.fillMaxWidth().padding(top = emptyStatePadding),
+                    modifier =
+                        if (SdkLevel.isAtLeastU() && isEmbedded && host != null) {
+                            // In embedded no need to give extra top padding to make empty
+                            // state title and body clearly visible in collapse mode (small view)
+                            Modifier.fillMaxWidth().transferTouchesToHostInEmbedded(host = host)
+                        } else {
+                            // Provide 20% of screen height as empty space above
+                            Modifier.fillMaxWidth().padding(top = emptyStatePadding)
+                        },
                     icon = Icons.Outlined.Image,
                     title = stringResource(R.string.photopicker_photos_empty_state_title),
                     body = stringResource(R.string.photopicker_photos_empty_state_body),
@@ -191,8 +213,27 @@ fun PhotoGrid(viewModel: PhotoGridViewModel = obtainViewModel()) {
                 mediaGrid(
                     items = items,
                     isExpandedScreen = isExpandedScreen,
+                    userScrollEnabled =
+                        when (isEmbedded) {
+                            true -> isExpanded
+                            false -> true
+                        },
                     selection = selection,
-                    bannerContent = { AnimatedBannerWrapper(currentBanner) },
+                    bannerContent = {
+                        hideWhenState(
+                            selector =
+                                object : StateSelector.AnimatedVisibilityInEmbedded {
+                                    override val visible =
+                                        LocalEmbeddedState.current?.isExpanded ?: false
+                                    override val enter =
+                                        expandVertically(animationSpec = standardDecelerate(300))
+                                    override val exit =
+                                        shrinkVertically(animationSpec = standardDecelerate(150))
+                                }
+                        ) {
+                            AnimatedBannerWrapper(currentBanner)
+                        }
+                    },
                     onItemClick = { item ->
                         if (item is MediaGridItem.MediaItem) {
                             viewModel.handleGridItemSelection(

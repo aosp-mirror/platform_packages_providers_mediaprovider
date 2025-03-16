@@ -28,7 +28,9 @@ import com.android.photopicker.core.features.FeatureToken
 import com.android.photopicker.core.features.Location
 import com.android.photopicker.core.features.LocationParams
 import com.android.photopicker.core.features.PhotopickerUiFeature
+import com.android.photopicker.core.features.PrefetchResultKey
 import com.android.photopicker.core.features.Priority
+import kotlinx.coroutines.Deferred
 
 /** Feature class for the Photopicker's overflow menu. */
 class OverflowMenuFeature : PhotopickerUiFeature {
@@ -36,8 +38,10 @@ class OverflowMenuFeature : PhotopickerUiFeature {
     companion object Registration : FeatureRegistration {
         override val TAG: String = "PhotopickerOverflowMenuFeature"
 
-        override fun isEnabled(config: PhotopickerConfiguration) =
-            config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
+        override fun isEnabled(
+            config: PhotopickerConfiguration,
+            deferredPrefetchResultsMap: Map<PrefetchResultKey, Deferred<Any?>>,
+        ) = config.runtimeEnv != PhotopickerRuntimeEnv.EMBEDDED
 
         override fun build(featureManager: FeatureManager) = OverflowMenuFeature()
     }

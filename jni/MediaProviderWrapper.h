@@ -262,6 +262,7 @@ class MediaProviderWrapper final {
     /** Cached MediaProvider method IDs **/
     jmethodID mid_insert_file_;
     jmethodID mid_delete_file_;
+    jmethodID mid_unicode_check_enabled_;
     jmethodID mid_on_file_open_;
     jmethodID mid_scan_file_;
     jmethodID mid_is_diraccess_allowed_;

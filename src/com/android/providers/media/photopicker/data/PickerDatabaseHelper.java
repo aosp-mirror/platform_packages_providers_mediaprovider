@@ -26,6 +26,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Trace;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.providers.media.photopicker.PickerSyncController;
@@ -46,7 +47,10 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
     public static final int VERSION_INTRODUCING_MEDIA_GRANTS_TABLE = 12;
     @VisibleForTesting
     public static final int VERSION_INTRODUCING_DE_SELECTIONS_TABLE = 13;
-    public static final int VERSION_LATEST = VERSION_INTRODUCING_DE_SELECTIONS_TABLE;
+    public static final int VERSION_INTRODUCING_SEARCH_TABLES = 14;
+    public static final int VERSION_INTRODUCING_CATEGORY_TABLES = 15;
+    public static final int VERSION_INTRODUCING_SEARCH_SUGGESTION_TABLES = 16;
+    public static final int VERSION_LATEST = VERSION_INTRODUCING_SEARCH_SUGGESTION_TABLES;
 
     final Context mContext;
     final String mName;
@@ -93,6 +97,20 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
             // Create de_selection table in picker.db if we are upgrading from a version where
             // de_selection table did not exist.
             createDeselectionTable(db);
+        }
+        if (oldV < VERSION_INTRODUCING_SEARCH_TABLES) {
+            // Create picker search tables if the database does not already contain it.
+            createSearchRequestTable(db);
+            createSearchResultMediaTable(db);
+        }
+        if (oldV < VERSION_INTRODUCING_CATEGORY_TABLES) {
+            createMediaSetsTable(db);
+            createMediaInMediaSetsTable(db);
+        }
+        if (oldV < VERSION_INTRODUCING_SEARCH_SUGGESTION_TABLES) {
+            // Create picker search suggestion tables if the database does not already contain it.
+            createSearchSuggestionsTable(db);
+            createSearchHistoryTable(db);
         }
     }
 
@@ -173,6 +191,15 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "UNIQUE(cloud_id, album_id))");
         createMediaGrantsTable(db);
         createDeselectionTable(db);
+
+        createSearchRequestTable(db);
+        createSearchResultMediaTable(db);
+
+        createMediaSetsTable(db);
+        createMediaInMediaSetsTable(db);
+
+        createSearchSuggestionsTable(db);
+        createSearchHistoryTable(db);
     }
 
     private static void createMediaGrantsTable(SQLiteDatabase db) {
@@ -195,6 +222,119 @@ public class PickerDatabaseHelper extends SQLiteOpenHelper {
                 + "UNIQUE(owner_package_name, file_id, package_user_id)"
                 + "  ON CONFLICT IGNORE "
                 + ")");
+    }
+
+    /**
+     * Creates a table to cache for Search Request details and their corresponding
+     * Search Request ID.
+     * @param db Wrapper that holds SQLite database connections and exposes methods to manage it.
+     */
+    private static void createSearchRequestTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS search_request");
+
+        // Note that SQLite treats all null values as different. So, if you apply a
+        // UNIQUE(...) constraint on some columns and if any of those columns holds a null value,
+        // the unique constraint will not be applied. This is why in the search request table,
+        // a placeholder value will be used instead of null so that the unique constraint gets
+        // applied to all search requests saved in the table.
+        db.execSQL("CREATE TABLE search_request"
+                + "(_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "sync_resume_key TEXT,"
+                + "mime_types TEXT NOT NULL,"
+                + "search_text TEXT NOT NULL,"
+                + "media_set_id TEXT NOT NULL,"
+                + "suggestion_type TEXT NOT NULL,"
+                + "authority TEXT NOT NULL,"
+                + "CHECK(search_text IS NOT NULL OR media_set_id IS NOT NULL),"
+                + "UNIQUE(mime_types, search_text, media_set_id, suggestion_type, authority))");
+    }
+
+    /**
+     * Creates a table to cache for Search Result media mapped with their corresponding
+     * Search Request IDs.
+     * @param db Wrapper that holds SQLite database connections and exposes methods to manage it.
+     */
+    private static void createSearchResultMediaTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS search_result_media");
+        db.execSQL("CREATE TABLE search_result_media"
+                + "(_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "search_request_id INTEGER NOT NULL,"
+                + "local_id TEXT,"
+                + "cloud_id TEXT,"
+                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL),"
+                + "UNIQUE(search_request_id,  local_id),"
+                + "UNIQUE(search_request_id,  cloud_id))");
+    }
+
+    /**
+     * Creates a table to cache the MediaSets and their corresponding metadata under the various
+     * categories provided by the CloudMediaProvider.
+     * @param db Database wrapper that holds SQLite database connections and exposes methods to
+     *           manage it.
+     */
+    private static void createMediaSetsTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS media_sets");
+        db.execSQL("CREATE TABLE media_sets("
+                + "_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "category_id TEXT NOT NULL,"
+                + "media_set_id TEXT NOT NULL,"
+                + "display_name TEXT,"
+                + "cover_id TEXT,"
+                + "media_set_authority TEXT NOT NULL,"
+                + "mime_type_filter TEXT NOT NULL,"
+                + "media_in_media_set_sync_resume_key TEXT,"
+                + "UNIQUE(category_id, media_set_id, mime_type_filter))");
+    }
+
+
+    /**
+     * Creates a table to cache the media items in various MediaSets and their corresponding
+     * metadata.
+     * @param db Database wrapper that holds SQLite database connections and exposes methods to
+     *           manage it.
+     */
+    private static void createMediaInMediaSetsTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS media_in_media_sets");
+        db.execSQL("CREATE TABLE media_in_media_sets("
+                + "_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "cloud_id TEXT,"
+                + "local_id TEXT,"
+                + "media_set_picker_id INTEGER,"
+                + "CHECK(local_id IS NOT NULL OR cloud_id IS NOT NULL))");
+    }
+
+    /**
+     * Creates a table to cache for Search Suggestions for zero-state.
+     * @param db Wrapper that holds SQLite database connections and exposes methods to manage it.
+     */
+    private static void createSearchSuggestionsTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS search_suggestion");
+        db.execSQL("CREATE TABLE search_suggestion"
+                + "(_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "authority TEXT NOT NULL,"
+                + "search_text TEXT,"
+                + "media_set_id TEXT NOT NULL,"
+                + "suggestion_type TEXT NOT NULL,"
+                + "cover_media_id TEXT,"
+                + "creation_time_ms INTEGER NOT NULL,"
+                + "UNIQUE(search_text, media_set_id))");
+    }
+
+    /**
+     * Creates a table to save the Search History.
+     * @param db Wrapper that holds SQLite database connections and exposes methods to manage it.
+     */
+    private static void createSearchHistoryTable(@NonNull SQLiteDatabase db) {
+        db.execSQL("DROP TABLE IF EXISTS search_history");
+        db.execSQL("CREATE TABLE search_history"
+                + "(_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "authority TEXT,"
+                + "search_text TEXT,"
+                + "media_set_id TEXT,"
+                + "cover_media_id TEXT,"
+                + "creation_time_ms INTEGER NOT NULL,"
+                + "CHECK(search_text IS NOT NULL OR media_set_id IS NOT NULL),"
+                + "UNIQUE(search_text, media_set_id))");
     }
 
     private static void createLatestIndexes(SQLiteDatabase db) {

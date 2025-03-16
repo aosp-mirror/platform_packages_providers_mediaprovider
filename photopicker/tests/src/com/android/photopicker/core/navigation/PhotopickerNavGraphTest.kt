@@ -36,6 +36,7 @@ import com.android.photopicker.core.events.generatePickerSessionId
 import com.android.photopicker.core.features.FeatureManager
 import com.android.photopicker.core.features.FeatureRegistration
 import com.android.photopicker.core.features.LocalFeatureManager
+import com.android.photopicker.data.TestPrefetchDataService
 import com.android.photopicker.features.alwaysdisabledfeature.AlwaysDisabledFeature
 import com.android.photopicker.features.highpriorityuifeature.HighPriorityUiFeature
 import com.android.photopicker.features.simpleuifeature.SimpleUiFeature
@@ -75,6 +76,7 @@ class PhotopickerNavGraphTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 testRegistrations,
                 /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                 /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -89,7 +91,7 @@ class PhotopickerNavGraphTest {
     private fun testNavGraph(
         featureManager: FeatureManager,
         configuration: PhotopickerConfiguration =
-            PhotopickerConfiguration(action = "", sessionId = sessionId)
+            PhotopickerConfiguration(action = "", sessionId = sessionId),
     ) {
         navController = TestNavHostController(LocalContext.current)
         navController.navigatorProvider.addNavigator(ComposeNavigator())
@@ -97,7 +99,7 @@ class PhotopickerNavGraphTest {
         // Provide the feature manager to the compose stack.
         CompositionLocalProvider(
             LocalPhotopickerConfiguration provides configuration,
-            LocalFeatureManager provides featureManager
+            LocalFeatureManager provides featureManager,
         ) {
 
             // Provide the nav controller via [CompositionLocalProvider] to
@@ -120,6 +122,7 @@ class PhotopickerNavGraphTest {
             FeatureManager(
                 provideTestConfigurationFlow(scope = scope.backgroundScope),
                 scope,
+                TestPrefetchDataService(),
                 emptySet<FeatureRegistration>(),
                 /*coreEventsConsumed=*/ setOf<RegisteredEventClass>(),
                 /*coreEventsProduced=*/ setOf<RegisteredEventClass>(),
@@ -154,7 +157,7 @@ class PhotopickerNavGraphTest {
             PhotopickerConfiguration(
                 action = "",
                 startDestination = PhotopickerDestinations.ALBUM_GRID,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         composeTestRule.setContent { testNavGraph(featureManager, config) }
 
@@ -170,7 +173,7 @@ class PhotopickerNavGraphTest {
             PhotopickerConfiguration(
                 action = "",
                 startDestination = PhotopickerDestinations.PHOTO_GRID,
-                sessionId = sessionId
+                sessionId = sessionId,
             )
         composeTestRule.setContent { testNavGraph(featureManager, config) }
 

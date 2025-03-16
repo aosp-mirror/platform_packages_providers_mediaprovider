@@ -16,6 +16,7 @@
 
 package com.android.photopicker.data
 
+import android.content.ContentResolver
 import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
@@ -38,6 +39,9 @@ interface DataService {
     companion object {
         val TAG: String = "PhotopickerDataService"
     }
+
+    /** A [StateFlow] with the active content resolver. */
+    val activeContentResolver: StateFlow<ContentResolver>
 
     /** A [StateFlow] with a list of available [Provider]-s. */
     val availableProviders: StateFlow<List<Provider>>
@@ -83,7 +87,7 @@ interface DataService {
      */
     fun previewMediaPagingSource(
         currentSelection: Set<Media>,
-        currentDeselection: Set<Media>
+        currentDeselection: Set<Media>,
     ): PagingSource<MediaPageKey, Media>
 
     /**

@@ -16,6 +16,7 @@
 
 package com.android.photopicker.data
 
+import android.content.ContentResolver
 import android.net.Uri
 import androidx.paging.PagingSource
 import com.android.photopicker.data.model.CloudMediaProviderDetails
@@ -66,6 +67,9 @@ class TestDataServiceImpl() : DataService {
         _availableProviders.update { newProviders }
     }
 
+    override val activeContentResolver: StateFlow<ContentResolver>
+        get() = TODO("Not yet implemented")
+
     override val preGrantedMediaCount: StateFlow<Int> = _preGrantsCount
     override val preSelectionMediaData: StateFlow<List<Media>?> =
         MutableStateFlow(ArrayList<Media>())
@@ -96,7 +100,7 @@ class TestDataServiceImpl() : DataService {
 
     override fun previewMediaPagingSource(
         currentSelection: Set<Media>,
-        currentDeselection: Set<Media>
+        currentDeselection: Set<Media>,
     ): PagingSource<MediaPageKey, Media> {
         // re-using the media source, modify as per future test usage.
         return mediaList?.let { FakeInMemoryMediaPagingSource(it) }

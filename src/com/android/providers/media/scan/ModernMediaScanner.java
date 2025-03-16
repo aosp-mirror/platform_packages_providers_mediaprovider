@@ -51,6 +51,7 @@ import static android.text.format.DateUtils.HOUR_IN_MILLIS;
 import static android.text.format.DateUtils.MINUTE_IN_MILLIS;
 
 import static com.android.providers.media.flags.Flags.enableOemMetadata;
+import static com.android.providers.media.flags.Flags.indexMediaLatitudeLongitude;
 import static com.android.providers.media.util.FileUtils.canonicalize;
 import static com.android.providers.media.util.IsoInterface.MAX_XMP_SIZE_BYTES;
 import static com.android.providers.media.util.Metrics.translateReason;
@@ -112,8 +113,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import com.android.modules.utils.BackgroundThread;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.providers.media.ConfigStore;
+import com.android.providers.media.MediaProvider;
 import com.android.providers.media.MediaVolume;
 import com.android.providers.media.backupandrestore.RestoreExecutor;
 import com.android.providers.media.flags.Flags;
@@ -396,6 +399,20 @@ public class ModernMediaScanner implements MediaScanner {
         }
     }
 
+    /**
+     * Invalidate FUSE dentry cache while setting directory dirty
+     */
+    private void invalidateFuseDentryInBg(File file) {
+        BackgroundThread.getExecutor().execute(() -> {
+            try (ContentProviderClient client =
+                         mContext.getContentResolver().acquireContentProviderClient(
+                                 MediaStore.AUTHORITY)) {
+                ((MediaProvider) client.getLocalContentProvider()).invalidateFuseDentry(file);
+            }
+        });
+    }
+
+
     @Override
     public void onDirectoryDirty(@NonNull File dir) {
         requireNonNull(dir);
@@ -409,6 +426,7 @@ public class ModernMediaScanner implements MediaScanner {
         synchronized (mPendingCleanDirectories) {
             mPendingCleanDirectories.remove(dir.getPath().toLowerCase(Locale.ROOT));
             FileUtils.setDirectoryDirty(dir, /* isDirty */ true);
+            invalidateFuseDentryInBg(dir);
         }
     }
 
@@ -1071,6 +1089,9 @@ public class ModernMediaScanner implements MediaScanner {
                             dir.toFile().getPath().toLowerCase(Locale.ROOT))) {
                         // If |dir| is still clean, then persist
                         FileUtils.setDirectoryDirty(dir.toFile(), false /* isDirty */);
+                        if (!MediaStore.VOLUME_INTERNAL.equals(mVolumeName)) {
+                            invalidateFuseDentryInBg(dir.toFile());
+                        }
                         mIsDirectoryTreeDirty = false;
                     }
                 }
@@ -1544,6 +1565,12 @@ public class ModernMediaScanner implements MediaScanner {
                         parseOptional(mmr.extractMetadata(METADATA_KEY_COLOR_RANGE)));
                 withOptionalValue(op, FileColumns._VIDEO_CODEC_TYPE,
                         parseOptional(mmr.extractMetadata(METADATA_KEY_VIDEO_CODEC_MIME_TYPE)));
+
+                // TODO b/373352459 Latitude and Longitude for backup and restore
+                // Fill up the latitude and longitude columns
+                if (indexMediaLatitudeLongitude()) {
+                    populateVideoGeolocationCoordinates(op, mmr);
+                }
             }
 
             // Also hunt around for XMP metadata
@@ -1556,6 +1583,38 @@ public class ModernMediaScanner implements MediaScanner {
         }
         return op;
     }
+
+    private void populateVideoGeolocationCoordinates(
+            ContentProviderOperation.Builder op, MediaMetadataRetriever mmr) {
+        // Extract geolocation data
+        final int locationArraySize = 2;
+        // First element of the array is the latitude and the second is the longitude
+        final int latitudeIndex = 0;
+        final int longitudeIndex = 1;
+        String imageGeolocationCoordinates = mmr.extractMetadata(
+                MediaMetadataRetriever.METADATA_KEY_LOCATION);
+        if (imageGeolocationCoordinates != null) {
+            // The extracted geolocation string is of the form +90.87-87.68.
+            // where the first half +90.87 is the latitude including the first
+            // leading +/- sign and the second half -87.68. is the longitude including the
+            // last '.' character. The following processing includes the signs and
+            // discards the last '.' character.
+            String[] locationParts = imageGeolocationCoordinates.split("(?=[+-])");
+            if (locationParts.length == locationArraySize) {
+                float latitude = Float.parseFloat(locationParts[latitudeIndex]);
+                // Remove last character which is a '.' in the string
+                float longitude = Float.parseFloat(
+                        locationParts[longitudeIndex].substring(
+                                0, locationParts[longitudeIndex].length() - 1));
+                op.withValue(VideoColumns.LATITUDE, latitude);
+                op.withValue(VideoColumns.LONGITUDE, longitude);
+            } else {
+                Log.e(TAG, "Couldn't extract image geolocation coordinates");
+            }
+        }
+    }
+
+
 
     private @NonNull ContentProviderOperation.Builder scanItemImage(long existingId,
             File file, BasicFileAttributes attrs, String mimeType, int mediaType,
@@ -1587,6 +1646,12 @@ public class ModernMediaScanner implements MediaScanner {
             withOptionalValue(op, ImageColumns.SCENE_CAPTURE_TYPE,
                     parseOptional(exif.getAttribute(ExifInterface.TAG_SCENE_CAPTURE_TYPE)));
 
+            // TODO b/373352459 Latitude and Longitude for backup and restore
+            // Fill up the latitude and longitude columns
+            if (indexMediaLatitudeLongitude()) {
+                populateImageGeolocationCoordinates(op, exif);
+            }
+
             // Also hunt around for XMP metadata
             final XmpInterface xmp = XmpDataParser.createXmpInterface(exif);
             withXmpValues(op, xmp, mimeType);
@@ -1596,6 +1661,18 @@ public class ModernMediaScanner implements MediaScanner {
             logTroubleScanning(file, e);
         }
         return op;
+    }
+
+    private void populateImageGeolocationCoordinates(
+            ContentProviderOperation.Builder op, ExifInterface exif) {
+        // Array to hold the geolocation coordinates - latitude and longitude
+        final int locationArraySize = 2;
+        float[] locationCoordinates = new float[locationArraySize];
+        if (exif.getLatLong(locationCoordinates)) {
+            // First element is the latitude and the second is the longitude
+            op.withValue(ImageColumns.LATITUDE, locationCoordinates[/* latitudeIndex */ 0]);
+            op.withValue(ImageColumns.LONGITUDE, locationCoordinates[/* longitudeIndex */ 1]);
+        }
     }
 
     private @NonNull ContentProviderOperation.Builder scanItemFile(long existingId,

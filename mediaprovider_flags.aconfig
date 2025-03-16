@@ -156,3 +156,84 @@ flag {
     bug: "361026918"
     is_fixed_read_only: true
 }
+
+flag {
+    name: "cloud_media_provider_search"
+    is_exported: true
+    namespace: "mediaprovider"
+    is_fixed_read_only: true
+    description: "This flag will enable the apis for cloud media provider to donate search results"
+    bug: "316356081"
+}
+
+flag {
+    name: "enable_malicious_app_detector"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag will enable malicious app detector, putting limits on file creation"
+    bug: "293301664"
+    is_fixed_read_only: true
+ }
+
+flag {
+    name: "enable_mark_media_as_favorite_api"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Enables mark media as favorite API"
+    bug: "294364218"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_unicode_check"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether the unicode check is enabled"
+    bug: "263914218"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "index_media_latitude_longitude"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls the indexing of latitude and longitude for both new and existing on-device media items"
+    bug: "361019344"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_photopicker_transcoding"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "This flag controls whether to enable transcoding feature in photopicker"
+    bug: "367886883"
+    is_fixed_read_only: true
+}
+
+flag {
+    name: "enable_cloud_media_provider_capabilities"
+    namespace: "mediaprovider"
+    description: "This flag controls the Capabilities APIs in CloudMediaProvider and the contract."
+    bug: "370445733"
+    is_fixed_read_only: true
+    is_exported: true
+}
+
+flag {
+    name: "motion_photo_intent"
+    is_exported: true
+    namespace: "mediaprovider"
+    is_fixed_read_only: true
+    description: "This flag will enable the motion photo capture intents."
+    bug: "362580165"
+}
+
+flag {
+    name: "enable_mark_is_favorite_status_api"
+    is_exported: true
+    namespace: "mediaprovider"
+    description: "Enables mark media as favorite API"
+    is_fixed_read_only: true
+    bug: "294364218"
+}

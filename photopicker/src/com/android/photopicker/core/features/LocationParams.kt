@@ -17,6 +17,7 @@
 package com.android.photopicker.core.features
 
 import com.android.photopicker.data.model.Media
+import com.android.photopicker.features.preparemedia.PrepareMediaResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 
@@ -48,14 +49,14 @@ sealed interface LocationParams {
         fun onClick()
     }
 
-    /** Requirements for attaching a [MediaPreloader] to the compose UI. */
-    interface WithMediaPreloader : LocationParams {
+    /** Requirements for attaching a [MediaPreparer] to the compose UI. */
+    interface WithMediaPreparer : LocationParams {
 
-        // Method which can be called to obtain a deferred for the currently requested preload
+        // Method which can be called to obtain a deferred for the currently requested prepare
         // operation.
-        fun obtainDeferred(): CompletableDeferred<Boolean>
+        fun obtainDeferred(): CompletableDeferred<PrepareMediaResult>
 
-        // Flow to trigger the start of media preloads.
-        val preloadMedia: Flow<Set<Media>>
+        // Flow to trigger the start of media prepares.
+        val prepareMedia: Flow<Set<Media>>
     }
 }

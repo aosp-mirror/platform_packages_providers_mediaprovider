@@ -55,10 +55,8 @@ import static com.android.providers.media.LocalUriMatcher.VIDEO_MEDIA_ID;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS;
 import static com.android.providers.media.LocalUriMatcher.VIDEO_THUMBNAILS_ID;
 import static com.android.providers.media.MediaGrants.PACKAGE_USER_ID_COLUMN;
-import static com.android.providers.media.MediaProvider.INCLUDED_DEFAULT_DIRECTORIES;
 import static com.android.providers.media.util.DatabaseUtils.bindSelection;
 
-import android.os.Bundle;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Files.FileColumns;
 import android.provider.MediaStore.MediaColumns;
@@ -69,6 +67,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Class responsible for performing all access checks (read/write access states for calling package)
@@ -232,7 +232,7 @@ public class AccessChecker {
     @NonNull
     public static String getWhereForConstrainedAccess(
             @NonNull LocalCallingIdentity callingIdentity, int uriType,
-            boolean forWrite, @NonNull Bundle extras) {
+            boolean forWrite, Optional<List<String>> includedDefaultDirectoriesOptional) {
         switch (uriType) {
             case AUDIO_MEDIA_ID:
             case AUDIO_MEDIA: {
@@ -326,9 +326,12 @@ public class AccessChecker {
 
                 // Allow access to file in directories. This si particularly used only for
                 // SystemGallery use-case
-                final String defaultDirectorySql = getWhereForDefaultDirectoryMatch(extras);
-                if (defaultDirectorySql != null) {
-                    options.add(defaultDirectorySql);
+                if (includedDefaultDirectoriesOptional.isPresent()) {
+                    final String defaultDirectorySql = getWhereForDefaultDirectoryMatch(
+                            includedDefaultDirectoriesOptional.get());
+                    if (defaultDirectorySql != null) {
+                        options.add(defaultDirectorySql);
+                    }
                 }
 
                 return TextUtils.join(" OR ", options);
@@ -387,12 +390,11 @@ public class AccessChecker {
      * @see MediaProvider#INCLUDED_DEFAULT_DIRECTORIES
      */
     @Nullable
-    private static String getWhereForDefaultDirectoryMatch(@NonNull Bundle extras) {
-        final ArrayList<String> includedDefaultDirs = extras.getStringArrayList(
-                INCLUDED_DEFAULT_DIRECTORIES);
+    private static String getWhereForDefaultDirectoryMatch(
+            List<String> includedDefaultDirectories) {
         final ArrayList<String> options = new ArrayList<>();
-        if (includedDefaultDirs != null) {
-            for (String defaultDir : includedDefaultDirs) {
+        if (includedDefaultDirectories != null) {
+            for (String defaultDir : includedDefaultDirectories) {
                 options.add(FileColumns.RELATIVE_PATH + " LIKE '" + defaultDir + "/%'");
             }
         }

@@ -32,6 +32,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
 import android.database.sqlite.SQLiteConstraintException;
@@ -1044,11 +1045,31 @@ public class PickerDbFacade {
     }
 
     private Cursor queryMediaIdForAppsLocked(@NonNull SQLiteQueryBuilder qb,
-            @NonNull String[] projection, @NonNull String[] selectionArgs,
+            @NonNull String[] columns, @NonNull String[] selectionArgs,
             String pickerSegmentType) {
-        return qb.query(mDatabase, getMediaStoreProjectionLocked(projection, pickerSegmentType),
-                /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
-                /* orderBy */ null, /* limitStr */ null);
+        final Cursor cursor =
+                qb.query(mDatabase, getMediaStoreProjectionLocked(columns, pickerSegmentType),
+                    /* selection */ null, selectionArgs, /* groupBy */ null, /* having */ null,
+                    /* orderBy */ null, /* limitStr */ null);
+
+        if (columns == null || columns.length == 0 || cursor.getColumnCount() == columns.length) {
+            return cursor;
+        } else {
+            // An unknown column was encountered. Populate it will null for backwards compatibility.
+            final MatrixCursor result = new MatrixCursor(columns);
+            if (cursor.moveToFirst()) {
+                do {
+                    final ContentValues contentValues = new ContentValues();
+                    DatabaseUtils.cursorRowToContentValues(cursor, contentValues);
+                    final MatrixCursor.RowBuilder rowBuilder = result.newRow();
+                    for (String column : columns) {
+                        rowBuilder.add(column, contentValues.get(column));
+                    }
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+            return result;
+        }
     }
 
     /**
@@ -1200,54 +1221,51 @@ public class PickerDbFacade {
     }
 
     private String[] getMediaStoreProjectionLocked(String[] columns, String pickerSegmentType) {
-        final String[] projection = new String[columns.length];
+        final List<String> projection = new ArrayList<>();
 
-        for (int i = 0; i < projection.length; i++) {
+        for (int i = 0; i < columns.length; i++) {
             switch (columns[i]) {
                 case PickerMediaColumns.DATA:
-                    projection[i] = getProjectionDataLocked(PickerMediaColumns.DATA,
-                            pickerSegmentType);
+                    projection.add(getProjectionDataLocked(PickerMediaColumns.DATA,
+                            pickerSegmentType));
                     break;
                 case PickerMediaColumns.DISPLAY_NAME:
-                    projection[i] =
-                            getProjectionSimple(
-                                    getDisplayNameSql(), PickerMediaColumns.DISPLAY_NAME);
+                    projection.add(getProjectionSimple(
+                            getDisplayNameSql(), PickerMediaColumns.DISPLAY_NAME));
                     break;
                 case PickerMediaColumns.MIME_TYPE:
-                    projection[i] =
-                            getProjectionSimple(KEY_MIME_TYPE, PickerMediaColumns.MIME_TYPE);
+                    projection.add(getProjectionSimple(
+                            KEY_MIME_TYPE, PickerMediaColumns.MIME_TYPE));
                     break;
                 case PickerMediaColumns.DATE_TAKEN:
-                    projection[i] =
-                            getProjectionSimple(KEY_DATE_TAKEN_MS, PickerMediaColumns.DATE_TAKEN);
+                    projection.add(getProjectionSimple(
+                            KEY_DATE_TAKEN_MS, PickerMediaColumns.DATE_TAKEN));
                     break;
                 case PickerMediaColumns.SIZE:
-                    projection[i] = getProjectionSimple(KEY_SIZE_BYTES, PickerMediaColumns.SIZE);
+                    projection.add(getProjectionSimple(KEY_SIZE_BYTES, PickerMediaColumns.SIZE));
                     break;
                 case PickerMediaColumns.DURATION_MILLIS:
-                    projection[i] =
-                            getProjectionSimple(
-                                    KEY_DURATION_MS, PickerMediaColumns.DURATION_MILLIS);
+                    projection.add(getProjectionSimple(
+                            KEY_DURATION_MS, PickerMediaColumns.DURATION_MILLIS));
                     break;
                 case PickerMediaColumns.HEIGHT:
-                    projection[i] = getProjectionSimple(KEY_HEIGHT, PickerMediaColumns.HEIGHT);
+                    projection.add(getProjectionSimple(KEY_HEIGHT, PickerMediaColumns.HEIGHT));
                     break;
                 case PickerMediaColumns.WIDTH:
-                    projection[i] = getProjectionSimple(KEY_WIDTH, PickerMediaColumns.WIDTH);
+                    projection.add(getProjectionSimple(KEY_WIDTH, PickerMediaColumns.WIDTH));
                     break;
                 case PickerMediaColumns.ORIENTATION:
-                    projection[i] =
-                            getProjectionSimple(KEY_ORIENTATION, PickerMediaColumns.ORIENTATION);
+                    projection.add(getProjectionSimple(
+                            KEY_ORIENTATION, PickerMediaColumns.ORIENTATION));
                     break;
                 default:
-                    projection[i] = getProjectionSimple("NULL", columns[i]);
                     // Ignore unsupported columns; we do not throw error here to support
-                    // backward compatibility
+                    // backward compatibility for ACTION_GET_CONTENT takeover.
                     Log.w(TAG, "Unexpected Picker column: " + columns[i]);
             }
         }
 
-        return projection;
+        return projection.toArray(new String[0]);
     }
 
     private String getProjectionAuthorityLocked() {

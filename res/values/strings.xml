@@ -83,13 +83,13 @@
     <string name="picker_browse">Browse\u2026</string>
 
     <!-- Settings menu item in Photo Picker menu which allows users to change the cloud media provider app. [CHAR LIMIT=30] -->
-    <string name="picker_settings">Cloud media app</string>
+    <string name="picker_settings">Settings</string>
 
     <!-- PhotoPicker Settings item title in the System Settings menu. [CHAR LIMIT=40] -->
-    <string name="picker_settings_system_settings_menu_title">Cloud media app</string>
+    <string name="picker_settings_system_settings_menu_title">Cloud media settings</string>
 
     <!-- Settings page title in Photo Picker. [CHAR LIMIT=NONE] -->
-    <string name="picker_settings_title">Cloud media app</string>
+    <string name="picker_settings_title">Cloud media settings</string>
 
     <!-- Settings page description in Photo Picker. [CHAR LIMIT=NONE] -->
     <string name="picker_settings_description">Access your cloud media when an app or website asks you to select photos or videos</string>

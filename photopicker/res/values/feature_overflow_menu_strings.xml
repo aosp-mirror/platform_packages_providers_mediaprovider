@@ -19,7 +19,7 @@
   <string name="photopicker_overflow_menu_description" translation_description="Button content description that shows an overflow menu of additional setting-related options.">More</string>
 
     <!-- Overflow menu cloud settings label -->
-    <string name="photopicker_overflow_cloud_media_app" translation_description="Menu item label that directs the user to a settings page for their cloud media application.">Cloud media app</string>
+    <string name="photopicker_overflow_cloud_media_app" translation_description="Menu item label that directs the user to a settings page for their cloud media application.">Settings</string>
 
 </resources>
 
